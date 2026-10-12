@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { LIST_INDEXES } from "../../../boot/list-indexes.js";
+import { STORE_OPEN_OPTIONS } from "../../../boot/store-options.js";
 import type { StoreOpenOptions } from "../../interface.js";
 import { SqliteStore } from "../store.js";
 
@@ -23,12 +23,12 @@ export interface TempStore {
 
 /**
  * A fresh store on a throwaway database file, opened with the server's
- * list indexes (boot/list-indexes.ts) the way the composition root opens
- * one, so a lane under test reads through the index it reads in
+ * list indexes and session event gates (boot/store-options.ts) the way the
+ * composition root opens one, so a lane under test reads through the index it reads in
  * production. `options` replaces them for a test that declares its own.
  */
 export function tempStore(
-  options: StoreOpenOptions = { listIndexes: LIST_INDEXES },
+  options: StoreOpenOptions = STORE_OPEN_OPTIONS,
 ): TempStore {
   const dir = mkdtempSync(path.join(tmpdir(), "stigmer-store-test-"));
   const dbPath = path.join(dir, "stigmer.db");

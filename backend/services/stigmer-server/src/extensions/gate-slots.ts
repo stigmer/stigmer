@@ -13,6 +13,17 @@
  * agent-execution slots, whose positions coincide exactly with the Java
  * session gate.
  *
+ * `agent-execution-submit-approval:gate` sits in the one core every
+ * answer to a waiting tool use runs (domain/session/hitl/answer.ts): after
+ * the answer is validated, before it is recorded. It runs once per fresh
+ * answer whichever method carried it (SessionCommandController
+ * .confirmToolUse and .grantPermission, RunCommandController
+ * .submitApproval), and never for a replayed answer, which ends the chain
+ * before the slot. Its steps read the answer with `approvalAnswerOf(ctx)`
+ * (`APPROVAL_ANSWER_KEY`): the run as loaded, the tool use and its call
+ * row, the result and whether it is a grant. The chain's input differs by
+ * method, so a step reads the answer, never `ctx.input`.
+ *
  * The sixth is
  * `identity-account-provision:post-persist`: inside provisionMyAccount,
  * after the provisioner has answered the caller's row — created on this

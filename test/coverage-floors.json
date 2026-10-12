@@ -60,6 +60,11 @@
       "branches": 37.1,
       "cases": 207
     },
+    "ee/server": {
+      "lines": 96.4,
+      "branches": 80.4,
+      "cases": 677
+    },
     "mcp-server": {
       "lines": 82.8,
       "branches": 71.8,

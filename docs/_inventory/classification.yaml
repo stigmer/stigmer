@@ -833,6 +833,18 @@ pages:
       provider, and back) is a sequence; the shape pages carry topology, this
       page carries the flow.
 
+  guides/self-hosting/tracing:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Send every run to a tracing tool over OpenTelemetry — what one trace
+      holds (a span per turn, model call, tool call, sub-agent, Cursor run),
+      the standard variables per runner shape (the login on the server's
+      secrets list for sandboxed runners), the gRPC default that changed, the
+      content switch and what it never shows, Langfuse and a generic collector
+      as examples, and that the conventions may still rename attributes.
+    medium: none
+
   # ── CLI ────────────────────────────────────────────────────────────────
   cli:
     fate: keep

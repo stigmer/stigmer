@@ -12,8 +12,12 @@
  * index carries the session and working keys (domain/run/list-index.ts).
  * The kit hands the fixture factory the options to open its store with
  * (the server's list indexes, boot/list-indexes.ts, as the composition
- * root opens it), so the list stays the server's own. Event payloads are
- * opaque bytes to a store, so the drafts here are arbitrary bytes.
+ * root opens it, and a gate declaration of its own), so the list stays the
+ * server's own. Event payloads are opaque bytes to a store, so the drafts
+ * here are arbitrary bytes, and the kit's gate declaration reads them as
+ * text: a draft whose bytes are `opens:<id>` opens the gate `<id>`, one
+ * whose bytes are `closes:<id>` closes it (the server's own derivation is
+ * the domain's, domain/session/events/gates.ts, proven beside it).
  *
  * The shape is the port-contract runner's (port-contract.ts): vitest-free,
  * asserting through node:assert/strict, so it ships in dist/ through the
@@ -38,9 +42,11 @@ import type {
   PortContractDeclaration,
   PortContractFixture,
 } from "./port-contract.js";
-import { SessionEventConflictError } from "./session-events.js";
+import { NO_SESSION_EVENT_GATES, SessionEventConflictError } from "./session-events.js";
 import type {
+  OpenSessionEventGate,
   ResourceEventWriter,
+  SessionEventGateDeclaration,
   SessionEventDraft,
   SessionEventGuard,
   SessionEventScope,
@@ -55,8 +61,33 @@ const KEPT = ["session.status_running", "session.status_idle"];
 const RUN_SCOPE: SessionEventScope = {
   sessionKey: "session",
   workingKey: "working_session",
+  waitingKey: "waiting_session",
   stateEventTypes: KEPT,
 };
+
+/** The type the kit's gate declaration reads; every other type has no gate. */
+const GATED = "kit.gated";
+
+/** The kit's gate declaration over opaque bytes (module header). */
+const KIT_GATES: SessionEventGateDeclaration = {
+  revision: 1,
+  types: [GATED],
+  gatesOf(_type, data) {
+    const text = new TextDecoder().decode(data);
+    if (text.startsWith("opens:")) {
+      return { opens: text.slice("opens:".length), closes: "" };
+    }
+    if (text.startsWith("closes:")) {
+      return { opens: "", closes: text.slice("closes:".length) };
+    }
+    return NO_SESSION_EVENT_GATES;
+  },
+};
+
+/** A draft the kit's declaration reads as opening (`opens`) or closing (`closes`) a gate. */
+function gate(eventId: string, runId: string, how: "opens" | "closes", toolUseId: string): SessionEventDraft {
+  return draft(eventId, runId, GATED, `${how}:${toolUseId}`);
+}
 const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 /** A unique suffix per case, so a fixture over a shared database never meets another case's rows. */
@@ -91,7 +122,10 @@ interface Seen {
   previous?: Run | undefined;
   others?: number;
   state?: string | undefined;
+  stateEventId?: string | undefined;
   newestRun?: string | undefined;
+  waiting?: ReadonlyArray<string>;
+  gates?: ReadonlyArray<OpenSessionEventGate>;
 }
 
 /** Writes `row` with `events`, recording what the writer was handed; `runOfNewestType` asks for that run. */
@@ -106,7 +140,10 @@ async function put(
     seen.previous = previous;
     seen.others = session.othersWorking;
     seen.state = session.latestStateType;
+    seen.stateEventId = session.latestState?.eventId;
     seen.newestRun = session.runOfNewestType;
+    seen.waiting = session.othersWaiting;
+    seen.gates = session.gates;
     return { put: row, events };
   };
   const sessionId = row.spec?.target.case === "sessionId" ? row.spec.target.value : "";
@@ -327,25 +364,97 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       const r = `run_${unique()}`;
       const seen: { others?: number } = {};
       await put(store, run(r, s, RunPhase.RUN_PENDING), [], seen);
-      assert.equal(seen.others, 2);
+      assert.equal(seen.others, 1, "a row that waits for an answer or is paused is not working");
       await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen);
-      assert.equal(seen.others, 2, "the row's own working key is not counted");
+      assert.equal(seen.others, 1, "the row's own working key is not counted");
     },
   ],
   [
-    "the writer is handed the type of the session's newest state event, read under the lock",
+    "the writer is handed the session's other waiting rows, and the open gates of those rows and of the written row, in log order; another run's event never closes a gate",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const waiting = `run_a${unique()}`;
+      const finished = `run_b${unique()}`;
+      const r = `run_c${unique()}`;
+      await put(store, run(waiting, s, RunPhase.RUN_WAITING_FOR_APPROVAL));
+      await put(store, run(finished, s, RunPhase.RUN_COMPLETED));
+      await put(store, run(`run_${unique()}`, `ses_${unique()}`, RunPhase.RUN_WAITING_FOR_APPROVAL));
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS));
+      await store.sessionEvents.append(
+        s,
+        "org-kit",
+        [
+          gate("w1", waiting, "opens", "use-w1"),
+          gate("w2", waiting, "opens", "use-w2"),
+          draft("plain", waiting),
+          draft("gated-but-says-nothing", waiting, GATED, "neither"),
+        ],
+        runGuard(waiting),
+      );
+      await store.sessionEvents.append(s, "org-kit", [gate("f1", finished, "opens", "use-f1")], runGuard(finished));
+      await store.sessionEvents.append(
+        s,
+        "org-kit",
+        [gate("r1", r, "opens", "use-r1"), gate("w2-not-mine", r, "closes", "use-w2")],
+        runGuard(r),
+      );
+      await store.sessionEvents.append(s, "org-kit", [gate("w1-closed", waiting, "closes", "use-w1")], runGuard(waiting));
+      const seen: Seen = {};
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen);
+      assert.deepEqual(seen.waiting, [waiting], "the other waiting rows, not a finished one nor another session's");
+      assert.deepEqual(
+        seen.gates?.map((g) => [g.runId, g.toolUseId]),
+        [
+          [waiting, "use-w2"],
+          [r, "use-r1"],
+        ],
+        "open gates of the waiting rows and of the written row, whatever its phase; a gate is closed only by its own run's event",
+      );
+      assert.ok(seen.gates!.every((g, i, all) => i === 0 || all[i - 1]!.seq < g.seq), "in log order");
+      await put(store, run(r, s, RunPhase.RUN_COMPLETED), [gate("r1-done", r, "closes", "use-r1")], seen);
+      await put(store, run(r, s, RunPhase.RUN_COMPLETED), [], seen);
+      assert.deepEqual(seen.gates?.map((g) => g.toolUseId), ["use-w2"], "a write's own closing event closes the gate once committed");
+    },
+  ],
+  [
+    "a writer whose scope names no waiting key is handed no waiting rows and no gates",
     async ({ store }) => {
       const s = `ses_${unique()}`;
       const r = `run_${unique()}`;
-      const seen: { state?: string | undefined } = {};
+      await put(store, run(r, s, RunPhase.RUN_WAITING_FOR_APPROVAL));
+      await store.sessionEvents.append(s, "org-kit", [gate("g", r, "opens", "use-g")], runGuard(r));
+      const seen: { waiting?: ReadonlyArray<string>; gates?: ReadonlyArray<OpenSessionEventGate> } = {};
+      await store.writeResourceAppendingEvents(
+        ApiResourceKind.run,
+        r,
+        RunSchema,
+        (previous, session) => {
+          seen.waiting = session.othersWaiting;
+          seen.gates = session.gates;
+          return { put: previous!, events: [] };
+        },
+        { sessionKey: "session", workingKey: "working_session", stateEventTypes: KEPT },
+      );
+      assert.deepEqual(seen.waiting, []);
+      assert.deepEqual(seen.gates, []);
+    },
+  ],
+  [
+    "the writer is handed the session's newest state event and its type, read under the lock",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      const seen: { state?: string | undefined; stateEventId?: string | undefined } = {};
       await put(store, run(r, s, RunPhase.RUN_PENDING), [draft("m", r, "user.message")], seen);
       assert.equal(seen.state, undefined, "a session with no state event yet");
       await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [draft("on", r, "session.status_running"), draft("say", r, "agent.message")], seen);
       await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen);
       assert.equal(seen.state, "session.status_running", "newest of the state types, not the newest event");
+      assert.equal(seen.stateEventId, "on", "and the event itself");
       await put(store, run(r, s, RunPhase.RUN_COMPLETED), [draft("off", r, "session.status_idle")], seen);
       await put(store, run(r, s, RunPhase.RUN_COMPLETED), [], seen);
       assert.equal(seen.state, "session.status_idle");
+      assert.equal(seen.stateEventId, "off");
     },
   ],
   [
@@ -539,5 +648,7 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
 export function sessionEventStoreContract(
   makeFixture: (options: StoreOpenOptions) => Promise<SessionEventStoreContractFixture>,
 ): ReadonlyArray<SessionEventStoreContractCase> {
-  return portContractCases(DECLARATIONS, () => makeFixture({ listIndexes: LIST_INDEXES }));
+  return portContractCases(DECLARATIONS, () =>
+    makeFixture({ listIndexes: LIST_INDEXES, sessionEventGates: KIT_GATES }),
+  );
 }

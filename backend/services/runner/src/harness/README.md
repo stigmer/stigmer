@@ -62,6 +62,12 @@ pinned somewhere. Read a row across before searching for anything.
   delete flows unasked and nothing is captured, and the secret-path refusal
   still applies (`shared/approval-policy.ts`). A captured turn never waits on
   review.
+- `harness/approval-answers.ts` — the one door a person's answers reach a turn
+  through: on a reinvocation, the run's user.tool_confirmation and
+  stigmer.permission.grant events are read from the session's log and mapped
+  onto the seeded WAITING rows (`TurnInput.approvalDecisions`, and a deny's
+  reason in `TurnInput.approvalDenyMessages`, which the model reads on every
+  engine). `harness/approval-decisions.ts` settles the rows that never run.
 - `harness/owed-undos.ts` — the undos a person made after a turn, put back at
   every turn's start under the workspace lock, and the reconcile turn's whole
   act (`reconcileOwedUndos`).

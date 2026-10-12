@@ -276,7 +276,8 @@ describe("harness contract kit self-check — the driver stands in for the runti
     expect(findToolCallRow(onRecord!, id)?.approvalAction, "the decision is on the record's row").toBe(ApprovalAction.APPROVE);
     expect(findToolCallRow(second.sink.status, id)?.approvalAction, "and on the sink's row").toBe(ApprovalAction.APPROVE);
     expect(onRecord, "the record's copy and the sink's copy are distinct objects, as after a real persist and read-back").not.toBe(second.sink.status);
-    expect(second.input.approvalDecisions.get(id), "the decisions map is the runtime's reader over the same rows").toBe(ApprovalAction.APPROVE);
+    expect(second.input.approvalDecisions.get(id), "the decisions map is the runtime's map of the log's answer onto the same rows").toBe(ApprovalAction.APPROVE);
+    expect(driver.log.map((e) => e.event.case), "the answer is on the modelled log").toEqual(["userToolConfirmation"]);
     await second.settled;
   });
 
@@ -294,13 +295,13 @@ describe("harness contract kit self-check — the driver stands in for the runti
     const id = "driver-view-write";
 
     await driver.turn([scenario.propose(id, WRITE_BETA)]);
-    driver.decide(id, ApprovalAction.SKIP);
+    driver.decide(id, ApprovalAction.REJECT, "not that file");
     await driver.turn([scenario.propose(id, WRITE_BETA), scenario.say("on")]);
 
     expect(views.map((v) => v.executionId)).toEqual([driver.executionId, driver.executionId]);
     expect(views.map((v) => v.sessionId)).toEqual([driver.sessionId, driver.sessionId]);
     expect(views[0]!.approvalDecisions.size, "nothing decided before the first turn").toBe(0);
-    expect(views[1]!.approvalDecisions.get(id), "the reinvocation's view carries the decision").toBe(ApprovalAction.SKIP);
+    expect(views[1]!.approvalDecisions.get(id), "the reinvocation's view carries the decision").toBe(ApprovalAction.REJECT);
   });
 
   it("stops a turn only once the engine reports it is parked, never during setup", async () => {

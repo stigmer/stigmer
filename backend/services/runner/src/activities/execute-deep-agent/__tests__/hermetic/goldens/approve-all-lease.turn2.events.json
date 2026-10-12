@@ -47,6 +47,27 @@
     }
   },
   {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_04cdee2dcafafa5f4821929b24b91aa3ef0ab80b",
+      "result": "allow",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001"
+    }
+  },
+  {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "stigmer_permission_grant": {
+      "id": "sevt_pg_04cdee2dcafafa5f4821929b24b91aa3ef0ab80b",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "scope": "turn",
+      "lease": {
+        "category": "shell"
+      }
+    }
+  },
+  {
     "run_id": "aex_hermetic_0001",
     "agent_tool_result": {
       "id": "aex_hermetic_0001.call-hermetic-exec-0001.r",

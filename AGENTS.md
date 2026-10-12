@@ -34,6 +34,7 @@ skill" when it could be misread.
 - `backend/services/stigmer-server/`: the control plane, published as
   `@stigmer/server`. Own lockfile. `backend/services/stigmer-server/fga/` is the
   authorization model every edition reads.
+- `ee/`: Stigmer Enterprise (`@stigmer/enterprise`), under `ee/LICENSE`.
 - `backend/services/runner/`: the Temporal worker that executes agent sessions
   through two harnesses (Cursor, native deep-agent). Own lockfile.
 - `backend/libs/ts/`: `temporal-codecs`, `zip-structure`, `plugin-package` (the
@@ -63,22 +64,21 @@ skill" when it could be misread.
 
 Dependency direction: `@stigmer/protos` (from `apis/stubs/ts`) -> `@stigmer/sdk`
 -> `@stigmer/react` -> client apps. The server and runner depend on
-`backend/libs/ts` and the protos; nothing depends on a client app.
+`backend/libs/ts` and the protos; nothing depends on a client app or on `ee/`.
 
 ## Toolchains
 
 Root `package.json` is an npm workspace driven by Turborepo (`turbo.json`); Node
-is pinned in `.nvmrc`. Two packages sit outside the workspace with their own
-lockfiles and are run from their directory: `backend/services/stigmer-server`
-and `backend/services/runner`. `site/` uses yarn 4. `sdk/python` uses uv. Go
-modules are joined by `go.work`. Rust lives in `crates/` and
-`client-apps/desktop/src-tauri`. Prettier formats `docs/` and the guidance files
-with `proseWrap: always`; Vale lints `docs/` only.
+is pinned in `.nvmrc`. Standalone packages with their own lockfiles, run from
+their directory: `backend/services/stigmer-server`, `backend/services/runner`,
+`ee/server`. `site/` uses yarn 4. `sdk/python` uses uv. Go modules are joined by
+`go.work`. Rust lives in `crates/` and `client-apps/desktop/src-tauri`. Prettier
+formats `docs/` and the guidance files with `proseWrap: always`; Vale lints
+`docs/` only.
 
 ## Commands
 
-- `make help` lists every target with its one-line purpose; the Makefile is the
-  orchestrator.
+- `make help` lists every target and its purpose; the Makefile orchestrates.
 - `make setup` once; `make check` is the full local CI gate (`check-prep` then
   parallel `check-go check-node check-site check-rust check-java`) and needs no
   other setup.
@@ -88,8 +88,8 @@ with `proseWrap: always`; Vale lints `docs/` only.
 - Tests: `test/README.md` ("The test standard") gives every layer its home, its
   name words and the target that runs it; `make test-conformance-execution`
   needs the `temporal` and `stigmer` CLIs.
-- Docs: `make lint-docs`, `make format-docs`, `make check-docs-yaml`,
-  `make check-docs-inventory`, `make build-site`.
+- Docs:
+  `make lint-docs format-docs check-docs-yaml check-docs-inventory build-site`.
 - Guidance: `make agents-sync` regenerates the Cursor shims; `make agents-check`
   verifies them and every cited path.
 
@@ -105,7 +105,7 @@ summary line in the final message. Never report unverified work as done.
   `backend/services/stigmer-server/fga/**`: also
   `make test-authorization-model`. `tools/codegen/src/authorization-model/**`:
   `npm run test -w @stigmer/codegen && make gen-authorization-model-check`.
-- `backend/services/runner/**`: `make test-runner`.
+- `backend/services/runner/**`: `make test-runner`. `ee/**`: `make test-ee`.
 - `sdk/typescript/**`: `npm run typecheck -w @stigmer/sdk`. `sdk/react/**`:
   `npm run lint -w @stigmer/react && npm run typecheck -w @stigmer/react && npm run test -w @stigmer/react`.
   `sdk/ink/**`: `npm run typecheck -w @stigmer/ink`.

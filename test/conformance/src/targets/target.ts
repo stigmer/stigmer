@@ -7,6 +7,7 @@
 // so the suites stay implementation-agnostic.
 import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import type { ConformanceClients, PresentingOptions } from "../harness/clients";
+import type { FakeOtlpCollector } from "../harness/fake-otlp-collector";
 import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { ModelRegistryDocument } from "../harness/model-registry";
@@ -659,6 +660,12 @@ export interface TargetProfile {
   // only on execution targets; absent on CRUD/cloud targets. Suites obtain it via
   // requireMcpFixture() and push a plugin whose one server points at its url().
   mcpFixture?(): McpToolFixture;
+
+  // The fake OpenTelemetry collector the target's runner sends every run's
+  // trace to (harness/fake-otlp-collector.ts). Present only on the local
+  // execution targets, whose runner the harness boots with the standard
+  // OTLP settings; the run-traces suite skips without it.
+  traceCollector?(): FakeOtlpCollector;
 
   // The model registry document THE RUNNER RESOLVES AGAINST, fetched from the
   // control-plane origin the target handed it (runner-process.ts

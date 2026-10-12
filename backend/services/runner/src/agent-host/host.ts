@@ -33,6 +33,7 @@ import { harnessRowFor, type HarnessRow } from "../harness/registry.js";
 import type { Config } from "../config.js";
 import type { TurnOutcome } from "../harness/types.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
+import { withTraceparent } from "../shared/trace-context.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import { Peer, type LineChannel } from "./channel.js";
 import { serveExec, serveFs } from "./fs-service.js";
@@ -51,8 +52,8 @@ import {
 } from "./protocol.js";
 
 export interface AgentHostServerHooks {
-  /** The runner's configuration arrived with the first boot. */
-  readonly onConfigured?: (config: HostConfigWire) => void;
+  /** The runner's configuration arrived with the first boot; the boot waits for it. */
+  readonly onConfigured?: (config: HostConfigWire) => void | Promise<void>;
 }
 
 /** A host serving one runner. */
@@ -71,19 +72,19 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
   const turns = new Map<string, HostTurn>();
   const keys = new Map<string, Buffer>();
   const booted: HarnessRow[] = [];
-  let configured: HostConfigWire | undefined;
+  let configured: { readonly wire: HostConfigWire; readonly done: Promise<void> } | undefined;
 
-  const configure = (wire: HostConfigWire): Config => {
-    if (configured === undefined) {
-      configured = wire;
-      hooks.onConfigured?.(wire);
-    }
-    return hostConfig(configured);
+  // The first boot's configuration is the host's; every boot waits until the
+  // process-wide part of it (the routes, telemetry) is installed.
+  const configure = async (wire: HostConfigWire): Promise<Config> => {
+    configured ??= { wire, done: Promise.resolve(hooks.onConfigured?.(wire)) };
+    await configured.done;
+    return hostConfig(configured.wire);
   };
 
   peer.handle("boot", async ({ harness, config }) => {
     const row = harnessRowFor(rows, harness);
-    await row.adapter.boot(configure(config));
+    await row.adapter.boot(await configure(config));
     if (!booted.includes(row)) booted.push(row);
     return null;
   });
@@ -136,7 +137,10 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
     let outcome: TurnOutcome | undefined;
     let thrown: unknown;
     try {
-      outcome = await runWithExecutionContext(input.executionId, () => adapter.runTurn(input, turn.sink), args.turnKey);
+      // Under the run's span, so the engines' spans join the run's trace.
+      outcome = await withTraceparent(args.traceparent, () =>
+        runWithExecutionContext(input.executionId, () => adapter.runTurn(input, turn.sink), args.turnKey),
+      );
     } catch (err) {
       thrown = err;
     }

@@ -1,0 +1,19 @@
+{
+  "name": "@stigmer/enterprise-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Compile-proof consumer of @stigmer/enterprise: a host's use of the package that typechecks against its exports map alone, file-linked here and re-checked against the packed tarball by the consumer-install check.",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stigmer/enterprise": "file:../..",
+    "@stigmer/protos": "file:../../../../apis/stubs/ts",
+    "@stigmer/server": "file:../../../../backend/services/stigmer-server"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "^5.7.0"
+  }
+}

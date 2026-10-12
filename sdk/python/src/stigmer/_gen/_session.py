@@ -11,6 +11,7 @@ from ai.stigmer.agentic.session.v1 import api_pb2
 from ai.stigmer.agentic.session.v1 import command_pb2_grpc
 from ai.stigmer.agentic.session.v1 import query_pb2_grpc
 from ai.stigmer.agentic.session.v1 import io_pb2
+from ai.stigmer.agentic.session.v1 import event_pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 
@@ -53,6 +54,24 @@ class SessionClient:
     def review_file_changes(self, input: io_pb2.ReviewFileChangesInput) -> io_pb2.ReviewFileChangesResponse:
         try:
             return self._command.reviewFileChanges(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def confirm_tool_use(self, input: io_pb2.ConfirmToolUseInput) -> event_pb2.SessionEvent:
+        try:
+            return self._command.confirmToolUse(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def grant_permission(self, input: io_pb2.GrantPermissionInput) -> io_pb2.GrantPermissionResponse:
+        try:
+            return self._command.grantPermission(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def interrupt(self, input: io_pb2.InterruptSessionInput) -> io_pb2.InterruptSessionResponse:
+        try:
+            return self._command.interrupt(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

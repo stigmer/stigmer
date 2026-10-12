@@ -62,6 +62,21 @@ func (s *SessionClient) ReviewFileChanges(ctx context.Context, input *sessionv1.
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) ConfirmToolUse(ctx context.Context, input *sessionv1.ConfirmToolUseInput) (*sessionv1.SessionEvent, error) {
+	resp, err := s.command.ConfirmToolUse(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (s *SessionClient) GrantPermission(ctx context.Context, input *sessionv1.GrantPermissionInput) (*sessionv1.GrantPermissionResponse, error) {
+	resp, err := s.command.GrantPermission(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (s *SessionClient) Interrupt(ctx context.Context, input *sessionv1.InterruptSessionInput) (*sessionv1.InterruptSessionResponse, error) {
+	resp, err := s.command.Interrupt(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SessionClient) Delete(ctx context.Context, id string) (*sessionv1.Session, error) {
 	resp, err := s.command.Delete(ctx, &sessionv1.SessionId{Value: id})
 	return resp, wrapErr(err)

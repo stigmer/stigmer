@@ -32,6 +32,7 @@ vi.mock("../workflow-source.js", () => ({
 import type { Config } from "../config.js";
 import { runCredentialActivityInterceptor } from "../interceptors/run-credential-activity.js";
 import { startWorker, type WorkerActivities } from "../worker.js";
+import { resetTelemetrySettingsForTests } from "../otel-export.js";
 
 const config = {
   temporalAddress: "127.0.0.1:7233",
@@ -52,6 +53,7 @@ describe("startWorker", () => {
   beforeEach(() => {
     otelEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
     delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+    resetTelemetrySettingsForTests();
     sdk.connect.mockReset().mockResolvedValue(sdk.connection);
     sdk.create.mockReset().mockResolvedValue(sdk.worker);
   });
@@ -60,6 +62,17 @@ describe("startWorker", () => {
     if (otelEndpoint === undefined)
       delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
     else process.env.OTEL_EXPORTER_OTLP_ENDPOINT = otelEndpoint;
+  });
+
+  it("adds OpenTelemetry's activity interceptor and workflow sinks when the settings export traces", async () => {
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:4318";
+    resetTelemetrySettingsForTests();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await startWorker({ config, activities });
+    const options = sdk.create.mock.calls[0]![0] as { interceptors: { activity: unknown[] }; sinks: Record<string, unknown> };
+    expect(options.interceptors.activity).toHaveLength(2);
+    expect(Object.keys(options.sinks)).not.toHaveLength(0);
+    resetTelemetrySettingsForTests();
   });
 
   it("registers the run credential's activity interceptor and nothing workflow-side without OpenTelemetry", async () => {

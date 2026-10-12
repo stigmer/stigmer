@@ -519,14 +519,16 @@ export class StigmerClient {
   }
 
   /**
-   * Every event one run wrote into its session's log, oldest first: what a
-   * resumed turn already sent. Pages to the end, at most 1000 a page.
+   * Every event of one run in its session's log, oldest first, of `types`
+   * when given (every type otherwise): what a resumed turn already sent, or
+   * the answers the server recorded on its asks (`harness/approval-answers.ts`).
+   * Pages to the end, at most 1000 a page.
    */
-  async listRunSessionEvents(sessionId: string, runId: string): Promise<SessionEvent[]> {
+  async listRunSessionEvents(sessionId: string, runId: string, types: readonly string[] = []): Promise<SessionEvent[]> {
     const events: SessionEvent[] = [];
     let pageToken = "";
     do {
-      const page = await this.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000, pageToken });
+      const page = await this.sessionQuery.listEvents({ sessionId, runId, types: [...types], pageSize: 1000, pageToken });
       events.push(...page.events);
       pageToken = page.nextPageToken;
     } while (pageToken !== "");

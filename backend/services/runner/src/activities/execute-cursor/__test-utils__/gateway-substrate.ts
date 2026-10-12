@@ -203,7 +203,7 @@ async function runCursorHooksProbe(hooks: readonly ContractHook[], action: Propo
       const digest = approvalDigest(call.serverSlug, decoded.digest, input, card.hook !== undefined);
       final = decision === "approve"
         ? await turn([{ toolName: rowNameOf(call), mcpServerSlug: call.serverSlug, key: decoded.key, salient: decoded.salient, contentDigest: digest, sourceToolCallId: "consent-hook" }], new Map())
-        : await turn([], new Map([[card.token, { action: decision === "skip" ? "skip" : "reject", toolName: rowNameOf(call) } as const]]));
+        : await turn([], new Map([[card.token, { action: decision === "skip" ? "skip" : "reject", toolName: rowNameOf(call), comment: "" } as const]]));
     }
 
     const executed = final.permission === "allow";

@@ -62,7 +62,7 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
-import { approvalDecisionsOf } from "../../../../harness/approval-decisions.js";
+import { approvalAnswersOf } from "../../../../harness/approval-answers.js";
 import { ExecutionDriver, describeHarnessContract } from "../../../../__test-utils__/harness-contract/contract.js";
 import { RecordingTurnSink } from "../../../../__test-utils__/harness-contract/recording-sink.js";
 import { describeHarnessRuntimeContract } from "../../../../__test-utils__/harness-contract/runtime-contract.js";
@@ -168,7 +168,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
       const laterRow = findToolCallRow(again.sink.status, later);
       expect(laterRow?.status, "the new act has its own WAITING row").toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
       expect(laterRow?.approvalAction, "undecided").toBe(ApprovalAction.UNSPECIFIED);
-      expect(approvalDecisionsOf(again.sink.status).size, "the runtime would read no decision for it").toBe(0);
+      expect(approvalAnswersOf(driver.executionId, again.sink.status, driver.log).decisions.size, "the runtime would read no decision for it").toBe(0);
     });
 
     it("leaves an APPROVED action unexecuted when the resumed turn is stopped before the agent re-reaches it (deny-and-retry order)", async () => {

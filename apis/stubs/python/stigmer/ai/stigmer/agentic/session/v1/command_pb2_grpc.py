@@ -3,6 +3,7 @@
 import grpc
 
 from ai.stigmer.agentic.session.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.session.v1 import event_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2
 from ai.stigmer.agentic.session.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2
 
 
@@ -40,6 +41,21 @@ class SessionCommandControllerStub(object):
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesResponse.FromString,
+                _registered_method=True)
+        self.confirmToolUse = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/confirmToolUse',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ConfirmToolUseInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.FromString,
+                _registered_method=True)
+        self.grantPermission = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/grantPermission',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionResponse.FromString,
+                _registered_method=True)
+        self.interrupt = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.InterruptSessionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.InterruptSessionResponse.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/delete',
@@ -119,6 +135,79 @@ class SessionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def confirmToolUse(self, request, context):
+        """Allow or deny a tool use that waits for an answer.
+
+        A call that needs a person's answer is an agent.tool_use (or
+        agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+        idle with stop_reason requires_action naming it. The answer is appended
+        as a user.tool_confirmation. A deny may carry a message, which the
+        agent reads. When every waiting call of the turn is answered, the turn
+        resumes; until then the session re-states requires_action with the
+        calls still waiting.
+
+        ## Error Conditions
+
+        - NOT_FOUND: the tool use is not one of this conversation's calls that
+        asked
+        - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+        was stopped), or it was already answered the other way (an answer is
+        final)
+
+        ## Idempotency
+
+        The same answer sent again records nothing new and returns the event
+        first recorded.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def grantPermission(self, request, context):
+        """Allow a tool use, and every call of its class for the rest of the turn.
+
+        The class is the call's built-in category (write, delete or shell), its
+        MCP server, or, when a hook asked, that hook on that tool. The grant is
+        appended as a stigmer.permission.grant after the call's
+        user.tool_confirmation, and every other call of the class waiting in
+        the same turn is allowed with it. A call with no class (one the
+        default never asks about) is allowed alone, with no grant.
+
+        ## Error Conditions
+
+        As confirmToolUse.
+
+        ## Idempotency
+
+        The same grant sent again records nothing new.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def interrupt(self, request, context):
+        """Stop the session's unfinished work.
+
+        Appends a user.interrupt and stops every unfinished turn of the
+        conversation: queued, working, waiting for an answer or paused. Each
+        ends cancelled and the session goes idle with end_turn. Files undone
+        in a turn that waited are put back at once.
+
+        ## Error Conditions
+
+        - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+        be stopped)
+        - FAILED_PRECONDITION: the execution engine is not connected
+
+        ## Idempotency
+
+        An interrupt with nothing unfinished records the event and stops
+        nothing.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete a session.
 
@@ -173,6 +262,21 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
                     servicer.reviewFileChanges,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesResponse.SerializeToString,
+            ),
+            'confirmToolUse': grpc.unary_unary_rpc_method_handler(
+                    servicer.confirmToolUse,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ConfirmToolUseInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.SerializeToString,
+            ),
+            'grantPermission': grpc.unary_unary_rpc_method_handler(
+                    servicer.grantPermission,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionResponse.SerializeToString,
+            ),
+            'interrupt': grpc.unary_unary_rpc_method_handler(
+                    servicer.interrupt,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.InterruptSessionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.InterruptSessionResponse.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
@@ -321,6 +425,87 @@ class SessionCommandController(object):
             '/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def confirmToolUse(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/confirmToolUse',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ConfirmToolUseInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def grantPermission(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/grantPermission',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def interrupt(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.InterruptSessionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.InterruptSessionResponse.FromString,
             options,
             channel_credentials,
             insecure,

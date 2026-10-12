@@ -439,10 +439,15 @@ fields (`metadata.id`, `metadata.version`, `status`). `errors.ts` asserts gRPC
 status codes with diagnostic messages.
 
 Approval submits have one gesture: `submitApprovalPerContract`
-(`support/agentexecutions.ts`) submits the decision and asserts the response's
+(`support/runs.ts`) submits the decision and asserts the response's
 `pending_approvals` reflects it synchronously — the one definition of that
 contract, and the reason a decision the server failed to record is red at the
-submit that made it rather than a timeout later in the arm.
+submit that made it rather than a timeout later in the arm. A session-scoped
+answer (`confirmToolUse`, `grantPermission`) goes through its twin,
+`confirmPerContract` (`support/answers.ts`), which reads the run right after
+the answer; the same module reads what the session's log says waits (the
+newest idle's `requires_action` ids, `awaitRequiresAction`) and the answers it
+recorded (`answersOf`), the way a client reads them.
 
 ### The RPC contract (`inventory/rpc-waivers.yaml`)
 
@@ -665,8 +670,9 @@ nothing — is only reachable with Temporal down, so it is covered by the
 server's controller unit tests rather than asserted here. Polling goes
 through one enum-agnostic core (`support/run-poll.ts`).
 
-`run-approval.conformance.test.ts` adds the **HITL tool-approval**
-(`submitApproval`) contract. It is the first slice that exercises a real *tool*:
+`run-approval.conformance.test.ts` adds the **HITL tool-approval** contract:
+the session's answers (`confirmToolUse`, `grantPermission`), its stop
+(`interrupt`), and the run-scoped `submitApproval` adapter. It is the first slice that exercises a real *tool*:
 an agent can only reach `EXECUTION_WAITING_FOR_APPROVAL` when it lists a
 plugin whose MCP server exposes an approval-gated tool, so the `local-execution` target
 also boots a **TS-pure HTTP (Streamable) MCP fixture** (`harness/mcp-server.ts`):
@@ -677,11 +683,18 @@ default, which asks before a tool its server marks destructive: the suite's
 plugin server exposes `echo_destructive`, and the runner reads the mark *live*
 from the tools it loads at turn start, so nothing is connected or stored
 ahead of the run. The suite
-asserts the server-owned contract — the phase lifecycle (gate reached ->
-COMPLETED) for APPROVE/SKIP/REJECT/APPROVE_ALL, the `pending_approvals` read
-model (`tool_call_id`, `tool_name`, `mcp_server_slug`, and the provenance
-`ANNOTATION_DESTRUCTIVE_TIGHTEN`), `auto_approve_all` bypass, idempotency, and
-the negative codes — and deliberately does **not** assert runner-internal projections that are
+asserts the server-owned contract — what the session's log says waits (the
+`requires_action` idle naming every waiting call, re-stated with the
+remainder as answers come in, and running while a second turn is
+unfinished), an allow, a deny whose message the model reads, a grant that
+answers the co-pending calls of its class with one grant event, a replayed
+answer accepted and a contrary one refused, an interrupt that stops a turn at
+its gate, a paused turn and a queued second turn (each CANCELLED with stop
+cause `user`, the session idle with `end_turn`), the phase lifecycle (gate
+reached -> COMPLETED) for APPROVE/SKIP/REJECT/APPROVE_ALL on the adapter, the
+`pending_approvals` read model (`tool_call_id`, `tool_name`,
+`mcp_server_slug`, and the provenance `ANNOTATION_DESTRUCTIVE_TIGHTEN`),
+`auto_approve_all` bypass, idempotency, and the negative codes — and deliberately does **not** assert runner-internal projections that are
 not stable black-box observables (per-tool-call *final* status after the approval
 resume, and `args_preview`), exactly the boundary the integration HITL suite
 draws.
@@ -708,7 +721,8 @@ progress strip under the runner's capture throttle), `run-memory-selection`
 `run-stigmer-mcp-stdio` (a fixture agent on the real
 `stigmer mcp-server` over stdio, the always-on proof of the stdio lane), plus additions to
 `run` (idempotent cancel/terminate), `run-approval` (the
-approval ledger, the APPROVE_ALL lease across turns, durable resume) and
+answers in the session's log, the APPROVE_ALL lease across turns, durable
+resume, the stop at the gate) and
 `plugin-tools` (`listTools`: each tool of a plugin's server with its
 destructive mark, read as the caller, storing nothing, and asking no model). `run-tool-lists` pins an agent's `tools` and
 `disallowed_tools` on the native engine: a tool outside them is never
@@ -770,8 +784,9 @@ fixtures/           working-agent/ (the working agent as a plugin: its skills, s
 3. Assert the intended contract. A server answer that does not match it is a
    server bug or a contract question — never something the suite asserts as
    right; an edition difference is a `CapabilityFlag`, never a fork.
-4. An approval submit goes through `submitApprovalPerContract`, never a bare
-   `submitApproval` followed by an `expect` on `pending_approvals`.
+4. An approval submit goes through `submitApprovalPerContract`, and a
+   session answer through `confirmPerContract`, never a bare call followed by
+   an `expect` on `pending_approvals`.
 5. Tag each test with the RPC it pins (`[rpc:<Service>.<method>]`), or waive
    the RPC in `inventory/rpc-waivers.yaml`; `npm run inventory:check` names
    every declared RPC that has neither (see "The RPC contract").

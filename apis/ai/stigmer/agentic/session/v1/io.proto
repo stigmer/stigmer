@@ -151,6 +151,74 @@ message ReviewFileChangesResponse {
   string reconcile_run_id = 1;
 }
 
+// ConfirmToolUseInput allows or denies a tool use that waits for an answer:
+// Managed Agents' user.tool_confirmation parameters, with the session.
+message ConfirmToolUseInput {
+  option (buf.validate.message).cel = {
+    id: "confirm_tool_use.deny_message"
+    message: "deny_message is only allowed when result is deny"
+    expression: "this.result == 'deny' || size(this.deny_message) == 0"
+  };
+
+  // The conversation.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The agent.tool_use or agent.mcp_tool_use event to answer, as the
+  // requires_action idle's event_ids name it.
+  string tool_use_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // allow or deny.
+  string result = 3 [(buf.validate.field).string = {
+    in: [
+      "allow",
+      "deny"
+    ]
+  }];
+
+  // Why the call is denied, for the agent to read; only with deny.
+  string deny_message = 4 [(buf.validate.field).string.max_len = 2000];
+}
+
+// GrantPermissionInput allows a tool use and every call of its class for
+// the rest of the turn.
+message GrantPermissionInput {
+  // The conversation.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The agent.tool_use or agent.mcp_tool_use event the grant is given on.
+  string tool_use_id = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+// GrantPermissionResponse answers a recorded grant.
+message GrantPermissionResponse {
+  // The stigmer.permission.grant; absent when the call has no class and
+  // was allowed alone.
+  SessionEvent grant = 1;
+
+  // The user.tool_confirmation events written: the named call's first,
+  // then every call of the class the grant allowed.
+  repeated SessionEvent confirmations = 2;
+}
+
+// InterruptSessionInput stops a session's unfinished work: Managed Agents'
+// user.interrupt parameters, with the session.
+message InterruptSessionInput {
+  // The conversation.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Must be empty: the whole session is stopped.
+  string session_thread_id = 2;
+}
+
+// InterruptSessionResponse answers a recorded interrupt.
+message InterruptSessionResponse {
+  // The user.interrupt event.
+  SessionEvent event = 1;
+
+  // The runs (turns) the interrupt stopped.
+  repeated string stopped_run_ids = 2;
+}
+
 // ListSessionEventsRequest pages through one session's event log.
 message ListSessionEventsRequest {
   // The session whose events to list.

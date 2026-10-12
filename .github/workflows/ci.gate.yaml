@@ -89,6 +89,7 @@ jobs:
       crate: ${{ steps.select.outputs.crate }}
       docs: ${{ steps.select.outputs.docs }}
       e2e-interactive: ${{ steps.select.outputs.e2e-interactive }}
+      ee: ${{ steps.select.outputs.ee }}
       go-sdk: ${{ steps.select.outputs.go-sdk }}
       helm-chart: ${{ steps.select.outputs.helm-chart }}
       install-script: ${{ steps.select.outputs.install-script }}
@@ -174,6 +175,11 @@ jobs:
     if: needs.lanes.outputs.e2e-interactive == 'true'
     uses: ./.github/workflows/ci.e2e-interactive.yaml
 
+  ee:
+    needs: lanes
+    if: needs.lanes.outputs.ee == 'true'
+    uses: ./.github/workflows/ci.ee.yaml
+
   go-sdk:
     needs: lanes
     if: needs.lanes.outputs.go-sdk == 'true'
@@ -231,7 +237,7 @@ jobs:
 
   coverage:
     name: Coverage
-    needs: [lanes, authorization-model, conformance, docs, go-sdk, runner, stigmer-server, ts-workspace]
+    needs: [lanes, authorization-model, conformance, docs, ee, go-sdk, runner, stigmer-server, ts-workspace]
     if: ${{ !cancelled() && needs.lanes.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -281,7 +287,7 @@ jobs:
 
   gate:
     name: Gate
-    needs: [lanes, agent-sandbox, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, upgrade-rehearsal, workflows, coverage]
+    needs: [lanes, agent-sandbox, all-in-one, authorization-model, cli-up, codegen, compose-stack, conformance, conformance-execution, crate, docs, e2e-interactive, ee, go-sdk, helm-chart, install-script, java-sdk, plugins-static, proto-breaking, runner, stigmer-server, ts-workspace, upgrade-rehearsal, workflows, coverage]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10

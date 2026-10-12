@@ -7,12 +7,6 @@
  *    The engine-minted arm is `!!threadId`; the deterministic arm is the
  *    persisted transcript's non-emptiness, whatever the thread id says (the
  *    id exists on the first turn too), and never the live engine checkpoint.
- *  - `approvalDecisionsOf` (`approval-decisions.ts`): the runtime's reader of adjudicated approvals,
- *    over a transcript that carries every row shape it must include or
- *    exclude. Its agreement with the Cursor adapter's own reader
- *    (`reconstructAdjudicatedApprovals`) is pinned from the adapter's side
- *    (`activities/execute-cursor/__tests__/approval-state.test.ts`), because
- *    `src/harness/` never imports `src/activities/`, tests included.
  *  - `fileReviewOn`: a turn's file review is on when the session asks for
  *    it or the run is a plugin-eval try, and off otherwise (the default).
  *  - `reconcileTurnSettlement`: a reconcile turn completes, its rows naming
@@ -30,12 +24,10 @@
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
-import { approvalDecisionsOf } from "../approval-decisions.js";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { fileReviewOn, isReinvocation, reconcileTurnSettlement, regeneratesApprovedWrites } from "../turn-context.js";
@@ -79,73 +71,6 @@ describe("isReinvocation", () => {
   it("deterministic: the thread id is NOT the signal (a deterministic harness has one on its first turn too)", () => {
     expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1", turnSeq: 0 }, FIRST_RUN)).toBe(false);
     expect(isReinvocation("deterministic", { ...INPUT, threadId: "", turnSeq: 0 }, CONTINUATION)).toBe(true);
-  });
-});
-
-/** A transcript carrying every row shape the reader must include or exclude. */
-function transcriptWithEveryRowShape() {
-  const waitingApproved = create(ToolCallSchema, {
-    id: "tc-approved",
-    name: "Shell",
-    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    approvalAction: ApprovalAction.APPROVE,
-    approvalContentDigest: "sha256:approved",
-  });
-  const waitingRejected = create(ToolCallSchema, {
-    id: "tc-rejected",
-    name: "Write",
-    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    approvalAction: ApprovalAction.REJECT,
-  });
-  const waitingUndecided = create(ToolCallSchema, {
-    id: "tc-undecided",
-    name: "Shell",
-    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    approvalAction: ApprovalAction.UNSPECIFIED,
-  });
-  const completedWithStaleAction = create(ToolCallSchema, {
-    id: "tc-completed",
-    name: "Read",
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
-    approvalAction: ApprovalAction.APPROVE,
-  });
-  const subAgentWaiting = create(ToolCallSchema, {
-    id: "tc-sub",
-    name: "Shell",
-    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    approvalAction: ApprovalAction.APPROVE,
-  });
-  return create(RunStatusSchema, {
-    messages: [
-      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [waitingApproved, waitingUndecided] }),
-      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [completedWithStaleAction, waitingRejected] }),
-    ],
-    subAgentRuns: [
-      create(SubAgentRunSchema, {
-        messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [subAgentWaiting] })],
-      }),
-    ],
-  });
-}
-
-describe("approvalDecisionsOf", () => {
-  it("reads every WAITING row with a verdict, in transcript order, and nothing else", () => {
-    const decisions = approvalDecisionsOf(transcriptWithEveryRowShape());
-    expect([...decisions.entries()]).toEqual([
-      ["tc-approved", ApprovalAction.APPROVE],
-      ["tc-rejected", ApprovalAction.REJECT],
-    ]);
-  });
-
-  it("an undecided WAITING row, a COMPLETED row with a stale verdict, and a sub-agent row are all excluded", () => {
-    const decisions = approvalDecisionsOf(transcriptWithEveryRowShape());
-    expect(decisions.has("tc-undecided"), "no verdict yet").toBe(false);
-    expect(decisions.has("tc-completed"), "already executed; the verdict on it is history").toBe(false);
-    expect(decisions.has("tc-sub"), "sub-agent transcripts are not the top-level rows").toBe(false);
-  });
-
-  it("is empty on a fresh status", () => {
-    expect(approvalDecisionsOf(create(RunStatusSchema, {})).size).toBe(0);
   });
 });
 

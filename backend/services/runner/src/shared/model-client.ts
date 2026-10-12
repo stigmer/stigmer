@@ -39,8 +39,17 @@ import {
   toVertexModelId,
   toBedrockModelId,
   toFoundryDeploymentName,
+  type AnthropicBackend,
 } from "./llm-backend.js";
+import {
+  PROVIDER_ANTHROPIC,
+  PROVIDER_AWS_BEDROCK,
+  PROVIDER_AZURE_AI_INFERENCE,
+  PROVIDER_GCP_VERTEX_AI,
+  PROVIDER_OPENAI,
+} from "../gen-ai-conventions.js";
 import { resolveToApiModelId } from "./model-registry.js";
+import { recordChatModelFacts } from "./model-facts.js";
 import {
   toAnthropicServiceTier,
   toOpenAiServiceTier,
@@ -410,7 +419,27 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
           ...anthropicClientOptionsField,
         });
 
+  recordChatModelFacts(model, {
+    providerName: providerNameOf(provider, anthropicBackend),
+    requestModel: opts.modelName,
+    responseModel: apiModelId,
+  });
   return { model, provider, apiModelId };
+}
+
+/** The conventions' provider name for where a model is served from. */
+function providerNameOf(provider: LlmProvider, anthropicBackend: AnthropicBackend): string {
+  if (provider === "openai") return PROVIDER_OPENAI;
+  switch (anthropicBackend) {
+    case "public":
+      return PROVIDER_ANTHROPIC;
+    case "vertex":
+      return PROVIDER_GCP_VERTEX_AI;
+    case "bedrock":
+      return PROVIDER_AWS_BEDROCK;
+    case "foundry":
+      return PROVIDER_AZURE_AI_INFERENCE;
+  }
 }
 
 /**

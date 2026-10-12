@@ -1,0 +1,159 @@
+---
+title: Send runs to your tracing tool
+description:
+  Point Langfuse, or any tool that reads OpenTelemetry, at your self-hosted
+  Stigmer, so every run shows up there as a trace of its model and tool calls,
+  with the conversation's text only when you switch it on.
+---
+
+You run Stigmer on your own servers and already watch your other AI apps in a
+tracing tool. This page connects the two. Once it's set up, every run shows up
+in your tool as one trace named after its Agent: each model call with its model,
+provider and tokens, each tool call, a subagent's work nested under the step
+that started it, and every run of a conversation grouped under its Session.
+
+The runner sends these traces. It uses the settings every OpenTelemetry user
+already knows: an address, a protocol, and a login header. Nothing about the
+traces is Stigmer's own format. They follow OpenTelemetry's conventions for AI
+calls, so Langfuse, and any tool that reads those conventions, shows each run as
+an AI trace. A plain trace viewer such as Jaeger shows the same spans by name.
+
+## What a trace holds
+
+| Span                   | One per             | Carries                                                                                                                                          |
+| ---------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `invoke_agent <agent>` | turn of a run       | the Agent's name, ID and version, the Session (`gen_ai.conversation.id`), the model, the Organization, what started the run (`stigmer.run.kind`) |
+| `chat <model>`         | model call          | the provider, the model asked for and the one that answered, input, output and cached tokens, why it stopped                                     |
+| `execute_tool <tool>`  | tool call           | the tool and its call ID; an MCP server's tool also names the server                                                                             |
+| `invoke_agent <name>`  | subagent invocation | nested under the `execute_tool task` call that started it                                                                                        |
+| `invoke_agent Cursor`  | Cursor engine run   | the model and the run's tokens in total, with each tool call under it                                                                            |
+
+A run that waits for your approval and then carries on stays one trace: each
+turn is a root span in it, and your tool shows the latest turn's name.
+
+`stigmer.run.kind` tells runs apart: `conversation`, `schedule`, `judge` (an AI
+judge grading another run) or `eval-try` (one try of a plugin eval). Filter on
+it to keep the judge's grades out of a view of your users' runs.
+
+The Cursor engine makes its model calls inside Cursor's service, so a Cursor run
+shows its tokens as one total, not per call. Langfuse prices no `invoke_agent`
+span, so it shows a Cursor run's tokens but no cost.
+
+## Turn it on
+
+Set these on the runner. Which list each goes in depends on how your runner
+runs.
+
+| Variable                                             | What it is                                                                                     |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`                        | Your tool's OpenTelemetry address. Unset, nothing is sent and nothing is loaded.               |
+| `OTEL_EXPORTER_OTLP_PROTOCOL`                        | `http/protobuf` (the default), `http/json` or `grpc`. Anything else stops the runner at start. |
+| `OTEL_EXPORTER_OTLP_HEADERS`                         | Your tool's login, as `key=value` pairs, comma-separated. A secret.                            |
+| `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` | `true` to include the conversation's text. Off by default.                                     |
+
+The per-signal forms (`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`,
+`OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`, `OTEL_EXPORTER_OTLP_TRACES_HEADERS` and
+their `METRICS` twins) work as the OpenTelemetry standard says, and so do the
+timeout, compression, and certificate settings. `OTEL_SDK_DISABLED=true` turns
+everything off.
+
+<Callout type="warn">
+  **If you set the endpoint before.** Earlier runners spoke gRPC only and read
+  only `OTEL_EXPORTER_OTLP_ENDPOINT`. The default is now the standard's
+  `http/protobuf`. If your endpoint is a collector's gRPC port (usually `4317`),
+  add `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
+</Callout>
+
+**The runner `stigmer up`, Compose or the chart starts** reads them from its own
+environment: add them where you set its other variables.
+
+**Sandboxed runners** (a per-Session runner the server provisions, see
+[the runner page](./runners)) get them through the server's two lists. Put the
+login on the secrets list and the rest on the plain list:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic%20<base64 of pk:sk>"
+export STIGMER_SANDBOX_RUNNER_SECRETS=ANTHROPIC_API_KEY,OTEL_EXPORTER_OTLP_HEADERS
+export STIGMER_SANDBOX_RUNNER_ENV=OTEL_EXPORTER_OTLP_ENDPOINT
+```
+
+The server refuses to boot with the headers on the plain list: they're one of
+the runner's own secrets.
+
+### The login never reaches an Agent
+
+The runner holds your tool's login and keeps it out of every process an Agent
+starts, as it does its model keys. The engines that make the model calls run in
+a process of their own beside the runner, and that process never sees the login:
+it hands its spans to the runner, which sends them on to your tool with the
+login added. For Langfuse this matters: its secret key reads every conversation
+you send it.
+
+## The conversation's text
+
+With `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true`, the spans also
+carry what was asked, what the model answered and each tool call's input and
+output, in OpenTelemetry's message format (`gen_ai.input.messages`,
+`gen_ai.output.messages`, `gen_ai.system_instructions`,
+`gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`), and `user.id`, the
+person who started the run. Without it, none of these is set, for any kind of
+run, and no span carries a failure's message either, since an error can quote
+what a call was given: a failed span keeps its error status and `error.type`.
+
+Your tool never shows more than Stigmer's own saved conversation shows:
+
+- A tool argument named like a secret (`password`, `token`, `secret`, `api_key`,
+  `apikey`, `credentials`, `auth`, `authorization`) reads `[REDACTED]`.
+- What an Agent wrote into a secret-looking file (`.env`, a private key, a
+  credentials file, Terraform state) shows only the file's path.
+- A long text keeps its first and last 4,000 characters, with a marker saying
+  how much was cut. A span's text stays under 64 KiB; the oldest messages of a
+  long conversation go first, behind a count of how many were left out.
+
+A file an Agent read is in the trace when the text is on, as it is in the saved
+conversation your console shows.
+
+With the text on, every model call repeats the conversation so far, so a long
+Session sends a lot of data. The runner sends spans in batches of 32 then, so a
+batch stays under the 4 MiB a gRPC collector accepts by default.
+`OTEL_BSP_MAX_EXPORT_BATCH_SIZE` overrides it; a larger batch with the text on
+can pass that limit, so raise the collector's limit with it.
+
+## Langfuse
+
+Langfuse takes OpenTelemetry over HTTP, so keep the default protocol. Its login
+is your project's public and secret keys, joined by a colon and base64-encoded:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic%20$(printf '%s' "$LANGFUSE_PUBLIC_KEY:$LANGFUSE_SECRET_KEY" | base64)"
+export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
+```
+
+A self-hosted Langfuse uses its own address with the same path,
+`/api/public/otel`. Each run appears as a trace named `invoke_agent <agent>`,
+with its model calls as generations (priced where Langfuse knows the model), its
+tool calls, and its Session.
+
+## Any OpenTelemetry collector
+
+An OpenTelemetry Collector, or a tool's own collector, usually listens for gRPC
+on `4317` and HTTP on `4318`:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+```
+
+From there the collector routes the traces wherever you send everything else.
+
+## What can change
+
+OpenTelemetry's conventions for AI calls are still marked "Development"
+upstream. When they rename an attribute, Stigmer follows in a release, and the
+release notes say which. The runner's own metrics (`stigmer.llm.*`,
+`stigmer.mcp.*`) are sent beside the traces, under the names they've always had.
+
+Stigmer Cloud sends none of this to you today: there, these traces are Stigmer's
+own monitoring and never carry the conversation's text.

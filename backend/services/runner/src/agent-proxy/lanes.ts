@@ -27,6 +27,7 @@
  * | `llm/bedrock`, `llm/vertex`, `llm/foundry` | no | yes |
  * | `model-registry`             | yes     | yes (to the runner's own control plane) |
  * | `checkpoints`                | yes     | no: a runner without the platform proxy checkpoints locally |
+ * | `otlp`                       | to the operator's collector, in both (`otlp-forward.ts`) | |
  *
  * What each lane may be asked, and by whom, is `server.ts`'s; this module
  * only answers where and how.

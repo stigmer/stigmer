@@ -105,6 +105,15 @@
     }
   },
   {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_528bd17c6e52f2c5df845cce713bc305e8a57f67",
+      "result": "allow",
+      "tool_use_id": "aex_hermetic_0001.call-hooks-publish"
+    }
+  },
+  {
     "run_id": "aex_hermetic_0001",
     "agent_tool_result": {
       "id": "aex_hermetic_0001.call-hooks-publish.r",

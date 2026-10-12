@@ -11,10 +11,13 @@
  *    providers directly, the provider lanes (`shared/model-lanes.ts`);
  *  - the per-turn approval-receipt keys the runner hands it
  *    (`shared/fingerprint-secret.ts`);
- *  - telemetry, when the operator configured an exporter, under the
- *    runner's service name with this process's role on the resource
- *    (`otel.ts`), so the engines' spans and the setup timings they record
- *    keep reaching the backend they always reached.
+ *  - telemetry, when the runner's settings say so (`otel-export.ts`), under
+ *    the runner's service name with this process's role on the resource
+ *    (`otel.ts`), exported to the runner's local proxy, which forwards it
+ *    to the operator's collector with a login this process never holds
+ *    (`agent-proxy/otlp-forward.ts`). The host reads no telemetry setting
+ *    of its own: until the runner's configuration arrives it exports
+ *    nothing, and then exactly what the runner decided.
  *
  * `main.ts` has already guarded the pipes and installed the rejection and
  * exception handlers before it hands over, as it does for every mode. The
@@ -38,6 +41,7 @@ import { Socket } from "node:net";
 import { HARNESS_ADAPTERS } from "../harness-adapters.js";
 import type { HarnessRow } from "../harness/registry.js";
 import { initMetrics, initTracing } from "../otel.js";
+import { TELEMETRY_OFF, adoptTelemetrySettings, type TelemetryLane } from "../otel-export.js";
 import { supplyExecutionFingerprintKeys } from "../shared/fingerprint-secret.js";
 import { routeModelCallsThroughLanes } from "../shared/model-lanes.js";
 import { routeRegistryThrough } from "../shared/registry-endpoint.js";
@@ -56,8 +60,8 @@ const PROCESS_ROLE = "agent-host";
 export interface AgentHostProcess {
   readonly channel: LineChannel;
   readonly rows: readonly HarnessRow[];
-  /** Start telemetry; resolves to its flush, `null` when no exporter is configured. */
-  readonly initTelemetry: () => Promise<(() => Promise<void>) | null>;
+  /** Start telemetry through the runner's local proxy, on the settings already adopted; resolves to its flush, `null` when nothing is exported. */
+  readonly initTelemetry: (lane: TelemetryLane) => Promise<(() => Promise<void>) | null>;
   readonly exit: (code: number) => void;
   readonly log: (message: string) => void;
   readonly shutdownGraceMs?: number;
@@ -66,9 +70,10 @@ export interface AgentHostProcess {
 /** Serve the runner until the channel closes, then shut the adapters down and exit. */
 export async function runAgentHostProcess(host: AgentHostProcess): Promise<void> {
   captureRunnerSecrets();
-  const flushTelemetry = await host.initTelemetry();
+  adoptTelemetrySettings(TELEMETRY_OFF);
+  const telemetry: { flush: (() => Promise<void>) | null } = { flush: null };
   const server = serveAgentHost(host.channel, host.rows, {
-    onConfigured: (config) => {
+    onConfigured: async (config) => {
       // The Cursor SDK's whole backend is the Cursor lane. The SDK reads this
       // on import and again per call, so it stays set; the shells and hooks
       // the runner's code starts leave it out (`shared/shell-env.ts`), and
@@ -76,6 +81,13 @@ export async function runAgentHostProcess(host: AgentHostProcess): Promise<void>
       if (config.cursorEndpoint !== null) process.env.CURSOR_BACKEND_URL = config.cursorEndpoint;
       routeRegistryThrough(config.proxyEndpoint, config.token);
       if (!config.platformProxied) routeModelCallsThroughLanes(config.proxyEndpoint, config.token);
+      adoptTelemetrySettings(config.telemetry);
+      try {
+        telemetry.flush = await host.initTelemetry({ endpoint: config.proxyEndpoint, token: config.token });
+      } catch (err) {
+        // Telemetry is never a reason to refuse a turn.
+        host.log(`[agent-host] telemetry not started: ${err instanceof Error ? err.message : String(err)}`);
+      }
     },
   });
   supplyExecutionFingerprintKeys((executionId) => server.fingerprintKey(executionId));
@@ -91,7 +103,7 @@ export async function runAgentHostProcess(host: AgentHostProcess): Promise<void>
           host.log(`[agent-host] ${row.adapter.name} shutdown failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
-      await flushTelemetry?.();
+      await telemetry.flush?.();
     })(),
     host.shutdownGraceMs ?? SHUTDOWN_GRACE_MS,
   );
@@ -114,9 +126,9 @@ export async function runAgentHost(): Promise<void> {
   await runAgentHostProcess({
     channel: streamChannel(socket, socket),
     rows: HARNESS_ADAPTERS,
-    initTelemetry: async () => {
-      const tracing = await initTracing("stigmer-runner", PROCESS_ROLE);
-      const metrics = await initMetrics("stigmer-runner", PROCESS_ROLE);
+    initTelemetry: async (lane) => {
+      const tracing = await initTracing("stigmer-runner", { processRole: PROCESS_ROLE, lane });
+      const metrics = await initMetrics("stigmer-runner", { processRole: PROCESS_ROLE, lane });
       if (!tracing && !metrics) return null;
       return async () => {
         await metrics?.();

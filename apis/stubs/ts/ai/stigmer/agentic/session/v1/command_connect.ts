@@ -5,7 +5,8 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AppendSessionEventsInput, AppendSessionEventsResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { AppendSessionEventsInput, AppendSessionEventsResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { SessionEvent } from "./event_pbjs";
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -95,6 +96,91 @@ export const SessionCommandController = {
       name: "reviewFileChanges",
       I: ReviewFileChangesInput,
       O: ReviewFileChangesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Allow or deny a tool use that waits for an answer.
+     *
+     * A call that needs a person's answer is an agent.tool_use (or
+     * agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+     * idle with stop_reason requires_action naming it. The answer is appended
+     * as a user.tool_confirmation. A deny may carry a message, which the
+     * agent reads. When every waiting call of the turn is answered, the turn
+     * resumes; until then the session re-states requires_action with the
+     * calls still waiting.
+     *
+     * ## Error Conditions
+     *
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   asked
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered the other way (an answer is
+     *   final)
+     *
+     * ## Idempotency
+     *
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.confirmToolUse
+     */
+    confirmToolUse: {
+      name: "confirmToolUse",
+      I: ConfirmToolUseInput,
+      O: SessionEvent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Allow a tool use, and every call of its class for the rest of the turn.
+     *
+     * The class is the call's built-in category (write, delete or shell), its
+     * MCP server, or, when a hook asked, that hook on that tool. The grant is
+     * appended as a stigmer.permission.grant after the call's
+     * user.tool_confirmation, and every other call of the class waiting in
+     * the same turn is allowed with it. A call with no class (one the
+     * default never asks about) is allowed alone, with no grant.
+     *
+     * ## Error Conditions
+     *
+     * As confirmToolUse.
+     *
+     * ## Idempotency
+     *
+     * The same grant sent again records nothing new.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.grantPermission
+     */
+    grantPermission: {
+      name: "grantPermission",
+      I: GrantPermissionInput,
+      O: GrantPermissionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Stop the session's unfinished work.
+     *
+     * Appends a user.interrupt and stops every unfinished turn of the
+     * conversation: queued, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. Files undone
+     * in a turn that waited are put back at once.
+     *
+     * ## Error Conditions
+     *
+     * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+     *   be stopped)
+     * - FAILED_PRECONDITION: the execution engine is not connected
+     *
+     * ## Idempotency
+     *
+     * An interrupt with nothing unfinished records the event and stops
+     * nothing.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.interrupt
+     */
+    interrupt: {
+      name: "interrupt",
+      I: InterruptSessionInput,
+      O: InterruptSessionResponse,
       kind: MethodKind.Unary,
     },
     /**

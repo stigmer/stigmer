@@ -296,6 +296,66 @@ jobs:
             --package backend/services/stigmer-server \
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
 
+  # @stigmer/enterprise (ee/server), Stigmer Enterprise under its own license
+  # (ee/LICENSE, which the tarball carries): published in lockstep with
+  # @stigmer/server, at the same version on the same train, so a host pins
+  # every @stigmer/* package at one version. Same standalone shape and the
+  # same publish-standalone.mjs sequence as the server; its file: links pin
+  # to this release's @stigmer/server, @stigmer/protos and @stigmer/outbound.
+  # Needs `publish-server`: Enterprise never publishes at a version whose
+  # server failed to (and the server's own `needs` brings the libraries).
+  publish-enterprise:
+    needs: [determine-version, publish-server]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      # The libraries, the server, then the package against the built
+      # server, while every link is still a local file: link.
+      - name: Build the Enterprise package
+        run: make build-ee
+
+      # The consumer-install smoke boots the staged install and requires
+      # every Temporal worker to start (verify-boot.mjs --require-workers).
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
+
+      - name: Publish to npm (stamp, pin, smoke, publish)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/publish-standalone.mjs \
+            --package ee/server \
+            --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+
   # The TS server's slim artifact: @stigmer/server-slim
   # plus per-platform native-bridge packages, the runner-slim pattern exactly.
   # The CLI installs it on demand at `stigmer up` and launches `node main.js`

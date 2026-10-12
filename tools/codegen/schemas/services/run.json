@@ -2876,7 +2876,7 @@
           "kind": "message",
           "messageType": "ApprovalEventStream"
         },
-        "description": "Server-authored, append-only record of every approval request and decision.",
+        "description": "No longer written: approvals and their answers are the session's events\n (agent.tool_use with evaluated_permission ask, user.tool_confirmation,\n stigmer.permission.grant). Runs written before then keep their entries.",
         "required": false
       },
       {

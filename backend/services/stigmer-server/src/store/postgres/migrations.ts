@@ -212,8 +212,11 @@ export const SCHEMA_VERSION_24 = 24;
 /** v25: every stored reference holds the id of the resource its name held. */
 export const SCHEMA_VERSION_25 = 25;
 
+/** v26: each session event's gates (the tool use it opens or closes), derived at open (DDL only). */
+export const SCHEMA_VERSION_26 = 26;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_25;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_26;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -279,6 +282,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_23, (migrating) => migrateToV23(migrating, logger)],
       [SCHEMA_VERSION_24, (migrating) => migrateToV24(migrating, logger)],
       [SCHEMA_VERSION_25, (migrating) => migrateToV25(migrating, logger)],
+      [SCHEMA_VERSION_26, migrateToV26],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1780,5 +1784,30 @@ async function migrateToV22(client: PoolClient): Promise<void> {
       last_processed_at TEXT NOT NULL
     );
     CREATE INDEX idx_session_event_heads_org ON session_event_heads (org);
+  `);
+}
+
+/**
+ * v26: each session event's gates (../session-events.ts, "Gates"): the tool
+ * use an event opens (`opens_gate`, a call that waits for a person's
+ * answer) or closes (`closes_gate`, the answer or the call's result), and
+ * the revision of the domain's derivation that wrote them
+ * (`gate_revision`, 0 for none). The columns are derived from each event's
+ * bytes by the store, at write and, for every row of another revision, at
+ * open, so this migration adds them empty. The two partial indexes serve
+ * the read of a session's open gates under its lock; the revision index
+ * serves the derivation at open. The SQLite driver's v31 in this engine's
+ * terms.
+ */
+async function migrateToV26(client: PoolClient): Promise<void> {
+  await client.query(`
+    ALTER TABLE session_events ADD COLUMN opens_gate TEXT NOT NULL DEFAULT '';
+    ALTER TABLE session_events ADD COLUMN closes_gate TEXT NOT NULL DEFAULT '';
+    ALTER TABLE session_events ADD COLUMN gate_revision INTEGER NOT NULL DEFAULT 0;
+    CREATE INDEX idx_session_events_opens_gate ON session_events (session_id, opens_gate)
+      WHERE opens_gate <> '';
+    CREATE INDEX idx_session_events_closes_gate ON session_events (session_id, closes_gate)
+      WHERE closes_gate <> '';
+    CREATE INDEX idx_session_events_gate_revision ON session_events (gate_revision);
   `);
 }

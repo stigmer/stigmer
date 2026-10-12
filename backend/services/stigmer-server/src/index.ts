@@ -269,7 +269,10 @@ export type {
   ResourceEventWriteResult,
   ResourceEventWriter,
   SessionEventAppend,
+  OpenSessionEventGate,
   SessionEventDraft,
+  SessionEventGateDeclaration,
+  SessionEventGates,
   SessionEventGuard,
   SessionEventQuery,
   SessionEventRecord,
@@ -862,6 +865,12 @@ export {
   newConfigFromEnv as newAgentExecutionTemporalConfigFromEnv,
 } from "./domain/run/temporal/config.js";
 export { LOADED_EXECUTION_KEY } from "./pipeline/request-context.js";
+// The answer to a waiting tool use, as the steps of the
+// `agent-execution-submit-approval:gate` slot read it, whichever method
+// carried it (confirmToolUse, grantPermission, the submitApproval adapter;
+// domain/session/hitl/answer.ts). A replayed answer never reaches the slot.
+export type { ApprovalAnswer } from "./domain/session/hitl/answer.js";
+export { APPROVAL_ANSWER_KEY, approvalAnswerOf } from "./domain/session/hitl/answer.js";
 
 // The channel driver seam: the channel
 // delivery runtime a composition registers to SERVE the install,

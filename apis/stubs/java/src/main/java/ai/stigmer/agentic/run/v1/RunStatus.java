@@ -629,7 +629,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
   private ai.stigmer.agentic.run.v1.ApprovalEventStream approvalEventStream_;
   /**
    * <pre>
-   * Server-authored, append-only record of every approval request and decision.
+   * No longer written: approvals and their answers are the session's events
+   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+   * stigmer.permission.grant). Runs written before then keep their entries.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -641,7 +643,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * Server-authored, append-only record of every approval request and decision.
+   * No longer written: approvals and their answers are the session's events
+   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+   * stigmer.permission.grant). Runs written before then keep their entries.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -653,7 +657,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * Server-authored, append-only record of every approval request and decision.
+   * No longer written: approvals and their answers are the session's events
+   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+   * stigmer.permission.grant). Runs written before then keep their entries.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5154,7 +5160,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         ai.stigmer.agentic.run.v1.ApprovalEventStream, ai.stigmer.agentic.run.v1.ApprovalEventStream.Builder, ai.stigmer.agentic.run.v1.ApprovalEventStreamOrBuilder> approvalEventStreamBuilder_;
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5165,7 +5173,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5180,7 +5190,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5200,7 +5212,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5218,7 +5232,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5243,7 +5259,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5260,7 +5278,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5272,7 +5292,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
@@ -5287,7 +5309,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Server-authored, append-only record of every approval request and decision.
+     * No longer written: approvals and their answers are the session's events
+     * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+     * stigmer.permission.grant). Runs written before then keep their entries.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>

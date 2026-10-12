@@ -2,9 +2,9 @@
  * HITL (human-in-the-loop) resume infrastructure for the native deep-agent
  * harness — the LangGraph side of an approval round trip.
  *
- * The runtime reads the user's decisions off the persisted rows
- * (`harness/approval-decisions.ts` `approvalDecisionsOf`, on `TurnInput`)
- * and settles the rows that never run (SKIP, REJECT) after the turn; what is
+ * The runtime reads the user's answers from the session's log
+ * (`harness/approval-answers.ts`, on `TurnInput`) and settles the rows that
+ * never run (SKIP, REJECT) after the turn; what is
  * this harness's is how those decisions reach the ENGINE: the graph
  * checkpoint's un-resumed interrupts, keyed by the interrupt's own id, become
  * a `Command(resume)` map ({@link resolveResumeInput}), and after a stream the
@@ -96,16 +96,19 @@ export interface InterruptValue {
  * matching approval decisions; otherwise reports "not a resume" and the
  * caller sends the turn's user message.
  *
- * `decisions` is the runtime's reading of the adjudicated rows
+ * `decisions` is the runtime's reading of the answers
  * (`TurnInput.approvalDecisions`, keyed by tool-call id) — the one
  * projection both harnesses agree on; this module never re-derives the
- * verdict from the rows. The graph checkpoint snapshot is read once by the
+ * verdict from the rows. A deny's reason (`denyMessages`) rides the resume
+ * value as its `comment`, which the gate renders into the refusal the model
+ * reads (`middleware/approval-gate.ts`). The graph checkpoint snapshot is read once by the
  * caller and passed in: on the durable (http) saver an extra `getState` is a
  * network round-trip best avoided.
  */
 export function resolveResumeInput(
   decisions: ReadonlyMap<string, ApprovalAction>,
   graphState: GraphStateSnapshot,
+  denyMessages: ReadonlyMap<string, string> = new Map(),
 ): ResumeResult {
   const pendingInterrupts = extractPendingInterrupts(graphState);
   if (pendingInterrupts.length === 0) {
@@ -116,7 +119,7 @@ export function resolveResumeInput(
     return { isResumeFromApproval: false };
   }
 
-  const resumeDict: Record<string, { action: string }> = {};
+  const resumeDict: Record<string, { action: string; comment?: string }> = {};
 
   for (const intr of pendingInterrupts) {
     const decision = decisions.get(intr.toolCallId);
@@ -125,7 +128,8 @@ export function resolveResumeInput(
     const action = resumeActionOf(decision);
     if (!action) continue;
 
-    resumeDict[intr.interruptId] = { action };
+    const comment = denyMessages.get(intr.toolCallId) ?? "";
+    resumeDict[intr.interruptId] = comment === "" ? { action } : { action, comment };
   }
 
   if (Object.keys(resumeDict).length === 0) {

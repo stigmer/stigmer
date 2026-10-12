@@ -6,7 +6,9 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SessionSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb.js";
-import type { AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, SessionIdSchema, UpdateSessionSubjectRequestSchema } from "./io_pb.js";
+import type { SessionEventSchema } from "./event_pb.js";
+import { file_ai_stigmer_agentic_session_v1_event } from "./event_pb.js";
+import type { AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, SessionIdSchema, UpdateSessionSubjectRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_session_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/session/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9jb21tYW5kLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MTLGCAoYU2Vzc2lvbkNvbW1hbmRDb250cm9sbGVyElcKBWFwcGx5EiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbhomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24SpQEKBmNyZWF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkvCuBhHCAgQHiIMbWV0YWRhdGEub3JnKjN1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHNlc3Npb24gaW4gdGhpcyBvcmdhbml6YXRpb24SjwEKBnVwZGF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIjXCuBgxCAIQKiILbWV0YWRhdGEuaWQqHnVuYXV0aG9yaXplZCB0byB1cGRhdGUgc2Vzc2lvbhKpAQoNdXBkYXRlU3ViamVjdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iNMK4GDAIAhAqIgJpZComdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzZXNzaW9uIHN1YmplY3QSygEKEXJldmlld0ZpbGVDaGFuZ2VzEjUuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuUmV2aWV3RmlsZUNoYW5nZXNJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlJldmlld0ZpbGVDaGFuZ2VzUmVzcG9uc2UiRMK4GEAIAhAqIgpzZXNzaW9uX2lkKi51bmF1dGhvcml6ZWQgdG8gcmV2aWV3IGZpbGUgY2hhbmdlcyBpbiBzZXNzaW9uEosBCgZkZWxldGUSKC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uSWQaJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIi/CuBgrCAMQKiIFdmFsdWUqHnVuYXV0aG9yaXplZCB0byBkZWxldGUgc2Vzc2lvbhKJAQoMYXBwZW5kRXZlbnRzEjcuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQXBwZW5kU2Vzc2lvbkV2ZW50c0lucHV0GjouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQXBwZW5kU2Vzc2lvbkV2ZW50c1Jlc3BvbnNlIgTQuBgBGgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9jb21tYW5kLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MTL6DAoYU2Vzc2lvbkNvbW1hbmRDb250cm9sbGVyElcKBWFwcGx5EiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbhomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24SpQEKBmNyZWF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkvCuBhHCAgQHiIMbWV0YWRhdGEub3JnKjN1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHNlc3Npb24gaW4gdGhpcyBvcmdhbml6YXRpb24SjwEKBnVwZGF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIjXCuBgxCAIQKiILbWV0YWRhdGEuaWQqHnVuYXV0aG9yaXplZCB0byB1cGRhdGUgc2Vzc2lvbhKpAQoNdXBkYXRlU3ViamVjdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iNMK4GDAIAhAqIgJpZComdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzZXNzaW9uIHN1YmplY3QSygEKEXJldmlld0ZpbGVDaGFuZ2VzEjUuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuUmV2aWV3RmlsZUNoYW5nZXNJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlJldmlld0ZpbGVDaGFuZ2VzUmVzcG9uc2UiRMK4GEAIAhAqIgpzZXNzaW9uX2lkKi51bmF1dGhvcml6ZWQgdG8gcmV2aWV3IGZpbGUgY2hhbmdlcyBpbiBzZXNzaW9uErUBCg5jb25maXJtVG9vbFVzZRIyLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbmZpcm1Ub29sVXNlSW5wdXQaKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnQiQsK4GD4IAhAqIgpzZXNzaW9uX2lkKix1bmF1dGhvcml6ZWQgdG8gYW5zd2VyIGEgdG9vbCB1c2UgaW4gc2Vzc2lvbhLDAQoPZ3JhbnRQZXJtaXNzaW9uEjMuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuR3JhbnRQZXJtaXNzaW9uSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5HcmFudFBlcm1pc3Npb25SZXNwb25zZSJDwrgYPwgCECoiCnNlc3Npb25faWQqLXVuYXV0aG9yaXplZCB0byBncmFudCBhIHBlcm1pc3Npb24gaW4gc2Vzc2lvbhKzAQoJaW50ZXJydXB0EjQuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSW50ZXJydXB0U2Vzc2lvbklucHV0GjcuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSW50ZXJydXB0U2Vzc2lvblJlc3BvbnNlIjfCuBgzCAIQKiIKc2Vzc2lvbl9pZCohdW5hdXRob3JpemVkIHRvIGludGVycnVwdCBzZXNzaW9uEosBCgZkZWxldGUSKC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uSWQaJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIi/CuBgrCAMQKiIFdmFsdWUqHnVuYXV0aG9yaXplZCB0byBkZWxldGUgc2Vzc2lvbhKJAQoMYXBwZW5kRXZlbnRzEjcuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQXBwZW5kU2Vzc2lvbkV2ZW50c0lucHV0GjouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQXBwZW5kU2Vzc2lvbkV2ZW50c1Jlc3BvbnNlIgTQuBgBGgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_event, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -99,6 +101,88 @@ export const SessionCommandController: GenService<{
     methodKind: "unary";
     input: typeof ReviewFileChangesInputSchema;
     output: typeof ReviewFileChangesResponseSchema;
+  },
+  /**
+   * Allow or deny a tool use that waits for an answer.
+   *
+   * A call that needs a person's answer is an agent.tool_use (or
+   * agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+   * idle with stop_reason requires_action naming it. The answer is appended
+   * as a user.tool_confirmation. A deny may carry a message, which the
+   * agent reads. When every waiting call of the turn is answered, the turn
+   * resumes; until then the session re-states requires_action with the
+   * calls still waiting.
+   *
+   * ## Error Conditions
+   *
+   * - NOT_FOUND: the tool use is not one of this conversation's calls that
+   *   asked
+   * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+   *   was stopped), or it was already answered the other way (an answer is
+   *   final)
+   *
+   * ## Idempotency
+   *
+   * The same answer sent again records nothing new and returns the event
+   * first recorded.
+   *
+   * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.confirmToolUse
+   */
+  confirmToolUse: {
+    methodKind: "unary";
+    input: typeof ConfirmToolUseInputSchema;
+    output: typeof SessionEventSchema;
+  },
+  /**
+   * Allow a tool use, and every call of its class for the rest of the turn.
+   *
+   * The class is the call's built-in category (write, delete or shell), its
+   * MCP server, or, when a hook asked, that hook on that tool. The grant is
+   * appended as a stigmer.permission.grant after the call's
+   * user.tool_confirmation, and every other call of the class waiting in
+   * the same turn is allowed with it. A call with no class (one the
+   * default never asks about) is allowed alone, with no grant.
+   *
+   * ## Error Conditions
+   *
+   * As confirmToolUse.
+   *
+   * ## Idempotency
+   *
+   * The same grant sent again records nothing new.
+   *
+   * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.grantPermission
+   */
+  grantPermission: {
+    methodKind: "unary";
+    input: typeof GrantPermissionInputSchema;
+    output: typeof GrantPermissionResponseSchema;
+  },
+  /**
+   * Stop the session's unfinished work.
+   *
+   * Appends a user.interrupt and stops every unfinished turn of the
+   * conversation: queued, working, waiting for an answer or paused. Each
+   * ends cancelled and the session goes idle with end_turn. Files undone
+   * in a turn that waited are put back at once.
+   *
+   * ## Error Conditions
+   *
+   * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+   *   be stopped)
+   * - FAILED_PRECONDITION: the execution engine is not connected
+   *
+   * ## Idempotency
+   *
+   * An interrupt with nothing unfinished records the event and stops
+   * nothing.
+   *
+   * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.interrupt
+   */
+  interrupt: {
+    methodKind: "unary";
+    input: typeof InterruptSessionInputSchema;
+    output: typeof InterruptSessionResponseSchema;
   },
   /**
    * Delete a session.

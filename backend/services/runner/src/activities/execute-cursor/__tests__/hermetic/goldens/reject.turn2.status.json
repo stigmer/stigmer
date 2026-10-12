@@ -1,0 +1,51 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-clean",
+          "name": "shell",
+          "args": {
+            "command": "rm -rf build/",
+            "cwd": "/x",
+            "timeout": 30000
+          },
+          "status": "TOOL_CALL_SKIPPED",
+          "startedAt": "2026-01-01T00:00:02.000Z",
+          "error": "Rejected by user",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: rm -rf build/",
+          "approvalRequestedAt": "2026-01-01T00:00:04.000Z",
+          "approvalDecidedAt": "2026-01-01T00:00:30.000Z",
+          "approvalAction": "APPROVAL_ACTION_REJECT",
+          "argsPreview": "{\"command\":\"rm -rf build/\",\"cwd\":\"/x\",\"timeout\":30000}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "hooks-2"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Understood: I will use make clean instead.",
+      "timestamp": "2026-01-01T00:00:05.000Z"
+    }
+  ],
+  "phase": "RUN_COMPLETED",
+  "startedAt": "2026-01-01T00:00:04.000Z",
+  "completedAt": "2026-01-01T00:00:07.000Z",
+  "streamingUsage": {
+    "inputTokens": "1000",
+    "outputTokens": "20",
+    "totalTokens": "1020",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00108,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:06.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  }
+}

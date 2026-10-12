@@ -21,6 +21,8 @@ updates:
       - "/"
       - "/backend/services/stigmer-server"
       - "/backend/services/runner"
+      - "/ee/server"
+      - "/ee/server/test/consumer"
       - "/site"
       - "/test/extension-consumer"
     schedule:

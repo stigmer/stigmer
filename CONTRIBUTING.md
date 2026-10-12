@@ -337,7 +337,12 @@ Contributors are recognized in:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the Apache License 2.0.
+Contributions outside the `ee/` directory are licensed under the Apache
+License 2.0. The `ee/` directory is under the Stigmer Enterprise License (see
+`ee/LICENSE`): by contributing to it, you license your contribution to
+Stigmer, Inc. under the Apache License 2.0 and agree that Stigmer, Inc. may
+distribute it under the Stigmer Enterprise License or any later version of
+it. You keep the copyright in your contribution.
 
 ---
 

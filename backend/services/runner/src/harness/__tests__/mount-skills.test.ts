@@ -99,6 +99,7 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
       reportProgress: async (label) => {
         labels.push(label);
       },
+      identifyRun: () => {},
       recordReconciled: async () => {},
     },
   };

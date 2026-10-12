@@ -140,7 +140,7 @@ describe("the hook server's answers", () => {
   });
 
   it("holds a call a person refused to their refusal over a hook's allow or ask, never over its deny", async () => {
-    const refusals = new Map<string, PersonRefusal>([[SHELL_ID, { action: "reject", toolName: "shell" }]]);
+    const refusals = new Map<string, PersonRefusal>([[SHELL_ID, { action: "reject", toolName: "shell", comment: "" }]]);
     for (const answer of ["allow", "ask"]) {
       const { h, decisions } = handler(evaluator(() => decide(answer)), refusals);
       const reply = (await h.answer(request(shellPayload("rm -rf x")))) as Record<string, string>;
@@ -149,7 +149,7 @@ describe("the hook server's answers", () => {
       expect(reply["message"]).toBe("Tool 'shell' was rejected by the user. Do not retry it; proceed by taking their objection into account.");
       expect(decisions.take("shell", "", { command: "rm -rf x" }), "a refused call never runs, so no row records a hook").toBeUndefined();
     }
-    const skipped = handler(evaluator(() => decide("allow")), new Map([[SHELL_ID, { action: "skip", toolName: "shell" } as const]]));
+    const skipped = handler(evaluator(() => decide("allow")), new Map([[SHELL_ID, { action: "skip", toolName: "shell", comment: "" } as const]]));
     expect(((await skipped.h.answer(request(shellPayload("rm -rf x")))) as Record<string, string>)["message"]).toBe(
       "Tool 'shell' was skipped by user. Please proceed without this operation.",
     );
@@ -157,9 +157,17 @@ describe("the hook server's answers", () => {
     expect(((await denied.h.answer(request(shellPayload("rm -rf x")))) as Record<string, string>)["decision"]).toBe("deny");
   });
 
+  it("tells the model the reason a person gave with their deny", async () => {
+    const reasoned = new Map<string, PersonRefusal>([[SHELL_ID, { action: "reject", toolName: "shell", comment: "use make clean instead" }]]);
+    const { h } = handler(evaluator(() => decide("allow")), reasoned);
+    expect(((await h.answer(request(shellPayload("rm -rf x")))) as Record<string, string>)["message"]).toBe(
+      "Tool 'shell' was rejected by the user: use make clean instead. Do not retry it; proceed by taking their objection into account.",
+    );
+  });
+
   it("holds a person's refusal of a hook's ask to that exact call", async () => {
     const exact = (pr: number) => Buffer.from(`srv/merge\n\n${hookAskDigest({ pr })}`, "utf-8").toString("base64");
-    const refusals = new Map<string, PersonRefusal>([[exact(1), { action: "reject", toolName: "merge" }]]);
+    const refusals = new Map<string, PersonRefusal>([[exact(1), { action: "reject", toolName: "merge", comment: "" }]]);
     const { h } = handler(evaluator(() => decide("ask")), refusals);
     const merge = (pr: number) =>
       h.answer(request({ hook_event_name: "beforeMCPExecution", tool_name: "merge", tool_input: JSON.stringify({ pr }), mcp_server_name: "srv" }, {

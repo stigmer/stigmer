@@ -10,8 +10,10 @@
 //     under ids derived from the run and the row: thinking (with its text in
 //     stigmer.agent.thinking), a tool use and its result, the answer; a tool
 //     use that waits for a person carries evaluated_permission ask and a
-//     stigmer.permission.asked, and the resumed turn adds only the result
-//     and what follows; a sub-agent is a thread of its own, opened after the
+//     stigmer.permission.asked, the session goes idle with requires_action
+//     naming it, the person's answer is a user.tool_confirmation (the
+//     server's), and the resumed turn adds only the result and what
+//     follows; a sub-agent is a thread of its own, opened after the
 //     task's tool use and closed before its result; a structured output is
 //     stigmer.agent.structured_output; a turn stopped by its tool-call
 //     limit ends the session as budget_reached;
@@ -39,7 +41,7 @@
 // The outsider contract (no view, no events) is Class A,
 // suites/session-events.conformance.test.ts, on the enforcing lane.
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -63,7 +65,6 @@ import {
   pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
-  submitApprovalPerContract,
 } from "../support/runs";
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
@@ -133,6 +134,9 @@ const TYPE_BY_CASE: Readonly<Record<string, string>> = {
   stigmerFileReviewChanges: "stigmer.file_review.changes",
   stigmerFileReviewDecided: "stigmer.file_review.decided",
   stigmerFileReviewReconciled: "stigmer.file_review.reconciled",
+  userToolConfirmation: "user.tool_confirmation",
+  userInterrupt: "user.interrupt",
+  stigmerPermissionGrant: "stigmer.permission.grant",
 };
 
 /** An event's own id. */
@@ -442,7 +446,7 @@ describe("the runner writes what the agent did", () => {
     expect(new Set(events.map(idOf)).size, "every fact once").toBe(events.length);
   });
 
-  it("[rpc:SessionQueryController.listEvents] a tool use that waits carries its ask; the resumed turn adds only its result and what follows", async () => {
+  it("[rpc:SessionQueryController.listEvents] [rpc:SessionCommandController.confirmToolUse] a tool use that waits carries its ask and the session's requires_action; the answer is the server's event; the resumed turn adds only its result and what follows", async () => {
     const { org } = await target.provisionTenancy();
     const plugin = await pushFixturePlugin(clients, mcp, fixtures, { org, name: uniqueName("gated"), tools: [DESTRUCTIVE_ECHO_TOOL_NAME] });
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("events-gated"), plugins: [plugin.metadata!.slug] }));
@@ -453,7 +457,18 @@ describe("the runner writes what the agent did", () => {
     const gated = await awaitPhase(clients, runId, RunPhase.RUN_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
     const sessionId = gated.spec?.target.case === "sessionId" ? gated.spec.target.value : "";
     const atGate = (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events;
-    expect(atGate.map(typeOf)).toEqual(["user.message", "session.status_running", "agent.mcp_tool_use", "stigmer.permission.asked"]);
+    expect(atGate.map(typeOf)).toEqual([
+      "user.message",
+      "session.status_running",
+      "agent.mcp_tool_use",
+      "stigmer.permission.asked",
+      "session.status_idle",
+    ]);
+    const waiting = atGate[4]!.event;
+    expect(waiting.case === "sessionStatusIdle" && [waiting.value.stopReason?.type, waiting.value.stopReason?.eventIds]).toEqual([
+      "requires_action",
+      [idOf(atGate[2]!)],
+    ]);
     const use = atGate[2]!.event;
     expect(use.case === "agentMcpToolUse" && use.value.evaluatedPermission).toBe("ask");
     const asked = atGate[3]!.event;
@@ -462,23 +477,25 @@ describe("the runner writes what the agent did", () => {
       "annotation_destructive_tighten",
     ]);
 
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "approve clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({ runId, toolCallId: gated.status!.pendingApprovals[0]!.toolCallId, action: ApprovalAction.APPROVE }),
-    });
+    const answer = await clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: idOf(atGate[2]!), result: "allow" });
+    expect(answer.event.case === "userToolConfirmation" && [answer.event.value.toolUseId, answer.event.value.result]).toEqual([
+      idOf(atGate[2]!),
+      "allow",
+    ]);
     const events = await runLog(runId);
     expect(events.map(typeOf)).toEqual([
       "user.message",
       "session.status_running",
       "agent.mcp_tool_use",
       "stigmer.permission.asked",
+      "session.status_idle",
+      "user.tool_confirmation",
+      "session.status_running",
       "agent.mcp_tool_result",
       "agent.message",
       "session.status_idle",
     ]);
-    const result = events[4]!.event;
+    const result = events[7]!.event;
     expect(result.case === "agentMcpToolResult" && [result.value.mcpToolUseId, result.value.isError]).toEqual([idOf(events[2]!), false]);
   });
 

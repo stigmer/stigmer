@@ -82,6 +82,8 @@ private static final long serialVersionUID = 0L;
     AGENT_THREAD_MESSAGE_SENT(23),
     AGENT_THREAD_MESSAGE_RECEIVED(24),
     AGENT_THREAD_CONTEXT_COMPACTED(25),
+    USER_TOOL_CONFIRMATION(26),
+    USER_INTERRUPT(27),
     STIGMER_AGENT_THINKING(100),
     STIGMER_PERMISSION_ASKED(101),
     STIGMER_HARNESS_NOTE(102),
@@ -90,6 +92,7 @@ private static final long serialVersionUID = 0L;
     STIGMER_FILE_REVIEW_CHANGES(105),
     STIGMER_FILE_REVIEW_DECIDED(106),
     STIGMER_FILE_REVIEW_RECONCILED(107),
+    STIGMER_PERMISSION_GRANT(108),
     EVENT_NOT_SET(0);
     private final int value;
     private EventCase(int value) {
@@ -123,6 +126,8 @@ private static final long serialVersionUID = 0L;
         case 23: return AGENT_THREAD_MESSAGE_SENT;
         case 24: return AGENT_THREAD_MESSAGE_RECEIVED;
         case 25: return AGENT_THREAD_CONTEXT_COMPACTED;
+        case 26: return USER_TOOL_CONFIRMATION;
+        case 27: return USER_INTERRUPT;
         case 100: return STIGMER_AGENT_THINKING;
         case 101: return STIGMER_PERMISSION_ASKED;
         case 102: return STIGMER_HARNESS_NOTE;
@@ -131,6 +136,7 @@ private static final long serialVersionUID = 0L;
         case 105: return STIGMER_FILE_REVIEW_CHANGES;
         case 106: return STIGMER_FILE_REVIEW_DECIDED;
         case 107: return STIGMER_FILE_REVIEW_RECONCILED;
+        case 108: return STIGMER_PERMISSION_GRANT;
         case 0: return EVENT_NOT_SET;
         default: return null;
       }
@@ -993,6 +999,92 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.AgentThreadContextCompactedEvent.getDefaultInstance();
   }
 
+  public static final int USER_TOOL_CONFIRMATION_FIELD_NUMBER = 26;
+  /**
+   * <pre>
+   * A person allowed or denied a tool use that waited for an answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+   * @return Whether the userToolConfirmation field is set.
+   */
+  @java.lang.Override
+  public boolean hasUserToolConfirmation() {
+    return eventCase_ == 26;
+  }
+  /**
+   * <pre>
+   * A person allowed or denied a tool use that waited for an answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+   * @return The userToolConfirmation.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.UserToolConfirmationEvent getUserToolConfirmation() {
+    if (eventCase_ == 26) {
+       return (ai.stigmer.agentic.session.v1.UserToolConfirmationEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A person allowed or denied a tool use that waited for an answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.UserToolConfirmationEventOrBuilder getUserToolConfirmationOrBuilder() {
+    if (eventCase_ == 26) {
+       return (ai.stigmer.agentic.session.v1.UserToolConfirmationEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.getDefaultInstance();
+  }
+
+  public static final int USER_INTERRUPT_FIELD_NUMBER = 27;
+  /**
+   * <pre>
+   * A person stopped the session's unfinished work.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+   * @return Whether the userInterrupt field is set.
+   */
+  @java.lang.Override
+  public boolean hasUserInterrupt() {
+    return eventCase_ == 27;
+  }
+  /**
+   * <pre>
+   * A person stopped the session's unfinished work.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+   * @return The userInterrupt.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.UserInterruptEvent getUserInterrupt() {
+    if (eventCase_ == 27) {
+       return (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.UserInterruptEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A person stopped the session's unfinished work.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.UserInterruptEventOrBuilder getUserInterruptOrBuilder() {
+    if (eventCase_ == 27) {
+       return (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.UserInterruptEvent.getDefaultInstance();
+  }
+
   public static final int STIGMER_AGENT_THINKING_FIELD_NUMBER = 100;
   /**
    * <pre>
@@ -1340,6 +1432,49 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.getDefaultInstance();
   }
 
+  public static final int STIGMER_PERMISSION_GRANT_FIELD_NUMBER = 108;
+  /**
+   * <pre>
+   * A person allowed every call of one class for the rest of the turn.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+   * @return Whether the stigmerPermissionGrant field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerPermissionGrant() {
+    return eventCase_ == 108;
+  }
+  /**
+   * <pre>
+   * A person allowed every call of one class for the rest of the turn.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+   * @return The stigmerPermissionGrant.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent getStigmerPermissionGrant() {
+    if (eventCase_ == 108) {
+       return (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A person allowed every call of one class for the rest of the turn.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerPermissionGrantEventOrBuilder getStigmerPermissionGrantOrBuilder() {
+    if (eventCase_ == 108) {
+       return (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1414,6 +1549,12 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 25) {
       output.writeMessage(25, (ai.stigmer.agentic.session.v1.AgentThreadContextCompactedEvent) event_);
     }
+    if (eventCase_ == 26) {
+      output.writeMessage(26, (ai.stigmer.agentic.session.v1.UserToolConfirmationEvent) event_);
+    }
+    if (eventCase_ == 27) {
+      output.writeMessage(27, (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_);
+    }
     if (eventCase_ == 100) {
       output.writeMessage(100, (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_);
     }
@@ -1437,6 +1578,9 @@ private static final long serialVersionUID = 0L;
     }
     if (eventCase_ == 107) {
       output.writeMessage(107, (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_);
+    }
+    if (eventCase_ == 108) {
+      output.writeMessage(108, (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1524,6 +1668,14 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(25, (ai.stigmer.agentic.session.v1.AgentThreadContextCompactedEvent) event_);
     }
+    if (eventCase_ == 26) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(26, (ai.stigmer.agentic.session.v1.UserToolConfirmationEvent) event_);
+    }
+    if (eventCase_ == 27) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(27, (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_);
+    }
     if (eventCase_ == 100) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(100, (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_);
@@ -1555,6 +1707,10 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 107) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(107, (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_);
+    }
+    if (eventCase_ == 108) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(108, (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1645,6 +1801,14 @@ private static final long serialVersionUID = 0L;
         if (!getAgentThreadContextCompacted()
             .equals(other.getAgentThreadContextCompacted())) return false;
         break;
+      case 26:
+        if (!getUserToolConfirmation()
+            .equals(other.getUserToolConfirmation())) return false;
+        break;
+      case 27:
+        if (!getUserInterrupt()
+            .equals(other.getUserInterrupt())) return false;
+        break;
       case 100:
         if (!getStigmerAgentThinking()
             .equals(other.getStigmerAgentThinking())) return false;
@@ -1676,6 +1840,10 @@ private static final long serialVersionUID = 0L;
       case 107:
         if (!getStigmerFileReviewReconciled()
             .equals(other.getStigmerFileReviewReconciled())) return false;
+        break;
+      case 108:
+        if (!getStigmerPermissionGrant()
+            .equals(other.getStigmerPermissionGrant())) return false;
         break;
       case 0:
       default:
@@ -1765,6 +1933,14 @@ private static final long serialVersionUID = 0L;
         hash = (37 * hash) + AGENT_THREAD_CONTEXT_COMPACTED_FIELD_NUMBER;
         hash = (53 * hash) + getAgentThreadContextCompacted().hashCode();
         break;
+      case 26:
+        hash = (37 * hash) + USER_TOOL_CONFIRMATION_FIELD_NUMBER;
+        hash = (53 * hash) + getUserToolConfirmation().hashCode();
+        break;
+      case 27:
+        hash = (37 * hash) + USER_INTERRUPT_FIELD_NUMBER;
+        hash = (53 * hash) + getUserInterrupt().hashCode();
+        break;
       case 100:
         hash = (37 * hash) + STIGMER_AGENT_THINKING_FIELD_NUMBER;
         hash = (53 * hash) + getStigmerAgentThinking().hashCode();
@@ -1796,6 +1972,10 @@ private static final long serialVersionUID = 0L;
       case 107:
         hash = (37 * hash) + STIGMER_FILE_REVIEW_RECONCILED_FIELD_NUMBER;
         hash = (53 * hash) + getStigmerFileReviewReconciled().hashCode();
+        break;
+      case 108:
+        hash = (37 * hash) + STIGMER_PERMISSION_GRANT_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerPermissionGrant().hashCode();
         break;
       case 0:
       default:
@@ -1992,6 +2172,12 @@ private static final long serialVersionUID = 0L;
       if (agentThreadContextCompactedBuilder_ != null) {
         agentThreadContextCompactedBuilder_.clear();
       }
+      if (userToolConfirmationBuilder_ != null) {
+        userToolConfirmationBuilder_.clear();
+      }
+      if (userInterruptBuilder_ != null) {
+        userInterruptBuilder_.clear();
+      }
       if (stigmerAgentThinkingBuilder_ != null) {
         stigmerAgentThinkingBuilder_.clear();
       }
@@ -2015,6 +2201,9 @@ private static final long serialVersionUID = 0L;
       }
       if (stigmerFileReviewReconciledBuilder_ != null) {
         stigmerFileReviewReconciledBuilder_.clear();
+      }
+      if (stigmerPermissionGrantBuilder_ != null) {
+        stigmerPermissionGrantBuilder_.clear();
       }
       eventCase_ = 0;
       event_ = null;
@@ -2133,6 +2322,14 @@ private static final long serialVersionUID = 0L;
           agentThreadContextCompactedBuilder_ != null) {
         result.event_ = agentThreadContextCompactedBuilder_.build();
       }
+      if (eventCase_ == 26 &&
+          userToolConfirmationBuilder_ != null) {
+        result.event_ = userToolConfirmationBuilder_.build();
+      }
+      if (eventCase_ == 27 &&
+          userInterruptBuilder_ != null) {
+        result.event_ = userInterruptBuilder_.build();
+      }
       if (eventCase_ == 100 &&
           stigmerAgentThinkingBuilder_ != null) {
         result.event_ = stigmerAgentThinkingBuilder_.build();
@@ -2164,6 +2361,10 @@ private static final long serialVersionUID = 0L;
       if (eventCase_ == 107 &&
           stigmerFileReviewReconciledBuilder_ != null) {
         result.event_ = stigmerFileReviewReconciledBuilder_.build();
+      }
+      if (eventCase_ == 108 &&
+          stigmerPermissionGrantBuilder_ != null) {
+        result.event_ = stigmerPermissionGrantBuilder_.build();
       }
     }
 
@@ -2262,6 +2463,14 @@ private static final long serialVersionUID = 0L;
           mergeAgentThreadContextCompacted(other.getAgentThreadContextCompacted());
           break;
         }
+        case USER_TOOL_CONFIRMATION: {
+          mergeUserToolConfirmation(other.getUserToolConfirmation());
+          break;
+        }
+        case USER_INTERRUPT: {
+          mergeUserInterrupt(other.getUserInterrupt());
+          break;
+        }
         case STIGMER_AGENT_THINKING: {
           mergeStigmerAgentThinking(other.getStigmerAgentThinking());
           break;
@@ -2292,6 +2501,10 @@ private static final long serialVersionUID = 0L;
         }
         case STIGMER_FILE_REVIEW_RECONCILED: {
           mergeStigmerFileReviewReconciled(other.getStigmerFileReviewReconciled());
+          break;
+        }
+        case STIGMER_PERMISSION_GRANT: {
+          mergeStigmerPermissionGrant(other.getStigmerPermissionGrant());
           break;
         }
         case EVENT_NOT_SET: {
@@ -2456,6 +2669,20 @@ private static final long serialVersionUID = 0L;
               eventCase_ = 25;
               break;
             } // case 202
+            case 210: {
+              input.readMessage(
+                  internalGetUserToolConfirmationFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 26;
+              break;
+            } // case 210
+            case 218: {
+              input.readMessage(
+                  internalGetUserInterruptFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 27;
+              break;
+            } // case 218
             case 802: {
               input.readMessage(
                   internalGetStigmerAgentThinkingFieldBuilder().getBuilder(),
@@ -2512,6 +2739,13 @@ private static final long serialVersionUID = 0L;
               eventCase_ = 107;
               break;
             } // case 858
+            case 866: {
+              input.readMessage(
+                  internalGetStigmerPermissionGrantFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 108;
+              break;
+            } // case 866
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5721,6 +5955,362 @@ private static final long serialVersionUID = 0L;
     }
 
     private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.UserToolConfirmationEvent, ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.Builder, ai.stigmer.agentic.session.v1.UserToolConfirmationEventOrBuilder> userToolConfirmationBuilder_;
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     * @return Whether the userToolConfirmation field is set.
+     */
+    @java.lang.Override
+    public boolean hasUserToolConfirmation() {
+      return eventCase_ == 26;
+    }
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     * @return The userToolConfirmation.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.UserToolConfirmationEvent getUserToolConfirmation() {
+      if (userToolConfirmationBuilder_ == null) {
+        if (eventCase_ == 26) {
+          return (ai.stigmer.agentic.session.v1.UserToolConfirmationEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 26) {
+          return userToolConfirmationBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     */
+    public Builder setUserToolConfirmation(ai.stigmer.agentic.session.v1.UserToolConfirmationEvent value) {
+      if (userToolConfirmationBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        userToolConfirmationBuilder_.setMessage(value);
+      }
+      eventCase_ = 26;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     */
+    public Builder setUserToolConfirmation(
+        ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.Builder builderForValue) {
+      if (userToolConfirmationBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        userToolConfirmationBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 26;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     */
+    public Builder mergeUserToolConfirmation(ai.stigmer.agentic.session.v1.UserToolConfirmationEvent value) {
+      if (userToolConfirmationBuilder_ == null) {
+        if (eventCase_ == 26 &&
+            event_ != ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.newBuilder((ai.stigmer.agentic.session.v1.UserToolConfirmationEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 26) {
+          userToolConfirmationBuilder_.mergeFrom(value);
+        } else {
+          userToolConfirmationBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 26;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     */
+    public Builder clearUserToolConfirmation() {
+      if (userToolConfirmationBuilder_ == null) {
+        if (eventCase_ == 26) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 26) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        userToolConfirmationBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.Builder getUserToolConfirmationBuilder() {
+      return internalGetUserToolConfirmationFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.UserToolConfirmationEventOrBuilder getUserToolConfirmationOrBuilder() {
+      if ((eventCase_ == 26) && (userToolConfirmationBuilder_ != null)) {
+        return userToolConfirmationBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 26) {
+          return (ai.stigmer.agentic.session.v1.UserToolConfirmationEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A person allowed or denied a tool use that waited for an answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.UserToolConfirmationEvent, ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.Builder, ai.stigmer.agentic.session.v1.UserToolConfirmationEventOrBuilder> 
+        internalGetUserToolConfirmationFieldBuilder() {
+      if (userToolConfirmationBuilder_ == null) {
+        if (!(eventCase_ == 26)) {
+          event_ = ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.getDefaultInstance();
+        }
+        userToolConfirmationBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.UserToolConfirmationEvent, ai.stigmer.agentic.session.v1.UserToolConfirmationEvent.Builder, ai.stigmer.agentic.session.v1.UserToolConfirmationEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.UserToolConfirmationEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 26;
+      onChanged();
+      return userToolConfirmationBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.UserInterruptEvent, ai.stigmer.agentic.session.v1.UserInterruptEvent.Builder, ai.stigmer.agentic.session.v1.UserInterruptEventOrBuilder> userInterruptBuilder_;
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     * @return Whether the userInterrupt field is set.
+     */
+    @java.lang.Override
+    public boolean hasUserInterrupt() {
+      return eventCase_ == 27;
+    }
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     * @return The userInterrupt.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.UserInterruptEvent getUserInterrupt() {
+      if (userInterruptBuilder_ == null) {
+        if (eventCase_ == 27) {
+          return (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.UserInterruptEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 27) {
+          return userInterruptBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.UserInterruptEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     */
+    public Builder setUserInterrupt(ai.stigmer.agentic.session.v1.UserInterruptEvent value) {
+      if (userInterruptBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        userInterruptBuilder_.setMessage(value);
+      }
+      eventCase_ = 27;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     */
+    public Builder setUserInterrupt(
+        ai.stigmer.agentic.session.v1.UserInterruptEvent.Builder builderForValue) {
+      if (userInterruptBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        userInterruptBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 27;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     */
+    public Builder mergeUserInterrupt(ai.stigmer.agentic.session.v1.UserInterruptEvent value) {
+      if (userInterruptBuilder_ == null) {
+        if (eventCase_ == 27 &&
+            event_ != ai.stigmer.agentic.session.v1.UserInterruptEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.UserInterruptEvent.newBuilder((ai.stigmer.agentic.session.v1.UserInterruptEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 27) {
+          userInterruptBuilder_.mergeFrom(value);
+        } else {
+          userInterruptBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 27;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     */
+    public Builder clearUserInterrupt() {
+      if (userInterruptBuilder_ == null) {
+        if (eventCase_ == 27) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 27) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        userInterruptBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.UserInterruptEvent.Builder getUserInterruptBuilder() {
+      return internalGetUserInterruptFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.UserInterruptEventOrBuilder getUserInterruptOrBuilder() {
+      if ((eventCase_ == 27) && (userInterruptBuilder_ != null)) {
+        return userInterruptBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 27) {
+          return (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.UserInterruptEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A person stopped the session's unfinished work.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.UserInterruptEvent, ai.stigmer.agentic.session.v1.UserInterruptEvent.Builder, ai.stigmer.agentic.session.v1.UserInterruptEventOrBuilder> 
+        internalGetUserInterruptFieldBuilder() {
+      if (userInterruptBuilder_ == null) {
+        if (!(eventCase_ == 27)) {
+          event_ = ai.stigmer.agentic.session.v1.UserInterruptEvent.getDefaultInstance();
+        }
+        userInterruptBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.UserInterruptEvent, ai.stigmer.agentic.session.v1.UserInterruptEvent.Builder, ai.stigmer.agentic.session.v1.UserInterruptEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.UserInterruptEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 27;
+      onChanged();
+      return userInterruptBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent, ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.Builder, ai.stigmer.agentic.session.v1.StigmerAgentThinkingEventOrBuilder> stigmerAgentThinkingBuilder_;
     /**
      * <pre>
@@ -7151,6 +7741,184 @@ private static final long serialVersionUID = 0L;
       eventCase_ = 107;
       onChanged();
       return stigmerFileReviewReconciledBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent, ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.Builder, ai.stigmer.agentic.session.v1.StigmerPermissionGrantEventOrBuilder> stigmerPermissionGrantBuilder_;
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     * @return Whether the stigmerPermissionGrant field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerPermissionGrant() {
+      return eventCase_ == 108;
+    }
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     * @return The stigmerPermissionGrant.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent getStigmerPermissionGrant() {
+      if (stigmerPermissionGrantBuilder_ == null) {
+        if (eventCase_ == 108) {
+          return (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 108) {
+          return stigmerPermissionGrantBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     */
+    public Builder setStigmerPermissionGrant(ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent value) {
+      if (stigmerPermissionGrantBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerPermissionGrantBuilder_.setMessage(value);
+      }
+      eventCase_ = 108;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     */
+    public Builder setStigmerPermissionGrant(
+        ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.Builder builderForValue) {
+      if (stigmerPermissionGrantBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerPermissionGrantBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 108;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     */
+    public Builder mergeStigmerPermissionGrant(ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent value) {
+      if (stigmerPermissionGrantBuilder_ == null) {
+        if (eventCase_ == 108 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 108) {
+          stigmerPermissionGrantBuilder_.mergeFrom(value);
+        } else {
+          stigmerPermissionGrantBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 108;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     */
+    public Builder clearStigmerPermissionGrant() {
+      if (stigmerPermissionGrantBuilder_ == null) {
+        if (eventCase_ == 108) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 108) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerPermissionGrantBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.Builder getStigmerPermissionGrantBuilder() {
+      return internalGetStigmerPermissionGrantFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerPermissionGrantEventOrBuilder getStigmerPermissionGrantOrBuilder() {
+      if ((eventCase_ == 108) && (stigmerPermissionGrantBuilder_ != null)) {
+        return stigmerPermissionGrantBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 108) {
+          return (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A person allowed every call of one class for the rest of the turn.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent, ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.Builder, ai.stigmer.agentic.session.v1.StigmerPermissionGrantEventOrBuilder> 
+        internalGetStigmerPermissionGrantFieldBuilder() {
+      if (stigmerPermissionGrantBuilder_ == null) {
+        if (!(eventCase_ == 108)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.getDefaultInstance();
+        }
+        stigmerPermissionGrantBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent, ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.Builder, ai.stigmer.agentic.session.v1.StigmerPermissionGrantEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 108;
+      onChanged();
+      return stigmerPermissionGrantBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionEvent)
