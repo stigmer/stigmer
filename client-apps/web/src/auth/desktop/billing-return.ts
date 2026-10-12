@@ -1,9 +1,10 @@
 /**
- * The deep link that hands a Stigmer Desktop user back to the app after a
+ * The desktop billing bridge's two pure halves: the deep link that hands a Stigmer Desktop user back to the app after a
  * Stripe page (`app/desktop/billing`). It carries only the outcome the
  * app's billing page understands, a saved card with the plan it was for,
  * and drops anything else in the return URL: the state itself is read
- * from the server.
+ * from the server. And the one line the bridge's page tells the person
+ * while the app reopens.
  */
 export function desktopBillingDeepLink(searchParams: URLSearchParams): string {
   const query = new URLSearchParams();
@@ -14,4 +15,9 @@ export function desktopBillingDeepLink(searchParams: URLSearchParams): string {
   }
   const search = query.toString();
   return `stigmer://billing/return${search === "" ? "" : `?${search}`}`;
+}
+
+/** What the bridge's page says: a saved card, or nothing changed (a cancel or the portal). */
+export function desktopBillingOutcome(searchParams: URLSearchParams): string {
+  return searchParams.get("setup") === "success" ? "Your card is saved." : "Nothing was changed.";
 }

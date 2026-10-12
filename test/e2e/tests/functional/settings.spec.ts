@@ -84,7 +84,7 @@ const SETTINGS_SECTIONS: readonly {
   {
     path: "/settings/billing",
     headingText: "Billing",
-    oss: { notice: "Credit billing and purchases are available on Stigmer Cloud." },
+    oss: { notice: "Plans and invoices are available on Stigmer Cloud." },
   },
   {
     path: "/settings/usage",

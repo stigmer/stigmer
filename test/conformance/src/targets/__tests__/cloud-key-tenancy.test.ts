@@ -3,7 +3,7 @@
 // them, and the real Cursor key from CURSOR_API_KEY beside them when the
 // shell supplies one, which is also what admits the Cursor arms
 // (cursorRunsAdmitted); and the execution target keys every tenancy it
-// provisions, through the same call. The client
+// provisions, through the same call, and none it hands out keyless. The client
 // accessors are stubbed and the environment is stubbed per test; nothing
 // here starts a server.
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -75,5 +75,16 @@ describe("CloudExecutionTarget tenancies", () => {
     await target.keyTenancy("org_2");
 
     expect(keyed.mock.calls).toEqual([["org_1"], ["org_2"]]);
+  });
+
+  it("hands the run-admission suite a keyless tenancy, and keys nothing", async () => {
+    const target = new CloudExecutionTarget();
+    const cloud = (target as unknown as { cloud: CloudTarget }).cloud;
+    vi.spyOn(cloud, "provisionKeylessTenancy").mockResolvedValue({ org: "org_3" });
+    const keyed = vi.spyOn(cloud, "keyTenancy").mockResolvedValue();
+
+    expect(await target.provisionKeylessTenancy()).toEqual({ org: "org_3" });
+
+    expect(keyed).not.toHaveBeenCalled();
   });
 });
