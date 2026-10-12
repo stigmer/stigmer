@@ -137,11 +137,24 @@ export function stampFlowedSubAgentFileEditRows(
  * undeterminable path is treated as secret-like ({@link isSecretLikePath} of "").
  */
 export function withholdSecretFileContent(tc: ToolCall): boolean {
-  const path = extractFilePath((tc.args ?? {}) as Record<string, unknown>) ?? "";
-  if (!isSecretLikePath(path)) return false;
+  const path = secretLikeFilePath((tc.args ?? {}) as Record<string, unknown>);
+  if (path === null) return false;
   tc.args = path ? { path } : undefined;
   tc.argsPreview = "";
   return true;
+}
+
+/**
+ * The path a file tool's arguments name when that path is secret-like
+ * (`""` when no path can be determined, which is treated as secret-like:
+ * fail-closed), `null` when the content may be shown. The one predicate
+ * behind {@link withholdSecretFileContent}, read too by the trace export
+ * (`telemetry-content.ts`), which must never show more than the saved
+ * conversation does.
+ */
+export function secretLikeFilePath(args: Record<string, unknown>): string | null {
+  const path = extractFilePath(args) ?? "";
+  return isSecretLikePath(path) ? path : null;
 }
 
 /**

@@ -25,6 +25,7 @@ import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_p
 import { resolveCursorConfig } from "../../activities/execute-cursor/adapter.js";
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import type { Config } from "../../config.js";
+import { TELEMETRY_OFF } from "../../otel-export.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessRow } from "../../harness/registry.js";
 import type { HarnessAdapter } from "../../harness/types.js";
@@ -53,6 +54,7 @@ const CONFIG: HostConfigWire = {
   cursorEndpoint: "https://127.0.0.1:4322",
   token: "host-token",
   platformProxied: false,
+  telemetry: TELEMETRY_OFF,
 };
 
 function probe(name: string, events: string[], behaviour: Partial<HarnessAdapter> = {}): HarnessAdapter {
@@ -164,6 +166,7 @@ describe("the agent host process", () => {
       fingerprintKey: handed.toString("base64"),
       stopped: null,
       turnKey: "turn-key-test",
+      traceparent: null,
     });
 
     expect(seen?.equals(handed)).toBe(true);

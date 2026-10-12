@@ -20,9 +20,11 @@
  * needs to run (the path, the locale, the time zone, a terminal, a temporary
  * directory), the network's proxy and trust settings, and the engines' and
  * the runner's non-secret settings (`CURSOR_`, `STIGMER_`, `OTEL_` and
- * `NODE_` names, the runner's secrets still dropped, and the OpenTelemetry
- * exporter's `*_HEADERS`, which carry a collector's token, and
- * `NODE_AUTH_TOKEN`, an npm registry's). A cloud credential
+ * `NODE_` names, the runner's secrets still dropped, among them the
+ * collector's login, which the host never needs because it exports through
+ * the runner's local proxy (`agent-proxy/otlp-forward.ts`); any other
+ * `OTEL_*_HEADERS`, which carry a token, and `NODE_AUTH_TOKEN`, an npm
+ * registry's, are held back too). A cloud credential
  * the operator gave the runner (`AWS_*`, `GOOGLE_APPLICATION_CREDENTIALS`,
  * `AZURE_*`) does not pass: the runner's model lanes sign for the host
  * (`agent-proxy/lanes.ts`). An operator who wants more names in the agent's

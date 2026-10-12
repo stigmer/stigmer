@@ -138,6 +138,7 @@ import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
 import { reconcileOwedUndos, type ReconciledUndo } from "./owed-undos.js";
+import type { RunFacts } from "./run-span.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
   TurnAttachments,
@@ -206,6 +207,13 @@ export interface ResolutionDeps {
   readonly enterPhase: (step: string) => void;
   /** The user-visible setup label (`setupProgress`); the six strings are unchanged from the orchestrator. */
   readonly reportProgress: (label: string) => Promise<void>;
+  /**
+   * The run and its session are known: the turn's trace span takes its
+   * name and facts from them (`run-span.ts`). Called once, right after the
+   * blueprint resolves, so a turn that settles during resolution is named
+   * too.
+   */
+  readonly identifyRun: (facts: RunFacts) => void;
   /**
    * Writes what the turn's start put back for earlier turns into the
    * session's log at once (`events/emitter.ts` `writeReconciled`), before the
@@ -723,27 +731,6 @@ export async function startEvalMocks(
             unlisted: listing.unlisted.filter((server) => !replaced.has(server)),
           },
   };
-}
-
-/**
- * Set OTel baggage so downstream calls carry execution
- * context. Best-effort; tracing not initialized is a silent skip. Runs after
- * the lock, as it always has.
- */
-export async function bindTelemetryBaggage(
-  deps: ResolutionDeps,
-  args: { readonly session: Session; readonly sessionId: string },
-): Promise<void> {
-  try {
-    const { setBaggage, BAGGAGE_EXECUTION_ID, BAGGAGE_SESSION_ID, BAGGAGE_ORG_ID } = await import("../otel.js");
-    await setBaggage({
-      [BAGGAGE_EXECUTION_ID]: deps.input.executionId,
-      [BAGGAGE_SESSION_ID]: args.sessionId,
-      [BAGGAGE_ORG_ID]: args.session.metadata?.org ?? "",
-    });
-  } catch {
-    // Tracing not initialized — silently skip.
-  }
 }
 
 /**
@@ -1680,6 +1667,7 @@ export async function resolveTurnContext(
   const { execution, spec, sessionId } = await fetchExecution(deps);
   if (spec.reconcileFileReview) return resolveReconcileTurn(deps, frame, sessionId);
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
+  deps.identifyRun({ execution, session, sessionId, blueprint });
   const unrunnable = refuseUnrunnableHooks(blueprint, capabilities);
   if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
   const fetched = await fetchValues(deps);
@@ -1700,8 +1688,6 @@ export async function resolveTurnContext(
   if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
   frame.releaseWorkspaceLock = lock.release;
   await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
-
-  await bindTelemetryBaggage(deps, { session, sessionId });
 
   const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });
   if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };

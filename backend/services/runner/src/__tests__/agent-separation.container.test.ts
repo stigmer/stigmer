@@ -16,7 +16,9 @@
  *
  * Pinned, as the agent: the runner's `/proc/<pid>/environ` and `mem`, its
  * state file, a link planted into `/proc/<runner>`, rewriting its code, and
- * `su` are all refused, and no canary is in the agent's own environment;
+ * `su` are all refused, and no canary is in the agent's own environment
+ * (the OpenTelemetry collector's login among them, even named for
+ * passthrough);
  * and the runner can still end that process (a host that will not exit).
  * Red first, in the same container: the same probe started without the drop
  * reads the canaries from `/proc`.
@@ -43,6 +45,10 @@ const runnerEnv: Record<string, string> = {
   PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
   ...Object.fromEntries(RUNNER_SECRET_ENV_KEYS.map((name) => [name, `${CANARY}-${name}`])),
   AWS_SECRET_ACCESS_KEY: `${CANARY}-aws`,
+  // An operator who names the collector's login here still cannot hand it
+  // to the agent: it is a runner secret, and the host exports through the
+  // runner's local proxy instead (`agent-proxy/otlp-forward.ts`).
+  STIGMER_AGENT_ENV_PASSTHROUGH: "OTEL_EXPORTER_OTLP_HEADERS",
 };
 
 /** The stand-in runner: root, holding the canaries, starting the probe as the supervisor starts the host. */
@@ -136,6 +142,8 @@ describe.skipIf(!RUN)("the agent user, in a container shaped as every runner shi
       expect(agent[path]?.ok, `${path}: ${JSON.stringify(agent[path])}`).toBe(false);
     }
     expect(agent.ownEnvironment).not.toContain(CANARY);
+    // As a key: the passthrough setting's own value is that name.
+    expect(agent.ownEnvironment, "the collector's login, even when named for passthrough").not.toContain('"OTEL_EXPORTER_OTLP_HEADERS":');
     expect(agent.runnerKillsAgent, "the runner ends a host that will not exit").toBe("SIGKILL");
   }, 180_000);
 
