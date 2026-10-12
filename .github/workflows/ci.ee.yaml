@@ -1,0 +1,139 @@
+# =============================================================================
+# Stigmer Enterprise — build, vitest suite, dist boot and consumer install
+# =============================================================================
+# Runs the gate of `@stigmer/enterprise` (ee/server), the Enterprise package
+# under the Stigmer Enterprise License (ee/LICENSE): build, typecheck, the
+# boot check of its compiled entry, the exports-map compile proof of its
+# consumer, its vitest suite against a real Postgres, and the consumer-install
+# check from its packed tarball against a real Temporal.
+#
+# A lane of its own, not steps in ci.stigmer-server.yaml: the package has its
+# own license, lockfile and suite, and the open-source server's result must
+# not depend on them. It links the server and the server's libraries with
+# `file:` and builds against them, so it runs on every change to them too: a
+# change to the open-source server that breaks Enterprise fails here, in its
+# own pull request.
+#
+# The build order is the server lane's: the root install, the server's and
+# then this package's own install from their lockfiles, then `make build-ee`
+# (the libraries, the server, then this package). It builds no console and no
+# slim bundle: the package ships neither.
+#
+# When it runs (its list in scripts/ci-lanes.mjs): ee/, everything the server
+# lane runs on (scripts/lane-triggers.test.mjs fails when a linked package is
+# missing), and this file.
+# =============================================================================
+
+name: ci.ee
+
+on:
+  # Called by ci.gate.yaml when scripts/ci-lanes.mjs finds the change needs
+  # this lane (the path list and its reasons live there); `Gate` is the
+  # required check.
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # Inside the gate a missing test dependency fails instead of skipping
+  # (the Postgres helper reads it); a caller's env does not reach a called
+  # workflow, so each lane sets it itself.
+  STIGMER_TEST_GATE: "1"
+
+jobs:
+  ee:
+    name: Enterprise Gate
+    runs-on: ubuntu-latest
+    # About 3x the job's measured time: without it a hung step would hold a
+    # runner for GitHub's six-hour default.
+    timeout-minutes: 20
+    # The Postgres suites run against this container; the pinned major is
+    # the one the compose stack ships. Each test makes its own throwaway
+    # database.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # Both standalone packages install from their own lockfiles before any
+      # make target, so make's install rules find them current.
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Install Enterprise dependencies
+        working-directory: ee/server
+        run: npm ci
+
+      - name: Build the libraries, the server and the Enterprise package
+        run: make build-ee
+
+      - name: Typecheck
+        working-directory: ee/server
+        run: npm run typecheck
+
+      - name: Boot-check the compiled dist
+        working-directory: ee/server
+        run: npm run verify:dist
+
+      # The exports-map compile proof: a host's use of the package
+      # typechecks against its exports map alone. Runs after the build
+      # because the exports map points into dist.
+      - name: Compile-proof the exports map (ee/server/test/consumer)
+        working-directory: ee/server/test/consumer
+        run: npm ci --no-audit --no-fund && npm run typecheck
+
+      # `make test-ee` is the build above and then `npm test`; it is called
+      # directly here so a runner flag reaches vitest.
+      - name: Run the vitest suite
+        working-directory: ee/server
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
+        run: npm test
+
+      # The consumer-install check: pack the package and every package it
+      # links, install the tarballs into a fresh prefix the way a host
+      # does, and prove one physical copy of each guarded package, a boot of
+      # the staged dist/main.js that starts every Temporal worker, and the
+      # consumer's typecheck against the published files.
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
+
+      - name: Consumer-install smoke check (the published package shape)
+        working-directory: ee/server
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          # The last hour's publishes are ignored (#1669;
+          # scripts/lib/resolve-before.mjs). A release resolves live.
+          npm run verify:consumer -- --resolve-before=1

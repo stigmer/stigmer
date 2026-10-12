@@ -849,6 +849,8 @@ test("the guard still finds the packages and lanes it exists for", () => {
     [
       "backend/services/runner",
       "backend/services/stigmer-server",
+      "ee/server",
+      "ee/server/test/consumer",
       "site",
       "test/extension-consumer",
     ],
@@ -857,6 +859,8 @@ test("the guard still finds the packages and lanes it exists for", () => {
   for (const expected of [
     "ci.stigmer-server.yaml backend/services/stigmer-server",
     "ci.stigmer-server.yaml test/extension-consumer",
+    "ci.ee.yaml ee/server",
+    "ci.ee.yaml ee/server/test/consumer",
     "ci.runner.yaml backend/services/runner",
     "ci.docs.yaml site",
     "release.website.yaml site",
@@ -959,6 +963,7 @@ test("the setup rule still finds the setups and installs it exists for", () => {
     "conformance-execution",
     "docs",
     "e2e-interactive",
+    "ee",
     "go-sdk",
     "helm-chart",
     "java-sdk",
@@ -975,8 +980,11 @@ test("the setup rule still finds the setups and installs it exists for", () => {
   assert.deepEqual(readers("backend/services/stigmer-server/package-lock.json"), [
     "conformance",
     "conformance-execution",
+    "ee",
     "stigmer-server",
   ]);
+  assert.deepEqual(readers("ee/server/package-lock.json"), ["ee"]);
+  assert.deepEqual(readers("ee/server/test/consumer/package-lock.json"), ["ee"]);
   assert.deepEqual(readers("backend/services/runner/package-lock.json"), ["runner"]);
   assert.deepEqual(readers("test/extension-consumer/package-lock.json"), ["stigmer-server"]);
 });
@@ -1024,6 +1032,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
     "crate",
     "docs",
     "e2e-interactive",
+    "ee",
     "helm-chart",
     "plugins-static",
     "stigmer-server",

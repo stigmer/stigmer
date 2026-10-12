@@ -93,6 +93,7 @@ test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer 
     "conformance",
     "conformance-execution",
     "e2e-interactive",
+    "ee",
     "stigmer-server",
     "ts-workspace",
     "upgrade-rehearsal",
