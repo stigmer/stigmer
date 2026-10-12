@@ -240,32 +240,21 @@ describe("AgentChannel conformance — create validation", () => {
     expect(err.rawMessage).toBe("Agent not found: no-such-agent");
   });
 
-  it("[rpc:AgentChannelCommandController.create] the pin-REQUIRED rule is edition-split: OSS stores an unpinned channel, cloud refuses it (#362)", async () => {
+  it("[rpc:AgentChannelCommandController.create] stores an unpinned channel on every edition (#362)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await createAgentFixture(org);
     const unpinned = makeSlackAgentChannel(org, uniqueName("channel"), agent.metadata!.slug, {
       modelName: null,
     });
 
-    if (target.capabilities.channelMessaging) {
-      // The edition that SERVES channels refuses an unpinned one at write
-      // time: its channel execution profile runs the Cursor harness, where
-      // no pin means billing as Auto.
-      const err = await expectGrpcCode(
-        () => clients.agentChannelCommand.create(unpinned),
-        Code.InvalidArgument,
-        "unpinned channel where the channel runtime serves Cursor",
-      );
-      expect(err.rawMessage).toContain(
-        "spec.run_config.model_name must name a pinned model when the run would use the Cursor harness",
-      );
-    } else {
-      // The edition that only STORES channels accepts the unpinned spec —
-      // there is no serving profile to bill against.
-      const created = await clients.agentChannelCommand.create(unpinned);
-      fixtures.defer(() => clients.agentChannelCommand.delete({ value: created.metadata!.id }));
-      expect(created.spec?.runConfig?.modelName ?? "").toBe("");
-    }
+    // A channel names no engine: its conversations start on the engine its
+    // agent names, native when it names none, in both editions. Nothing at
+    // write time knows the turn will run Cursor, so an unpinned channel is
+    // stored; an unattended Cursor turn that names no model anywhere is
+    // refused when it runs (stigmer/stigmer#362).
+    const created = await clients.agentChannelCommand.create(unpinned);
+    fixtures.defer(() => clients.agentChannelCommand.delete({ value: created.metadata!.id }));
+    expect(created.spec?.runConfig?.modelName ?? "").toBe("");
   });
 
   it("[rpc:AgentChannelCommandController.create] rejects an unknown model pin (InvalidArgument, stable message prefix)", async () => {
