@@ -14,7 +14,6 @@
           "can_manage_model_pricing": {},
           "can_manage_plans": {},
           "can_view_access": {},
-          "can_view_provider_standing": {},
           "can_write_reserved_labels": {},
           "credit_issuer": {
             "directly_related_user_types": [
@@ -88,11 +87,6 @@
           }
         },
         "can_view_access": {
-          "computedUserset": {
-            "relation": "operator"
-          }
-        },
-        "can_view_provider_standing": {
           "computedUserset": {
             "relation": "operator"
           }

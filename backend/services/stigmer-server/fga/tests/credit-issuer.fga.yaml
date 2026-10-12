@@ -65,7 +65,6 @@ tests:
           can_execute_billing_ops: false
           can_manage_model_pricing: false
           can_manage_cursor_accounts: false
-          can_view_provider_standing: false
           can_write_reserved_labels: false
           can_issue_license: false
       - user: identity_account:funder

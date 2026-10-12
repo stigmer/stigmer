@@ -4,7 +4,6 @@ import ai.stigmer.billing.v1.AdjustCreditsInput;
 import ai.stigmer.billing.v1.CreateBillingPortalSessionInput;
 import ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput;
 import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput;
-import ai.stigmer.billing.v1.DecideModelPricingOverrideInput;
 import ai.stigmer.billing.v1.GetBillingUsageReportInput;
 import ai.stigmer.billing.v1.GetCreditLedgerInput;
 import ai.stigmer.billing.v1.GrantCreditsInput;
@@ -259,21 +258,7 @@ class BillingClientTest {
         assertEquals(100_000_000L, proto.getMonthlyCapMicros());
     }
 
-    // -- Pricing governance params --------------------------------------------------
-
-    @Test
-    void decideModelPricingOverride_toProto_defaultsNoteToEmpty() {
-        DecideModelPricingOverrideInput proto =
-                BillingClient.DecideModelPricingOverrideParams.builder()
-                        .overrideId("ovr_123")
-                        .approve(true)
-                        .build()
-                        .toProto();
-
-        assertEquals("ovr_123", proto.getOverrideId());
-        assertTrue(proto.getApprove());
-        assertEquals("", proto.getDecisionNote());
-    }
+    // -- Model catalog params --------------------------------------------------------
 
     @Test
     void upsertModelPricingBaseline_toProto_mapsBaselineAndNote() {

@@ -25,17 +25,15 @@ const (
 
 // ModelPricingBaselineStatus tracks the lifecycle of one baseline document.
 //
-// The state machine is append-only, mirroring ModelPricingOverrideStatus: an
-// edit SUPERSEDES the previous ACTIVE document rather than mutating it, so
-// the collection is a complete audit history of every catalog entry and
-// list price the platform ever published. RETIRED removes the model from
-// the effective registry (and the composition pass archives any overrides
-// that targeted it).
+// The state machine is append-only: an edit SUPERSEDES the previous ACTIVE
+// document rather than mutating it, so the collection is a complete audit
+// history of every catalog entry and list price the platform ever
+// published. RETIRED removes the model from the registry.
 type ModelPricingBaselineStatus int32
 
 const (
 	ModelPricingBaselineStatus_model_pricing_baseline_status_unspecified ModelPricingBaselineStatus = 0
-	// Composed into the effective registry; at most one ACTIVE document
+	// Rendered into the registry; at most one ACTIVE document
 	// exists per (model_id, provider, harness) key.
 	ModelPricingBaselineStatus_pricing_baseline_active ModelPricingBaselineStatus = 1
 	// Replaced by a newer revision of the same key.
@@ -92,7 +90,7 @@ func (ModelPricingBaselineStatus) EnumDescriptor() ([]byte, []int) {
 // the base entry's rates or one speed variant's rates.
 //
 // Rates are integer micro-USD per million tokens (no floating point in
-// billing writes, matching ModelPricingOverride). The served registry JSON
+// billing writes). The served registry JSON
 // renders them back to dollar doubles for consumers.
 type PricingBlock struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -117,9 +115,7 @@ type PricingBlock struct {
 	// Free-form provenance detail: the pricing-page note the rates were
 	// read or derived from, confirmation dates, caveats.
 	SourceNote string `protobuf:"bytes,7,opt,name=source_note,json=sourceNote,proto3" json:"source_note,omitempty"`
-	// When these rates took effect. The override staleness check reads this field:
-	// an ACTIVE override whose derivation window ended before this instant
-	// is stale and gets superseded — baseline edits always stamp it fresh.
+	// When these rates took effect. Baseline edits always stamp it fresh.
 	EffectiveAt   *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=effective_at,json=effectiveAt,proto3" json:"effective_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -458,12 +454,11 @@ func (x *ModelCapabilities) GetThinkingRequired() bool {
 }
 
 // ModelPricingBaseline is one versioned catalog-and-list-price entry of the
-// model registry — the human-governed half of the effective registry
-// (baseline ⊕ ACTIVE overrides).
+// model registry, which the ACTIVE baselines alone make up.
 //
 // Documents are append-only: operator edits supersede the previous ACTIVE
-// document for the same (model_id, provider, harness) key. The composition
-// pass renders all ACTIVE documents into the registry document that every
+// document for the same (model_id, provider, harness) key. The registry
+// build renders all ACTIVE documents into the registry document that every
 // read surface consumes (billing lookups, /v1/proxy/model-registry, the
 // public catalog endpoint).
 type ModelPricingBaseline struct {
@@ -495,8 +490,7 @@ type ModelPricingBaseline struct {
 	Featured bool `protobuf:"varint,10,opt,name=featured,proto3" json:"featured,omitempty"`
 	// Base per-token rates with provenance.
 	Pricing *PricingBlock `protobuf:"bytes,11,opt,name=pricing,proto3" json:"pricing,omitempty"`
-	// Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-	// from the pricing feedback loop target variants by the same key.
+	// Speed/mode variants keyed by variant name (e.g. "fast").
 	PricingVariants map[string]*PricingVariant `protobuf:"bytes,12,rep,name=pricing_variants,json=pricingVariants,proto3" json:"pricing_variants,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Wire model names that resolve directly to this base entry — the
 	// base-level twin of PricingVariant.wire_ids, for served-model names

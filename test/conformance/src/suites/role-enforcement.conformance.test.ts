@@ -71,7 +71,7 @@
 //     of two sees one; `checkMyPermission(can_edit, organization)` is false
 //     for a member and true for an admin (the console's gates read exactly
 //     this).
-//   - The platform: `checkMyPermission(can_view_provider_standing,
+//   - The platform: `checkMyPermission(can_manage_plans,
 //     platform:stigmer)` is false for an owner — no organization role holds
 //     a platform capability — and the retired public level is refused for
 //     an owner as an invalid level, gated for nobody.
@@ -1071,11 +1071,11 @@ describe("role enforcement — the organization: enumeration, membership, the co
 });
 
 describe("role enforcement — the platform: no organization role holds a platform capability", () => {
-  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_view_provider_standing, platform:stigmer) is false for an owner", async (ctx) => {
+  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_manage_plans, platform:stigmer) is false for an owner", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const result = await lane.clients.iamPolicyQuery.checkMyPermission({
       resource: ref("platform", "stigmer"),
-      relation: "can_view_provider_standing",
+      relation: "can_manage_plans",
     });
     expect(result.isAuthorized).toBe(false);
   });

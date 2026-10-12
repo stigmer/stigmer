@@ -71,7 +71,6 @@ const DOCUMENTS = [
   "platform-client-administration.fga.yaml",
   "plugin-eval-access.fga.yaml",
   "plugin-owner.fga.yaml",
-  "provider-standing-viewer.fga.yaml",
   "reserved-label-writer.fga.yaml",
   "schedule-owner.fga.yaml",
   "schedule-session-visibility.fga.yaml",

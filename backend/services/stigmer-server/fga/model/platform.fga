@@ -64,12 +64,12 @@ type platform
     define can_execute_billing_ops: operator
 
     # ========================================
-    # MODEL PRICING GOVERNANCE
+    # MODEL CATALOG
     # ========================================
-    # Permission to view pricing governance (baseline vs effective rates,
-    # override provenance) and decide pricing-override sign-offs from the
-    # pricing feedback loop. A human operator action, distinct from the
-    # machine account's can_execute_billing_ops pipeline.
+    # Permission to edit and read the model catalog: the model pricing
+    # baselines every run's model list and price reads. A human operator
+    # action, distinct from the machine account's can_execute_billing_ops
+    # pipeline.
     # FGA check: identity_account:<caller_id> can_manage_model_pricing platform:stigmer
     define can_manage_model_pricing: operator
 
@@ -83,19 +83,6 @@ type platform
     # platform-internal, never org-visible.
     # FGA check: identity_account:<caller_id> can_manage_cursor_accounts platform:stigmer
     define can_manage_cursor_accounts: operator
-
-    # ========================================
-    # PROVIDER STANDING (stigmer#732)
-    # ========================================
-    # Permission to view platform provider standing: the canary-probe
-    # verdicts (health, billing/auth rejections, latency, probe
-    # freshness) for the platform's own LLM provider accounts. Read-only
-    # — the standing surface only observes, so this is deliberately a
-    # view permission, distinct from the manage-class platform
-    # permissions above. Provider account health is platform-internal,
-    # never org-visible.
-    # FGA check: identity_account:<caller_id> can_view_provider_standing platform:stigmer
-    define can_view_provider_standing: operator
 
     # ========================================
     # RESERVED LABEL NAMESPACE (stigmer#548)

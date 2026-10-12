@@ -40,83 +40,77 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "/v1/billing_account.proto\032\"ai/stigmer/bi" +
       "lling/v1/credit.proto\032\036ai/stigmer/billin" +
       "g/v1/io.proto\0322ai/stigmer/billing/v1/mod" +
-      "el_pricing_baseline.proto\032,ai/stigmer/bi" +
-      "lling/v1/pricing_override.proto\032+ai/stig" +
-      "mer/commons/rpc/method_options.proto2\374\025\n" +
-      "\030BillingCommandController\022\276\001\n\031getOrCreat" +
-      "eBillingAccount\0225.ai.stigmer.billing.v1." +
-      "GetOrCreateBillingAccountInput\032%.ai.stig" +
-      "mer.billing.v1.BillingAccount\"C\302\270\030?\010\034\020\036\"" +
-      "\003org*4unauthorized to manage billing for" +
-      " this organization\022\266\001\n\radjustCredits\022).a" +
-      "i.stigmer.billing.v1.AdjustCreditsInput\032" +
-      "(.ai.stigmer.billing.v1.CreditLedgerEntr" +
-      "y\"P\302\270\030L\010.\020\037*=only platform operators and" +
-      " credit issuers can adjust credits2\007stig" +
-      "mer\022\263\001\n\014grantCredits\022(.ai.stigmer.billin" +
-      "g.v1.GrantCreditsInput\032(.ai.stigmer.bill" +
-      "ing.v1.CreditLedgerEntry\"O\302\270\030K\010.\020\037*<only" +
-      " platform operators and credit issuers c" +
-      "an grant credits2\007stigmer\022\260\001\n\014authorizeR" +
-      "un\022(.ai.stigmer.billing.v1.AuthorizeRunI" +
-      "nput\032+.ai.stigmer.billing.v1.AuthorizeRu" +
-      "nResponse\"I\302\270\030E\010\035\020\037*6only platform opera" +
-      "tors can execute billing operations2\007sti" +
-      "gmer\022\302\001\n\022recordLlmCallUsage\022..ai.stigmer" +
-      ".billing.v1.RecordLlmCallUsageInput\0321.ai" +
-      ".stigmer.billing.v1.RecordLlmCallUsageRe" +
-      "sponse\"I\302\270\030E\010\035\020\037*6only platform operator" +
-      "s can execute billing operations2\007stigme" +
-      "r\022\255\001\n\013finalizeRun\022\'.ai.stigmer.billing.v" +
-      "1.FinalizeRunInput\032*.ai.stigmer.billing." +
-      "v1.FinalizeRunResponse\"I\302\270\030E\010\035\020\037*6only p" +
-      "latform operators can execute billing op" +
-      "erations2\007stigmer\022\270\001\n\020rearmForRecovery\022," +
-      ".ai.stigmer.billing.v1.RearmForRecoveryI" +
-      "nput\032+.ai.stigmer.billing.v1.AuthorizeRu" +
-      "nResponse\"I\302\270\030E\010\035\020\037*6only platform opera" +
-      "tors can execute billing operations2\007sti" +
-      "gmer\022\331\001\n\033createCreditCheckoutSession\0227.a" +
-      "i.stigmer.billing.v1.CreateCreditCheckou" +
-      "tSessionInput\032:.ai.stigmer.billing.v1.Cr" +
-      "eateCreditCheckoutSessionResponse\"E\302\270\030A\010" +
-      "\034\020\036\"\003org*6unauthorized to purchase credi" +
-      "ts for this organization\022\324\001\n\032createBilli" +
-      "ngPortalSession\0226.ai.stigmer.billing.v1." +
-      "CreateBillingPortalSessionInput\0329.ai.sti" +
-      "gmer.billing.v1.CreateBillingPortalSessi" +
-      "onResponse\"C\302\270\030?\010\034\020\036\"\003org*4unauthorized " +
-      "to manage billing for this organization\022" +
-      "\343\001\n\037createPaymentMethodSetupSession\022;.ai" +
-      ".stigmer.billing.v1.CreatePaymentMethodS" +
-      "etupSessionInput\032>.ai.stigmer.billing.v1" +
-      ".CreatePaymentMethodSetupSessionResponse" +
-      "\"C\302\270\030?\010\034\020\036\"\003org*4unauthorized to manage " +
-      "billing for this organization\022\274\001\n\025setAut" +
-      "oRechargeConfig\0221.ai.stigmer.billing.v1." +
-      "SetAutoRechargeConfigInput\032%.ai.stigmer." +
-      "billing.v1.BillingAccount\"I\302\270\030E\010\034\020\036\"\003org" +
-      "*:unauthorized to manage auto-recharge f" +
-      "or this organization\022\312\001\n\032decideModelPric" +
-      "ingOverride\0226.ai.stigmer.billing.v1.Deci" +
-      "deModelPricingOverrideInput\032+.ai.stigmer" +
-      ".billing.v1.ModelPricingOverride\"G\302\270\030C\010 " +
-      "\020\037*4only platform operators can decide p" +
-      "ricing overrides2\007stigmer\022\322\001\n\032upsertMode" +
-      "lPricingBaseline\0226.ai.stigmer.billing.v1" +
-      ".UpsertModelPricingBaselineInput\032+.ai.st" +
-      "igmer.billing.v1.ModelPricingBaseline\"O\302" +
-      "\270\030K\010 \020\037*<only platform operators can edi" +
-      "t the model registry baseline2\007stigmer\022\322" +
-      "\001\n\032retireModelPricingBaseline\0226.ai.stigm" +
-      "er.billing.v1.RetireModelPricingBaseline" +
-      "Input\032+.ai.stigmer.billing.v1.ModelPrici" +
-      "ngBaseline\"O\302\270\030K\010 \020\037*<only platform oper" +
-      "ators can edit the model registry baseli" +
-      "ne2\007stigmerB\205\001B\014CommandProtoP\001\242\002\003ASB\252\002\025A" +
-      "i.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\Billin" +
-      "g\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata" +
-      "\352\002\030Ai::Stigmer::Billing::V1b\006proto3"
+      "el_pricing_baseline.proto\032+ai/stigmer/co" +
+      "mmons/rpc/method_options.proto2\257\024\n\030Billi" +
+      "ngCommandController\022\276\001\n\031getOrCreateBilli" +
+      "ngAccount\0225.ai.stigmer.billing.v1.GetOrC" +
+      "reateBillingAccountInput\032%.ai.stigmer.bi" +
+      "lling.v1.BillingAccount\"C\302\270\030?\010\034\020\036\"\003org*4" +
+      "unauthorized to manage billing for this " +
+      "organization\022\266\001\n\radjustCredits\022).ai.stig" +
+      "mer.billing.v1.AdjustCreditsInput\032(.ai.s" +
+      "tigmer.billing.v1.CreditLedgerEntry\"P\302\270\030" +
+      "L\010.\020\037*=only platform operators and credi" +
+      "t issuers can adjust credits2\007stigmer\022\263\001" +
+      "\n\014grantCredits\022(.ai.stigmer.billing.v1.G" +
+      "rantCreditsInput\032(.ai.stigmer.billing.v1" +
+      ".CreditLedgerEntry\"O\302\270\030K\010.\020\037*<only platf" +
+      "orm operators and credit issuers can gra" +
+      "nt credits2\007stigmer\022\260\001\n\014authorizeRun\022(.a" +
+      "i.stigmer.billing.v1.AuthorizeRunInput\032+" +
+      ".ai.stigmer.billing.v1.AuthorizeRunRespo" +
+      "nse\"I\302\270\030E\010\035\020\037*6only platform operators c" +
+      "an execute billing operations2\007stigmer\022\302" +
+      "\001\n\022recordLlmCallUsage\022..ai.stigmer.billi" +
+      "ng.v1.RecordLlmCallUsageInput\0321.ai.stigm" +
+      "er.billing.v1.RecordLlmCallUsageResponse" +
+      "\"I\302\270\030E\010\035\020\037*6only platform operators can " +
+      "execute billing operations2\007stigmer\022\255\001\n\013" +
+      "finalizeRun\022\'.ai.stigmer.billing.v1.Fina" +
+      "lizeRunInput\032*.ai.stigmer.billing.v1.Fin" +
+      "alizeRunResponse\"I\302\270\030E\010\035\020\037*6only platfor" +
+      "m operators can execute billing operatio" +
+      "ns2\007stigmer\022\270\001\n\020rearmForRecovery\022,.ai.st" +
+      "igmer.billing.v1.RearmForRecoveryInput\032+" +
+      ".ai.stigmer.billing.v1.AuthorizeRunRespo" +
+      "nse\"I\302\270\030E\010\035\020\037*6only platform operators c" +
+      "an execute billing operations2\007stigmer\022\331" +
+      "\001\n\033createCreditCheckoutSession\0227.ai.stig" +
+      "mer.billing.v1.CreateCreditCheckoutSessi" +
+      "onInput\032:.ai.stigmer.billing.v1.CreateCr" +
+      "editCheckoutSessionResponse\"E\302\270\030A\010\034\020\036\"\003o" +
+      "rg*6unauthorized to purchase credits for" +
+      " this organization\022\324\001\n\032createBillingPort" +
+      "alSession\0226.ai.stigmer.billing.v1.Create" +
+      "BillingPortalSessionInput\0329.ai.stigmer.b" +
+      "illing.v1.CreateBillingPortalSessionResp" +
+      "onse\"C\302\270\030?\010\034\020\036\"\003org*4unauthorized to man" +
+      "age billing for this organization\022\343\001\n\037cr" +
+      "eatePaymentMethodSetupSession\022;.ai.stigm" +
+      "er.billing.v1.CreatePaymentMethodSetupSe" +
+      "ssionInput\032>.ai.stigmer.billing.v1.Creat" +
+      "ePaymentMethodSetupSessionResponse\"C\302\270\030?" +
+      "\010\034\020\036\"\003org*4unauthorized to manage billin" +
+      "g for this organization\022\274\001\n\025setAutoRecha" +
+      "rgeConfig\0221.ai.stigmer.billing.v1.SetAut" +
+      "oRechargeConfigInput\032%.ai.stigmer.billin" +
+      "g.v1.BillingAccount\"I\302\270\030E\010\034\020\036\"\003org*:unau" +
+      "thorized to manage auto-recharge for thi" +
+      "s organization\022\322\001\n\032upsertModelPricingBas" +
+      "eline\0226.ai.stigmer.billing.v1.UpsertMode" +
+      "lPricingBaselineInput\032+.ai.stigmer.billi" +
+      "ng.v1.ModelPricingBaseline\"O\302\270\030K\010 \020\037*<on" +
+      "ly platform operators can edit the model" +
+      " registry baseline2\007stigmer\022\322\001\n\032retireMo" +
+      "delPricingBaseline\0226.ai.stigmer.billing." +
+      "v1.RetireModelPricingBaselineInput\032+.ai." +
+      "stigmer.billing.v1.ModelPricingBaseline\"" +
+      "O\302\270\030K\010 \020\037*<only platform operators can e" +
+      "dit the model registry baseline2\007stigmer" +
+      "B\205\001B\014CommandProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.B" +
+      "illing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\S" +
+      "tigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stig" +
+      "mer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -125,7 +119,6 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.billing.v1.CreditProto.getDescriptor(),
           ai.stigmer.billing.v1.IoProto.getDescriptor(),
           ai.stigmer.billing.v1.ModelPricingBaselineProto.getDescriptor(),
-          ai.stigmer.billing.v1.PricingOverrideProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
@@ -133,7 +126,6 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
     ai.stigmer.billing.v1.CreditProto.getDescriptor();
     ai.stigmer.billing.v1.IoProto.getDescriptor();
     ai.stigmer.billing.v1.ModelPricingBaselineProto.getDescriptor();
-    ai.stigmer.billing.v1.PricingOverrideProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

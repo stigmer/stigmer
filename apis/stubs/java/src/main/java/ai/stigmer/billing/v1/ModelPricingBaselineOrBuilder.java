@@ -239,8 +239,7 @@ public interface ModelPricingBaselineOrBuilder extends
 
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -248,8 +247,7 @@ public interface ModelPricingBaselineOrBuilder extends
   int getPricingVariantsCount();
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -264,8 +262,7 @@ public interface ModelPricingBaselineOrBuilder extends
   getPricingVariants();
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -274,8 +271,7 @@ public interface ModelPricingBaselineOrBuilder extends
   getPricingVariantsMap();
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -287,8 +283,7 @@ ai.stigmer.billing.v1.PricingVariant getPricingVariantsOrDefault(
 ai.stigmer.billing.v1.PricingVariant defaultValue);
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>

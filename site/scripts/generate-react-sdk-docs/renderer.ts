@@ -87,10 +87,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Monetization & Usage",
-    // provider-standing is the operator console for platform provider
-    // account health — it answers the same "is our provider capacity
-    // healthy" question billing and usage do.
-    slugs: ["billing", "usage", "provider-standing"],
+    slugs: ["billing", "usage"],
   },
   {
     label: "UI Components",

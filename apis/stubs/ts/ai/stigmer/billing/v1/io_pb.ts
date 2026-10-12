@@ -14,8 +14,6 @@ import type { LedgerEntryType, LedgerView, RunBillingSignal } from "./enum_pb.js
 import { file_ai_stigmer_billing_v1_enum } from "./enum_pb.js";
 import type { ModelPricingBaseline } from "./model_pricing_baseline_pb.js";
 import { file_ai_stigmer_billing_v1_model_pricing_baseline } from "./model_pricing_baseline_pb.js";
-import type { ModelPricingOverride } from "./pricing_override_pb.js";
-import { file_ai_stigmer_billing_v1_pricing_override } from "./pricing_override_pb.js";
 import type { PageInfo } from "../../commons/rpc/pagination_pb.js";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb.js";
@@ -27,7 +25,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/io.proto.
  */
 export const file_ai_stigmer_billing_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch5haS9zdGlnbWVyL2JpbGxpbmcvdjEvaW8ucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MSI1Ch5HZXRPckNyZWF0ZUJpbGxpbmdBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEieQoSQWRqdXN0Q3JlZGl0c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhUKDWFtb3VudF9taWNyb3MYAiABKAMSFgoGcmVhc29uGAMgASgJQga6SAPIAQESHwoPaWRlbXBvdGVuY3lfa2V5GAQgASgJQga6SAPIAQEisQEKEUdyYW50Q3JlZGl0c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEh4KDWFtb3VudF9taWNyb3MYAiABKANCB7pIBCICIAASLgoKZXhwaXJlc19hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFgoGcmVhc29uGAQgASgJQga6SAPIAQESHwoPaWRlbXBvdGVuY3lfa2V5GAUgASgJQga6SAPIAQEiewoRQXV0aG9yaXplUnVuSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESFgoGcnVuX2lkGAIgASgJQga6SAPIAQESFwoHaGFybmVzcxgDIAEoCUIGukgDyAEBEiAKGGV4cGVjdGVkX2Nvc3RfY2FwX21pY3JvcxgEIAEoAyKUAQoUQXV0aG9yaXplUnVuUmVzcG9uc2USEgoKYXV0aG9yaXplZBgBIAEoCBIWCg5yZXNlcnZhdGlvbl9pZBgCIAEoCRIXCg9yZXNlcnZlZF9taWNyb3MYAyABKAMSIAoYYXZhaWxhYmxlX2JhbGFuY2VfbWljcm9zGAQgASgDEhUKDWRlbmlhbF9yZWFzb24YBSABKAkinwYKF1JlY29yZExsbUNhbGxVc2FnZUlucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBEhkKCHNlcXVlbmNlGAIgASgFQge6SAQaAiAAEhkKB2NhbGxfaWQYFCABKAlCCLpIBXIDGIABEhgKCHByb3ZpZGVyGAMgASgJQga6SAPIAQESHgoOcmVzb2x2ZWRfbW9kZWwYBCABKAlCBrpIA8gBARIXCg9yZXF1ZXN0ZWRfbW9kZWwYBSABKAkSNQoGdG9rZW5zGAYgASgLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Ub2tlblVzYWdlEkYKDHVzYWdlX3N0YXR1cxgHIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VDb21wbGV0aW9uU3RhdHVzEhsKE3Byb3ZpZGVyX3JlcXVlc3RfaWQYCCABKAkSGAoQaHR0cF9zdGF0dXNfY29kZRgJIAEoBRIRCglzdHJlYW1pbmcYCiABKAgSFQoNZmluaXNoX3JlYXNvbhgLIAEoCRI8Cgxwcm94eV90aW1pbmcYDCABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlByb3h5VGltaW5nEhsKE3Byb3ZpZGVyX3VzYWdlX2pzb24YDSABKAkSDwoHaGFybmVzcxgOIAEoCRIZChFjdXJzb3JfYWNjb3VudF9pZBgPIAEoCRIVCg1jdXJzb3Jfa2V5X2lkGBAgASgJEkUKEWN1cnNvcl9rZXlfc291cmNlGBEgASgOMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5DdXJzb3JLZXlTb3VyY2USGwoTc2VydmVkX3NlcnZpY2VfdGllchgSIAEoCRI2CgttZXRlcmVkX3J1bhgTIAEoCzIhLmFpLnN0aWdtZXIuYmlsbGluZy52MS5NZXRlcmVkUnVuEkkKE3Byb3ZpZGVyX2tleV9zb3VyY2UYFSABKA4yLC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlByb3ZpZGVyS2V5U291cmNlIsgBCgpNZXRlcmVkUnVuEhIKCnNlc3Npb25faWQYASABKAkSFAoMcGlubmVkX21vZGVsGAIgASgJEkYKFnJlcXVlc3RlZF9zZXJ2aWNlX3RpZXIYAyABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNlcnZpY2VUaWVyEkgKF3JlcXVlc3RlZF90aGlua2luZ19tb2RlGAQgASgOMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UaGlua2luZ01vZGUipwEKGlJlY29yZExsbUNhbGxVc2FnZVJlc3BvbnNlEhcKD3VzYWdlX3JlY29yZF9pZBgBIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgCIAEoAxInCh9jdXN0b21lcl9iaWxsYWJsZV9hbW91bnRfbWljcm9zGAMgASgDEhMKC2lzX2JpbGxhYmxlGAQgASgIEhQKDGlzX2R1cGxpY2F0ZRgFIAEoCCIqChBGaW5hbGl6ZVJ1bklucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBIp8BChNGaW5hbGl6ZVJ1blJlc3BvbnNlEiIKGnRvdGFsX3Byb3ZpZGVyX2Nvc3RfbWljcm9zGAEgASgDEiQKHHRvdGFsX2JpbGxhYmxlX2Ftb3VudF9taWNyb3MYAiABKAMSIwobcmVsZWFzZWRfcmVzZXJ2YXRpb25fbWljcm9zGAMgASgDEhkKEWJpbGxlZF9jYWxsX2NvdW50GAQgASgFIi8KFVJlYXJtRm9yUmVjb3ZlcnlJbnB1dBIWCgZydW5faWQYASABKAlCBrpIA8gBASKJAQogQ3JlYXRlQ3JlZGl0Q2hlY2tvdXRTZXNzaW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESFwoHcGFja19pZBgCIAEoCUIGukgDyAEBEhsKC3N1Y2Nlc3NfdXJsGAMgASgJQga6SAPIAQESGgoKY2FuY2VsX3VybBgEIAEoCUIGukgDyAEBIm0KI0NyZWF0ZUNyZWRpdENoZWNrb3V0U2Vzc2lvblJlc3BvbnNlEhQKDGNoZWNrb3V0X3VybBgBIAEoCRITCgtwdXJjaGFzZV9pZBgCIAEoCRIbChNjaGVja291dF9zZXNzaW9uX2lkGAMgASgJIlIKH0NyZWF0ZUJpbGxpbmdQb3J0YWxTZXNzaW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESGgoKcmV0dXJuX3VybBgCIAEoCUIGukgDyAEBIjgKIkNyZWF0ZUJpbGxpbmdQb3J0YWxTZXNzaW9uUmVzcG9uc2USEgoKcG9ydGFsX3VybBgBIAEoCSJ0CiRDcmVhdGVQYXltZW50TWV0aG9kU2V0dXBTZXNzaW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESGwoLc3VjY2Vzc191cmwYAiABKAlCBrpIA8gBARIaCgpjYW5jZWxfdXJsGAMgASgJQga6SAPIAQEiWQonQ3JlYXRlUGF5bWVudE1ldGhvZFNldHVwU2Vzc2lvblJlc3BvbnNlEhEKCXNldHVwX3VybBgBIAEoCRIbChNjaGVja291dF9zZXNzaW9uX2lkGAIgASgJIpgBChpTZXRBdXRvUmVjaGFyZ2VDb25maWdJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIPCgdlbmFibGVkGAIgASgIEhgKEHRocmVzaG9sZF9taWNyb3MYAyABKAMSHgoWcmVjaGFyZ2VfYW1vdW50X21pY3JvcxgEIAEoAxIaChJtb250aGx5X2NhcF9taWNyb3MYBSABKAMiLQoWR2V0QmlsbGluZ0FjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASIsChVHZXRDcmVkaXRCYWxhbmNlSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEipwIKFEdldENyZWRpdExlZGdlcklucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEi4KBHBhZ2UYAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvEjsKC3R5cGVfZmlsdGVyGAMgAygOMiYuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxlZGdlckVudHJ5VHlwZRIuCgpzdGFydF90aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIsCghlbmRfdGltZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoEdmlldxgGIAEoDjIhLmFpLnN0aWdtZXIuYmlsbGluZy52MS5MZWRnZXJWaWV3ImYKFENyZWRpdExlZGdlclJlc3BvbnNlEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0TGVkZ2VyRW50cnkSEwoLdG90YWxfcGFnZXMYAiABKAUinwEKGkdldEJpbGxpbmdVc2FnZVJlcG9ydElucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEjYKCnN0YXJ0X3RpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQga6SAPIAQESNAoIZW5kX3RpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQga6SAPIAQEi2AEKGkJpbGxpbmdVc2FnZVJlcG9ydFJlc3BvbnNlEiIKGnRvdGFsX3Byb3ZpZGVyX2Nvc3RfbWljcm9zGAEgASgDEiQKHHRvdGFsX2JpbGxhYmxlX2Ftb3VudF9taWNyb3MYAiABKAMSEQoJcnVuX2NvdW50GAMgASgFEhYKDmxsbV9jYWxsX2NvdW50GAQgASgFEkUKD21vZGVsX2JyZWFrZG93bhgFIAMoCzIsLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbEJpbGxpbmdCcmVha2Rvd24inAEKFU1vZGVsQmlsbGluZ0JyZWFrZG93bhINCgVtb2RlbBgBIAEoCRIPCgdoYXJuZXNzGAIgASgJEhEKCWNvc3RfdGllchgDIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgEIAEoAxIeChZiaWxsYWJsZV9hbW91bnRfbWljcm9zGAUgASgDEhIKCmNhbGxfY291bnQYBiABKAUiKwocR2V0Q3VzdG9tZXJNb2RlbFByaWNpbmdJbnB1dBILCgNvcmcYASABKAkiYQocQ3VzdG9tZXJNb2RlbFByaWNpbmdSZXNwb25zZRJBCgdlbnRyaWVzGAEgAygLMjAuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkN1c3RvbWVyTW9kZWxQcmljaW5nRW50cnkiIAoeR2V0TW9kZWxQcmljaW5nR292ZXJuYW5jZUlucHV0Iq0BCh5Nb2RlbFByaWNpbmdHb3Zlcm5hbmNlUmVzcG9uc2USQwoHZW50cmllcxgBIAMoCzIyLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbFByaWNpbmdHb3Zlcm5hbmNlRW50cnkSRgoRcGVuZGluZ19vdmVycmlkZXMYAiADKAsyKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuTW9kZWxQcmljaW5nT3ZlcnJpZGUi0wUKG01vZGVsUHJpY2luZ0dvdmVybmFuY2VFbnRyeRIQCghtb2RlbF9pZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSEAoIcHJvdmlkZXIYAyABKAkSDwoHaGFybmVzcxgEIAEoCRIRCgljb3N0X3RpZXIYBSABKAkSDwoHdmFyaWFudBgGIAEoCRIpCiFiYXNlbGluZV9pbnB1dF9taWNyb3NfcGVyX21pbGxpb24YByABKAMSKgoiYmFzZWxpbmVfb3V0cHV0X21pY3Jvc19wZXJfbWlsbGlvbhgIIAEoAxIvCidiYXNlbGluZV9jYWNoZV93cml0ZV9taWNyb3NfcGVyX21pbGxpb24YCSABKAMSLgomYmFzZWxpbmVfY2FjaGVfcmVhZF9taWNyb3NfcGVyX21pbGxpb24YCiABKAMSNQotYmFzZWxpbmVfY3Vyc29yX3Rva2VuX3JhdGVfbWljcm9zX3Blcl9taWxsaW9uGAsgASgDEioKImVmZmVjdGl2ZV9pbnB1dF9taWNyb3NfcGVyX21pbGxpb24YDCABKAMSKwojZWZmZWN0aXZlX291dHB1dF9taWNyb3NfcGVyX21pbGxpb24YDSABKAMSMAooZWZmZWN0aXZlX2NhY2hlX3dyaXRlX21pY3Jvc19wZXJfbWlsbGlvbhgOIAEoAxIvCidlZmZlY3RpdmVfY2FjaGVfcmVhZF9taWNyb3NfcGVyX21pbGxpb24YDyABKAMSNgouZWZmZWN0aXZlX2N1cnNvcl90b2tlbl9yYXRlX21pY3Jvc19wZXJfbWlsbGlvbhgQIAEoAxJFChBhY3RpdmVfb3ZlcnJpZGVzGBEgAygLMisuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ092ZXJyaWRlEhsKE2xlZGdlcl9yZWNvbmNpbGFibGUYEiABKAgiZgofRGVjaWRlTW9kZWxQcmljaW5nT3ZlcnJpZGVJbnB1dBIbCgtvdmVycmlkZV9pZBgBIAEoCUIGukgDyAEBEg8KB2FwcHJvdmUYAiABKAgSFQoNZGVjaXNpb25fbm90ZRgDIAEoCSKJAQofVXBzZXJ0TW9kZWxQcmljaW5nQmFzZWxpbmVJbnB1dBJFCghiYXNlbGluZRgBIAEoCzIrLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbFByaWNpbmdCYXNlbGluZUIGukgDyAEBEh8KDXJldmlzaW9uX25vdGUYAiABKAlCCLpIBXIDGIAIIo8BCh9SZXRpcmVNb2RlbFByaWNpbmdCYXNlbGluZUlucHV0EhgKCG1vZGVsX2lkGAEgASgJQga6SAPIAQESGAoIcHJvdmlkZXIYAiABKAlCBrpIA8gBARIXCgdoYXJuZXNzGAMgASgJQga6SAPIAQESHwoNcmV2aXNpb25fbm90ZRgEIAEoCUIIukgFcgMYgAgiOQoeTGlzdE1vZGVsUHJpY2luZ0Jhc2VsaW5lc0lucHV0EhcKD2luY2x1ZGVfaGlzdG9yeRgBIAEoCCJfCh1Nb2RlbFByaWNpbmdCYXNlbGluZXNSZXNwb25zZRI+CgliYXNlbGluZXMYASADKAsyKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuTW9kZWxQcmljaW5nQmFzZWxpbmUi4AIKGUN1c3RvbWVyTW9kZWxQcmljaW5nRW50cnkSEAoIbW9kZWxfaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhAKCHByb3ZpZGVyGAMgASgJEg8KB2hhcm5lc3MYBCABKAkSEQoJY29zdF90aWVyGAUgASgJEiYKHmlucHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgGIAEoAxInCh9vdXRwdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAcgASgDEi8KJ2NhY2hlX2NyZWF0aW9uX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgIIAEoAxIrCiNjYWNoZV9yZWFkX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgJIAEoAxIZChFwcmljaW5nX3BvbGljeV9pZBgKIAEoCRIbChNtYXJrdXBfYmFzaXNfcG9pbnRzGAsgASgFIlIKGVByZXZpZXdBdXRob3JpemF0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESIAoYZXhwZWN0ZWRfY29zdF9jYXBfbWljcm9zGAIgASgDImgKHFByZXZpZXdBdXRob3JpemF0aW9uUmVzcG9uc2USEgoKYXV0aG9yaXplZBgBIAEoCBIVCg1kZW5pYWxfcmVhc29uGAIgASgJEh0KFXJlc2VydmVfYW1vdW50X21pY3JvcxgDIAEoAyIyChhHZXRSdW5CaWxsaW5nU2lnbmFsSW5wdXQSFgoGcnVuX2lkGAEgASgJQga6SAPIAQEiZgobR2V0UnVuQmlsbGluZ1NpZ25hbFJlc3BvbnNlEjcKBnNpZ25hbBgBIAEoDjInLmFpLnN0aWdtZXIuYmlsbGluZy52MS5SdW5CaWxsaW5nU2lnbmFsEg4KBnJlYXNvbhgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_usage, file_ai_stigmer_billing_v1_credit, file_ai_stigmer_billing_v1_enum, file_ai_stigmer_billing_v1_model_pricing_baseline, file_ai_stigmer_billing_v1_pricing_override, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("Ch5haS9zdGlnbWVyL2JpbGxpbmcvdjEvaW8ucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MSI1Ch5HZXRPckNyZWF0ZUJpbGxpbmdBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEieQoSQWRqdXN0Q3JlZGl0c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEhUKDWFtb3VudF9taWNyb3MYAiABKAMSFgoGcmVhc29uGAMgASgJQga6SAPIAQESHwoPaWRlbXBvdGVuY3lfa2V5GAQgASgJQga6SAPIAQEisQEKEUdyYW50Q3JlZGl0c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEh4KDWFtb3VudF9taWNyb3MYAiABKANCB7pIBCICIAASLgoKZXhwaXJlc19hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFgoGcmVhc29uGAQgASgJQga6SAPIAQESHwoPaWRlbXBvdGVuY3lfa2V5GAUgASgJQga6SAPIAQEiewoRQXV0aG9yaXplUnVuSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESFgoGcnVuX2lkGAIgASgJQga6SAPIAQESFwoHaGFybmVzcxgDIAEoCUIGukgDyAEBEiAKGGV4cGVjdGVkX2Nvc3RfY2FwX21pY3JvcxgEIAEoAyKUAQoUQXV0aG9yaXplUnVuUmVzcG9uc2USEgoKYXV0aG9yaXplZBgBIAEoCBIWCg5yZXNlcnZhdGlvbl9pZBgCIAEoCRIXCg9yZXNlcnZlZF9taWNyb3MYAyABKAMSIAoYYXZhaWxhYmxlX2JhbGFuY2VfbWljcm9zGAQgASgDEhUKDWRlbmlhbF9yZWFzb24YBSABKAkinwYKF1JlY29yZExsbUNhbGxVc2FnZUlucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBEhkKCHNlcXVlbmNlGAIgASgFQge6SAQaAiAAEhkKB2NhbGxfaWQYFCABKAlCCLpIBXIDGIABEhgKCHByb3ZpZGVyGAMgASgJQga6SAPIAQESHgoOcmVzb2x2ZWRfbW9kZWwYBCABKAlCBrpIA8gBARIXCg9yZXF1ZXN0ZWRfbW9kZWwYBSABKAkSNQoGdG9rZW5zGAYgASgLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Ub2tlblVzYWdlEkYKDHVzYWdlX3N0YXR1cxgHIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VDb21wbGV0aW9uU3RhdHVzEhsKE3Byb3ZpZGVyX3JlcXVlc3RfaWQYCCABKAkSGAoQaHR0cF9zdGF0dXNfY29kZRgJIAEoBRIRCglzdHJlYW1pbmcYCiABKAgSFQoNZmluaXNoX3JlYXNvbhgLIAEoCRI8Cgxwcm94eV90aW1pbmcYDCABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlByb3h5VGltaW5nEhsKE3Byb3ZpZGVyX3VzYWdlX2pzb24YDSABKAkSDwoHaGFybmVzcxgOIAEoCRIZChFjdXJzb3JfYWNjb3VudF9pZBgPIAEoCRIVCg1jdXJzb3Jfa2V5X2lkGBAgASgJEkUKEWN1cnNvcl9rZXlfc291cmNlGBEgASgOMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5DdXJzb3JLZXlTb3VyY2USGwoTc2VydmVkX3NlcnZpY2VfdGllchgSIAEoCRI2CgttZXRlcmVkX3J1bhgTIAEoCzIhLmFpLnN0aWdtZXIuYmlsbGluZy52MS5NZXRlcmVkUnVuEkkKE3Byb3ZpZGVyX2tleV9zb3VyY2UYFSABKA4yLC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlByb3ZpZGVyS2V5U291cmNlIsgBCgpNZXRlcmVkUnVuEhIKCnNlc3Npb25faWQYASABKAkSFAoMcGlubmVkX21vZGVsGAIgASgJEkYKFnJlcXVlc3RlZF9zZXJ2aWNlX3RpZXIYAyABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNlcnZpY2VUaWVyEkgKF3JlcXVlc3RlZF90aGlua2luZ19tb2RlGAQgASgOMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UaGlua2luZ01vZGUipwEKGlJlY29yZExsbUNhbGxVc2FnZVJlc3BvbnNlEhcKD3VzYWdlX3JlY29yZF9pZBgBIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgCIAEoAxInCh9jdXN0b21lcl9iaWxsYWJsZV9hbW91bnRfbWljcm9zGAMgASgDEhMKC2lzX2JpbGxhYmxlGAQgASgIEhQKDGlzX2R1cGxpY2F0ZRgFIAEoCCIqChBGaW5hbGl6ZVJ1bklucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBIp8BChNGaW5hbGl6ZVJ1blJlc3BvbnNlEiIKGnRvdGFsX3Byb3ZpZGVyX2Nvc3RfbWljcm9zGAEgASgDEiQKHHRvdGFsX2JpbGxhYmxlX2Ftb3VudF9taWNyb3MYAiABKAMSIwobcmVsZWFzZWRfcmVzZXJ2YXRpb25fbWljcm9zGAMgASgDEhkKEWJpbGxlZF9jYWxsX2NvdW50GAQgASgFIi8KFVJlYXJtRm9yUmVjb3ZlcnlJbnB1dBIWCgZydW5faWQYASABKAlCBrpIA8gBASKJAQogQ3JlYXRlQ3JlZGl0Q2hlY2tvdXRTZXNzaW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESFwoHcGFja19pZBgCIAEoCUIGukgDyAEBEhsKC3N1Y2Nlc3NfdXJsGAMgASgJQga6SAPIAQESGgoKY2FuY2VsX3VybBgEIAEoCUIGukgDyAEBIm0KI0NyZWF0ZUNyZWRpdENoZWNrb3V0U2Vzc2lvblJlc3BvbnNlEhQKDGNoZWNrb3V0X3VybBgBIAEoCRITCgtwdXJjaGFzZV9pZBgCIAEoCRIbChNjaGVja291dF9zZXNzaW9uX2lkGAMgASgJIlIKH0NyZWF0ZUJpbGxpbmdQb3J0YWxTZXNzaW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESGgoKcmV0dXJuX3VybBgCIAEoCUIGukgDyAEBIjgKIkNyZWF0ZUJpbGxpbmdQb3J0YWxTZXNzaW9uUmVzcG9uc2USEgoKcG9ydGFsX3VybBgBIAEoCSJ0CiRDcmVhdGVQYXltZW50TWV0aG9kU2V0dXBTZXNzaW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESGwoLc3VjY2Vzc191cmwYAiABKAlCBrpIA8gBARIaCgpjYW5jZWxfdXJsGAMgASgJQga6SAPIAQEiWQonQ3JlYXRlUGF5bWVudE1ldGhvZFNldHVwU2Vzc2lvblJlc3BvbnNlEhEKCXNldHVwX3VybBgBIAEoCRIbChNjaGVja291dF9zZXNzaW9uX2lkGAIgASgJIpgBChpTZXRBdXRvUmVjaGFyZ2VDb25maWdJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIPCgdlbmFibGVkGAIgASgIEhgKEHRocmVzaG9sZF9taWNyb3MYAyABKAMSHgoWcmVjaGFyZ2VfYW1vdW50X21pY3JvcxgEIAEoAxIaChJtb250aGx5X2NhcF9taWNyb3MYBSABKAMiLQoWR2V0QmlsbGluZ0FjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASIsChVHZXRDcmVkaXRCYWxhbmNlSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEipwIKFEdldENyZWRpdExlZGdlcklucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEi4KBHBhZ2UYAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvEjsKC3R5cGVfZmlsdGVyGAMgAygOMiYuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxlZGdlckVudHJ5VHlwZRIuCgpzdGFydF90aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIsCghlbmRfdGltZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoEdmlldxgGIAEoDjIhLmFpLnN0aWdtZXIuYmlsbGluZy52MS5MZWRnZXJWaWV3ImYKFENyZWRpdExlZGdlclJlc3BvbnNlEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0TGVkZ2VyRW50cnkSEwoLdG90YWxfcGFnZXMYAiABKAUinwEKGkdldEJpbGxpbmdVc2FnZVJlcG9ydElucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEjYKCnN0YXJ0X3RpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQga6SAPIAQESNAoIZW5kX3RpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQga6SAPIAQEi2AEKGkJpbGxpbmdVc2FnZVJlcG9ydFJlc3BvbnNlEiIKGnRvdGFsX3Byb3ZpZGVyX2Nvc3RfbWljcm9zGAEgASgDEiQKHHRvdGFsX2JpbGxhYmxlX2Ftb3VudF9taWNyb3MYAiABKAMSEQoJcnVuX2NvdW50GAMgASgFEhYKDmxsbV9jYWxsX2NvdW50GAQgASgFEkUKD21vZGVsX2JyZWFrZG93bhgFIAMoCzIsLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbEJpbGxpbmdCcmVha2Rvd24inAEKFU1vZGVsQmlsbGluZ0JyZWFrZG93bhINCgVtb2RlbBgBIAEoCRIPCgdoYXJuZXNzGAIgASgJEhEKCWNvc3RfdGllchgDIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgEIAEoAxIeChZiaWxsYWJsZV9hbW91bnRfbWljcm9zGAUgASgDEhIKCmNhbGxfY291bnQYBiABKAUiKwocR2V0Q3VzdG9tZXJNb2RlbFByaWNpbmdJbnB1dBILCgNvcmcYASABKAkiYQocQ3VzdG9tZXJNb2RlbFByaWNpbmdSZXNwb25zZRJBCgdlbnRyaWVzGAEgAygLMjAuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkN1c3RvbWVyTW9kZWxQcmljaW5nRW50cnkiiQEKH1Vwc2VydE1vZGVsUHJpY2luZ0Jhc2VsaW5lSW5wdXQSRQoIYmFzZWxpbmUYASABKAsyKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuTW9kZWxQcmljaW5nQmFzZWxpbmVCBrpIA8gBARIfCg1yZXZpc2lvbl9ub3RlGAIgASgJQgi6SAVyAxiACCKPAQofUmV0aXJlTW9kZWxQcmljaW5nQmFzZWxpbmVJbnB1dBIYCghtb2RlbF9pZBgBIAEoCUIGukgDyAEBEhgKCHByb3ZpZGVyGAIgASgJQga6SAPIAQESFwoHaGFybmVzcxgDIAEoCUIGukgDyAEBEh8KDXJldmlzaW9uX25vdGUYBCABKAlCCLpIBXIDGIAIIjkKHkxpc3RNb2RlbFByaWNpbmdCYXNlbGluZXNJbnB1dBIXCg9pbmNsdWRlX2hpc3RvcnkYASABKAgiXwodTW9kZWxQcmljaW5nQmFzZWxpbmVzUmVzcG9uc2USPgoJYmFzZWxpbmVzGAEgAygLMisuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lIuACChlDdXN0b21lck1vZGVsUHJpY2luZ0VudHJ5EhAKCG1vZGVsX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIQCghwcm92aWRlchgDIAEoCRIPCgdoYXJuZXNzGAQgASgJEhEKCWNvc3RfdGllchgFIAEoCRImCh5pbnB1dF9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YBiABKAMSJwofb3V0cHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgHIAEoAxIvCidjYWNoZV9jcmVhdGlvbl9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YCCABKAMSKwojY2FjaGVfcmVhZF9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YCSABKAMSGQoRcHJpY2luZ19wb2xpY3lfaWQYCiABKAkSGwoTbWFya3VwX2Jhc2lzX3BvaW50cxgLIAEoBSJSChlQcmV2aWV3QXV0aG9yaXphdGlvbklucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBEiAKGGV4cGVjdGVkX2Nvc3RfY2FwX21pY3JvcxgCIAEoAyJoChxQcmV2aWV3QXV0aG9yaXphdGlvblJlc3BvbnNlEhIKCmF1dGhvcml6ZWQYASABKAgSFQoNZGVuaWFsX3JlYXNvbhgCIAEoCRIdChVyZXNlcnZlX2Ftb3VudF9taWNyb3MYAyABKAMiMgoYR2V0UnVuQmlsbGluZ1NpZ25hbElucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBImYKG0dldFJ1bkJpbGxpbmdTaWduYWxSZXNwb25zZRI3CgZzaWduYWwYASABKA4yJy5haS5zdGlnbWVyLmJpbGxpbmcudjEuUnVuQmlsbGluZ1NpZ25hbBIOCgZyZWFzb24YAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_usage, file_ai_stigmer_billing_v1_credit, file_ai_stigmer_billing_v1_enum, file_ai_stigmer_billing_v1_model_pricing_baseline, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * GetOrCreateBillingAccountInput initiates billing for an organization.
@@ -1176,207 +1174,6 @@ export const CustomerModelPricingResponseSchema: GenMessage<CustomerModelPricing
   messageDesc(file_ai_stigmer_billing_v1_io, 26);
 
 /**
- * GetModelPricingGovernanceInput requests the platform pricing governance
- * view: every model's baseline vs effective rates, active overrides with
- * provenance, and pending sign-off proposals.
- *
- * @generated from message ai.stigmer.billing.v1.GetModelPricingGovernanceInput
- */
-export type GetModelPricingGovernanceInput = Message<"ai.stigmer.billing.v1.GetModelPricingGovernanceInput"> & {
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.GetModelPricingGovernanceInput.
- * Use `create(GetModelPricingGovernanceInputSchema)` to create a new message.
- */
-export const GetModelPricingGovernanceInputSchema: GenMessage<GetModelPricingGovernanceInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 27);
-
-/**
- * ModelPricingGovernanceResponse is the operator's view of the pricing
- * feedback loop: what the platform charges with today, where each
- * rate came from, and what awaits a decision.
- *
- * @generated from message ai.stigmer.billing.v1.ModelPricingGovernanceResponse
- */
-export type ModelPricingGovernanceResponse = Message<"ai.stigmer.billing.v1.ModelPricingGovernanceResponse"> & {
-  /**
-   * One entry per (model, variant) pricing key in the effective registry.
-   *
-   * @generated from field: repeated ai.stigmer.billing.v1.ModelPricingGovernanceEntry entries = 1;
-   */
-  entries: ModelPricingGovernanceEntry[];
-
-  /**
-   * Overrides awaiting a human decision, oldest first.
-   *
-   * @generated from field: repeated ai.stigmer.billing.v1.ModelPricingOverride pending_overrides = 2;
-   */
-  pendingOverrides: ModelPricingOverride[];
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.ModelPricingGovernanceResponse.
- * Use `create(ModelPricingGovernanceResponseSchema)` to create a new message.
- */
-export const ModelPricingGovernanceResponseSchema: GenMessage<ModelPricingGovernanceResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 28);
-
-/**
- * ModelPricingGovernanceEntry shows one pricing key's baseline vs effective
- * rates. Raw provider rates (pre-markup) — this is an operator surface, not
- * a customer price list.
- *
- * @generated from message ai.stigmer.billing.v1.ModelPricingGovernanceEntry
- */
-export type ModelPricingGovernanceEntry = Message<"ai.stigmer.billing.v1.ModelPricingGovernanceEntry"> & {
-  /**
-   * @generated from field: string model_id = 1;
-   */
-  modelId: string;
-
-  /**
-   * @generated from field: string display_name = 2;
-   */
-  displayName: string;
-
-  /**
-   * @generated from field: string provider = 3;
-   */
-  provider: string;
-
-  /**
-   * @generated from field: string harness = 4;
-   */
-  harness: string;
-
-  /**
-   * @generated from field: string cost_tier = 5;
-   */
-  costTier: string;
-
-  /**
-   * Pricing variant ("" for base, "fast" for the speed variant).
-   *
-   * @generated from field: string variant = 6;
-   */
-  variant: string;
-
-  /**
-   * Baseline rates from model-registry.json, micro-USD per million tokens.
-   *
-   * @generated from field: int64 baseline_input_micros_per_million = 7;
-   */
-  baselineInputMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 baseline_output_micros_per_million = 8;
-   */
-  baselineOutputMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 baseline_cache_write_micros_per_million = 9;
-   */
-  baselineCacheWriteMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 baseline_cache_read_micros_per_million = 10;
-   */
-  baselineCacheReadMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 baseline_cursor_token_rate_micros_per_million = 11;
-   */
-  baselineCursorTokenRateMicrosPerMillion: bigint;
-
-  /**
-   * Effective rates (baseline with ACTIVE overrides composed), micro-USD
-   * per million tokens. Equal to the baseline when no override is active.
-   *
-   * @generated from field: int64 effective_input_micros_per_million = 12;
-   */
-  effectiveInputMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 effective_output_micros_per_million = 13;
-   */
-  effectiveOutputMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 effective_cache_write_micros_per_million = 14;
-   */
-  effectiveCacheWriteMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 effective_cache_read_micros_per_million = 15;
-   */
-  effectiveCacheReadMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 effective_cursor_token_rate_micros_per_million = 16;
-   */
-  effectiveCursorTokenRateMicrosPerMillion: bigint;
-
-  /**
-   * ACTIVE overrides composed into this entry, with full provenance.
-   *
-   * @generated from field: repeated ai.stigmer.billing.v1.ModelPricingOverride active_overrides = 17;
-   */
-  activeOverrides: ModelPricingOverride[];
-
-  /**
-   * Whether an external provider ledger can verify this entry's rates.
-   * False for OSS/self-hosted models and Cursor first-party models — those
-   * are manually governed by the registry baseline.
-   *
-   * @generated from field: bool ledger_reconcilable = 18;
-   */
-  ledgerReconcilable: boolean;
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.ModelPricingGovernanceEntry.
- * Use `create(ModelPricingGovernanceEntrySchema)` to create a new message.
- */
-export const ModelPricingGovernanceEntrySchema: GenMessage<ModelPricingGovernanceEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 29);
-
-/**
- * DecideModelPricingOverrideInput records a human decision on a
- * PENDING_SIGNOFF pricing override.
- *
- * @generated from message ai.stigmer.billing.v1.DecideModelPricingOverrideInput
- */
-export type DecideModelPricingOverrideInput = Message<"ai.stigmer.billing.v1.DecideModelPricingOverrideInput"> & {
-  /**
-   * @generated from field: string override_id = 1;
-   */
-  overrideId: string;
-
-  /**
-   * true approves (the override becomes ACTIVE and supersedes any current
-   * ACTIVE override on the same key); false rejects.
-   *
-   * @generated from field: bool approve = 2;
-   */
-  approve: boolean;
-
-  /**
-   * Optional note recorded on the decision for the audit trail.
-   *
-   * @generated from field: string decision_note = 3;
-   */
-  decisionNote: string;
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.DecideModelPricingOverrideInput.
- * Use `create(DecideModelPricingOverrideInputSchema)` to create a new message.
- */
-export const DecideModelPricingOverrideInputSchema: GenMessage<DecideModelPricingOverrideInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 30);
-
-/**
  * UpsertModelPricingBaselineInput creates or revises one model registry
  * baseline entry.
  *
@@ -1385,9 +1182,8 @@ export const DecideModelPricingOverrideInputSchema: GenMessage<DecideModelPricin
  * revision; otherwise a new catalog entry is created (which also revives a
  * RETIRED key). Lifecycle fields on the embedded baseline (baseline_id,
  * status, supersedes_baseline_id, decided_by/at, created_at) are
- * server-owned and ignored; pricing effective_at is stamped server-side so
- * baseline edits always win the staleness check against older
- * ledger-derived overrides (see ModelPricingBaseline.effective_at).
+ * server-owned and ignored; pricing effective_at is stamped server-side
+ * (see ModelPricingBaseline.effective_at).
  *
  * @generated from message ai.stigmer.billing.v1.UpsertModelPricingBaselineInput
  */
@@ -1411,14 +1207,13 @@ export type UpsertModelPricingBaselineInput = Message<"ai.stigmer.billing.v1.Ups
  * Use `create(UpsertModelPricingBaselineInputSchema)` to create a new message.
  */
 export const UpsertModelPricingBaselineInputSchema: GenMessage<UpsertModelPricingBaselineInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 31);
+  messageDesc(file_ai_stigmer_billing_v1_io, 27);
 
 /**
  * RetireModelPricingBaselineInput removes one model from the catalog.
  *
- * The ACTIVE document for the key transitions to RETIRED; the next
- * composition pass drops the model from the effective registry and
- * archives any ACTIVE pricing overrides that targeted it.
+ * The ACTIVE document for the key transitions to RETIRED; the rebuilt
+ * registry drops the model.
  *
  * @generated from message ai.stigmer.billing.v1.RetireModelPricingBaselineInput
  */
@@ -1451,7 +1246,7 @@ export type RetireModelPricingBaselineInput = Message<"ai.stigmer.billing.v1.Ret
  * Use `create(RetireModelPricingBaselineInputSchema)` to create a new message.
  */
 export const RetireModelPricingBaselineInputSchema: GenMessage<RetireModelPricingBaselineInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 32);
+  messageDesc(file_ai_stigmer_billing_v1_io, 28);
 
 /**
  * ListModelPricingBaselinesInput requests the baseline catalog.
@@ -1473,7 +1268,7 @@ export type ListModelPricingBaselinesInput = Message<"ai.stigmer.billing.v1.List
  * Use `create(ListModelPricingBaselinesInputSchema)` to create a new message.
  */
 export const ListModelPricingBaselinesInputSchema: GenMessage<ListModelPricingBaselinesInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 33);
+  messageDesc(file_ai_stigmer_billing_v1_io, 29);
 
 /**
  * ModelPricingBaselinesResponse is the baseline catalog, ordered by
@@ -1494,7 +1289,7 @@ export type ModelPricingBaselinesResponse = Message<"ai.stigmer.billing.v1.Model
  * Use `create(ModelPricingBaselinesResponseSchema)` to create a new message.
  */
 export const ModelPricingBaselinesResponseSchema: GenMessage<ModelPricingBaselinesResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 34);
+  messageDesc(file_ai_stigmer_billing_v1_io, 30);
 
 /**
  * CustomerModelPricingEntry is the customer-facing price for one model.
@@ -1588,7 +1383,7 @@ export type CustomerModelPricingEntry = Message<"ai.stigmer.billing.v1.CustomerM
  * Use `create(CustomerModelPricingEntrySchema)` to create a new message.
  */
 export const CustomerModelPricingEntrySchema: GenMessage<CustomerModelPricingEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 35);
+  messageDesc(file_ai_stigmer_billing_v1_io, 31);
 
 /**
  * PreviewAuthorizationInput asks whether an organization could fund an
@@ -1616,7 +1411,7 @@ export type PreviewAuthorizationInput = Message<"ai.stigmer.billing.v1.PreviewAu
  * Use `create(PreviewAuthorizationInputSchema)` to create a new message.
  */
 export const PreviewAuthorizationInputSchema: GenMessage<PreviewAuthorizationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 36);
+  messageDesc(file_ai_stigmer_billing_v1_io, 32);
 
 /**
  * PreviewAuthorizationResponse is the read-only affordability verdict.
@@ -1651,7 +1446,7 @@ export type PreviewAuthorizationResponse = Message<"ai.stigmer.billing.v1.Previe
  * Use `create(PreviewAuthorizationResponseSchema)` to create a new message.
  */
 export const PreviewAuthorizationResponseSchema: GenMessage<PreviewAuthorizationResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 37);
+  messageDesc(file_ai_stigmer_billing_v1_io, 33);
 
 /**
  * GetRunBillingSignalInput retrieves the billing control signal for
@@ -1671,7 +1466,7 @@ export type GetRunBillingSignalInput = Message<"ai.stigmer.billing.v1.GetRunBill
  * Use `create(GetRunBillingSignalInputSchema)` to create a new message.
  */
 export const GetRunBillingSignalInputSchema: GenMessage<GetRunBillingSignalInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 38);
+  messageDesc(file_ai_stigmer_billing_v1_io, 34);
 
 /**
  * GetRunBillingSignalResponse carries the current directive for a
@@ -1701,5 +1496,5 @@ export type GetRunBillingSignalResponse = Message<"ai.stigmer.billing.v1.GetRunB
  * Use `create(GetRunBillingSignalResponseSchema)` to create a new message.
  */
 export const GetRunBillingSignalResponseSchema: GenMessage<GetRunBillingSignalResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 39);
+  messageDesc(file_ai_stigmer_billing_v1_io, 35);
 
