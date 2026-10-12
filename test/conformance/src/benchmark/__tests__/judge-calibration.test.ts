@@ -5,7 +5,7 @@
 // written nor an example changes without a fresh real-model run that meets
 // the bar, and CI spends no model money proving it.
 // Domain: conformance benchmark (the judge's calibration).
-import { JUDGE_EVALUATOR_VERSION } from "@stigmer/eval-runtime";
+import { JUDGE_EVALUATOR_VERSION } from "@stigmer/eval-runtime/judge";
 import { describe, expect, it } from "vitest";
 
 import { JUDGE_CALIBRATION } from "../judge/calibration";

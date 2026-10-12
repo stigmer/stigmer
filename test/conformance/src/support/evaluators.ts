@@ -20,7 +20,7 @@ export const EVALUATOR_KIND = "Evaluator";
 export const JUDGE = "judge";
 
 // The judge's rubric names, from the rule set the server grades with.
-export { ACTED_ONLY_AS_ASKED, ASKED_WHEN_UNCLEAR, DID_THE_TASK, MADE_NOTHING_UP } from "@stigmer/eval-runtime";
+export { ACTED_ONLY_AS_ASKED, ASKED_WHEN_UNCLEAR, DID_THE_TASK, MADE_NOTHING_UP } from "@stigmer/eval-runtime/judge";
 
 // ─── Contract copy (byte-pinned in the server) ─────────────────────────────
 

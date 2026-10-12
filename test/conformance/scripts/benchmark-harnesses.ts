@@ -293,7 +293,9 @@ async function calibrateJudge(
   const reportPath = join(flags.out, `judge-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
   await writeFile(reportPath, `${JSON.stringify({ git, calibration, misses, shortfalls, stopped_at_budget: run.stoppedAtBudget }, null, 2)}\n`);
   console.log(`judge report: ${reportPath}`);
-  if (flags.writeCalibration) {
+  if (flags.writeCalibration && run.stoppedAtBudget) {
+    console.log("calibration not written: the run stopped at its budget before every try ran");
+  } else if (flags.writeCalibration) {
     await writeFile(CALIBRATION_MODULE, renderCalibrationModule(calibration));
     console.log(`calibration written: ${CALIBRATION_MODULE}`);
   }

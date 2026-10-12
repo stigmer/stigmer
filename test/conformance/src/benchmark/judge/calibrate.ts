@@ -15,8 +15,10 @@
 // buys is a tool-less run of its own that is not graded.
 //
 // A run stops launching tries once what it spent, plus the cap of every try
-// still running, would pass its budget, and says so; the counts then cover
-// the tries that ran and the bar refuses the gaps. Every try's session is
+// still running, would pass its budget, and says so; the counts then say how
+// many tries ran, and the bar refuses the gap. A try whose run never ended
+// where it could be read (a timeout, a fault) counts its whole cap as spent,
+// since it may still be spending it. Every try's session is
 // deleted when it is read, and the organization when the run ends.
 import { create } from "@bufbuild/protobuf";
 import {
@@ -26,7 +28,7 @@ import {
   judgeMessage,
   readVerdict,
   renderSubject,
-} from "@stigmer/eval-runtime";
+} from "@stigmer/eval-runtime/judge";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -179,6 +181,8 @@ async function gradeOnce(
       io.log(`judge ${example.id}: the judge run ended ${RunPhase[ended.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED]}: ${ended.status?.error ?? ""}`);
     }
   } catch (error) {
+    // The run may still be spending: count its whole cap against the budget.
+    costUsd = PER_GRADE_CAP_USD;
     io.log(`judge ${example.id}: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     if (sessionId !== "") {

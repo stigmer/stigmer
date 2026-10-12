@@ -21,7 +21,7 @@
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { VERDICT_SCHEMA, renderSubject } from "@stigmer/eval-runtime";
+import { VERDICT_SCHEMA, renderSubject } from "@stigmer/eval-runtime/judge";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";

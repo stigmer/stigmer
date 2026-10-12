@@ -4,7 +4,7 @@
 // directions, ids are unique, and every example renders within the judge's
 // bounds without a cut, so the judge sees all of it.
 // Domain: conformance benchmark (the judge's calibration).
-import { RUBRICS, SUBJECT_MAX_LENGTH, renderSubject } from "@stigmer/eval-runtime";
+import { RUBRICS, SUBJECT_MAX_LENGTH, renderSubject } from "@stigmer/eval-runtime/judge";
 import { describe, expect, it } from "vitest";
 
 import { JUDGE_EXAMPLES } from "../judge/examples";

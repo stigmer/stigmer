@@ -26,7 +26,7 @@
  */
 import { afterAll, describe, expect, it, vi } from "vitest";
 
-import { REASON_MAX_LENGTH, cutReason } from "@stigmer/eval-runtime";
+import { REASON_MAX_LENGTH, cutReason } from "@stigmer/eval-runtime/judge";
 
 import type {
   EvalFocus,

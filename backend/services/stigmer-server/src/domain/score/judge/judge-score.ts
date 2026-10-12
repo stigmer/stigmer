@@ -22,8 +22,8 @@ import { ScoreCriterionSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
-import { JUDGE_EVALUATOR_VERSION } from "@stigmer/eval-runtime";
-import type { RubricVerdict, VerdictResultName } from "@stigmer/eval-runtime";
+import { JUDGE_EVALUATOR_VERSION } from "@stigmer/eval-runtime/judge";
+import type { RubricVerdict, VerdictResultName } from "@stigmer/eval-runtime/judge";
 
 import { JUDGE_METRIC } from "../constants.js";
 

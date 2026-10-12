@@ -18,7 +18,7 @@
 // until it is run again.
 import { createHash } from "node:crypto";
 
-import type { SubjectParts, VerdictResultName } from "@stigmer/eval-runtime";
+import type { SubjectParts, VerdictResultName } from "@stigmer/eval-runtime/judge";
 
 /** One example conversation and the verdict the judge must give it. */
 export interface JudgeExample {

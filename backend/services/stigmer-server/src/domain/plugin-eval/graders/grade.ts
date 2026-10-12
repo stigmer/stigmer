@@ -13,7 +13,7 @@
  *
  * Proven by __tests__/graders.test.ts.
  */
-import { cutReason } from "@stigmer/eval-runtime";
+import { cutReason } from "@stigmer/eval-runtime/judge";
 import type { EvalGrader } from "@stigmer/plugin-package";
 
 import type { EvalTrace } from "../../score/eval/trace.js";

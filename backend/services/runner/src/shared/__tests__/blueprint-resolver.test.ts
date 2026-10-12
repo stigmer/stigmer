@@ -46,7 +46,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { mergePluginRefs, mergeSkillRefs, pluginAgentName, pluginSubagents, resolveBlueprint } from "../blueprint-resolver.js";
-import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime";
+import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime/judge";
 import {
   BUILT_IN_JUDGE_DISALLOWED_TOOLS,
   GRADES_RUN_LABEL,

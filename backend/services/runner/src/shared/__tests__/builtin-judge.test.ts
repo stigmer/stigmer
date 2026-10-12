@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime";
+import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime/judge";
 
 import {
   BUILT_IN_JUDGE_DISALLOWED_TOOLS,

@@ -1,8 +1,10 @@
 // The package entry: re-exports what a plugin eval's server and runner both
 // execute with (the transcript reader, the expect guard, mock rendering and
-// the try-stop wording) and the AI judge's rule set (its instruction,
-// rubrics, verdict schema, message and verdict reader), so neither reaches
-// into a file path. Each module's header carries its rules and trade-offs.
+// the try-stop wording), so neither reaches into a file path. Each module's
+// header carries its rules and trade-offs. It loads no `node:*` module, so a
+// browser bundle can import it (`@stigmer/plugin-package`'s main entry does);
+// the AI judge's rule set, which hashes with `node:crypto`, is the separate
+// entry `@stigmer/eval-runtime/judge` (judge/index.ts).
 
 export {
   parseTranscript,
@@ -32,41 +34,3 @@ export {
   type SavedTool,
 } from "./mock.js";
 export { COST_LIMIT_ERROR_PREFIX, formatTryStop, parseTryStop, type TryStop } from "./try-stop.js";
-export { JUDGE_INSTRUCTIONS, JUDGE_INSTRUCTION_VERSION } from "./judge/instruction.js";
-export type { JsonObject, JsonValue } from "./judge/json.js";
-export {
-  ACTED_ONLY_AS_ASKED,
-  ASKED_WHEN_UNCLEAR,
-  DID_THE_TASK,
-  JUDGE_EVALUATOR_VERSION,
-  MADE_NOTHING_UP,
-  REASON_MAX_LENGTH,
-  RUBRICS,
-  VERDICT_SCHEMA,
-  judgeMessage,
-  type Rubric,
-} from "./judge/rubrics.js";
-export {
-  ALL_VERDICT_RESULTS,
-  REASON_CUT_MARKER,
-  cutReason,
-  readVerdict,
-  type RubricVerdict,
-  type VerdictReading,
-  type VerdictResultName,
-  type VerdictShape,
-} from "./judge/verdict.js";
-export {
-  ANSWER_MAX_LENGTH,
-  CUT_MARKER,
-  EARLIER_TURNS_MAX,
-  EARLIER_TURN_FIELD_MAX_LENGTH,
-  REQUEST_MAX_LENGTH,
-  SUBJECT_MAX_LENGTH,
-  TOOL_FIELD_MAX_LENGTH,
-  renderSubject,
-  type SubjectCall,
-  type SubjectCallStatus,
-  type SubjectParts,
-  type SubjectTurn,
-} from "./judge/subject.js";

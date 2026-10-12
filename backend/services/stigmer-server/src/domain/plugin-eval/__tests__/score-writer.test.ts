@@ -12,7 +12,7 @@ import { create } from "@bufbuild/protobuf";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { JUDGE_INSTRUCTION_VERSION } from "@stigmer/eval-runtime";
+import { JUDGE_INSTRUCTION_VERSION } from "@stigmer/eval-runtime/judge";
 import type { EvalGrader, EvalGraderCheck } from "@stigmer/plugin-package";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {

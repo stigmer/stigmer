@@ -10,15 +10,15 @@
 // read counts as a miss in every direction and in `unreadable`, which the
 // bar allows none of.
 //
-// The bar: at least 90% of expected fails caught and 90% of expected passes
-// kept, per rubric; not applicable matched at least 80%; no unreadable
-// verdict. The committed counts carry the judge's evaluator version and the
+// The bar: every example graded k times; at least 90% of expected fails
+// caught and 90% of expected passes kept, per rubric; not applicable matched
+// at least 80%; no unreadable verdict. The committed counts carry the judge's evaluator version and the
 // examples' digest, so a changed rubric, message, subject or example makes
 // them stale, and the staleness test (__tests__/judge-calibration.test.ts)
 // refuses stale counts as it refuses counts below the bar.
 //
 // The counts quote nothing: rubric names, numbers, the model, a date.
-import type { RubricVerdict, VerdictResultName } from "@stigmer/eval-runtime";
+import type { RubricVerdict, VerdictResultName } from "@stigmer/eval-runtime/judge";
 
 import type { JudgeExample } from "./example";
 
@@ -55,6 +55,8 @@ export interface JudgeCalibration {
   readonly tries: number;
   /** The UTC day of the run, YYYY-MM-DD. */
   readonly date: string;
+  /** Examples times tries: what a whole run grades. */
+  readonly expectedGrades: number;
   readonly grades: number;
   readonly unreadable: number;
   /** Estimated cost of one grade, in US dollars. */
@@ -118,6 +120,7 @@ export function tallyCalibration(
   return {
     calibration: {
       ...meta,
+      expectedGrades: examples.length * meta.tries,
       grades: tries.length,
       unreadable,
       costPerGradeUsd: { mean: roundCost(mean), max: roundCost(Math.max(0, ...costs)) },
@@ -140,6 +143,8 @@ export function shortfallsOf(calibration: JudgeCalibration): string[] {
   const shortfalls: string[] = [];
   if (calibration.grades === 0) {
     shortfalls.push("no example was graded");
+  } else if (calibration.grades < calibration.expectedGrades) {
+    shortfalls.push(`only ${calibration.grades} of ${calibration.expectedGrades} tries were graded`);
   }
   if (calibration.unreadable > 0) {
     shortfalls.push(`${calibration.unreadable} verdicts could not be read`);

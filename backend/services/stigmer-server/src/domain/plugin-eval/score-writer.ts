@@ -38,7 +38,7 @@ import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
 
-import { JUDGE_INSTRUCTION_VERSION, cutReason } from "@stigmer/eval-runtime";
+import { JUDGE_INSTRUCTION_VERSION, cutReason } from "@stigmer/eval-runtime/judge";
 import type { EvalGrader } from "@stigmer/plugin-package";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";

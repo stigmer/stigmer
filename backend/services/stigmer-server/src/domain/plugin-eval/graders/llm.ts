@@ -27,7 +27,8 @@
  *
  * Proven by __tests__/graders.test.ts.
  */
-import { REASON_MAX_LENGTH, cutReason, readVerdict, renderTranscript } from "@stigmer/eval-runtime";
+import { renderTranscript } from "@stigmer/eval-runtime";
+import { REASON_MAX_LENGTH, cutReason, readVerdict } from "@stigmer/eval-runtime/judge";
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 
 import type {

@@ -63,7 +63,7 @@ import {
   judgeMessage,
   readVerdict,
   renderSubject,
-} from "@stigmer/eval-runtime";
+} from "@stigmer/eval-runtime/judge";
 
 import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";

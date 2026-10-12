@@ -29,7 +29,7 @@ import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { JUDGE_EVALUATOR_VERSION, RUBRICS } from "@stigmer/eval-runtime";
+import { JUDGE_EVALUATOR_VERSION, RUBRICS } from "@stigmer/eval-runtime/judge";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";

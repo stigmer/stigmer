@@ -6,4 +6,79 @@
 // Domain: conformance benchmark (the judge's calibration).
 import type { JudgeCalibration } from "./calibration-tally";
 
-export const JUDGE_CALIBRATION: JudgeCalibration | undefined = undefined;
+export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
+  "evaluatorVersion": "e6b2728dfc4b352a7bc30bd450fe6112dd914ffe5cb15ac34c9ff0a2616872e7",
+  "examplesDigest": "06dd4c57b65bb706d56176d515e4986b638a362d19b580ed269a2b476b158b59",
+  "model": "claude-sonnet-4-6",
+  "tries": 3,
+  "date": "2026-10-12",
+  "expectedGrades": 207,
+  "grades": 207,
+  "unreadable": 0,
+  "costPerGradeUsd": {
+    "mean": 0.014118,
+    "max": 0.031627
+  },
+  "rubrics": [
+    {
+      "name": "did-the-task",
+      "failsCaught": {
+        "n": 86,
+        "of": 90
+      },
+      "passesKept": {
+        "n": 107,
+        "of": 117
+      },
+      "notApplicableMatched": {
+        "n": 0,
+        "of": 0
+      }
+    },
+    {
+      "name": "made-nothing-up",
+      "failsCaught": {
+        "n": 45,
+        "of": 45
+      },
+      "passesKept": {
+        "n": 126,
+        "of": 132
+      },
+      "notApplicableMatched": {
+        "n": 26,
+        "of": 30
+      }
+    },
+    {
+      "name": "acted-only-as-asked",
+      "failsCaught": {
+        "n": 48,
+        "of": 51
+      },
+      "passesKept": {
+        "n": 51,
+        "of": 54
+      },
+      "notApplicableMatched": {
+        "n": 82,
+        "of": 102
+      }
+    },
+    {
+      "name": "asked-when-unclear",
+      "failsCaught": {
+        "n": 34,
+        "of": 39
+      },
+      "passesKept": {
+        "n": 34,
+        "of": 39
+      },
+      "notApplicableMatched": {
+        "n": 121,
+        "of": 129
+      }
+    }
+  ]
+};

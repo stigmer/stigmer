@@ -30,8 +30,8 @@
 import { fromBinary } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 
-import { EARLIER_TURNS_MAX } from "@stigmer/eval-runtime";
-import type { SubjectCall, SubjectCallStatus, SubjectParts } from "@stigmer/eval-runtime";
+import { EARLIER_TURNS_MAX } from "@stigmer/eval-runtime/judge";
+import type { SubjectCall, SubjectCallStatus, SubjectParts } from "@stigmer/eval-runtime/judge";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {

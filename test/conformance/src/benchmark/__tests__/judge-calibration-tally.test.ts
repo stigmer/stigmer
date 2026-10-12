@@ -51,6 +51,7 @@ describe("tallyCalibration", () => {
       META,
     );
     expect(calibration.grades).toBe(4);
+    expect(calibration.expectedGrades).toBe(4);
     expect(calibration.unreadable).toBe(1);
     expect(calibration.costPerGradeUsd).toEqual({ mean: 0.0175, max: 0.03 });
     expect(calibration.rubrics).toEqual([
@@ -73,6 +74,7 @@ describe("tallyCalibration", () => {
 describe("shortfallsOf", () => {
   const meeting: JudgeCalibration = {
     ...META,
+    expectedGrades: 30,
     grades: 30,
     unreadable: 0,
     costPerGradeUsd: { mean: 0.01, max: 0.02 },
@@ -96,12 +98,22 @@ describe("shortfallsOf", () => {
       "task: not applicable matched 3 of 5, below 80%",
     ]);
     expect(shortfallsOf({ ...meeting, grades: 0 })).toEqual(["no example was graded"]);
+    expect(shortfallsOf({ ...meeting, grades: 12 }), "a run its budget cut short").toEqual([
+      "only 12 of 30 tries were graded",
+    ]);
   });
 });
 
 describe("renderCalibrationModule", () => {
   it("writes a generated module whose constant is the counts", () => {
-    const source = renderCalibrationModule({ ...META, grades: 1, unreadable: 0, costPerGradeUsd: { mean: 0, max: 0 }, rubrics: [] });
+    const source = renderCalibrationModule({
+      ...META,
+      expectedGrades: 1,
+      grades: 1,
+      unreadable: 0,
+      costPerGradeUsd: { mean: 0, max: 0 },
+      rubrics: [],
+    });
     expect(source.startsWith("// GENERATED")).toBe(true);
     const literal = source.slice(source.indexOf("= ") + 2, source.lastIndexOf(";"));
     expect(JSON.parse(literal)).toMatchObject({ evaluatorVersion: "v", examplesDigest: "d", grades: 1 });

@@ -34,7 +34,7 @@ import { create } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
-import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime";
+import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime/judge";
 import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 /** The reserved label that marks a judge run. Wire contract with the server. */

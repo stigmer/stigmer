@@ -75,7 +75,7 @@ import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
 import { composeSystemPrompt, composeTurnMessage } from "../turn-setup.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
-import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime";
+import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime/judge";
 
 // ---------------------------------------------------------------------------
 // Fixtures — every value is a plain fact a golden can name.
