@@ -32,7 +32,7 @@ import type {
   PluginEvalList,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/io_pb";
 import { PluginEvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/query_pb";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -61,6 +61,7 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import {
   newNormalizeReferencesStep,
@@ -169,6 +170,7 @@ async function createPluginEval(
       newVaultAttachmentsStep(deps.store, deps.authorizer, PLUGIN_EVAL_VAULT_ATTACHMENTS),
     )
     .addStep(newPlanPluginEvalStep(deps.suites, deps.modelCatalog))
+    .addStep(newClaimNameStep(deps.store, ApiResourceKind.plugin_eval))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, deps.logger),
@@ -178,7 +180,8 @@ async function createPluginEval(
     )
     .addStep(newStartPluginEvalWorkflowStep(deps.store, deps.workflows, deps.logger))
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.newState;
 }
 
@@ -233,6 +236,7 @@ async function deletePluginEval(
     .addStep(newRefuseActivePluginEvalDeleteStep())
     .addStep(newDeletePluginEvalTriesStep(deps.store, deps.sessions, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin_eval))
     .addStep(newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger))
     .build()
     .execute(reqCtx);

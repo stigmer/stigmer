@@ -92,6 +92,7 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -181,6 +182,7 @@ async function createOAuthApp(
     .addStep(newCheckLoginEndpointsStep())
     .addStep(newNormalizeAddressesStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newClaimNameStep(deps.store, ApiResourceKind.oauth_app))
     .addStep(newClaimAddressesStep(deps.store, "create"))
     .addStep(newPersistStep(deps.store))
     .addStep(
@@ -190,7 +192,8 @@ async function createOAuthApp(
       ),
     )
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   const result = reqCtx.newState;
   redactOAuthApp(result);
   return result;
@@ -315,6 +318,7 @@ async function deleteOAuthApp(
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, OAuthAppSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.oauth_app))
     .addStep(newReleaseAddressesStep(deps.store, deps.logger))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

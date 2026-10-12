@@ -8,10 +8,13 @@
  * resource-store.ts over the generic Store.
  *
  * The methods are exactly the lookups the domain asks: by id (every
- * chain, and the verifier's liveness read), by client_id (the mint), by
- * org-scoped slug (getByReference, update addressed by slug, the
- * duplicate check), by organization (listByOrg). A port carries nothing
- * only one edition calls.
+ * chain, the verifier's liveness read, and every lookup by slug, which
+ * reads the name table first: pipeline/steps/names.ts), by client_id (the
+ * mint), by organization (listByOrg). A port carries nothing only one
+ * edition calls. A client's slug is a name in the server's one name table,
+ * claimed by the create chain in every edition, so uniqueness of a slug is
+ * not the port's: an implementation may keep its own unique index as a
+ * backstop.
  *
  * One write is atomic: `modifyById`, the port's rendering of
  * `Store.updateResource`, for the status the platform writes on its own
@@ -24,9 +27,8 @@
  * Contract every implementation must satisfy — proven by the port-contract
  * kit (store-contract.ts, exported), which the OSS adapter's test iterates
  * on both drivers and a composition's driver test iterates too:
- *   - `save` is create-only in effect: a held id, a held (org, slug) or a
- *     held client_id raises DuplicatePlatformClientError, never a silent
- *     overwrite;
+ *   - `save` is create-only in effect: a held id or a held client_id
+ *     raises DuplicatePlatformClientError, never a silent overwrite;
  *   - `update` replaces by id and never creates: an unknown id writes
  *     nothing;
  *   - `modifyById` reads the row, applies `modify` and persists the result
@@ -44,8 +46,9 @@
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
 /**
- * Raised by `save` when the id, the (org, slug) pair or the client_id is
- * already held, so the create chain answers ALREADY_EXISTS. `cause`
+ * Raised by `save` when the id or the client_id is already held (or when
+ * an implementation's own unique index on the organization and slug
+ * refuses the row), so the create chain answers ALREADY_EXISTS. `cause`
  * carries a driver's own error (the cloud's SQLSTATE 23505) for the logs;
  * the message is the port's.
  */
@@ -57,7 +60,7 @@ export class DuplicatePlatformClientError extends Error {
 }
 
 export interface PlatformClientStore {
-  /** Insert; a held id, (org, slug) or client_id raises DuplicatePlatformClientError. */
+  /** Insert; a held id or client_id raises DuplicatePlatformClientError. */
   save(client: PlatformClient): Promise<void>;
   /** Full-row replace by id; an unknown id writes nothing. */
   update(client: PlatformClient): Promise<void>;
@@ -77,10 +80,6 @@ export interface PlatformClientStore {
   findById(id: string): Promise<PlatformClient | undefined>;
   /** The client holding this public identifier — the mint's lookup. */
   findByClientId(clientId: string): Promise<PlatformClient | undefined>;
-  findByOrgAndSlug(
-    org: string,
-    slug: string,
-  ): Promise<PlatformClient | undefined>;
   /** Every client of the organization, in no promised order. */
   findByOrg(org: string): Promise<ReadonlyArray<PlatformClient>>;
 }

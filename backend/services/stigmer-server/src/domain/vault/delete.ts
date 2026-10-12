@@ -32,6 +32,7 @@ import {
   newDeleteResourceStep,
 } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import type { Store } from "../../store/interface.js";
 import type { ListIndexRow } from "../../store/list-index.js";
@@ -61,6 +62,7 @@ export function vaultDeleteSteps<Input extends DescMessage>(
 ): ReadonlyArray<PipelineStep<Input>> {
   return [
     newDeleteResourceStep<Input>(deps.store),
+    newReleaseNamesStep<Input>(deps.store, deps.logger, ApiResourceKind.vault),
     newCleanupIamPoliciesStep<Input>(deps.authorizationLifecycle, deps.logger),
     newDestroySecretBackingStateStep<Input, typeof VaultSchema>(
       deps.secretService,

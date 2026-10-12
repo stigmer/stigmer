@@ -11,15 +11,21 @@
  * an in-process router. The composed suites reach only a real store, which
  * cannot fail selectively, so it runs here against a store whose read throws.
  *
+ * The shared-agent profile's agent read is pinned the same way: a fault in
+ * the name table it reads first is a sanitized Internal, never a missing
+ * agent.
+ *
  * Out of scope: the NotFound copy itself (wire contract, pinned by the
  * agentshare conformance suite), the anonymous profile lanes' deliberate
  * uniform NotFound, and getByAgent's empty-list answer on an agent-read
  * fault (stigmer/stigmer#1375).
  */
 import type { Client, ConnectError } from "@connectrpc/connect";
-import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
+import { Code, ConnectError as ConnectErrorClass, createClient, createRouterTransport } from "@connectrpc/connect";
+import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
+import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -31,6 +37,7 @@ import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 
 import { registerAgentShareServices } from "../controller.js";
+import { buildSharedAgentProfile } from "../steps.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -97,5 +104,25 @@ describe("rotateShareLink — LoadShareForLinkRotation", () => {
 
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe(LOAD_FAULT_COPY);
+  });
+});
+
+describe("the shared-agent profile's agent read", () => {
+  it("answers a name-table fault as the domain's sanitized Internal", async () => {
+    const faulting = {
+      resourceNames: {
+        resolve: () => Promise.reject(LOCKED()),
+      },
+    } as unknown as Store;
+    const share = create(AgentShareSchema, {
+      metadata: { id: SHARE_ID, org: "org_acme", slug: "support" },
+      spec: { agentRef: { org: "org_acme", slug: "support" } },
+    });
+    const error = await buildSharedAgentProfile(faulting, share).then(
+      () => undefined,
+      (caught: unknown) => ConnectErrorClass.from(caught),
+    );
+    expect(error?.code).toBe(Code.Internal);
+    expect(error?.rawMessage).toBe("failed to read the agent");
   });
 });

@@ -110,6 +110,7 @@ import {
 } from "./constants.js";
 import { listAgentEvals } from "./queries.js";
 import { agentTargetOf } from "./target.js";
+import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
 /** Context key for the agent a create evaluates, stashed by LoadEvaluatedAgent. */
 export const EVALUATED_AGENT_KEY = "evaluatedAgent";
@@ -385,6 +386,7 @@ export function newEnsureEvaluatedAgentStillExistsStep(
       } catch (error) {
         throw internalError(error, "failed to remove the agent eval of a deleted agent");
       }
+      await releaseNamesOfDeleted(store, logger, ApiResourceKind.agent_eval, ctx.newState.metadata?.org ?? "", evalId);
       await cleanUpDeletedResource(authorizationLifecycle, logger, {
         kind: ApiResourceKind.agent_eval,
         resourceId: evalId,

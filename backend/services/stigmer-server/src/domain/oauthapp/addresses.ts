@@ -27,6 +27,7 @@ import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { claimName } from "../../pipeline/steps/names.js";
 import type { Store } from "../../store/interface.js";
 import { InvalidAddressError, normalizeAddress } from "../vault/address.js";
 import {
@@ -34,9 +35,6 @@ import {
   findOrganizationApp,
   oauthAppAddressKey,
 } from "../vault/login-app.js";
-
-/** How old a claim whose holder never stored the address must be before another app may take it. */
-const ABANDONED_CLAIM_AFTER_MS = 60 * 1000;
 
 /** The context key the update chain keeps the addresses it drops under, for the release after the write. */
 const DROPPED_ADDRESSES_KEY = "oauthapp.droppedAddresses";
@@ -163,19 +161,11 @@ export function newReleaseAddressesStep<Desc extends DescMessage>(
 
 /**
  * Claims one address for `id`, freeing an abandoned claim first: one whose
- * holder does not list the address and is a minute old.
+ * holder no longer lists the address (pipeline/steps/names.ts claimName).
  */
 async function claimAddress(store: Store, org: string, id: string, address: string): Promise<boolean> {
-  const key = oauthAppAddressKey(org, address);
-  const now = new Date();
-  const claim = await store.resourceNames.claim(key, id, now.toISOString());
-  if (claim.claimed || claim.entry.id === id) {
-    return true;
-  }
-  const young = now.getTime() - Date.parse(claim.entry.claimedAt) < ABANDONED_CLAIM_AFTER_MS;
-  if (young || (await findOrganizationApp(store, org, address)) !== undefined) {
-    return false;
-  }
-  await store.resourceNames.releaseName(key, claim.entry.id);
-  return (await store.resourceNames.claim(key, id, now.toISOString())).claimed;
+  const claim = await claimName(store, oauthAppAddressKey(org, address), id, new Date(), {
+    holds: async () => (await findOrganizationApp(store, org, address)) !== undefined,
+  });
+  return claim.claimed;
 }

@@ -102,6 +102,7 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -217,6 +218,7 @@ async function createShare(
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
+    .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent_share))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -225,7 +227,8 @@ async function createShare(
       ),
     )
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.newState;
 }
 
@@ -469,6 +472,7 @@ async function deleteShare(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentShareSchema))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_share))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

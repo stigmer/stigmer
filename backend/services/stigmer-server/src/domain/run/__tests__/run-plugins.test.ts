@@ -37,6 +37,7 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { loadRunPlugins, runPluginReferences } from "../run-plugins.js";
 import type { RunSubagent } from "../run-subagents.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const ORG = "acme";
 const OTHER_ORG = "elsewhere";
@@ -70,7 +71,7 @@ function pluginRow(opts: {
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "run-plugins-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"));
+  store = namingSaves(SqliteStore.open(path.join(dir, "stigmer.db")));
   await store.saveResource(
     ApiResourceKind.plugin,
     "plg_linear",
@@ -253,7 +254,7 @@ describe("loadRunPlugins", () => {
   it("fails on a store fault rather than leaving the plugin out", async () => {
     const faulty = new Proxy(store, {
       get(target, prop, receiver) {
-        if (prop === "listResources") {
+        if (prop === "getResource") {
           return async () => {
             throw new Error("disk gone");
           };

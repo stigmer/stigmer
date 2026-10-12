@@ -28,6 +28,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import { runSubagents, subagentGoneMessage } from "../run-subagents.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const ORG = "acme";
 const OTHER_ORG = "elsewhere";
@@ -47,7 +48,7 @@ function agentRow(id: string, org: string, slug: string, instructions: string, v
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "run-subagents-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"));
+  store = namingSaves(SqliteStore.open(path.join(dir, "stigmer.db")));
   await store.saveResource(
     ApiResourceKind.agent,
     "agt_researcher",

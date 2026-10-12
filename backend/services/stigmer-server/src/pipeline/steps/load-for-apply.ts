@@ -10,7 +10,7 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import type { Store } from "../../store/interface.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
-import { findResourceBySlug } from "./helpers.js";
+import { findResourceByName } from "./names.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { metadataOf } from "./shapes.js";
 
@@ -32,13 +32,7 @@ export function newLoadForApplyStep<Desc extends DescMessage>(
         return;
       }
 
-      const existing = await findResourceBySlug(
-        store,
-        ctx.apiResourceKind,
-        ctx.schema,
-        metadata.slug,
-        metadata.org,
-      );
+      const existing = await findResourceByName(store, ctx.apiResourceKind, ctx.schema, metadata.org, metadata.slug);
 
       if (existing === undefined) {
         ctx.set(EXISTS_IN_DATABASE_KEY, false);

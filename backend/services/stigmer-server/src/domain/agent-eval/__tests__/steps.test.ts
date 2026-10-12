@@ -115,6 +115,7 @@ import {
   settleEndedAgentEval,
 } from "../steps.js";
 import type { EvaluatedVersion } from "../steps.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const ORG = "org_1";
 const AGENT_ID = "agt_1";
@@ -130,7 +131,9 @@ const catalog = newModelCatalogProviderFromDocument(
 let temp: TempStore;
 
 beforeEach(() => {
-  temp = tempStore();
+  // Rows seeded straight into the store hold their names, as their chains would.
+  const opened = tempStore();
+  temp = { ...opened, store: namingSaves(opened.store) };
 });
 
 afterEach(async () => {

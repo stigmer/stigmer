@@ -18,6 +18,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
 import type {
@@ -45,6 +46,7 @@ export function newPluginEvalPurge(deps: PluginEvalPurgeDeps): KindPurge {
     steps: [
       newStopPluginEvalStep(deps),
       newDeleteResourceStep(deps.store),
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin_eval),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     ],
   });

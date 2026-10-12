@@ -22,7 +22,7 @@
  * the trigger RPC's direct-run step (origin=manual).
  */
 import { Code, ConnectError } from "@connectrpc/connect";
-import { clone, create } from "@bufbuild/protobuf";
+import { clone, create, fromBinary } from "@bufbuild/protobuf";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -46,7 +46,9 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ScheduleFireCallerMint } from "../../extensions/schedule-fire-caller.js";
 import { ScheduleFireCallerRefusedError } from "../../extensions/schedule-fire-caller.js";
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { findResourceByName } from "../../pipeline/steps/names.js";
+import { agentExecutionListIndex } from "../../domain/run/list-index.js";
+import { SCHEDULE_ID_LABEL_KEY } from "../../domain/schedule/labels.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { ScheduleTemporalConfig } from "./config.js";
@@ -72,7 +74,34 @@ export const SESSION_SUBJECT_PREFIX = "Scheduled run: ";
  * grants every caller, a hosted edition only its operators), and the
  * resolver uses a schedule only of the run's own organization.
  */
-export const SCHEDULE_ID_LABEL_KEY = "stigmer.ai/schedule-id";
+export { SCHEDULE_ID_LABEL_KEY };
+
+/**
+ * The run an earlier attempt of this fire created: the run list index's
+ * `schedule` key, then the fire's deterministic name. A run's slug is not
+ * a claimed name (pipeline/steps/names.ts NAMED_KINDS), so the fire finds
+ * its run as an eval's try does, through the index; the oldest wins when
+ * a concurrent fire made two.
+ */
+async function findFireRun(
+  store: Store,
+  org: string,
+  scheduleId: string,
+  executionName: string,
+): Promise<Run | undefined> {
+  const rows = await store.queryResources(agentExecutionListIndex, {
+    org,
+    anyKey: [{ name: "schedule", value: scheduleId }],
+  });
+  return rows
+    .map((row) => fromBinary(RunSchema, row.data))
+    .find(
+      (run) =>
+        run.metadata?.org === org &&
+        run.metadata?.slug === executionName &&
+        run.metadata?.labels[SCHEDULE_ID_LABEL_KEY] === scheduleId,
+    );
+}
 
 /** The sealed outcome set of startRun (Go RunOutcomeResult). */
 export type RunOutcomeResult =
@@ -264,13 +293,7 @@ export class RunStarter {
     // (every character is already slug-shaped, pinned by test).
     let existing;
     try {
-      existing = await findResourceBySlug(
-        store,
-        ApiResourceKind.run,
-        RunSchema,
-        executionName,
-        org,
-      );
+      existing = await findFireRun(store, org, scheduleId, executionName);
     } catch (error) {
       // Go's wrap label (runstarter.go): the activity retries either way;
       // the label keeps history/trigger diagnostics identical.
@@ -347,13 +370,7 @@ export class RunStarter {
           // winner (Go wraps findErr != nil || !found identically).
           let winner;
           try {
-            winner = await findResourceBySlug(
-              store,
-              ApiResourceKind.run,
-              RunSchema,
-              executionName,
-              org,
-            );
+            winner = await findFireRun(store, org, scheduleId, executionName);
           } catch (findError) {
             throw new Error(
               `duplicate-check refusal but no execution row for ${executionName}: ${findError instanceof Error ? findError.message : String(findError)}`,
@@ -411,13 +428,7 @@ export class RunStarter {
     }
     let agent: Agent | undefined;
     try {
-      agent = await findResourceBySlug(
-        this.deps.store,
-        ApiResourceKind.agent,
-        AgentSchema,
-        slug,
-        org,
-      );
+      agent = await findResourceByName(this.deps.store, ApiResourceKind.agent, AgentSchema, org, slug);
     } catch (error) {
       throw new Error(
         `resolve target agent ${org}/${slug}: ${error instanceof Error ? error.message : String(error)}`,

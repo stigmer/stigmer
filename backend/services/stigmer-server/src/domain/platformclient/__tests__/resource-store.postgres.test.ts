@@ -2,10 +2,11 @@
  * Runs the PlatformClientStore port-contract kit (../store-contract.ts) over
  * the OSS adapter (../resource-store.ts) on both drivers through the
  * drivers' own fixtures (sqlite always; Postgres under TEST_DATABASE_URL),
- * and pins the one behavior that is the OSS adapter's rather than the
- * port's: `findByOrgAndSlug` is an EXACT pair — an empty organization is no
- * wildcard, unlike the shared slug helper, so a slug lookup can never cross
- * into another organization.
+ * and pins how a lookup by slug reaches it (steps.ts findClientByName): a
+ * name read in the name table, then this adapter by id, so a slug the
+ * create chain never claimed resolves to nothing and an empty organization
+ * is the platform's scope rather than every organization; a client holds
+ * its name while the port finds its row.
  *
  * The kit's case list is pinned by name here so a case cannot drop out of
  * the kit unnoticed: the cloud driver's test iterates the same export and
@@ -26,15 +27,15 @@ import {
 } from "../../../store/postgres/__tests__/support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newResourcePlatformClientStore } from "../resource-store.js";
+import { findClientByName, platformClientNameHolder } from "../steps.js";
 import type { PlatformClientStoreContractFixture } from "../store-contract.js";
 import { platformClientStoreContract } from "../store-contract.js";
 
 /** The kit's contract lines, pinned: a dropped or renamed case is a visible diff here. */
 const CONTRACT_CASE_NAMES = [
-  "save then findById, findByClientId and findByOrgAndSlug answer the saved client",
+  "save then findById and findByClientId answer the saved client",
   "lookups of a client that is not held answer undefined",
   "save under a held id raises DuplicatePlatformClientError",
-  "save under a held (org, slug) raises DuplicatePlatformClientError",
   "save under a held client_id raises DuplicatePlatformClientError",
   "the same slug in another organization is a different client",
   "update replaces the row in place",
@@ -113,10 +114,11 @@ describe.each([sqliteFixture, postgresFixture])(
     });
 
     describe.skipIf(fixture.skip)("the OSS adapter's own invariants", () => {
-      it("findByOrgAndSlug with an empty organization matches nothing, never every organization", async () => {
+      it("a slug resolves through the name table only: an unclaimed slug misses, an empty organization matches no organization's client", async () => {
         const opened = await fixture.open();
         try {
           const clients = newResourcePlatformClientStore(opened.store);
+          const now = new Date().toISOString();
           await clients.save(
             create(PlatformClientSchema, {
               metadata: {
@@ -129,12 +131,35 @@ describe.each([sqliteFixture, postgresFixture])(
             }),
           );
           expect(
-            await clients.findByOrgAndSlug("", "dashboard"),
+            await findClientByName(opened.store, clients, "acme", "dashboard"),
           ).toBeUndefined();
-          expect(await clients.findByOrgAndSlug("acme", "")).toBeUndefined();
+          await opened.store.resourceNames.claim(
+            { kind: "platform_client", org: "acme", name: "dashboard" },
+            "pcl_acme_dashboard",
+            now,
+          );
           expect(
-            (await clients.findByOrgAndSlug("acme", "dashboard"))?.metadata?.id,
+            (await findClientByName(opened.store, clients, "acme", "dashboard"))
+              ?.metadata?.id,
           ).toBe("pcl_acme_dashboard");
+          expect(
+            await findClientByName(opened.store, clients, "globex", "dashboard"),
+          ).toBeUndefined();
+          const entry = {
+            kind: "platform_client",
+            org: "acme",
+            name: "dashboard",
+            state: "current" as const,
+            claimedAt: now,
+            expiresAt: "",
+          };
+          const holder = platformClientNameHolder(clients);
+          expect(await holder.holds({ ...entry, id: "pcl_acme_dashboard" })).toBe(true);
+          expect(await holder.holds({ ...entry, id: "pcl_gone" })).toBe(false);
+          expect(
+            await findClientByName(opened.store, clients, "", "dashboard"),
+            "an empty organization is the platform's scope, never every organization",
+          ).toBeUndefined();
         } finally {
           await opened.close();
         }

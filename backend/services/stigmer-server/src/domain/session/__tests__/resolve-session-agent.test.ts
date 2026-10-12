@@ -50,6 +50,7 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 
 import { newResolveSessionAgentStep } from "../resolve-session-agent.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 /** Every caller may run every agent: the run gate is not this step's question. */
 const ALLOW: Authorizer = {
@@ -74,9 +75,11 @@ let store: Store;
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "resolve-session-agent-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
-    listIndexes: LIST_INDEXES,
-  });
+  store = namingSaves(
+    SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
+      listIndexes: LIST_INDEXES,
+    }),
+  );
 });
 
 afterEach(() => {

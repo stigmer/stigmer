@@ -45,7 +45,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { createdByOf } from "../../pipeline/steps/authorization-facts.js";
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { findResourceByName } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { collectSpecReferences } from "../../pipeline/steps/references.js";
 import type { SpecReference } from "../../pipeline/steps/references.js";
@@ -136,13 +136,7 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
         try {
           named.push({
             ref,
-            vault: await findResourceBySlug(
-              store,
-              ApiResourceKind.vault,
-              VaultSchema,
-              ref.slug,
-              ref.org || org,
-            ),
+            vault: await findResourceByName(store, ApiResourceKind.vault, VaultSchema, ref.org || org, ref.slug),
             kept: stored.some((held) => sameReference(held, ref)),
           });
         } catch (error) {

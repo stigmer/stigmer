@@ -65,6 +65,7 @@ import {
   organizationId,
   seedOrganizations,
 } from "../../organization/__tests__/support.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -153,7 +154,7 @@ async function seedReferencedRows(): Promise<void> {
     "search-credentials",
     "rotated-credentials",
   ]) {
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.vault,
       `vlt_${slug}`,
       VaultSchema,
@@ -181,7 +182,7 @@ async function seedReferencedRows(): Promise<void> {
     "second-app",
     "second-meta-app",
   ]) {
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.channel_app,
       `chapp_${slug}`,
       ChannelAppSchema,
@@ -758,7 +759,7 @@ describe("app_ref (BYO channel-app binding)", () => {
       AgentChannelSchema,
     );
     stored.status!.installState = AgentChannelInstallState.installed;
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent_channel,
       created.metadata!.id,
       AgentChannelSchema,

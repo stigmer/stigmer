@@ -15,7 +15,8 @@ import { invalidArgumentError, notFoundError } from "../errors.js";
 import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
-import { findResourceBySlug, requireOrgForReference } from "./helpers.js";
+import { requireOrgForReference } from "./helpers.js";
+import { findResourceByName } from "./names.js";
 import { TARGET_RESOURCE_KEY } from "./load-target.js";
 
 export function newLoadByReferenceStep<TargetDesc extends DescMessage>(
@@ -45,7 +46,7 @@ export function newLoadByReferenceStep<TargetDesc extends DescMessage>(
       requireOrgForReference(kind, ref.org);
 
       const target: MessageShape<TargetDesc> | undefined =
-        await findResourceBySlug(store, kind, targetSchema, ref.slug, ref.org);
+        await findResourceByName(store, kind, targetSchema, ref.org, ref.slug);
       if (target === undefined) {
         throw notFoundError(getKindName(kind), ref.slug);
       }

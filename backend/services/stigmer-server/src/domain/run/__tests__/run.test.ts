@@ -84,6 +84,7 @@ import {
   seedOrganizations,
 } from "../../organization/__tests__/support.js";
 import type { OrganizationIds } from "../../organization/__tests__/support.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -218,7 +219,7 @@ async function seed(
     metadata: { id: string };
   },
 ): Promise<string> {
-  await server.store.saveResource(
+  await namingSaves(server.store).saveResource(
     ApiResourceKind.run,
     init.metadata.id,
     RunSchema,
@@ -257,7 +258,7 @@ describe("create over the wire (engine gate)", () => {
   it("valid create refuses Unavailable at the engine gate, BEFORE any side effect", async () => {
     // Seed an agent the request references, so target resolution and
     // validation pass and the refusal is provably the engine gate.
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent,
       "agt_create_gate",
       AgentSchema,
@@ -574,7 +575,7 @@ describe("update under an authorizer that enforces reserved labels", () => {
   async function seedEnforced(labels: Record<string, string>) {
     const init = seedInput({ org: enforcingOrgId });
     init.metadata = { ...init.metadata, labels };
-    await enforcing.store.saveResource(
+    await namingSaves(enforcing.store).saveResource(
       ApiResourceKind.run,
       init.metadata.id,
       RunSchema,
@@ -688,7 +689,7 @@ describe("usage reports over the wire", () => {
   });
 
   it("getAgentUsageReport resolves the display name only when the org used the agent (no id-to-name oracle)", async () => {
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent,
       "agt_named",
       AgentSchema,

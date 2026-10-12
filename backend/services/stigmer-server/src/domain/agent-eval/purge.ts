@@ -23,6 +23,7 @@ import type { KindPurge, KindPurgeDeps } from "../organization/purge/kind-purge.
 import { askPluginEvalToStop } from "../plugin-eval/cascade.js";
 import type { PluginEvalWorkflows } from "../plugin-eval/workflows.js";
 import { agentEvalListIndex } from "./list-index.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 
 export interface AgentEvalPurgeDeps extends KindPurgeDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
@@ -41,6 +42,7 @@ export function newAgentEvalPurge(deps: AgentEvalPurgeDeps): KindPurge {
     steps: [
       newStopAgentEvalStep(deps),
       newDeleteResourceStep(deps.store),
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_eval),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     ],
   });

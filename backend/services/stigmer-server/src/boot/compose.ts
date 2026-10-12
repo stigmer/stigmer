@@ -811,6 +811,7 @@ export async function composeServer(
   });
   const identityAccountPath = {
     accounts: identityAccounts,
+    store,
     logger,
     authorizer,
     authorizationLifecycle: roleLifecycle,
@@ -2279,6 +2280,7 @@ export async function composeServer(
       create: createIdentityAccount,
     },
     iamPolicies,
+    resourceNames: store.resourceNames,
   };
   for (const { hook } of extensions.onComposed) {
     hook(composedServices);

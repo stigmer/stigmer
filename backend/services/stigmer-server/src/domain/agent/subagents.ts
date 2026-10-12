@@ -58,7 +58,7 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { findResourceByName } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
   checkWriter,
@@ -209,13 +209,7 @@ async function pinnedHash(
 ): Promise<string> {
   let head;
   try {
-    head = await findResourceBySlug(
-      store,
-      ApiResourceKind.agent,
-      AgentSchema,
-      ref.slug,
-      ref.org,
-    );
+    head = await findResourceByName(store, ApiResourceKind.agent, AgentSchema, ref.org, ref.slug);
   } catch (error) {
     throw internalError(error, "failed to read a subagent");
   }

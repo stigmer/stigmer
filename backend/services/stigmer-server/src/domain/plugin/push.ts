@@ -30,6 +30,8 @@
  */
 import { create } from "@bufbuild/protobuf";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
 import type { PluginFinding, PluginHooks, PluginPackage } from "@stigmer/plugin-package";
 import { readPluginPackage } from "@stigmer/plugin-package";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
@@ -81,7 +83,7 @@ import {
   setAuditFieldsForCreate,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { claimNameOf, findResourceByName } from "../../pipeline/steps/names.js";
 import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
 import { checkDerivedSlug, generateSlug } from "../../pipeline/steps/slug.js";
 import {
@@ -216,13 +218,7 @@ export function newFindExistingPluginBySlugStep(
       const plugin = ctx.get(PLUGIN_KEY) as Plugin;
       let existing: Plugin | undefined;
       try {
-        existing = await findResourceBySlug(
-          store,
-          ctx.apiResourceKind,
-          PluginSchema,
-          plugin.metadata!.slug,
-          plugin.metadata!.org,
-        );
+        existing = await findResourceByName(store, ctx.apiResourceKind, PluginSchema, plugin.metadata!.org, plugin.metadata!.slug);
       } catch (error) {
         throw internalError(error, "failed to search for existing plugin");
       }
@@ -505,6 +501,29 @@ export function newArchiveCurrentPluginStep(
 export function pluginLiveTag(plugin: Plugin): string {
   const version = plugin.spec?.version ?? "";
   return VERSION_TAG_PATTERN.test(version) ? version : "";
+}
+
+/**
+ * ClaimName — a pushed plugin that is new claims its slug in the name
+ * table immediately before StorePlugin (pipeline/steps/names.ts), as a
+ * skill push does; a re-push keeps the name its plugin holds.
+ */
+export function newClaimPluginNameStep(store: Store): PipelineStep<PushDesc> {
+  return {
+    name: "ClaimName",
+    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
+      if (ctx.get(SHOULD_CREATE_PLUGIN_KEY) !== true) {
+        return;
+      }
+      await claimNameOf(
+        ctx,
+        store,
+        ApiResourceKind.plugin,
+        ctx.get(PLUGIN_KEY) as Plugin,
+        PluginSchema,
+      );
+    },
+  };
 }
 
 /** StorePlugin — persists the plugin, the install's one write. */

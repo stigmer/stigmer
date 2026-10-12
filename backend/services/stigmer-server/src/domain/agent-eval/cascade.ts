@@ -34,6 +34,7 @@ import { deletePluginEvalTries } from "../plugin-eval/tries.js";
 import type { TrySessionDeleter } from "../plugin-eval/tries.js";
 import { agentEvalActiveOnAgentDeleteMessage } from "./constants.js";
 import { listAgentEvals } from "./queries.js";
+import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
 export interface AgentEvalCascadeDeps {
   readonly store: Store;
@@ -78,6 +79,7 @@ export function newCascadeDeleteAgentEvalsStep<Desc extends DescMessage>(
         } catch (error) {
           throw internalError(error, `failed to cascade-delete agent eval ${evalId} of agent ${agentId}`);
         }
+        await releaseNamesOfDeleted(deps.store, deps.logger, ApiResourceKind.agent_eval, agentEval.metadata?.org ?? "", evalId);
         await cleanUpDeletedResource(deps.authorizationLifecycle, deps.logger, {
           kind: ApiResourceKind.agent_eval,
           resourceId: evalId,

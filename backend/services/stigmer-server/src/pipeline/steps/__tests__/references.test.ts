@@ -15,7 +15,7 @@
  * reads a reference's kind from its field, not from the message, and
  * reaches an agent's plugins, which the rule then judges like any other;
  * the step over a real store
- * loads each referenced kind once,
+ * reads each distinct target once by name and scans no kind,
  * records the targets it resolved (RESOLVED_REFERENCE_TARGETS_KEY) for
  * every reference, and under `judge: "introduced"` judges only the
  * references the stored row does not already carry, loading nothing when
@@ -76,6 +76,7 @@ import type {
   ReferenceTargets,
   SpecReference,
 } from "../references.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const V = ApiResourceVisibility;
 const K = ApiResourceKind;
@@ -486,7 +487,7 @@ describe("the step over a store", () => {
 
   beforeEach(() => {
     const temp = tempStore();
-    store = temp.store;
+    store = namingSaves(temp.store);
     cleanup = temp.cleanup;
   });
 
@@ -652,14 +653,18 @@ describe("the step over a store", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("loads each referenced kind once and admits an existing same-organization target", async () => {
+  it("reads each distinct referenced target once by name, scans no kind, and admits an existing same-organization target", async () => {
     await seedSkill("skl_1", "acme", "one", V.visibility_org);
     await seedSkill("skl_2", "acme", "two", V.visibility_org);
     let scans = 0;
+    let reads = 0;
     const counting: Store = new Proxy(store, {
       get(target, property, receiver) {
         if (property === "listResources") {
           scans += 1;
+        }
+        if (property === "getResource") {
+          reads += 1;
         }
         return Reflect.get(target, property, receiver) as unknown;
       },
@@ -667,11 +672,16 @@ describe("the step over a store", () => {
     const refusal = await checkReferences(
       counting,
       ACME_ORG,
-      [ref(K.skill, "acme", "one"), ref(K.skill, "acme", "two")],
+      [
+        ref(K.skill, "acme", "one"),
+        ref(K.skill, "acme", "two"),
+        ref(K.skill, "acme", "one"),
+      ],
       ANY_WRITER,
     );
     expect(refusal).toBeUndefined();
-    expect(scans).toBe(1);
+    expect(scans).toBe(0);
+    expect(reads).toBe(2);
   });
 
   it("the step refuses a missing target with the contract's code and copy, and passes when the row exists", async () => {
@@ -957,12 +967,23 @@ describe("the step over a store", () => {
     expect((error as ConnectError).rawMessage).toContain("failed to read the writing organization");
   });
 
-  it("the loaded targets are indexed by (org, slug): the same slug in another organization is another row", async () => {
+  it("a reference to a kind the rule table does not hold is INTERNAL: a contract the pin test has not admitted", async () => {
+    const error = await failureOf(async () => {
+      await loadReferenceTargets(store, [ref(K.run, "acme", "run-1")], "acme");
+    });
+    expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+
+  it("the loaded targets are keyed by (kind, org, slug): the same slug in another organization is another row", async () => {
     await seedSkill("skl_a", "acme", "shared-name", V.visibility_org);
     await seedSkill("skl_g", "globex", "shared-name", V.visibility_child_orgs);
     const targets = await loadReferenceTargets(
       store,
-      [ref(K.skill, "acme", "shared-name")],
+      [
+        ref(K.skill, "acme", "shared-name"),
+        ref(K.skill, "globex", "shared-name"),
+        ref(K.skill, "acme", "none"),
+      ],
       "acme",
     );
     expect(targets.visibilityOf(ref(K.skill, "acme", "shared-name"))).toBe(
@@ -982,7 +1003,7 @@ describe("GuardReferenceFloorOnEscalation", () => {
 
   beforeEach(() => {
     const temp = tempStore();
-    store = temp.store;
+    store = namingSaves(temp.store);
     cleanup = temp.cleanup;
   });
 
@@ -1113,7 +1134,7 @@ describe("the writer clause: a write may introduce only a vault its writer may u
 
   beforeEach(async () => {
     const temp = tempStore();
-    store = temp.store;
+    store = namingSaves(temp.store);
     cleanup = temp.cleanup;
     for (const [id, slug, visibility] of [
       ["vlt_ana_keys", "ana-keys", V.visibility_private],

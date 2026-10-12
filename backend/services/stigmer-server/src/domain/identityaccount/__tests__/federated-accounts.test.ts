@@ -49,6 +49,7 @@ beforeEach(() => {
   createAccount = newCreateAccountPath(
     {
       accounts,
+      store: temp.store,
       logger: silentLogger,
       authorizer: newPermissiveSingleTeamAuthorizer(),
       authorizationLifecycle: undefined,

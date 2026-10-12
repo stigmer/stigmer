@@ -28,7 +28,7 @@
  */
 import { randomBytes, timingSafeEqual } from "node:crypto";
 
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -59,6 +59,7 @@ import {
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { findResourceByName } from "../../pipeline/steps/names.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -310,35 +311,17 @@ export function generateShareLinkToken(): string {
   return randomBytes(SHARE_LINK_TOKEN_BYTES).toString("base64url");
 }
 
-/**
- * Scans agents for an org+slug match — Go findAgentByOrgAndSlug. Full-scan
- * lookup matches the store's local/OSS posture; malformed rows are
- * skipped, as Go does. Module-private: consumed by the defaults resolver
- * and the profile projection, both in this file.
- */
+/** The agent a slug names in the organization, through the name table (pipeline/steps/names.ts). */
 async function findAgentByOrgAndSlug(
   store: Store,
   org: string,
   slug: string,
 ): Promise<Agent | undefined> {
-  let rows: Uint8Array[];
   try {
-    rows = await store.listResources(ApiResourceKind.agent);
+    return await findResourceByName(store, ApiResourceKind.agent, AgentSchema, org, slug);
   } catch (error) {
-    throw internalError(error, "failed to list agent resources");
+    throw internalError(error, "failed to read the agent");
   }
-  for (const data of rows) {
-    let agent: Agent;
-    try {
-      agent = fromBinary(AgentSchema, data);
-    } catch {
-      continue;
-    }
-    if (agent.metadata?.slug === slug && agent.metadata.org === org) {
-      return agent;
-    }
-  }
-  return undefined;
 }
 
 /**

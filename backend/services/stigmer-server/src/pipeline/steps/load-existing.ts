@@ -22,7 +22,7 @@ import {
 } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
-import { findResourceBySlug } from "./helpers.js";
+import { findResourceByName, kindClaimsNames } from "./names.js";
 import { metadataOf } from "./shapes.js";
 
 /** Context key for the loaded resource (Go ExistingResourceKey). */
@@ -56,20 +56,20 @@ export function newLoadExistingStep<Desc extends DescMessage>(
           }
           throw error;
         }
-      } else if (metadata.slug !== "") {
-        const found = await findResourceBySlug(
-          store,
-          ctx.apiResourceKind,
-          ctx.schema,
-          metadata.slug,
-          metadata.org,
-        );
+      } else if (metadata.slug !== "" && kindClaimsNames(ctx.apiResourceKind)) {
+        const found = await findResourceByName(store, ctx.apiResourceKind, ctx.schema, metadata.org, metadata.slug);
         if (found === undefined) {
           throw notFoundError(getKindName(ctx.apiResourceKind), metadata.slug);
         }
         existing = found;
         // Populate the id so merge and persist have it.
         metadata.id = metadataOf(existing)?.id ?? "";
+      } else if (metadata.slug !== "") {
+        // A kind whose slugs are not names (pipeline/steps/names.ts
+        // NAMED_KINDS) is addressed by id alone.
+        throw invalidArgumentError(
+          `resource id is required to update a ${getKindName(ctx.apiResourceKind)}`,
+        );
       } else {
         throw invalidArgumentError(
           "resource id or slug is required for update",

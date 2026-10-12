@@ -4,7 +4,8 @@
 //
 // Drives AgentCommandController + AgentQueryController through the raw proto
 // stubs and asserts the contract: CRUD round-trips, apply create/update
-// branching, immutable identity fields, reference resolution, slug semantics,
+// branching, immutable identity fields, reference resolution, slug semantics
+// (a slug is one agent's in its organization, even when two creates race),
 // and spec-first negative paths. An agent is run directly: a conversation
 // names it by reference (the session suite), so creating one provisions
 // nothing beside it. The last block pins the one reference rule every spec
@@ -31,7 +32,7 @@
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -268,6 +269,30 @@ describe("Agent conformance — negative paths", () => {
       Code.AlreadyExists,
       "duplicate create",
     );
+  });
+
+  it("[rpc:AgentCommandController.create] of two creates of one slug racing in one Organization, exactly one lands and the other is refused AlreadyExists (stigmer#2153)", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("race");
+    const outcomes = await Promise.allSettled([
+      clients.agentCommand.create(makeAgent({ org, name })),
+      clients.agentCommand.create(makeAgent({ org, name })),
+    ]);
+    const landed: Agent[] = [];
+    const refused: ConnectError[] = [];
+    for (const outcome of outcomes) {
+      if (outcome.status === "fulfilled") {
+        landed.push(outcome.value);
+        fixtures.defer(() => clients.agentCommand.delete({ value: outcome.value.metadata!.id }));
+      } else {
+        refused.push(ConnectError.from(outcome.reason));
+      }
+    }
+
+    expect(landed, "exactly one create lands").toHaveLength(1);
+    expect(refused.map((error) => error.code)).toEqual([Code.AlreadyExists]);
+    const fetched = await clients.agentQuery.getByReference({ org, slug: landed[0]!.metadata!.slug });
+    expect(fetched.metadata?.id, "the slug names the agent that landed").toBe(landed[0]!.metadata?.id);
   });
 
   it("[rpc:AgentCommandController.create] rejects a create with no name (contract: InvalidArgument)", async () => {

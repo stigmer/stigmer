@@ -65,6 +65,7 @@ import { registerPlatformClientServices } from "../controller.js";
 import { hashClientSecret } from "../credentials.js";
 import { newResourcePlatformClientStore } from "../resource-store.js";
 import type { PlatformClientStore } from "../store.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 let cleanup: () => void;
 let store: Store;
@@ -75,8 +76,8 @@ let query: Client<typeof PlatformClientQueryController>;
 beforeEach(() => {
   const temp = tempStore();
   cleanup = () => temp.cleanup();
-  store = temp.store;
-  clients = newResourcePlatformClientStore(temp.store);
+  store = namingSaves(temp.store);
+  clients = newResourcePlatformClientStore(store);
   const transport = createRouterTransport(
     (router) =>
       registerPlatformClientServices(router, {
