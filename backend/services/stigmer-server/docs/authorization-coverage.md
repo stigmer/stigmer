@@ -2,6 +2,8 @@
 
 This document is the coverage inventory for the stigmer-server authorization surface. It classifies EVERY entry point the server exposes — every RPC method of every registered service, plus the non-RPC HTTP lanes — by its authorization posture: whether the shared `Authorize` pipeline step (`src/pipeline/steps/authorize.ts`) runs for it, what proto method annotation it carries, and what a direct handler does instead. It is a permanent acceptance artifact: an edition that composes its own Authorizer inherits this map instead of discovering gaps against its authorization model. It MUST be updated whenever a method is added or removed, a handler changes between pipeline and direct form, or a `(ai.stigmer.commons.rpc.config)` / `is_public` / `is_skip_authorization` annotation changes.
 
+Stigmer Enterprise's entry points (the IdentityProvider, Invitation and Team services its identity unit serves) are not in this document: they are inventoried in the Enterprise package, [`ee/server/docs/enterprise-authorization-coverage.md`](../../../../ee/server/docs/enterprise-authorization-coverage.md), which reads the same way and is held to that package's served methods by its own suite.
+
 How to read the tables:
 
 - **Annotation** is what the method's proto declares: a `config` summary (`permission` on `resource_kind`, the `field_path` or literal `resource_id` the target is resolved from, and whether `error_msg` is set), `is_public` (50057), `is_skip_authorization` (50058), or `none` (no option at all — the apply RPCs and the gRPC health service).

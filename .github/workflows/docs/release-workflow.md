@@ -9,6 +9,7 @@ Every product artifact is an npm package, published by `release.npm-libs.yaml` o
 - `@stigmer/cli` — the `stigmer` command itself.
 - `@stigmer/server-slim` (+ its per-platform native packages) — the server the CLI acquires into `~/.stigmer/runtimes/<version>/` on first `stigmer up`.
 - `@stigmer/server` — the same server as a composable library (`composeServer`, the extension registry, the driver seams), pinned by exact version by compositions such as the Stigmer Cloud control plane. Published by `publish-server` through `scripts/publish-standalone.mjs`, the sequence `@stigmer/runner` uses: stamp, pin the workspace-lib `file:` links to the release version, consumer-install smoke, publish.
+- `@stigmer/enterprise` — Stigmer Enterprise (`ee/server`, under the Stigmer Enterprise License in `ee/LICENSE`, which its tarball carries), in lockstep with `@stigmer/server`: the same version on the same train. Published by `publish-enterprise`, which needs `publish-server` so Enterprise never ships at a version whose server failed to, through the same `scripts/publish-standalone.mjs` sequence; its `file:` links pin to that release's `@stigmer/server`, `@stigmer/protos` and `@stigmer/outbound`.
 - The runner and library packages.
 
 `release.cli.yaml` no longer builds or attaches any binaries: the Go `stigmer-server` tarballs it used to cross-compile for three platforms retired with the Go server. What remains is the GitHub Release itself.

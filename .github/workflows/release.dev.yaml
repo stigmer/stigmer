@@ -387,6 +387,60 @@ jobs:
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" \
             --tag dev
 
+  # @stigmer/enterprise (ee/server) — the dev twin of release.npm-libs.yaml's
+  # publish-enterprise, at the same version as the server it links, so a
+  # composition pins every @stigmer/* package at the one build this run
+  # prints. Needs `publish-npm-server`: its tarball pins that server version.
+  publish-npm-enterprise:
+    needs: [determine-version, publish-npm-server]
+    if: contains(needs.determine-version.outputs.targets, 'npm')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          # No restored npm cache in a release (v5+ caches by default).
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build the Enterprise package
+        run: make build-ee
+
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
+
+      - name: Publish Enterprise to npm (dev tag)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/publish-standalone.mjs \
+            --package ee/server \
+            --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" \
+            --tag dev
+
   # ---------------------------------------------------------------------------
   # Python: publish dev releases to TestPyPI (keeps prod PyPI clean).
   # Auth is OIDC trusted publishing, matching release.python-sdk; a Trusted
@@ -589,7 +643,7 @@ jobs:
   # copy-paste block the other developer uses to upgrade their references.
   # ---------------------------------------------------------------------------
   summary:
-    needs: [determine-version, publish-maven, publish-npm, publish-npm-runner, publish-npm-server, publish-python-protos, publish-python-sdk, publish-mcp]
+    needs: [determine-version, publish-maven, publish-npm, publish-npm-runner, publish-npm-server, publish-npm-enterprise, publish-python-protos, publish-python-sdk, publish-mcp]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -634,7 +688,7 @@ jobs:
               echo ""
               echo "## npm (@stigmer/server library — a composition's pin)"
               echo '```json'
-              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\""
+              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
               echo '```'
               echo "Exact versions, all equal. Built from \`main\`, this is a build a composition may merge on; built from a branch, its commit is not on \`main\`, so it is for trying, not for merging."
               echo ""

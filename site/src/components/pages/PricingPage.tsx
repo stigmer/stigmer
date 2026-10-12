@@ -86,7 +86,7 @@ const FAQ_ITEMS: readonly FaqItem[] = [
   },
   {
     q: "Can I self-host for free?",
-    a: "Yes. Stigmer is fully open source under Apache 2.0. Self-host it anywhere — there is no vendor lock-in. Cloud billing only applies when you use Stigmer Cloud (app.stigmer.ai).",
+    a: "Yes. Stigmer's core is open source under Apache 2.0; Stigmer Enterprise, in the repository's ee/ directory, is public under the Stigmer Enterprise License and needs a license key in production. Self-host it anywhere — there is no vendor lock-in. Cloud billing only applies when you use Stigmer Cloud (app.stigmer.ai).",
     link: {
       href: "/docs/guides/self-hosting/cloud-vs-self-hosted",
       label: "Compare cloud and self-hosted",

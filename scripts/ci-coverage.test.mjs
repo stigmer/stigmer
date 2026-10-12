@@ -71,6 +71,10 @@ const SUBJECTS = {
 /** Packages that run vitest and are not coverage subjects, each with the reason. */
 const NOT_SUBJECTS = new Map([
   [
+    "ee/server",
+    "measured from the change after the one that adds it: in that change every line is new, and the changed-lines rule would judge the whole package as untested additions",
+  ],
+  [
     "test/support",
     "the suites' shared machinery, not a product package: its layout rule (test-integrity.mjs `layout-support-import`) lets it import only `node:*` and its own files, so it cannot carry a vitest config and its coverage block",
   ],

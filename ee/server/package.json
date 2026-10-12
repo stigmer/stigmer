@@ -1,0 +1,69 @@
+{
+  "name": "@stigmer/enterprise",
+  "version": "0.0.0-dev",
+  "description": "Stigmer Enterprise: single sign-on through an organization's own identity provider, many organizations, teams and invitations, on the open-source Stigmer server, turned on by a license key.",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "docs"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "stigmerPublish": {
+    "consumerCheck": {
+      "singleCopy": [
+        "@temporalio/proto",
+        "@bufbuild/protobuf",
+        "@opentelemetry/api"
+      ],
+      "boot": [
+        "../../backend/services/stigmer-server/scripts/verify-boot.mjs",
+        "--require-workers"
+      ],
+      "typecheckConsumer": "ee/server/test/consumer"
+    }
+  },
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "verify:dist": "node ../../backend/services/stigmer-server/scripts/verify-boot.mjs \"$PWD/dist/main.js\"",
+    "verify:consumer": "node ../../scripts/verify-consumer-install.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "ee/server"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.12.0",
+    "@bufbuild/protovalidate": "^1.1.1",
+    "@connectrpc/connect": "^2.0.0",
+    "@stigmer/outbound": "file:../../backend/libs/ts/outbound",
+    "@stigmer/protos": "file:../../apis/stubs/ts",
+    "@stigmer/server": "file:../../backend/services/stigmer-server",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@connectrpc/connect-node": "^2.0.0",
+    "@types/node": "22.20.1",
+    "@types/pg": "8.23.1",
+    "@vitest/coverage-v8": "3.2.7",
+    "typescript": "^5.7.0",
+    "ulidx": "2.4.1",
+    "vitest": "3.2.7"
+  }
+}

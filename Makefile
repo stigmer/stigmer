@@ -15,6 +15,7 @@ GO_MODULES = $(or $(patsubst $(CURDIR)/%,%,$(shell go list -m -f '{{.Dir}}' 2>/d
 
 RUNNER_DIR := backend/services/runner
 SERVER_DIR := backend/services/stigmer-server
+EE_DIR := ee/server
 
 # Prettier renders formatting VERDICTS (format-docs-check, the gen-*-docs-check
 # freshness gates), so it must always run at the version package-lock.json pins.
@@ -151,6 +152,19 @@ site-deps:
 build-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Compile the TypeScript server
 	@echo "build    $(SERVER_DIR)"
 	@cd $(SERVER_DIR) && npm run build
+
+# Stigmer Enterprise (ee/, under its own license) is a standalone package in
+# the server's model: own lockfile, the server and its libraries linked with
+# file:. It compiles against the server's dist, so the server builds first.
+$(EE_DIR)/node_modules: $(EE_DIR)/package.json
+	@echo "npm install  $(EE_DIR)"
+	@cd $(EE_DIR) && npm install
+	@touch $(EE_DIR)/node_modules
+
+.PHONY: build-ee
+build-ee: build-server $(EE_DIR)/node_modules ## Compile Stigmer Enterprise (ee/server) against the built server
+	@echo "build    $(EE_DIR)"
+	@cd $(EE_DIR) && npm run build
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -382,6 +396,13 @@ test-live: $(RUNNER_DIR)/node_modules ## Run the runner's live suites against re
 test-server: build-ts-stubs $(SERVER_DIR)/node_modules ## Run the TypeScript server vitest suite
 	@echo "testing  $(SERVER_DIR)"
 	@cd $(SERVER_DIR) && npm test
+
+# TEST_DATABASE_URL set to a Postgres URL runs the Postgres suites; without
+# it they skip, except under STIGMER_TEST_GATE=1, where they fail.
+.PHONY: test-ee
+test-ee: build-server $(EE_DIR)/node_modules ## Run Stigmer Enterprise's vitest suite (ee/server)
+	@echo "testing  $(EE_DIR)"
+	@cd $(EE_DIR) && npm test
 
 # The model author's one command: regenerate the JSON so a .fga edit is
 # never tested against stale bytes, run every suite on the OpenFGA engine
