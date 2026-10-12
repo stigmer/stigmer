@@ -1,0 +1,91 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Appending the review line."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-edit-0001",
+      "input": {
+        "path": "notes.md",
+        "content": "# Notes\n\nA fixture file.\n\nReviewed by the hermetic run.\n"
+      },
+      "name": "edit"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-edit-0001.r",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-edit-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "ok"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Done — notes.md now records the review."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_file_review_changes": {
+      "id": "aex_hermetic_0001.fr0",
+      "change_set_id": "aex_hermetic_0001:0",
+      "files": [
+        {
+          "file_change_id": "aex_hermetic_0001:0:notes.md",
+          "path": "notes.md",
+          "change": "modified",
+          "digest": "10056ad414223572125b6f8a148e79dbed10b58e18957d213992e79f475bedef",
+          "lines_added": 2,
+          "reviewable": "complete"
+        }
+      ],
+      "aggregate_digest": "0a2af1c9c6e6f36e81beb770fdeea30860686096a409eb6df47d34d8e46737b9"
+    }
+  },
+  {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "stigmer_file_review_decided": {
+      "id": "sevt_fd_5",
+      "change_set_id": "aex_hermetic_0001:0",
+      "scope": "file",
+      "file_change_id": "aex_hermetic_0001:0:notes.md",
+      "action": "undo",
+      "expected_digest": "10056ad414223572125b6f8a148e79dbed10b58e18957d213992e79f475bedef",
+      "origin": "person"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001-reconcile",
+    "stigmer_file_review_reconciled": {
+      "id": "aex_hermetic_0001.fr0.r",
+      "change_set_id": "aex_hermetic_0001:0",
+      "undone_paths": [
+        "notes.md"
+      ]
+    }
+  }
+]

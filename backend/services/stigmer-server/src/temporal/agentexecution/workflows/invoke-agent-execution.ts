@@ -105,6 +105,7 @@ import {
 } from "../../runner-failure.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
+  CLOSE_FILE_REVIEW_PATCH_ID,
   DEFAULT_ACTIVITY_TASK_QUEUE,
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
@@ -637,12 +638,13 @@ function fireGenerateSessionSubject(
  * this message is the newest) and the close only records it. A
  * cancellation propagates, so the cancellation path runs as for any
  * other step. A reconcile turn closes nothing: it sends no message, so no
- * window moved.
+ * window moved. Behind CLOSE_FILE_REVIEW_PATCH_ID, so a run whose history
+ * predates the step replays without it.
  */
 async function closePreviousFileReview(
   input: InvokeAgentExecutionWorkflowInput,
 ): Promise<void> {
-  if (input.reconcile_file_review === true) {
+  if (input.reconcile_file_review === true || !patched(CLOSE_FILE_REVIEW_PATCH_ID)) {
     return;
   }
   try {

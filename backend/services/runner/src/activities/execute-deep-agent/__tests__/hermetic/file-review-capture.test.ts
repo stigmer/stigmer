@@ -38,11 +38,14 @@
  * pin; the turn boundary's candidate capture and row stamping; the completion
  * with the edit applied.
  *
- * Three more arms, each with goldens of its own: an Undo after the turn is
+ * Two more arms, each with goldens of its own: an Undo after the turn is
  * put back by a reconcile turn that never asks the model (the script holds
- * no turn for it, so a model call would fail the run); with review off (the
- * default) the same edit flows uncaptured and the turn completes; and a
- * secret-like write to a gitignored path is refused whatever review says.
+ * no turn for it, so a model call would fail the run); and with review off
+ * (the default) the same edit flows uncaptured and the turn completes. The
+ * secret-like write refusal, which holds whatever review says, is pinned by
+ * the gate's unit tests (`middleware/__tests__/approval-gate.test.ts`): on
+ * this harness a refused write leaves no transcript row for a golden to
+ * show (stigmer/stigmer#2169).
  *
  * Determinism: the fixture repo's commit and tree ids are byte-stable because
  * `initGitWorkspace` pins author, committer and both dates; the script's path
@@ -70,7 +73,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
@@ -256,11 +259,11 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-reconcile.events.json");
   });
 
-  it("with review off (the default) the same edit flows uncaptured, and a secret-like gitignored write is refused", async () => {
+  it("with review off (the default) the same edit flows uncaptured", async () => {
     const repo = join(env.workspaceRootDir, "repos", "notes-review-off");
-    initGitWorkspace(repo, { [FILE]: BEFORE, ".gitignore": ".env\n" });
+    initGitWorkspace(repo, { [FILE]: BEFORE });
     const record = deepAgentExecutionRecord({
-      message: "Append a second line to notes.md and store the key in .env.",
+      message: "Append a second line to notes.md.",
       workspaceEntries: [localPathEntry("notes", repo)],
     });
     const scenario = beginDeepAgentScenario({
@@ -270,14 +273,13 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
       script: () => ({
         turns: [
           {
-            text: "Appending the line and storing the key.",
+            text: "Appending the line.",
             toolCalls: [
               { id: CALL_ID, name: "edit_file", args: { file_path: `/${FILE}`, old_string: "first\n", new_string: "first\nsecond\n" } },
-              { id: "call-hermetic-secret-0001", name: "write_file", args: { file_path: "/.env", content: "API_KEY=abc\n" } },
             ],
             usage: { inputTokens: 1_300, outputTokens: 60 },
           },
-          { text: "Appended; the key was refused.", usage: { inputTokens: 1_500, outputTokens: 10 } },
+          { text: "Appended.", usage: { inputTokens: 1_500, outputTokens: 10 } },
         ],
       }),
     });
@@ -286,7 +288,6 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
 
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(readFileSync(join(repo, FILE), "utf-8"), "the edit is applied").toBe(AFTER);
-    expect(existsSync(join(repo, ".env")), "the secret-like write never lands").toBe(false);
     expect(record.waitingToolCalls(), "nothing asked").toHaveLength(0);
     const final = record.lastFullStatus!;
     expect(final.fileReviewEventStream?.events ?? [], "nothing is captured with review off").toHaveLength(0);

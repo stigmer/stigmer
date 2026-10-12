@@ -95,3 +95,10 @@ export const RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME = "DeleteExecutionCo
 
 /** The workflow patch that stops new runs calling the retired delete above. Byte-pinned. */
 export const VALUES_FETCHED_PATCH_ID = "values-fetched-from-vaults";
+
+/**
+ * The workflow patch behind which a message turn calls CloseFileReview
+ * first: a run started before the step has no such call in its history,
+ * so a replay of it makes none. Byte-pinned.
+ */
+export const CLOSE_FILE_REVIEW_PATCH_ID = "close-file-review";

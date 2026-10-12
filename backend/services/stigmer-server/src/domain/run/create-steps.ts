@@ -427,7 +427,7 @@ export const RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE =
 export function newGuardReconcileFileReviewStep(): PipelineStep<CreateDesc> {
   return {
     name: "GuardReconcileFileReview",
-    execute(ctx) {
+    async execute(ctx) {
       if (ctx.newState.spec?.reconcileFileReview !== true) {
         return;
       }
