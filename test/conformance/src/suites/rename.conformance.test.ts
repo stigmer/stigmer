@@ -124,8 +124,10 @@ const KINDS: readonly RenamableKind[] = [
     },
     rename: async (id, slug) => namedOf(await clients.scheduleCommand.rename({ resourceId: id, slug })),
     readByReference: async (org, slug) => namedOf(await clients.scheduleQuery.getByReference({ org, slug })),
-    writeBySlug: (org, slug) =>
-      clients.scheduleCommand.apply({ ...makeSchedule(org, slug, "any-agent", { enabled: false }), metadata: { name: slug, org, slug } }),
+    writeBySlug: async (org, slug) => {
+      const agent = await agentInOrg(org, uniqueName("sched-agent"));
+      return clients.scheduleCommand.apply({ ...makeSchedule(org, slug, agent.slug, { enabled: false }), metadata: { name: slug, org, slug } });
+    },
   },
   {
     title: "[rpc:ChannelAppCommandController.rename] a channel app",
@@ -152,7 +154,7 @@ const KINDS: readonly RenamableKind[] = [
     rename: async (id, slug) => namedOf(await clients.oauthAppCommand.rename({ resourceId: id, slug })),
     readByReference: async (org, slug) => namedOf(await clients.oauthAppQuery.getByReference({ org, slug })),
     writeBySlug: (org, slug) =>
-      clients.oauthAppCommand.apply({ ...makeOAuthApp(org, slug, { addresses: [] }), metadata: { name: slug, org, slug } }),
+      clients.oauthAppCommand.apply({ ...makeOAuthApp(org, slug), metadata: { name: slug, org, slug } }),
   },
   {
     title: "[rpc:PlatformClientCommandController.rename] a platform client",

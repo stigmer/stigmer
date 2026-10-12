@@ -14,6 +14,10 @@
 // An organization's policies follow the visibility precedent: update and
 // apply keep the stored policies, so a manifest that declares different ones
 // lands them through updatePolicies, and a refusal says the spec landed.
+// A write the server refuses for naming a renamed-away slug (SLUG_RENAMED)
+// is answered with the slug the resource has now, read as the caller by the
+// old one; a caller who may not read it gets the server's words. Every
+// manifest kind with a rename binds it, beside its read by reference.
 
 import { create, type Message } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -21,6 +25,8 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import type { RenameInput, UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -269,6 +275,105 @@ describe("applyMessage declared-slug follow-up", () => {
     await expect(applyMessage(controller, handler, manifest, "", false)).rejects.toThrow(
       /Organization spec applied \(Organization visibility cannot be changed declaratively.*\), but the manifest's slug change was rejected/,
     );
+  });
+});
+
+describe("applyMessage on a write naming a renamed-away slug", () => {
+  const SERVER_WORDS =
+    "Agent 'reviewer' was renamed; it still leads to the same agent for reading. Write to it by its current slug or its id";
+
+  function slugRenamed(): ConnectError {
+    return new ConnectError(SERVER_WORDS, Code.FailedPrecondition, undefined, [
+      { desc: ErrorInfoSchema, value: create(ErrorInfoSchema, { reason: "SLUG_RENAMED", domain: "stigmer.ai", metadata: { slug: "reviewer" } }) },
+    ]);
+  }
+
+  function renamedAgentHandler(read: (ref: ApiResourceReference) => Promise<Message>) {
+    const asked: ApiResourceReference[] = [];
+    const handler: ApplyHandler = {
+      kind: ApiResourceKind.agent,
+      displayName: "Agent",
+      schema: AgentSchema,
+      applyOrder: 3,
+      apply: () => Promise.reject(slugRenamed()),
+      getByReference: (_c, ref) => {
+        asked.push(ref);
+        return read(ref);
+      },
+    };
+    return { handler, asked };
+  }
+
+  const manifest = () => create(AgentSchema, { metadata: { name: "a", slug: "reviewer", org: "acme" }, spec: { instructions: "i" } });
+
+  it("names the slug the resource has now, read as the caller by the old slug", async () => {
+    const { handler, asked } = renamedAgentHandler(() =>
+      Promise.resolve(create(AgentSchema, { metadata: { id: "agent-1", slug: "code-reviewer", org: "acme" } })),
+    );
+
+    const err = await applyMessage(controller, handler, manifest(), "acme", false).catch((e: unknown) => e);
+
+    expect((err as Error).message).toBe(
+      "Agent 'reviewer' was renamed to 'code-reviewer'; update the file's metadata.slug to 'code-reviewer' and apply again",
+    );
+    expect(asked).toHaveLength(1);
+    expect(asked[0]).toMatchObject({ kind: ApiResourceKind.agent, org: "acme", slug: "reviewer" });
+  });
+
+  it("gives the server's words to a caller who may not read the resource", async () => {
+    const { handler } = renamedAgentHandler(() => Promise.reject(new ConnectError("unauthorized to view agent", Code.PermissionDenied)));
+
+    const err = await applyMessage(controller, handler, manifest(), "acme", false).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ConnectError);
+    expect((err as ConnectError).rawMessage).toBe(SERVER_WORDS);
+  });
+
+  it("leaves every other refusal as it is, reading nothing", async () => {
+    const { handler, asked } = renamedAgentHandler(() => Promise.reject(new Error("must not be called")));
+    const refusing: ApplyHandler = { ...handler, apply: () => Promise.reject(new ConnectError("the slug is taken", Code.AlreadyExists)) };
+
+    const err = await applyMessage(controller, refusing, manifest(), "acme", false).catch((e: unknown) => e);
+
+    expect((err as ConnectError).code).toBe(Code.AlreadyExists);
+    expect(asked).toHaveLength(0);
+  });
+
+  it("tells a caller who may not rename an agent that renaming needs what deleting it needs", async () => {
+    const stored = create(AgentSchema, { metadata: { id: "agent-1", slug: "reviewer", org: "acme" } });
+    const handler: ApplyHandler = {
+      kind: ApiResourceKind.agent,
+      displayName: "Agent",
+      schema: AgentSchema,
+      applyOrder: 3,
+      apply: () => Promise.resolve(stored),
+      rename: () => Promise.reject(new ConnectError("unauthorized to rename agent", Code.PermissionDenied)),
+    };
+    const renaming = create(AgentSchema, { metadata: { id: "agent-1", slug: "code-reviewer", org: "acme" } });
+
+    const err = await applyMessage(controller, handler, renaming, "acme", false).catch((e: unknown) => e);
+
+    expect((err as Error).message).toMatch(/The slug stays 'reviewer'; renaming needs the permission to delete the agent\.$/);
+  });
+});
+
+describe("the renamable manifest kinds' handlers", () => {
+  it("bind rename and a read by reference on every kind whose service has a rename", () => {
+    for (const kind of [
+      ApiResourceKind.organization,
+      ApiResourceKind.agent,
+      ApiResourceKind.schedule,
+      ApiResourceKind.channel_app,
+      ApiResourceKind.oauth_app,
+      ApiResourceKind.identity_provider,
+    ]) {
+      const handler = APPLY_HANDLERS.get(kind);
+      expect(handler?.rename, ApiResourceKind[kind]).toBeDefined();
+      expect(handler?.getByReference, ApiResourceKind[kind]).toBeDefined();
+    }
+    for (const kind of [ApiResourceKind.agent_share, ApiResourceKind.agent_channel, ApiResourceKind.session]) {
+      expect(APPLY_HANDLERS.get(kind)?.rename, ApiResourceKind[kind]).toBeUndefined();
+    }
   });
 });
 

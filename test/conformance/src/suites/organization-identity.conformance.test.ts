@@ -174,6 +174,30 @@ describe("Organization identity conformance", () => {
     expect(back.metadata?.slug, "an organization takes back its own old slug").toBe(before);
   });
 
+  it("[rpc:OrganizationCommandController.apply] [rpc:OrganizationCommandController.update] a write naming a renamed organization's old slug without its id is refused with SLUG_RENAMED, while a read still follows it", async () => {
+    const before = uniqueName("ident");
+    const after = uniqueName("ident");
+    const created = await createOrg(before);
+    const id = created.metadata!.id;
+    await clients.organizationCommand.rename({ resourceId: id, slug: after });
+
+    for (const [verb, write] of [
+      ["apply", () => clients.organizationCommand.apply({ apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } })],
+      ["update", () => clients.organizationCommand.update({ apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } })],
+    ] as const) {
+      const refused = await expectGrpcCode(write, Code.FailedPrecondition, `an ${verb} by the old slug`);
+      const [reason] = refused.findDetails(ErrorInfoSchema);
+      expect(reason?.reason, verb).toBe("SLUG_RENAMED");
+      expect(reason?.metadata, verb).toEqual({ slug: before });
+      expect(refused.rawMessage, `${verb}: the refusal never names the new slug`).not.toContain(after);
+    }
+    expect((await clients.organizationQuery.get({ value: before })).metadata?.slug).toBe(after);
+
+    const byId = await clients.organizationCommand.apply({ apiVersion: API_VERSION, kind: KIND, metadata: { id, name: before, slug: before } });
+    expect(byId.metadata?.id, "an apply carrying the id finds it").toBe(id);
+    expect(byId.metadata?.slug).toBe(after);
+  });
+
   it("[rpc:OrganizationCommandController.delete] [rpc:OrganizationCommandController.create] a deleted organization's slug is free once its purge finishes, and the next organization of it reaches nothing the deleted one owned", async () => {
     const slug = uniqueName("ident");
     const first = await clients.organizationCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { name: slug, slug } });
