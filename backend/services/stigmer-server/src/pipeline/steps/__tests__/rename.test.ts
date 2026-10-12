@@ -19,7 +19,11 @@
  *   - an archived version read back names its resource by its current slug;
  *   - every other writer of a renamable kind keeps a rename that lands
  *     between its load and its write: the row and the table agree on the
- *     new slug, and the writer's own change lands too.
+ *     new slug, and the writer's own change lands too;
+ *   - a writer whose row is deleted between its load and its write answers
+ *     NotFound rather than writing it back (the agent's visibility, the
+ *     platform client's update and rotation, an organization's rename);
+ *   - a platform client's create of a renamed-away slug is SLUG_RESERVED.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -47,6 +51,7 @@ import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_p
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 import { loadConfig } from "../../../boot/config.js";
@@ -906,5 +911,129 @@ describe("renames, through a composed server", () => {
         "edited mid-rename",
       );
     });
+  });
+
+  describe("a row deleted between a writer's load and its write", () => {
+    /** Deletes the row when a write of it first reaches the store, after the writer's chain loaded it. */
+    async function deleteMidWrite<T>(
+      kind: ApiResourceKind,
+      id: string,
+      write: () => Promise<T>,
+    ): Promise<ConnectError> {
+      const store = server.store;
+      const updateResource = store.updateResource.bind(store);
+      let armed = true;
+      const spy = vi.spyOn(store, "updateResource").mockImplementation((async <
+        Desc extends DescMessage,
+      >(
+        writtenKind: ApiResourceKind,
+        writtenId: string,
+        schema: Desc,
+        modify: (msg: MessageShape<Desc>) => void,
+      ) => {
+        if (armed && writtenKind === kind && writtenId === id) {
+          armed = false;
+          await store.deleteResource(kind, id);
+        }
+        return updateResource(writtenKind, writtenId, schema, modify);
+      }) as typeof store.updateResource);
+      try {
+        return await grpcError(write);
+      } finally {
+        spy.mockRestore();
+      }
+    }
+
+    it("an agent's visibility change answers NotFound", async () => {
+      const created = await agents().create(
+        agentInput(ORG, "vanish-visibility"),
+      );
+      const id = created.metadata!.id;
+      const missing = await deleteMidWrite(ApiResourceKind.agent, id, () =>
+        agents().updateVisibility({
+          resourceId: id,
+          visibility: ApiResourceVisibility.visibility_org,
+        }),
+      );
+      expect(missing.code).toBe(Code.NotFound);
+      expect(missing.rawMessage).toBe(`agent not found: ${id}`);
+    });
+
+    it("a platform client's update and rotation answer NotFound", async () => {
+      const writes: ReadonlyArray<
+        readonly [string, (id: string) => Promise<unknown>]
+      > = [
+        [
+          "vanishing-update",
+          (id) =>
+            platformClients().update({
+              apiVersion: IAM,
+              kind: "PlatformClient",
+              metadata: { id, name: "gone", org: ORG },
+              spec: {},
+            }),
+        ],
+        [
+          "vanishing-rotate",
+          (id) => platformClients().rotateSecret({ value: id }),
+        ],
+      ];
+      for (const [name, write] of writes) {
+        const created = await platformClients().create({
+          apiVersion: IAM,
+          kind: "PlatformClient",
+          metadata: { name, org: ORG },
+          spec: {},
+        });
+        const id = created.platformClient!.metadata!.id;
+        const missing = await deleteMidWrite(
+          ApiResourceKind.platform_client,
+          id,
+          () => write(id),
+        );
+        expect(missing.code).toBe(Code.NotFound);
+        expect(missing.rawMessage).toBe(`PlatformClient not found: ${id}`);
+      }
+    });
+
+    it("an organization's rename answers NotFound and leaves the old slug its own", async () => {
+      const organizations = createClient(OrganizationCommandController, wire);
+      const created = await organizations.create({
+        apiVersion: "tenancy.stigmer.ai/v1",
+        kind: "Organization",
+        metadata: { name: "vanishing-org", slug: "vanishing-org" },
+      });
+      const id = created.metadata!.id;
+      const missing = await deleteMidWrite(
+        ApiResourceKind.organization,
+        id,
+        () => organizations.rename({ resourceId: id, slug: "vanished-org" }),
+      );
+      expect(missing.code).toBe(Code.NotFound);
+      expect(missing.rawMessage).toBe(`Organization not found: ${id}`);
+    });
+  });
+
+  it("a platform client's create of a renamed-away slug is refused with SLUG_RESERVED", async () => {
+    const created = await platformClients().create({
+      apiVersion: IAM,
+      kind: "PlatformClient",
+      metadata: { name: "held-client", org: ORG },
+      spec: {},
+    });
+    await platformClients().rename({
+      resourceId: created.platformClient!.metadata!.id,
+      slug: "held-client-renamed",
+    });
+    const reserved = await grpcError(() =>
+      platformClients().create({
+        apiVersion: IAM,
+        kind: "PlatformClient",
+        metadata: { name: "held-client", org: ORG },
+        spec: {},
+      }),
+    );
+    expect(reserved.code).toBe(Code.AlreadyExists);
+    expect(reasonOf(reserved)?.reason).toBe(SLUG_RESERVED);
   });
 });
