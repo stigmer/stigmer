@@ -9,7 +9,7 @@
  *     window's first UTC day: another organization's, another agent's, an
  *     eval try's and an older score are not counted;
  *   - a read longer than one batch follows the index's cursor without
- *     losing or repeating a row (2,050 scores, batches of 2,000);
+ *     losing or repeating a row (one batch and 50 more);
  *   - the flagged list pages the same rows, failed grades only, and asks
  *     the session scope about each page's sessions.
  */
@@ -46,6 +46,7 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import {
   FLAGGED_SCORES_KEY,
+  QUALITY_REPORT_BATCH,
   QUALITY_REPORT_KEY,
   newListFlaggedScoresStep,
   newTallyAgentQualityStep,
@@ -234,18 +235,19 @@ describe.each(fixtures)("an agent's quality on $name", (fixture) => {
       const opened = await fixture.open();
       try {
         const { store } = opened;
-        // Seeded in parallel batches: one row at a time takes most of a
-        // minute on a loaded Postgres.
-        for (let i = 0; i < 2_050; i += 50) {
+        const SEEDED = QUALITY_REPORT_BATCH + 50;
+        // Seeded in parallel batches: one row at a time takes minutes on a
+        // loaded Postgres.
+        for (let i = 0; i < SEEDED; i += 50) {
           await Promise.all(
-            Array.from({ length: Math.min(50, 2_050 - i) }, () =>
+            Array.from({ length: Math.min(50, SEEDED - i) }, () =>
               seedScore(store, {}),
             ),
           );
         }
         const report = await reportOf(store, 1);
-        expect(report.total?.runs).toBe(2_050);
-        expect(report.total?.metrics[0]?.passed).toBe(2_050);
+        expect(report.total?.runs).toBe(SEEDED);
+        expect(report.total?.metrics[0]?.passed).toBe(SEEDED);
       } finally {
         await opened.close();
       }

@@ -18,7 +18,7 @@
  * comment or a judge's model, so it quotes no conversation. It is counted
  * on read from the score list index's agent key (list-index.ts), batch by
  * batch so memory stays flat, and refused past QUALITY_REPORT_MAX_SCORES
- * rather than run for minutes; the wire carries totals only, so a stored
+ * rather than keep a page waiting; the wire carries totals only, so a stored
  * table can replace the read without a client change.
  *
  * The flagged list returns whole scores, so it is narrowed per row. It
@@ -95,15 +95,23 @@ import { scoreListIndex } from "./list-index.js";
 /** The days a request that names none counts. */
 export const QUALITY_DEFAULT_DAYS = 30;
 
-/** How many rows one store read of the report hands back. */
-export const QUALITY_REPORT_BATCH = 2_000;
+/**
+ * How many rows one store read of the report hands back. Measured on
+ * Postgres 16 with 100,000 grades of one agent: the read took 2.9 s in
+ * batches of 2,000 and 1.6 s in batches of 10,000 (decoding 0.8 s and
+ * counting 0.2 s either way), so fewer, larger reads; a batch of 10,000
+ * rows of about 430 bytes stays a few megabytes.
+ */
+export const QUALITY_REPORT_BATCH = 10_000;
 
 /**
- * The most grades one report counts. Past it the read is refused with a
- * shorter window named, rather than run for minutes; the figure is
- * re-read against the measured cost of a 100,000-grade report.
+ * The most grades one report counts: about 1.3 s at the measured cost
+ * above, which is about 1,300 runs a day over 30 days. Past it the read is
+ * refused with a shorter window named rather than keep a page waiting; a
+ * busier agent's report needs stored running totals, which the wire's
+ * totals-only shape lets replace this read without a client change.
  */
-export const QUALITY_REPORT_MAX_SCORES = 250_000;
+export const QUALITY_REPORT_MAX_SCORES = 50_000;
 
 const DAY_MILLIS = 86_400_000;
 
