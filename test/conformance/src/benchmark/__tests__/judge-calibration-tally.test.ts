@@ -79,6 +79,17 @@ describe("tallyCalibration", () => {
     ]);
   });
 
+  it("leaves an example no try reached out of the counts, and says how many grades a whole run makes", () => {
+    const { calibration } = tallyCalibration(EXAMPLES, ["task", "claims"], [attempt("two", "passed", "passed")], { ...META, tries: 1 });
+    expect(calibration.expectedGrades).toBe(2);
+    expect(calibration.rubrics[0]).toEqual({
+      name: "task",
+      failsCaught: { n: 0, of: 0 },
+      passesKept: { n: 1, of: 1 },
+      notApplicableMatched: { n: 0, of: 0 },
+    });
+  });
+
   it("refuses a try for an example the set does not hold, and an example with no verdict for a rubric", () => {
     expect(() => tallyCalibration(EXAMPLES, ["task"], [attempt("three", "passed", "passed")], META)).toThrow(/three/);
     expect(() => tallyCalibration(EXAMPLES, ["tone"], [attempt("one", "passed", "passed")], META)).toThrow(/tone/);
