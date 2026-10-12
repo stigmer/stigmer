@@ -17,7 +17,7 @@
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
-import { GraphInterrupt } from "@langchain/langgraph";
+import { Command, GraphInterrupt } from "@langchain/langgraph";
 import { SpanKind, SpanStatusCode, context, propagation, trace } from "@opentelemetry/api";
 import { InMemorySpanExporter, SimpleSpanProcessor, type ReadableSpan } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
@@ -274,6 +274,15 @@ describe("OtelSpansMiddleware", () => {
       const on = spanNamed("execute_tool echo");
       expect(on.status.message, "with content on, the text the saved conversation also shows").toBe(refusal);
       expect(on.events.map((event) => event.name)).toEqual(["exception"]);
+    });
+
+    it("reads a Command's carried tool message as the result, as the task tool answers", async () => {
+      contentOn();
+      const mw = createOtelSpansMiddleware();
+      await mw.wrapToolCall!(makeToolRequest("task", { description: "d", prompt: "p" }), async () =>
+        new Command({ update: { messages: [new ToolMessage({ content: "the sub-agent's answer", tool_call_id: "tc_1" })] } }),
+      );
+      expect(spanNamed("execute_tool task").attributes["gen_ai.tool.call.result"]).toBe("the sub-agent's answer");
     });
 
     it("wraps MCP tools that are in the server map", async () => {

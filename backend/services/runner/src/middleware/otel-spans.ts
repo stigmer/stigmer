@@ -140,6 +140,22 @@ function errorTypeOf(err: unknown): string {
   return err instanceof Error ? err.name || "Error" : "Error";
 }
 
+/**
+ * The tool's answer as the model reads it: a ToolMessage, or the one a
+ * LangGraph `Command` carries for this call in its update's messages (the
+ * `task` tool answers that way, with the sub-agent's final text).
+ */
+function toolMessageOf(result: unknown, callId: string): { readonly text: string; readonly status: unknown } | undefined {
+  const textOf = (message: { content?: unknown; status?: unknown }) =>
+    typeof message.content === "string" ? { text: message.content, status: message.status } : undefined;
+  const direct = result as { content?: unknown; status?: unknown; update?: { messages?: unknown } };
+  if (typeof direct.content === "string") return textOf(direct);
+  const messages = direct.update?.messages;
+  if (!Array.isArray(messages)) return undefined;
+  const carried = (messages as { tool_call_id?: unknown; content?: unknown; status?: unknown }[]).find((m) => m?.tool_call_id === callId);
+  return carried === undefined ? undefined : textOf(carried);
+}
+
 function failureOf(err: unknown): { readonly message: string; readonly error?: Error } {
   return err instanceof Error ? { message: err.message, error: err } : { message: String(err) };
 }
@@ -278,12 +294,12 @@ export function createOtelSpansMiddleware(
         );
 
         const elapsedMs = performance.now() - startTime;
-        const message = result as { status?: unknown; content?: unknown };
-        if (message.status === "error") {
-          markFailed(span, "tool_error", { message: typeof message.content === "string" ? message.content : "" }, telemetrySettings().content);
+        const message = toolMessageOf(result, id);
+        if (message?.status === "error") {
+          markFailed(span, "tool_error", { message: message.text }, telemetrySettings().content);
         }
-        if (content !== undefined && typeof message.content === "string") {
-          const exported = exportedResult(message.content, content.withheld);
+        if (content !== undefined && message !== undefined) {
+          const exported = exportedResult(message.text, content.withheld);
           if (exported !== null) span.setAttribute(GEN_AI_TOOL_CALL_RESULT, exported);
         }
         span.end();
