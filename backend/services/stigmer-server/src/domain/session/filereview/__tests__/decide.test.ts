@@ -2,15 +2,16 @@
  * Pins the one decision core (../decide.ts) on a real store: a person's
  * keep or undo lands on the change set's run with its decided event, only
  * while the set's turn is the conversation's newest (a reconcile turn
- * never moves it on), only for a set of the session asked in, through the
- * digest and completeness gates, once per target; and an undo on an ended
+ * never moves it on), only for a set of the session asked in, for a file
+ * the set holds, through the digest and completeness gates, once per
+ * target, a store fault answering a bare Internal; and an undo on an ended
  * turn starts one reconcile turn, as the person, unless one is unfinished
  * in the session, the decision standing whatever the create answers.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   RunSchema,
@@ -265,6 +266,42 @@ describe("a keep", () => {
     expect(await log()).toEqual(before);
   });
 
+  it("a different decision on a target already decided writes nothing and starts no turn", async () => {
+    const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
+    await decide(
+      setDecision("run_1:1", FileDecisionAction.APPROVE, seed!.aggregate),
+    );
+    const before = await log();
+
+    const undo = await decide(
+      setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
+    );
+    expect([undo.recorded, undo.reconcileRunId]).toEqual([false, ""]);
+    expect(
+      (await stored("run_1")).status?.fileChangeSets[0]?.decisions.map(
+        (d) => d.action,
+      ),
+    ).toEqual([FileDecisionAction.APPROVE]);
+    expect(await log()).toEqual(before);
+    expect(created).toEqual([]);
+  });
+
+  it("refuses a FILE decision naming a file the change set does not hold, and writes nothing", async () => {
+    const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
+    const error = await refusal(
+      decide({
+        ...setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
+        scope: FileDecisionScope.FILE,
+        fileChangeId: "run_1:1:no-such-file.ts",
+      }),
+    );
+    expect([error.code, error.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      "file change run_1:1:no-such-file.ts not found in change set run_1:1",
+    ]);
+    expect((await stored("run_1")).status?.fileChangeSets ?? []).toEqual([]);
+  });
+
   it("refuses a digest the person did not review, and a keep of a change that cannot be shown whole; an undo of that change passes", async () => {
     const seed = fileReviewSeed("run_1", "run_1:1");
     seed.change.diffComplete = false;
@@ -295,6 +332,27 @@ describe("a keep", () => {
       (await decide(file(FileDecisionAction.REJECT, seed.change.fileDigest)))
         .recorded,
     ).toBe(true);
+  });
+});
+
+describe("a store fault", () => {
+  it("during the write is an Internal that names no detail, and nothing is written", async () => {
+    const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
+    vi.spyOn(temp.store, "writeResourceAppendingEvents").mockRejectedValueOnce(
+      new Error("disk I/O error"),
+    );
+
+    const error = await refusal(
+      decide(
+        setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
+      ),
+    );
+    expect([error.code, error.rawMessage]).toEqual([
+      Code.Internal,
+      "failed to persist file decision",
+    ]);
+    expect((await stored("run_1")).status?.fileChangeSets ?? []).toEqual([]);
+    expect(created).toEqual([]);
   });
 });
 

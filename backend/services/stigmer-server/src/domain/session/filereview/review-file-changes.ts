@@ -70,6 +70,7 @@ export async function reviewFileChanges(
         const scope = scopeOfWord(ctx.input.scope);
         const action = actionOfWord(ctx.input.action);
         if (scope === undefined || action === undefined) {
+          /* v8 ignore next -- @preserve: ValidateProto's `in` rules refuse every word words.ts does not map, so this only narrows the type */
           throw invalidArgumentError(
             "scope must be change_set or file, and action keep or undo",
           );

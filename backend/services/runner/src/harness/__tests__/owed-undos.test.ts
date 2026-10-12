@@ -8,8 +8,9 @@
  *  - an undo already reconciled in the slice is skipped;
  *  - only the files decided REJECT are put back, kept ones untouched, and
  *    the outcome is written at once as `reconciled`;
- *  - a capture that no longer matches what was reviewed restores nothing and
- *    is recorded as a failure, so it is not tried again;
+ *  - a capture that no longer matches what was reviewed, or a change set
+ *    whose run cannot be read, restores nothing and is recorded as a
+ *    failure, so it is not tried again;
  *  - the previous message turn's capture refs are dropped in a message turn
  *    only; a reconcile turn's window is still open, so it keeps them.
  *
@@ -210,6 +211,18 @@ describe("reconcileOwedUndos", () => {
     const log = logClient([userMessage(EARLIER), decided(`${EARLIER}:9`, "undo")], new Map([[EARLIER, earlier]]));
     const outcomes = await reconcileOwedUndos(deps(log, { runId: "run_reconcile", reconcileTurn: true }));
     expect(outcomes.map((o) => [o.changeSetId, o.failure])).toEqual([[`${EARLIER}:9`, "reconcile_failed"]]);
+  });
+
+  it("a change set whose run cannot be read is recorded as reconcile_failed, with the read's error", async () => {
+    const log = logClient([userMessage(EARLIER), decided("run_gone:0", "undo")], new Map([[EARLIER, earlier]]));
+    const d = deps(log, { runId: "run_reconcile", reconcileTurn: true });
+
+    const outcomes = await reconcileOwedUndos(d);
+
+    expect(outcomes).toEqual([
+      { changeSetId: "run_gone:0", undonePaths: [], failure: "reconcile_failed", failureDetail: "the turn's changes could not be read: no run run_gone" },
+    ]);
+    expect(d.recorded).toEqual([outcomes]);
   });
 
   it("a turn with no primary tree reads nothing", async () => {

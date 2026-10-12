@@ -427,6 +427,29 @@ describe("undo after the turn — the decision rules it enforces", () => {
     expect(status.fileReviewEventStream?.events.length ?? 0).toBe(ledgerBefore);
   });
 
+  it("answers hash_mismatch and restores NOTHING when an undone file is one the turn's refs never captured", async () => {
+    const status = newStatus();
+    await captureTwoFileTurn(status);
+    const changeSet = decidedChangeSet(status, { "src/main.ts": FileDecisionAction.REJECT });
+    // A reviewed file the pinned refs do not hold: captured differently from what was reviewed.
+    const ghost = clone(CapturedFileChangeSchema, changeSet.changes.find((c) => c.pathAfter === "src/main.ts")!);
+    ghost.id = `${CHANGE_SET_ID}:ghost.md`;
+    ghost.pathAfter = "ghost.md";
+    ghost.pathBefore = "ghost.md";
+    changeSet.changes.push(ghost);
+    changeSet.decisions.push(
+      create(FileDecisionSchema, { id: "d-ghost", changeSetId: CHANGE_SET_ID, scope: FileDecisionScope.FILE, fileChangeId: ghost.id, action: FileDecisionAction.REJECT }),
+    );
+
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
+
+    expect(outcome.failure).toBe("hash_mismatch");
+    expect(outcome.failureDetail).toContain("ghost.md");
+    expect(outcome.failureDetail).not.toContain("src/main.ts");
+    expect(outcome.undonePaths).toEqual([]);
+    expect(await read("src/main.ts"), "the file that does match is not put back either").toBe("export const x = 99;\n");
+  });
+
   it("answers reconcile_failed when the turn's refs are gone (the window closed and a later turn dropped them)", async () => {
     const status = newStatus();
     await captureTwoFileTurn(status);

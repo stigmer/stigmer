@@ -21,7 +21,8 @@
  *     next turn, with their `decided` event), the turn before this run's
  *     own message and not the newest, once; a first turn, a run whose
  *     message is not in the log, a previous turn since deleted, and one a
- *     person already decided close nothing.
+ *     person already decided close nothing; a store fault reading the
+ *     previous turn fails the activity.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,7 +30,7 @@ import path from "node:path";
 import { create, fromJson, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   RunSchema,
@@ -423,6 +424,16 @@ describe("CloseFileReview activity", () => {
     await store.deleteResource(ApiResourceKind.run, "run_a");
 
     await expect(close("run_b", SESSION)).resolves.toBeUndefined();
+  });
+
+  it("fails on a store fault reading the previous turn, so the activity is retried", async () => {
+    const { store, close, turn, decisions } = closeFixture();
+    await turn("run_a", true);
+    await turn("run_b", false);
+    vi.spyOn(store, "getResource").mockRejectedValueOnce(new Error("store down"));
+
+    await expect(close("run_b", SESSION)).rejects.toThrow("store down");
+    expect(await decisions("run_a"), "nothing was kept").toEqual([]);
   });
 
   it("leaves a previous turn a person already decided as it is", async () => {

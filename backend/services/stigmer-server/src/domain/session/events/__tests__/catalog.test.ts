@@ -6,7 +6,8 @@
  * draft's bytes carry no seq, session or accepted time, so a resent event
  * encodes to the stored bytes; an ask's policy source admits the word of
  * every source a run records; and every file-review word the server maps
- * (../../filereview/words.ts) passes its event's validation.
+ * (../../filereview/words.ts) passes its event's validation, while a value
+ * newer than this binary maps to no word.
  */
 import { create, equals } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";
@@ -162,6 +163,13 @@ describe("the file-review words", () => {
       expect(word, value.name).toBeDefined();
       expect(decided({ origin: word ?? "" }), value.name).toBe("valid");
     }
+  });
+
+  it("a value newer than this binary (a later binary's write, during a roll) has no word", () => {
+    const newer: number = 99;
+    expect(scopeWordOf(newer)).toBeUndefined();
+    expect(actionWordOf(newer)).toBeUndefined();
+    expect(originWordOf(newer)).toBeUndefined();
   });
 
   it("refuses a ledger name in place of a word, and reads no value from one", () => {
