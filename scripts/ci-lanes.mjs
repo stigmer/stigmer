@@ -664,6 +664,7 @@ export const COVERAGE_LANES = [
   "ci.authorization-model.yaml",
   "ci.conformance.yaml",
   "ci.docs.yaml",
+  "ci.ee.yaml",
   "ci.go-sdk.yaml",
   "ci.runner.yaml",
   "ci.stigmer-server.yaml",

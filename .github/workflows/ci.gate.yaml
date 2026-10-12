@@ -237,7 +237,7 @@ jobs:
 
   coverage:
     name: Coverage
-    needs: [lanes, authorization-model, conformance, docs, go-sdk, runner, stigmer-server, ts-workspace]
+    needs: [lanes, authorization-model, conformance, docs, ee, go-sdk, runner, stigmer-server, ts-workspace]
     if: ${{ !cancelled() && needs.lanes.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
