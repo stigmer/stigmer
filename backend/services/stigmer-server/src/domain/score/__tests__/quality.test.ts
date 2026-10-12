@@ -28,7 +28,10 @@
  *     model (the no-text proof);
  *   - the flagged list keeps every failed grade on trusted local and pages
  *     with a token;
- *   - an empty agent id and a window past 90 days are INVALID_ARGUMENT.
+ *   - an empty agent id and a window past 90 days are INVALID_ARGUMENT;
+ *   - a person's thumbs naming an evaluator version is INVALID_ARGUMENT:
+ *     thumbs are tallied per version, so one forged version would split
+ *     them and carry the person's text onto the agent's page.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -81,6 +84,7 @@ import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import type { ListIndexRow } from "../../../store/list-index.js";
 import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import { SCORE_EVALUATOR_VERSION_NOT_HUMAN_MESSAGE } from "../constants.js";
 import {
   QUALITY_REPORT_BATCH,
   QUALITY_REPORT_KEY,
@@ -790,6 +794,15 @@ describe("an agent's quality, composed (trusted local)", () => {
       first.items[0]?.metadata?.id,
     );
     expect(all.items[1]?.metadata?.id).toBe(second.items[0]?.metadata?.id);
+  });
+
+  it("refuses a person's thumbs that names an evaluator version, which would split the report's thumbs", async () => {
+    const live = await seedRun();
+    const forged = thumbs(live, false);
+    forged.spec!.evaluatorVersion = `${MARKER}-version`;
+    const failure = await failureOf(wire.create(forged));
+    expect(failure.code).toBe(Code.InvalidArgument);
+    expect(failure.rawMessage).toBe(SCORE_EVALUATOR_VERSION_NOT_HUMAN_MESSAGE);
   });
 
   it("refuses an empty agent id and a window past 90 days", async () => {

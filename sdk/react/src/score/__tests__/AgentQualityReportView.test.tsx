@@ -214,4 +214,15 @@ describe("AgentQualityReportView in the Quality tab", () => {
       ).toBe(true),
     );
   });
+
+  it("says none were found yet, and offers to look further back, when a first page is empty but more may follow", async () => {
+    const mock = client(async () => qualityReport());
+    mock.score.listFlaggedByAgent.mockResolvedValueOnce({ totalCount: 0, items: [], nextPageToken: "t1" });
+    render(<AgentQualityTab agent={agent} />, { wrapper: orgWrapper(mock) });
+    expect(await screen.findByText("No flagged runs among the most recent grades.")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Look further back" }));
+    const list = await screen.findByRole("list", { name: "Flagged runs" });
+    await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(2));
+    expect(mock.score.listFlaggedByAgent).toHaveBeenLastCalledWith(expect.objectContaining({ pageToken: "t1" }));
+  });
 });

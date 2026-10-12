@@ -520,9 +520,11 @@ function FlaggedRuns({
   } else {
     body = (
       <div className="stg:flex stg:flex-col stg:gap-2">
-        {items.length === 0 && !hasMore ? (
+        {items.length === 0 ? (
           <p className="stg:text-sm stg:text-muted-foreground">
-            No flagged runs in the last {days} days.
+            {hasMore
+              ? "No flagged runs among the most recent grades."
+              : `No flagged runs in the last ${days} days.`}
           </p>
         ) : (
           <ul
@@ -552,7 +554,7 @@ function FlaggedRuns({
               disabled={isLoadingMore}
               className={QUIET_BUTTON_CLASS}
             >
-              {isLoadingMore ? "Loading…" : "Load more"}
+              {isLoadingMore ? "Loading…" : items.length === 0 ? "Look further back" : "Load more"}
             </button>
           </div>
         )}
