@@ -377,6 +377,12 @@ describe("Run scores", () => {
     );
   });
   it("[rpc:ScoreQueryController.getAgentQualityReport] [rpc:ScoreQueryController.listFlaggedByAgent] an agent's quality counts everyone's runs and flags only the reader's own", async (ctx) => {
+    // A member's own run needs a runner that acts as each run's creator;
+    // the cloud targets' embedded runner acts as the primary user, so
+    // there the composition's own local-stack proof stands in.
+    if (!target.capabilities.runnerActsAsRunCreator) {
+      return ctx.skip("the target's runner does not act as each run's creator");
+    }
     const enforcing = await enforcingLaneOf(target);
     if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
     const lane = enforcing.lane;
