@@ -309,9 +309,7 @@ describe("the tally", () => {
     tally.add(scoreOf({ at: "2026-10-11T23:59:59.999Z" }));
     tally.add(scoreOf({ at: "2026-10-12T00:00:00Z" }));
     tally.add(scoreOf({ at: "2026-10-12T14:00:00Z" }));
-    expect(
-      tally.build().days.map((d) => [d.date, d.summary?.runs]),
-    ).toEqual([
+    expect(tally.build().days.map((d) => [d.date, d.summary?.runs])).toEqual([
       ["2026-10-11", 1],
       ["2026-10-12", 2],
     ]);
@@ -331,13 +329,13 @@ describe("the tally", () => {
   it("flags a graded failure only", () => {
     const at = "2026-10-12T10:00:00Z";
     expect(isFlagged(scoreOf({ passed: false, at }))).toBe(true);
-    expect(
-      isFlagged(scoreOf({ metric: "feedback", passed: false, at })),
-    ).toBe(true);
+    expect(isFlagged(scoreOf({ metric: "feedback", passed: false, at }))).toBe(
+      true,
+    );
     expect(isFlagged(scoreOf({ passed: true, at }))).toBe(false);
-    expect(
-      isFlagged(scoreOf({ state: ScoreState.not_graded, at })),
-    ).toBe(false);
+    expect(isFlagged(scoreOf({ state: ScoreState.not_graded, at }))).toBe(
+      false,
+    );
     expect(isFlagged(scoreOf({ metric: "eval", passed: false, at }))).toBe(
       false,
     );
@@ -664,7 +662,9 @@ describe("an agent's quality, composed (trusted local)", () => {
     ).toBe(true);
     expect(all.items.some((s) => s.spec?.runId === run)).toBe(true);
     expect(
-      all.items.some((s) => s.metadata?.labels[PLUGIN_EVAL_LABEL] !== undefined),
+      all.items.some(
+        (s) => s.metadata?.labels[PLUGIN_EVAL_LABEL] !== undefined,
+      ),
     ).toBe(false);
 
     const first = await query.listFlaggedByAgent({ org, agentId, pageSize: 1 });
@@ -687,11 +687,8 @@ describe("an agent's quality, composed (trusted local)", () => {
       (await failureOf(query.getAgentQualityReport({ org, agentId: "" }))).code,
     ).toBe(Code.InvalidArgument);
     expect(
-      (
-        await failureOf(
-          query.getAgentQualityReport({ org, agentId, days: 91 }),
-        )
-      ).code,
+      (await failureOf(query.getAgentQualityReport({ org, agentId, days: 91 })))
+        .code,
     ).toBe(Code.InvalidArgument);
     expect(
       (await failureOf(query.listFlaggedByAgent({ org, agentId: "" }))).code,

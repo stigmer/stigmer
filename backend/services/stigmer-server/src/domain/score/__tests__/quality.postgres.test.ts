@@ -162,7 +162,10 @@ function deps(
   return { store, logger: silentLogger, listReadScope: scope, now: () => NOW };
 }
 
-async function reportOf(store: Store, days: number): Promise<AgentQualityReport> {
+async function reportOf(
+  store: Store,
+  days: number,
+): Promise<AgentQualityReport> {
   const input = ScoreQueryController.method.getAgentQualityReport.input;
   const ctx = new RequestContext(
     input,

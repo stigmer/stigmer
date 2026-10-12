@@ -73,7 +73,10 @@ import {
   restrictListByReadScope,
   type ListReadScope,
 } from "../../extensions/list-read-scope.js";
-import { failedPreconditionError, internalError } from "../../pipeline/errors.js";
+import {
+  failedPreconditionError,
+  internalError,
+} from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
@@ -396,7 +399,8 @@ export interface QualityLaneDeps {
   readonly now: () => Date;
 }
 
-type ReportDesc = typeof ScoreQueryController.method.getAgentQualityReport.input;
+type ReportDesc =
+  typeof ScoreQueryController.method.getAgentQualityReport.input;
 type FlaggedDesc = typeof ScoreQueryController.method.listFlaggedByAgent.input;
 
 /** Context key for the report TallyAgentQuality builds. */
