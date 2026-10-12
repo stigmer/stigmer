@@ -2,7 +2,8 @@
 // plugins an agent attaches, on the agent itself, and score them; and
 // `stigmer agent eval cancel <eval-id>` — stop one; and `stigmer agent
 // quality <agent>` — how the agent's runs were graded, in total and per
-// version, or with `--flagged` the failed grades behind the numbers.
+// version, with `--flagged` the failed grades behind the numbers, or with
+// `--agreement` where people's thumbs and the AI judge's rubrics disagree.
 //
 // `agent` is a group for the act of evaluating an agent, as `plugin` is for
 // evaluating a plugin, not a noun group for the kind: an agent is still
@@ -110,6 +111,10 @@ export function registerAgent(program: Command): void {
     .option("--days <n>", "days to count, ending today (UTC), 1 to 90 (default 30)")
     .option("--flagged", "list the failed grades of the runs you can open, newest first, instead of the totals")
     .option("--limit <n>", "with --flagged, the most failed grades to list (default 20; 0 lists them all)")
+    .option(
+      "--agreement",
+      "show, per AI judge rubric, how its verdicts compare with people's thumbs on the same runs, instead of the totals",
+    )
     .option("-o, --output <format>", "output format: table, json, or yaml")
     .action((target: string, options: AgentQualityFlags & OutputFlags, command: Command) =>
       runQuality(target, options, command),

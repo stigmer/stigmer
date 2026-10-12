@@ -2,8 +2,8 @@
  * A plugin eval's one reader of a try's transcript: what the format's
  * graders look at, in Claude Code's names. The third named reader of a
  * run's transcript beside `actionsOf` (../checks/actions.ts, hashes for
- * the free checks) and `subjectOf` (../judge/subject.ts, the judge's
- * document); when the transcript moves off the run's status onto a session
+ * the free checks) and `subjectPartsOf` (../judge/subject.ts, what the
+ * judge is shown); when the transcript moves off the run's status onto a session
  * event log, these three are rewritten and no grader changes.
  *
  * The view (`EvalTrace`):

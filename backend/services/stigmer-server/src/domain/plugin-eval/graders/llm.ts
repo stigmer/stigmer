@@ -13,7 +13,7 @@
  *     the case directory, read from the plugin's archive and rendered as
  *     text), over the run's trace as the `llm` trace focus shows it.
  *
- * A vote's verdict is the AI judge's shape (domain/score/judge/rubrics.ts)
+ * A vote's verdict is the AI judge's shape (@stigmer/eval-runtime's rubrics)
  * with one rubric named after the grader and results limited to passed
  * and failed, read strictly by `readVerdict`. Three votes, two decide; a
  * vote that failed or could not be read counts for neither side, and a
@@ -28,6 +28,7 @@
  * Proven by __tests__/graders.test.ts.
  */
 import { renderTranscript } from "@stigmer/eval-runtime";
+import { REASON_MAX_LENGTH, cutReason, readVerdict } from "@stigmer/eval-runtime/judge";
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 
 import type {
@@ -35,15 +36,11 @@ import type {
   EvalGraderCheck,
   PluginFiles,
 } from "@stigmer/plugin-package";
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 
 import type { EvalTrace } from "../../score/eval/trace.js";
-import { REASON_MAX_LENGTH } from "../../score/judge/rubrics.js";
-import { readVerdict } from "../../score/judge/verdict.js";
 import type { GraderVerdict } from "./verdict.js";
 import {
   binaryFileReason,
-  cutReason,
   focusLabel,
   focusText,
   normalisePath,
@@ -225,10 +222,9 @@ export type VoteResult =
 
 /**
  * A vote run's structured output read as one vote, or the reason it cannot
- * be. A reason past the schema's maxLength, which the provider does not
- * enforce, is cut to the bound before the strict read, so a long-winded vote
- * keeps its result (stigmer#2143); anything else the reader refuses stays
- * refused.
+ * be. The strict reader cuts a reason past the schema's maxLength, which
+ * the provider does not enforce, so a long-winded vote keeps its result
+ * (stigmer#2143); anything else it refuses stays refused.
  */
 export function readVote(
   output: JsonObject | undefined,
@@ -236,7 +232,7 @@ export function readVote(
 ):
   | { readonly passed: boolean; readonly reason: string }
   | { readonly refused: string } {
-  const reading = readVerdict(withReasonCut(output, rubric), {
+  const reading = readVerdict(output, {
     rubrics: [rubric],
     results: ["passed", "failed"],
   });
@@ -249,7 +245,7 @@ export function readVote(
     return { refused: "the judge returned no verdict" };
   }
   return {
-    passed: verdict.result === CriterionResult.passed,
+    passed: verdict.result === "passed",
     reason: verdict.reason,
   };
 }
@@ -311,24 +307,6 @@ function kindOf(value: JsonValue | undefined): string {
   return `a ${typeof value}`;
 }
 
-/** `output` with its rubric's string reason cut to the bound; any other shape as it came. */
-function withReasonCut(
-  output: JsonObject | undefined,
-  rubric: string,
-): JsonObject | undefined {
-  const answer = output?.[rubric];
-  if (
-    output === undefined ||
-    typeof answer !== "object" ||
-    answer === null ||
-    Array.isArray(answer) ||
-    typeof answer["reason"] !== "string"
-  ) {
-    return output;
-  }
-  return { ...output, [rubric]: { ...answer, reason: cutReason(answer["reason"]) } };
-}
-
 /** The grader's verdict from its votes: two decide (the module header). */
 export function tallyVotes(votes: ReadonlyArray<VoteResult>): GraderVerdict {
   const cast = votes.filter(
@@ -341,13 +319,13 @@ export function tallyVotes(votes: ReadonlyArray<VoteResult>): GraderVerdict {
   if (passes.length >= VOTES_TO_DECIDE) {
     return {
       passed: true,
-      reason: cut(`${tally}: ${passes[0]?.reason ?? ""}`, REASON_MAX_LENGTH),
+      reason: cutReason(`${tally}: ${passes[0]?.reason ?? ""}`),
     };
   }
   if (fails.length >= VOTES_TO_DECIDE) {
     return {
       passed: false,
-      reason: cut(`${tally}: ${fails[0]?.reason ?? ""}`, REASON_MAX_LENGTH),
+      reason: cutReason(`${tally}: ${fails[0]?.reason ?? ""}`),
     };
   }
   const failure = votes.find(

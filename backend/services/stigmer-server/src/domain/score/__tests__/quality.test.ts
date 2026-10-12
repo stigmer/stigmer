@@ -7,6 +7,12 @@
  *     person's thumbs as feedback; two evaluator versions kept apart, the
  *     most recently seen first; two agent versions; UTC day boundaries; a
  *     stampless row, a row before the window and an eval score skipped;
+ *   - the agreement: each thumbs set against each rubric that passed or
+ *     failed on the same run, per judge version, the newest first; a rubric
+ *     that did not apply, a run with a judge grade and no thumbs, thumbs on
+ *     a run with no judge grade, a pending or not-graded judge score and a
+ *     grade before the window count nothing; a thumbs down where no rubric
+ *     failed is counted apart;
  *   - the window: 0 is 30 days, ending on today's UTC day;
  *   - the bound: a read past QUALITY_REPORT_MAX_SCORES is refused with
  *     FAILED_PRECONDITION naming a shorter window; an undecodable row is
@@ -264,6 +270,89 @@ describe("the tally", () => {
       "feedback",
       "judge",
       "run-health",
+    ]);
+  });
+
+  it("sets each thumbs against each rubric that passed or failed on the same run, per judge version", () => {
+    const tally = new QualityTally(qualityWindowOf(7, NOW));
+    const at = "2026-10-11T10:00:00Z";
+    const judge = (runId: string, version: string, criteria: ReadonlyArray<readonly [string, CriterionResult]>, when = at) =>
+      tally.add(
+        scoreOf({
+          runId,
+          metric: "judge",
+          evaluatorVersion: version,
+          passed: !criteria.some(([, result]) => result === CriterionResult.failed),
+          criteria,
+          at: when,
+        }),
+      );
+    const thumbs = (runId: string, up: boolean, when = at) =>
+      tally.add(scoreOf({ runId, metric: "feedback", passed: up, at: when }));
+
+    // run_1: the judge failed acted-only-as-asked, people liked it twice.
+    judge("run_1", "j2", [
+      ["acted-only-as-asked", CriterionResult.failed],
+      ["did-the-task", CriterionResult.passed],
+      ["asked-when-unclear", CriterionResult.not_applicable],
+    ]);
+    thumbs("run_1", true);
+    thumbs("run_1", true);
+    // run_2: everything passed, people disliked it: a missing rule.
+    judge("run_2", "j2", [
+      ["acted-only-as-asked", CriterionResult.passed],
+      ["did-the-task", CriterionResult.passed],
+    ]);
+    thumbs("run_2", false);
+    // run_3: both agree it failed.
+    judge("run_3", "j2", [["did-the-task", CriterionResult.failed]]);
+    thumbs("run_3", false);
+    // run_4: an older version, newer in nothing.
+    judge("run_4", "j1", [["did-the-task", CriterionResult.passed]], "2026-10-07T10:00:00Z");
+    thumbs("run_4", true);
+    // Counted nowhere: no thumbs, no judge grade, a pending and a
+    // not-graded judge score, and a judge grade before the window.
+    judge("run_5", "j2", [["did-the-task", CriterionResult.failed]]);
+    thumbs("run_6", false);
+    tally.add(scoreOf({ runId: "run_7", metric: "judge", evaluatorVersion: "j2", state: ScoreState.pending, at }));
+    tally.add(scoreOf({ runId: "run_7", metric: "judge", evaluatorVersion: "j0", state: ScoreState.not_graded, at }));
+    thumbs("run_7", false);
+    judge("run_8", "j2", [["did-the-task", CriterionResult.failed]], "2026-09-01T10:00:00Z");
+    thumbs("run_8", true);
+
+    const agreement = tally.build().agreement;
+    expect(agreement.map((a) => [a.evaluatorVersion, a.runs, a.thumbsDownNoneFailed])).toEqual([
+      ["j2", 3, 1],
+      ["j1", 1, 0],
+    ]);
+    const rules = agreement[0]?.rules.map((r) => [
+      r.name,
+      r.failedThumbsDown,
+      r.failedThumbsUp,
+      r.passedThumbsDown,
+      r.passedThumbsUp,
+    ]);
+    expect(rules).toEqual([
+      ["acted-only-as-asked", 0, 2, 1, 0],
+      ["did-the-task", 1, 0, 1, 2],
+    ]);
+    expect(agreement[1]?.rules.map((r) => [r.name, r.passedThumbsUp])).toEqual([["did-the-task", 1]]);
+  });
+
+  it("puts the judge version seen most recently first in the agreement, whichever run it came from", () => {
+    const tally = new QualityTally(qualityWindowOf(7, NOW));
+    const judged = (runId: string, version: string, at: string) => {
+      tally.add(
+        scoreOf({ runId, metric: "judge", evaluatorVersion: version, criteria: [["did-the-task", CriterionResult.passed]], at }),
+      );
+      tally.add(scoreOf({ runId, metric: "feedback", passed: true, at }));
+    };
+    judged("run_1", "j-old", "2026-10-07T10:00:00Z");
+    judged("run_2", "j-new", "2026-10-09T10:00:00Z");
+    judged("run_3", "j-old", "2026-10-11T10:00:00Z");
+    expect(tally.build().agreement.map((a) => [a.evaluatorVersion, a.runs])).toEqual([
+      ["j-old", 2],
+      ["j-new", 1],
     ]);
   });
 

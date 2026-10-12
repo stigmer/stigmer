@@ -12,13 +12,16 @@
  *     score per run per rubric version;
  *   - replaceUnlessGraded: the stigmer#2057 interleave keeps the grade (a
  *     not-graded placeholder written between the grade's read and its
- *     create is replaced), a placeholder never replaces a grade, and a
- *     judge's pending score gives way to its grade;
+ *     create is replaced), a placeholder never replaces a grade, a judge's
+ *     pending score gives way to its grade, and a grade recorded under a
+ *     newer version removes an older version's pending score while every
+ *     other version's grades stay;
  *   - evaluators: create, the one-per-agent rule, getByAgent, an update
  *     that keeps the month's spend written meanwhile, and the agent's
  *     delete removing its evaluator;
  *   - the activities: a sampled run is recorded pending and a cap set
  *     aside; the start creates one judge run, found again on a retry; a
+ *     judge is shown the turns before the graded one in its session; a
  *     verdict replaces the pending score, the session is deleted and the
  *     budget settled with the judge's spend; an unreadable answer, a cost
  *     cap and a refused start each leave the run not graded with its
@@ -37,13 +40,20 @@ import type { Client } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import {
+  ACTED_ONLY_AS_ASKED,
+  ASKED_WHEN_UNCLEAR,
+  DID_THE_TASK,
+  JUDGE_EVALUATOR_VERSION,
+  MADE_NOTHING_UP,
+} from "@stigmer/eval-runtime/judge";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
 import { EvaluatorQueryController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
@@ -84,18 +94,13 @@ import {
   PER_GRADE_CAP_USD,
   judgeRunRequest,
 } from "../../../domain/score/judge/judge-run.js";
-import {
-  DID_THE_TASK,
-  JUDGE_EVALUATOR_VERSION,
-  MADE_NOTHING_UP,
-} from "../../../domain/score/judge/rubrics.js";
 import { pendingJudgeScore } from "../../../domain/score/judge/judge-score.js";
 import type {
   JudgeRunCreator,
   ScoreDeleter,
   ScoreRecorder,
 } from "../../../domain/score/ports.js";
-import { replaceUnlessGraded, sameWriterScore } from "../../../domain/score/record.js";
+import { pendingOfOtherVersions, replaceUnlessGraded, sameWriterScore } from "../../../domain/score/record.js";
 import {
   baseConfig,
   silentLogger,
@@ -160,8 +165,12 @@ async function seedRun(opts: {
   structuredOutput?: JsonObject;
   estimatedCostUsd?: number;
   error?: string;
+  sessionId?: string;
+  message?: string;
+  answer?: string;
+  createdAtSeconds?: number;
 } = {}): Promise<Run> {
-  const sessionId = generateId("ses");
+  const sessionId = opts.sessionId ?? generateId("ses");
   await server.store.saveResource(
     ApiResourceKind.session,
     sessionId,
@@ -177,9 +186,13 @@ async function seedRun(opts: {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Run",
     metadata: { id: runId, name: runId, slug: runId, org, labels: opts.labels ?? {} },
-    spec: { target: { case: "sessionId", value: sessionId }, message: "Summarize the release." },
+    spec: { target: { case: "sessionId", value: sessionId }, message: opts.message ?? "Summarize the release." },
     status: {
       phase: opts.phase ?? RunPhase.RUN_COMPLETED,
+      ...(opts.answer === undefined ? {} : { messages: [{ type: MessageType.MESSAGE_AI, content: opts.answer }] }),
+      ...(opts.createdAtSeconds === undefined
+        ? {}
+        : { audit: { specAudit: { createdAt: { seconds: BigInt(opts.createdAtSeconds), nanos: 0 } } } }),
       agentId: opts.agentId ?? "",
       error: opts.error ?? "",
       ...(opts.structuredOutput === undefined ? {} : { structuredOutput: opts.structuredOutput }),
@@ -190,7 +203,10 @@ async function seedRun(opts: {
   return run;
 }
 
-function judgeScore(runId: string, opts: { passed?: boolean; model?: string; pending?: boolean } = {}): Score {
+function judgeScore(
+  runId: string,
+  opts: { passed?: boolean; model?: string; pending?: boolean; version?: string; notGraded?: string } = {},
+): Score {
   return create(ScoreSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Score",
@@ -199,11 +215,12 @@ function judgeScore(runId: string, opts: { passed?: boolean; model?: string; pen
       runId,
       metric: "judge",
       source: ScoreSource.judge,
-      evaluatorVersion: JUDGE_EVALUATOR_VERSION,
+      evaluatorVersion: opts.version ?? JUDGE_EVALUATOR_VERSION,
       judgeModel: opts.model ?? "",
       ...(opts.passed === undefined ? {} : { value: { case: "passed", value: opts.passed } }),
     },
     ...(opts.pending === true ? { status: { state: ScoreState.pending } } : {}),
+    ...(opts.notGraded === undefined ? {} : { status: { notGradedReason: opts.notGraded } }),
   });
 }
 
@@ -275,13 +292,14 @@ describe("judge scores", () => {
 });
 
 describe("replaceUnlessGraded", () => {
-  it("throws a recorder fault that is no refusal, and finds no same-writer score for a score with no spec", async () => {
+  it("throws a recorder fault that is no refusal, and finds no same-writer score or placeholder for a score with no spec", async () => {
     const run = await seedRun();
     const faulty = { ...writeDeps(), recorder: { record: () => Promise.reject(new Error("socket closed")) } };
     await expect(replaceUnlessGraded(faulty, pendingJudgeScore(run))).rejects.toThrow("socket closed");
     const internal = { ...writeDeps(), recorder: { record: () => Promise.reject(new ConnectError("boom", Code.Internal)) } };
     await expect(replaceUnlessGraded(internal, pendingJudgeScore(run))).rejects.toThrow("boom");
     expect(await sameWriterScore(writeDeps(), create(ScoreSchema, {}))).toBeUndefined();
+    expect(await pendingOfOtherVersions(writeDeps(), create(ScoreSchema, {}))).toEqual([]);
   });
 
   it("keeps the score there when a writer keeps losing its race", async () => {
@@ -318,6 +336,46 @@ describe("replaceUnlessGraded", () => {
     const judged = await scoresOf(runId, "judge");
     expect(judged).toHaveLength(1);
     expect(judged[0]?.spec?.value).toEqual({ case: "passed", value: false });
+  });
+
+  it("drops the run's pending score of another version once a grade is recorded, and keeps every other version's grades", async () => {
+    // A grade planned before a deploy that changed the judge's rules is
+    // recorded under the new version; the old version's placeholder goes.
+    const planned = (await seedRun()).metadata!.id;
+    await inProcess.create(judgeScore(planned, { pending: true, version: "v-before" }));
+    expect(await replaceUnlessGraded(writeDeps(), judgeScore(planned, { passed: true }))).toBe("recorded");
+    expect((await scoresOf(planned, "judge")).map((score) => [score.spec?.evaluatorVersion, score.status?.state])).toEqual([
+      [JUDGE_EVALUATOR_VERSION, ScoreState.graded],
+    ]);
+
+    const history = (await seedRun()).metadata!.id;
+    await inProcess.create(judgeScore(history, { passed: false, version: "v-older" }));
+    await inProcess.create(judgeScore(history, { notGraded: "the judge's answer could not be read", version: "v-old" }));
+    await inProcess.create(judgeScore(history, { pending: true, version: "v-before" }));
+    expect(await replaceUnlessGraded(writeDeps(), judgeScore(history, { pending: true })), "a placeholder drops nothing").toBe(
+      "recorded",
+    );
+    expect(await scoresOf(history, "judge")).toHaveLength(4);
+    expect(await replaceUnlessGraded(writeDeps(), judgeScore(history, { notGraded: "spending limit reached" }))).toBe("recorded");
+    const kept = (await scoresOf(history, "judge")).map((score) => [score.spec?.evaluatorVersion, score.status?.state]);
+    expect(kept).toHaveLength(3);
+    expect(kept).toEqual(
+      expect.arrayContaining([
+        ["v-older", ScoreState.graded],
+        ["v-old", ScoreState.not_graded],
+        [JUDGE_EVALUATOR_VERSION, ScoreState.not_graded],
+      ]),
+    );
+  });
+
+  it("drops the run's pending score of another version on a retry that finds its grade already written", async () => {
+    // The first attempt recorded the grade and lost its cleanup to a fault;
+    // the retry finds the grade there and still removes the placeholder.
+    const runId = (await seedRun()).metadata!.id;
+    await inProcess.create(judgeScore(runId, { pending: true, version: "v-before" }));
+    await inProcess.create(judgeScore(runId, { passed: true }));
+    expect(await replaceUnlessGraded(writeDeps(), judgeScore(runId, { passed: true }))).toBe("kept");
+    expect((await scoresOf(runId, "judge")).map((score) => score.spec?.evaluatorVersion)).toEqual([JUDGE_EVALUATOR_VERSION]);
   });
 
   it("answers run-gone for a run that does not exist", async () => {
@@ -414,9 +472,11 @@ describe("evaluators", () => {
 /** The judge run's create and its session's delete, played on the store. */
 function judgeLane(judgeOutcome: Partial<Parameters<typeof seedRun>[0]> | ConnectError) {
   const created: Run[] = [];
+  const requests: Run[] = [];
   const deletedSessions: string[] = [];
   const runs: JudgeRunCreator = {
     async create(request) {
+      requests.push(request);
       if (judgeOutcome instanceof ConnectError) throw judgeOutcome;
       const judge = await seedRun({ ...judgeOutcome, labels: request.metadata?.labels ?? {} });
       // The created run answers to the request's fixed name, as the create chain makes it.
@@ -430,6 +490,7 @@ function judgeLane(judgeOutcome: Partial<Parameters<typeof seedRun>[0]> | Connec
   };
   return {
     created,
+    requests,
     deletedSessions,
     activities: createJudgeActivities({
       store: server.store,
@@ -449,8 +510,10 @@ function judgeLane(judgeOutcome: Partial<Parameters<typeof seedRun>[0]> | Connec
 }
 
 const VERDICT: JsonObject = {
-  [DID_THE_TASK]: { result: "passed", reason: "It summarized the release." },
-  [MADE_NOTHING_UP]: { result: "failed", reason: "It claims tests ran; no tool ran tests." },
+  [DID_THE_TASK]: { reason: "It summarized the release.", result: "passed" },
+  [MADE_NOTHING_UP]: { reason: "It claims tests ran; no tool ran tests.", result: "failed" },
+  [ACTED_ONLY_AS_ASKED]: { reason: "No tool call changed anything.", result: "not_applicable" },
+  [ASKED_WHEN_UNCLEAR]: { reason: "The request had one plain reading.", result: "not_applicable" },
 };
 
 async function evaluatorStatus(evaluatorId: string) {
@@ -508,6 +571,8 @@ describe("the judge's activities", () => {
     expect(verdict?.spec?.criteria.map((c) => [c.name, c.result, c.reason])).toEqual([
       [DID_THE_TASK, CriterionResult.passed, "It summarized the release."],
       [MADE_NOTHING_UP, CriterionResult.failed, "It claims tests ran; no tool ran tests."],
+      [ACTED_ONLY_AS_ASKED, CriterionResult.not_applicable, "No tool call changed anything."],
+      [ASKED_WHEN_UNCLEAR, CriterionResult.not_applicable, "The request had one plain reading."],
     ]);
     expect(lane.deletedSessions).toHaveLength(1);
     const status = await evaluatorStatus(evaluator.metadata!.id);
@@ -518,6 +583,27 @@ describe("the judge's activities", () => {
     expect(await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId), "a graded run is not graded twice").toEqual({
       kind: "skip",
     });
+  });
+
+  it("show the judge the turns before the graded one in its session, oldest first", async () => {
+    const agentId = await newAgent();
+    await newEvaluator(agentId);
+    const sessionId = generateId("ses");
+    await seedRun({ agentId, sessionId, message: "Draft the note to the team.", answer: "Here is the draft.", createdAtSeconds: 1_000 });
+    const judged = await seedRun({ agentId, sessionId, message: "yes, go ahead", createdAtSeconds: 1_001 });
+    await seedRun({ agentId, sessionId, message: "a later turn", createdAtSeconds: 1_002 });
+    const runId = judged.metadata!.id;
+    const lane = judgeLane({ structuredOutput: VERDICT });
+    const plan = await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId);
+    if (plan.kind !== "grade") throw new Error("expected a grade");
+    await lane.activities[START_JUDGE_ACTIVITY_NAME](runId, plan.ticket);
+    const message = lane.requests[0]?.spec?.message ?? "";
+    const document = JSON.parse(message.slice(message.indexOf("<conversation>\n") + 15, message.lastIndexOf("\n</conversation>"))) as {
+      earlier_turns: Array<{ request: string; final_answer: string }>;
+      request: string;
+    };
+    expect(document.earlier_turns).toEqual([{ request: "Draft the note to the team.", final_answer: "Here is the draft." }]);
+    expect(document.request).toBe("yes, go ahead");
   });
 
   for (const [what, outcome, reason] of [

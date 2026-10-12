@@ -1,7 +1,10 @@
 // The package entry: re-exports what a plugin eval's server and runner both
 // execute with (the transcript reader, the expect guard, mock rendering and
 // the try-stop wording), so neither reaches into a file path. Each module's
-// header carries its rules and trade-offs.
+// header carries its rules and trade-offs. It loads no `node:*` module, so a
+// browser bundle can import it (`@stigmer/plugin-package`'s main entry does);
+// the AI judge's rule set, which hashes with `node:crypto`, is the separate
+// entry `@stigmer/eval-runtime/judge` (judge/index.ts).
 
 export {
   parseTranscript,

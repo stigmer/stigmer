@@ -6,8 +6,11 @@
 // metric graded by two evaluator versions shows the current one and says
 // older ones exist; `-o json` prints the report undecorated with no history
 // read; `--flagged` follows a short page that carries a token up to the
-// limit and names the failed criteria, never a reason; and the flags are
-// refused out of range before any request.
+// limit and names the failed criteria, never a reason; `--agreement` prints
+// one table per judge rubric version, the current one first, with the runs
+// disliked where no rubric failed, and its entries undecorated under -o
+// json; and the flags are refused out of range, or combined where they do
+// not apply, before any request.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -16,6 +19,7 @@ import { ScoreSchema, type Score } from "@stigmer/protos/ai/stigmer/agentic/scor
 import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import {
   AgentQualityReportSchema,
+  JudgeAgreementSchema,
   ScoreListSchema,
   type AgentQualityReport,
   type GetAgentQualityReportRequest,
@@ -27,6 +31,7 @@ import { describe, expect, it } from "vitest";
 import { UsageError } from "../../../errors/index.js";
 import {
   readAgentQualityOptions,
+  renderAgreement,
   renderQualityReport,
   showAgentQuality,
   type AgentQualityOptions,
@@ -92,6 +97,23 @@ const report = create(AgentQualityReportSchema, {
       summary: { runs: 7, metrics: [{ metric: "run-health", evaluatorVersion: "c1", passed: 7, failed: 0 }] },
     },
   ],
+  agreement: [
+    {
+      evaluatorVersion: "e6b2728dfc4b352a7bc30bd4",
+      runs: 14,
+      thumbsDownNoneFailed: 3,
+      rules: [
+        { name: "acted-only-as-asked", failedThumbsDown: 1, failedThumbsUp: 6, passedThumbsDown: 0, passedThumbsUp: 7 },
+        { name: "did-the-task", failedThumbsDown: 2, failedThumbsUp: 0, passedThumbsDown: 4, passedThumbsUp: 8 },
+      ],
+    },
+    {
+      evaluatorVersion: "8191b6ca352b050221ccb7b3",
+      runs: 1,
+      thumbsDownNoneFailed: 0,
+      rules: [{ name: "did-the-task", failedThumbsDown: 0, failedThumbsUp: 0, passedThumbsDown: 0, passedThumbsUp: 1 }],
+    },
+  ],
 });
 
 function flagged(runId: string, metric: string, minute: number, failed: string[] = []): Score {
@@ -153,7 +175,7 @@ function fakeServer(opts: { pages?: ScoreList[]; historyError?: Error; singleOrg
 }
 
 function options(overrides: Partial<AgentQualityOptions> = {}): AgentQualityOptions {
-  return { days: 30, flagged: false, limit: 20, format: "table", ...overrides };
+  return { days: 30, flagged: false, agreement: false, limit: 20, format: "table", ...overrides };
 }
 
 describe("showAgentQuality, the report", () => {
@@ -352,12 +374,48 @@ describe("showAgentQuality, --flagged", () => {
   });
 });
 
+describe("showAgentQuality, --agreement", () => {
+  it("prints one table per rubric version, the current first, with the runs no rubric caught", async () => {
+    const server = fakeServer();
+    const out = await showAgentQuality(server.client, "acme", "support-desk", options({ agreement: true }));
+    expect(server.reportRequests).toHaveLength(1);
+    expect(server.calls.some((call) => call.startsWith("versions"))).toBe(false);
+    expect(out).toContain(
+      "Rubrics e6b2728dfc4b (current): 14 runs with a judge grade and thumbs; 3 disliked where no rubric failed (a failure no rubric catches)",
+    );
+    expect(out).toMatch(/^acted-only-as-asked\s+1\s+6\s+0\s+7$/m);
+    expect(out).toContain("Rubrics 8191b6ca352b: 1 run with a judge grade and thumbs\n");
+    expect(out.indexOf("e6b2728dfc4b")).toBeLessThan(out.indexOf("8191b6ca352b"));
+    expect(out).toContain("FAILED, UP: the rubric failed runs people liked");
+  });
+
+  it("prints the agreement entries undecorated under -o json and -o yaml", () => {
+    const json = JSON.parse(renderAgreement(report, "support-desk", "json")) as unknown[];
+    expect(json).toEqual(report.agreement.map((entry) => toJson(JudgeAgreementSchema, entry, { useProtoFieldName: true })));
+    expect(renderAgreement(report, "support-desk", "yaml")).toContain("thumbs_down_none_failed: 3");
+  });
+
+  it("says so when no run has both a judge grade and thumbs", () => {
+    const none = create(AgentQualityReportSchema, { fromDate: "2026-10-06", toDate: "2026-10-12", total: { runs: 3 } });
+    const out = renderAgreement(none, "support-desk", "table");
+    expect(out).toContain("No run in this window has both an AI judge grade and a person's thumbs.");
+    expect(out).not.toContain("RUBRIC");
+  });
+});
+
 describe("readAgentQualityOptions", () => {
   it("counts 30 days and lists 20 flagged grades by default", () => {
-    expect(readAgentQualityOptions({}, "table")).toEqual({ days: 30, flagged: false, limit: 20, format: "table" });
+    expect(readAgentQualityOptions({}, "table")).toEqual({
+      days: 30,
+      flagged: false,
+      agreement: false,
+      limit: 20,
+      format: "table",
+    });
     expect(readAgentQualityOptions({ days: "90", flagged: true, limit: "0" }, "json")).toEqual({
       days: 90,
       flagged: true,
+      agreement: false,
       limit: 0,
       format: "json",
     });
@@ -373,5 +431,13 @@ describe("readAgentQualityOptions", () => {
 
   it("refuses --limit without --flagged", () => {
     expect(() => readAgentQualityOptions({ limit: "5" }, "table")).toThrow(/--limit applies to --flagged only/);
+  });
+
+  it("refuses --agreement with --flagged or --limit", () => {
+    expect(readAgentQualityOptions({ agreement: true }, "table").agreement).toBe(true);
+    expect(() => readAgentQualityOptions({ agreement: true, flagged: true }, "table")).toThrow(UsageError);
+    expect(() => readAgentQualityOptions({ agreement: true, limit: "5" }, "table")).toThrow(
+      /--agreement shows the report's thumbs-against-judge counts/,
+    );
   });
 });

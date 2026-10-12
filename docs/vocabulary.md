@@ -1263,11 +1263,14 @@ per Agent version. The top of the Agent's Quality tab.
   ```bash
   stigmer agent quality <agent>
   stigmer agent quality <agent> --flagged
+  stigmer agent quality <agent> --agreement
   ```
 
 - **Key fields**: `total`, `days` and `versions`, each a summary of distinct
   `runs` and one tally per metric and evaluator version (`passed`, `failed`,
-  `not_graded`, `pending`, and per criterion).
+  `not_graded`, `pending`, and per criterion); `agreement`, per judge rubric
+  version, people's thumbs counted against each rubric's verdict on the same
+  runs.
 - **Boundaries**: counts only, never a reason, a comment or an answer, so it
   counts conversations its reader cannot open. The flagged list returns whole
   scores and shows only runs the reader can open. Eval tries are not counted.
@@ -1299,7 +1302,9 @@ the monthly spending limit, and the judge's model.
   `model_name`, and the status's `spent_usd`, `reserved_usd`, `graded`,
   `not_graded` and `last_not_graded_reason` for the current month.
 - **Boundaries**: an Evaluator configures grading; the grades themselves are
-  Scores on each run. The rubrics are Stigmer's, the same in every Organization.
+  Scores on each run. The rubrics are Stigmer's, the same in every Organization:
+  `did-the-task`, `made-nothing-up`, `acted-only-as-asked` and
+  `asked-when-unclear`.
 - **Note**: the name is Langfuse's word for an LLM judge configured to run on
   live data. Access is the Agent's: whoever may edit the Agent configures its
   grading, whoever may view it sees the settings.

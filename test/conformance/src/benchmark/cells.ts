@@ -19,6 +19,12 @@
 // plugin evals: one eval, with each harness on its parity model as a
 // target, graded by the platform's judge on JUDGE_MODEL.
 //
+// The judge cell (`judge/calibration`) holds the AI judge's rules to their
+// example set (judge/): every example graded k times by the real judge on
+// the platform's default model, its counts written to judge/calibration.ts
+// with `--write-calibration`. It spends money for a purpose of its own, so
+// it runs only when `--cells` names it, and is refused by name otherwise.
+//
 // The six first-turn scenarios and their prompts are the July cost benchmark's,
 // verbatim, so a category keeps its meaning from one run to the next:
 //   git show 4c968690b^:test/integration/cost_benchmark_test.go (L269, L295-325)
@@ -151,9 +157,14 @@ export interface PlanEnvironment {
   stigmerCli: boolean;
 }
 
+/** The judge's calibration over its example set; it runs on the native path. */
+export const JUDGE_CALIBRATION_CELL = "judge/calibration";
+
 export interface CellPlan {
   cells: BenchmarkCell[];
   quality: QualityTarget[];
+  /** Whether the judge cell runs. */
+  judge: boolean;
   refused: RefusedCell[];
 }
 
@@ -177,9 +188,10 @@ export function qualityTargets(): QualityTarget[] {
  * A native cell needs the Anthropic key; a Cursor cell the Cursor key; a
  * quality target needs its harness's key AND the Anthropic key, because the
  * judge runs on the native path. Every working-agent timing cell also needs
- * the `stigmer` CLI. A thinking run refuses the cells on a harness's default
- * model. The first reason that applies is the one recorded: flags, then
- * keys, then the CLI.
+ * the `stigmer` CLI. The judge cell runs only when `--cells` names it, and
+ * needs the Anthropic key. A thinking run refuses the cells on a harness's
+ * default model. The first reason that applies is the one recorded: flags,
+ * then keys, then the CLI.
  */
 export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
   const refused: RefusedCell[] = [];
@@ -230,7 +242,19 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
     return true;
   });
 
-  return { cells, quality, refused };
+  let judge = false;
+  const judgeFlagReason = excludedByFlags(JUDGE_CALIBRATION_CELL, "deep-agent");
+  if (judgeFlagReason !== undefined) {
+    refused.push({ cell: JUDGE_CALIBRATION_CELL, reason: judgeFlagReason });
+  } else if (flags.cells === undefined) {
+    refused.push({ cell: JUDGE_CALIBRATION_CELL, reason: "runs only when --cells names it" });
+  } else if (!env.anthropicKey) {
+    refused.push({ cell: JUDGE_CALIBRATION_CELL, reason: "missing ANTHROPIC_API_KEY" });
+  } else {
+    judge = true;
+  }
+
+  return { cells, quality, judge, refused };
 }
 
 /** `*` matches any run of characters; everything else is literal. */

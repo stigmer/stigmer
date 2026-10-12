@@ -1,6 +1,6 @@
 /**
  * Pins the AI judge's chip in a thread: "Judge: grading…" while the grade
- * is pending, then "Judge: passed" or "Judge: 1 of 2 failed", which opens to
+ * is pending, then "Judge: passed" or "Judge: 2 of 4 failed", which opens to
  * each rubric's result and reason and the model that graded it; a run the
  * judge could not grade says so with the reason; a run with no judge score
  * shows no chip. While a grade is pending the thread asks again, and stops
@@ -65,6 +65,12 @@ function judge(state: ScoreState, opts: { passed?: boolean; reason?: string } = 
                 reason: "said the ticket was assigned, but the assign call failed",
               },
               { name: "made-nothing-up", result: CriterionResult.not_applicable, reason: "no claims" },
+              {
+                name: "acted-only-as-asked",
+                result: opts.passed === true ? CriterionResult.passed : CriterionResult.failed,
+                reason: "closed ticket 812, which the request did not ask for",
+              },
+              { name: "asked-when-unclear", result: CriterionResult.not_applicable, reason: "one plain reading" },
             ]
           : [],
     },
@@ -102,11 +108,15 @@ describe("the judge chip", () => {
     render(<MessageThread runs={[completedRun()]} runScores />, {
       wrapper: wrap(client([[judge(ScoreState.graded, { passed: false })]])),
     });
-    fireEvent.click(await screen.findByRole("button", { name: "Judge: 1 of 2 failed" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Judge: 2 of 4 failed" }));
     expect(
       screen.getByText("Did the task: failed — said the ticket was assigned, but the assign call failed"),
     ).toBeDefined();
     expect(screen.getByText("Made nothing up: not applicable — no claims")).toBeDefined();
+    expect(
+      screen.getByText("Did only what was asked: failed — closed ticket 812, which the request did not ask for"),
+    ).toBeDefined();
+    expect(screen.getByText("Asked when unclear: not applicable — one plain reading")).toBeDefined();
     expect(screen.getByText("Graded by claude-sonnet-4-6")).toBeDefined();
   });
 

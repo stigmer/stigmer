@@ -53,6 +53,10 @@ export const ALLOWED = new Map([
   ["scripts/agents-check.test.mjs", "holds the guidance gate's fixtures for every shape"],
   ["scripts/planning-references.test.mjs", "holds this guard's own fixtures"],
   [".gitignore", "ignores the planning tree by name, so it is never committed"],
+  [
+    "test/conformance/src/benchmark/judge/examples/claims.ts",
+    "an example conversation names an invented payout, PO-88; the AI judge's calibration is pinned to the examples' digest, so rewording it waits for the next calibration",
+  ],
 ]);
 
 const RECORD_CODE_ENTRIES = ["entry name", "record section"];

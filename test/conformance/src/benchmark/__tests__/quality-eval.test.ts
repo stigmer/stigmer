@@ -59,6 +59,7 @@ describe("runBenchmark's quality arm", () => {
     vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
     const plan: CellPlan = {
       cells: [],
+      judge: false,
       quality: [
         { id: "quality/deep-agent", harness: "deep-agent", modelRequested: PARITY_MODEL["deep-agent"] },
         { id: "quality/cursor", harness: "cursor", modelRequested: "not-a-cursor-model" },
@@ -96,7 +97,7 @@ describe("runBenchmark's quality arm", () => {
 
   it("leaves quality null when no target is planned", async () => {
     vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
-    const report = await runBenchmark(refusingStack(), { cells: [], quality: [], refused: [] }, OPTIONS, quietIo());
+    const report = await runBenchmark(refusingStack(), { cells: [], quality: [], judge: false, refused: [] }, OPTIONS, quietIo());
     expect(report.quality).toBeNull();
   });
 });
