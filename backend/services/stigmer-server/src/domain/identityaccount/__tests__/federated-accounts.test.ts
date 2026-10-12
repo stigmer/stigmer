@@ -63,7 +63,8 @@ afterEach(() => {
 });
 
 const ACME_ORG = "org_01hzacme000000000000000000";
-const OKTA: FederatedProvider = { org: ACME_ORG, slug: "acme-okta" };
+const OKTA_ID = "idp_01hzacmeokta0000000000000";
+const OKTA: FederatedProvider = { org: ACME_ORG, id: OKTA_ID };
 const SIGN_IN = serverActingFor("idp_01hzacmeokta0000000000000");
 
 function federated(
@@ -95,7 +96,7 @@ describe("the create path's federated arm", () => {
       SIGN_IN,
     );
     expect(account.metadata?.id).toBe(
-      federatedAccountIdFor(ACME_ORG, "acme-okta", "okta|dana"),
+      federatedAccountIdFor(OKTA_ID, "okta|dana"),
     );
     expect(account.metadata?.org).toBe(ACME_ORG);
     expect(account.spec?.idpId).toBe("okta|dana");
@@ -105,7 +106,8 @@ describe("the create path's federated arm", () => {
     expect(account.spec?.identityProviderRef).toMatchObject({
       org: ACME_ORG,
       kind: ApiResourceKind.identity_provider,
-      slug: "acme-okta",
+      id: OKTA_ID,
+      slug: "",
     });
     expect(account.status?.audit?.specAudit?.createdBy?.id).toBe(
       "idp_01hzacmeokta0000000000000",
@@ -117,12 +119,12 @@ describe("the create path's federated arm", () => {
     input.spec.identityProviderRef = create(ApiResourceReferenceSchema, {
       org: "org_01hzother00000000000000000",
       kind: ApiResourceKind.identity_provider,
-      slug: "other-okta",
+      id: "idp_01hzother0000000000000000",
     });
     const account = await createAccount(input, SIGN_IN);
-    expect(account.spec?.identityProviderRef?.slug).toBe("acme-okta");
+    expect(account.spec?.identityProviderRef?.id).toBe(OKTA_ID);
     expect(account.metadata?.id).toBe(
-      federatedAccountIdFor(ACME_ORG, "acme-okta", "okta|erin"),
+      federatedAccountIdFor(OKTA_ID, "okta|erin"),
     );
   });
 
@@ -130,13 +132,9 @@ describe("the create path's federated arm", () => {
     await createAccount(federated("shared|sam"), SIGN_IN);
     expect(
       (
-        await accounts.findByProviderAndIdpId(
-          ACME_ORG,
-          "acme-okta",
-          "shared|sam",
-        )
+        await accounts.findByProviderAndIdpId(OKTA_ID, "shared|sam")
       )?.metadata?.id,
-    ).toBe(federatedAccountIdFor(ACME_ORG, "acme-okta", "shared|sam"));
+    ).toBe(federatedAccountIdFor(OKTA_ID, "shared|sam"));
     expect(await accounts.findDirectByIdpId("shared|sam")).toBeUndefined();
     expect(await accounts.findByIdpId("shared|sam")).toBeUndefined();
 
@@ -172,7 +170,7 @@ describe("the create path's federated arm", () => {
   });
 
   it("refuses a direct account under the federated address text, writing nothing", async () => {
-    const subject = `stgm_fed|${ACME_ORG}|acme-okta|okta|dana`;
+    const subject = `stgm_fed|${OKTA_ID}|okta|dana`;
     const denied = await refusal(
       createAccount(
         {
@@ -191,7 +189,7 @@ describe("the create path's federated arm", () => {
   it("answers a provider reference the path cannot address as a server fault", async () => {
     const denied = await refusal(
       createAccount(
-        federated("okta|gil", { org: "", slug: "acme-okta" }),
+        federated("okta|gil", { org: ACME_ORG, id: "" }),
         SIGN_IN,
       ),
     );

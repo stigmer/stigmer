@@ -1451,6 +1451,12 @@ describe("resolveReferences and NormalizeReferences", () => {
     );
   });
 
+  it("keeps an id written beside a slug nothing holds: a reader writing back what it read before the target left", async () => {
+    const agent = agentNaming({ slug: "deleted-since", id: "skl_gone" });
+    await resolveReferences(store, AgentSchema, agent, "acme");
+    expect(agent.spec!.skillRefs[0]).toMatchObject({ id: "skl_gone", slug: "" });
+  });
+
   it("leaves a name nothing holds as written, for the rule to refuse as missing", async () => {
     const agent = agentNaming({ slug: "ghost" });
     await resolveReferences(store, AgentSchema, agent, "acme");

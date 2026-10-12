@@ -12,8 +12,9 @@
  *     redaction, encryption, and a case entry);
  *   - the marker round-trip preserves the stored ciphertext PER FIELD (one
  *     request rotates one secret while keeping the others);
- *   - the delete block fires for normalized AND pre-normalization
- *     (empty-org) app_refs, reading seeded store rows directly.
+ *   - the delete block fires for every stored app_ref that holds the app's
+ *     id, whatever organization it names, reading seeded store rows
+ *     directly.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -622,7 +623,7 @@ describe("delete is blocked while referenced", () => {
         appRef: {
           org: ORG_ID,
           kind: ApiResourceKind.channel_app,
-          slug: created.metadata!.slug,
+          id: created.metadata!.id,
         },
       },
     });
@@ -659,7 +660,7 @@ describe("delete is blocked while referenced", () => {
     );
   });
 
-  it("a pre-normalization app_ref with no org still guards its app", async () => {
+  it("a stored app_ref holding the app's id with no org still guards its app", async () => {
     const created = await command.create(
       newSlackApp(uniqueName("Acme Support App")),
     );
@@ -674,7 +675,7 @@ describe("delete is blocked while referenced", () => {
       spec: {
         appRef: {
           kind: ApiResourceKind.channel_app,
-          slug: created.metadata!.slug,
+          id: created.metadata!.id,
         },
       },
     });

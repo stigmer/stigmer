@@ -78,7 +78,8 @@ function scheduleWith(overrides?: {
   maxToolRounds?: number;
   maxCostUsd?: number;
   serviceTier?: ServiceTier;
-  agentSlug?: string;
+  /** The id the stored agent_ref holds, as NormalizeReferences resolved it. */
+  agentId?: string;
   agentVersion?: string;
   slug?: string;
 }): Schedule {
@@ -96,7 +97,7 @@ function scheduleWith(overrides?: {
         case: "agent",
         value: {
           agentRef: {
-            slug: overrides?.agentSlug ?? "helper",
+            id: overrides?.agentId ?? "agt_01helper",
             version: overrides?.agentVersion ?? "",
           },
           message: overrides?.message ?? "Do the morning rounds",
@@ -229,7 +230,10 @@ describe("RunStarter.startRun — against a real store", () => {
         : undefined;
     expect(sessionSpec?.agentRef?.kind).toBe(ApiResourceKind.agent);
     expect(sessionSpec?.agentRef?.org).toBe("acme");
-    expect(sessionSpec?.agentRef?.slug).toBe("helper");
+    // The fire names the agent by the id it loaded, never by a name a
+    // remade agent could take.
+    expect(sessionSpec?.agentRef?.id).toBe("agt_01helper");
+    expect(sessionSpec?.agentRef?.slug).toBe("");
     expect(sessionSpec?.agentRef?.version).toBe("");
     expect(seen?.spec?.message).toContain("(Scheduled fire time: ");
     expect(sessionSpec?.subject).toBe(`${SESSION_SUBJECT_PREFIX}daily`);
@@ -267,7 +271,7 @@ describe("RunStarter.startRun — against a real store", () => {
       seen?.spec?.target.case === "sessionSpec"
         ? seen.spec.target.value
         : undefined;
-    expect(sessionSpec?.agentRef?.slug).toBe("helper");
+    expect(sessionSpec?.agentRef?.id).toBe("agt_01helper");
     expect(sessionSpec?.agentRef?.version).toBe("stable");
   });
 
@@ -491,12 +495,28 @@ describe("RunStarter.startRun — against a real store", () => {
       throw new Error("unreachable");
     });
     const outcome = await runStarter.startRun(
-      scheduleWith({ agentSlug: "vanished" }),
+      scheduleWith({ agentId: "agt_vanished" }),
       NOMINAL,
     );
     expect(outcome).toEqual({
       kind: "targetMissing",
-      reason: "target agent acme/vanished not found",
+      reason: "target agent acme/agt_vanished not found",
+    });
+  });
+
+  it("delete and remake: a fire whose agent was deleted refuses, though another agent now holds its name", async () => {
+    // agt_01helper holds "helper" (the seed); the schedule names the
+    // agent that held it before.
+    const runStarter = starter(async () => {
+      throw new Error("unreachable");
+    });
+    const outcome = await runStarter.startRun(
+      scheduleWith({ agentId: "agt_01deleted" }),
+      NOMINAL,
+    );
+    expect(outcome).toEqual({
+      kind: "targetMissing",
+      reason: "target agent acme/agt_01deleted not found",
     });
   });
 

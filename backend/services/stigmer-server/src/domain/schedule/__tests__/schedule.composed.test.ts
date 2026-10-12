@@ -107,15 +107,17 @@ beforeAll(async () => {
   }
 });
 
-/** Deletes a test agent by slug — the dangling-reference setup. */
-async function deleteAgent(slug: string): Promise<void> {
+/** Deletes a test agent by slug — the dangling-reference setup — and answers the id it had. */
+async function deleteAgent(slug: string): Promise<string> {
   const agents = createClient(AgentQueryController, transport);
   const agent = await agents.getByReference({
     kind: ApiResourceKind.agent,
     org: "acme",
     slug,
   });
-  await agentCommand.delete({ value: agent.metadata?.id ?? "" });
+  const id = agent.metadata?.id ?? "";
+  await agentCommand.delete({ value: id });
+  return id;
 }
 
 afterAll(async () => {
@@ -397,14 +399,22 @@ describe("trigger — the two-level contract", () => {
       scheduleInput({ name: "Orphan Fire", slug: "orphan-fire", agentSlug: "ephemeral" }),
     );
     const id = created.metadata?.id ?? "";
-    await deleteAgent("ephemeral");
+    const deletedId = await deleteAgent("ephemeral");
+    // Delete and remake: another agent takes the name. The schedule holds
+    // the deleted agent's id, so its fire never runs the new one.
+    await agentCommand.create({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { name: "Ephemeral Remade", org: "acme", slug: "ephemeral" },
+      spec: { instructions: "a stranger that took the name" },
+    });
 
     // The fire happened (level two): the deterministic dangling-reference
     // outcome is a SUCCESSFUL trigger honestly reported, never an
     // exception (no cascade by contract).
     const result = await command.trigger({ value: id });
     expect(result.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
-    expect(result.refusalReason).toBe(`target agent ${acmeId}/ephemeral not found`);
+    expect(result.refusalReason).toBe(`target agent ${acmeId}/${deletedId} not found`);
     expect(result.runId).toBe("");
     // The post-fire row: last_fire_at stamped by the handler.
     expect(result.schedule?.status?.lastFireAt).toBeDefined();

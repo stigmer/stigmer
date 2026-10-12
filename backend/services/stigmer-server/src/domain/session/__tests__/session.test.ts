@@ -455,15 +455,18 @@ describe("session update — references the stored row already carries", () => {
       "skl_session_echo",
     );
 
+    // The echo is what a reader read: the reference by id and the name it
+    // had, written back after the skill left.
     const echoed = await command.update(
       updateInput(session, {
-        skillRefs: [skillRef],
+        skillRefs: session.spec!.skillRefs,
         harnessStateId: "thread-written-back",
       }),
     );
     expect(echoed.spec?.harnessStateId).toBe("thread-written-back");
-    expect(echoed.spec?.skillRefs.map((ref) => ref.slug)).toEqual([
-      "echoed-skill",
+    // The skill is gone, so the answer names it by no slug; the id stands.
+    expect(echoed.spec?.skillRefs.map((ref) => [ref.id, ref.slug])).toEqual([
+      ["skl_session_echo", ""],
     ]);
 
     // The same missing skill, added by a write that did not carry it, is

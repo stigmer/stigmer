@@ -413,8 +413,8 @@ export async function loadReferenced<Desc extends DescMessage>(
  * readers that load a reference they were handed): by its id, a point read
  * whose row must belong to the reference's organization when it names one;
  * else by its org and slug through the name table. A reference carrying
- * both is refused when they name different resources (INVALID_ARGUMENT,
- * the resolver's rule). Undefined when nothing matches.
+ * both is refused when the slug names a different resource
+ * (INVALID_ARGUMENT, the resolver's rule). Undefined when nothing matches.
  */
 export async function findByReference<Desc extends DescMessage>(
   store: Store,
@@ -434,7 +434,7 @@ export async function findByReference<Desc extends DescMessage>(
   }
   if (ref.slug !== "" && ref.slug !== metadata.slug) {
     const named = await resolveName(store, kind, metadata.org, ref.slug);
-    if (named !== ref.id) {
+    if (named !== undefined && named !== ref.id) {
       throw invalidArgumentError(
         `reference names '${ref.slug}' and id '${ref.id}', which are not the same resource; name it by its slug, by its id, or by both when they agree.`,
       );
@@ -856,8 +856,11 @@ export async function resolveReferences(
  *   - a slug is resolved to its id through the name table, each distinct
  *     (kind, org, slug) once, a previous name included; the id is set and
  *     the slug cleared. An id the write also carries must be the one the
- *     slug names, or the write is refused naming both (INVALID_ARGUMENT);
- *   - a slug nothing holds is left as written, with no id, for the
+ *     slug names when the slug names one, or the write is refused naming
+ *     both (INVALID_ARGUMENT). Beside an id, a slug nothing holds is a
+ *     name read before its resource was deleted (a reader writing back
+ *     what it read): the id stands and the slug is cleared;
+ *   - a slug nothing holds and no id are left as written, for the
  *     reference rule to refuse as a missing target, so resolving never
  *     says which names exist.
  *
@@ -899,15 +902,15 @@ async function resolveFound(
     }
     const named = resolved.get(key);
     const written = stringField(ref, "id");
-    if (written !== "" && written !== named) {
+    if (written !== "" && named !== undefined && written !== named) {
       throw invalidArgumentError(
         `${field.name} names '${slug}' and id '${written}', which are not the same resource; name it by its slug, by its id, or by both when they agree.`,
       );
     }
-    if (named === undefined) {
+    if (named === undefined && written === "") {
       continue;
     }
-    ref.set(fieldNamed(ref, "id"), named);
+    ref.set(fieldNamed(ref, "id"), named ?? written);
     ref.set(fieldNamed(ref, "slug"), "");
   }
 }

@@ -1,7 +1,7 @@
 /**
  * Pins ResolveSessionAgent (resolve-session-agent.ts), the rule that moves a
  * conversation's pin, over a real SQLite store and the real RequestContext,
- * with the agent ids the reference rule would have recorded:
+ * with references that hold the agent ids NormalizeReferences resolves:
  *   - a reference with no version pins the agent's current version;
  *   - `latest` pins the current version now, also over a stored pin, and is
  *     not stored: the reference keeps no version, so a later echo keeps the
@@ -12,9 +12,13 @@
  *     after the author saved or moved the tag it names; a changed reference
  *     does not;
  *   - no reference clears the pin (the built-in assistant);
- *   - an agent gone since the reference rule's scan is FAILED_PRECONDITION;
- *     a chain that ran without the recorded targets is Internal, and so is
- *     a failing read of the agent row;
+ *   - an agent gone since the reference rule's read is FAILED_PRECONDITION,
+ *     and so is a reference still written by a name nothing held; a
+ *     failing read of the agent row is Internal;
+ *   - delete and remake: a stored reference holds the deleted agent's id,
+ *     so an echo of it (even naming `latest`) refuses naming that agent and
+ *     never moves to the agent remade under its name; a write that names
+ *     the remade agent names its new id, an ordinary change of agent;
  *   - a client-sent status never survives: the step writes both fields;
  *   - a new conversation naming no engine starts on the engine of the
  *     agent version it pins; one naming an engine keeps it; a stored
@@ -40,12 +44,6 @@ import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
-import {
-  notAvailableReferenceMessage,
-  referenceTargetKind,
-  RESOLVED_REFERENCE_TARGETS_KEY,
-  type ReferenceTargets,
-} from "../../../pipeline/steps/references.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 
@@ -106,30 +104,26 @@ async function seedAgent(id: string, slug: string): Promise<void> {
   );
 }
 
-/** What ValidateReferences records: the ids its scan found, by org/slug. */
-function targetsOf(ids: Record<string, string>): ReferenceTargets {
-  return {
-    idOf: (ref) => ids[`${ref.org}/${ref.slug}`],
-    visibilityOf: () => undefined,
-    writerParentOrg: "",
-  };
-}
-
+/**
+ * A session whose agent_ref holds `agentId`, as NormalizeReferences leaves
+ * it ("" names no agent); `{ slug }` instead writes a name nothing held.
+ */
 function sessionNaming(
-  slug: string,
+  agentId: string | { readonly slug: string },
   version = "",
   status?: { agentId: string; agentVersionHash: string },
 ): Session {
+  const held = typeof agentId === "string" ? { id: agentId } : agentId;
   return create(SessionSchema, {
     metadata: { id: "ses_1", org: ORG, slug: "chat" },
     spec:
-      slug === ""
+      typeof agentId === "string" && agentId === ""
         ? {}
         : {
             agentRef: {
               kind: ApiResourceKind.agent,
               org: ORG,
-              slug,
+              ...held,
               version,
             },
           },
@@ -141,7 +135,6 @@ async function pin(
   request: Session,
   options: {
     readonly stored?: Session;
-    readonly targets?: ReferenceTargets;
     readonly authorizer?: Authorizer;
     readonly store?: Store;
   } = {},
@@ -155,10 +148,6 @@ async function pin(
   if (options.stored !== undefined) {
     ctx.set(EXISTING_RESOURCE_KEY, options.stored);
   }
-  ctx.set(
-    RESOLVED_REFERENCE_TARGETS_KEY,
-    options.targets ?? targetsOf({ [`${ORG}/reviewer`]: "agt_1" }),
-  );
   await newResolveSessionAgentStep(
     options.store ?? store,
     silentLogger,
@@ -179,49 +168,46 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
 describe("ResolveSessionAgent", () => {
   it("pins the agent's current version for a reference with no version", async () => {
     await seedAgent("agt_1", "reviewer");
-    const session = await pin(sessionNaming("reviewer"));
+    const session = await pin(sessionNaming("agt_1"));
     expect(session.status?.agentId).toBe("agt_1");
     expect(session.status?.agentVersionHash).toBe(HEAD);
   });
 
   it("pins the version a tag names", async () => {
     await seedAgent("agt_1", "reviewer");
-    const session = await pin(sessionNaming("reviewer", "v1"));
+    const session = await pin(sessionNaming("agt_1", "v1"));
     expect(session.status?.agentVersionHash).toBe(OLDER);
   });
 
   it("pins the version a content hash names", async () => {
     await seedAgent("agt_1", "reviewer");
-    const session = await pin(sessionNaming("reviewer", OLDER));
+    const session = await pin(sessionNaming("agt_1", OLDER));
     expect(session.status?.agentVersionHash).toBe(OLDER);
   });
 
   it("answers a caller who may not run the agent with the run gate's denial, not the version miss", async () => {
     await seedAgent("agt_1", "reviewer");
     const error = await refusal(
-      pin(sessionNaming("reviewer", "v9"), { authorizer: DENY }),
+      pin(sessionNaming("agt_1", "v9"), { authorizer: DENY }),
     );
     expect(error.code).toBe(Code.PermissionDenied);
     expect(error.rawMessage).toBe("unauthorized to run agent 'agt_1'");
   });
 
-  it("pins a new version of the stored agent by the id the row holds, with no targets recorded", async () => {
+  it("pins a new version of the stored agent by the id the reference holds", async () => {
     await seedAgent("agt_1", "reviewer");
-    const stored = sessionNaming("reviewer", "", {
+    const stored = sessionNaming("agt_1", "", {
       agentId: "agt_1",
       agentVersionHash: HEAD,
     });
-    const session = await pin(sessionNaming("reviewer", "v1"), {
-      stored,
-      targets: targetsOf({}),
-    });
+    const session = await pin(sessionNaming("agt_1", "v1"), { stored });
     expect(session.status?.agentId).toBe("agt_1");
     expect(session.status?.agentVersionHash).toBe(OLDER);
   });
 
   it("refuses a version the agent does not hold, naming it", async () => {
     await seedAgent("agt_1", "reviewer");
-    const error = await refusal(pin(sessionNaming("reviewer", "v9")));
+    const error = await refusal(pin(sessionNaming("agt_1", "v9")));
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe(
       `referenced agent '${ORG}/reviewer' has no version 'v9'; name one of its tags or content hashes, or 'latest' for its current version.`,
@@ -230,13 +216,13 @@ describe("ResolveSessionAgent", () => {
 
   it("keeps the stored pin when an update echoes the reference with no version", async () => {
     await seedAgent("agt_1", "reviewer");
-    const stored = sessionNaming("reviewer", "", {
+    const stored = sessionNaming("agt_1", "", {
       agentId: "agt_1",
       agentVersionHash: OLDER,
     });
     // BuildUpdateState carries the stored status onto the merged state.
     const session = await pin(
-      sessionNaming("reviewer", "", {
+      sessionNaming("agt_1", "", {
         agentId: "agt_1",
         agentVersionHash: OLDER,
       }),
@@ -247,11 +233,11 @@ describe("ResolveSessionAgent", () => {
 
   it("moves a stored pin to the current version when the update names latest, and stores no version", async () => {
     await seedAgent("agt_1", "reviewer");
-    const stored = sessionNaming("reviewer", "", {
+    const stored = sessionNaming("agt_1", "", {
       agentId: "agt_1",
       agentVersionHash: OLDER,
     });
-    const session = await pin(sessionNaming("reviewer", "latest"), { stored });
+    const session = await pin(sessionNaming("agt_1", "latest"), { stored });
     expect(session.status?.agentId).toBe("agt_1");
     expect(session.status?.agentVersionHash).toBe(HEAD);
     expect(session.spec?.agentRef?.version).toBe("");
@@ -270,12 +256,12 @@ describe("ResolveSessionAgent", () => {
       "",
     );
     await store.setAuditTag(ApiResourceKind.agent, "agt_1", HEAD, "v1");
-    const stored = sessionNaming("reviewer", "v1", {
+    const stored = sessionNaming("agt_1", "v1", {
       agentId: "agt_1",
       agentVersionHash: OLDER,
     });
     const session = await pin(
-      sessionNaming("reviewer", "v1", {
+      sessionNaming("agt_1", "v1", {
         agentId: "agt_1",
         agentVersionHash: OLDER,
       }),
@@ -286,31 +272,28 @@ describe("ResolveSessionAgent", () => {
 
   it("re-pins when an update names a different tag than the stored one", async () => {
     await seedAgent("agt_1", "reviewer");
-    const stored = sessionNaming("reviewer", "", {
+    const stored = sessionNaming("agt_1", "", {
       agentId: "agt_1",
       agentVersionHash: HEAD,
     });
-    const session = await pin(sessionNaming("reviewer", "v1"), { stored });
+    const session = await pin(sessionNaming("agt_1", "v1"), { stored });
     expect(session.status?.agentVersionHash).toBe(OLDER);
   });
 
   it("pins the current version of an agent the update changes to", async () => {
     await seedAgent("agt_1", "reviewer");
     await seedAgent("agt_2", "writer");
-    const stored = sessionNaming("reviewer", "", {
+    const stored = sessionNaming("agt_1", "", {
       agentId: "agt_1",
       agentVersionHash: OLDER,
     });
-    const session = await pin(sessionNaming("writer"), {
-      stored,
-      targets: targetsOf({ [`${ORG}/writer`]: "agt_2" }),
-    });
+    const session = await pin(sessionNaming("agt_2"), { stored });
     expect(session.status?.agentId).toBe("agt_2");
     expect(session.status?.agentVersionHash).toBe(HEAD);
   });
 
   it("clears the pin when the write names no agent", async () => {
-    const stored = sessionNaming("reviewer", "", {
+    const stored = sessionNaming("agt_1", "", {
       agentId: "agt_1",
       agentVersionHash: HEAD,
     });
@@ -334,73 +317,36 @@ describe("ResolveSessionAgent", () => {
     expect(session.status?.agentId).toBe("agt_gone");
   });
 
-  it("moves a session whose agent was deleted to the agent re-created under the slug, when the write names it again", async () => {
+  it("delete and remake: an echo of the deleted agent's id refuses naming it, and never moves to the agent remade under its name", async () => {
     await seedAgent("agt_new", "reviewer");
-    const stored = sessionNaming("reviewer", "", {
-      agentId: "agt_deleted",
-      agentVersionHash: OLDER,
-    });
-    // The update names latest; the targets were not loaded (the reference
-    // is no new one), so the slug is resolved by its own read.
-    const session = await pin(sessionNaming("reviewer", "latest"), {
-      stored,
-      targets: targetsOf({}),
-    });
-    expect(session.status?.agentId).toBe("agt_new");
-    expect(session.status?.agentVersionHash).toBe(HEAD);
-  });
-
-  it("judges the agent that holds the slug now by the reference rule: another organization's private agent is refused", async () => {
-    await seedAgent("agt_new", "reviewer");
-    const inOtherOrg = (session: Session): Session => {
-      session.metadata!.org = "org_other";
-      return session;
-    };
-    const stored = inOtherOrg(
-      sessionNaming("reviewer", "", {
-        agentId: "agt_deleted",
-        agentVersionHash: OLDER,
-      }),
-    );
-    const error = await refusal(
-      pin(inOtherOrg(sessionNaming("reviewer", "latest")), {
-        stored,
-        targets: targetsOf({}),
-      }),
-    );
-    expect(error.rawMessage).toBe(
-      notAvailableReferenceMessage(
-        referenceTargetKind(ApiResourceKind.agent)!,
-        {
-          kind: ApiResourceKind.agent,
-          org: ORG,
-          slug: "reviewer",
-        },
-      ),
-    );
-  });
-
-  it("refuses naming the slug again when no agent holds it any more", async () => {
-    const stored = sessionNaming("reviewer", "", {
+    const stored = sessionNaming("agt_deleted", "", {
       agentId: "agt_deleted",
       agentVersionHash: OLDER,
     });
     const error = await refusal(
-      pin(sessionNaming("reviewer", "latest"), {
-        stored,
-        targets: targetsOf({}),
-      }),
+      pin(sessionNaming("agt_deleted", "latest"), { stored }),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe(
-      `referenced agent '${ORG}/reviewer' no longer exists.`,
+      `referenced agent '${ORG}/agt_deleted' no longer exists.`,
     );
+  });
+
+  it("delete and remake: a write naming the remade agent names its new id, and pins it as any change of agent", async () => {
+    await seedAgent("agt_new", "reviewer");
+    const stored = sessionNaming("agt_deleted", "", {
+      agentId: "agt_deleted",
+      agentVersionHash: OLDER,
+    });
+    const session = await pin(sessionNaming("agt_new", "latest"), { stored });
+    expect(session.status?.agentId).toBe("agt_new");
+    expect(session.status?.agentVersionHash).toBe(HEAD);
   });
 
   it("writes the resolved pin over a status the client sent", async () => {
     await seedAgent("agt_1", "reviewer");
     const session = await pin(
-      sessionNaming("reviewer", "", {
+      sessionNaming("agt_1", "", {
         agentId: "agt_forged",
         agentVersionHash: OLDER,
       }),
@@ -409,20 +355,20 @@ describe("ResolveSessionAgent", () => {
     expect(session.status?.agentVersionHash).toBe(HEAD);
   });
 
-  it("refuses an agent gone since the reference rule found it", async () => {
-    const error = await refusal(pin(sessionNaming("reviewer")));
+  it("refuses an agent gone since the reference rule found it, naming the id the reference holds", async () => {
+    const error = await refusal(pin(sessionNaming("agt_1")));
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe(
+      `referenced agent '${ORG}/agt_1' no longer exists.`,
+    );
+  });
+
+  it("refuses a reference still written by a name nothing held, naming it", async () => {
+    const error = await refusal(pin(sessionNaming({ slug: "reviewer" })));
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toBe(
       `referenced agent '${ORG}/reviewer' no longer exists.`,
     );
-  });
-
-  it("fails Internal when the chain recorded no target for the reference", async () => {
-    await seedAgent("agt_1", "reviewer");
-    const error = await refusal(
-      pin(sessionNaming("reviewer"), { targets: targetsOf({}) }),
-    );
-    expect(error.code).toBe(Code.Internal);
   });
 
   it("fails Internal when the agent row cannot be read", async () => {
@@ -435,7 +381,7 @@ describe("ResolveSessionAgent", () => {
       },
     });
     const error = await refusal(
-      pin(sessionNaming("reviewer"), { store: failing }),
+      pin(sessionNaming("agt_1"), { store: failing }),
     );
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toContain(
@@ -462,31 +408,31 @@ describe("ResolveSessionAgent: a new conversation's engine", () => {
 
   it("starts on the engine the pinned version names when the request names none", async () => {
     await seedCursorAgent();
-    const session = await pin(sessionNaming("reviewer"));
+    const session = await pin(sessionNaming("agt_1"));
     expect(session.spec?.harness).toBe(Harness.CURSOR);
   });
 
   it("keeps the engine the request names", async () => {
     await seedCursorAgent();
-    const request = sessionNaming("reviewer");
+    const request = sessionNaming("agt_1");
     request.spec!.harness = Harness.NATIVE;
     expect((await pin(request)).spec?.harness).toBe(Harness.NATIVE);
   });
 
   it("reads the engine of the version pinned, not the head", async () => {
     await seedCursorAgent();
-    expect((await pin(sessionNaming("reviewer", "v1"))).spec?.harness).toBe(
+    expect((await pin(sessionNaming("agt_1", "v1"))).spec?.harness).toBe(
       Harness.UNSPECIFIED,
     );
   });
 
   it("never gives a stored conversation an engine", async () => {
     await seedCursorAgent();
-    const stored = sessionNaming("reviewer", "", {
+    const stored = sessionNaming("agt_1", "", {
       agentId: "agt_1",
       agentVersionHash: OLDER,
     });
-    const session = await pin(sessionNaming("reviewer", "latest"), { stored });
+    const session = await pin(sessionNaming("agt_1", "latest"), { stored });
     expect(session.status?.agentVersionHash).toBe(HEAD);
     expect(session.spec?.harness).toBe(Harness.UNSPECIFIED);
   });

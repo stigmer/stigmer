@@ -99,6 +99,7 @@ function makeDirectAccount(overrides: {
 }
 
 const PROVIDER_ORG = "org_01hzacme000000000000000000";
+const PROVIDER_ID = "idp_01hzacmeokta0000000000000";
 
 /** A federated account at the address of its provider and subject, as the create path writes it. */
 function makeFederatedAccount(idpId: string): IdentityAccount {
@@ -106,7 +107,7 @@ function makeFederatedAccount(idpId: string): IdentityAccount {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityAccount",
     metadata: {
-      id: federatedAccountIdFor(PROVIDER_ORG, "acme-okta", idpId),
+      id: federatedAccountIdFor(PROVIDER_ID, idpId),
       name: idpId,
       org: PROVIDER_ORG,
     },
@@ -116,7 +117,7 @@ function makeFederatedAccount(idpId: string): IdentityAccount {
       identityProviderRef: {
         org: PROVIDER_ORG,
         kind: ApiResourceKind.identity_provider,
-        slug: "acme-okta",
+        id: PROVIDER_ID,
       },
     },
   });
@@ -241,33 +242,25 @@ describe.each([sqliteFixture, postgresFixture])(
         await accounts.save(makeFederatedAccount("okta|dana"));
         expect(
           (
-            await accounts.findByProviderAndIdpId(
-              PROVIDER_ORG,
-              "acme-okta",
-              "okta|dana",
-            )
+            await accounts.findByProviderAndIdpId(PROVIDER_ID, "okta|dana")
           )?.metadata?.id,
-        ).toBe(federatedAccountIdFor(PROVIDER_ORG, "acme-okta", "okta|dana"));
+        ).toBe(federatedAccountIdFor(PROVIDER_ID, "okta|dana"));
         expect(
-          await accounts.findByProviderAndIdpId(
-            PROVIDER_ORG,
-            "acme-okta",
-            "okta|nobody",
-          ),
+          await accounts.findByProviderAndIdpId(PROVIDER_ID, "okta|nobody"),
         ).toBeUndefined();
         expect(findByFieldPaths).toEqual([]);
         expect(findAllByFieldPaths).toEqual([]);
       });
 
-      it("findByProvider scans by the provider's slug (a provider's removal, never a per-request path)", async () => {
+      it("findByProvider scans by the provider's id (a provider's removal, never a per-request path)", async () => {
         await accounts.save(makeFederatedAccount("okta|dana"));
         expect(
-          (await accounts.findByProvider(PROVIDER_ORG, "acme-okta")).map(
+          (await accounts.findByProvider(PROVIDER_ID)).map(
             (account) => account.spec?.idpId,
           ),
         ).toEqual(["okta|dana"]);
         expect(findAllByFieldPaths).toEqual([
-          "spec.identity_provider_ref.slug",
+          "spec.identity_provider_ref.id",
         ]);
       });
 
@@ -288,21 +281,19 @@ describe.each([sqliteFixture, postgresFixture])(
 
       it("a federated read with a part no reference can hold answers nothing, and a save of a row with one is refused", async () => {
         await accounts.save(makeFederatedAccount("okta|dana"));
-        for (const [org, slug, subject] of [
-          ["", "acme-okta", "okta|dana"],
-          [PROVIDER_ORG, "", "okta|dana"],
-          [PROVIDER_ORG, "acme-okta", ""],
-          [PROVIDER_ORG, "acme|okta", "dana"],
+        for (const [provider, subject] of [
+          ["", "okta|dana"],
+          [PROVIDER_ID, ""],
+          ["idp|okta", "dana"],
         ] as const) {
           expect(
-            await accounts.findByProviderAndIdpId(org, slug, subject),
+            await accounts.findByProviderAndIdpId(provider, subject),
           ).toBeUndefined();
         }
-        expect(await accounts.findByProvider("", "acme-okta")).toEqual([]);
-        expect(await accounts.findByProvider(PROVIDER_ORG, "")).toEqual([]);
+        expect(await accounts.findByProvider("")).toEqual([]);
 
         const unaddressable = makeFederatedAccount("okta|erin");
-        unaddressable.spec!.identityProviderRef!.org = "";
+        unaddressable.spec!.identityProviderRef!.id = "";
         await expect(accounts.save(unaddressable)).rejects.toThrow(
           "federated account id must be derived from its identity provider and idp_id",
         );
