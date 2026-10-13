@@ -1589,13 +1589,12 @@ describe("the sign-in requirement", () => {
 
   it("while it is required, changing whom the provider trusts is the owners' too; a respelled issuer is not", async () => {
     const r = rig({ decide: adminOnly });
-    await r.store.insert(storedProvider({ id: "idp_req", org: "acme", slug: "req", isSso: true, issuers: ["https://idp.acme.test"] }));
-    const stored = (await r.store.findById("idp_req"))!;
+    const stored = storedProvider({ id: "idp_req", org: "acme", slug: "req", isSso: true, issuers: ["https://idp.acme.test"] });
     stored.spec!.ssoRequired = true;
     stored.spec!.createAccountsOnSignIn = true;
     stored.spec!.signInRole = IamRole.viewer;
     stored.spec!.jwksUri = JWKS;
-    await r.store.replace(stored);
+    await r.store.insert(stored);
 
     const repointed = clone(IdentityProviderSchema, stored);
     repointed.spec!.allowedIssuers = ["https://login.acme.test"];
