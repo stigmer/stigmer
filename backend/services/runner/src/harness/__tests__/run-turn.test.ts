@@ -136,14 +136,14 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const { driver, final } = await assertFailedSurfaceWritesItsCopy(harness, surface, FAILURE_MESSAGES[surface], `fake-failed-${surface}`);
       expect(driver.record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_FAILED]);
       expect(final.error).toBe(FAILURE_MESSAGES[surface]);
-      expect(systemMessages(final)).toEqual(rows);
+      expect(systemMessages(driver.record.rowsOf(final))).toEqual(rows);
     });
 
     it("a rejected bind: the fake names the failure and nothing of the scenario was folded in", async () => {
       clock.reset();
-      const { final } = await assertRejectedBindFails(harness, "fake-bind-rejects");
+      const { driver, final } = await assertRejectedBindFails(harness, "fake-bind-rejects");
       expect(final.error).toContain("could not bind engine state");
-      expect(aiMessages(final)).toEqual([]);
+      expect(aiMessages(driver.record.rowsOf(final))).toEqual([]);
     });
 
     it("REJECT continues the run without the tool and the row settles SKIPPED with its reason (stigmer#197)", async () => {
@@ -160,8 +160,8 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         RunPhase.RUN_IN_PROGRESS,
         RunPhase.RUN_COMPLETED,
       ]);
-      expect(aiMessages(final)).toContain("Moving on.");
-      expect(systemMessages(final), "no terminal copy: the run ended normally").toEqual([]);
+      expect(aiMessages(driver.record.rowsOf(final))).toContain("Moving on.");
+      expect(systemMessages(driver.record.rowsOf(final)), "no terminal copy: the run ended normally").toEqual([]);
     });
 
     it("structured output on a turn with captured edits is resolved at its completion: review never holds the answer back", async () => {
@@ -176,8 +176,8 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       // LLM is asked); the edit is captured and the turn completes with it.
       const first = await driver.turn([scenario.flowingWrite("fake-review-structured-w", "answer.md"), scenario.say('{"answer": 42}')]);
       expect(slimOf(subject, first).phase).toBe("RUN_COMPLETED");
-      expect(driver.record.lastFullStatus?.structuredOutput, "resolved on the completion write").toEqual({ answer: 42 });
-      expect(driver.record.lastFullStatus?.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured", "candidateCaptured"]);
+      expect(driver.record.lastFullRows?.structuredOutput, "resolved on the completion write").toEqual({ answer: 42 });
+      expect(driver.record.lastFullRows?.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured", "candidateCaptured"]);
     });
   });
 
@@ -211,7 +211,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       const invocation = await driver.turn([]);
 
       expect(slimOf(leaving.subject, invocation).phase).toBe("RUN_COMPLETED");
-      const final = driver.record.lastFullStatus!;
+      const final = driver.record.lastFullRows!;
       expect(final.messages.map((m) => [m.content, m.isStreaming]), "the message the adapter left open is closed").toEqual([["half a thou", false]]);
       const row = final.messages[0]!.toolCalls[0]!;
       expect([row.id, row.isStreaming, row.result], "the row the adapter left streaming output is closed, its output kept").toEqual(["t1", false, "building"]);
@@ -394,12 +394,12 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       // its transcript — and nothing may be pushed from the tree.
       clock.tick();
       driver.record.decideCapturedFileChanges({ reject: ["answer.md"] }, new Date().toISOString());
-      const decided = driver.record.status!.fileChangeSets.at(-1)!.changes.find((c) => c.pathAfter === "answer.md")!;
+      const decided = driver.record.status!.fileChanges.at(-1)!.changes.find((c) => c.pathAfter === "answer.md")!;
       decided.afterSha256 = "deadbeef".repeat(8);
       const { invocation: second } = await driver.reconcileTurn();
 
       expect(slimOf(subject, second).phase).toBe("RUN_COMPLETED");
-      const final = driver.record.reconcileFinalStatus!;
+      const final = driver.record.rowsOf(driver.record.reconcileFinalStatus!);
       expect(
         final.messages.some((m) => m.content.startsWith(TERMINAL_COPY.fileReview.applyFailedPrefix)),
         "the reconcile turn reported its refusal",

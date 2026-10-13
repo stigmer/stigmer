@@ -23,8 +23,10 @@ import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@st
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { toJsonString } from "@bufbuild/protobuf";
 import { UsageAccumulator } from "../usage-accumulator.js";
-import { AgentMessageSchema, ToolCallSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { FileReviewEventSchema, FileReviewEventStreamSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/ledger_pb.js";
+import { FileReviewEventType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 interface Gate {
   readonly open: () => void;
@@ -40,12 +42,12 @@ function gate(): Gate {
 /** A client whose `updateStatus` answers through a gate the test opens, so writes can be held in flight. */
 function heldClient(answers: RunControlSignal[] = []) {
   const gates: Gate[] = [];
-  const writes: number[] = [];
+  const writes: string[] = [];
   const client = {
-    updateStatus: vi.fn(async (_id: string, status: { messages: unknown[] }) => {
+    updateStatus: vi.fn(async (_id: string, status: { error: string }) => {
       const g = gate();
       gates.push(g);
-      writes.push(status.messages.length);
+      writes.push(status.error);
       await g.opened;
       return create(UpdateStatusResponseSchema, { signal: answers.shift() ?? RunControlSignal.UNSPECIFIED });
     }),
@@ -58,19 +60,21 @@ function chokepointOver(
   options: { usage?: UsageAccumulator; progress?: TurnProgress; onPlatformStop?: () => void } = {},
 ) {
   const status = create(RunStatusSchema, {});
+  const rows = create(TurnRowsSchema, {});
   const heartbeat = vi.fn();
   const onPlatformStop = options.onPlatformStop ?? vi.fn();
   const chokepoint = new PersistChokepoint({
     client,
     executionId: "aex_test",
     status,
+    rows,
     offload: undefined,
     usage: () => options.usage,
     progress: () => options.progress,
     heartbeat,
     onPlatformStop,
   });
-  return { chokepoint, status, heartbeat, onPlatformStop };
+  return { chokepoint, status, rows, heartbeat, onPlatformStop };
 }
 
 describe("PersistChokepoint: one write", () => {
@@ -88,13 +92,15 @@ describe("PersistChokepoint: one write", () => {
       credential: async () => undefined,
       delay: async () => {},
     });
-    await events.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await events.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     const { client, gates } = heldClient();
     const status = create(RunStatusSchema, {});
+    const rows = create(TurnRowsSchema, {});
     const chokepoint = new PersistChokepoint({
       client,
       executionId: "aex_test",
       status,
+      rows,
       offload: undefined,
       usage: () => undefined,
       progress: () => undefined,
@@ -102,7 +108,7 @@ describe("PersistChokepoint: one write", () => {
       onPlatformStop: vi.fn(),
       events,
     });
-    status.messages.push(
+    rows.messages.push(
       create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
         content: "Writing the env file.",
@@ -138,8 +144,8 @@ describe("PersistChokepoint: one write", () => {
     const usage = new UsageAccumulator(ServiceTier.STANDARD, ThinkingMode.DISABLED);
     usage.addTurn({ inputTokens: 10, estimatedCostUsd: 0.01, model: "m" });
     const onPlatformStop = vi.fn();
-    const { chokepoint, status, heartbeat } = chokepointOver(client, { usage, onPlatformStop });
-    status.messages.push(
+    const { chokepoint, status, rows, heartbeat } = chokepointOver(client, { usage, onPlatformStop });
+    rows.messages.push(
       create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
         toolCalls: [
@@ -157,7 +163,7 @@ describe("PersistChokepoint: one write", () => {
     gates[0]!.open();
     await written;
 
-    expect(status.messages[0]!.toolCalls[0]!.args, "the secret backstop ran before the write").not.toMatchObject({ content: "SECRET=1" });
+    expect(rows.messages[0]!.toolCalls[0]!.args, "the secret backstop ran before the write").not.toMatchObject({ content: "SECRET=1" });
     expect(status.streamingUsage?.estimatedCostUsd).toBe(0.01);
     expect(heartbeat).toHaveBeenCalledTimes(1);
     expect(onPlatformStop).toHaveBeenCalledTimes(1);
@@ -232,11 +238,11 @@ describe("PersistChokepoint: coalescing", () => {
     const { client, gates, writes } = heldClient();
     const { chokepoint, status } = chokepointOver(client);
 
-    status.messages.push(create(AgentMessageSchema, { content: "one" }));
+    status.error = "one";
     const first = chokepoint.request();
-    status.messages.push(create(AgentMessageSchema, { content: "two" }));
+    status.error = "two";
     const second = chokepoint.request();
-    status.messages.push(create(AgentMessageSchema, { content: "three" }));
+    status.error = "three";
     const third = chokepoint.request();
 
     let secondSettled = false;
@@ -251,7 +257,7 @@ describe("PersistChokepoint: coalescing", () => {
     expect(secondSettled, "the follow-up has not landed yet").toBe(false);
 
     await vi.waitFor(() => expect(gates).toHaveLength(2));
-    expect(writes, "the follow-up carries the state as of the LAST request").toEqual([1, 3]);
+    expect(writes, "the follow-up carries the state as of the LAST request").toEqual(["one", "three"]);
     gates[1]!.open();
     await Promise.all([second, third]);
     expect(secondSettled && thirdSettled).toBe(true);
@@ -269,5 +275,70 @@ describe("PersistChokepoint: coalescing", () => {
     gates[1]!.open();
     await second;
     expect(client.updateStatus).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("PersistChokepoint: the run's file record", () => {
+  /** A ledger event for the change set: its baseline, or its candidate. */
+  function ledgerEvent(kind: "baseline" | "candidate") {
+    const changeSetId = "aex_test:0";
+    return kind === "baseline"
+      ? create(FileReviewEventSchema, {
+          eventId: "b",
+          changeSetId,
+          eventType: FileReviewEventType.BASELINE_CAPTURED,
+          payload: { case: "baselineCaptured", value: { changeSetId, turnId: changeSetId, harnessId: "unit" } },
+        })
+      : create(FileReviewEventSchema, {
+          eventId: "c",
+          changeSetId,
+          eventType: FileReviewEventType.CANDIDATE_CAPTURED,
+          payload: { case: "candidateCaptured", value: { changeSetId, candidateSnapshot: { git: { treeOid: "after" } } } },
+        });
+  }
+
+  it("carries each change set on the write after its pin and once more with its candidate, and on no write between", async () => {
+    const carried: string[][] = [];
+    const client = {
+      updateStatus: vi.fn(async (_id: string, status: { fileChanges: { id: string; candidateSnapshot?: unknown }[] }) => {
+        carried.push(status.fileChanges.map((set) => `${set.id}${set.candidateSnapshot === undefined ? "" : "+candidate"}`));
+        return create(UpdateStatusResponseSchema, { signal: RunControlSignal.UNSPECIFIED });
+      }),
+    } as unknown as StigmerClient;
+    const { chokepoint, rows } = chokepointOver(client);
+    await chokepoint.write();
+    rows.fileReviewEventStream = create(FileReviewEventStreamSchema, { runId: "aex_test", events: [ledgerEvent("baseline")] });
+    await chokepoint.write();
+    await chokepoint.write();
+    rows.fileReviewEventStream.events.push(ledgerEvent("candidate"));
+    await chokepoint.write({ final: true });
+    await chokepoint.write({ final: true });
+    expect(carried).toEqual([[], ["aex_test:0"], [], ["aex_test:0+candidate"], []]);
+  });
+
+  it("carries a set again when the write that carried it did not land", async () => {
+    const carried: number[] = [];
+    let fail = true;
+    const client = {
+      updateStatus: vi.fn(async (_id: string, status: { fileChanges: unknown[] }) => {
+        carried.push(status.fileChanges.length);
+        if (fail) {
+          fail = false;
+          throw new Error("the control plane is down");
+        }
+        return create(UpdateStatusResponseSchema, { signal: RunControlSignal.UNSPECIFIED });
+      }),
+    } as unknown as StigmerClient;
+    const { chokepoint, rows } = chokepointOver(client);
+    rows.fileReviewEventStream = create(FileReviewEventStreamSchema, { runId: "aex_test", events: [ledgerEvent("baseline")] });
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await chokepoint.write();
+      await chokepoint.write();
+      await chokepoint.write();
+    } finally {
+      error.mockRestore();
+    }
+    expect(carried, "lost, then carried again, then sent").toEqual([1, 1, 0]);
   });
 });

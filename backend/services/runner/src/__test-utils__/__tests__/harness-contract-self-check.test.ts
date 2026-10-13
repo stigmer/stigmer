@@ -46,7 +46,7 @@ import { scriptedSubject } from "../harness-contract/scripted-adapter.js";
 import type { ScriptedSubject } from "../harness-contract/scripted-adapter.js";
 import { scenario } from "../harness-contract/types.js";
 import type { EngineView, HarnessContractSubject, TurnScenario } from "../harness-contract/types.js";
-import { aiMessage, emptyStatus, findToolCallRow, toolCall } from "../proto-helpers.js";
+import { aiMessage, emptyRows, findToolCallRow, toolCall } from "../proto-helpers.js";
 import { SubAgentRunSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -78,6 +78,7 @@ function adapterOver(inner: HarnessAdapter, name: string, patch: Partial<Harness
 function sinkOver(inner: TurnSink, patch: Partial<TurnSink>): TurnSink {
   return {
     status: inner.status,
+    rows: inner.rows,
     transcript: inner.transcript,
     stopSignal: inner.stopSignal,
     setupTiming: inner.setupTiming,
@@ -140,16 +141,12 @@ function executesUndecidedProposals(): HarnessContractSubject {
   };
 }
 
-/** Re-gates a row an earlier invocation already settled — the second-ledger drift. */
+/** Forgets what its engine ran before each turn, so it re-gates a call an earlier invocation settled. */
 function reGatesSettledRows(): HarnessContractSubject {
   const inner = honest();
   return subjectOver(inner, adapterOver(inner.adapter, "broken:re-gates-settled", {
     runTurn: (input, sink) => {
-      for (const message of sink.status.messages) {
-        for (const row of message.toolCalls) {
-          if (row.status === ToolCallStatus.TOOL_CALL_COMPLETED) row.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
-        }
-      }
+      inner.adapter.forgetSettled(input.sessionId);
       return inner.adapter.runTurn(input, sink);
     },
   }));
@@ -260,24 +257,27 @@ describe("harness contract kit self-check — every invariant can fail", () => {
 const WRITE_BETA = { kind: "write", resource: "/work/beta.txt" } as const;
 
 describe("harness contract kit self-check — the driver stands in for the runtime faithfully", () => {
-  it("hands the adapter the persisted status on the record AND the sink, as two clones", async () => {
+  it("seeds the reinvocation's asks from the log on the sink, and hands the persisted status on the record and the sink as two clones", async () => {
     const subject = await booted(honest());
     const driver = new ExecutionDriver(subject, "driver-record");
     const id = "driver-record-write";
 
     const first = await driver.turn([scenario.propose(id, WRITE_BETA)]);
     expect(first.outcome.kind).toBe("awaiting_approval");
-    expect(first.input.execution.status?.messages ?? [], "a first turn's record carries no persisted status").toHaveLength(0);
+    expect(first.sink.rows.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id), "the proposal is the first turn's own row").toEqual([id]);
     driver.decide(id, ApprovalAction.APPROVE);
 
     const second = driver.begin([scenario.propose(id, WRITE_BETA)]);
     const onRecord = second.input.execution.status;
     expect(onRecord, "the reinvocation's record must carry what the previous turn persisted").toBeDefined();
-    expect(findToolCallRow(onRecord!, id)?.approvalAction, "the decision is on the record's row").toBe(ApprovalAction.APPROVE);
-    expect(findToolCallRow(second.sink.status, id)?.approvalAction, "and on the sink's row").toBe(ApprovalAction.APPROVE);
+    expect(findToolCallRow(second.sink.rows, id)?.approvalAction, "the seeded ask carries the log's answer").toBe(ApprovalAction.APPROVE);
     expect(onRecord, "the record's copy and the sink's copy are distinct objects, as after a real persist and read-back").not.toBe(second.sink.status);
     expect(second.input.approvalDecisions.get(id), "the decisions map is the runtime's map of the log's answer onto the same rows").toBe(ApprovalAction.APPROVE);
-    expect(driver.log.map((e) => e.event.case), "the answer is on the modelled log").toEqual(["userToolConfirmation"]);
+    expect(driver.log.map((e) => e.event.case), "the first turn's ask and the answer are on the modelled log").toEqual([
+      "agentToolUse",
+      "stigmerPermissionAsked",
+      "userToolConfirmation",
+    ]);
     await second.settled;
   });
 
@@ -326,7 +326,7 @@ describe("harness contract kit self-check — the driver stands in for the runti
     expect(outcome.kind).toBe("interrupted");
     expect(abortedWhenParked, "at the moment the engine reported the hang the signal was still live").toBe(false);
     expect(turn.sink.stopSignal.aborted, "and it was aborted after").toBe(true);
-    expect(turn.sink.status.messages.map((m) => m.content), "the stop landed in the hang, after the setup step and before the step after it").toEqual(["setting up"]);
+    expect(turn.sink.rows.messages.map((m) => m.content), "the stop landed in the hang, after the setup step and before the step after it").toEqual(["setting up"]);
   });
 });
 
@@ -334,7 +334,7 @@ describe("harness contract kit self-check — the driver stands in for the runti
 
 describe("harness contract kit self-check — the settled-transcript assertion can fail", () => {
   it("passes a transcript with every flag off", () => {
-    const status = emptyStatus();
+    const status = emptyRows();
     const message = aiMessage("done");
     message.toolCalls.push(toolCall("t-1", "read", ToolCallStatus.TOOL_CALL_COMPLETED));
     status.messages.push(message);
@@ -342,7 +342,7 @@ describe("harness contract kit self-check — the settled-transcript assertion c
   });
 
   it("names a message left streaming", () => {
-    const status = emptyStatus();
+    const status = emptyRows();
     const message = aiMessage("still typing");
     message.isStreaming = true;
     status.messages.push(message);
@@ -350,7 +350,7 @@ describe("harness contract kit self-check — the settled-transcript assertion c
   });
 
   it("names a tool-call row left streaming, inside a sub-agent's transcript", () => {
-    const status = emptyStatus();
+    const status = emptyRows();
     const row = toolCall("t-2", "shell");
     row.isStreaming = true;
     const message = aiMessage("");

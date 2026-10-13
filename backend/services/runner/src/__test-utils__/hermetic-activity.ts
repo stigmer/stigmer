@@ -153,11 +153,13 @@ export function rowsGoldenPath(statusGoldenPath: string): string {
 
 /**
  * The rows the session event emitter read at each run's latest write, by run
- * id, taken by the record's next status write of that run. The rows are the
+ * id, read by the record's status writes of that run. The rows are the
  * runner's own and never cross the wire, so this is where a test sees them:
  * the persist chokepoint hands them to the emitter's `flush` right before the
  * status write (`harness/persist-chokepoint.ts`), and the tap copies them
- * there. Installed once, for every record of the process.
+ * there. Two writes in flight at once (an adapter's unawaited request and the
+ * runtime's terminal write) both read the newer rows. Installed once, for
+ * every record of the process; a new record of a run starts with none.
  */
 const flushedRows = new Map<string, TurnRows>();
 const realFlush = SessionEventEmitter.prototype.flush;
@@ -171,11 +173,9 @@ SessionEventEmitter.prototype.flush = function flushThroughTap(
   return realFlush.call(this, rows, opts);
 };
 
-/** The rows a run's latest write was made from, once; `undefined` when no write flushed since. */
+/** The rows a run's latest write was made from; `undefined` when none flushed for this record yet. */
 function takeFlushedRows(runId: string): TurnRows | undefined {
-  const rows = flushedRows.get(runId);
-  flushedRows.delete(runId);
-  return rows;
+  return flushedRows.get(runId);
 }
 
 // ---------------------------------------------------------------------------
@@ -307,6 +307,7 @@ export class ExecutionRecord {
 
   constructor(input: ExecutionRecordInput) {
     this.execution = clone(RunSchema, input.execution);
+    flushedRows.delete(this.executionId);
     this.session = input.session;
     this.agent = input.agent;
     this.controlSignal = input.controlSignal ?? (() => RunControlSignal.UNSPECIFIED);
@@ -573,6 +574,7 @@ export class ExecutionRecord {
    * id.
    */
   startReconcileTurn(runId = `${this.executionId}-reconcile`): string {
+    flushedRows.delete(runId);
     const spec = clone(RunSpecSchema, this.execution.spec ?? create(RunSpecSchema));
     spec.message = "";
     spec.reconcileFileReview = true;

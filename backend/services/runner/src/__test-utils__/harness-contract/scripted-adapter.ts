@@ -149,6 +149,11 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     return this.executions.get(toolCallId) ?? 0;
   }
 
+  /** Drop the engine's memory of a session: the self-check's adapter that forgets what it ran. */
+  forgetSettled(sessionId: string): void {
+    this.settledCalls.delete(sessionId);
+  }
+
   private hasSettled(sessionId: string, toolCallId: string): boolean {
     return this.settledCalls.get(sessionId)?.has(toolCallId) ?? false;
   }
