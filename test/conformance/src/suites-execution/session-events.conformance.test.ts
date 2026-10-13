@@ -19,6 +19,12 @@
 //     limit ends the session as budget_reached;
 //   - a stream opened on a session before a turn sees that turn's events as
 //     they are appended, in the same order as the list;
+//   - every phase change of a turn is a stigmer.run.status of its run (the
+//     server's): pending at its creation, running, and the phase that ends
+//     it, before the session's idle; a turn that ends while another waits
+//     for the workspace says so, though the session's status does not
+//     change. The arms that pin the session's own sequence read the log
+//     without these;
 //   - the session's status describes the whole session: with a second turn
 //     sent while the first still works, the session reads running until
 //     BOTH have ended, with one idle, after both user messages;
@@ -137,7 +143,21 @@ const TYPE_BY_CASE: Readonly<Record<string, string>> = {
   userToolConfirmation: "user.tool_confirmation",
   userInterrupt: "user.interrupt",
   stigmerPermissionGrant: "stigmer.permission.grant",
+  stigmerRunStatus: "stigmer.run.status",
+  stigmerToolResultFullOutput: "stigmer.tool_result.full_output",
 };
+
+/** The log without each turn's own stigmer.run.status: the sequence the session's arms pin. */
+function sessionOnly(events: ReadonlyArray<SessionEvent>): SessionEvent[] {
+  return events.filter((event) => event.event.case !== "stigmerRunStatus");
+}
+
+/** Each turn's phases, as its stigmer.run.status events say them, by run, in log order. */
+function turnPhases(events: ReadonlyArray<SessionEvent>): Array<[string, string]> {
+  return events.flatMap((event) =>
+    event.event.case === "stigmerRunStatus" ? [[event.runId, event.event.value.phase] as [string, string]] : [],
+  );
+}
 
 /** An event's own id. */
 function idOf(event: SessionEvent): string {
@@ -168,7 +188,12 @@ async function startTurn(org: string, sessionId: string, message: string): Promi
   return id;
 }
 
+/** The session's log as the session's own arms read it (`sessionOnly`). */
 async function log(sessionId: string): Promise<SessionEvent[]> {
+  return sessionOnly(await fullLog(sessionId));
+}
+
+async function fullLog(sessionId: string): Promise<SessionEvent[]> {
   return (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 })).events;
 }
 
@@ -227,11 +252,11 @@ describe("a session's event log on real turns", () => {
     const stream = watch(
       sessionId,
       [],
-      (frames) => frames.filter((f) => f.frame.case === "event").length === 4,
+      (frames) => sessionOnly(frames.flatMap((f) => (f.frame.case === "event" ? [f.frame.value] : []))).length === 4,
       lastSeen,
     );
     await stream.finished;
-    const resumed = stream.frames.flatMap((f) => (f.frame.case === "event" ? [f.frame.value] : []));
+    const resumed = sessionOnly(stream.frames.flatMap((f) => (f.frame.case === "event" ? [f.frame.value] : [])));
     expect(resumed.map((e) => e.seq)).toEqual((await log(sessionId)).filter((e) => e.seq > lastSeen).map((e) => e.seq));
     expect(resumed.map(typeOf)).toEqual(["user.message", "session.status_running", "agent.message", "session.status_idle"]);
   });
@@ -246,7 +271,7 @@ describe("a session's event log on real turns", () => {
 
     const events = await log(sessionId);
     expect(events.map(typeOf)).toEqual(["user.message", "session.status_running", "agent.message", "session.status_idle"]);
-    expect(events.map((e) => e.seq)).toEqual([1n, 2n, 3n, 4n]);
+    expect(events.every((e, i) => i === 0 || e.seq > events[i - 1]!.seq), "in the log's order").toBe(true);
     expect(events.every((e) => e.sessionId === sessionId && e.runId === runId)).toBe(true);
     const message = events[0]!.event;
     expect(message.case === "userMessage" && message.value.content.map((b) => b.text)).toEqual(["summarise the repo"]);
@@ -269,7 +294,7 @@ describe("a session's event log on real turns", () => {
     const runId = await startTurn(org, sessionId, "stream me");
     await awaitTerminal(clients, runId);
     await stream.finished;
-    const streamed = stream.frames.flatMap((f) => (f.frame.case === "event" ? [f.frame.value] : []));
+    const streamed = sessionOnly(stream.frames.flatMap((f) => (f.frame.case === "event" ? [f.frame.value] : [])));
     expect(streamed.map(typeOf)).toEqual(["user.message", "session.status_running", "agent.message", "session.status_idle"]);
     expect(streamed.map((e) => e.seq)).toEqual((await log(sessionId)).map((e) => e.seq));
   });
@@ -294,6 +319,54 @@ describe("a session's event log on real turns", () => {
       "session.status_idle",
     ]);
     expect(typeOf(events[events.length - 1]!)).toBe("session.status_idle");
+  });
+
+  it("[rpc:SessionQueryController.listEvents] each phase change of a turn is a stigmer.run.status of its run, the one that ends it before the session's idle", async () => {
+    const { org } = await target.provisionTenancy();
+    const sessionId = await newSession(org);
+    mock.enqueue(anthropicText("Done."));
+    const runId = await startTurn(org, sessionId, "phases");
+    await awaitTerminal(clients, runId);
+    const events = await pollUntil(
+      () => fullLog(sessionId),
+      (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
+      (last) => `the session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+    );
+    expect(turnPhases(events)).toEqual([
+      [runId, "pending"],
+      [runId, "running"],
+      [runId, "completed"],
+    ]);
+    const types = events.map(typeOf);
+    expect(types.indexOf("stigmer.run.status"), "the turn's status follows its message").toBe(1);
+    expect(types.slice(-2), "the turn's end, then the session's idle").toEqual(["stigmer.run.status", "session.status_idle"]);
+    const ended = events[events.length - 2]!.event;
+    expect(ended.case === "stigmerRunStatus" && [ended.value.stopCause, ended.value.error]).toEqual(["", ""]);
+  });
+
+  it("[rpc:SessionQueryController.listEvents] a turn that ends while the next waits for the workspace leaves its own end, though the session's status stays running", async () => {
+    const { org } = await target.provisionTenancy();
+    const sessionId = await newSession(org);
+    mock.enqueue(anthropicText("First, held."), { delayMs: HOLD_MS });
+    mock.enqueue(anthropicText("Second."));
+    const first = await startTurn(org, sessionId, "first");
+    await awaitPhase(clients, first, RunPhase.RUN_IN_PROGRESS);
+    const second = await startTurn(org, sessionId, "second");
+    mock.releaseHolds();
+    await Promise.all([awaitTerminal(clients, first), awaitTerminal(clients, second)]);
+    const events = await pollUntil(
+      () => fullLog(sessionId),
+      (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
+      (last) => `the session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+    );
+    const firstEnd = events.findIndex((e) => e.runId === first && e.event.case === "stigmerRunStatus" && e.event.value.phase === "completed");
+    const secondEnd = events.findIndex((e) => e.runId === second && e.event.case === "stigmerRunStatus" && e.event.value.phase === "completed");
+    expect(firstEnd, "the first turn's end is in the log").toBeGreaterThan(0);
+    expect(secondEnd, "the second turn's end is in the log").toBeGreaterThan(0);
+    const firstDone = Math.min(firstEnd, secondEnd);
+    const idles = events.flatMap((e, i) => (e.event.case === "sessionStatusIdle" ? [i] : []));
+    expect(idles, "the session idles once, after the last turn ended").toEqual([events.length - 1]);
+    expect(firstDone, "whichever turn ended first, it said so while the session still worked").toBeLessThan(idles[0]! - 1);
   });
 
   it("[rpc:SessionQueryController.listEvents] a cancelled turn ends the session's turn as end_turn", async () => {
@@ -412,10 +485,12 @@ describe("the runner writes what the agent did", () => {
   async function runLog(runId: string): Promise<SessionEvent[]> {
     const final = await awaitTerminal(clients, runId);
     const sessionId = final.spec?.target.case === "sessionId" ? final.spec.target.value : "";
-    return pollUntil(
-      async () => (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events,
-      (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
-      (last) => `run ${runId}'s session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+    return sessionOnly(
+      await pollUntil(
+        async () => (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events,
+        (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
+        (last) => `run ${runId}'s session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+      ),
     );
   }
 
@@ -456,7 +531,7 @@ describe("the runner writes what the agent did", () => {
     const runId = await turn({ org, agentRef: agentRefOf(agent), message: "echo it" });
     const gated = await awaitPhase(clients, runId, RunPhase.RUN_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
     const sessionId = gated.spec?.target.case === "sessionId" ? gated.spec.target.value : "";
-    const atGate = (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events;
+    const atGate = sessionOnly((await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events);
     expect(atGate.map(typeOf)).toEqual([
       "user.message",
       "session.status_running",
@@ -610,11 +685,13 @@ describe("file review's events", () => {
   }
 
   /** One run's events once the session is idle after it. */
-  function idleLog(sessionId: string, runId: string): Promise<SessionEvent[]> {
-    return pollUntil(
-      async () => (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events,
-      (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
-      (last) => `run ${runId}'s session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+  async function idleLog(sessionId: string, runId: string): Promise<SessionEvent[]> {
+    return sessionOnly(
+      await pollUntil(
+        async () => (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events,
+        (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
+        (last) => `run ${runId}'s session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+      ),
     );
   }
 
