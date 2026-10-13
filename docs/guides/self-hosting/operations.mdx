@@ -408,11 +408,11 @@ and from the artifact store, and frees its slug last
 ([Deleting an Organization](/docs/concepts/organizations#deleting-an-organization)).
 
 A server running with a Stigmer Enterprise license keeps one record on purpose:
-the Organization's permission history, one entry for every grant and removal of
-access, with who made it, why and when. It holds account and resource ids, never
-names or emails, and the server does not remove it yet. To erase a deleted
-Organization's history, delete its rows from the `iam_policy_history` table
-yourself, where `org` is the Organization's id.
+the Organization's permission history. Each entry records access granted or
+removed, saying who made the change, why it was made, and when. It holds account
+and resource IDs but never names or emails. The server does not remove it yet.
+To erase a deleted Organization's history, delete its rows from the
+`iam_policy_history` table yourself, where `org` is the Organization's ID.
 
 Some copies live outside what the server can reach, and each ages out on its own
 schedule:
