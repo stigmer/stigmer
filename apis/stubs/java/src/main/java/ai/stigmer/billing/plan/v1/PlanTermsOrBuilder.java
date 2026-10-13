@@ -74,4 +74,33 @@ public interface PlanTermsOrBuilder extends
    * @return The annualPriceMicros.
    */
   long getAnnualPriceMicros();
+
+  /**
+   * <pre>
+   * What a subscription plan bills for each working agent hour past its
+   * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+   * has no overage: an organization on it pauses at its allowance. Zero is
+   * refused, unlike the other terms, because a zero price on an allowance
+   * would be a second way to say "unlimited hours", which an absent
+   * allowance already says. Absent on a license plan.
+   * </pre>
+   *
+   * <code>optional int64 per_agent_hour_micros = 5 [json_name = "perAgentHourMicros", (.buf.validate.field) = { ... }</code>
+   * @return Whether the perAgentHourMicros field is set.
+   */
+  boolean hasPerAgentHourMicros();
+  /**
+   * <pre>
+   * What a subscription plan bills for each working agent hour past its
+   * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+   * has no overage: an organization on it pauses at its allowance. Zero is
+   * refused, unlike the other terms, because a zero price on an allowance
+   * would be a second way to say "unlimited hours", which an absent
+   * allowance already says. Absent on a license plan.
+   * </pre>
+   *
+   * <code>optional int64 per_agent_hour_micros = 5 [json_name = "perAgentHourMicros", (.buf.validate.field) = { ... }</code>
+   * @return The perAgentHourMicros.
+   */
+  long getPerAgentHourMicros();
 }

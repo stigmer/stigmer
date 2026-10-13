@@ -14,7 +14,8 @@
  * a passing shape beside every refused one.
  *
  * What the rows pin: the instrument decides which PlanTerms a plan may carry;
- * a license's timestamps are ordered (issue, expiry, grace); a limit is
+ * an hourly price needs an allowance of agent hours to exceed; a license's
+ * timestamps are ordered (issue, expiry, grace); a limit is
  * present or absent, never zero; a feature is named once. A row that
  * stops matching means the contract moved, and the proto is where it moved.
  */
@@ -47,6 +48,10 @@ const customer = {
   contactEmail: "billing@acme.example",
 };
 const entitlements = { features: [Feature.channels] };
+const withAgentHours = {
+  ...entitlements,
+  limits: { includedAgentHours: 50 },
+};
 const orderedTerm = {
   issuedAt: t("2026-09-01T00:00:00Z"),
   expiresAt: t("2027-09-01T00:00:00Z"),
@@ -108,6 +113,64 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
       terms: { annualPriceMicros: 1n },
     },
     refusedBy: "plan_spec.subscription_has_no_annual_price",
+  }),
+  row({
+    name: "a subscription plan with agent hours and their hourly price",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.subscription,
+      entitlements: withAgentHours,
+      terms: { monthlyMinimumMicros: 1n, perAgentHourMicros: 500_000n },
+    },
+  }),
+  row({
+    name: "a subscription plan with agent hours and no hourly price, which pauses",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.subscription,
+      entitlements: withAgentHours,
+      terms: { monthlyMinimumMicros: 1n },
+    },
+  }),
+  row({
+    name: "a license plan carrying an hourly price",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.license,
+      entitlements: withAgentHours,
+      terms: { annualPriceMicros: 1n, perAgentHourMicros: 1n },
+    },
+    refusedBy: "plan_spec.license_has_no_agent_hour_price",
+  }),
+  row({
+    name: "an hourly price with no limits at all, so no allowance to exceed",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.subscription,
+      entitlements,
+      terms: { perAgentHourMicros: 1n },
+    },
+    refusedBy: "plan_spec.agent_hour_price_needs_allowance",
+  }),
+  row({
+    name: "an hourly price whose limits name no agent hours",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.subscription,
+      entitlements: { ...entitlements, limits: { includedChildOrgs: 5 } },
+      terms: { perAgentHourMicros: 1n },
+    },
+    refusedBy: "plan_spec.agent_hour_price_needs_allowance",
+  }),
+  row({
+    name: "an hourly price of zero, a second spelling of unlimited hours",
+    schema: PlanSpecSchema,
+    init: {
+      instrument: PlanInstrument.subscription,
+      entitlements: withAgentHours,
+      terms: { perAgentHourMicros: 0n },
+    },
+    refusedBy: "int64.gt",
   }),
   row({
     name: "a negative monthly fee",
@@ -225,6 +288,12 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
     name: "an archive retention of zero days, which would delete on archive",
     schema: EntitlementLimitsSchema,
     init: { archivedWorkspaceRetentionDays: 0 },
+    refusedBy: "int32.gt",
+  }),
+  row({
+    name: "an agent hour allowance of zero",
+    schema: EntitlementLimitsSchema,
+    init: { includedAgentHours: 0 },
     refusedBy: "int32.gt",
   }),
   row({
