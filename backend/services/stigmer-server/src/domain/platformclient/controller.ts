@@ -83,6 +83,7 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
+import type { RefusedUpdatePath } from "../../pipeline/steps/update-mask.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
@@ -254,6 +255,17 @@ async function createClient(
 }
 
 /**
+ * The platform client fields an update may not name: its credentials
+ * (docs/update-paths.md). Under a broader path they keep their stored
+ * value, as PreserveClientCredentials keeps them.
+ */
+export const PLATFORM_CLIENT_REFUSED_UPDATE_PATHS: ReadonlyArray<RefusedUpdatePath> = [
+  { path: "spec.client_id", writtenBy: "the server, when the client is created" },
+  { path: "spec.client_secret_hash", writtenBy: "create and rotateSecret" },
+  { path: "spec.secret_fingerprint", writtenBy: "create and rotateSecret" },
+];
+
+/**
  * Update — full spec replacement from the request (BuildUpdateState),
  * addressed by id or org-scoped slug; the platform's own clients refused
  * before any state is built; the reference rule as on create; the
@@ -291,7 +303,7 @@ async function updateClient(
           EXISTING_RESOURCE_KEY,
         ),
       )
-      .addStep(newBuildUpdateStateStep())
+      .addStep(newBuildUpdateStateStep({ refused: PLATFORM_CLIENT_REFUSED_UPDATE_PATHS }))
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newValidateSignInRoleStep())
       .addStep(newNormalizeReferencesStep(deps.store))

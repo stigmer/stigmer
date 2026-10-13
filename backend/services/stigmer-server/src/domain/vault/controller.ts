@@ -97,6 +97,7 @@ import {
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
+import type { RefusedUpdatePath } from "../../pipeline/steps/update-mask.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -325,6 +326,17 @@ async function createVault(
   return respond(reqCtx.newState);
 }
 
+/**
+ * The vault fields an update may not name: its entries, which the entry
+ * doors write and seal (docs/update-paths.md). Under a broader path
+ * (`spec`, `*`) they keep their stored value, as KeepStoredOwnerAndEntries
+ * keeps them.
+ */
+export const VAULT_REFUSED_UPDATE_PATHS: ReadonlyArray<RefusedUpdatePath> = [
+  { path: "spec.secrets", writtenBy: "setSecrets and removeSecrets" },
+  { path: "spec.connections", writtenBy: "a sign-in and removeConnections" },
+];
+
 async function updateVault(
   deps: VaultControllerDeps,
   input: UpdateVaultInput,
@@ -344,7 +356,7 @@ async function updateVault(
       ))
         .addStep(newResolveSlugStep({ update: true }))
         .addStep(newLoadExistingStep(deps.store))
-        .addStep(newBuildUpdateStateStep())
+        .addStep(newBuildUpdateStateStep({ refused: VAULT_REFUSED_UPDATE_PATHS }))
         .addStep(newValidateProtoStep({ of: "state" }))
         .addStep(newGuardReservedLabelsStep(deps.authorizer))
         .addStep(newKeepStoredOwnerAndEntriesStep())

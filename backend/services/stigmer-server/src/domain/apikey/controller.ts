@@ -73,6 +73,7 @@ import {
 } from "../../pipeline/steps/authorize.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
+import type { RefusedUpdatePath } from "../../pipeline/steps/update-mask.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import {
   newDeleteResourceStep,
@@ -294,6 +295,18 @@ async function loadAccount(
 }
 
 /**
+ * The API key fields an update may not name: its material and the
+ * organization it is bound to, fixed when the key is minted
+ * (docs/update-paths.md). Under a broader path they keep their stored
+ * value, as PreserveKeyMaterial keeps them.
+ */
+export const API_KEY_REFUSED_UPDATE_PATHS: ReadonlyArray<RefusedUpdatePath> = [
+  { path: "spec.key_hash", writtenBy: "the server, when the key is minted" },
+  { path: "spec.fingerprint", writtenBy: "the server, when the key is minted" },
+  { path: "spec.bound_org", writtenBy: "create" },
+];
+
+/**
  * Update — the canonical update chain plus PreserveKeyMaterial: expiry
  * fields are the only client-mutable spec surface.
  */
@@ -318,7 +331,7 @@ async function update(
       .addStep(newRefuseServiceAccountCallerStep(UPDATE_KEY_ACT, deps.accounts))
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
-      .addStep(newBuildUpdateStateStep())
+      .addStep(newBuildUpdateStateStep({ refused: API_KEY_REFUSED_UPDATE_PATHS }))
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newPreserveKeyMaterialStep())
       .addStep(newPersistStep(deps.store))

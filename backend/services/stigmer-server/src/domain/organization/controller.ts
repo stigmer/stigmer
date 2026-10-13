@@ -88,6 +88,7 @@ import type { ServiceAccountLookup } from "../../pipeline/steps/refuse-service-a
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
+import type { RefusedUpdatePath } from "../../pipeline/steps/update-mask.js";
 import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
@@ -345,6 +346,18 @@ async function createOrganization(
 }
 
 /** Update — chain per Go buildUpdatePipeline. */
+/**
+ * The organization fields an update may not name: its policies, which
+ * have their own door, and its link to a parent, fixed at create
+ * (docs/update-paths.md). Under a broader path they keep their stored
+ * value, as PreservePolicies and PreserveChildLink keep them.
+ */
+export const ORGANIZATION_REFUSED_UPDATE_PATHS: ReadonlyArray<RefusedUpdatePath> = [
+  { path: "spec.policies", writtenBy: "updatePolicies" },
+  { path: "spec.parent_org", writtenBy: "create" },
+  { path: "spec.external_id", writtenBy: "create" },
+];
+
 async function update(
   deps: OrganizationControllerDeps,
   input: UpdateOrganizationInput,
@@ -370,7 +383,7 @@ async function update(
       )
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingOrganizationStep(deps.store))
-      .addStep(newBuildUpdateStateStep())
+      .addStep(newBuildUpdateStateStep({ refused: ORGANIZATION_REFUSED_UPDATE_PATHS }))
       .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newPreserveChildLinkStep())
       .addStep(newPreservePoliciesStep())
