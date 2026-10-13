@@ -55,6 +55,8 @@ import {
 } from "../protocol.js";
 import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { WireProjection } from "../codec.js";
 
 type HostilePeer = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 
@@ -67,10 +69,24 @@ interface ProxyTurns {
   readonly closed: string[];
 }
 
+/** What a hostile host may put in a projection: any rows and any status fields, as it chooses. */
+interface Forged {
+  readonly status?: RunStatus;
+  readonly rows?: TurnRows;
+}
+
+/** A projection as a hostile host would send it: every field it chose, encoded as is. */
+function forgedProjection(forged: Forged): WireProjection {
+  return {
+    rows: encodeMessage(TurnRowsSchema, forged.rows ?? create(TurnRowsSchema)),
+    status: encodeMessage(RunStatusSchema, forged.status ?? create(RunStatusSchema)),
+  };
+}
+
 function hostileHarness(
   attack: Attack,
   outcome: unknown = { kind: "completed" },
-  settledProjection: RunStatus = create(RunStatusSchema),
+  settledProjection: Forged = {},
   turns: ProxyTurns = { opened: [], closed: [] },
 ): HarnessAdapter {
   const proxy = {
@@ -92,7 +108,7 @@ function hostileHarness(
       host.handle("shutdown", async () => null);
       host.handle("runTurn", async (args): Promise<WireSettlement> => {
         await attack(host, args.turnId, args);
-        return { outcome: outcome as WireSettlement["outcome"], thrown: null, projection: encodeMessage(RunStatusSchema, settledProjection), cas: null };
+        return { outcome: outcome as WireSettlement["outcome"], thrown: null, projection: forgedProjection(settledProjection), cas: null };
       });
       host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
       return { channel: runnerEnd, kill: () => hostEnd.close() };
@@ -128,13 +144,16 @@ describe("a host that does not follow the rules", () => {
   it("keeps a projection's artifact rows and output refs to the turn's own keys", async () => {
     const input = turnInputFixture();
     const own = `artifacts/${input.executionId}/report.md`;
-    const forged = create(RunStatusSchema, {
+    const forged: Forged = {
+      status: create(RunStatusSchema, {
         artifacts: [
           create(RunArtifactSchema, { storageKey: own }),
           create(RunArtifactSchema, { storageKey: "artifacts/aex_someone_else/secret.pdf" }),
           create(RunArtifactSchema, { storageKey: `artifacts/${input.executionId}/../aex_someone_else/x` }),
           create(RunArtifactSchema, { storageKey: "artifacts/seeded/earlier.md" }),
         ],
+      }),
+      rows: create(TurnRowsSchema, {
         messages: [
           create(AgentMessageSchema, {
             type: MessageType.MESSAGE_AI,
@@ -144,7 +163,8 @@ describe("a host that does not follow the rules", () => {
             ],
           }),
         ],
-      });
+      }),
+    };
     const persisted: string[][] = [];
     const sink = new RecordingTurnSink({
       executionId: input.executionId,
@@ -152,7 +172,7 @@ describe("a host that does not follow the rules", () => {
     });
     const adapter = hostileHarness(
       async (host, turnId) => {
-        await host.call("persist", { turnId, projection: encodeMessage(RunStatusSchema, forged) });
+        await host.call("persist", { turnId, projection: forgedProjection(forged) });
         persisted.push(sink.status.artifacts.map((a) => a.storageKey));
       },
       { kind: "completed" },
@@ -164,7 +184,7 @@ describe("a host that does not follow the rules", () => {
 
     expect(persisted, "at a persist").toEqual([[own, "artifacts/seeded/earlier.md"]]);
     expect(sink.status.artifacts.map((a) => a.storageKey), "at the settlement").toEqual([own, "artifacts/seeded/earlier.md"]);
-    const [foreign, ownCall] = sink.status.messages[0]!.toolCalls;
+    const [foreign, ownCall] = sink.rows.messages[0]!.toolCalls;
     expect(foreign!.outputRef, "a ref to another execution's artifact is dropped").toBeUndefined();
     expect(ownCall!.outputRef?.storageKey).toBe(`artifacts/${input.executionId}/toolcalls/tc-own.png`);
   });
@@ -174,8 +194,8 @@ describe("a host that does not follow the rules", () => {
     const seededRef = create(ToolCallOutputRefSchema, { storageKey: "artifacts/earlier/shot.png" });
     const subAgent = (ref: typeof seededRef) =>
       create(SubAgentRunSchema, { messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [create(ToolCallSchema, { id: "tc-sub", result: "[image]", outputRef: ref })] })] });
-    const forged = create(RunStatusSchema, { subAgentRuns: [subAgent(seededRef)] });
-    const sink = new RecordingTurnSink({ executionId: input.executionId, status: create(RunStatusSchema, { subAgentRuns: [subAgent(seededRef)] }) });
+    const forged: Forged = { rows: create(TurnRowsSchema, { subAgentRuns: [subAgent(seededRef)] }) };
+    const sink = new RecordingTurnSink({ executionId: input.executionId, rows: create(TurnRowsSchema, { subAgentRuns: [subAgent(seededRef)] }) });
     let midTurn: string[] = [];
     const adapter = hostileHarness(
       async (host, turnId) => {
@@ -191,7 +211,7 @@ describe("a host that does not follow the rules", () => {
 
     await adapter.runTurn(input, sink);
 
-    expect(sink.status.subAgentRuns[0]!.messages[0]!.toolCalls[0]!.outputRef?.storageKey).toBe("artifacts/earlier/shot.png");
+    expect(sink.rows.subAgentRuns[0]!.messages[0]!.toolCalls[0]!.outputRef?.storageKey).toBe("artifacts/earlier/shot.png");
     expect(midTurn).toEqual(["ok.ts"]);
   });
 
@@ -243,13 +263,14 @@ describe("a host that does not follow the rules", () => {
 
   it("lands only the adapter-owned fields of a persist", async () => {
     const adapter = hostileHarness(async (host, turnId) => {
-      const forged = create(RunStatusSchema, {
-        phase: RunPhase.RUN_COMPLETED,
-        error: "forged by the host",
-        startedAt: "forged",
-        messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "the host's row" })],
-      });
-      await host.call("persist", { turnId, projection: encodeMessage(RunStatusSchema, forged) });
+      const forged: Forged = {
+        status: create(RunStatusSchema, { phase: RunPhase.RUN_COMPLETED, error: "forged by the host", startedAt: "forged" }),
+        rows: create(TurnRowsSchema, {
+          messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "the host's row" })],
+          fileReviewEventStream: { runId: "forged ledger" },
+        }),
+      };
+      await host.call("persist", { turnId, projection: forgedProjection(forged) });
     });
     await adapter.boot(testConfig());
     const input = turnInputFixture();
@@ -260,6 +281,7 @@ describe("a host that does not follow the rules", () => {
     expect(sink.status.phase, "the phase is the runtime's").toBe(RunPhase.RUN_IN_PROGRESS);
     expect(sink.status.error).toBe("");
     expect(sink.status.startedAt).toBe("t0");
+    expect(sink.rows.fileReviewEventStream, "the turn's ledger is the runtime's").toBeUndefined();
   });
 
   it("takes only the state id from a bind; a session spec sent beside it changes nothing", async () => {

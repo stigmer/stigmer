@@ -50,7 +50,7 @@ class OffloadingSink extends RecordingTurnSink {
   }
 
   override async requestPersist(): Promise<void> {
-    await offloadOversizedToolOutputs(this.status, { executionId: this.executionId, artifactStorage: this.storage });
+    await offloadOversizedToolOutputs(this.rows, { executionId: this.executionId, artifactStorage: this.storage });
     await super.requestPersist();
   }
 }
@@ -75,7 +75,7 @@ describe("the runtime's offload through the agent host", () => {
     const row = loopbackHostedRow({
       harness: "deep-agent",
       adapter: adapterThat(async (_input, sink) => {
-        sink.status.messages.push(
+        sink.rows.messages.push(
           create(AgentMessageSchema, {
             type: MessageType.MESSAGE_AI,
             toolCalls: [create(ToolCallSchema, { id: "tc-big", name: "shell", result: BIG_TEXT }), create(ToolCallSchema, { id: "tc-image", name: "screenshot", result: IMAGE })],
@@ -83,7 +83,7 @@ describe("the runtime's offload through the agent host", () => {
         );
         for (let i = 0; i < 3; i++) {
           await sink.requestPersist();
-          const big = sink.status.messages[0]!.toolCalls[0]!;
+          const big = sink.rows.messages[0]!.toolCalls[0]!;
           seen.push({ text: big.result ?? "", hasRef: big.outputRef !== undefined });
         }
       }),
@@ -106,9 +106,9 @@ describe("the runtime's offload through the agent host", () => {
     const row = loopbackHostedRow({
       harness: "deep-agent",
       adapter: adapterThat(async (_input, sink) => {
-        sink.status.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [create(ToolCallSchema, { id: "tc-big", name: "shell", result: BIG_TEXT })] }));
+        sink.rows.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [create(ToolCallSchema, { id: "tc-big", name: "shell", result: BIG_TEXT })] }));
         await sink.requestPersist();
-        sink.status.messages[0]!.toolCalls[0]!.result = "y".repeat(300 * 1024);
+        sink.rows.messages[0]!.toolCalls[0]!.result = "y".repeat(300 * 1024);
         await sink.requestPersist();
       }),
     });

@@ -46,6 +46,7 @@ import { ToolScope } from "../../shared/tool-lists.js";
 import { toolValuesKey } from "../../shared/run-values.js";
 import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
 import {
+  ADAPTER_OWNED_ROW_FIELDS,
   ADAPTER_OWNED_STATUS_FIELDS,
   RUNTIME_OWNED_STATUS_FIELDS,
   RuntimeFieldTracker,
@@ -62,6 +63,8 @@ import {
 } from "../codec.js";
 import { AgentMessageSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 
 function noServices(calls: string[] = []): HostTurnServices {
   const storage: ArtifactStorage = {
@@ -331,31 +334,51 @@ describe("the turn input across the pipe", () => {
   });
 });
 
-describe("the status, split by owner", () => {
+describe("the turn's fields, split by owner", () => {
   it("owns every field exactly once", () => {
     const all = RunStatusSchema.fields.map((f) => f.localName);
     expect([...ADAPTER_OWNED_STATUS_FIELDS, ...RUNTIME_OWNED_STATUS_FIELDS].sort()).toEqual([...all].sort());
   });
 
-  it("replaces the adapter's fields in place and leaves the runtime's alone", () => {
-    const target = create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS, error: "runtime's", todos: { stale: { content: "old" } } });
-    const messages = target.messages;
-    const host = create(RunStatusSchema, {
-      phase: RunPhase.RUN_FAILED,
-      error: "host's",
-      messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "from the host" })],
-      todos: { fresh: { content: "new" } },
-      structuredOutput: { answer: 42 },
-    });
+  it("names the rows the adapter owns; the turn's other rows are the runtime's and never cross", () => {
+    const rows = TurnRowsSchema.fields.map((f) => f.localName);
+    expect([...ADAPTER_OWNED_ROW_FIELDS].every((name) => rows.includes(name))).toBe(true);
+    expect(rows.filter((name) => !(ADAPTER_OWNED_ROW_FIELDS as readonly string[]).includes(name)).sort()).toEqual(["fileReviewEventStream", "recalledMemoriesReport"]);
+  });
+
+  it("replaces the adapter's rows and artifacts in place and leaves the runtime's fields and rows alone", () => {
+    const target = {
+      status: create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS, error: "runtime's", artifacts: [{ name: "stale.md" }] }),
+      rows: create(TurnRowsSchema, {
+        todos: { stale: { content: "old" } },
+        recalledMemoriesReport: { selectionActive: true },
+        fileReviewEventStream: { runId: "runtime's ledger" },
+      }),
+    };
+    const messages = target.rows.messages;
+    const artifacts = target.status.artifacts;
+    const host = {
+      status: create(RunStatusSchema, { phase: RunPhase.RUN_FAILED, error: "host's", artifacts: [{ name: "report.md" }] }),
+      rows: create(TurnRowsSchema, {
+        messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "from the host" })],
+        todos: { fresh: { content: "new" } },
+        structuredOutput: { answer: 42 },
+        recalledMemoriesReport: { selectionActive: false },
+      }),
+    };
 
     applyAdapterProjection(target, encodeAdapterProjection(host));
 
-    expect(target.messages, "the same array, which the runtime's builder holds").toBe(messages);
-    expect(target.messages.map((m) => m.content)).toEqual(["from the host"]);
-    expect(Object.keys(target.todos)).toEqual(["fresh"]);
-    expect(target.structuredOutput).toEqual({ answer: 42 });
-    expect(target.phase, "a runtime field the host sent is ignored").toBe(RunPhase.RUN_IN_PROGRESS);
-    expect(target.error).toBe("runtime's");
+    expect(target.rows.messages, "the same array, which the runtime's builder holds").toBe(messages);
+    expect(target.rows.messages.map((m) => m.content)).toEqual(["from the host"]);
+    expect(Object.keys(target.rows.todos)).toEqual(["fresh"]);
+    expect(target.rows.structuredOutput).toEqual({ answer: 42 });
+    expect(target.status.artifacts, "the status's own array").toBe(artifacts);
+    expect(target.status.artifacts.map((a) => a.name)).toEqual(["report.md"]);
+    expect(target.rows.recalledMemoriesReport?.selectionActive, "a runtime row the host sent is ignored").toBe(true);
+    expect(target.rows.fileReviewEventStream?.runId).toBe("runtime's ledger");
+    expect(target.status.phase, "a runtime field the host sent is ignored").toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(target.status.error).toBe("runtime's");
   });
 
   it("sends back only the runtime fields that changed, and never an adapter field", () => {
@@ -365,12 +388,12 @@ describe("the status, split by owner", () => {
 
     expect(tracker.changes(status).fields, "nothing changed yet").toEqual([]);
     status.startedAt = "t1";
-    status.messages.push(create(AgentMessageSchema, { content: "the runtime's terminal row" }));
+    status.artifacts.push(create(RunArtifactSchema, { name: "the runtime's plan" }));
     const changes = tracker.changes(status);
     expect(changes.fields).toEqual(["startedAt"]);
     applyRuntimeFields(host, changes);
     expect(host.startedAt).toBe("t1");
-    expect(host.messages, "an adapter field never crosses back").toEqual([]);
+    expect(host.artifacts, "an adapter field never crosses back").toEqual([]);
     expect(tracker.changes(status).fields, "and a field crosses once per change").toEqual([]);
   });
 });

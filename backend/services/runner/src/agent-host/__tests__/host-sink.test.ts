@@ -29,6 +29,7 @@ import { Peer, loopbackChannels } from "../channel.js";
 import { encodeMessage } from "../codec.js";
 import { HostTurn, type HostPeer } from "../host-sink.js";
 import type { HostCalls, HostNotices, RunnerCalls, RunnerNotices } from "../protocol.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 function hostTurn(maxCostUsd: number) {
   const [hostEnd, runnerEnd] = loopbackChannels();
@@ -37,7 +38,7 @@ function hostTurn(maxCostUsd: number) {
   const usage: number[] = [];
   runner.onNotice("usage", ({ delta }) => usage.push(delta.estimatedCostUsd ?? 0));
   const input = turnInputFixture({ persistedStatus: create(RunStatusSchema, { runConfig: create(RunConfigSchema, { maxCostUsd }) }) });
-  const turn = new HostTurn(peer, "turn-1", input, encodeMessage(RunStatusSchema, create(RunStatusSchema)), new TimingRecorder().toWire());
+  const turn = new HostTurn(peer, "turn-1", input, encodeMessage(RunStatusSchema, create(RunStatusSchema)), encodeMessage(TurnRowsSchema, create(TurnRowsSchema)), new TimingRecorder().toWire());
   return { turn, usage, runner, input, runnerEnd };
 }
 

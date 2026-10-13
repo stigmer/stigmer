@@ -97,7 +97,7 @@ describe("the agent host as a child process", () => {
     const { sink, settled } = startTurn(adapter, "say");
 
     expect(await settled).toEqual({ kind: "completed" });
-    const ai = sink.status.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
+    const ai = sink.rows.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.map((m) => m.content), "the engine's row is on the runtime's status").toEqual(["probe says hello"]);
     expect(sink.persistRequests, "the engine's awaited persist reached the runtime's chokepoint").toBeGreaterThanOrEqual(1);
     expect(sink.usageDeltas).toEqual([
@@ -153,7 +153,7 @@ describe("the agent host as a child process", () => {
     const { sink, settled } = startTurn(adapter, "throw");
 
     await expect(settled).rejects.toThrow("probe broke its contract");
-    expect(sink.status.messages.map((m) => m.content), "the runtime settles over the rows the engine produced").toEqual(["before the break"]);
+    expect(sink.rows.messages.map((m) => m.content), "the runtime settles over the rows the engine produced").toEqual(["before the break"]);
     await adapter.shutdown();
   });
 
