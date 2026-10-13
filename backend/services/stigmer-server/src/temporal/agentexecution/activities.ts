@@ -1,8 +1,9 @@
 /**
  * Server-side activity implementations for the agent-execution worker —
  * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
- * load_execution, read_harness_state_id), closes the previous turn's file
- * review (CloseFileReview), and
+ * load_execution, read_harness_state_id), counts a waiting turn's open
+ * gates (CountOpenGates), closes the previous turn's file review
+ * (CloseFileReview), and
  * registers the retired DeleteExecutionContext name with a body that does
  * nothing, for the runs whose history still calls it (names.ts).
  *
@@ -34,6 +35,16 @@
  *
  * The reads (LoadAgentExecution, ReadHarnessStateId) stay store-direct:
  * pure reads with Java `findById` parity — no chain to bypass.
+ *
+ * CountOpenGates is the workflow's HITL wait condition: the number of the
+ * turn's tool uses that wait in its session's log (an ask no answer and
+ * no result closed, store/session-events.ts `openGates`), the same fact
+ * an answer reads before it signals the turn (domain/session/hitl/
+ * answer.ts), so the two never disagree about whether the turn may
+ * resume. The session is the workflow input's, or the run's own when an
+ * input carried none; a run in no session has no log and no open gate. A
+ * store fault fails the activity, and the workflow then waits for the
+ * signal, as it did when the load failed.
  *
  * CloseFileReview is the server's own policy write, as the auto-keeps
  * inside the status merge are: once this turn's message is in the log,
@@ -70,10 +81,12 @@ import { keepOutdatedSets } from "../../domain/run/filereview/autokeep.js";
 import { projectFileChangeSets } from "../../domain/run/filereview/project.js";
 import type { SessionEventBroker } from "../../domain/session/events/broker.js";
 import { updateRunAppendingEvents } from "../../domain/session/events/run-writes.js";
+import { sessionIdOfRun } from "../../domain/session/events/transitions.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
+  COUNT_OPEN_GATES_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
@@ -172,6 +185,21 @@ export function createAgentExecutionActivities(
         );
       }
       return toJson(RunSchema, execution);
+    },
+
+    /** The turn's open gates in its session's log (module header). */
+    [COUNT_OPEN_GATES_ACTIVITY_NAME]: async (
+      executionId: string,
+      sessionId: string,
+    ): Promise<number> => {
+      const session =
+        sessionId !== ""
+          ? sessionId
+          : sessionIdOfRun(await store.getResource(ApiResourceKind.run, executionId, RunSchema));
+      if (session === "") {
+        return 0;
+      }
+      return (await store.sessionEvents.openGates(session, executionId)).length;
     },
 
     /**

@@ -14,6 +14,11 @@
  *     instance would crash the default converter);
  *   - ReadHarnessStateId's empty-input and not-found contracts (Go
  *     read_harness_state_id.go);
+ *   - CountOpenGates counts the turn's asks its session's log holds open
+ *     (not one an answer or a result closed, not another run's, never a
+ *     change set awaiting review), reads the run's own session when the
+ *     input carried none, counts none for a run in no session, and fails
+ *     on a store fault;
  *   - the retired DeleteExecutionContext name stays registered for runs
  *     whose history still calls it, and its body does nothing: a run
  *     stores no copy of its values, so there is nothing to delete;
@@ -47,6 +52,7 @@ import { FileDecisionSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/fi
 import type { RunUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -54,6 +60,7 @@ import { fileReviewSeed } from "../../../domain/run/__tests__/file-review-seed.j
 import { ACTOR_USER, recordFileDecisionEventWithActor } from "../../../domain/run/filereview/author.js";
 import { projectFileChangeSets } from "../../../domain/run/filereview/project.js";
 import { SessionEventBroker } from "../../../domain/session/events/broker.js";
+import { draftOf } from "../../../domain/session/events/codec.js";
 import { createRunAppendingEvents } from "../../../domain/session/events/run-writes.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
@@ -62,6 +69,7 @@ import { createAgentExecutionActivities } from "../activities.js";
 import type { ExecutionStatusWriter } from "../activities.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
+  COUNT_OPEN_GATES_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
@@ -261,6 +269,91 @@ describe("LoadAgentExecution activity", () => {
         ) => Promise<JsonValue>
       )("aex_absent"),
     ).rejects.toThrow();
+  });
+});
+
+describe("CountOpenGates activity", () => {
+  const SESSION = "ses_gates";
+  type CountActivity = (executionId: string, sessionId: string) => Promise<number>;
+
+  function gatesFixture() {
+    const temp = tempStore();
+    cleanups.push(() => temp.cleanup());
+    const sessionEventBroker = new SessionEventBroker(silentLogger);
+    const activities = createAgentExecutionActivities({
+      store: temp.store,
+      logger: silentLogger,
+      statusWriter: () => {
+        throw new Error("counting gates writes no status");
+      },
+      sessionEventBroker,
+    });
+    const count = activities[COUNT_OPEN_GATES_ACTIVITY_NAME] as CountActivity;
+    const turn = async (id: string, sessionId: string, withSet = false): Promise<void> => {
+      await createRunAppendingEvents(
+        { store: temp.store, sessionEventBroker },
+        create(RunSchema, {
+          metadata: { id, org: "test-org" },
+          spec: { target: sessionId === "" ? { case: undefined } : { case: "sessionId", value: sessionId } },
+          status: withSet
+            ? { ...fileReviewSeed(id, `${id}:0`).status, phase: RunPhase.RUN_WAITING_FOR_APPROVAL }
+            : { phase: RunPhase.RUN_WAITING_FOR_APPROVAL },
+        }),
+      );
+    };
+    const log = async (runId: string, events: ReadonlyArray<SessionEvent>): Promise<void> => {
+      await temp.store.sessionEvents.append(SESSION, "test-org", events.map(draftOf), {
+        kind: ApiResourceKind.run,
+        id: runId,
+        schema: RunSchema,
+        admit: () => undefined,
+      });
+    };
+    return { store: temp.store, count, turn, log };
+  }
+
+  const ask = (runId: string, id: string): SessionEvent =>
+    create(SessionEventSchema, {
+      runId,
+      event: { case: "agentToolUse", value: { id, name: "Write", input: {}, evaluatedPermission: "ask" } },
+    });
+
+  it("counts the turn's open asks: not one answered, not one its result closed, not another run's, never a set awaiting review", async () => {
+    const { count, turn, log } = gatesFixture();
+    await turn("run_a", SESSION, true);
+    await turn("run_b", SESSION);
+    expect(await count("run_a", SESSION)).toBe(0);
+    await log("run_a", [ask("run_a", "run_a.1"), ask("run_a", "run_a.2"), ask("run_a", "run_a.3"), ask("run_a", "run_a.4")]);
+    await log("run_b", [ask("run_b", "run_b.1")]);
+    await log("run_a", [
+      create(SessionEventSchema, {
+        runId: "run_a",
+        event: { case: "userToolConfirmation", value: { id: "sevt_tc_1", toolUseId: "run_a.1", result: "allow" } },
+      }),
+      create(SessionEventSchema, {
+        runId: "run_a",
+        event: { case: "agentToolResult", value: { id: "run_a.2.r", toolUseId: "run_a.2" } },
+      }),
+    ]);
+    expect(await count("run_a", SESSION)).toBe(2);
+    expect(await count("run_b", SESSION)).toBe(1);
+  });
+
+  it("reads the run's own session when the input carried none, and counts none for a run in no session", async () => {
+    const { count, turn, log } = gatesFixture();
+    await turn("run_a", SESSION);
+    await log("run_a", [ask("run_a", "run_a.1")]);
+    expect(await count("run_a", "")).toBe(1);
+    await turn("run_alone", "");
+    expect(await count("run_alone", "")).toBe(0);
+  });
+
+  it("fails on a store fault, so the workflow waits for the signal", async () => {
+    const { store, count, turn } = gatesFixture();
+    await turn("run_a", SESSION);
+    vi.spyOn(store.sessionEvents, "openGates").mockRejectedValueOnce(new Error("disk"));
+    await expect(count("run_a", SESSION)).rejects.toThrow("disk");
+    await expect(count("run_absent", "")).rejects.toThrow();
   });
 });
 

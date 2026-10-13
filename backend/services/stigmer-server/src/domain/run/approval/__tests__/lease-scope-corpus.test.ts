@@ -3,20 +3,20 @@
  * (apis/testdata/hitl/lease-scope) — ports lease_scope_corpus_test.go +
  * lease_scope_test.go: every vector derives through deriveLeaseScope and
  * must equal the expected scope, a hook's scope included. The runner loads
- * the same file, so a drift fails one of the two suites.
+ * the same file, so a drift fails one of the two suites. A vector names
+ * its policy source by the ApprovalPolicySource enum's name; the server
+ * derives from the ask as the session's log states it, whose
+ * stigmer.permission.asked event carries the same source as one word
+ * without the enum's prefix, so each vector's name is read as that word.
  */
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import {
-  ApprovalPolicySource,
-  ApprovalPolicySourceSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { ApprovalPolicySourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { deriveLeaseScope, sameLeaseScope } from "../lease-scope.js";
+import type { LeaseSubject } from "../lease-scope.js";
 import { hitlCorpusDir, readCorpusJson } from "./corpus-support.js";
 
 interface LeaseScopeVector {
@@ -36,16 +36,27 @@ interface LeaseScopeVector {
   } | null;
 }
 
-/** The enum value a vector's proto name names; an unknown name fails the vector. */
-function policySourceOf(name: string | undefined): ApprovalPolicySource {
+/** The enum's prefix the asked event's word leaves off. */
+const POLICY_SOURCE_PREFIX = "APPROVAL_POLICY_SOURCE_";
+
+/**
+ * The asked event's word for a vector's enum name ("" for none or
+ * UNSPECIFIED, which an asked event leaves empty); an unknown name fails
+ * the vector.
+ */
+function policySourceOf(name: string | undefined): string {
   if (name === undefined) {
-    return ApprovalPolicySource.UNSPECIFIED;
+    return "";
   }
   const value = ApprovalPolicySourceSchema.values.find((v) => v.name === name);
   if (value === undefined) {
     throw new Error(`unknown ApprovalPolicySource name in corpus: ${name}`);
   }
-  return value.number;
+  return value.number === 0 ? "" : value.name.slice(POLICY_SOURCE_PREFIX.length).toLowerCase();
+}
+
+function ask(subject: Partial<LeaseSubject> & Pick<LeaseSubject, "name">): LeaseSubject {
+  return { mcpServer: "", policySource: "", policyHook: "", ...subject };
 }
 
 describe("shared lease-scope corpus", () => {
@@ -60,13 +71,12 @@ describe("shared lease-scope corpus", () => {
 
   for (const v of doc.vectors) {
     it(v.name, () => {
-      const tc = create(ToolCallSchema, {
+      const scope = deriveLeaseScope({
         name: v.input.toolName ?? "",
-        mcpServerSlug: v.input.mcpServerSlug ?? "",
-        approvalPolicySource: policySourceOf(v.input.policySource),
-        approvalPolicyHook: v.input.policyHook ?? "",
+        mcpServer: v.input.mcpServerSlug ?? "",
+        policySource: policySourceOf(v.input.policySource),
+        policyHook: v.input.policyHook ?? "",
       });
-      const scope = deriveLeaseScope(tc);
 
       if (v.expected === null) {
         expect(scope, "expected no leasable scope").toBeUndefined();
@@ -88,51 +98,38 @@ describe("shared lease-scope corpus", () => {
 
 describe("deriveLeaseScope unit pins (lease_scope_test.go)", () => {
   it("an MCP slug takes precedence over any category lookup", () => {
-    const scope = deriveLeaseScope(
-      create(ToolCallSchema, { name: "shell", mcpServerSlug: "github" }),
-    );
+    const scope = deriveLeaseScope(ask({ name: "shell", mcpServer: "github" }));
     expect(scope).toEqual({ category: "", server: "github", tool: "" });
   });
 
   it("a gated built-in derives its category", () => {
-    const scope = deriveLeaseScope(create(ToolCallSchema, { name: "Write" }));
+    const scope = deriveLeaseScope(ask({ name: "Write" }));
     expect(scope).toEqual({ category: "write", server: "", tool: "" });
   });
 
   it("a hook's ask leases that hook on that tool, a read-only one included, and never matches the default's scope", () => {
-    const hooked = deriveLeaseScope(
-      create(ToolCallSchema, {
-        name: "execute",
-        approvalPolicySource: ApprovalPolicySource.HOOK,
-        approvalPolicyHook: "safety",
-      }),
-    );
+    const hooked = deriveLeaseScope(ask({ name: "execute", policySource: "hook", policyHook: "safety" }));
     expect(hooked).toEqual({
       category: "",
       server: "",
       hook: "safety",
       tool: "execute",
     });
-    const byDefault = deriveLeaseScope(
-      create(ToolCallSchema, { name: "execute" }),
-    );
+    const byDefault = deriveLeaseScope(ask({ name: "execute" }));
     expect(sameLeaseScope(hooked!, byDefault!)).toBe(false);
     expect(
-      deriveLeaseScope(
-        create(ToolCallSchema, {
-          name: "read_file",
-          approvalPolicySource: ApprovalPolicySource.HOOK,
-        }),
-      ),
+      deriveLeaseScope(ask({ name: "read_file", policySource: "hook" })),
     ).toEqual({ category: "", server: "", hook: "", tool: "read_file" });
   });
 
   it("a read-only or unknown tool has no leasable scope", () => {
+    expect(deriveLeaseScope(ask({ name: "read_file" }))).toBeUndefined();
+    expect(deriveLeaseScope(ask({ name: "" }))).toBeUndefined();
+  });
+
+  it("a hook slug on an ask no hook decided is ignored", () => {
     expect(
-      deriveLeaseScope(create(ToolCallSchema, { name: "read_file" })),
-    ).toBeUndefined();
-    expect(
-      deriveLeaseScope(create(ToolCallSchema, { name: "" })),
-    ).toBeUndefined();
+      deriveLeaseScope(ask({ name: "Write", policySource: "builtin_category", policyHook: "safety" })),
+    ).toEqual({ category: "write", server: "", tool: "" });
   });
 });
