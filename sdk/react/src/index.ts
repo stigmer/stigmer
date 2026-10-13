@@ -1580,6 +1580,16 @@ export {
   IdentityProviderWizard,
   IdentityProviderDetailPanel,
   SsoLoginPrompt,
+  SSO_REQUIRED,
+  ssoRequirementOf,
+  usePreviewSsoRequirement,
+  useCreateAccessMove,
+  useRedeemAccessMove,
+  remakeable,
+  useRemakeAutomation,
+  AccessMoveSummary,
+  SsoRequiredNotice,
+  SsoRequirementSection,
 } from "./identity-provider/index.js";
 export type {
   UseIdentityProviderListReturn,
@@ -1597,6 +1607,14 @@ export type {
   IdentityProviderWizardProps,
   IdentityProviderDetailPanelProps,
   SsoLoginPromptProps,
+  SsoRequirement,
+  UsePreviewSsoRequirementReturn,
+  UseCreateAccessMoveReturn,
+  UseRedeemAccessMoveReturn,
+  UseRemakeAutomationReturn,
+  AccessMoveSummaryProps,
+  SsoRequiredNoticeProps,
+  SsoRequirementSectionProps,
 } from "./identity-provider/index.js";
 
 // Teams — an organization's named groups of people that access is shared
