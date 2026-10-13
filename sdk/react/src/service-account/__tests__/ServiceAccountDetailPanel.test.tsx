@@ -40,7 +40,7 @@ import { ServiceAccountDetailPanel } from "../ServiceAccountDetailPanel";
 
 const calls = vi.hoisted(() => ({
   log: [] as string[],
-  updates: [] as { id?: string; name: string; idpId: string }[],
+  updates: [] as { resource: { metadata?: { id?: string; name?: string } }; paths: string[] }[],
   keys: [] as CreateServiceAccountKeyInput[],
   refuseGrant: false,
   refuseDelete: false,
@@ -58,9 +58,9 @@ const ACCOUNT: IdentityAccount = create(IdentityAccountSchema, {
 function wrapper({ children }: { children: ReactNode }) {
   const client = {
     identityAccount: {
-      update: async (input: { id?: string; name: string; idpId: string }) => {
-        calls.updates.push(input);
-        return create(IdentityAccountSchema, { metadata: { id: input.id, name: input.name } });
+      update: async (resource: { metadata?: { id?: string; name?: string } }, paths: string[]) => {
+        calls.updates.push({ resource, paths });
+        return create(IdentityAccountSchema, { metadata: { id: resource.metadata?.id, name: resource.metadata?.name } });
       },
       delete: async (id: string) => {
         calls.log.push(`delete account ${id}`);
@@ -130,7 +130,7 @@ function renderPanel(props: Partial<Parameters<typeof ServiceAccountDetailPanel>
 }
 
 describe("ServiceAccountDetailPanel", () => {
-  it("renames through the account's own update, keeping its id and spec", async () => {
+  it("renames through the account's own update, naming the display name alone on its id", async () => {
     const onUpdated = vi.fn();
     renderPanel({ onUpdated });
     fireEvent.click(screen.getByRole("button", { name: "Rename" }));
@@ -139,7 +139,10 @@ describe("ServiceAccountDetailPanel", () => {
 
     await waitFor(() => expect(onUpdated).toHaveBeenCalled());
     expect(calls.updates).toEqual([
-      expect.objectContaining({ id: "ida_sa_ci", name: "ci-release", idpId: "stgm_sa|org_acme|r4nd0m" }),
+      {
+        resource: { metadata: expect.objectContaining({ id: "ida_sa_ci", name: "ci-release" }) },
+        paths: ["metadata.name"],
+      },
     ]);
   });
 

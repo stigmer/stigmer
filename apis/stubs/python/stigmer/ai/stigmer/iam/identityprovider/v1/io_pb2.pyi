@@ -3,6 +3,7 @@ import datetime
 from ai.stigmer.iam.iampolicy.v1 import io_pb2 as _io_pb2
 from ai.stigmer.iam.identityprovider.v1 import api_pb2 as _api_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -123,3 +124,11 @@ class SsoRequirementMember(_message.Message):
     invitation_ids: _containers.RepeatedScalarFieldContainer[str]
     automations: _containers.RepeatedCompositeFieldContainer[_io_pb2.AccountAutomation]
     def __init__(self, identity_account_id: _Optional[str] = ..., email: _Optional[str] = ..., display_name: _Optional[str] = ..., invitation_ids: _Optional[_Iterable[str]] = ..., automations: _Optional[_Iterable[_Union[_io_pb2.AccountAutomation, _Mapping]]] = ...) -> None: ...
+
+class UpdateIdentityProviderInput(_message.Message):
+    __slots__ = ("resource", "update_mask")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MASK_FIELD_NUMBER: _ClassVar[int]
+    resource: _api_pb2.IdentityProvider
+    update_mask: _field_mask_pb2.FieldMask
+    def __init__(self, resource: _Optional[_Union[_api_pb2.IdentityProvider, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...

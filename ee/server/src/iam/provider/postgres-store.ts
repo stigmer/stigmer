@@ -43,6 +43,7 @@ import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identitypr
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 
 import type { GuardedRead } from "@stigmer/server";
+import { stampEtag } from "@stigmer/server";
 
 import { inTransaction } from "../../postgres/transaction.js";
 import { routesOf, type ProviderRoute } from "./routes.js";
@@ -354,7 +355,9 @@ function rowToProvider(row: ProviderRow): IdentityProvider {
   return fromBinary(IdentityProviderSchema, new Uint8Array(row.data));
 }
 
+/** A provider's stored bytes, stamped with its etag first, as every store write is (`@stigmer/server`'s store/etag.ts). */
 function payloadOf(provider: IdentityProvider): Buffer {
+  stampEtag(IdentityProviderSchema, provider);
   return Buffer.from(toBinary(IdentityProviderSchema, provider));
 }
 

@@ -28,7 +28,7 @@ class ApiKeyCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.UpdateApiKeyInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -69,7 +69,22 @@ class ApiKeyCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing API key.
+        """Update an API key: the fields update_mask names change, every other
+        field keeps its stored value.
+
+        resource.metadata.id names the API key; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the API key does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the API key kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -97,7 +112,7 @@ def add_ApiKeyCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.UpdateApiKeyInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -186,7 +201,7 @@ class ApiKeyCommandController(object):
             request,
             target,
             '/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/update',
-            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.UpdateApiKeyInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
             options,
             channel_credentials,

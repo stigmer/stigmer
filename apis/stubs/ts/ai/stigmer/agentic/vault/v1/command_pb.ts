@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { VaultSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_vault_v1_api } from "./api_pb.js";
-import type { CompleteSignInInputSchema, CompleteSignInOutputSchema, ConnectLinkSchema, CreateConnectLinkInputSchema, RemoveVaultConnectionsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, SetVaultSecretsInputSchema, StartSignInInputSchema, StartSignInOutputSchema } from "./io_pb.js";
+import type { CompleteSignInInputSchema, CompleteSignInOutputSchema, ConnectLinkSchema, CreateConnectLinkInputSchema, RemoveVaultConnectionsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, SetVaultSecretsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, UpdateVaultInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_vault_v1_io } from "./io_pb.js";
 import type { ApiResourceDeleteInputSchema, RenameInputSchema, UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/vault/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_vault_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxMp4NChZWYXVsdENvbW1hbmRDb250cm9sbGVyEqQBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQaIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQiUsK4GE4INBAeIgxtZXRhZGF0YS5vcmcqOnVuYXV0aG9yaXplZCB0byBjcmVhdGUgYSBzaGFyZWQgdmF1bHQgaW4gdGhpcyBvcmdhbml6YXRpb24ShQEKBnVwZGF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCIzwrgYLwgCEDsiC21ldGFkYXRhLmlkKhx1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHZhdWx0Eq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCI+wrgYOggwEDsiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHZhdWx0IHZpc2liaWxpdHkSjgEKBnJlbmFtZRIrLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5SZW5hbWVJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCIzwrgYLwgDEDsiC3Jlc291cmNlX2lkKhx1bmF1dGhvcml6ZWQgdG8gcmVuYW1lIHZhdWx0EpkBCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCIzwrgYLwgDEDsiC3Jlc291cmNlX2lkKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHZhdWx0EmkKCnNldFNlY3JldHMSMS5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuU2V0VmF1bHRTZWNyZXRzSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQiBNC4GAESbwoNcmVtb3ZlU2VjcmV0cxI0LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5SZW1vdmVWYXVsdFNlY3JldHNJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCIE0LgYARJvCg1zZXRDb25uZWN0aW9uEjQuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlNldFZhdWx0Q29ubmVjdGlvbklucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IgTQuBgBEncKEXJlbW92ZUNvbm5lY3Rpb25zEjguYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlJlbW92ZVZhdWx0Q29ubmVjdGlvbnNJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCIE0LgYARJyCgtzdGFydFNpZ25JbhItLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5TdGFydFNpZ25JbklucHV0Gi4uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlN0YXJ0U2lnbkluT3V0cHV0IgTQuBgBEnsKDmNvbXBsZXRlU2lnbkluEjAuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkNvbXBsZXRlU2lnbkluSW5wdXQaMS5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuQ29tcGxldGVTaWduSW5PdXRwdXQiBNC4GAESugEKEWNyZWF0ZUNvbm5lY3RMaW5rEjMuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkNyZWF0ZUNvbm5lY3RMaW5rSW5wdXQaKC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuQ29ubmVjdExpbmsiRsK4GEIIAhA7Igh2YXVsdF9pZCoydW5hdXRob3JpemVkIHRvIG1ha2UgYSBDb25uZWN0IGxpbmsgZm9yIHRoaXMgdmF1bHQaBKD/KztiBnByb3RvMw", [file_ai_stigmer_agentic_vault_v1_api, file_ai_stigmer_agentic_vault_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxMrINChZWYXVsdENvbW1hbmRDb250cm9sbGVyEqQBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQaIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQiUsK4GE4INBAeIgxtZXRhZGF0YS5vcmcqOnVuYXV0aG9yaXplZCB0byBjcmVhdGUgYSBzaGFyZWQgdmF1bHQgaW4gdGhpcyBvcmdhbml6YXRpb24SmQEKBnVwZGF0ZRItLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5VcGRhdGVWYXVsdElucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjzCuBg4CAIQOyIUcmVzb3VyY2UubWV0YWRhdGEuaWQqHHVuYXV0aG9yaXplZCB0byB1cGRhdGUgdmF1bHQSrQEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0Ij7CuBg6CDAQOyILcmVzb3VyY2VfaWQqJ3VuYXV0aG9yaXplZCB0byB1cGRhdGUgdmF1bHQgdmlzaWJpbGl0eRKOAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjPCuBgvCAMQOyILcmVzb3VyY2VfaWQqHHVuYXV0aG9yaXplZCB0byByZW5hbWUgdmF1bHQSmQEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IjPCuBgvCAMQOyILcmVzb3VyY2VfaWQqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgdmF1bHQSaQoKc2V0U2VjcmV0cxIxLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5TZXRWYXVsdFNlY3JldHNJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5WYXVsdCIE0LgYARJvCg1yZW1vdmVTZWNyZXRzEjQuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlJlbW92ZVZhdWx0U2VjcmV0c0lucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IgTQuBgBEm8KDXNldENvbm5lY3Rpb24SNC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuU2V0VmF1bHRDb25uZWN0aW9uSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVmF1bHQiBNC4GAESdwoRcmVtb3ZlQ29ubmVjdGlvbnMSOC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuUmVtb3ZlVmF1bHRDb25uZWN0aW9uc0lucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlZhdWx0IgTQuBgBEnIKC3N0YXJ0U2lnbkluEi0uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlN0YXJ0U2lnbkluSW5wdXQaLi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuU3RhcnRTaWduSW5PdXRwdXQiBNC4GAESewoOY29tcGxldGVTaWduSW4SMC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuQ29tcGxldGVTaWduSW5JbnB1dBoxLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Db21wbGV0ZVNpZ25Jbk91dHB1dCIE0LgYARK6AQoRY3JlYXRlQ29ubmVjdExpbmsSMy5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuQ3JlYXRlQ29ubmVjdExpbmtJbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Db25uZWN0TGluayJGwrgYQggCEDsiCHZhdWx0X2lkKjJ1bmF1dGhvcml6ZWQgdG8gbWFrZSBhIENvbm5lY3QgbGluayBmb3IgdGhpcyB2YXVsdBoEoP8rO2IGcHJvdG8z", [file_ai_stigmer_agentic_vault_v1_api, file_ai_stigmer_agentic_vault_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * VaultCommandController handles write operations for vaults.
@@ -49,29 +49,32 @@ export const VaultCommandController: GenService<{
     output: typeof VaultSchema;
   },
   /**
-   * Update a vault's name, description and external id.
+   * Update a vault: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * Entries are kept as stored: change them with setSecrets, removeSecrets,
-   * setConnection and removeConnections.
+   * Its name, description and external id may change. Entries are kept as
+   * stored: change them with setSecrets, removeSecrets, setConnection and
+   * removeConnections.
    *
-   * The slug changes only through rename. An update authorizes the id it
-   * names, so wherever the server authorizes requests, an update without an
-   * id is refused before its slug is read. Where it reads one (a server that
-   * admits every caller), a slug the vault was renamed away from, named
-   * without the vault's id, is refused with FAILED_PRECONDITION
-   * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-   * write by a name that stops resolving after 30 days would later make a
-   * second vault:
+   * resource.metadata.id names the vault; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the vault does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
    *
-   *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-   *     for reading, but a write names its current slug. Metadata: slug (the
-   *     one the request named).
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the vault kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof VaultSchema;
+    input: typeof UpdateVaultInputSchema;
     output: typeof VaultSchema;
   },
   /**

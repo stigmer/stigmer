@@ -7,19 +7,18 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { TokenEndpointAuthMethod } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/spec_pb";
 import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import type { OAuthAppInput } from "@stigmer/sdk";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { OAuthAppDetailPanel } from "../OAuthAppDetailPanel";
 
 /**
  * Pins two things about the detail panel:
  *
- *   - the full-spec-replace wipe bug: the panel must spread
- *     `toOAuthAppUpdateInput` and override only what it edits, so a spec
- *     field the form does not know about survives the save. The secret has
- *     its own contract: an empty secret input sends the fetched value — the
- *     server's redaction marker — which the update pipeline treats as "keep
- *     the stored secret" (oss#395 pins the marker/ciphertext boundary);
+ *   - the save names the fields the form edits, so a spec field the form
+ *     does not know about keeps its stored value. The secret has its own
+ *     contract: an empty secret input leaves `spec.client_secret` unnamed,
+ *     so the stored secret stays, and a newly entered one is named and
+ *     replaces it;
  *   - Edit is offered only with `can_edit` and Delete only with
  *     `can_delete` on the app, so an organization admin who may view an app
  *     they did not create is never handed a control the server would
@@ -67,8 +66,8 @@ function renderPanel(
 afterEach(cleanup);
 
 describe("OAuthAppDetailPanel save payload", () => {
-  it("keeps the stored secret (redaction marker) when the secret input is left empty", async () => {
-    const update = vi.fn(async (_input: OAuthAppInput) => APP);
+  it("keeps the stored secret, unnamed, when the secret input is left empty", async () => {
+    const update = vi.fn(async (_resource: OAuthApp, _paths: string[]) => APP);
     renderPanel(update);
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
@@ -77,25 +76,25 @@ describe("OAuthAppDetailPanel save payload", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
+    const sent = sentUpdate<OAuthApp>(update);
+    const spec = sent.resource.spec;
 
-    // Empty secret input → the redaction marker rides along → the server
-    // preserves the stored secret.
-    expect(input.clientSecret).toBe(REDACTED);
+    // Empty secret input → the secret is not named → the server keeps the
+    // stored secret.
+    expect(sent.paths).not.toContain("spec.client_secret");
     // The edited field.
-    expect(input.provider).toBe("github-enterprise");
-    // Unedited fields round-trip.
-    expect(input.tokenEndpointAuthMethod).toBe(
-      TokenEndpointAuthMethod.CLIENT_SECRET_POST,
-    );
-    expect(input.scopes).toEqual(["repo"]);
-    expect(input.addresses).toEqual(["github.com", "https://api.githubcopilot.com/mcp"]);
-    expect(input.org).toBe("acme");
-    expect(input.slug).toBe("github-oauth");
+    expect(spec?.provider).toBe("github-enterprise");
+    expect(sent.paths).toContain("spec.provider");
+    // The form's other fields travel from the edit state.
+    expect(spec?.tokenEndpointAuthMethod).toBe(TokenEndpointAuthMethod.CLIENT_SECRET_POST);
+    expect(spec?.scopes).toEqual(["repo"]);
+    expect(spec?.addresses).toEqual(["github.com", "https://api.githubcopilot.com/mcp"]);
+    // An update names its app by id.
+    expect(sent.id).toBe(APP.metadata?.id);
   });
 
   it("sends a newly entered secret instead of the marker", async () => {
-    const update = vi.fn(async (_input: OAuthAppInput) => APP);
+    const update = vi.fn(async (_resource: OAuthApp, _paths: string[]) => APP);
     renderPanel(update);
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
@@ -104,7 +103,9 @@ describe("OAuthAppDetailPanel save payload", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0]![0].clientSecret).toBe("new-secret");
+    const sent = sentUpdate<OAuthApp>(update);
+    expect(sent.paths).toContain("spec.client_secret");
+    expect(sent.resource.spec?.clientSecret).toBe("new-secret");
   });
 });
 

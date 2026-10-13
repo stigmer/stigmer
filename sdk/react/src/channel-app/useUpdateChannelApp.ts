@@ -1,45 +1,57 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ChannelAppInput } from "@stigmer/sdk";
-import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { ChannelApp, ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useUpdateChannelApp}. */
 export interface UseUpdateChannelAppReturn {
-  /** Submit a {@link ChannelAppInput} to update an existing channel app. Resolves with the updated resource. */
-  readonly update: (input: ChannelAppInput) => Promise<ChannelApp>;
-  /** `true` while the update request is in flight. */
+  /**
+   * Update a channel app: the fields `paths` names take their values from
+   * `resource`, and every other field keeps its stored value. Resolves
+   * with the updated resource.
+   */
+  readonly update: (
+    resource: ChannelApp | MessageInitShape<typeof ChannelAppSchema>,
+    paths: string[],
+  ) => Promise<ChannelApp>;
+  /** `true` while the update RPC is in flight. */
   readonly isUpdating: boolean;
   /** Error from the last failed update, or `null` when healthy. */
   readonly error: Error | null;
-  /** Reset `error` to `null`. */
+  /** Reset the error state to `null`. */
   readonly clearError: () => void;
 }
 
 /**
- * Mutation hook that wraps `channelapp.update()` with loading and error
- * state.
+ * Mutation hook that wraps `channelapp.update(resource, paths)` with
+ * loading and error state.
  *
- * Updates an existing channel app — typically to rotate its secrets.
- * Sending the redaction marker (`***REDACTED***`) for a secret field
- * preserves the stored value, so a form prefilled from a fetched
- * (redacted) app can rotate one secret without re-entering the other.
+ * `resource` names the channel app by `metadata.id`, and `paths` names the
+ * fields the update changes (proto field paths such as
+ * `spec.slack`). Every field it does not name keeps its stored value, so
+ * a teammate's change to another field survives the save. A channel app read
+ * carries `metadata.etag`: sent back, the update is refused (ABORTED,
+ * reason `ETAG_MISMATCH`) if the channel app changed since it was read.
+ *
+ * Typically used to rotate a secret. A read shows each secret as the
+ * redaction marker (`***REDACTED***`); sending the marker back under a
+ * named path keeps the stored value, so a form prefilled from a fetched
+ * app can rotate one secret without re-entering the other.
  *
  * @example
  * ```tsx
  * const { update, isUpdating, error } = useUpdateChannelApp();
  *
- * await update({
- *   name: "Acme Support Bot",
- *   org: "acme",
- *   slack: {
- *     clientId: "123456.789012",
- *     clientSecret: "***REDACTED***",   // keep the stored value
- *     signingSecret: "new-signing-secret", // rotate this one
+ * await update(
+ *   {
+ *     metadata: { id: app.metadata!.id, etag: app.metadata!.etag },
+ *     spec: { slack: { clientId: "123456.789012", clientSecret: "***REDACTED***", signingSecret: "new-signing-secret" } },
  *   },
- * });
+ *   ["spec.slack"],
+ * );
  * ```
  */
 export function useUpdateChannelApp(): UseUpdateChannelAppReturn {
@@ -50,12 +62,15 @@ export function useUpdateChannelApp(): UseUpdateChannelAppReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const update = useCallback(
-    async (input: ChannelAppInput): Promise<ChannelApp> => {
+    async (
+      resource: ChannelApp | MessageInitShape<typeof ChannelAppSchema>,
+      paths: string[],
+    ): Promise<ChannelApp> => {
       setIsUpdating(true);
       setError(null);
 
       try {
-        return await stigmer.channelapp.update(input);
+        return await stigmer.channelapp.update(resource, paths);
       } catch (err) {
         setError(toError(err));
         throw err;

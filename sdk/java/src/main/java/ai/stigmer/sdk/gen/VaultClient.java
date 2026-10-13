@@ -23,6 +23,7 @@ import ai.stigmer.agentic.vault.v1.SetVaultSecretsInput;
 import ai.stigmer.agentic.vault.v1.StartConnectLinkOutput;
 import ai.stigmer.agentic.vault.v1.StartSignInInput;
 import ai.stigmer.agentic.vault.v1.StartSignInOutput;
+import ai.stigmer.agentic.vault.v1.UpdateVaultInput;
 import ai.stigmer.agentic.vault.v1.Vault;
 import ai.stigmer.agentic.vault.v1.VaultCommandControllerGrpc;
 import ai.stigmer.agentic.vault.v1.VaultList;
@@ -33,6 +34,7 @@ import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -56,9 +58,12 @@ public final class VaultClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Vault update(VaultInput input) {
+    public Vault update(Vault resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateVaultInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

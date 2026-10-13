@@ -411,11 +411,11 @@ describe("launch-gate config", () => {
 
     const created = await shares.create(shareFor(agent, true));
     const update = await grpcError(() =>
-      shares.update({
+      shares.update({ resource: {
         ...shareFor(agent, true),
         metadata: { ...shareFor(agent, true).metadata, id: created.metadata!.id, slug: created.metadata!.slug },
         spec: { ...shareFor(agent, true).spec, runConfig: { serviceTier: ServiceTier.FAST } },
-      }),
+      }, updateMask: { paths: ["*"] } }),
     );
     expect(update.code).toBe(Code.InvalidArgument);
   });
@@ -529,7 +529,7 @@ describe("agentshare update", () => {
     });
 
     created.spec!.enabled = false;
-    const updated = await shares.update(created);
+    const updated = await shares.update({ resource: created, updateMask: { paths: ["*"] } });
     expect(updated.spec?.enabled).toBe(false);
     expect(updated.spec?.allowedOrigins).toHaveLength(1);
   });
@@ -550,7 +550,7 @@ describe("agentshare update", () => {
       org: agentB.metadata!.org,
       slug: agentB.metadata!.slug,
     });
-    const err = await grpcError(() => shares.update(created));
+    const err = await grpcError(() => shares.update({ resource: created, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toContain("spec.agent_ref is immutable");
   });
@@ -575,7 +575,7 @@ describe("agentshare update", () => {
         id,
         ApiResourceVisibility.visibility_org,
       ),
-      () => shares.update(created),
+      () => shares.update({ resource: created, updateMask: { paths: ["*"] } }),
     );
 
     const stored = await server.store.getResource(
@@ -713,7 +713,7 @@ describe("getSharedProfile (anonymous lane)", () => {
 
     // Disabled: byte-identical to no-share.
     share.spec!.enabled = false;
-    await shares.update(share);
+    await shares.update({ resource: share, updateMask: { paths: ["*"] } });
     const disabledErr = await grpcError(() => query.getSharedProfile(ref));
     expect(disabledErr.code).toBe(Code.NotFound);
     expect(disabledErr.rawMessage).toBe(missing);
@@ -923,10 +923,10 @@ describe("audience and the member resolution lane", () => {
     // A public share updated or applied without an audience narrows to
     // the organization: update and apply replace the spec whole.
     created.spec!.audience = AgentShareAudience.public;
-    const opened = await shares.update(created);
+    const opened = await shares.update({ resource: created, updateMask: { paths: ["*"] } });
     expect(opened.spec?.audience).toBe(AgentShareAudience.public);
     opened.spec!.audience = AgentShareAudience.unspecified;
-    const narrowed = await shares.update(opened);
+    const narrowed = await shares.update({ resource: opened, updateMask: { paths: ["*"] } });
     expect(narrowed.spec?.audience).toBe(AgentShareAudience.org);
     narrowed.spec!.audience = AgentShareAudience.unspecified;
     const applied = await shares.apply(narrowed);
@@ -977,7 +977,7 @@ describe("audience and the member resolution lane", () => {
     // Flipping back to public restores anonymous resolution — the same
     // immediate-revocation latency as disabling the share.
     share.spec!.audience = AgentShareAudience.public;
-    await shares.update(share);
+    await shares.update({ resource: share, updateMask: { paths: ["*"] } });
     const profile = await query.getSharedProfile({
       shareId: share.metadata!.id,
     });
@@ -998,7 +998,7 @@ describe("agent apply never touches the share", () => {
     const share = await shares.create(shareFor(agent, true));
 
     agent.spec!.description = "Updated description";
-    await agents.update(agent);
+    await agents.update({ resource: agent, updateMask: { paths: ["*"] } });
 
     const profile = await query.getSharedProfile({
       shareId: share.metadata!.id,
@@ -1069,7 +1069,7 @@ describe("rotateShareLink", () => {
     // survives every update verbatim, the design's core guarantee.
     const current = await query.get({ value: share.metadata!.id });
     current.status = undefined;
-    const updated = await shares.update(current);
+    const updated = await shares.update({ resource: current, updateMask: { paths: ["*"] } });
     expect(updated.status?.shareLinkToken).toBe(secondToken);
   });
 

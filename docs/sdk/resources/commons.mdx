@@ -24,6 +24,7 @@ ApiResourceMetadata contains standard metadata for all API resources.
     annotations: { type: "Record<string, string>", description: "Key-value annotations for additional metadata." },
     tags: { type: "string[]", description: "Tags for categorization." },
     version: { type: "ApiResourceMetadataVersion", description: "Version information for the resource.", typeDescriptionLink: "#apiresourcemetadataversion" },
+    etag: { type: "string", description: "A fingerprint of what a person edits on the resource: its spec, name, labels, tags and annotations, as stored." },
   }}
 />
 

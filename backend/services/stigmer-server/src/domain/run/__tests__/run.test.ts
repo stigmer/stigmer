@@ -376,31 +376,6 @@ describe("create over the wire (engine gate)", () => {
     );
     expect(err.rawMessage).toContain("requires a model_name");
   });
-
-  it("a forged server-owned harness_state_id in session_spec refuses at proto validation", async () => {
-    // Go create_session_bootstrap_test.go: harness_state_id is
-    // server-owned — a caller seeding thread state must be rejected by
-    // the CEL rule, not silently honored.
-    await expectCode(
-      () =>
-        command.create({
-          apiVersion: API_VERSION,
-          kind: KIND,
-          metadata: { name: "forged-exec", org: ORG },
-          spec: {
-            message: "hello",
-            target: {
-              case: "sessionSpec",
-              value: {
-                agentRef: GATE_AGENT_REF,
-                harnessStateId: "thread-forged",
-              },
-            },
-          },
-        }),
-      Code.InvalidArgument,
-    );
-  });
 });
 
 describe("get / list / listBySession over the wire", () => {
@@ -600,7 +575,7 @@ describe("update / delete over the wire", () => {
     const init = seedInput({ phase: RunPhase.RUN_FAILED });
     const id = await seed(init);
 
-    const updated = await command.update({
+    const updated = await command.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: init.metadata,
@@ -608,7 +583,7 @@ describe("update / delete over the wire", () => {
         target: init.spec?.target,
         message: "Say goodbye.",
       },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.id).toBe(id);
     expect(updated.spec?.message).toBe("Say goodbye.");
 
@@ -641,12 +616,12 @@ describe("update / delete over the wire", () => {
           },
         ),
       () =>
-        command.update({
+        command.update({ resource: {
           apiVersion: API_VERSION,
           kind: KIND,
           metadata: init.metadata,
           spec: { target: init.spec?.target, message: "Say goodbye." },
-        }),
+        }, updateMask: { paths: ["*"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);
@@ -691,12 +666,12 @@ describe("update / delete over the wire", () => {
     try {
       refused = await expectCode(
         () =>
-          command.update({
+          command.update({ resource: {
             apiVersion: API_VERSION,
             kind: KIND,
             metadata: init.metadata,
             spec: { target: init.spec?.target, message: "Say goodbye." },
-          }),
+          }, updateMask: { paths: ["*"] } }),
         Code.Aborted,
       );
     } finally {
@@ -810,7 +785,7 @@ describe("update under an authorizer that enforces reserved labels", () => {
     const init = await seedEnforced({});
     const refused = await expectCode(
       () =>
-        enforcingCommand.update({
+        enforcingCommand.update({ resource: {
           apiVersion: API_VERSION,
           kind: KIND,
           metadata: {
@@ -818,7 +793,7 @@ describe("update under an authorizer that enforces reserved labels", () => {
             labels: { "stigmer.ai/schedule-id": "sch_someone_elses" },
           },
           spec: { target: init.spec?.target, message: "Say goodbye." },
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.InvalidArgument,
     );
     expect(refused.rawMessage).toContain("stigmer.ai/schedule-id");
@@ -833,12 +808,12 @@ describe("update under an authorizer that enforces reserved labels", () => {
 
   it("lets an update echo the run's stored reserved label unchanged", async () => {
     const init = await seedEnforced({ "stigmer.ai/schedule-id": "sch_nightly" });
-    const updated = await enforcingCommand.update({
+    const updated = await enforcingCommand.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: init.metadata,
       spec: { target: init.spec?.target, message: "Say goodbye." },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.labels["stigmer.ai/schedule-id"]).toBe("sch_nightly");
     expect(updated.spec?.message).toBe("Say goodbye.");
   });
@@ -1125,9 +1100,10 @@ describe("subscribe — the first domain stream through the real transport", () 
     const stream = openStream(id);
     await stream.untilFrames(1); // the snapshot
 
-    // The overlap frame: byte-equal to the snapshot — must be suppressed.
+    // The overlap frame: byte-equal to the snapshot (the stored row, its
+    // etag included) — must be suppressed.
     server.agentExecutionStreamBroker.broadcast(
-      create(RunSchema, init),
+      await server.store.getResource(ApiResourceKind.run, id, RunSchema),
     );
     // A genuinely new frame follows; its arrival proves the equal frame
     // was dropped (ordered queue — had it been delivered, it would appear

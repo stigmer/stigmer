@@ -9,6 +9,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // ChannelAppClient provides operations on channelapp resources.
@@ -42,12 +43,11 @@ func (c *ChannelAppClient) Create(ctx context.Context, input *ChannelAppInput) (
 	return resp, wrapErr(err)
 }
 
-func (c *ChannelAppClient) Update(ctx context.Context, input *ChannelAppInput) (*channelappv1.ChannelApp, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := c.command.Update(ctx, req)
+func (c *ChannelAppClient) Update(ctx context.Context, resource *channelappv1.ChannelApp, paths []string) (*channelappv1.ChannelApp, error) {
+	resp, err := c.command.Update(ctx, &channelappv1.UpdateChannelAppInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -81,12 +81,12 @@ func (c *ChannelAppClient) ListByOrg(ctx context.Context, input *channelappv1.Li
 	return resp, wrapErr(err)
 }
 
-// ChannelAppInput holds the fields for creating/updating a ChannelApp.
+// ChannelAppInput holds the fields for creating or applying a ChannelApp.
 type ChannelAppInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id         string
 	Name       string
 	Slug       string

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   IdentityAccountSchema,
   type IdentityAccount,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IdentityAccountInput } from "@stigmer/sdk";
 import type { DeploymentMode } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -122,8 +122,8 @@ describe("AccountPreferencesPanel", () => {
     await findSyncedField("Keep answers terse.");
   });
 
-  it("saves the full mapped input — identity fields survive (wipe-bug guard)", async () => {
-    const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
+  it("saves the preferences it owns by their paths, on the account's id — identity fields are not named", async () => {
+    const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT);
     renderPanel(createMockStigmer({ update }));
 
     const field = await findSyncedField("Keep answers terse.");
@@ -131,24 +131,25 @@ describe("AccountPreferencesPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
+    const sent = sentUpdate<IdentityAccount>(update);
 
-    expect(input.preferences).toEqual({
-      standingContext: "Prefer bullet points.",
-    });
-    // Fields this form never renders must round-trip untouched.
-    expect(input.idpId).toBe("auth0|abc");
-    expect(input.email).toBe("ada@acme.example");
-    // The update pipeline addresses id-first — the id is REQUIRED here:
-    // identity accounts are org-less, so the org+slug fallback can never
-    // match one (the save-path bug this pin guards against).
-    expect(input.id).toBe("ia-1");
-    expect(input.org).toBe("acme");
-    expect(input.slug).toBe("ada");
+    expect(sent.resource.spec?.preferences?.standingContext).toBe("Prefer bullet points.");
+    // The form's preferences, each by its own path: fields this form never
+    // renders (the subject, the email) are not named, so they keep their
+    // stored values.
+    expect(sent.paths).toEqual([
+      "spec.preferences.standing_context",
+      "spec.preferences.default_harness",
+      "spec.preferences.default_native_model",
+      "spec.preferences.default_cursor_model",
+      "spec.preferences.default_auto_approve",
+    ]);
+    // An update names its account by id.
+    expect(sent.id).toBe("ia-1");
   });
 
   it("saves the auto-approve default when the toggle is flipped on", async () => {
-    const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
+    const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT);
     renderPanel(createMockStigmer({ update }));
 
     await findSyncedField("Keep answers terse.");
@@ -159,11 +160,10 @@ describe("AccountPreferencesPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
-    expect(input.preferences?.defaultAutoApprove).toBe(true);
+    expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences?.defaultAutoApprove).toBe(true);
   });
 
-  it("reflects a declared auto-approve default and omits it when turned off", async () => {
+  it("reflects a declared auto-approve default and clears it when turned off", async () => {
     const armedAccount = create(IdentityAccountSchema, {
       metadata: { id: "ia-1", name: "Ada Lovelace", slug: "ada", org: "acme" },
       spec: {
@@ -172,7 +172,7 @@ describe("AccountPreferencesPanel", () => {
         preferences: { defaultAutoApprove: true },
       },
     });
-    const update = vi.fn(async (_input: IdentityAccountInput) => armedAccount);
+    const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => armedAccount);
     renderPanel(
       createMockStigmer({ whoAmI: vi.fn(async () => armedAccount), update }),
     );
@@ -188,9 +188,10 @@ describe("AccountPreferencesPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    // Only a declared true travels — off is the absent zero value.
-    const input = update.mock.calls[0]![0];
-    expect(input.preferences?.defaultAutoApprove).toBeUndefined();
+    // Off is the zero value at the named path, which clears it.
+    const sent = sentUpdate<IdentityAccount>(update);
+    expect(sent.paths).toContain("spec.preferences.default_auto_approve");
+    expect(sent.resource.spec?.preferences?.defaultAutoApprove).toBe(false);
   });
 
   it("refetches the account after a successful save", async () => {
@@ -216,8 +217,8 @@ describe("AccountPreferencesPanel", () => {
   });
 
   describe("memory consent", () => {
-    it("memory toggle applies instantly with the full mapped input (wipe-safe)", async () => {
-      const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
+    it("memory toggle applies instantly, naming the flag alone", async () => {
+      const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT);
       renderPanel(createMockStigmer({ update }));
       await findSyncedField("Keep answers terse.");
 
@@ -226,16 +227,15 @@ describe("AccountPreferencesPanel", () => {
       fireEvent.click(screen.getByRole("switch", { name: "Memory" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      const input = update.mock.calls[0]![0];
-      expect(input.preferences?.memoryEnabled).toBe(true);
-      // The double spread: the flip preserves every sibling preference…
-      expect(input.preferences?.standingContext).toBe("Keep answers terse.");
-      // …and the identity fields the row never renders.
-      expect(input.id).toBe("ia-1");
-      expect(input.email).toBe("ada@acme.example");
+      const sent = sentUpdate<IdentityAccount>(update);
+      expect(sent.resource.spec?.preferences?.memoryEnabled).toBe(true);
+      // The flag alone: every sibling preference and the identity fields
+      // keep their stored values without being sent back.
+      expect(sent.paths).toEqual(["spec.preferences.memory_enabled"]);
+      expect(sent.id).toBe("ia-1");
     });
 
-    it("saving the form preserves memory_enabled (the wipe-hazard regression)", async () => {
+    it("saving the form does not name memory_enabled, so the consent stays (the wipe-hazard regression)", async () => {
       const accountWithMemoryOn = create(IdentityAccountSchema, {
         metadata: { id: "ia-1", name: "Ada Lovelace", slug: "ada", org: "acme" },
         spec: {
@@ -247,7 +247,7 @@ describe("AccountPreferencesPanel", () => {
           },
         },
       });
-      const update = vi.fn(async (_input: IdentityAccountInput) => accountWithMemoryOn);
+      const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => accountWithMemoryOn);
       renderPanel(
         createMockStigmer({ whoAmI: vi.fn(async () => accountWithMemoryOn), update }),
       );
@@ -257,9 +257,9 @@ describe("AccountPreferencesPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      // Update is a full-spec replace: without the nested preferences
-      // spread, this save would silently revoke the memory consent.
-      expect(update.mock.calls[0]![0].preferences?.memoryEnabled).toBe(true);
+      // The form names its own preferences only: the memory consent is not
+      // among them, so the save can never revoke it.
+      expect(sentUpdate<IdentityAccount>(update).paths).not.toContain("spec.preferences.memory_enabled");
     });
 
     it("reflects the stored flag as the switch state", async () => {
@@ -399,7 +399,7 @@ describe("AccountPreferencesPanel", () => {
     });
 
     it("saves the complete preferences object — all default fields in one write", async () => {
-      const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
+      const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT);
       renderPanel(createMockStigmer({ update }));
       await findSyncedField("Keep answers terse.");
 
@@ -410,16 +410,16 @@ describe("AccountPreferencesPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      expect(update.mock.calls[0]![0].preferences).toEqual({
+      expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
         standingContext: "Keep answers terse.",
         defaultHarness: "cursor",
         defaultNativeModel: "claude-sonnet-4.6",
-        defaultCursorModel: undefined,
+        defaultCursorModel: "",
       });
     });
 
     it("editing only standing context preserves the structured defaults (nested wipe-bug guard)", async () => {
-      const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT_WITH_DEFAULTS);
+      const update = vi.fn(async (_resource: IdentityAccount, _paths: string[]) => ACCOUNT_WITH_DEFAULTS);
       renderPanel(
         createMockStigmer({ whoAmI: vi.fn(async () => ACCOUNT_WITH_DEFAULTS), update }),
       );
@@ -429,7 +429,7 @@ describe("AccountPreferencesPanel", () => {
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-      expect(update.mock.calls[0]![0].preferences).toEqual({
+      expect(sentUpdate<IdentityAccount>(update).resource.spec?.preferences).toMatchObject({
         standingContext: "Terser still.",
         defaultHarness: "cursor",
         defaultNativeModel: "claude-sonnet-4.6",

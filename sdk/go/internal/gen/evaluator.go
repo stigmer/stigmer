@@ -8,6 +8,7 @@ import (
 	evaluatorv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evaluator/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // EvaluatorClient provides operations on evaluator resources.
@@ -32,12 +33,11 @@ func (e *EvaluatorClient) Create(ctx context.Context, input *EvaluatorInput) (*e
 	return resp, wrapErr(err)
 }
 
-func (e *EvaluatorClient) Update(ctx context.Context, input *EvaluatorInput) (*evaluatorv1.Evaluator, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := e.command.Update(ctx, req)
+func (e *EvaluatorClient) Update(ctx context.Context, resource *evaluatorv1.Evaluator, paths []string) (*evaluatorv1.Evaluator, error) {
+	resp, err := e.command.Update(ctx, &evaluatorv1.UpdateEvaluatorInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -56,12 +56,12 @@ func (e *EvaluatorClient) GetByAgent(ctx context.Context, input *evaluatorv1.Get
 	return resp, wrapErr(err)
 }
 
-// EvaluatorInput holds the fields for creating/updating a Evaluator.
+// EvaluatorInput holds the fields for creating or applying a Evaluator.
 type EvaluatorInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id              string
 	Name            string
 	Slug            string

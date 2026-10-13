@@ -1,6 +1,7 @@
 from ai.stigmer.tenancy.organization.v1 import api_pb2 as _api_pb2
 from ai.stigmer.tenancy.organization.v1 import spec_pb2 as _spec_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -62,3 +63,11 @@ class UpdateOrganizationPoliciesInput(_message.Message):
     org_id: str
     policies: _spec_pb2.OrganizationPolicies
     def __init__(self, org_id: _Optional[str] = ..., policies: _Optional[_Union[_spec_pb2.OrganizationPolicies, _Mapping]] = ...) -> None: ...
+
+class UpdateOrganizationInput(_message.Message):
+    __slots__ = ("resource", "update_mask")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MASK_FIELD_NUMBER: _ClassVar[int]
+    resource: _api_pb2.Organization
+    update_mask: _field_mask_pb2.FieldMask
+    def __init__(self, resource: _Optional[_Union[_api_pb2.Organization, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...

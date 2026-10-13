@@ -63,7 +63,7 @@ Memory memory = client.memories().get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single memory by ID. |
 | [`list`](#list) | List the caller's memories in an organization. |
 | [`create`](#create) | Create a memory in the proposed state. |
-| [`update`](#update) | Update a memory's fact text. |
+| [`update`](#update) | Update a memory: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete a memory permanently, in any lifecycle state. |
 | [`confirm`](#confirm) | Confirm a proposed memory, making it recallable. |
 | [`reject`](#reject) | Reject a proposed memory, keeping it as an audit record. |
@@ -215,66 +215,54 @@ Memory memory = client.memories().create(MemoryInput.builder()
 
 ### update
 
-Update a memory's fact text.
+Update a memory: the fields update_mask names change, every other field keeps its stored value.
 
-Replaces the spec wholesale, but only the content may actually change: the subject and provenance are immutable, and the consent lifecycle in status is never touched by updates — use confirm or reject to decide on a proposal.
+Only the content may change: the subject and provenance are immutable, and the consent lifecycle in status is never touched by updates; use confirm or reject to decide on a proposal.
+
+resource.metadata.id names the memory; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the memory does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the memory changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the memory kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const memory = await stigmer.memory.update({
-  name: "my-memory",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  content: "...",
-  subjectIdentityAccountId: "...",
-  provenance: {},
-});
+const memory = await stigmer.memory.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
+memory.metadata!.name = "New name";
+const updated = await stigmer.memory.update(memory, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-memory, err := client.Memory.Update(ctx, &stigmer.MemoryInput{
-  Name:                     "my-memory",
-  Org:                      "acme",
-  Slug:                     "...",
-  Labels:                   map[string]string{},
-  Content:                  "...",
-  SubjectIdentityAccountId: "...",
-  Provenance:               &stigmer.MemoryProvenanceInput{},
-})
+memory, err := client.Memory.Get(ctx, "mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
+memory.Metadata.Name = "New name"
+updated, err := client.Memory.Update(ctx, memory, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-memory = client.memorys.update(MemoryInput(
-    name="my-memory",
-    org="acme",
-    slug="...",
-    labels={},
-    content="...",
-    subject_identity_account_id="...",
-    provenance=None,
-))
+memory = client.memorys.get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3")
+memory.metadata.name = "New name"
+updated = client.memorys.update(memory, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Memory memory = client.memories().update(MemoryInput.builder()
-    .name("my-memory")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .content("...")
-    .subjectIdentityAccountId("...")
-    .provenance(null)
-    .build());
+Memory memory = client.memories().get("mem_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Memory updated = client.memories().update(
+    memory.toBuilder().setMetadata(memory.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`MemoryInput`](#memoryinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Memory`](#memory) | The memory, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Memory`](#memory)
 
@@ -417,6 +405,17 @@ MemoryProvenance records which agent proposed a memory and in which conversation
     sessionId: { type: "string", description: "ID of the session in which this memory was proposed." },
     runId: { type: "string", description: "ID of the run in which this memory was proposed." },
     toolCallId: { type: "string", description: "ID of the remember tool call that proposed this memory." },
+  }}
+/>
+
+### UpdateMemoryInput
+
+The changes an update makes to a memory: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "MemoryInput", description: "The memory carrying the new values, named by metadata.id.", typeDescriptionLink: "#memoryinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

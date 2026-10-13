@@ -5,6 +5,7 @@
 
 import { Team } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { UpdateTeamInput } from "./io_pbjs";
 import { ApiResourceDeleteInput, RenameInput } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -53,16 +54,30 @@ export const TeamCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update a team's name or description.
+     * Update a team: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * An update names the team by its id, and the slug changes only through
-     * rename.
+     * A team's name and description may change.
+     *
+     * resource.metadata.id names the team; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the team does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the team changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the team kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.update
      */
     update: {
       name: "update",
-      I: Team,
+      I: UpdateTeamInput,
       O: Team,
       kind: MethodKind.Unary,
     },

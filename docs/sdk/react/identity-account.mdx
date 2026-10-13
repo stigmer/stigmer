@@ -156,19 +156,18 @@ const standingContext =
 
 ### useUpdateIdentityAccount
 
-Mutation hook that wraps `identityAccount.update()` with loading and
-error state.
+Mutation hook that wraps `identityAccount.update(resource, paths)` with
+loading and error state.
 
-The update RPC is a full-spec replacement addressed by `org` + `slug`
-(the generated input carries no id). Build the input from the loaded
-resource with `toIdentityAccountUpdateInput` from `@stigmer/sdk` and
-override only the fields being edited — sending a partial input wipes
-the unsent spec fields. The same rule applies INSIDE nested messages:
-override `preferences` by spreading the mapper's complete value first,
-or the untouched preference fields wipe.
+`resource` names the account by `metadata.id`, and `paths` names the
+fields the update changes (proto field paths such as
+`spec.preferences`). Every field it does not name keeps its stored value, so
+a teammate's change to another field survives the save. A account read
+carries `metadata.etag`: sent back, the update is refused (ABORTED,
+reason `ETAG_MISMATCH`) if the account changed since it was read.
 
-Self-service: a user can always update their own account (`can_edit`
-via the self-ownership relationship written at account creation).
+Self-service: a person can always update their own account (`can_edit`
+through the self-ownership written when the account was created).
 
 **Signature**
 
@@ -180,22 +179,23 @@ function useUpdateIdentityAccount(): UseUpdateIdentityAccountReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
     error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
-    isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
-    update: { type: "(input: IdentityAccountInput) => Promise<IdentityAccount>", description: "Submit an IdentityAccountInput to update an identity account. Resolves with the updated resource." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(resource: MessageInit<IdentityAccount>, paths: string[]) => Promise<IdentityAccount>", description: "Update an account: the fields `paths` names take their values from `resource`, and every other field keeps its stored value. Resolves with the updated resource." },
   }}
 />
 
 ```tsx
 const { update, isUpdating, error } = useUpdateIdentityAccount();
 
-const mapped = toIdentityAccountUpdateInput(account);
-await update({
-  ...mapped,
-  preferences: { ...mapped.preferences, standingContext: "Keep answers terse." },
-});
-refetch(); // re-sync the editor
+await update(
+  {
+    metadata: { id: account.metadata!.id, etag: account.metadata!.etag },
+    spec: { preferences: { ...account.spec?.preferences, standingContext: "Keep answers terse." } },
+  },
+  ["spec.preferences"],
+);
 ```
 
 
@@ -213,8 +213,8 @@ runs and delivered to the agent as background context.
 Self-service: the account is resolved via `whoAmI()` and updated
 through the caller's self-ownership permission — no explicit
 permission check is needed. On save, calls `identityAccount.update()`
-with the complete mapped input (full-spec-replace safety) and fires
-`onUpdated`.
+naming only the preferences this form owns, with the etag the account
+was loaded at, and fires `onUpdated`.
 
 Served in every edition, so the panel asks no edition question: the
 identity-account kind is `open_source`-tier and a trusted-local server

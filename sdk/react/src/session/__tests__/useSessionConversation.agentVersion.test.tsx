@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
@@ -18,9 +19,9 @@ import { sessionEventStream } from "./session-event-stream";
 // says so: `version: "latest"` moves it to the agent's current version, and an
 // unchanged agent with no version keeps the pin. So the one explicit act,
 // moveToCurrentAgentVersion, writes `latest`; every other rewrite of the
-// session (workspace, tools) echoes the agent without a stored `latest`, or a
-// later edit would silently move the conversation to whatever the author
-// saved last. Pinned here because both directions change what a person's
+// session (workspace, tools) leaves the agent reference unnamed, or a later
+// edit could silently move the conversation to whatever the author saved
+// last. Pinned here because both directions change what a person's
 // conversation runs.
 // ---------------------------------------------------------------------------
 
@@ -86,14 +87,15 @@ describe("useSessionConversation — the agent version a session runs", () => {
     });
 
     expect(sessionUpdate).toHaveBeenCalledTimes(1);
-    const input = sessionUpdate.mock.calls[0][0];
-    expect(input.agentRef).toMatchObject({
+    const sent = sentUpdate<Session>(sessionUpdate);
+    expect(sent.resource.spec?.agentRef).toMatchObject({
       org: "org_acme",
       slug: "reviewer",
       version: "latest",
     });
-    // Nothing but the version moves: the rest of the spec is the stored one.
-    expect(input.org).toBe("org_acme");
+    // Nothing but the agent reference is named: the rest of the spec keeps
+    // its stored value.
+    expect(sent.paths).toEqual(["spec.agent_ref"]);
     // The fresh read before the write, and the reload after it.
     await waitFor(() =>
       expect(sessionGet.mock.calls.length).toBeGreaterThanOrEqual(
@@ -129,7 +131,7 @@ describe("useSessionConversation — the agent version a session runs", () => {
     expect(sessionUpdate).not.toHaveBeenCalled();
   });
 
-  it("a follow-up that rewrites the session echoes a latest in hand without its version, never re-pinning", async () => {
+  it("a follow-up that rewrites the session leaves a latest in hand unnamed, never re-pinning", async () => {
     sessionGet.mockResolvedValue(sessionOnAgent("latest"));
     const { result } = await loaded();
 
@@ -139,15 +141,12 @@ describe("useSessionConversation — the agent version a session runs", () => {
       });
     });
 
-    const input = sessionUpdate.mock.calls[0][0];
-    expect(input.agentRef).toEqual({
-      org: "org_acme",
-      slug: "reviewer",
-      kind: 40,
-    });
+    // The follow-up names the skills alone: the agent reference is not
+    // named, so its pin stays as stored.
+    expect(sentUpdate<Session>(sessionUpdate).paths).toEqual(["spec.skill_refs"]);
   });
 
-  it("a follow-up echoes a stored tag as stored", async () => {
+  it("a follow-up leaves a stored tag unnamed, so it stays as stored", async () => {
     sessionGet.mockResolvedValue(sessionOnAgent("v2"));
     const { result } = await loaded();
 
@@ -157,9 +156,7 @@ describe("useSessionConversation — the agent version a session runs", () => {
       });
     });
 
-    expect(sessionUpdate.mock.calls[0][0].agentRef).toMatchObject({
-      version: "v2",
-    });
+    expect(sentUpdate<Session>(sessionUpdate).paths).not.toContain("spec.agent_ref");
   });
 
   it("a follow-up that moves to another agent names it, and null clears the agent", async () => {
@@ -170,15 +167,16 @@ describe("useSessionConversation — the agent version a session runs", () => {
         agentRef: { org: "org_acme", slug: "other" },
       });
     });
-    expect(sessionUpdate.mock.calls[0][0].agentRef).toEqual({
-      org: "org_acme",
-      slug: "other",
-    });
+    const moved = sentUpdate<Session>(sessionUpdate);
+    expect(moved.paths).toEqual(["spec.agent_ref"]);
+    expect(moved.resource.spec?.agentRef).toMatchObject({ org: "org_acme", slug: "other", version: "" });
 
     await act(async () => {
       await result.current.sendFollowUp("drop", { agentRef: null });
     });
-    expect(sessionUpdate.mock.calls[1][0].agentRef).toBeUndefined();
+    const cleared = sentUpdate<Session>(sessionUpdate, 1);
+    expect(cleared.paths).toEqual(["spec.agent_ref"]);
+    expect(cleared.resource.spec?.agentRef).toBeUndefined();
   });
 
   it("a plain follow-up writes nothing to the session", async () => {

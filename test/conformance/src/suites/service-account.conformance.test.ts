@@ -327,7 +327,7 @@ describe("Service account conformance", () => {
         call: () => {
           const renamed = clone(IdentityAccountSchema, account);
           renamed.metadata!.name = uniqueName("renamed");
-          return asKey.identityAccountCommand.update(renamed);
+          return asKey.identityAccountCommand.update({ resource: renamed, updateMask: { paths: ["*"] } });
         },
       },
       {

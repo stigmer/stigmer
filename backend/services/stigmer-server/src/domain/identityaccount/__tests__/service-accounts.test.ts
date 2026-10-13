@@ -302,7 +302,7 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
     if (renamed.metadata === undefined)
       throw new Error("account has no metadata");
     renamed.metadata.name = "After Rename";
-    const updated = await command.update(renamed);
+    const updated = await command.update({ resource: renamed, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.slug).toBe("after-rename");
     expect(updated.metadata?.org).toBe(acme);
 
@@ -310,7 +310,7 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
     if (taken.metadata === undefined)
       throw new Error("account has no metadata");
     taken.metadata.name = "held-name";
-    const error = await refusal(command.update(taken));
+    const error = await refusal(command.update({ resource: taken, updateMask: { paths: ["*"] } }));
     expect(error.code).toBe(Code.AlreadyExists);
     expect(error.findDetails(ErrorInfoSchema)[0]?.reason).toBe(
       SERVICE_ACCOUNT_NAME_TAKEN,
@@ -356,7 +356,7 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
         id,
         ApiResourceVisibility.visibility_org,
       ),
-      () => command.update(renamed),
+      () => command.update({ resource: renamed, updateMask: { paths: ["*"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);

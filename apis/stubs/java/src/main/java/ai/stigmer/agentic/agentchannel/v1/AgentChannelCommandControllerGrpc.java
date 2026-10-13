@@ -77,27 +77,27 @@ public final class AgentChannelCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.AgentChannel,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput,
       ai.stigmer.agentic.agentchannel.v1.AgentChannel> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.agentchannel.v1.AgentChannel.class,
+      requestType = ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput.class,
       responseType = ai.stigmer.agentic.agentchannel.v1.AgentChannel.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.AgentChannel,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput,
       ai.stigmer.agentic.agentchannel.v1.AgentChannel> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.AgentChannel, ai.stigmer.agentic.agentchannel.v1.AgentChannel> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput, ai.stigmer.agentic.agentchannel.v1.AgentChannel> getUpdateMethod;
     if ((getUpdateMethod = AgentChannelCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (AgentChannelCommandControllerGrpc.class) {
         if ((getUpdateMethod = AgentChannelCommandControllerGrpc.getUpdateMethod) == null) {
           AgentChannelCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.AgentChannel, ai.stigmer.agentic.agentchannel.v1.AgentChannel>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput, ai.stigmer.agentic.agentchannel.v1.AgentChannel>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.agentchannel.v1.AgentChannel.getDefaultInstance()))
+                  ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agentchannel.v1.AgentChannel.getDefaultInstance()))
               .setSchemaDescriptor(new AgentChannelCommandControllerMethodDescriptorSupplier("update"))
@@ -293,13 +293,24 @@ public final class AgentChannelCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent channel.
-     * Replaces the spec wholesale. The slug, referenced agent, and provider
-     * arm are immutable; status (install facts, credential reference) is
-     * never touched by updates.
+     * Update an agent channel: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the provider arm are immutable; status
+     * (install facts, credential reference) is never touched by updates.
+     * resource.metadata.id names the agent channel; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent channel does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent channel kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.agentchannel.v1.AgentChannel request,
+    default void update(ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.AgentChannel> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -429,13 +440,24 @@ public final class AgentChannelCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent channel.
-     * Replaces the spec wholesale. The slug, referenced agent, and provider
-     * arm are immutable; status (install facts, credential reference) is
-     * never touched by updates.
+     * Update an agent channel: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the provider arm are immutable; status
+     * (install facts, credential reference) is never touched by updates.
+     * resource.metadata.id names the agent channel; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent channel does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent channel kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.agentchannel.v1.AgentChannel request,
+    public void update(ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.AgentChannel> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -553,13 +575,24 @@ public final class AgentChannelCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent channel.
-     * Replaces the spec wholesale. The slug, referenced agent, and provider
-     * arm are immutable; status (install facts, credential reference) is
-     * never touched by updates.
+     * Update an agent channel: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the provider arm are immutable; status
+     * (install facts, credential reference) is never touched by updates.
+     * resource.metadata.id names the agent channel; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent channel does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent channel kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.agentchannel.v1.AgentChannel update(ai.stigmer.agentic.agentchannel.v1.AgentChannel request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.agentchannel.v1.AgentChannel update(ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -673,13 +706,24 @@ public final class AgentChannelCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent channel.
-     * Replaces the spec wholesale. The slug, referenced agent, and provider
-     * arm are immutable; status (install facts, credential reference) is
-     * never touched by updates.
+     * Update an agent channel: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the provider arm are immutable; status
+     * (install facts, credential reference) is never touched by updates.
+     * resource.metadata.id names the agent channel; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent channel does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent channel kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.agentchannel.v1.AgentChannel update(ai.stigmer.agentic.agentchannel.v1.AgentChannel request) {
+    public ai.stigmer.agentic.agentchannel.v1.AgentChannel update(ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -795,14 +839,25 @@ public final class AgentChannelCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent channel.
-     * Replaces the spec wholesale. The slug, referenced agent, and provider
-     * arm are immutable; status (install facts, credential reference) is
-     * never touched by updates.
+     * Update an agent channel: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the provider arm are immutable; status
+     * (install facts, credential reference) is never touched by updates.
+     * resource.metadata.id names the agent channel; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent channel does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent channel kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.AgentChannel> update(
-        ai.stigmer.agentic.agentchannel.v1.AgentChannel request) {
+        ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -907,7 +962,7 @@ public final class AgentChannelCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.AgentChannel>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.agentchannel.v1.AgentChannel) request,
+          serviceImpl.update((ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.AgentChannel>) responseObserver);
           break;
         case METHODID_INITIATE_INSTALL:
@@ -958,7 +1013,7 @@ public final class AgentChannelCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.agentchannel.v1.AgentChannel,
+              ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput,
               ai.stigmer.agentic.agentchannel.v1.AgentChannel>(
                 service, METHODID_UPDATE)))
         .addMethod(

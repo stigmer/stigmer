@@ -5,7 +5,7 @@
 
 import { Evaluator } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { EvaluatorId } from "./io_pbjs";
+import { EvaluatorId, UpdateEvaluatorInput } from "./io_pbjs";
 
 /**
  * EvaluatorCommandController handles write operations for evaluators.
@@ -30,17 +30,32 @@ export const EvaluatorCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an evaluator's settings: whether it is enabled, its sample rate,
-     * its monthly limit and its model.
+     * Update an evaluator: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * The agent it grades stays as created, and this month's spend and
-     * counts are kept.
+     * Its settings are whether it is enabled, its sample rate, its monthly
+     * limit and its model. The agent it grades stays as created, and this
+     * month's spend and counts are kept.
+     *
+     * resource.metadata.id names the evaluator; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the evaluator does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the evaluator kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.update
      */
     update: {
       name: "update",
-      I: Evaluator,
+      I: UpdateEvaluatorInput,
       O: Evaluator,
       kind: MethodKind.Unary,
     },

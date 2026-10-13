@@ -77,7 +77,7 @@ Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listVersions`](#listversions) | List version history for an agent. |
 | [`apply`](#apply) | Create or update an agent. |
 | [`create`](#create) | Create an agent. |
-| [`update`](#update) | Update an existing agent. |
+| [`update`](#update) | Update an agent: the fields update_mask names change, every other field keeps its stored value. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing agent. |
 | [`delete`](#delete) | Delete an agent. |
 | [`rename`](#rename) | Rename an agent: change its slug, the name people type. |
@@ -481,102 +481,52 @@ Agent agent = client.agents().create(AgentInput.builder()
 
 ### update
 
-Update an existing agent.
+Update an agent: the fields update_mask names change, every other field keeps its stored value.
 
-The slug changes only through rename. An update authorizes the id it names, so wherever the server authorizes requests, an update without an id is refused before its slug is read; where it reads one, a slug the agent was renamed away from is refused with SLUG_RENAMED (see apply).
+resource.metadata.id names the agent; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the agent does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the agent changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the agent kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agent = await stigmer.agent.update({
-  name: "my-agent",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  description: "...",
-  iconUrl: "...",
-  instructions: "...",
-  skillRefs: [],
-  env: {},
-  tools: [],
-  disallowedTools: [],
-  hooks: [],
-  runConfig: {},
-  harness: "...",
-  plugins: [],
-  subagents: [],
-});
+const agent = await stigmer.agent.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+agent.metadata!.name = "New name";
+const updated = await stigmer.agent.update(agent, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
-  Name:            "my-agent",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  Description:     "...",
-  IconUrl:         "...",
-  Instructions:    "...",
-  SkillRefs:       []stigmer.ResourceRef{},
-  Env:             map[string]string{},
-  Tools:           []string{},
-  DisallowedTools: []string{},
-  Hooks:           []stigmer.HookSourceInput{},
-  RunConfig:       &stigmer.RunConfigInput{},
-  Harness:         "...",
-  Plugins:         []stigmer.ResourceRef{},
-  Subagents:       []stigmer.ResourceRef{},
-})
+agent, err := client.Agent.Get(ctx, "agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent.Metadata.Name = "New name"
+updated, err := client.Agent.Update(ctx, agent, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent = client.agents.update(AgentInput(
-    name="my-agent",
-    org="acme",
-    slug="...",
-    labels={},
-    description="...",
-    icon_url="...",
-    instructions="...",
-    skill_refs=[],
-    env={},
-    tools=[],
-    disallowed_tools=[],
-    hooks=[],
-    run_config=None,
-    harness="...",
-    plugins=[],
-    subagents=[],
-))
+agent = client.agents.get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent.metadata.name = "New name"
+updated = client.agents.update(agent, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Agent agent = client.agents().update(AgentInput.builder()
-    .name("my-agent")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .description("...")
-    .iconUrl("...")
-    .instructions("...")
-    .skillRefs(List.of())
-    .env(Map.of())
-    .tools(List.of())
-    .disallowedTools(List.of())
-    .hooks(List.of())
-    .runConfig(null)
-    .harness("...")
-    .plugins(List.of())
-    .subagents(List.of())
-    .build());
+Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Agent updated = client.agents().update(
+    agent.toBuilder().setMetadata(agent.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`AgentInput`](#agentinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Agent`](#agent) | The agent, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Agent`](#agent)
 
@@ -873,6 +823,17 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
+### UpdateAgentInput
+
+The changes an update makes to an agent: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "AgentInput", description: "The agent carrying the new values, named by metadata.id.", typeDescriptionLink: "#agentinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

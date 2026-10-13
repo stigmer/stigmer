@@ -26,24 +26,25 @@ var File_ai_stigmer_iam_team_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_team_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/iam/team/v1/command.proto\x12\x16ai.stigmer.iam.team.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a ai/stigmer/iam/team/v1/api.proto2\xc7\x04\n" +
+	"$ai/stigmer/iam/team/v1/command.proto\x12\x16ai.stigmer.iam.team.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1fai/stigmer/iam/team/v1/io.proto2\xdc\x04\n" +
 	"\x15TeamCommandController\x12\x8e\x01\n" +
-	"\x06create\x12\x1c.ai.stigmer.iam.team.v1.Team\x1a\x1c.ai.stigmer.iam.team.v1.Team\"H¸\x18D\b-\x10\x1e\"\fmetadata.org*0unauthorized to create team in this organization\x12x\n" +
-	"\x06update\x12\x1c.ai.stigmer.iam.team.v1.Team\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2¸\x18.\b\x02\x10\x18\"\vmetadata.id*\x1bunauthorized to update team\x12\x87\x01\n" +
+	"\x06create\x12\x1c.ai.stigmer.iam.team.v1.Team\x1a\x1c.ai.stigmer.iam.team.v1.Team\"H¸\x18D\b-\x10\x1e\"\fmetadata.org*0unauthorized to create team in this organization\x12\x8c\x01\n" +
+	"\x06update\x12'.ai.stigmer.iam.team.v1.UpdateTeamInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\";¸\x187\b\x02\x10\x18\"\x14resource.metadata.id*\x1bunauthorized to update team\x12\x87\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2¸\x18.\b\x03\x10\x18\"\vresource_id*\x1bunauthorized to rename team\x12\x92\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2¸\x18.\b\x03\x10\x18\"\vresource_id*\x1bunauthorized to delete team\x1a\x04\xa0\xff+\x18B\xef\x01\n" +
 	"\x1acom.ai.stigmer.iam.team.v1B\fCommandProtoP\x01ZFgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
 
 var file_ai_stigmer_iam_team_v1_command_proto_goTypes = []any{
 	(*Team)(nil),                               // 0: ai.stigmer.iam.team.v1.Team
-	(*apiresource.RenameInput)(nil),            // 1: ai.stigmer.commons.apiresource.RenameInput
-	(*apiresource.ApiResourceDeleteInput)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	(*UpdateTeamInput)(nil),                    // 1: ai.stigmer.iam.team.v1.UpdateTeamInput
+	(*apiresource.RenameInput)(nil),            // 2: ai.stigmer.commons.apiresource.RenameInput
+	(*apiresource.ApiResourceDeleteInput)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 }
 var file_ai_stigmer_iam_team_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.team.v1.TeamCommandController.create:input_type -> ai.stigmer.iam.team.v1.Team
-	0, // 1: ai.stigmer.iam.team.v1.TeamCommandController.update:input_type -> ai.stigmer.iam.team.v1.Team
-	1, // 2: ai.stigmer.iam.team.v1.TeamCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
-	2, // 3: ai.stigmer.iam.team.v1.TeamCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	1, // 1: ai.stigmer.iam.team.v1.TeamCommandController.update:input_type -> ai.stigmer.iam.team.v1.UpdateTeamInput
+	2, // 2: ai.stigmer.iam.team.v1.TeamCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
+	3, // 3: ai.stigmer.iam.team.v1.TeamCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 	0, // 4: ai.stigmer.iam.team.v1.TeamCommandController.create:output_type -> ai.stigmer.iam.team.v1.Team
 	0, // 5: ai.stigmer.iam.team.v1.TeamCommandController.update:output_type -> ai.stigmer.iam.team.v1.Team
 	0, // 6: ai.stigmer.iam.team.v1.TeamCommandController.rename:output_type -> ai.stigmer.iam.team.v1.Team
@@ -61,6 +62,7 @@ func file_ai_stigmer_iam_team_v1_command_proto_init() {
 		return
 	}
 	file_ai_stigmer_iam_team_v1_api_proto_init()
+	file_ai_stigmer_iam_team_v1_io_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

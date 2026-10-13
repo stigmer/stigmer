@@ -8,6 +8,8 @@ import ai.stigmer.agentic.memory.v1.MemoryCommandControllerGrpc;
 import ai.stigmer.agentic.memory.v1.MemoryId;
 import ai.stigmer.agentic.memory.v1.MemoryList;
 import ai.stigmer.agentic.memory.v1.MemoryQueryControllerGrpc;
+import ai.stigmer.agentic.memory.v1.UpdateMemoryInput;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -27,9 +29,12 @@ public final class MemoryClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Memory update(MemoryInput input) {
+    public Memory update(Memory resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateMemoryInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

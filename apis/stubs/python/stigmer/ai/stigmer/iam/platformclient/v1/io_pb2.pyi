@@ -1,5 +1,6 @@
 from ai.stigmer.iam.platformclient.v1 import api_pb2 as _api_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -33,3 +34,11 @@ class PlatformClientCreateResponse(_message.Message):
     platform_client: _api_pb2.PlatformClient
     client_secret: str
     def __init__(self, platform_client: _Optional[_Union[_api_pb2.PlatformClient, _Mapping]] = ..., client_secret: _Optional[str] = ...) -> None: ...
+
+class UpdatePlatformClientInput(_message.Message):
+    __slots__ = ("resource", "update_mask")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MASK_FIELD_NUMBER: _ClassVar[int]
+    resource: _api_pb2.PlatformClient
+    update_mask: _field_mask_pb2.FieldMask
+    def __init__(self, resource: _Optional[_Union[_api_pb2.PlatformClient, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...

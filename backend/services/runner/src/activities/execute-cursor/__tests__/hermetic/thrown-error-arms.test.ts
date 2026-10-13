@@ -147,7 +147,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     // ── Assert: where it stopped ─────────────────────────────────────────────
     expect(scenario.sdk.resolutions.map((r) => r.kind), "one create attempt, unretried").toEqual(["create"]);
     expect(neverUsed.sends, "no agent ever ran").toHaveLength(0);
-    expect(record.sessionUpdates, "no harness_state_id to bind").toHaveLength(0);
+    expect(record.harnessBinds, "no harness_state_id to bind").toHaveLength(0);
     expect(_parkedAgentCountForTests()).toBe(0);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
@@ -199,7 +199,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
       "Resolving agent blueprint",
     ]);
     expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
-    expect(record.sessionUpdates).toHaveLength(0);
+    expect(record.harnessBinds).toHaveLength(0);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);

@@ -62,7 +62,7 @@ OAuthApp oAuthApp = client.oauthapps().get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listByOrg`](#listbyorg) | List all OAuth apps belonging to an organization. |
 | [`apply`](#apply) | Create or update an OAuth app. |
 | [`create`](#create) | Create an OAuth app. |
-| [`update`](#update) | Update an existing OAuth app. |
+| [`update`](#update) | Update an OAuth app: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete an OAuth app. |
 | [`rename`](#rename) | Rename an OAuth app: change its slug, the name people type. |
 
@@ -411,102 +411,52 @@ OAuthApp oAuthApp = client.oauthapps().create(OAuthAppInput.builder()
 
 ### update
 
-Update an existing OAuth app.
+Update an OAuth app: the fields update_mask names change, every other field keeps its stored value.
 
-The slug changes only through rename. An update authorizes the id it names, so wherever the server authorizes requests, an update without an id is refused before its slug is read; where it reads one, a slug the OAuth app was renamed away from is refused with SLUG_RENAMED (see apply).
+resource.metadata.id names the OAuth app; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the OAuth app does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the OAuth app kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const oAuthApp = await stigmer.oauthapp.update({
-  name: "my-oauth-app",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  provider: "...",
-  clientId: "...",
-  clientSecret: "...",
-  authorizationUrl: "...",
-  tokenUrl: "...",
-  scopes: [],
-  userinfoUrl: "...",
-  scopeParameterName: "...",
-  vendorApprovalStatus: "...",
-  vendorApprovalDocsUrl: "...",
-  tokenEndpointAuthMethod: "...",
-  addresses: [],
-});
+const oAuthApp = await stigmer.oauthapp.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+oAuthApp.metadata!.name = "New name";
+const updated = await stigmer.oauthapp.update(oAuthApp, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-oAuthApp, err := client.OAuthApp.Update(ctx, &stigmer.OAuthAppInput{
-  Name:                    "my-oauth-app",
-  Org:                     "acme",
-  Slug:                    "...",
-  Labels:                  map[string]string{},
-  Provider:                "...",
-  ClientId:                "...",
-  ClientSecret:            "...",
-  AuthorizationUrl:        "...",
-  TokenUrl:                "...",
-  Scopes:                  []string{},
-  UserinfoUrl:             "...",
-  ScopeParameterName:      "...",
-  VendorApprovalStatus:    "...",
-  VendorApprovalDocsUrl:   "...",
-  TokenEndpointAuthMethod: "...",
-  Addresses:               []string{},
-})
+oAuthApp, err := client.OAuthApp.Get(ctx, "oapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+oAuthApp.Metadata.Name = "New name"
+updated, err := client.OAuthApp.Update(ctx, oAuthApp, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-o_auth_app = client.oauthapps.update(OAuthAppInput(
-    name="my-oauth-app",
-    org="acme",
-    slug="...",
-    labels={},
-    provider="...",
-    client_id="...",
-    client_secret="...",
-    authorization_url="...",
-    token_url="...",
-    scopes=[],
-    userinfo_url="...",
-    scope_parameter_name="...",
-    vendor_approval_status="...",
-    vendor_approval_docs_url="...",
-    token_endpoint_auth_method="...",
-    addresses=[],
-))
+o_auth_app = client.oauthapps.get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+o_auth_app.metadata.name = "New name"
+updated = client.oauthapps.update(o_auth_app, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OAuthApp oAuthApp = client.oauthapps().update(OAuthAppInput.builder()
-    .name("my-oauth-app")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .provider("...")
-    .clientId("...")
-    .clientSecret("...")
-    .authorizationUrl("...")
-    .tokenUrl("...")
-    .scopes(List.of())
-    .userinfoUrl("...")
-    .scopeParameterName("...")
-    .vendorApprovalStatus("...")
-    .vendorApprovalDocsUrl("...")
-    .tokenEndpointAuthMethod("...")
-    .addresses(List.of())
-    .build());
+OAuthApp oAuthApp = client.oauthapps().get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+OAuthApp updated = client.oauthapps().update(
+    oAuthApp.toBuilder().setMetadata(oAuthApp.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`OAuthAppInput`](#oauthappinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`OAuthApp`](#oauthapp) | The oauth app, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`OAuthApp`](#oauthapp)
 
@@ -624,6 +574,17 @@ Input for creating or updating an OAuth App.
     vendorApprovalDocsUrl: { type: "string", description: "Documentation URL explaining how users can bring their own OAuth app credentials or personal access tokens for this vendor while the platform's OAuth app is pending approval." },
     tokenEndpointAuthMethod: { type: "TokenEndpointAuthMethod", description: "How the client secret is presented to the vendor's token endpoint during authorization-code exchange and refresh.", typeDescriptionLink: "#tokenendpointauthmethod" },
     addresses: { type: "string[]", description: "The addresses this app signs in to: a tool's URL (Slack's MCP endpoint at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized as a vault connection's address is." },
+  }}
+/>
+
+### UpdateOAuthAppInput
+
+The changes an update makes to an OAuth app: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "OAuthAppInput", description: "The OAuth app carrying the new values, named by metadata.id.", typeDescriptionLink: "#oauthappinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

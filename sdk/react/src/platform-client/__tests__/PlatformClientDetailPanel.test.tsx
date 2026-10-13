@@ -10,17 +10,15 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { PlatformClientInput } from "@stigmer/sdk";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { PlatformClientDetailPanel } from "../PlatformClientDetailPanel";
 
 /**
- * Regression suite for the full-spec-replace wipe bug: before the
- * generated-mapper migration, this panel hand-built its update input and
- * NEVER sent the client's credential bindings — saving any edit silently
- * wiped them. The panel spreads `toPlatformClientUpdateInput` and
- * overrides only what it edits; the vaults it now edits itself start from
- * the stored list, so an edit of something else keeps them.
+ * The save names the fields the form edits, on the client's id: a spec
+ * field it does not list (the credentials) is not named, so it keeps its
+ * stored value; the vaults it edits itself start from the stored list, so
+ * an edit of something else sends them back as stored.
  *
  * Also pins how the panel presents an expired client (#1254): the view
  * says "Expired", and the rotate confirmation says rotating will not help,
@@ -98,33 +96,41 @@ const ROTATE_WILL_NOT_HELP =
 afterEach(cleanup);
 
 describe("PlatformClientDetailPanel save payload", () => {
-  it("round-trips vaults on an origins-only edit (the wipe bug)", async () => {
-    const update = vi.fn(async (_input: PlatformClientInput) => PLATFORM_CLIENT);
+  it("sends the stored vaults back on an origins-only edit, naming the form's fields alone", async () => {
+    const update = vi.fn(async (_resource: PlatformClient, _paths: string[]) => PLATFORM_CLIENT);
     renderPanel(update);
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
+    const sent = sentUpdate<PlatformClient>(update);
+    const spec = sent.resource.spec;
 
-    // The wipe-bug guard: an origins-only edit keeps the stored vaults.
-    expect(input.vaults).toEqual([{ org: "acme", slug: "prod" }]);
-    // Form-owned fields round-trip from the edit state.
-    expect(input.allowedOrigins).toEqual(["https://embed.acme.example"]);
-    expect(input.createAccountsOnSignIn).toBe(true);
-    expect(input.signInRole).toBe(IamRole.admin);
-    expect(input.expiresAt).toBeInstanceOf(Date);
-    // Addressing fields for the update pipeline's org+slug lookup.
-    expect(input.org).toBe("acme");
-    expect(input.slug).toBe("embed-client");
-    expect(input.name).toBe("Embed Client");
+    // An origins-only edit sends the stored vaults back as stored.
+    expect(sentRefs(spec?.vaults)).toEqual([{ org: "acme", slug: "prod" }]);
+    // Form-owned fields travel from the edit state.
+    expect(spec?.allowedOrigins).toEqual(["https://embed.acme.example"]);
+    expect(spec?.createAccountsOnSignIn).toBe(true);
+    expect(spec?.signInRole).toBe(IamRole.admin);
+    expect(spec?.expiresAt).toBeDefined();
+    // The form's fields alone: the credentials are not named.
+    expect(sent.paths).toEqual([
+      "spec.never_expires",
+      "spec.expires_at",
+      "spec.create_accounts_on_sign_in",
+      "spec.sign_in_role",
+      "spec.allowed_origins",
+      "spec.vaults",
+    ]);
+    // An update names its client by id.
+    expect(sent.id).toBe(PLATFORM_CLIENT.metadata?.id);
   });
 });
 
 describe("PlatformClientDetailPanel sign-in settings", () => {
   it("clears the sign-in role when account creation is turned off", async () => {
-    const update = vi.fn(async (_input: PlatformClientInput) => PLATFORM_CLIENT);
+    const update = vi.fn(async (_resource: PlatformClient, _paths: string[]) => PLATFORM_CLIENT);
     renderPanel(update);
 
     expect(screen.getByText("Admin")).toBeTruthy();
@@ -139,9 +145,10 @@ describe("PlatformClientDetailPanel sign-in settings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
-    expect(input.createAccountsOnSignIn).toBeUndefined();
-    expect(input.signInRole).toBeUndefined();
+    const sent = sentUpdate<PlatformClient>(update);
+    expect(sent.paths).toEqual(expect.arrayContaining(["spec.create_accounts_on_sign_in", "spec.sign_in_role"]));
+    expect(sent.resource.spec?.createAccountsOnSignIn).toBe(false);
+    expect(sent.resource.spec?.signInRole).toBe(IamRole.iam_role_unspecified);
   });
 
   it("reads an unspecified sign-in role as None", () => {

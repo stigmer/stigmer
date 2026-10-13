@@ -5,6 +5,7 @@ from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.run.v1 import usage_pb2 as _usage_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import duration_pb2 as _duration_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -441,3 +442,11 @@ class AgentFailureRank(_message.Message):
     agent_name: str
     failure_count: int
     def __init__(self, agent_slug: _Optional[str] = ..., agent_name: _Optional[str] = ..., failure_count: _Optional[int] = ...) -> None: ...
+
+class UpdateRunInput(_message.Message):
+    __slots__ = ("resource", "update_mask")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MASK_FIELD_NUMBER: _ClassVar[int]
+    resource: _api_pb2.Run
+    update_mask: _field_mask_pb2.FieldMask
+    def __init__(self, resource: _Optional[_Union[_api_pb2.Run, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...

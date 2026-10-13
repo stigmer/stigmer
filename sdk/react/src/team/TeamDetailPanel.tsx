@@ -10,16 +10,17 @@
  * team and who is in it. Renaming (the slug field) needs `can_delete`, as
  * deleting does; memberships and shares name the team by id and stay.
  *
- * An edit spreads `toTeamUpdateInput(team)` before overriding the name and
- * description: the update replaces the whole resource, and anything not
- * carried forward (labels, the slug) would be wiped. Deleting a team takes
+ * An edit names the name and description alone, with the etag the team
+ * was loaded at: everything else keeps its stored value, and a team
+ * changed since it was loaded refuses the save. Deleting a team takes
  * every membership and every grant made to the team with it, and the
  * confirmation says exactly that, so no one reads it as deleting people.
  */
 import { useCallback, useState, type FormEvent } from "react";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, toTeamUpdateInput } from "@stigmer/sdk";
+import { buildTeamProto, getUserMessage } from "@stigmer/sdk";
+import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
@@ -158,11 +159,11 @@ function EditTeamForm({
       if (!canSave) return;
       clearError();
       try {
-        const saved = await update({
-          ...toTeamUpdateInput(team),
+        const { resource, paths } = maskedEdit(team, buildTeamProto, {
           name: name.trim(),
           description: description.trim() || undefined,
         });
+        const saved = await update(resource, paths);
         onSaved(saved);
       } catch {
         // error state is managed by useUpdateTeam
@@ -195,7 +196,7 @@ function EditTeamForm({
       </Field>
       {error && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-          {getUserMessage(error)}
+          {saveErrorMessage(error, "team")}
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">

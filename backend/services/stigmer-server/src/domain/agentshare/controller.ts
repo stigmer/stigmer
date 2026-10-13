@@ -48,6 +48,8 @@ import type {
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import type { UpdateAgentShareInput } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { UpdateAgentShareInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -105,6 +107,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newResolveShareAudienceStep, shareAdmitsAnyone } from "./audience.js";
@@ -157,7 +160,7 @@ export function registerAgentShareServices(
   router.service(AgentShareCommandController, {
     apply: (share, ctx) => apply(deps, share, ctx),
     create: (share, ctx) => createShare(deps, share, ctx),
-    update: (share, ctx) => update(deps, share, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     rotateShareLink: (input, ctx) => rotateShareLink(deps, input, ctx),
     delete: (shareId, ctx) => deleteShare(deps, shareId, ctx),
   });
@@ -242,13 +245,13 @@ async function createShare(
  */
 async function update(
   deps: AgentShareControllerDeps,
-  share: AgentShare,
+  input: UpdateAgentShareInput,
   ctx: HandlerContext,
 ): Promise<AgentShare> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       AgentShareSchema,
-      share,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -257,12 +260,13 @@ async function update(
         newAuthorizeStep(
           AgentShareCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       // After BuildUpdateState, which rebuilds the state from the request.
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newValidateShareUpdateStep(deps.store))
@@ -322,7 +326,7 @@ async function apply(
   const resolved = reqCtx.newState;
   return shouldCreate
     ? createShare(deps, resolved, ctx)
-    : update(deps, resolved, ctx);
+    : update(deps, everyPathUpdate(UpdateAgentShareInputSchema, resolved), ctx);
 }
 
 // ---------------------------------------------------------------------------

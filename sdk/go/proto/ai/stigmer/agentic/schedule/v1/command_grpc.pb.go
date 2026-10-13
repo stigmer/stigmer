@@ -62,19 +62,28 @@ type ScheduleCommandControllerClient interface {
 	//   - SLUG_RESERVED — another schedule held the slug until a recent rename,
 	//     and it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
-	// Update an existing schedule.
+	// Update a schedule: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Replaces the spec wholesale. The referenced agent and the target arm
-	// are immutable; cron, time zone, enablement, and the message may all
-	// change. Status (firing observations, the platform
-	// pause) is never touched by updates — use resume to clear a platform
-	// pause.
+	// The referenced agent and the target arm are immutable; cron, time zone,
+	// enablement and the message may change. Status (firing observations,
+	// the platform pause) is never touched by updates: use resume to clear a
+	// platform pause.
 	//
-	// The slug changes only through rename. An update authorizes the id it names,
-	// so wherever the server authorizes requests, an update without an id is
-	// refused before its slug is read; where it reads one, a slug the schedule
-	// was renamed away from is refused with SLUG_RENAMED (see apply).
-	Update(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
+	// resource.metadata.id names the schedule; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the schedule does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the schedule kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateScheduleInput, opts ...grpc.CallOption) (*Schedule, error)
 	// Rename a schedule: change its slug, the name people type.
 	//
 	// The schedule keeps its id, so everything that names it keeps working, and
@@ -149,7 +158,7 @@ func (c *scheduleCommandControllerClient) Create(ctx context.Context, in *Schedu
 	return out, nil
 }
 
-func (c *scheduleCommandControllerClient) Update(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error) {
+func (c *scheduleCommandControllerClient) Update(ctx context.Context, in *UpdateScheduleInput, opts ...grpc.CallOption) (*Schedule, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Schedule)
 	err := c.cc.Invoke(ctx, ScheduleCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -232,19 +241,28 @@ type ScheduleCommandControllerServer interface {
 	//   - SLUG_RESERVED — another schedule held the slug until a recent rename,
 	//     and it still leads there. Metadata: slug.
 	Create(context.Context, *Schedule) (*Schedule, error)
-	// Update an existing schedule.
+	// Update a schedule: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Replaces the spec wholesale. The referenced agent and the target arm
-	// are immutable; cron, time zone, enablement, and the message may all
-	// change. Status (firing observations, the platform
-	// pause) is never touched by updates — use resume to clear a platform
-	// pause.
+	// The referenced agent and the target arm are immutable; cron, time zone,
+	// enablement and the message may change. Status (firing observations,
+	// the platform pause) is never touched by updates: use resume to clear a
+	// platform pause.
 	//
-	// The slug changes only through rename. An update authorizes the id it names,
-	// so wherever the server authorizes requests, an update without an id is
-	// refused before its slug is read; where it reads one, a slug the schedule
-	// was renamed away from is refused with SLUG_RENAMED (see apply).
-	Update(context.Context, *Schedule) (*Schedule, error)
+	// resource.metadata.id names the schedule; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the schedule does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the schedule kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateScheduleInput) (*Schedule, error)
 	// Rename a schedule: change its slug, the name people type.
 	//
 	// The schedule keeps its id, so everything that names it keeps working, and
@@ -304,7 +322,7 @@ func (UnimplementedScheduleCommandControllerServer) Apply(context.Context, *Sche
 func (UnimplementedScheduleCommandControllerServer) Create(context.Context, *Schedule) (*Schedule, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedScheduleCommandControllerServer) Update(context.Context, *Schedule) (*Schedule, error) {
+func (UnimplementedScheduleCommandControllerServer) Update(context.Context, *UpdateScheduleInput) (*Schedule, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedScheduleCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*Schedule, error) {
@@ -376,7 +394,7 @@ func _ScheduleCommandController_Create_Handler(srv interface{}, ctx context.Cont
 }
 
 func _ScheduleCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Schedule)
+	in := new(UpdateScheduleInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -388,7 +406,7 @@ func _ScheduleCommandController_Update_Handler(srv interface{}, ctx context.Cont
 		FullMethod: ScheduleCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ScheduleCommandControllerServer).Update(ctx, req.(*Schedule))
+		return srv.(ScheduleCommandControllerServer).Update(ctx, req.(*UpdateScheduleInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

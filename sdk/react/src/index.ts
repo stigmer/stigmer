@@ -1727,7 +1727,6 @@ export {
   useAgentChannelList,
   useAgentChannel,
   useSaveAgentChannel,
-  agentChannelToInput,
   useCreateAgentChannel,
   useDeleteAgentChannel,
   useConnectSlackChannel,

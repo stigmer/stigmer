@@ -7,6 +7,7 @@ import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 
 // AgentShareId wraps an agent share identifier.
 message AgentShareId {
@@ -133,4 +134,24 @@ message SharedAgentProfile {
   // requires an authorized token, and the edition's guest gate admits a
   // session only on this reference and the agent the share pins.
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [(ai.stigmer.commons.apiresource.reference_kind) = agent];
+}
+
+// The changes an update makes to an agent share: the fields update_mask names,
+// taken from resource.
+message UpdateAgentShareInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the agent share by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The agent share carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  AgentShare resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }

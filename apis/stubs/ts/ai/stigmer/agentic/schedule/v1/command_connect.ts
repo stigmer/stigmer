@@ -5,8 +5,8 @@
 
 import { Schedule } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { ScheduleId, ScheduleTriggerResult, UpdateScheduleInput } from "./io_pbjs";
 import { RenameInput } from "../../../commons/apiresource/io_pbjs";
-import { ScheduleId, ScheduleTriggerResult } from "./io_pbjs";
 
 /**
  * ScheduleCommandController handles write operations for schedules.
@@ -62,24 +62,33 @@ export const ScheduleCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing schedule.
+     * Update a schedule: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * Replaces the spec wholesale. The referenced agent and the target arm
-     * are immutable; cron, time zone, enablement, and the message may all
-     * change. Status (firing observations, the platform
-     * pause) is never touched by updates — use resume to clear a platform
-     * pause.
+     * The referenced agent and the target arm are immutable; cron, time zone,
+     * enablement and the message may change. Status (firing observations,
+     * the platform pause) is never touched by updates: use resume to clear a
+     * platform pause.
      *
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the schedule
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * resource.metadata.id names the schedule; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the schedule does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the schedule kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.update
      */
     update: {
       name: "update",
-      I: Schedule,
+      I: UpdateScheduleInput,
       O: Schedule,
       kind: MethodKind.Unary,
     },

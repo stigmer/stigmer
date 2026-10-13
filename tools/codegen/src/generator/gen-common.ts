@@ -162,6 +162,15 @@ export function isIDType(typeName: string): boolean {
   return typeName.endsWith("Id") || typeName.endsWith("ID");
 }
 
+/**
+ * An update RPC's input (AIP-134): Update<Kind>Input, the resource named
+ * by its metadata.id and the update_mask naming the fields it changes.
+ * Every SDK emits it as an update that takes the resource and the paths.
+ */
+export function isUpdateInputType(typeName: string, resourceType: string): boolean {
+  return typeName === `Update${resourceType}Input`;
+}
+
 // Search-list kinds expose a single list(ListParams); a typed List RPC on
 // the kind's own query controller would collide on the method name.
 export function searchListSupersedesMethod(schema: ServiceSchemaFile, m: MethodSchema): boolean {

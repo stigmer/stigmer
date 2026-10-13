@@ -143,7 +143,7 @@ describe("memory where callers are persons (built-in posture, composed server)",
     optedIn.spec.preferences ??= create(IdentityAccountPreferencesSchema);
     optedIn.spec.preferences.memoryEnabled = true;
     await createClient(IdentityAccountCommandController, asCarol()).update(
-      optedIn,
+      { resource: optedIn, updateMask: { paths: ["*"] } },
     );
 
     const carolMemories = createClient(MemoryCommandController, asCarol());

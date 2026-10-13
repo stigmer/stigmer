@@ -3,12 +3,13 @@
 import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { DialogShell } from "../internal/DialogShell.js";
-import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
+import { type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { Button } from "../button/Button.js";
 import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
-import { agentChannelToInput, useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { saveErrorMessage } from "../internal/maskedEdit.js";
 import { keptReference } from "../internal/kept-reference.js";
 
 /** Props for {@link ChannelCredentialsDialog}. */
@@ -36,10 +37,10 @@ export interface ChannelCredentialsDialogProps {
 /**
  * Edits an installed channel's tool-credential bindings
  * (`AgentChannelSpec.vaults`) after the fact — the companion
- * to binding at connect time in {@link ConnectSlackDialog}. Saves are
- * full-input applies via {@link agentChannelToInput}, so the agent
- * reference, provider marker, and install status all survive; an
- * emptied list is an explicit unbind.
+ * to binding at connect time in {@link ConnectSlackDialog}. A save is an
+ * update naming `spec.vaults` alone, so the agent reference, provider
+ * marker, and install status keep their stored values; an emptied list
+ * is an explicit unbind.
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
  * convention. Most hosts mount it via {@link AgentChannelsPanel}'s
@@ -104,7 +105,7 @@ function ChannelCredentialsDialogBody({
     channel.metadata?.name || channel.metadata?.slug || "this channel";
   const org = channel.metadata?.org ?? "";
 
-  const { save, isPending, error, clearError } = useSaveAgentChannel();
+  const { update, isPending, error, clearError } = useSaveAgentChannel();
 
   const [draft, setDraft] = useState<ResourceRef[]>(() =>
     (channel.spec?.vaults ?? []).map((ref) => ({
@@ -116,18 +117,15 @@ function ChannelCredentialsDialogBody({
 
   const handleSave = useCallback(async () => {
     try {
-      // Full-input apply: only the binding list changes; an empty draft
-      // is an explicit unbind (apply semantics replace the spec).
-      await save({
-        ...agentChannelToInput(channel),
-        vaults: draft.map(keptReference),
-      });
+      // The update names the binding list alone; an empty draft is an
+      // explicit unbind.
+      await update(channel, { vaults: draft.map(keptReference) });
       onSaved?.();
       onClose();
     } catch {
       // Surfaced through the hook's error state below.
     }
-  }, [channel, draft, onClose, onSaved, save]);
+  }, [channel, draft, onClose, onSaved, update]);
 
   return (
     <div className="stg:flex stg:flex-col">
@@ -172,7 +170,7 @@ function ChannelCredentialsDialogBody({
             role="alert"
             className="stg:mt-3 stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive"
           >
-            {getUserMessage(error)}
+            {saveErrorMessage(error, "channel")}
           </div>
         )}
       </div>

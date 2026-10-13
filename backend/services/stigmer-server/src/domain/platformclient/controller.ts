@@ -83,6 +83,7 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
+import type { RefusedUpdatePath } from "../../pipeline/steps/update-mask.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
@@ -128,7 +129,9 @@ import { RESERVED_PLATFORM_CLIENT_SLUGS, reservedSlugMessage } from "./constants
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import { PlatformClientStatusSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import type { UpdatePlatformClientInput } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { updateContext } from "../../pipeline/steps/update-input.js";
 
 export interface PlatformClientControllerDeps {
   /** The composed store — a driver's, or the OSS adapter over the generic Store. */
@@ -172,7 +175,7 @@ export function registerPlatformClientServices(
 ): void {
   router.service(PlatformClientCommandController, {
     create: (client, ctx) => createClient(deps, client, ctx),
-    update: (client, ctx) => updateClient(deps, client, ctx),
+    update: (input, ctx) => updateClient(deps, input, ctx),
     rename: (input, ctx) => renameClient(deps, input, ctx),
     delete: (input, ctx) => deleteClient(deps, input, ctx),
     rotateSecret: (id, ctx) => rotateSecret(deps, id, ctx),
@@ -252,20 +255,31 @@ async function createClient(
 }
 
 /**
- * Update — full spec replacement from the request (BuildUpdateState),
- * addressed by id or org-scoped slug; the platform's own clients refused
+ * The platform client fields an update may not name: its credentials
+ * (docs/update-paths.md). Under a broader path they keep their stored
+ * value, as PreserveClientCredentials keeps them.
+ */
+export const PLATFORM_CLIENT_REFUSED_UPDATE_PATHS: ReadonlyArray<RefusedUpdatePath> = [
+  { path: "spec.client_id", writtenBy: "the server, when the client is created" },
+  { path: "spec.client_secret_hash", writtenBy: "create and rotateSecret" },
+  { path: "spec.secret_fingerprint", writtenBy: "create and rotateSecret" },
+];
+
+/**
+ * Update — the paths the mask names, merged onto the stored row
+ * (BuildUpdateState), addressed by id; the platform's own clients refused
  * before any state is built; the reference rule as on create; the
- * credential fields kept from the row.
+ * credential fields refused by name and kept from the row.
  */
 async function updateClient(
   deps: PlatformClientControllerDeps,
-  client: PlatformClient,
+  input: UpdatePlatformClientInput,
   ctx: HandlerContext,
 ): Promise<PlatformClient> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       PlatformClientSchema,
-      client,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -277,11 +291,10 @@ async function updateClient(
         newAuthorizeStep(
           PlatformClientCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
       .addStep(newRefuseServiceAccountCallerStep(PLATFORM_CLIENT_ACT, deps.accounts))
-      .addStep(newValidateProtoStep())
-      .addStep(newValidateSignInRoleStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingClientStep(deps.store, deps.clients))
       .addStep(
@@ -290,7 +303,9 @@ async function updateClient(
           EXISTING_RESOURCE_KEY,
         ),
       )
-      .addStep(newBuildUpdateStateStep())
+      .addStep(newBuildUpdateStateStep({ refused: PLATFORM_CLIENT_REFUSED_UPDATE_PATHS }))
+      .addStep(newValidateProtoStep({ of: "state" }))
+      .addStep(newValidateSignInRoleStep())
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))

@@ -2,117 +2,56 @@
 
 import { useCallback, useState } from "react";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import type { AgentChannelInput } from "@stigmer/sdk";
+import { buildAgentChannelProto, type AgentChannelInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
+import { maskedEdit } from "../internal/maskedEdit.js";
 import { toError } from "../internal/toError.js";
-import { keptReference } from "../internal/kept-reference.js";
-
-/**
- * Rebuild the {@link AgentChannelInput} that reproduces an existing
- * channel verbatim.
- *
- * `apply` replaces the channel's whole spec, so a caller toggling one
- * field must supply the full configuration — this helper makes that safe:
- *
- * ```ts
- * save({ ...agentChannelToInput(channel), enabled: false });
- * ```
- *
- * Provider config carries over per arm: the Slack config is an empty
- * marker message in v1 (all concrete facts are OAuth-observed and live
- * in `status`, which survives every save verbatim); the WhatsApp config
- * carries its declared `phone_number_id`. Dropping the arm is never an
- * option — the provider oneof is immutable server-side, so a save
- * without it would be refused outright. The channel's bound tool
- * credentials (`vaults`), its channel-app binding
- * (`app_ref`), and its per-channel run override (`run_config`)
- * carry over too — apply semantics would otherwise silently unbind
- * them on every toggle (and an installed channel's app_ref is frozen
- * server-side, so dropping it would refuse the save outright).
- */
-export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
-  const metadata = channel.metadata;
-  const spec = channel.spec;
-  const labels = metadata?.labels ?? {};
-  const vaults = spec?.vaults ?? [];
-
-  return {
-    name: metadata?.name ?? "",
-    ...(metadata?.slug ? { slug: metadata.slug } : {}),
-    org: metadata?.org ?? "",
-    ...(Object.keys(labels).length > 0 ? { labels: { ...labels } } : {}),
-    ...(metadata?.visibility ? { visibility: metadata.visibility } : {}),
-    agentRef: keptReference({
-      org: spec?.agentRef?.org ?? "",
-      slug: spec?.agentRef?.slug ?? "",
-      id: spec?.agentRef?.id ?? "",
-    }),
-    enabled: spec?.enabled ?? false,
-    ...(spec?.providerConfig?.case === "slack" ? { slack: {} } : {}),
-    ...(spec?.providerConfig?.case === "whatsapp"
-      ? { whatsapp: { phoneNumberId: spec.providerConfig.value.phoneNumberId } }
-      : {}),
-    ...(spec?.appRef?.slug || spec?.appRef?.id
-      ? { appRef: keptReference(spec.appRef) }
-      : {}),
-    ...(vaults.length > 0
-      ? {
-          vaults: vaults.map(keptReference),
-        }
-      : {}),
-    // run_config rides through verbatim so a settings save or
-    // pause/resume toggle never wipes an override set elsewhere (the
-    // ChannelRunConfigDialog — the one surface that edits it, #792 —
-    // overrides this copy with its own draft; CLI/API overrides survive
-    // every other save).
-    ...(spec?.runConfig
-      ? {
-          runConfig: {
-            modelName: spec.runConfig.modelName,
-            maxCostUsd: spec.runConfig.maxCostUsd,
-            maxToolRounds: spec.runConfig.maxToolRounds,
-            serviceTier: spec.runConfig.serviceTier,
-            thinkingMode: spec.runConfig.thinkingMode,
-            maxToolResultChars: spec.runConfig.maxToolResultChars,
-          },
-        }
-      : {}),
-  };
-}
 
 /** Return value of {@link useSaveAgentChannel}. */
 export interface UseSaveAgentChannelReturn {
   /**
-   * Create or update an agent channel (`apply` semantics: upsert by
-   * org + slug). Returns the persisted resource.
-   *
-   * Disabling is a config-preserving pause: save with `enabled: false`
-   * and the provider install (and its credentials) survive. Deleting is
-   * the full teardown — see `useDeleteAgentChannel`.
+   * Create an agent channel (`apply` semantics: upsert by org + slug).
+   * Returns the persisted resource.
    */
   readonly save: (input: AgentChannelInput) => Promise<AgentChannel>;
-  /** `true` while the save request is in flight. */
+  /**
+   * Change the fields `patch` sets on an existing channel, as loaded:
+   * the update names exactly those fields, so every other field (the
+   * agent reference, the provider config, the bound vaults, the run
+   * override) keeps its stored value, and a channel changed since it was
+   * loaded refuses the save (ABORTED, reason `ETAG_MISMATCH`). A key set
+   * to `undefined` clears that field. Returns the updated resource.
+   *
+   * Disabling is a config-preserving pause: `update(channel, { enabled:
+   * false })` keeps the provider install and its credentials. Deleting is
+   * the full teardown — see `useDeleteAgentChannel`.
+   */
+  readonly update: (
+    channel: AgentChannel,
+    patch: Partial<AgentChannelInput>,
+  ) => Promise<AgentChannel>;
+  /** `true` while a save or update is in flight. */
   readonly isPending: boolean;
-  /** Error from the last failed save, or `null` when healthy. */
+  /** Error from the last failed save or update, or `null` when healthy. */
   readonly error: Error | null;
   /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 
 /**
- * Mutation hook that creates or updates an {@link AgentChannel}.
+ * Mutation hook that creates or changes an {@link AgentChannel}.
  *
- * Wraps `stigmer.agentChannel.apply()` with loading/error state. The
- * caller is responsible for post-save UI updates (e.g. refreshing the
- * channel list). Pair with {@link agentChannelToInput} to change a single
- * field of an existing channel without dropping the rest of its spec.
+ * `save` wraps `stigmer.agentChannel.apply()` for a new channel; `update`
+ * wraps `stigmer.agentChannel.update()` for an existing one, naming only
+ * the fields its patch sets. The caller is responsible for post-save UI
+ * updates (e.g. refreshing the channel list).
  *
  * @example
  * ```tsx
- * const { save, isPending } = useSaveAgentChannel();
+ * const { update, isPending } = useSaveAgentChannel();
  *
  * const handleToggle = async (channel: AgentChannel, enabled: boolean) => {
- *   await save({ ...agentChannelToInput(channel), enabled });
+ *   await update(channel, { enabled });
  *   refetch(); // refresh the channel list
  * };
  * ```
@@ -124,22 +63,32 @@ export function useSaveAgentChannel(): UseSaveAgentChannelReturn {
 
   const clearError = useCallback(() => setError(null), []);
 
-  const save = useCallback(
-    async (input: AgentChannelInput): Promise<AgentChannel> => {
-      setIsPending(true);
-      setError(null);
+  const track = useCallback(async (write: () => Promise<AgentChannel>): Promise<AgentChannel> => {
+    setIsPending(true);
+    setError(null);
+    try {
+      return await write();
+    } catch (err) {
+      setError(toError(err));
+      throw err;
+    } finally {
+      setIsPending(false);
+    }
+  }, []);
 
-      try {
-        return await stigmer.agentChannel.apply(input);
-      } catch (err) {
-        setError(toError(err));
-        throw err;
-      } finally {
-        setIsPending(false);
-      }
-    },
-    [stigmer],
+  const save = useCallback(
+    (input: AgentChannelInput) => track(() => stigmer.agentChannel.apply(input)),
+    [stigmer, track],
   );
 
-  return { save, isPending, error, clearError };
+  const update = useCallback(
+    (channel: AgentChannel, patch: Partial<AgentChannelInput>) =>
+      track(() => {
+        const { resource, paths } = maskedEdit(channel, buildAgentChannelProto, patch);
+        return stigmer.agentChannel.update(resource, paths);
+      }),
+    [stigmer, track],
+  );
+
+  return { save, update, isPending, error, clearError };
 }

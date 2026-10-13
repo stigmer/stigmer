@@ -22,10 +22,12 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.evaluator.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_evaluator_dot_v1_dot_api__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/evaluator/v1/io.proto\x12\x1f\x61i.stigmer.agentic.evaluator.v1\x1a\x1b\x62uf/validate/validate.proto\"0\n\x0b\x45valuatorId\x12!\n\x05value\x18\x01 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x05value\"C\n\x1aGetEvaluatorByAgentRequest\x12%\n\x08\x61gent_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x07\x61gentIdB\xcf\x01\n#com.ai.stigmer.agentic.evaluator.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02\x1f\x41i.Stigmer.Agentic.Evaluator.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Evaluator\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Evaluator\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Evaluator::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/evaluator/v1/io.proto\x12\x1f\x61i.stigmer.agentic.evaluator.v1\x1a)ai/stigmer/agentic/evaluator/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"0\n\x0b\x45valuatorId\x12!\n\x05value\x18\x01 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x05value\"C\n\x1aGetEvaluatorByAgentRequest\x12%\n\x08\x61gent_id\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x01R\x07\x61gentId\"\xef\x02\n\x14UpdateEvaluatorInput\x12N\n\x08resource\x18\x01 \x01(\x0b\x32*.ai.stigmer.agentic.evaluator.v1.EvaluatorB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc1\x01\xbaH\xbd\x01\x1a\xba\x01\n\x17update_names_its_target\x12Iresource.metadata.id is required: an update names the evaluator by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xcf\x01\n#com.ai.stigmer.agentic.evaluator.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAE\xaa\x02\x1f\x41i.Stigmer.Agentic.Evaluator.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Evaluator\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Evaluator\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Evaluator::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,8 +39,16 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EVALUATORID'].fields_by_name['value']._serialized_options = b'\272H\010r\003\030\200\001\310\001\001'
   _globals['_GETEVALUATORBYAGENTREQUEST'].fields_by_name['agent_id']._loaded_options = None
   _globals['_GETEVALUATORBYAGENTREQUEST'].fields_by_name['agent_id']._serialized_options = b'\272H\007r\005\020\001\030\200\001'
-  _globals['_EVALUATORID']._serialized_start=106
-  _globals['_EVALUATORID']._serialized_end=154
-  _globals['_GETEVALUATORBYAGENTREQUEST']._serialized_start=156
-  _globals['_GETEVALUATORBYAGENTREQUEST']._serialized_end=223
+  _globals['_UPDATEEVALUATORINPUT'].fields_by_name['resource']._loaded_options = None
+  _globals['_UPDATEEVALUATORINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
+  _globals['_UPDATEEVALUATORINPUT'].fields_by_name['update_mask']._loaded_options = None
+  _globals['_UPDATEEVALUATORINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_UPDATEEVALUATORINPUT']._loaded_options = None
+  _globals['_UPDATEEVALUATORINPUT']._serialized_options = b'\272H\275\001\032\272\001\n\027update_names_its_target\022Iresource.metadata.id is required: an update names the evaluator by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
+  _globals['_EVALUATORID']._serialized_start=183
+  _globals['_EVALUATORID']._serialized_end=231
+  _globals['_GETEVALUATORBYAGENTREQUEST']._serialized_start=233
+  _globals['_GETEVALUATORBYAGENTREQUEST']._serialized_end=300
+  _globals['_UPDATEEVALUATORINPUT']._serialized_start=303
+  _globals['_UPDATEEVALUATORINPUT']._serialized_end=670
 # @@protoc_insertion_point(module_scope)

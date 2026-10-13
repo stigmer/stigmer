@@ -251,7 +251,7 @@ describe("saving an agent pins each subagent it lists", () => {
       agentInput(name, { instructions: "The first cut.", tag: "v1" }),
     );
     const firstHash = first.status!.versionHash;
-    const second = await command.update(instructed(first, "The second cut."));
+    const second = await command.update({ resource: instructed(first, "The second cut."), updateMask: { paths: ["*"] } });
     const secondHash = second.status!.versionHash;
     expect(secondHash).not.toBe(firstHash);
     const slug = first.metadata!.slug;
@@ -313,7 +313,7 @@ describe("saving an agent pins each subagent it lists", () => {
     );
     const saved = await command.create(agentInput(name));
     await expectRefused(
-      command.update(listing(saved, [name])),
+      command.update({ resource: listing(saved, [name]), updateMask: { paths: ["*"] } }),
       Code.InvalidArgument,
       selfListedMessage(name),
     );
@@ -378,7 +378,7 @@ describe("saving an agent pins each subagent it lists", () => {
     const name = uniqueName("middle");
     const plain = await command.create(agentInput(name));
     const plainHash = plain.status!.versionHash;
-    await command.update(listing(plain, [grandchild.metadata!.slug]));
+    await command.update({ resource: listing(plain, [grandchild.metadata!.slug]), updateMask: { paths: ["*"] } });
 
     await expectRefused(
       command.create(agentInput(uniqueName("top"), { subagents: [{ slug: name }] })),
@@ -420,17 +420,17 @@ describe("saving an agent pins each subagent it lists", () => {
     const parent = await command.create(agentInput(uniqueName("parent"), { subagents: [{ slug }] }));
     const parentHash = parent.status!.versionHash;
 
-    const childNext = await command.update(instructed(child, "The second cut of the helper."));
+    const childNext = await command.update({ resource: instructed(child, "The second cut of the helper."), updateMask: { paths: ["*"] } });
     const childNextHash = childNext.status!.versionHash;
     expect(childNextHash).not.toBe(child.status!.versionHash);
 
     // The console sends the stored spec back: the pin is kept, and so is the version.
-    const kept = await command.update(clone(AgentSchema, parent));
+    const kept = await command.update({ resource: clone(AgentSchema, parent), updateMask: { paths: ["*"] } });
     expect(pins(kept)).toEqual([[slug, child.status!.versionHash]]);
     expect(kept.status?.versionHash).toBe(parentHash);
 
     // A write that sends the reference without a version takes the latest: a new parent version.
-    const repinned = await command.update(listing(parent, [slug]));
+    const repinned = await command.update({ resource: listing(parent, [slug]), updateMask: { paths: ["*"] } });
     expect(pins(repinned)).toEqual([[slug, childNextHash]]);
     expect(repinned.status?.versionHash).not.toBe(parentHash);
   });
@@ -454,7 +454,7 @@ describe("deleting an agent another agent lists", () => {
     await query.get({ value: child.metadata!.id });
 
     for (const lister of [first, second]) {
-      await command.update(listing(lister, []));
+      await command.update({ resource: listing(lister, []), updateMask: { paths: ["*"] } });
     }
     const deleted = await command.delete({ value: child.metadata!.id });
     expect(deleted.metadata?.id).toBe(child.metadata?.id);
@@ -592,7 +592,7 @@ describe("the writer clause on subagents", () => {
 
   it("judges a kept reference whose pin the write moves: choosing another version of an agent one may not run is refused", async () => {
     const older = anas.status!.versionHash;
-    const newer = await command.update(instructed(anas, "Ana's agent, revised."));
+    const newer = await command.update({ resource: instructed(anas, "Ana's agent, revised."), updateMask: { paths: ["*"] } });
     anas = newer;
     try {
       // Kept at the head it is pinned to: the write moves nothing, and asks nothing.

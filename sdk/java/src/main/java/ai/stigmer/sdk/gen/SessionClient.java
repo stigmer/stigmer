@@ -4,6 +4,8 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.session.v1.AppendSessionEventsInput;
 import ai.stigmer.agentic.session.v1.AppendSessionEventsResponse;
+import ai.stigmer.agentic.session.v1.BindHarnessStateInput;
+import ai.stigmer.agentic.session.v1.BindHarnessStateResponse;
 import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
 import ai.stigmer.agentic.session.v1.GrantPermissionInput;
 import ai.stigmer.agentic.session.v1.GrantPermissionResponse;
@@ -24,7 +26,9 @@ import ai.stigmer.agentic.session.v1.SessionList;
 import ai.stigmer.agentic.session.v1.SessionQueryControllerGrpc;
 import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
 import ai.stigmer.agentic.session.v1.StreamSessionEventsResponse;
+import ai.stigmer.agentic.session.v1.UpdateSessionInput;
 import ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -50,9 +54,12 @@ public final class SessionClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Session update(SessionInput input) {
+    public Session update(Session resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateSessionInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -95,6 +102,12 @@ public final class SessionClient {
     public AppendSessionEventsResponse appendEvents(AppendSessionEventsInput input) {
         try {
             return command.appendEvents(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public BindHarnessStateResponse bindHarnessState(BindHarnessStateInput input) {
+        try {
+            return command.bindHarnessState(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

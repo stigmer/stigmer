@@ -161,7 +161,7 @@ describe("organization apply / update", () => {
 
   it("update preserves id and slug under an attempted slug change, allows rename", async () => {
     const created = await command.create(orgInput("Rename Me"));
-    const updated = await command.update({
+    const updated = await command.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: {
@@ -169,7 +169,7 @@ describe("organization apply / update", () => {
         name: "Renamed",
         slug: "attempted-different-slug",
       },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.id).toBe(created.metadata?.id);
     expect(updated.metadata?.slug).toBe(created.metadata?.slug);
     expect(updated.metadata?.name).toBe("Renamed");
@@ -194,12 +194,12 @@ describe("organization apply / update", () => {
         ApiResourceVisibility.visibility_org,
       ),
       () =>
-        command.update({
+        command.update({ resource: {
           apiVersion: API_VERSION,
           kind: KIND,
           metadata: { id, name: "Race Target" },
           spec: { description: "updated mid-race" },
-        }),
+        }, updateMask: { paths: ["*"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);

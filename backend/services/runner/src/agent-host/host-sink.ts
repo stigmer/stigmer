@@ -19,10 +19,8 @@
  *    notices: the runtime's watchdog, cost cap and turn timeline read them.
  *  - `reportProgress` and `bindHarnessState` are calls, because the
  *    contract lets an adapter await them. `bindHarnessState` sends the
- *    session spec the adapter left (its own fields set) and, once the
- *    runtime has written it, mirrors onto the host's session the two fields
- *    the runtime writes on the shared record, so the adapter reads the
- *    record as it would in-process.
+ *    engine-minted id alone: the runtime records it through the session's
+ *    door, and nothing on the session record the adapter holds changes.
  *  - `bindCasObservations` keeps the reader here and tells the runtime one
  *    exists; the runtime pulls through `readCasObservations`.
  *
@@ -98,14 +96,7 @@ export class HostTurn {
         }
       },
       bindHarnessState: async (harnessStateId: string) => {
-        const spec = input.session.spec!;
-        await peer.call("bindHarnessState", {
-          turnId,
-          harnessStateId,
-          sessionSpec: encodeMessage(SessionSpecSchema, spec),
-        });
-        spec.harnessStateId = harnessStateId;
-        if (input.session.metadata) input.session.metadata.slug = "";
+        await peer.call("bindHarnessState", { turnId, harnessStateId });
       },
       bindCasObservations: (read: CasTouchedReader) => {
         this.casReader = read;

@@ -401,7 +401,7 @@ describe("a session's repository tokens", () => {
     const before = tokensOf(stored);
     expect(before["kept"]).toMatch(/^enc:v9:/);
 
-    await sessionCommand.update({
+    await sessionCommand.update({ resource: {
       ...created,
       spec: {
         ...created.spec!,
@@ -411,7 +411,7 @@ describe("a session's repository tokens", () => {
           repository("rotated", "new"),
         ],
       },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(codec.deleted).toEqual([before["dropped"]!]);
     const after = tokensOf(

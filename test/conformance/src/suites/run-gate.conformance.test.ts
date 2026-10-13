@@ -439,12 +439,12 @@ describe("run gate — the agent is asked on every turn and every repoint (on th
 
     const denied = await expectGrpcCode(
       () =>
-        member.sessionCommand.update({
+        member.sessionCommand.update({ resource: {
           apiVersion: SESSION_API_VERSION,
           kind: SESSION_KIND,
           metadata: { id, name, slug, org: context.org },
           spec: makeSessionSpec({ agentRef: agentRefOf(closed) }),
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.PermissionDenied,
       "a session repointed to a private agent",
     );
@@ -512,13 +512,13 @@ describe("run gate — a client-sent status never reaches either check (on the e
 
     const denied = await expectGrpcCode(
       () =>
-        member.sessionCommand.update({
+        member.sessionCommand.update({ resource: {
           apiVersion: SESSION_API_VERSION,
           kind: SESSION_KIND,
           metadata: { id, name, slug, org: context.org },
           spec: makeSessionSpec({ agentRef: agentRefOf(closed) }),
           status: { agentId: open.metadata!.id, ...FORGED_STATUS },
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.PermissionDenied,
       "session update claiming the stored agent in status",
     );

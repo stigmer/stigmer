@@ -7,6 +7,8 @@ import ai.stigmer.agentic.evaluator.v1.EvaluatorCommandControllerGrpc;
 import ai.stigmer.agentic.evaluator.v1.EvaluatorId;
 import ai.stigmer.agentic.evaluator.v1.EvaluatorQueryControllerGrpc;
 import ai.stigmer.agentic.evaluator.v1.GetEvaluatorByAgentRequest;
+import ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -26,9 +28,12 @@ public final class EvaluatorClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Evaluator update(EvaluatorInput input) {
+    public Evaluator update(Evaluator resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateEvaluatorInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

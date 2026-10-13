@@ -35,12 +35,27 @@ type EvaluatorCommandControllerClient interface {
 	// An agent has at most one evaluator. The evaluator lives in its agent's
 	// organization.
 	Create(ctx context.Context, in *Evaluator, opts ...grpc.CallOption) (*Evaluator, error)
-	// Update an evaluator's settings: whether it is enabled, its sample rate,
-	// its monthly limit and its model.
+	// Update an evaluator: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The agent it grades stays as created, and this month's spend and
-	// counts are kept.
-	Update(ctx context.Context, in *Evaluator, opts ...grpc.CallOption) (*Evaluator, error)
+	// Its settings are whether it is enabled, its sample rate, its monthly
+	// limit and its model. The agent it grades stays as created, and this
+	// month's spend and counts are kept.
+	//
+	// resource.metadata.id names the evaluator; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the evaluator does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the evaluator kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateEvaluatorInput, opts ...grpc.CallOption) (*Evaluator, error)
 	// Delete an evaluator, switching AI grading off for its agent.
 	//
 	// Scores already recorded stay on their runs.
@@ -65,7 +80,7 @@ func (c *evaluatorCommandControllerClient) Create(ctx context.Context, in *Evalu
 	return out, nil
 }
 
-func (c *evaluatorCommandControllerClient) Update(ctx context.Context, in *Evaluator, opts ...grpc.CallOption) (*Evaluator, error) {
+func (c *evaluatorCommandControllerClient) Update(ctx context.Context, in *UpdateEvaluatorInput, opts ...grpc.CallOption) (*Evaluator, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Evaluator)
 	err := c.cc.Invoke(ctx, EvaluatorCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -96,12 +111,27 @@ type EvaluatorCommandControllerServer interface {
 	// An agent has at most one evaluator. The evaluator lives in its agent's
 	// organization.
 	Create(context.Context, *Evaluator) (*Evaluator, error)
-	// Update an evaluator's settings: whether it is enabled, its sample rate,
-	// its monthly limit and its model.
+	// Update an evaluator: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The agent it grades stays as created, and this month's spend and
-	// counts are kept.
-	Update(context.Context, *Evaluator) (*Evaluator, error)
+	// Its settings are whether it is enabled, its sample rate, its monthly
+	// limit and its model. The agent it grades stays as created, and this
+	// month's spend and counts are kept.
+	//
+	// resource.metadata.id names the evaluator; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the evaluator does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the evaluator kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateEvaluatorInput) (*Evaluator, error)
 	// Delete an evaluator, switching AI grading off for its agent.
 	//
 	// Scores already recorded stay on their runs.
@@ -118,7 +148,7 @@ type UnimplementedEvaluatorCommandControllerServer struct{}
 func (UnimplementedEvaluatorCommandControllerServer) Create(context.Context, *Evaluator) (*Evaluator, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedEvaluatorCommandControllerServer) Update(context.Context, *Evaluator) (*Evaluator, error) {
+func (UnimplementedEvaluatorCommandControllerServer) Update(context.Context, *UpdateEvaluatorInput) (*Evaluator, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedEvaluatorCommandControllerServer) Delete(context.Context, *EvaluatorId) (*Evaluator, error) {
@@ -163,7 +193,7 @@ func _EvaluatorCommandController_Create_Handler(srv interface{}, ctx context.Con
 }
 
 func _EvaluatorCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Evaluator)
+	in := new(UpdateEvaluatorInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -175,7 +205,7 @@ func _EvaluatorCommandController_Update_Handler(srv interface{}, ctx context.Con
 		FullMethod: EvaluatorCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EvaluatorCommandControllerServer).Update(ctx, req.(*Evaluator))
+		return srv.(EvaluatorCommandControllerServer).Update(ctx, req.(*UpdateEvaluatorInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

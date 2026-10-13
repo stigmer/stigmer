@@ -429,12 +429,12 @@ async function handleConnect() {
 
 ### useSaveAgentChannel
 
-Mutation hook that creates or updates an `AgentChannel`.
+Mutation hook that creates or changes an `AgentChannel`.
 
-Wraps `stigmer.agentChannel.apply()` with loading/error state. The
-caller is responsible for post-save UI updates (e.g. refreshing the
-channel list). Pair with [`agentChannelToInput`](#agentchanneltoinput) to change a single
-field of an existing channel without dropping the rest of its spec.
+`save` wraps `stigmer.agentChannel.apply()` for a new channel; `update`
+wraps `stigmer.agentChannel.update()` for an existing one, naming only
+the fields its patch sets. The caller is responsible for post-save UI
+updates (e.g. refreshing the channel list).
 
 **Signature**
 
@@ -447,17 +447,18 @@ function useSaveAgentChannel(): UseSaveAgentChannelReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    error: { type: "Error | null", description: "Error from the last failed save, or `null` when healthy." },
-    isPending: { type: "boolean", description: "`true` while the save request is in flight." },
-    save: { type: "(input: AgentChannelInput) => Promise<AgentChannel>", description: "Create or update an agent channel (`apply` semantics: upsert by org + slug). Returns the persisted resource.  Disabling is a config-preserving pause: save with `enabled: false` and the provider install (and its credentials) survive. Deleting is the full teardown — see `useDeleteAgentChannel`." },
+    error: { type: "Error | null", description: "Error from the last failed save or update, or `null` when healthy." },
+    isPending: { type: "boolean", description: "`true` while a save or update is in flight." },
+    save: { type: "(input: AgentChannelInput) => Promise<AgentChannel>", description: "Create an agent channel (`apply` semantics: upsert by org + slug). Returns the persisted resource." },
+    update: { type: "(channel: AgentChannel, patch: Partial<AgentChannelInput>) => Promise<AgentChannel>", description: "Change the fields `patch` sets on an existing channel, as loaded: the update names exactly those fields, so every other field (the agent reference, the provider config, the bound vaults, the run override) keeps its stored value, and a channel changed since it was loaded refuses the save (ABORTED, reason `ETAG_MISMATCH`). A key set to `undefined` clears that field. Returns the updated resource.  Disabling is a config-preserving pause: `update(channel, { enabled: false })` keeps the provider install and its credentials. Deleting is the full teardown — see `useDeleteAgentChannel`." },
   }}
 />
 
 ```tsx
-const { save, isPending } = useSaveAgentChannel();
+const { update, isPending } = useSaveAgentChannel();
 
 const handleToggle = async (channel: AgentChannel, enabled: boolean) => {
-  await save({ ...agentChannelToInput(channel), enabled });
+  await update(channel, { enabled });
   refetch(); // refresh the channel list
 };
 ```
@@ -543,10 +544,10 @@ channel card action.
 
 Edits an installed channel's tool-credential bindings
 (`AgentChannelSpec.vaults`) after the fact — the companion
-to binding at connect time in [`ConnectSlackDialog`](#connectslackdialog). Saves are
-full-input applies via [`agentChannelToInput`](#agentchanneltoinput), so the agent
-reference, provider marker, and install status all survive; an
-emptied list is an explicit unbind.
+to binding at connect time in [`ConnectSlackDialog`](#connectslackdialog). A save is an
+update naming `spec.vaults` alone, so the agent reference, provider
+marker, and install status keep their stored values; an emptied list
+is an explicit unbind.
 
 Built on the native `<dialog>` element, matching the SDK's modal
 convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
@@ -585,9 +586,9 @@ per-channel harness — the serving harness is a platform property — and
 the write-time model-pin validation judges the pin against any harness
 section, so pinning under either scope is legitimate.
 
-Saves are full-input applies via [`agentChannelToInput`](#agentchanneltoinput), so the
-agent reference, provider marker, credential bindings, and install
-status all survive; clearing the model with no budget set is an
+A save is an update naming `spec.run_config` alone, so the agent
+reference, provider marker, credential bindings, and install status
+keep their stored values; clearing the model with no budget set is an
 explicit reset to the platform defaults (`run_config` absent). Untouched
 variant switches keep what was stored — an explicit choice stays
 explicit, an unset one stays off the wire; unspecified-vs-explicit is a
@@ -747,35 +748,6 @@ Render it directly only when you own the open-state.
 
 
 ## Types
-
-### agentChannelToInput
-
-Rebuild the `AgentChannelInput` that reproduces an existing
-channel verbatim.
-
-`apply` replaces the channel's whole spec, so a caller toggling one
-field must supply the full configuration — this helper makes that safe:
-
-```ts
-save({ ...agentChannelToInput(channel), enabled: false });
-```
-
-Provider config carries over per arm: the Slack config is an empty
-marker message in v1 (all concrete facts are OAuth-observed and live
-in `status`, which survives every save verbatim); the WhatsApp config
-carries its declared `phone_number_id`. Dropping the arm is never an
-option — the provider oneof is immutable server-side, so a save
-without it would be refused outright. The channel's bound tool
-credentials (`vaults`), its channel-app binding
-(`app_ref`), and its per-channel run override (`run_config`)
-carry over too — apply semantics would otherwise silently unbind
-them on every toggle (and an installed channel's app_ref is frozen
-server-side, so dropping it would refuse the save outright).
-
-```tsx
-function agentChannelToInput(channel: AgentChannel): AgentChannelInput
-```
-
 
 ### ChannelTemplateReadiness
 

@@ -46,27 +46,27 @@ public final class EvaluatorCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.evaluator.v1.Evaluator,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput,
       ai.stigmer.agentic.evaluator.v1.Evaluator> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.evaluator.v1.Evaluator.class,
+      requestType = ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput.class,
       responseType = ai.stigmer.agentic.evaluator.v1.Evaluator.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.evaluator.v1.Evaluator,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput,
       ai.stigmer.agentic.evaluator.v1.Evaluator> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.evaluator.v1.Evaluator, ai.stigmer.agentic.evaluator.v1.Evaluator> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput, ai.stigmer.agentic.evaluator.v1.Evaluator> getUpdateMethod;
     if ((getUpdateMethod = EvaluatorCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (EvaluatorCommandControllerGrpc.class) {
         if ((getUpdateMethod = EvaluatorCommandControllerGrpc.getUpdateMethod) == null) {
           EvaluatorCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.evaluator.v1.Evaluator, ai.stigmer.agentic.evaluator.v1.Evaluator>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput, ai.stigmer.agentic.evaluator.v1.Evaluator>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.evaluator.v1.Evaluator.getDefaultInstance()))
+                  ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.evaluator.v1.Evaluator.getDefaultInstance()))
               .setSchemaDescriptor(new EvaluatorCommandControllerMethodDescriptorSupplier("update"))
@@ -188,13 +188,25 @@ public final class EvaluatorCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an evaluator's settings: whether it is enabled, its sample rate,
-     * its monthly limit and its model.
-     * The agent it grades stays as created, and this month's spend and
-     * counts are kept.
+     * Update an evaluator: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its settings are whether it is enabled, its sample rate, its monthly
+     * limit and its model. The agent it grades stays as created, and this
+     * month's spend and counts are kept.
+     * resource.metadata.id names the evaluator; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the evaluator does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the evaluator kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.evaluator.v1.Evaluator request,
+    default void update(ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.evaluator.v1.Evaluator> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -259,13 +271,25 @@ public final class EvaluatorCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an evaluator's settings: whether it is enabled, its sample rate,
-     * its monthly limit and its model.
-     * The agent it grades stays as created, and this month's spend and
-     * counts are kept.
+     * Update an evaluator: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its settings are whether it is enabled, its sample rate, its monthly
+     * limit and its model. The agent it grades stays as created, and this
+     * month's spend and counts are kept.
+     * resource.metadata.id names the evaluator; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the evaluator does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the evaluator kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.evaluator.v1.Evaluator request,
+    public void update(ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.evaluator.v1.Evaluator> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -317,13 +341,25 @@ public final class EvaluatorCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an evaluator's settings: whether it is enabled, its sample rate,
-     * its monthly limit and its model.
-     * The agent it grades stays as created, and this month's spend and
-     * counts are kept.
+     * Update an evaluator: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its settings are whether it is enabled, its sample rate, its monthly
+     * limit and its model. The agent it grades stays as created, and this
+     * month's spend and counts are kept.
+     * resource.metadata.id names the evaluator; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the evaluator does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the evaluator kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.evaluator.v1.Evaluator update(ai.stigmer.agentic.evaluator.v1.Evaluator request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.evaluator.v1.Evaluator update(ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -373,13 +409,25 @@ public final class EvaluatorCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an evaluator's settings: whether it is enabled, its sample rate,
-     * its monthly limit and its model.
-     * The agent it grades stays as created, and this month's spend and
-     * counts are kept.
+     * Update an evaluator: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its settings are whether it is enabled, its sample rate, its monthly
+     * limit and its model. The agent it grades stays as created, and this
+     * month's spend and counts are kept.
+     * resource.metadata.id names the evaluator; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the evaluator does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the evaluator kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.evaluator.v1.Evaluator update(ai.stigmer.agentic.evaluator.v1.Evaluator request) {
+    public ai.stigmer.agentic.evaluator.v1.Evaluator update(ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -430,14 +478,26 @@ public final class EvaluatorCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an evaluator's settings: whether it is enabled, its sample rate,
-     * its monthly limit and its model.
-     * The agent it grades stays as created, and this month's spend and
-     * counts are kept.
+     * Update an evaluator: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its settings are whether it is enabled, its sample rate, its monthly
+     * limit and its model. The agent it grades stays as created, and this
+     * month's spend and counts are kept.
+     * resource.metadata.id names the evaluator; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the evaluator does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the evaluator kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.evaluator.v1.Evaluator> update(
-        ai.stigmer.agentic.evaluator.v1.Evaluator request) {
+        ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -481,7 +541,7 @@ public final class EvaluatorCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.evaluator.v1.Evaluator>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.evaluator.v1.Evaluator) request,
+          serviceImpl.update((ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.evaluator.v1.Evaluator>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -517,7 +577,7 @@ public final class EvaluatorCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.evaluator.v1.Evaluator,
+              ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput,
               ai.stigmer.agentic.evaluator.v1.Evaluator>(
                 service, METHODID_UPDATE)))
         .addMethod(

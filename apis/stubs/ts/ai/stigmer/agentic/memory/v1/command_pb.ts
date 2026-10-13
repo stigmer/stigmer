@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { MemorySchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_memory_v1_api } from "./api_pb.js";
-import type { MemoryIdSchema } from "./io_pb.js";
+import type { MemoryIdSchema, UpdateMemoryInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_memory_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/memory/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_memory_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWVtb3J5L3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEypQUKF01lbW9yeUNvbW1hbmRDb250cm9sbGVyEloKBmNyZWF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5GiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnkiBNC4GAESigEKBnVwZGF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5GiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnkiNMK4GDAIAhA5IgttZXRhZGF0YS5pZCoddW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtZW1vcnkShgEKBmRlbGV0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5SWQaJC5haS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxLk1lbW9yeSIuwrgYKggDEDkiBXZhbHVlKh11bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1lbW9yeRKIAQoHY29uZmlybRImLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5SWQaJC5haS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxLk1lbW9yeSIvwrgYKwgCEDkiBXZhbHVlKh51bmF1dGhvcml6ZWQgdG8gY29uZmlybSBtZW1vcnkShgEKBnJlamVjdBImLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5SWQaJC5haS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxLk1lbW9yeSIuwrgYKggCEDkiBXZhbHVlKh11bmF1dGhvcml6ZWQgdG8gcmVqZWN0IG1lbW9yeRoEoP8rOWIGcHJvdG8z", [file_ai_stigmer_agentic_memory_v1_api, file_ai_stigmer_agentic_memory_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvbWVtb3J5L3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEyuQUKF01lbW9yeUNvbW1hbmRDb250cm9sbGVyEloKBmNyZWF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5GiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnkiBNC4GAESngEKBnVwZGF0ZRIvLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuVXBkYXRlTWVtb3J5SW5wdXQaJC5haS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxLk1lbW9yeSI9wrgYOQgCEDkiFHJlc291cmNlLm1ldGFkYXRhLmlkKh11bmF1dGhvcml6ZWQgdG8gdXBkYXRlIG1lbW9yeRKGAQoGZGVsZXRlEiYuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnlJZBokLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5Ii7CuBgqCAMQOSIFdmFsdWUqHXVuYXV0aG9yaXplZCB0byBkZWxldGUgbWVtb3J5EogBCgdjb25maXJtEiYuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnlJZBokLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5Ii/CuBgrCAIQOSIFdmFsdWUqHnVuYXV0aG9yaXplZCB0byBjb25maXJtIG1lbW9yeRKGAQoGcmVqZWN0EiYuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnlJZBokLmFpLnN0aWdtZXIuYWdlbnRpYy5tZW1vcnkudjEuTWVtb3J5Ii7CuBgqCAIQOSIFdmFsdWUqHXVuYXV0aG9yaXplZCB0byByZWplY3QgbWVtb3J5GgSg/ys5YgZwcm90bzM", [file_ai_stigmer_agentic_memory_v1_api, file_ai_stigmer_agentic_memory_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * MemoryCommandController handles write operations for memories.
@@ -40,18 +40,32 @@ export const MemoryCommandController: GenService<{
     output: typeof MemorySchema;
   },
   /**
-   * Update a memory's fact text.
+   * Update a memory: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * Replaces the spec wholesale, but only the content may actually
-   * change: the subject and provenance are immutable, and the consent
-   * lifecycle in status is never touched by updates — use confirm or
-   * reject to decide on a proposal.
+   * Only the content may change: the subject and provenance are immutable,
+   * and the consent lifecycle in status is never touched by updates; use
+   * confirm or reject to decide on a proposal.
+   *
+   * resource.metadata.id names the memory; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the memory does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the memory kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.agentic.memory.v1.MemoryCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof MemorySchema;
+    input: typeof UpdateMemoryInputSchema;
     output: typeof MemorySchema;
   },
   /**

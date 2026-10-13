@@ -260,7 +260,7 @@ describe("a service account's own key changes no identity account", () => {
       at.as(FOUNDER),
     ).get({ value: id });
 
-    const update = await refusal(asRobot.update(current));
+    const update = await refusal(asRobot.update({ resource: current, updateMask: { paths: ["*"] } }));
     expect(update.code).toBe(Code.PermissionDenied);
     expect(update.rawMessage).toBe(
       serviceAccountRefusedMessage("change or delete identity accounts"),

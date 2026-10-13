@@ -116,12 +116,15 @@ describe("the cloud target's people", () => {
     await target.setup();
     expect(updates).toEqual([
       expect.objectContaining({
-        spec: expect.objectContaining({
-          preferences: expect.objectContaining({
-            memoryEnabled: true,
-            standingContext: "terse",
+        resource: expect.objectContaining({
+          spec: expect.objectContaining({
+            preferences: expect.objectContaining({
+              memoryEnabled: true,
+              standingContext: "terse",
+            }),
           }),
         }),
+        updateMask: expect.objectContaining({ paths: ["spec.preferences.memory_enabled"] }),
       }),
     ]);
     expect(

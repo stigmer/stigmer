@@ -127,7 +127,7 @@ function servingTransport(
         create: () =>
           (handlers.create?.() as never) ?? create(AgentSchema, VALID_AGENT),
         apply: (request) => request,
-        update: (request) => request,
+        update: (request) => request.resource ?? create(AgentSchema, VALID_AGENT),
         updateVisibility: () => create(AgentSchema, VALID_AGENT),
         delete: () => create(AgentSchema, VALID_AGENT),
       });
@@ -465,7 +465,7 @@ describe("the request-metrics interceptor on the serving chain", () => {
           router.service(AgentCommandController, {
             create: () => create(AgentSchema, VALID_AGENT),
             apply: (request) => request,
-            update: (request) => request,
+            update: (request) => request.resource ?? create(AgentSchema, VALID_AGENT),
             updateVisibility: () => create(AgentSchema, VALID_AGENT),
             delete: () => create(AgentSchema, VALID_AGENT),
           });

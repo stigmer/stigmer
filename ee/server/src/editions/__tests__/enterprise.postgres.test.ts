@@ -417,7 +417,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("lapsed: growth refused, everyt
     const changed = providerRequest(issuer, acme, "acme-entra", { displayName: "Acme Entra (renamed)" });
     expectRenewalRefusal(
       await refusalOf(
-        providers.update(providerRequest(issuer, acme, "acme-entra", { id: providerId, displayName: "Acme Entra (renamed)" })),
+        providers.update({ resource: providerRequest(issuer, acme, "acme-entra", { id: providerId, displayName: "Acme Entra (renamed)" }), updateMask: { paths: ["*"] } }),
       ),
     );
     expectRenewalRefusal(await refusalOf(providers.apply(changed)));

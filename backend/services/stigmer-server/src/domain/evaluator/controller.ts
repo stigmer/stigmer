@@ -27,6 +27,7 @@ import type {
   GetEvaluatorByAgentRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateEvaluatorInput } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -61,6 +62,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
@@ -92,7 +94,7 @@ export function registerEvaluatorServices(
 ): void {
   router.service(EvaluatorCommandController, {
     create: (evaluator, ctx) => createEvaluator(deps, evaluator, ctx),
-    update: (evaluator, ctx) => updateEvaluator(deps, evaluator, ctx),
+    update: (input, ctx) => updateEvaluator(deps, input, ctx),
     delete: (id, ctx) => deleteEvaluator(deps, id, ctx),
   });
   router.service(EvaluatorQueryController, {
@@ -160,23 +162,25 @@ async function createEvaluator(
  */
 async function updateEvaluator(
   deps: EvaluatorControllerDeps,
-  evaluator: Evaluator,
+  input: UpdateEvaluatorInput,
   ctx: HandlerContext,
 ): Promise<Evaluator> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       EvaluatorSchema,
-      evaluator,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
     await newPipeline<typeof EvaluatorSchema>("evaluator-update", deps.logger)
       .addStep(
-        newAuthorizeStep(EvaluatorCommandController.method.update, deps.authorizer),
+        newAuthorizeStep(EvaluatorCommandController.method.update, deps.authorizer,
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newValidateEvaluatorUpdateStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newPersistEvaluatorSettingsStep(deps.store))

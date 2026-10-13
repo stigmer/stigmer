@@ -28,7 +28,7 @@ from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_sti
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/score/v1/command.proto\x12\x1b\x61i.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a$ai/stigmer/agentic/score/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x82\x03\n\x16ScoreCommandController\x12V\n\x06\x63reate\x12\".ai.stigmer.agentic.score.v1.Score\x1a\".ai.stigmer.agentic.score.v1.Score\"\x04\xd0\xb8\x18\x01\x12\x85\x01\n\x06update\x12\".ai.stigmer.agentic.score.v1.Score\x1a\".ai.stigmer.agentic.score.v1.Score\"3\xc2\xb8\x18/\x08\x02\x10=\"\x0bmetadata.id*\x1cunauthorized to update score\x12\x81\x01\n\x06\x64\x65lete\x12$.ai.stigmer.agentic.score.v1.ScoreId\x1a\".ai.stigmer.agentic.score.v1.Score\"-\xc2\xb8\x18)\x08\x03\x10=\"\x05value*\x1cunauthorized to delete score\x1a\x04\xa0\xff+=B\xc0\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/score/v1/command.proto\x12\x1b\x61i.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a$ai/stigmer/agentic/score/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x96\x03\n\x16ScoreCommandController\x12V\n\x06\x63reate\x12\".ai.stigmer.agentic.score.v1.Score\x1a\".ai.stigmer.agentic.score.v1.Score\"\x04\xd0\xb8\x18\x01\x12\x99\x01\n\x06update\x12-.ai.stigmer.agentic.score.v1.UpdateScoreInput\x1a\".ai.stigmer.agentic.score.v1.Score\"<\xc2\xb8\x18\x38\x08\x02\x10=\"\x14resource.metadata.id*\x1cunauthorized to update score\x12\x81\x01\n\x06\x64\x65lete\x12$.ai.stigmer.agentic.score.v1.ScoreId\x1a\".ai.stigmer.agentic.score.v1.Score\"-\xc2\xb8\x18)\x08\x03\x10=\"\x05value*\x1cunauthorized to delete score\x1a\x04\xa0\xff+=B\xc0\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,9 +41,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SCORECOMMANDCONTROLLER'].methods_by_name['create']._loaded_options = None
   _globals['_SCORECOMMANDCONTROLLER'].methods_by_name['create']._serialized_options = b'\320\270\030\001'
   _globals['_SCORECOMMANDCONTROLLER'].methods_by_name['update']._loaded_options = None
-  _globals['_SCORECOMMANDCONTROLLER'].methods_by_name['update']._serialized_options = b'\302\270\030/\010\002\020=\"\013metadata.id*\034unauthorized to update score'
+  _globals['_SCORECOMMANDCONTROLLER'].methods_by_name['update']._serialized_options = b'\302\270\0308\010\002\020=\"\024resource.metadata.id*\034unauthorized to update score'
   _globals['_SCORECOMMANDCONTROLLER'].methods_by_name['delete']._loaded_options = None
   _globals['_SCORECOMMANDCONTROLLER'].methods_by_name['delete']._serialized_options = b'\302\270\030)\010\003\020=\"\005value*\034unauthorized to delete score'
   _globals['_SCORECOMMANDCONTROLLER']._serialized_start=255
-  _globals['_SCORECOMMANDCONTROLLER']._serialized_end=641
+  _globals['_SCORECOMMANDCONTROLLER']._serialized_end=661
 # @@protoc_insertion_point(module_scope)

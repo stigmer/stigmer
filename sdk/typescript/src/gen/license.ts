@@ -43,13 +43,13 @@ export class LicenseClient {
   }
 }
 
-/** Input for creating/updating a License. */
+/** Input for creating or applying a License. */
 export interface LicenseInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;

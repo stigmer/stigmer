@@ -5,8 +5,8 @@
 
 import { Vault } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { CompleteSignInInput, CompleteSignInOutput, ConnectLink, CreateConnectLinkInput, RemoveVaultConnectionsInput, RemoveVaultSecretsInput, SetVaultConnectionInput, SetVaultSecretsInput, StartSignInInput, StartSignInOutput, UpdateVaultInput } from "./io_pbjs";
 import { ApiResourceDeleteInput, RenameInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { CompleteSignInInput, CompleteSignInOutput, ConnectLink, CreateConnectLinkInput, RemoveVaultConnectionsInput, RemoveVaultSecretsInput, SetVaultConnectionInput, SetVaultSecretsInput, StartSignInInput, StartSignInOutput } from "./io_pbjs";
 
 /**
  * VaultCommandController handles write operations for vaults.
@@ -41,29 +41,32 @@ export const VaultCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update a vault's name, description and external id.
+     * Update a vault: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * Entries are kept as stored: change them with setSecrets, removeSecrets,
-     * setConnection and removeConnections.
+     * Its name, description and external id may change. Entries are kept as
+     * stored: change them with setSecrets, removeSecrets, setConnection and
+     * removeConnections.
      *
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the vault was renamed away from, named
-     * without the vault's id, is refused with FAILED_PRECONDITION
-     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-     * write by a name that stops resolving after 30 days would later make a
-     * second vault:
+     * resource.metadata.id names the vault; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the vault does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
      *
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-     *     for reading, but a write names its current slug. Metadata: slug (the
-     *     one the request named).
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the vault kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.update
      */
     update: {
       name: "update",
-      I: Vault,
+      I: UpdateVaultInput,
       O: Vault,
       kind: MethodKind.Unary,
     },

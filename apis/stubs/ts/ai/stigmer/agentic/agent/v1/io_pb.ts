@@ -4,14 +4,18 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { Agent } from "./api_pb.js";
+import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/agent/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQFiBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiyQIKEFVwZGF0ZUFnZW50SW5wdXQSPAoIcmVzb3VyY2UYASABKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq9AbpIuQEatgEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkVyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * AgentId wraps an agent identifier.
@@ -31,4 +35,37 @@ export type AgentId = Message<"ai.stigmer.agentic.agent.v1.AgentId"> & {
  */
 export const AgentIdSchema: GenMessage<AgentId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_io, 0);
+
+/**
+ * The changes an update makes to an agent: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.UpdateAgentInput
+ */
+export type UpdateAgentInput = Message<"ai.stigmer.agentic.agent.v1.UpdateAgentInput"> & {
+  /**
+   * The agent carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.agentic.agent.v1.Agent resource = 1;
+   */
+  resource?: Agent;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.UpdateAgentInput.
+ * Use `create(UpdateAgentInputSchema)` to create a new message.
+ */
+export const UpdateAgentInputSchema: GenMessage<UpdateAgentInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 1);
 

@@ -10,6 +10,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -39,12 +40,11 @@ func (v *VaultClient) Create(ctx context.Context, input *VaultInput) (*vaultv1.V
 	return resp, wrapErr(err)
 }
 
-func (v *VaultClient) Update(ctx context.Context, input *VaultInput) (*vaultv1.Vault, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := v.command.Update(ctx, req)
+func (v *VaultClient) Update(ctx context.Context, resource *vaultv1.Vault, paths []string) (*vaultv1.Vault, error) {
+	resp, err := v.command.Update(ctx, &vaultv1.UpdateVaultInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -148,12 +148,12 @@ func (v *VaultClient) FetchValues(ctx context.Context, input *vaultv1.FetchExecu
 	return resp, wrapErr(err)
 }
 
-// VaultInput holds the fields for creating/updating a Vault.
+// VaultInput holds the fields for creating or applying a Vault.
 type VaultInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id          string
 	Name        string
 	Slug        string

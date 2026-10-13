@@ -1,9 +1,12 @@
 "use client";
 
 /**
- * Renaming a vault and changing its description or external id. Entries
- * are never part of an update: the server keeps them as stored, and they
- * change only through the entry writes (useVaultEntries, useMyVault).
+ * Renaming a vault and changing its description or external id. The
+ * update names only the fields the input sets, on the vault as loaded
+ * (its id and the etag it was read at), so a change made since to another
+ * field stays, and a vault changed since it was read refuses the save
+ * (ABORTED, reason `ETAG_MISMATCH`). Entries are never part of an update:
+ * they change only through the entry writes (useVaultEntries, useMyVault).
  */
 import { useCallback, useState } from "react";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -12,7 +15,7 @@ import { toError } from "../internal/toError.js";
 
 /** The fields an update may change, on the vault it names. */
 export interface UpdateVaultInput {
-  /** The vault as loaded (its id, org and slug address the update). */
+  /** The vault as loaded (its id addresses the update, its etag guards it). */
   readonly vault: Vault;
   readonly name?: string;
   readonly description?: string;
@@ -44,15 +47,24 @@ export function useUpdateVault(): UseUpdateVaultReturn {
       setIsUpdating(true);
       setError(null);
       const metadata = input.vault.metadata;
+      const paths = [
+        ...(input.name !== undefined ? ["metadata.name"] : []),
+        ...(input.description !== undefined ? ["spec.description"] : []),
+        ...(input.externalId !== undefined ? ["spec.external_id"] : []),
+      ];
+      if (paths.length === 0) {
+        // Nothing to change: an update must name a field.
+        setIsUpdating(false);
+        return input.vault;
+      }
       try {
-        return await stigmer.vault.update({
-          id: metadata?.id,
-          name: input.name ?? metadata?.name ?? "",
-          slug: metadata?.slug,
-          org: metadata?.org ?? "",
-          description: input.description ?? input.vault.spec?.description ?? "",
-          externalId: input.externalId ?? input.vault.spec?.externalId ?? "",
-        });
+        return await stigmer.vault.update(
+          {
+            metadata: { id: metadata?.id ?? "", etag: metadata?.etag ?? "", name: input.name ?? "" },
+            spec: { description: input.description ?? "", externalId: input.externalId ?? "" },
+          },
+          paths,
+        );
       } catch (err) {
         setError(toError(err));
         throw err;

@@ -36,7 +36,8 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentId } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import type { AgentId, UpdateAgentInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { UpdateAgentInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
   AgentVersionEntry,
   GetAgentVersionInput,
@@ -121,6 +122,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -191,7 +193,7 @@ export function registerAgentServices(
   router.service(AgentCommandController, {
     apply: (agent, ctx) => apply(deps, agent, ctx),
     create: (agent, ctx) => createAgent(deps, agent, ctx),
-    update: (agent, ctx) => update(deps, agent, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (id, ctx) => deleteAgent(deps, id, ctx),
@@ -274,24 +276,28 @@ async function createAgent(
  */
 async function update(
   deps: AgentControllerDeps,
-  agent: Agent,
+  input: UpdateAgentInput,
   ctx: HandlerContext,
 ): Promise<Agent> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       AgentSchema,
-      agent,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
     await newPipeline<typeof AgentSchema>("agent-update", deps.logger)
       .addStep(
-        newAuthorizeStep(AgentCommandController.method.update, deps.authorizer),
+        newAuthorizeStep(
+          AgentCommandController.method.update,
+          deps.authorizer,
+          input,
+        ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateHooksStep())
@@ -372,7 +378,14 @@ async function apply(
   }
   return shouldCreate
     ? createAgent(deps, agent, ctx)
-    : update(deps, withResolvedApplyId(AgentSchema, agent, reqCtx), ctx);
+    : update(
+        deps,
+        everyPathUpdate(
+          UpdateAgentInputSchema,
+          withResolvedApplyId(AgentSchema, agent, reqCtx),
+        ),
+        ctx,
+      );
 }
 
 /**

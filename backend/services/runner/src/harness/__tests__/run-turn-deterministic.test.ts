@@ -76,7 +76,7 @@ describe("run-turn: the deterministic fake adapter through the real runtime", ()
       clock.reset();
       const { driver, final } = await assertCompletedTurn(harness, "det-completed");
       expect(driver.record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
-      expect(driver.record.sessionUpdates, "a deterministic harness never binds a state id").toHaveLength(0);
+      expect(driver.record.harnessBinds, "a deterministic harness never binds a state id").toHaveLength(0);
       expect(final.messages.length, "the transcript is this turn's alone").toBeGreaterThan(0);
     });
 
@@ -88,7 +88,7 @@ describe("run-turn: the deterministic fake adapter through the real runtime", ()
         RunPhase.RUN_IN_PROGRESS,
         RunPhase.RUN_COMPLETED,
       ]);
-      expect(driver.record.sessionUpdates).toHaveLength(0);
+      expect(driver.record.harnessBinds).toHaveLength(0);
     });
   });
 });

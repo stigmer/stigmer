@@ -7,17 +7,16 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import type { CheckMyPermissionInput } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import type { IdentityProviderInput } from "@stigmer/sdk";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { IdentityProviderDetailPanel } from "../IdentityProviderDetailPanel";
 
 /**
  * Pins three things about the detail panel:
  *
- *   - the save sends the whole spec: before the generated-mapper migration,
- *     this panel hand-built its update input, so a field it did not list
- *     was zeroed by every edit. The panel spreads
- *     `toIdentityProviderUpdateInput` and overrides only what it edits;
+ *   - the save names the fields the form edits, each by its path, on the
+ *     provider's id: a spec field the form does not list is not named, so
+ *     it keeps its stored value;
  *   - the Edit button is offered only to a caller the server says holds
  *     `can_edit` on the provider, so a member who may view a provider is
  *     never handed a form the server would refuse;
@@ -66,8 +65,8 @@ function renderPanel(
 afterEach(cleanup);
 
 describe("IdentityProviderDetailPanel save payload", () => {
-  it("sends the whole spec on a display-name edit, not only the edited field", async () => {
-    const update = vi.fn(async (_input: IdentityProviderInput) => IDP);
+  it("names the fields the form edits on a display-name edit, on the provider's id", async () => {
+    const update = vi.fn(async (_resource: IdentityProvider, _paths: string[]) => IDP);
     renderPanel(update);
 
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
@@ -76,21 +75,34 @@ describe("IdentityProviderDetailPanel save payload", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
+    const sent = sentUpdate<IdentityProvider>(update);
+    const spec = sent.resource.spec;
 
     // The edited field.
-    expect(input.displayName).toBe("Acme Okta (renamed)");
-    // Fields the edit leaves alone travel with it.
-    expect(input.jwksUri).toBe("https://acme.okta.example/jwks");
-    expect(input.allowedIssuers).toEqual(["https://acme.okta.example"]);
-    expect(input.expectedAudience).toBe("stigmer");
-    // Sign-in settings round-trip from the edit state.
-    expect(input.createAccountsOnSignIn).toBe(true);
-    expect(input.signInRole).toBe(IamRole.admin);
-    expect(input.externalIdClaim).toBe("org_slug");
-    // Addressing fields.
-    expect(input.org).toBe("acme");
-    expect(input.slug).toBe("acme-okta");
+    expect(spec?.displayName).toBe("Acme Okta (renamed)");
+    // The form's other fields travel with it from the edit state.
+    expect(spec?.jwksUri).toBe("https://acme.okta.example/jwks");
+    expect(spec?.allowedIssuers).toEqual(["https://acme.okta.example"]);
+    expect(spec?.expectedAudience).toBe("stigmer");
+    expect(spec?.createAccountsOnSignIn).toBe(true);
+    expect(spec?.signInRole).toBe(IamRole.admin);
+    expect(spec?.externalIdClaim).toBe("org_slug");
+    // Each by its path; a spec field the form does not list is not named,
+    // so it keeps its stored value.
+    expect(sent.paths).toEqual([
+      "spec.display_name",
+      "spec.jwks_uri",
+      "spec.allowed_issuers",
+      "spec.expected_audience",
+      "spec.userinfo_endpoint",
+      "spec.is_sso_provider",
+      "spec.oidc_client_id",
+      "spec.create_accounts_on_sign_in",
+      "spec.sign_in_role",
+      "spec.external_id_claim",
+    ]);
+    // An update names its provider by id.
+    expect(sent.id).toBe(IDP.metadata?.id);
   });
 });
 
@@ -142,7 +154,7 @@ describe("IdentityProviderDetailPanel SSO sign-in settings", () => {
   }
 
   it("turning SSO on creates accounts with viewer, and None refuses to save", async () => {
-    const update = vi.fn(async (_input: IdentityProviderInput) => PLAIN);
+    const update = vi.fn(async (_resource: IdentityProvider, _paths: string[]) => PLAIN);
     renderPlain(update);
 
     expect(screen.getByText("None")).toBeTruthy();
@@ -174,10 +186,10 @@ describe("IdentityProviderDetailPanel SSO sign-in settings", () => {
     fireEvent.click(save);
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
-    expect(input.isSsoProvider).toBe(true);
-    expect(input.createAccountsOnSignIn).toBe(true);
-    expect(input.signInRole).toBe(IamRole.viewer);
+    const spec = sentUpdate<IdentityProvider>(update).resource.spec;
+    expect(spec?.isSsoProvider).toBe(true);
+    expect(spec?.createAccountsOnSignIn).toBe(true);
+    expect(spec?.signInRole).toBe(IamRole.viewer);
   });
 });
 

@@ -10,13 +10,14 @@
  * as an error.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import type { AgentInput, ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/sdk";
 
 vi.mock("../../agent/AgentPicker.js", () => ({
   AgentPicker: ({ onChange, disabled }: { onChange: (ref: ResourceRef | null) => void; disabled?: boolean }) => (
@@ -64,10 +65,10 @@ const AGENTS: Record<string, Agent> = {
 };
 
 function renderDialog(onAgentClick = vi.fn()) {
-  const update = vi.fn(async (input: AgentInput) => {
-    if (input.slug === "locked") throw new Error("you may not change this agent");
-    const found = AGENTS[input.slug ?? ""];
+  const update = vi.fn(async (resource: Agent, _paths: string[]) => {
+    const found = Object.values(AGENTS).find((held) => held.metadata?.id === resource.metadata?.id);
     if (!found) throw new Error("no agent");
+    if (found.metadata?.slug === "locked") throw new Error("you may not change this agent");
     return found;
   });
   const client = {
@@ -102,7 +103,9 @@ describe("AddPluginToAgentDialog", () => {
 
     expect(await screen.findByText("Added linear to Reviewer.")).toBeTruthy();
     expect(update).toHaveBeenCalledTimes(1);
-    expect(update.mock.calls[0]![0].plugins).toEqual([{ org: "acme", slug: "linear" }]);
+    const sent = sentUpdate<Agent>(update);
+    expect(sent.paths).toEqual(["spec.plugins"]);
+    expect(sentRefs(sent.resource.spec?.plugins)).toEqual([{ org: "acme", slug: "linear" }]);
     fireEvent.click(screen.getByRole("button", { name: "Open agent" }));
     expect(onAgentClick).toHaveBeenCalledWith({ org: "acme", slug: "reviewer" });
   });

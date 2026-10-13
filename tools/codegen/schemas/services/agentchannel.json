@@ -26,11 +26,11 @@
         },
         {
           "name": "Update",
-          "inputType": "AgentChannel",
-          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "inputType": "UpdateAgentChannelInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Update an existing agent channel.\n\n Replaces the spec wholesale. The slug, referenced agent, and provider\n arm are immutable; status (install facts, credential reference) is\n never touched by updates."
+          "description": "Update an agent channel: the fields update_mask names change, every other\n field keeps its stored value.\n\n The referenced agent and the provider arm are immutable; status\n (install facts, credential reference) is never touched by updates.\n\n resource.metadata.id names the agent channel; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the agent channel does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the agent channel kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "InitiateInstall",
@@ -223,6 +223,39 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateAgentChannelInput",
+      "description": "The changes an update makes to an agent channel: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentChannel"
+          },
+          "description": "The agent channel carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "InitiateChannelInstallInput",
       "description": "Input for starting a provider install flow.",

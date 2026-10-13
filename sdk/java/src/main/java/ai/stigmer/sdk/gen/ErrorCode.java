@@ -14,7 +14,8 @@ public enum ErrorCode {
     RESOURCE_EXHAUSTED,
     FAILED_PRECONDITION,
     INTERNAL,
-    UNAVAILABLE;
+    UNAVAILABLE,
+    ABORTED;
 
     static ErrorCode fromGrpcCode(Status.Code code) {
         switch (code) {
@@ -27,6 +28,7 @@ public enum ErrorCode {
             case FAILED_PRECONDITION: return FAILED_PRECONDITION;
             case INTERNAL: return INTERNAL;
             case UNAVAILABLE: return UNAVAILABLE;
+            case ABORTED: return ABORTED;
             default: return UNKNOWN;
         }
     }

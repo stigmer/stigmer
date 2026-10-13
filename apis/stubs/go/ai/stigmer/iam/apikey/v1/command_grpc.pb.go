@@ -47,8 +47,23 @@ type ApiKeyCommandControllerClient interface {
 	// Authorization: Requires can_manage_keys on the service account, which
 	// its organization's admins hold. A service account's own key is refused.
 	CreateForServiceAccount(ctx context.Context, in *CreateServiceAccountKeyInput, opts ...grpc.CallOption) (*ApiKey, error)
-	// Update an existing API key.
-	Update(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
+	// Update an API key: the fields update_mask names change, every other
+	// field keeps its stored value.
+	//
+	// resource.metadata.id names the API key; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the API key does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the API key kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateApiKeyInput, opts ...grpc.CallOption) (*ApiKey, error)
 	// Delete an API key.
 	Delete(ctx context.Context, in *ApiKeyId, opts ...grpc.CallOption) (*ApiKey, error)
 }
@@ -81,7 +96,7 @@ func (c *apiKeyCommandControllerClient) CreateForServiceAccount(ctx context.Cont
 	return out, nil
 }
 
-func (c *apiKeyCommandControllerClient) Update(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error) {
+func (c *apiKeyCommandControllerClient) Update(ctx context.Context, in *UpdateApiKeyInput, opts ...grpc.CallOption) (*ApiKey, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ApiKey)
 	err := c.cc.Invoke(ctx, ApiKeyCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -123,8 +138,23 @@ type ApiKeyCommandControllerServer interface {
 	// Authorization: Requires can_manage_keys on the service account, which
 	// its organization's admins hold. A service account's own key is refused.
 	CreateForServiceAccount(context.Context, *CreateServiceAccountKeyInput) (*ApiKey, error)
-	// Update an existing API key.
-	Update(context.Context, *ApiKey) (*ApiKey, error)
+	// Update an API key: the fields update_mask names change, every other
+	// field keeps its stored value.
+	//
+	// resource.metadata.id names the API key; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the API key does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the API key kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateApiKeyInput) (*ApiKey, error)
 	// Delete an API key.
 	Delete(context.Context, *ApiKeyId) (*ApiKey, error)
 }
@@ -142,7 +172,7 @@ func (UnimplementedApiKeyCommandControllerServer) Create(context.Context, *ApiKe
 func (UnimplementedApiKeyCommandControllerServer) CreateForServiceAccount(context.Context, *CreateServiceAccountKeyInput) (*ApiKey, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateForServiceAccount not implemented")
 }
-func (UnimplementedApiKeyCommandControllerServer) Update(context.Context, *ApiKey) (*ApiKey, error) {
+func (UnimplementedApiKeyCommandControllerServer) Update(context.Context, *UpdateApiKeyInput) (*ApiKey, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedApiKeyCommandControllerServer) Delete(context.Context, *ApiKeyId) (*ApiKey, error) {
@@ -205,7 +235,7 @@ func _ApiKeyCommandController_CreateForServiceAccount_Handler(srv interface{}, c
 }
 
 func _ApiKeyCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ApiKey)
+	in := new(UpdateApiKeyInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -217,7 +247,7 @@ func _ApiKeyCommandController_Update_Handler(srv interface{}, ctx context.Contex
 		FullMethod: ApiKeyCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ApiKeyCommandControllerServer).Update(ctx, req.(*ApiKey))
+		return srv.(ApiKeyCommandControllerServer).Update(ctx, req.(*UpdateApiKeyInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

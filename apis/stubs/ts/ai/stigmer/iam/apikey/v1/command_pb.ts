@@ -8,14 +8,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { ApiKeySchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_apikey_v1_api } from "./api_pb.js";
-import type { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema } from "./io_pb.js";
+import type { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema, UpdateApiKeyInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_apikey_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/apikey/v1/command.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvY29tbWFuZC5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxMsIEChdBcGlLZXlDb21tYW5kQ29udHJvbGxlchJSCgZjcmVhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIE0LgYARLFAQoXY3JlYXRlRm9yU2VydmljZUFjY291bnQSNi5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQ3JlYXRlU2VydmljZUFjY291bnRLZXlJbnB1dBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiUMK4GEwINxALIhJzZXJ2aWNlX2FjY291bnRfaWQqMnVuYXV0aG9yaXplZCB0byBtYW5hZ2UgdGhpcyBzZXJ2aWNlIGFjY291bnQncyBrZXlzEoMBCgZ1cGRhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSI1wrgYMQgCEAwiC21ldGFkYXRhLmlkKh51bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFwaSBrZXkSfwoGZGVsZXRlEiIuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleUlkGiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIvwrgYKwgDEAwiBXZhbHVlKh51bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGFwaSBrZXkaBKD/KwxiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io]);
+  fileDesc("CiZhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvY29tbWFuZC5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxMtYEChdBcGlLZXlDb21tYW5kQ29udHJvbGxlchJSCgZjcmVhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIE0LgYARLFAQoXY3JlYXRlRm9yU2VydmljZUFjY291bnQSNi5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQ3JlYXRlU2VydmljZUFjY291bnRLZXlJbnB1dBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiUMK4GEwINxALIhJzZXJ2aWNlX2FjY291bnRfaWQqMnVuYXV0aG9yaXplZCB0byBtYW5hZ2UgdGhpcyBzZXJ2aWNlIGFjY291bnQncyBrZXlzEpcBCgZ1cGRhdGUSKy5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuVXBkYXRlQXBpS2V5SW5wdXQaIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5Ij7CuBg6CAIQDCIUcmVzb3VyY2UubWV0YWRhdGEuaWQqHnVuYXV0aG9yaXplZCB0byB1cGRhdGUgYXBpIGtleRJ/CgZkZWxldGUSIi5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5SWQaIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5Ii/CuBgrCAMQDCIFdmFsdWUqHnVuYXV0aG9yaXplZCB0byBkZWxldGUgYXBpIGtleRoEoP8rDGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io]);
 
 /**
  * ApiKeyCommandController handles write operations for API keys.
@@ -56,13 +56,28 @@ export const ApiKeyCommandController: GenService<{
     output: typeof ApiKeySchema;
   },
   /**
-   * Update an existing API key.
+   * Update an API key: the fields update_mask names change, every other
+   * field keeps its stored value.
+   *
+   * resource.metadata.id names the API key; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the API key does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the API key kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof ApiKeySchema;
+    input: typeof UpdateApiKeyInputSchema;
     output: typeof ApiKeySchema;
   },
   /**

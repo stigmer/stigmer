@@ -40,6 +40,7 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import {
+  etagOf,
   guardedPortDeclarations,
   portContractCases,
   type PortContractCase,
@@ -69,6 +70,33 @@ function idsOf(teams: ReadonlyArray<Team>): Array<string | undefined> {
 }
 
 const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
+  [
+    "every write stores the etag its content gives: an insert, a modify and a swap",
+    async ({ store }) => {
+      await store.insert(team({ id: "tm_etag", org: "acme", slug: "etag-first", name: "First" }));
+      const inserted = await store.findById("tm_etag");
+      assert.ok(inserted !== undefined, "the insert is read back");
+      assert.notEqual(inserted.metadata?.etag ?? "", "", "an insert stamps the etag");
+      assert.equal(inserted.metadata?.etag, etagOf(TeamSchema, inserted));
+      await store.modifyById("tm_etag", (held) => {
+        if (held.metadata !== undefined) {
+          held.metadata.name = "Second";
+        }
+      });
+      const modified = await store.findById("tm_etag");
+      assert.ok(modified !== undefined);
+      assert.equal(modified.metadata?.etag, etagOf(TeamSchema, modified), "a modify restamps it");
+      assert.notEqual(modified.metadata?.etag, inserted.metadata?.etag);
+      const read = await store.readForWrite("tm_etag");
+      assert.ok(read !== undefined && read.row.metadata !== undefined);
+      read.row.metadata.name = "Third";
+      assert.equal(await store.swap("tm_etag", read.bytes, read.row), true);
+      const swapped = await store.findById("tm_etag");
+      assert.ok(swapped !== undefined);
+      assert.equal(swapped.metadata?.etag, etagOf(TeamSchema, swapped), "a swap restamps it");
+      assert.notEqual(swapped.metadata?.etag, modified.metadata?.etag);
+    },
+  ],
   [
     "an insert is read back by id and in its organization's list",
     async ({ store }) => {

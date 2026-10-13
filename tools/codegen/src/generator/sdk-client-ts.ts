@@ -1,14 +1,16 @@
 // sdk-client-ts target: typed resource clients for the TypeScript SDK
 // (sdk/typescript/src/gen). Byte-parity port of sdk_client_ts.go — per
 // resource: the client class over the Connect service stubs, the flattened
-// XxxInput interfaces, the buildXxxProto builders, and the
-// toXxxUpdateInput mappers; plus the aggregate client.ts and the kind-meta
-// files.
+// XxxInput interfaces, the buildXxxProto builders and the toXxxInput
+// mappers that restate a fetched resource for a copy; plus the aggregate
+// client.ts and the kind-meta files. An update takes the resource and the
+// paths it changes (Update<Kind>Input).
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
+import { generateTSResourceInputMapper, tsHasUpdateRPC } from "./sdk-client-ts-input.js";
 import {
   deriveTSImportBase,
   goQuote,
@@ -18,6 +20,7 @@ import {
   isIDType,
   isSpecialType,
   isSyntheticOneof,
+  isUpdateInputType,
   isValuedOneofScalar,
   searchListSupersedesMethod,
   tsClientFieldName,
@@ -32,7 +35,6 @@ import {
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
 import { generateTSBidiStream, generateTSErrors, generateTSProtoUtils, generateTSTypes } from "./sdk-client-ts-static.js";
-import { generateTSUpdateInputMapper, tsHasUpdateRPC } from "./sdk-client-ts-update.js";
 import { generateTSKindMeta } from "./sdk-kind-meta-ts.js";
 import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 import { readDirSorted } from "./schema.js";
@@ -165,7 +167,13 @@ function generateTSResourceClient(
         }
       }
 
-      tsImportMethodType(imports, m.inputType, m.inputFullType, schema, cfg, specTypeNames, specTypeFileMap, methodTypeFileMap, importBase);
+      if (isUpdateInputType(m.inputType, cfg.protoResType)) {
+        needsCreate = true;
+        imports.addValue(importBase + "/" + (methodTypeFileMap.get(m.inputType) ?? "io_pb"), m.inputType + "Schema");
+        imports.addType("@bufbuild/protobuf", "MessageInitShape");
+      } else {
+        tsImportMethodType(imports, m.inputType, m.inputFullType, schema, cfg, specTypeNames, specTypeFileMap, methodTypeFileMap, importBase);
+      }
       tsImportMethodType(imports, m.outputType, m.outputFullType, schema, cfg, specTypeNames, specTypeFileMap, methodTypeFileMap, importBase);
     }
   }
@@ -269,7 +277,7 @@ function generateTSResourceClient(
 
     if (tsHasUpdateRPC(schema, cfg)) {
       body.push("\n");
-      generateTSUpdateInputMapper(body, schema, cfg, specSchema, typeMap, imports);
+      generateTSResourceInputMapper(body, schema, cfg, specSchema, typeMap, imports);
     }
   }
 
@@ -409,6 +417,7 @@ function generateTSMethod(
   const isIDInput = isIDType(m.inputType);
   const isDeleteInput = m.inputType === "ApiResourceDeleteInput";
   const isResourceInput = m.inputType === cfg.protoResType;
+  const isUpdateInput = isUpdateInputType(m.inputType, cfg.protoResType);
   const isApiResourceIdInput = m.inputType === "ApiResourceId";
   const isApiResourceRefInput = m.inputType === "ApiResourceReference";
 
@@ -425,6 +434,12 @@ function generateTSMethod(
     buf.push(`  async ${tsMethodName(m.name)}(): Promise<${outputType}> {\n`);
     buf.push("    try {\n");
     buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(EmptySchema, {}));\n`);
+    buf.push("    } catch (e) { throw wrapError(e); }\n");
+    buf.push("  }\n");
+  } else if (isUpdateInput) {
+    buf.push(`  async ${tsMethodName(m.name)}(resource: ${cfg.protoResType} | MessageInitShape<typeof ${cfg.protoResType}Schema>, paths: string[]): Promise<${outputType}> {\n`);
+    buf.push("    try {\n");
+    buf.push(`      ${returnKeyword}await this.${svc.role}.${tsMethodName(m.name)}(create(${m.inputType}Schema, { resource, updateMask: { paths } }));\n`);
     buf.push("    } catch (e) { throw wrapError(e); }\n");
     buf.push("  }\n");
   } else if (isResourceInput && hasInputType) {
@@ -567,13 +582,13 @@ function generateTSInputTypes(
   const specFields = spec.fields.filter((f) => !META_FIELD_NAMES.has(f.name));
 
   const article = indefiniteArticle(cfg.protoResType);
-  buf.push(`/** Input for creating/updating ${article} ${cfg.protoResType}. */\n`);
+  buf.push(`/** Input for creating or applying ${article} ${cfg.protoResType}. */\n`);
   buf.push(`export interface ${inputName} {\n`);
   buf.push("  /**\n");
-  buf.push("   * The resource's `metadata.id`, for exact update addressing when set\n");
-  buf.push("   * from a loaded resource. Required for updates to platform-scoped\n");
-  buf.push("   * (org-less) kinds, where the org+slug fallback cannot match. Ignored\n");
-  buf.push("   * on create: the server assigns every new resource's id.\n");
+  buf.push("   * The resource's `metadata.id`: an apply that carries it changes that\n");
+  buf.push("   * resource, whatever its slug. Ignored on create: the server assigns\n");
+  buf.push("   * every new resource's id. An update takes the resource itself and\n");
+  buf.push("   * the paths it changes.\n");
   buf.push("   */\n");
   buf.push("  id?: string;\n");
   buf.push("  name: string;\n");

@@ -484,12 +484,12 @@ describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => 
     const spec = clone(OrganizationSpecSchema, organization.spec ?? create(OrganizationSpecSchema));
     spec.preferences ??= create(OrganizationPreferencesSchema);
     spec.preferences.standingContext = standing;
-    await clients.organizationCommand.update({
+    await clients.organizationCommand.update({ resource: {
       apiVersion: organization.apiVersion,
       kind: organization.kind,
       metadata: { id: organization.metadata!.id, name: organization.metadata!.name },
       spec,
-    });
+    }, updateMask: { paths: ["*"] } });
     const installation = await installed((skill) => [scoredCase("plain-notes", skill)], { org });
 
     // An ordinary chat with the plugin listed, in that organization, gets both.

@@ -38,46 +38,50 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\n.ai/stigmer/agentic/channelapp/v1/comma" +
       "nd.proto\022 ai.stigmer.agentic.channelapp." +
       "v1\032*ai/stigmer/agentic/channelapp/v1/api" +
-      ".proto\032\'ai/stigmer/commons/apiresource/i" +
-      "o.proto\0328ai/stigmer/commons/apiresource/" +
-      "rpc_service_options.proto\032+ai/stigmer/co" +
-      "mmons/rpc/method_options.proto2\257\006\n\033Chann" +
-      "elAppCommandController\022c\n\005apply\022,.ai.sti" +
-      "gmer.agentic.channelapp.v1.ChannelApp\032,." +
-      "ai.stigmer.agentic.channelapp.v1.Channel" +
-      "App\022\265\001\n\006create\022,.ai.stigmer.agentic.chan" +
-      "nelapp.v1.ChannelApp\032,.ai.stigmer.agenti" +
-      "c.channelapp.v1.ChannelApp\"O\302\270\030K\010\037\020\036\"\014me" +
-      "tadata.org*7unauthorized to create chann" +
-      "el app in this organization\022\237\001\n\006update\022," +
-      ".ai.stigmer.agentic.channelapp.v1.Channe" +
-      "lApp\032,.ai.stigmer.agentic.channelapp.v1." +
-      "ChannelApp\"9\302\270\0305\010\002\0200\"\013metadata.id*\"unaut" +
-      "horized to update channel app\022\236\001\n\006rename" +
-      "\022+.ai.stigmer.commons.apiresource.Rename" +
-      "Input\032,.ai.stigmer.agentic.channelapp.v1" +
-      ".ChannelApp\"9\302\270\0305\010\003\0200\"\013resource_id*\"unau" +
-      "thorized to rename channel app\022\251\001\n\006delet" +
-      "e\0226.ai.stigmer.commons.apiresource.ApiRe" +
-      "sourceDeleteInput\032,.ai.stigmer.agentic.c" +
-      "hannelapp.v1.ChannelApp\"9\302\270\0305\010\003\0200\"\013resou" +
-      "rce_id*\"unauthorized to delete channel a" +
-      "pp\032\004\240\377+0B\263\001B\014CommandProtoP\001\242\002\004ASAC\252\002 Ai." +
-      "Stigmer.Agentic.Channelapp.V1\312\002 Ai\\Stigm" +
-      "er\\Agentic\\Channelapp\\V1\342\002,Ai\\Stigmer\\Ag" +
-      "entic\\Channelapp\\V1\\GPBMetadata\352\002$Ai::St" +
-      "igmer::Agentic::Channelapp::V1b\006proto3"
+      ".proto\032)ai/stigmer/agentic/channelapp/v1" +
+      "/io.proto\032\'ai/stigmer/commons/apiresourc" +
+      "e/io.proto\0328ai/stigmer/commons/apiresour" +
+      "ce/rpc_service_options.proto\032+ai/stigmer" +
+      "/commons/rpc/method_options.proto2\303\006\n\033Ch" +
+      "annelAppCommandController\022c\n\005apply\022,.ai." +
+      "stigmer.agentic.channelapp.v1.ChannelApp" +
+      "\032,.ai.stigmer.agentic.channelapp.v1.Chan" +
+      "nelApp\022\265\001\n\006create\022,.ai.stigmer.agentic.c" +
+      "hannelapp.v1.ChannelApp\032,.ai.stigmer.age" +
+      "ntic.channelapp.v1.ChannelApp\"O\302\270\030K\010\037\020\036\"" +
+      "\014metadata.org*7unauthorized to create ch" +
+      "annel app in this organization\022\263\001\n\006updat" +
+      "e\0227.ai.stigmer.agentic.channelapp.v1.Upd" +
+      "ateChannelAppInput\032,.ai.stigmer.agentic." +
+      "channelapp.v1.ChannelApp\"B\302\270\030>\010\002\0200\"\024reso" +
+      "urce.metadata.id*\"unauthorized to update" +
+      " channel app\022\236\001\n\006rename\022+.ai.stigmer.com" +
+      "mons.apiresource.RenameInput\032,.ai.stigme" +
+      "r.agentic.channelapp.v1.ChannelApp\"9\302\270\0305" +
+      "\010\003\0200\"\013resource_id*\"unauthorized to renam" +
+      "e channel app\022\251\001\n\006delete\0226.ai.stigmer.co" +
+      "mmons.apiresource.ApiResourceDeleteInput" +
+      "\032,.ai.stigmer.agentic.channelapp.v1.Chan" +
+      "nelApp\"9\302\270\0305\010\003\0200\"\013resource_id*\"unauthori" +
+      "zed to delete channel app\032\004\240\377+0B\263\001B\014Comm" +
+      "andProtoP\001\242\002\004ASAC\252\002 Ai.Stigmer.Agentic.C" +
+      "hannelapp.V1\312\002 Ai\\Stigmer\\Agentic\\Channe" +
+      "lapp\\V1\342\002,Ai\\Stigmer\\Agentic\\Channelapp\\" +
+      "V1\\GPBMetadata\352\002$Ai::Stigmer::Agentic::C" +
+      "hannelapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.channelapp.v1.ApiProto.getDescriptor(),
+          ai.stigmer.agentic.channelapp.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.channelapp.v1.ApiProto.getDescriptor();
+    ai.stigmer.agentic.channelapp.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();

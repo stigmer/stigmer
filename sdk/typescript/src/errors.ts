@@ -63,6 +63,9 @@ const ERROR_CODE_TO_CATEGORY: Record<ErrorCode, ErrorCategory> = {
   "invalid-argument": "validation",
   "already-exists": "validation",
   "failed-precondition": "validation",
+  // A lost write or a stale etag: the console reads its reason
+  // (getErrorReason) to show the conflict notice; neither is retried blind.
+  aborted: "validation",
   "resource-exhausted": "unavailable",
   internal: "server",
   unavailable: "unavailable",

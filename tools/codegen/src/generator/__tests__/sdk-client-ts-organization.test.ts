@@ -1,13 +1,12 @@
 /**
  * Pins how the TypeScript SDK generator carries an organization in a
- * resource's input and in the mapper that turns a loaded resource into an
- * update input. An organization-scoped kind (Agent) takes its organization
- * and carries it over on update. An organization-less kind takes none: its
+ * resource's input, and the update it emits. An organization-scoped kind
+ * (Agent) takes its organization. An organization-less kind takes none: its
  * input's `org` is the empty string type, documented as belonging to no
- * organization, and its update mapper carries none over. Organization is
- * such a kind: it belongs to no organization, so its update addresses it by
- * id, never by an `org` filled from its own slug as it once was. Each
- * input's doc names its resource with the article its name takes.
+ * organization. An update takes the resource itself (named by its
+ * metadata.id) and the paths it changes, so no input maps a loaded
+ * resource back. Each input's doc names its resource with the article its
+ * name takes.
  *
  * The generator runs over the real schemas into a temporary directory, and
  * these cases read what it wrote.
@@ -56,23 +55,24 @@ describe("the TypeScript SDK's inputs carry an organization only for kinds that 
     expect(organization).not.toContain("  org: string;\n");
   });
 
-  it("an organization's update mapper carries no organization over, addressing it by id", () => {
-    const mapper = from(organization, "export function toOrganizationUpdateInput");
-    expect(mapper).toContain("    id: meta?.id || undefined,\n");
-    expect(mapper).not.toMatch(/^\s+org:/m);
+  it("an update takes the resource and the paths it changes, on Update<Kind>Input", () => {
+    const update = from(agent, "  async update(");
+    expect(update).toContain(
+      "  async update(resource: Agent | MessageInitShape<typeof AgentSchema>, paths: string[]): Promise<Agent> {\n",
+    );
+    expect(update).toContain("this.command.update(create(UpdateAgentInputSchema, { resource, updateMask: { paths } }))");
+    expect(organization).not.toContain("UpdateInput(");
   });
 
   it("names each input's resource with the article its name takes", () => {
-    expect(organization).toContain("/** Input for creating/updating an Organization. */\n");
-    expect(agent).toContain("/** Input for creating/updating an Agent. */\n");
+    expect(organization).toContain("/** Input for creating or applying an Organization. */\n");
+    expect(agent).toContain("/** Input for creating or applying an Agent. */\n");
     expect(fs.readFileSync(path.join(root, "skill.ts"), "utf8")).toContain(
-      "/** Input for creating/updating a Skill. */\n",
+      "/** Input for creating or applying a Skill. */\n",
     );
   });
 
-  it("an organization-scoped kind's input takes its organization, and its update mapper carries it over", () => {
+  it("an organization-scoped kind's input takes its organization", () => {
     expect(agent).toContain("  org: string;\n");
-    const mapper = from(agent, "export function toAgentUpdateInput");
-    expect(mapper).toContain('    org: meta?.org ?? "",\n');
   });
 });

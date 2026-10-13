@@ -29,7 +29,7 @@ import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Timestamp;
 
-/** Input for creating/updating a Run. */
+/** Input for creating or applying a Run. */
 public final class RunInput {
     private final String id;
     private final String name;
@@ -185,9 +185,9 @@ public final class RunInput {
         private Builder() {}
 
         /**
-         * The resource's metadata.id, for exact update addressing when set
-         * from a loaded resource. Required for updates to platform-scoped
-         * (org-less) kinds, where the org+slug fallback cannot match.
+         * The resource's metadata.id: an apply that carries it changes that
+         * resource, whatever its slug. An update takes the resource itself
+         * and the paths it changes.
          */
         public Builder id(String id) { this.id = id; return this; }
         public Builder name(String name) { this.name = name; return this; }
@@ -220,8 +220,6 @@ public final class RunInput {
     public static final class SessionSpecInput {
         private final ResourceRef agentRef;
         private final String subject;
-        private final String harnessStateId;
-        private final java.util.List<String> harnessStateIdHistory;
         private final java.util.Map<String, String> metadata;
         private final java.util.List<WorkspaceEntryInput> workspaceEntries;
         private final java.util.List<ResourceRef> skillRefs;
@@ -236,8 +234,6 @@ public final class RunInput {
         private SessionSpecInput(Builder builder) {
             this.agentRef = builder.agentRef;
             this.subject = builder.subject;
-            this.harnessStateId = builder.harnessStateId;
-            this.harnessStateIdHistory = builder.harnessStateIdHistory;
             this.metadata = builder.metadata;
             this.workspaceEntries = builder.workspaceEntries;
             this.skillRefs = builder.skillRefs;
@@ -258,12 +254,6 @@ public final class RunInput {
             }
             if (this.subject != null) {
                 builder.setSubject(this.subject);
-            }
-            if (this.harnessStateId != null) {
-                builder.setHarnessStateId(this.harnessStateId);
-            }
-            if (this.harnessStateIdHistory != null) {
-                builder.addAllHarnessStateIdHistory(this.harnessStateIdHistory);
             }
             if (this.metadata != null && !this.metadata.isEmpty()) {
                 builder.putAllMetadata(this.metadata);
@@ -310,8 +300,6 @@ public final class RunInput {
         public static final class Builder {
             private ResourceRef agentRef;
             private String subject;
-            private String harnessStateId;
-            private java.util.List<String> harnessStateIdHistory;
             private java.util.Map<String, String> metadata;
             private java.util.List<WorkspaceEntryInput> workspaceEntries;
             private java.util.List<ResourceRef> skillRefs;
@@ -327,8 +315,6 @@ public final class RunInput {
 
             public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
             public Builder subject(String subject) { this.subject = subject; return this; }
-            public Builder harnessStateId(String harnessStateId) { this.harnessStateId = harnessStateId; return this; }
-            public Builder harnessStateIdHistory(java.util.List<String> harnessStateIdHistory) { this.harnessStateIdHistory = harnessStateIdHistory; return this; }
             public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
             public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
             public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }

@@ -33,7 +33,9 @@ import ai.stigmer.agentic.agentchannel.v1.MessagingChannels;
 import ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput;
 import ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput;
 import ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput;
+import ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -67,9 +69,12 @@ public final class AgentChannelClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public AgentChannel update(AgentChannelInput input) {
+    public AgentChannel update(AgentChannel resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateAgentChannelInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -14,6 +14,7 @@ from ai.stigmer.agentic.session.v1 import io_pb2
 from ai.stigmer.agentic.session.v1 import event_pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
+from google.protobuf import field_mask_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -39,9 +40,11 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update(self, input: SessionInput) -> api_pb2.Session:
+    def update(self, resource: api_pb2.Session, paths: list[str]) -> api_pb2.Session:
         try:
-            return self._command.update(input._to_proto())
+            return self._command.update(
+                io_pb2.UpdateSessionInput(resource=resource, update_mask=field_mask_pb2.FieldMask(paths=paths))
+            )
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -84,6 +87,12 @@ class SessionClient:
     def append_events(self, input: io_pb2.AppendSessionEventsInput) -> io_pb2.AppendSessionEventsResponse:
         try:
             return self._command.appendEvents(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def bind_harness_state(self, input: io_pb2.BindHarnessStateInput) -> io_pb2.BindHarnessStateResponse:
+        try:
+            return self._command.bindHarnessState(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -137,8 +146,6 @@ class SessionInput:
     visibility: int = 0
     agent_ref: ResourceRef | None = None
     subject: str = ""
-    harness_state_id: str = ""
-    harness_state_id_history: list[str] = field(default_factory=list)
     metadata: dict[str, str] = field(default_factory=dict)
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     skill_refs: list[ResourceRef] = field(default_factory=list)
@@ -153,7 +160,6 @@ class SessionInput:
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
             subject=self.subject,
-            harness_state_id=self.harness_state_id,
             harness=self.harness,
             cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
@@ -164,8 +170,6 @@ class SessionInput:
             _ref = self.agent_ref._to_proto()
             _ref.kind = 40
             spec.agent_ref.CopyFrom(_ref)
-        if self.harness_state_id_history:
-            spec.harness_state_id_history.extend(self.harness_state_id_history)
         if self.metadata:
             spec.metadata.update(self.metadata)
         for item in self.workspace_entries:

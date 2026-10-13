@@ -15,19 +15,20 @@ import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identi
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import {
   buildOrganizationProto,
-  toOrganizationUpdateInput,
+  toOrganizationInput,
 } from "../gen/organization";
 import {
   buildIdentityAccountProto,
-  toIdentityAccountUpdateInput,
+  toIdentityAccountInput,
 } from "../gen/identityaccount";
 
 /**
- * Update RPCs are full-spec replacements, so a complete mapper must
- * round-trip EVERY mutable field of a loaded resource through the generated
- * builder without loss. These tests pin that contract: fully-populated
- * resource → mapper → builder → spec (as JSON, defaults omitted) deep-equals
- * the original. If a mapper drops a field, the wipe-bug class is back.
+ * A toXxxInput mapper restates a loaded resource as the input that makes
+ * it again (a copy), so it must round-trip EVERY field of a loaded
+ * resource through the generated builder without loss. These tests pin
+ * that contract: fully-populated resource → mapper → builder → spec (as
+ * JSON, defaults omitted) deep-equals the original. If a mapper drops a
+ * field, a copy silently loses it.
  */
 
 function fullOrganization(): Organization {
@@ -84,11 +85,11 @@ function fullIdentityAccount(): IdentityAccount {
   });
 }
 
-describe("toOrganizationUpdateInput", () => {
+describe("toOrganizationInput", () => {
   it("round-trips a fully-populated organization spec through the builder", () => {
     const org = fullOrganization();
 
-    const built = buildOrganizationProto(toOrganizationUpdateInput(org));
+    const built = buildOrganizationProto(toOrganizationInput(org));
 
     expect(toJson(OrganizationSpecSchema, built.spec!)).toEqual(
       toJson(OrganizationSpecSchema, org.spec!),
@@ -106,7 +107,7 @@ describe("toOrganizationUpdateInput", () => {
     const org = fullOrganization();
 
     const built = buildOrganizationProto({
-      ...toOrganizationUpdateInput(org),
+      ...toOrganizationInput(org),
       description: "New description",
     });
 
@@ -123,7 +124,7 @@ describe("toOrganizationUpdateInput", () => {
       spec: {},
     });
 
-    const built = buildOrganizationProto(toOrganizationUpdateInput(org));
+    const built = buildOrganizationProto(toOrganizationInput(org));
 
     expect(toJson(OrganizationSpecSchema, built.spec!)).toEqual({});
   });
@@ -133,24 +134,24 @@ describe("toOrganizationUpdateInput", () => {
       metadata: { name: "Bare", slug: "bare" },
     });
 
-    expect(toOrganizationUpdateInput(org).org).toBeUndefined();
+    expect(toOrganizationInput(org).org).toBeUndefined();
   });
 
-  it("carries metadata.id for exact update addressing", () => {
+  it("carries metadata.id, which a copy clears", () => {
     const built = buildOrganizationProto(
-      toOrganizationUpdateInput(fullOrganization()),
+      toOrganizationInput(fullOrganization()),
     );
 
     expect(built.metadata?.id).toBe("org_01jaaaaaaaaaaaaaaaaaaaaaaa");
   });
 });
 
-describe("toIdentityAccountUpdateInput", () => {
+describe("toIdentityAccountInput", () => {
   it("round-trips a fully-populated identity account spec through the builder", () => {
     const account = fullIdentityAccount();
 
     const built = buildIdentityAccountProto(
-      toIdentityAccountUpdateInput(account),
+      toIdentityAccountInput(account),
     );
 
     expect(toJson(IdentityAccountSpecSchema, built.spec!)).toEqual(
@@ -160,17 +161,16 @@ describe("toIdentityAccountUpdateInput", () => {
     expect(built.metadata?.labels).toEqual({ team: "platform" });
   });
 
-  it("carries org and slug — the update pipeline's fallback address", () => {
-    const input = toIdentityAccountUpdateInput(fullIdentityAccount());
+  it("carries org and slug", () => {
+    const input = toIdentityAccountInput(fullIdentityAccount());
 
     expect(input.org).toBe("acme");
     expect(input.slug).toBe("ada-lovelace");
   });
 
-  it("carries metadata.id — the ONLY address that works for a real (org-less) account", () => {
+  it("carries metadata.id and the slug of a real (org-less) account", () => {
     // Identity accounts are platform-scoped: metadata.org is never set in
-    // production, so the pipeline's org+slug fallback structurally cannot
-    // match one. Without the id, this update is NOT_FOUND by construction.
+    // production, so the id and the slug are what name one.
     const account = create(IdentityAccountSchema, {
       metadata: {
         id: "ida_01JEXAMPLE",
@@ -181,7 +181,7 @@ describe("toIdentityAccountUpdateInput", () => {
     });
 
     const built = buildIdentityAccountProto(
-      toIdentityAccountUpdateInput(account),
+      toIdentityAccountInput(account),
     );
 
     expect(built.metadata?.id).toBe("ida_01JEXAMPLE");
@@ -190,7 +190,7 @@ describe("toIdentityAccountUpdateInput", () => {
 
   it("preserves the rest of the spec when a caller overrides only preferences", () => {
     const account = fullIdentityAccount();
-    const mapped = toIdentityAccountUpdateInput(account);
+    const mapped = toIdentityAccountInput(account);
 
     const built = buildIdentityAccountProto({
       ...mapped,
@@ -209,12 +209,12 @@ describe("toIdentityAccountUpdateInput", () => {
 
   it("preserves structured defaults when only standing context is edited (nested wipe-bug class)", () => {
     const account = fullIdentityAccount();
-    const mapped = toIdentityAccountUpdateInput(account);
+    const mapped = toIdentityAccountInput(account);
 
     // The correct editor pattern for a nested message: spread the mapper's
     // COMPLETE preferences and override only the edited field. A bare
     // `preferences: { standingContext }` literal would wipe the structured
-    // defaults — the same whole-message wipe a partial update input causes,
+    // defaults — the same whole-message wipe a partial input causes,
     // one level down.
     const built = buildIdentityAccountProto({
       ...mapped,
@@ -229,7 +229,7 @@ describe("toIdentityAccountUpdateInput", () => {
 
   it("clears standing context to wire-absent when the text is emptied", () => {
     const account = fullIdentityAccount();
-    const mapped = toIdentityAccountUpdateInput(account);
+    const mapped = toIdentityAccountInput(account);
 
     const built = buildIdentityAccountProto({
       ...mapped,

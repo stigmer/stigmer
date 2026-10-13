@@ -26,11 +26,11 @@ var File_ai_stigmer_agentic_session_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/session/v1/command.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a)ai/stigmer/agentic/session/v1/event.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xfa\f\n" +
+	"+ai/stigmer/agentic/session/v1/command.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a)ai/stigmer/agentic/session/v1/event.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x98\x0e\n" +
 	"\x18SessionCommandController\x12W\n" +
 	"\x05apply\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\x12\xa5\x01\n" +
-	"\x06create\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"K¸\x18G\b\b\x10\x1e\"\fmetadata.org*3unauthorized to create session in this organization\x12\x8f\x01\n" +
-	"\x06update\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"5¸\x181\b\x02\x10*\"\vmetadata.id*\x1eunauthorized to update session\x12\xa9\x01\n" +
+	"\x06create\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"K¸\x18G\b\b\x10\x1e\"\fmetadata.org*3unauthorized to create session in this organization\x12\xa3\x01\n" +
+	"\x06update\x121.ai.stigmer.agentic.session.v1.UpdateSessionInput\x1a&.ai.stigmer.agentic.session.v1.Session\">¸\x18:\b\x02\x10*\"\x14resource.metadata.id*\x1eunauthorized to update session\x12\xa9\x01\n" +
 	"\rupdateSubject\x12:.ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"4¸\x180\b\x02\x10*\"\x02id*&unauthorized to update session subject\x12\xca\x01\n" +
 	"\x11reviewFileChanges\x125.ai.stigmer.agentic.session.v1.ReviewFileChangesInput\x1a8.ai.stigmer.agentic.session.v1.ReviewFileChangesResponse\"D¸\x18@\b\x02\x10*\"\n" +
 	"session_id*.unauthorized to review file changes in session\x12\xb5\x01\n" +
@@ -41,47 +41,53 @@ const file_ai_stigmer_agentic_session_v1_command_proto_rawDesc = "" +
 	"\tinterrupt\x124.ai.stigmer.agentic.session.v1.InterruptSessionInput\x1a7.ai.stigmer.agentic.session.v1.InterruptSessionResponse\"7¸\x183\b\x02\x10*\"\n" +
 	"session_id*!unauthorized to interrupt session\x12\x8b\x01\n" +
 	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"/¸\x18+\b\x03\x10*\"\x05value*\x1eunauthorized to delete session\x12\x89\x01\n" +
-	"\fappendEvents\x127.ai.stigmer.agentic.session.v1.AppendSessionEventsInput\x1a:.ai.stigmer.agentic.session.v1.AppendSessionEventsResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9e\x02\n" +
+	"\fappendEvents\x127.ai.stigmer.agentic.session.v1.AppendSessionEventsInput\x1a:.ai.stigmer.agentic.session.v1.AppendSessionEventsResponse\"\x04и\x18\x01\x12\x87\x01\n" +
+	"\x10bindHarnessState\x124.ai.stigmer.agentic.session.v1.BindHarnessStateInput\x1a7.ai.stigmer.agentic.session.v1.BindHarnessStateResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9e\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_session_v1_command_proto_goTypes = []any{
 	(*Session)(nil),                     // 0: ai.stigmer.agentic.session.v1.Session
-	(*UpdateSessionSubjectRequest)(nil), // 1: ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
-	(*ReviewFileChangesInput)(nil),      // 2: ai.stigmer.agentic.session.v1.ReviewFileChangesInput
-	(*ConfirmToolUseInput)(nil),         // 3: ai.stigmer.agentic.session.v1.ConfirmToolUseInput
-	(*GrantPermissionInput)(nil),        // 4: ai.stigmer.agentic.session.v1.GrantPermissionInput
-	(*InterruptSessionInput)(nil),       // 5: ai.stigmer.agentic.session.v1.InterruptSessionInput
-	(*SessionId)(nil),                   // 6: ai.stigmer.agentic.session.v1.SessionId
-	(*AppendSessionEventsInput)(nil),    // 7: ai.stigmer.agentic.session.v1.AppendSessionEventsInput
-	(*ReviewFileChangesResponse)(nil),   // 8: ai.stigmer.agentic.session.v1.ReviewFileChangesResponse
-	(*SessionEvent)(nil),                // 9: ai.stigmer.agentic.session.v1.SessionEvent
-	(*GrantPermissionResponse)(nil),     // 10: ai.stigmer.agentic.session.v1.GrantPermissionResponse
-	(*InterruptSessionResponse)(nil),    // 11: ai.stigmer.agentic.session.v1.InterruptSessionResponse
-	(*AppendSessionEventsResponse)(nil), // 12: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse
+	(*UpdateSessionInput)(nil),          // 1: ai.stigmer.agentic.session.v1.UpdateSessionInput
+	(*UpdateSessionSubjectRequest)(nil), // 2: ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
+	(*ReviewFileChangesInput)(nil),      // 3: ai.stigmer.agentic.session.v1.ReviewFileChangesInput
+	(*ConfirmToolUseInput)(nil),         // 4: ai.stigmer.agentic.session.v1.ConfirmToolUseInput
+	(*GrantPermissionInput)(nil),        // 5: ai.stigmer.agentic.session.v1.GrantPermissionInput
+	(*InterruptSessionInput)(nil),       // 6: ai.stigmer.agentic.session.v1.InterruptSessionInput
+	(*SessionId)(nil),                   // 7: ai.stigmer.agentic.session.v1.SessionId
+	(*AppendSessionEventsInput)(nil),    // 8: ai.stigmer.agentic.session.v1.AppendSessionEventsInput
+	(*BindHarnessStateInput)(nil),       // 9: ai.stigmer.agentic.session.v1.BindHarnessStateInput
+	(*ReviewFileChangesResponse)(nil),   // 10: ai.stigmer.agentic.session.v1.ReviewFileChangesResponse
+	(*SessionEvent)(nil),                // 11: ai.stigmer.agentic.session.v1.SessionEvent
+	(*GrantPermissionResponse)(nil),     // 12: ai.stigmer.agentic.session.v1.GrantPermissionResponse
+	(*InterruptSessionResponse)(nil),    // 13: ai.stigmer.agentic.session.v1.InterruptSessionResponse
+	(*AppendSessionEventsResponse)(nil), // 14: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse
+	(*BindHarnessStateResponse)(nil),    // 15: ai.stigmer.agentic.session.v1.BindHarnessStateResponse
 }
 var file_ai_stigmer_agentic_session_v1_command_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.session.v1.SessionCommandController.apply:input_type -> ai.stigmer.agentic.session.v1.Session
 	0,  // 1: ai.stigmer.agentic.session.v1.SessionCommandController.create:input_type -> ai.stigmer.agentic.session.v1.Session
-	0,  // 2: ai.stigmer.agentic.session.v1.SessionCommandController.update:input_type -> ai.stigmer.agentic.session.v1.Session
-	1,  // 3: ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject:input_type -> ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
-	2,  // 4: ai.stigmer.agentic.session.v1.SessionCommandController.reviewFileChanges:input_type -> ai.stigmer.agentic.session.v1.ReviewFileChangesInput
-	3,  // 5: ai.stigmer.agentic.session.v1.SessionCommandController.confirmToolUse:input_type -> ai.stigmer.agentic.session.v1.ConfirmToolUseInput
-	4,  // 6: ai.stigmer.agentic.session.v1.SessionCommandController.grantPermission:input_type -> ai.stigmer.agentic.session.v1.GrantPermissionInput
-	5,  // 7: ai.stigmer.agentic.session.v1.SessionCommandController.interrupt:input_type -> ai.stigmer.agentic.session.v1.InterruptSessionInput
-	6,  // 8: ai.stigmer.agentic.session.v1.SessionCommandController.delete:input_type -> ai.stigmer.agentic.session.v1.SessionId
-	7,  // 9: ai.stigmer.agentic.session.v1.SessionCommandController.appendEvents:input_type -> ai.stigmer.agentic.session.v1.AppendSessionEventsInput
-	0,  // 10: ai.stigmer.agentic.session.v1.SessionCommandController.apply:output_type -> ai.stigmer.agentic.session.v1.Session
-	0,  // 11: ai.stigmer.agentic.session.v1.SessionCommandController.create:output_type -> ai.stigmer.agentic.session.v1.Session
-	0,  // 12: ai.stigmer.agentic.session.v1.SessionCommandController.update:output_type -> ai.stigmer.agentic.session.v1.Session
-	0,  // 13: ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject:output_type -> ai.stigmer.agentic.session.v1.Session
-	8,  // 14: ai.stigmer.agentic.session.v1.SessionCommandController.reviewFileChanges:output_type -> ai.stigmer.agentic.session.v1.ReviewFileChangesResponse
-	9,  // 15: ai.stigmer.agentic.session.v1.SessionCommandController.confirmToolUse:output_type -> ai.stigmer.agentic.session.v1.SessionEvent
-	10, // 16: ai.stigmer.agentic.session.v1.SessionCommandController.grantPermission:output_type -> ai.stigmer.agentic.session.v1.GrantPermissionResponse
-	11, // 17: ai.stigmer.agentic.session.v1.SessionCommandController.interrupt:output_type -> ai.stigmer.agentic.session.v1.InterruptSessionResponse
-	0,  // 18: ai.stigmer.agentic.session.v1.SessionCommandController.delete:output_type -> ai.stigmer.agentic.session.v1.Session
-	12, // 19: ai.stigmer.agentic.session.v1.SessionCommandController.appendEvents:output_type -> ai.stigmer.agentic.session.v1.AppendSessionEventsResponse
-	10, // [10:20] is the sub-list for method output_type
-	0,  // [0:10] is the sub-list for method input_type
+	1,  // 2: ai.stigmer.agentic.session.v1.SessionCommandController.update:input_type -> ai.stigmer.agentic.session.v1.UpdateSessionInput
+	2,  // 3: ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject:input_type -> ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
+	3,  // 4: ai.stigmer.agentic.session.v1.SessionCommandController.reviewFileChanges:input_type -> ai.stigmer.agentic.session.v1.ReviewFileChangesInput
+	4,  // 5: ai.stigmer.agentic.session.v1.SessionCommandController.confirmToolUse:input_type -> ai.stigmer.agentic.session.v1.ConfirmToolUseInput
+	5,  // 6: ai.stigmer.agentic.session.v1.SessionCommandController.grantPermission:input_type -> ai.stigmer.agentic.session.v1.GrantPermissionInput
+	6,  // 7: ai.stigmer.agentic.session.v1.SessionCommandController.interrupt:input_type -> ai.stigmer.agentic.session.v1.InterruptSessionInput
+	7,  // 8: ai.stigmer.agentic.session.v1.SessionCommandController.delete:input_type -> ai.stigmer.agentic.session.v1.SessionId
+	8,  // 9: ai.stigmer.agentic.session.v1.SessionCommandController.appendEvents:input_type -> ai.stigmer.agentic.session.v1.AppendSessionEventsInput
+	9,  // 10: ai.stigmer.agentic.session.v1.SessionCommandController.bindHarnessState:input_type -> ai.stigmer.agentic.session.v1.BindHarnessStateInput
+	0,  // 11: ai.stigmer.agentic.session.v1.SessionCommandController.apply:output_type -> ai.stigmer.agentic.session.v1.Session
+	0,  // 12: ai.stigmer.agentic.session.v1.SessionCommandController.create:output_type -> ai.stigmer.agentic.session.v1.Session
+	0,  // 13: ai.stigmer.agentic.session.v1.SessionCommandController.update:output_type -> ai.stigmer.agentic.session.v1.Session
+	0,  // 14: ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject:output_type -> ai.stigmer.agentic.session.v1.Session
+	10, // 15: ai.stigmer.agentic.session.v1.SessionCommandController.reviewFileChanges:output_type -> ai.stigmer.agentic.session.v1.ReviewFileChangesResponse
+	11, // 16: ai.stigmer.agentic.session.v1.SessionCommandController.confirmToolUse:output_type -> ai.stigmer.agentic.session.v1.SessionEvent
+	12, // 17: ai.stigmer.agentic.session.v1.SessionCommandController.grantPermission:output_type -> ai.stigmer.agentic.session.v1.GrantPermissionResponse
+	13, // 18: ai.stigmer.agentic.session.v1.SessionCommandController.interrupt:output_type -> ai.stigmer.agentic.session.v1.InterruptSessionResponse
+	0,  // 19: ai.stigmer.agentic.session.v1.SessionCommandController.delete:output_type -> ai.stigmer.agentic.session.v1.Session
+	14, // 20: ai.stigmer.agentic.session.v1.SessionCommandController.appendEvents:output_type -> ai.stigmer.agentic.session.v1.AppendSessionEventsResponse
+	15, // 21: ai.stigmer.agentic.session.v1.SessionCommandController.bindHarnessState:output_type -> ai.stigmer.agentic.session.v1.BindHarnessStateResponse
+	11, // [11:22] is the sub-list for method output_type
+	0,  // [0:11] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

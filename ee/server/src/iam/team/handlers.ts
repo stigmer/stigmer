@@ -75,7 +75,7 @@ import {
   TARGET_RESOURCE_KEY,
 } from "@stigmer/server";
 
-import { runUnaryChain } from "../../rpc/unary-chain.js";
+import { runUnaryChain, runUpdateChain } from "../../rpc/unary-chain.js";
 import { newGrowthGateStep, type GrowthGate } from "../growth-gate.js";
 import { newTeamPlanGateStep, type TeamPlanGate } from "./plan-gate.js";
 import type { TeamRemoval } from "./removal.js";
@@ -143,9 +143,10 @@ export function teamCommands(deps: TeamLaneDeps): Commands {
     // chain run again from a fresh read.
     update: (input, ctx) =>
       runGuardedWrite(() =>
-        runUnaryChain(
+        runUpdateChain(
           { chain: "team-update", step: "UpdateTeam" },
           method.update,
+          TeamSchema,
           input,
           ctx,
           deps,

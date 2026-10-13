@@ -46,27 +46,27 @@ public final class MemoryCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.memory.v1.Memory,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.memory.v1.UpdateMemoryInput,
       ai.stigmer.agentic.memory.v1.Memory> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.memory.v1.Memory.class,
+      requestType = ai.stigmer.agentic.memory.v1.UpdateMemoryInput.class,
       responseType = ai.stigmer.agentic.memory.v1.Memory.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.memory.v1.Memory,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.memory.v1.UpdateMemoryInput,
       ai.stigmer.agentic.memory.v1.Memory> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.memory.v1.Memory, ai.stigmer.agentic.memory.v1.Memory> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.memory.v1.UpdateMemoryInput, ai.stigmer.agentic.memory.v1.Memory> getUpdateMethod;
     if ((getUpdateMethod = MemoryCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (MemoryCommandControllerGrpc.class) {
         if ((getUpdateMethod = MemoryCommandControllerGrpc.getUpdateMethod) == null) {
           MemoryCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.memory.v1.Memory, ai.stigmer.agentic.memory.v1.Memory>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.memory.v1.UpdateMemoryInput, ai.stigmer.agentic.memory.v1.Memory>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.memory.v1.Memory.getDefaultInstance()))
+                  ai.stigmer.agentic.memory.v1.UpdateMemoryInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.memory.v1.Memory.getDefaultInstance()))
               .setSchemaDescriptor(new MemoryCommandControllerMethodDescriptorSupplier("update"))
@@ -253,14 +253,25 @@ public final class MemoryCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a memory's fact text.
-     * Replaces the spec wholesale, but only the content may actually
-     * change: the subject and provenance are immutable, and the consent
-     * lifecycle in status is never touched by updates — use confirm or
-     * reject to decide on a proposal.
+     * Update a memory: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only the content may change: the subject and provenance are immutable,
+     * and the consent lifecycle in status is never touched by updates; use
+     * confirm or reject to decide on a proposal.
+     * resource.metadata.id names the memory; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the memory does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the memory kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.memory.v1.Memory request,
+    default void update(ai.stigmer.agentic.memory.v1.UpdateMemoryInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.memory.v1.Memory> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -361,14 +372,25 @@ public final class MemoryCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a memory's fact text.
-     * Replaces the spec wholesale, but only the content may actually
-     * change: the subject and provenance are immutable, and the consent
-     * lifecycle in status is never touched by updates — use confirm or
-     * reject to decide on a proposal.
+     * Update a memory: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only the content may change: the subject and provenance are immutable,
+     * and the consent lifecycle in status is never touched by updates; use
+     * confirm or reject to decide on a proposal.
+     * resource.metadata.id names the memory; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the memory does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the memory kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.memory.v1.Memory request,
+    public void update(ai.stigmer.agentic.memory.v1.UpdateMemoryInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.memory.v1.Memory> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -458,14 +480,25 @@ public final class MemoryCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a memory's fact text.
-     * Replaces the spec wholesale, but only the content may actually
-     * change: the subject and provenance are immutable, and the consent
-     * lifecycle in status is never touched by updates — use confirm or
-     * reject to decide on a proposal.
+     * Update a memory: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only the content may change: the subject and provenance are immutable,
+     * and the consent lifecycle in status is never touched by updates; use
+     * confirm or reject to decide on a proposal.
+     * resource.metadata.id names the memory; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the memory does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the memory kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.memory.v1.Memory update(ai.stigmer.agentic.memory.v1.Memory request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.memory.v1.Memory update(ai.stigmer.agentic.memory.v1.UpdateMemoryInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -551,14 +584,25 @@ public final class MemoryCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a memory's fact text.
-     * Replaces the spec wholesale, but only the content may actually
-     * change: the subject and provenance are immutable, and the consent
-     * lifecycle in status is never touched by updates — use confirm or
-     * reject to decide on a proposal.
+     * Update a memory: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only the content may change: the subject and provenance are immutable,
+     * and the consent lifecycle in status is never touched by updates; use
+     * confirm or reject to decide on a proposal.
+     * resource.metadata.id names the memory; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the memory does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the memory kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.memory.v1.Memory update(ai.stigmer.agentic.memory.v1.Memory request) {
+    public ai.stigmer.agentic.memory.v1.Memory update(ai.stigmer.agentic.memory.v1.UpdateMemoryInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -645,15 +689,26 @@ public final class MemoryCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a memory's fact text.
-     * Replaces the spec wholesale, but only the content may actually
-     * change: the subject and provenance are immutable, and the consent
-     * lifecycle in status is never touched by updates — use confirm or
-     * reject to decide on a proposal.
+     * Update a memory: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only the content may change: the subject and provenance are immutable,
+     * and the consent lifecycle in status is never touched by updates; use
+     * confirm or reject to decide on a proposal.
+     * resource.metadata.id names the memory; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the memory does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the memory kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.memory.v1.Memory> update(
-        ai.stigmer.agentic.memory.v1.Memory request) {
+        ai.stigmer.agentic.memory.v1.UpdateMemoryInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -734,7 +789,7 @@ public final class MemoryCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.memory.v1.Memory>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.memory.v1.Memory) request,
+          serviceImpl.update((ai.stigmer.agentic.memory.v1.UpdateMemoryInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.memory.v1.Memory>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -778,7 +833,7 @@ public final class MemoryCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.memory.v1.Memory,
+              ai.stigmer.agentic.memory.v1.UpdateMemoryInput,
               ai.stigmer.agentic.memory.v1.Memory>(
                 service, METHODID_UPDATE)))
         .addMethod(

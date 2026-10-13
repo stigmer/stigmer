@@ -426,7 +426,7 @@ describe("an organization's service account", () => {
     const attempts: ReadonlyArray<() => Promise<unknown>> = [
       () => r.commands.create(provider()),
       () => r.commands.apply(provider()),
-      () => r.commands.update(provider({}, { id: "idp_existing", slug: "acme-existing" })),
+      () => r.commands.update({ resource: provider({}, { id: "idp_existing", slug: "acme-existing" }), updateMask: { paths: ["*"] } }),
       () => r.commands.delete({ resourceId: "idp_existing" }),
     ];
     for (const attempt of attempts) {
@@ -628,7 +628,7 @@ describe("update", () => {
     const id = created.metadata?.id ?? "";
 
     const updated = await r.commands.update(
-      provider({ issuers: ["https://login.acme.test/"] }, { id, name: "Acme Login", slug: "renamed" }),
+      { resource: provider({ issuers: ["https://login.acme.test/"] }, { id, name: "Acme Login", slug: "renamed" }), updateMask: { paths: ["*"] } },
     );
 
     expect(updated.metadata?.name).toBe("Acme Login");
@@ -653,7 +653,7 @@ describe("update", () => {
     const id = created.metadata?.id ?? "";
 
     const updated = await r.commands.update(
-      provider({ issuers: ["https://login.acme.test/", "https://LOGIN.acme.test"] }, { id }),
+      { resource: provider({ issuers: ["https://login.acme.test/", "https://LOGIN.acme.test"] }, { id }), updateMask: { paths: ["*"] } },
     );
 
     expect(updated.spec?.allowedIssuers).toEqual(["https://login.acme.test"]);
@@ -662,11 +662,11 @@ describe("update", () => {
 
   it("is NOT_FOUND for a provider that does not exist, and INVALID_ARGUMENT without an id", async () => {
     const r = rig();
-    const missing = await failure(r.commands.update(provider({}, { id: "idp_gone" })));
+    const missing = await failure(r.commands.update({ resource: provider({}, { id: "idp_gone" }), updateMask: { paths: ["*"] } }));
     expect(missing.code).toBe(Code.NotFound);
     expect(missing.rawMessage).toBe("IdentityProvider not found: idp_gone");
 
-    const noId = await failure(r.commands.update(provider()));
+    const noId = await failure(r.commands.update({ resource: provider(), updateMask: { paths: ["*"] } }));
     expect(noId.code).toBe(Code.InvalidArgument);
     expect(noId.rawMessage).toBe("resource id is required for update");
   });
@@ -679,10 +679,10 @@ describe("update", () => {
       }
     }
     const store = new VanishingStore();
-    await store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "a" }));
+    await store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
     const r = rig({ store });
 
-    const missing = await failure(r.commands.update(provider({}, { id: "idp_a" })));
+    const missing = await failure(r.commands.update({ resource: provider({}, { id: "idp_a" }), updateMask: { paths: ["*"] } }));
     expect(missing.code).toBe(Code.NotFound);
     expect(missing.rawMessage).toBe("IdentityProvider not found: idp_a");
     expect(r.invalidations).toBe(0);
@@ -696,14 +696,14 @@ describe("update", () => {
       }
     }
     const store = new RacingStore();
-    await store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "a" }));
+    await store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
     const r = rig({ store });
 
     const sso = ssoWith({ createAccountsOnSignIn: true, signInRole: IamRole.member });
     if (sso.metadata !== undefined) {
       sso.metadata.id = "idp_a";
     }
-    const refused = await failure(r.commands.update(sso));
+    const refused = await failure(r.commands.update({ resource: sso, updateMask: { paths: ["*"] } }));
     expect(refused.code).toBe(Code.AlreadyExists);
     expect(refused.rawMessage).toBe(SSO_TAKEN);
     expect((await store.findById("idp_a"))?.spec?.isSsoProvider).toBe(false);
@@ -762,7 +762,7 @@ describe("rename", () => {
     const id = created.metadata?.id ?? "";
     renameMidWrite = () => r.commands.rename({ resourceId: id, slug: "acme-sso" });
 
-    const updated = await r.commands.update(provider({}, { id, name: "Edited mid-rename", slug: "acme-platform" }));
+    const updated = await r.commands.update({ resource: provider({}, { id, name: "Edited mid-rename", slug: "acme-platform" }), updateMask: { paths: ["*"] } });
 
     expect(renameMidWrite, "the rename landed mid-write").toBeUndefined();
     expect(swaps, "the lost swap ran again from a fresh read").toBe(2);
@@ -842,7 +842,7 @@ describe("apply by a caller who is not the organization's admin", () => {
 describe("delete", () => {
   it("goes through the removal and answers the provider", async () => {
     const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "a" }));
+    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
 
     const deleted = await r.commands.delete({ resourceId: "idp_a" });
     expect(deleted.metadata?.id).toBe("idp_a");
@@ -860,7 +860,7 @@ describe("delete", () => {
     expect(missing.code).toBe(Code.NotFound);
     expect(missing.rawMessage).toBe("IdentityProvider not found: idp_gone");
 
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "a" }));
+    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
     const failed = await failure(r.commands.delete({ resourceId: "idp_a" }));
     expect(failed.code).toBe(Code.Internal);
     expect(failed.rawMessage).not.toContain("engine down");
@@ -871,8 +871,8 @@ describe("delete", () => {
 describe("reads", () => {
   it("get answers the provider, and refuses with the annotation's copy", async () => {
     const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "a" }));
-    expect((await r.queries.get({ value: "idp_a" })).metadata?.slug).toBe("a");
+    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
+    expect((await r.queries.get({ value: "idp_a" })).metadata?.slug).toBe("idp-a");
 
     const denying = rig({ decide: () => "deny", store: r.store });
     const denied = await failure(denying.queries.get({ value: "idp_a" }));
@@ -998,9 +998,9 @@ describe("reads", () => {
 
   it("listByOrg offers the organization's rows newest first and answers only what the scope allows", async () => {
     const r = rig({ listable: (id) => id !== "idp_b" });
-    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "a" }));
+    await r.store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" }));
     await r.store.insert(storedProvider({ id: "idp_x", org: "other", slug: "x" }));
-    await r.store.insert(storedProvider({ id: "idp_b", org: "acme", slug: "b" }));
+    await r.store.insert(storedProvider({ id: "idp_b", org: "acme", slug: "idp-b" }));
     await r.store.insert(storedProvider({ id: "idp_c", org: "acme", slug: "c" }));
 
     const listed = await r.queries.listByOrg({ org: "acme" });
@@ -1071,11 +1071,11 @@ describe("a provider whose delete did not finish", () => {
   it("answers a caller who may not edit it exactly as on a live provider, so only an editor learns of the delete", async () => {
     const r = rig({ decide: () => "deny" });
     await r.store.insert(storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform" }));
-    const onLive = await failure(r.commands.update(provider({}, { id: "idp_held" })));
+    const onLive = await failure(r.commands.update({ resource: provider({}, { id: "idp_held" }), updateMask: { paths: ["*"] } }));
     const applyOnLive = await failure(r.commands.apply(provider({})));
 
     await r.store.markDeleting("idp_held");
-    const onMarked = await failure(r.commands.update(provider({}, { id: "idp_held" })));
+    const onMarked = await failure(r.commands.update({ resource: provider({}, { id: "idp_held" }), updateMask: { paths: ["*"] } }));
     const applyOnMarked = await failure(r.commands.apply(provider({})));
 
     expect([onMarked.code, onMarked.rawMessage]).toEqual([onLive.code, onLive.rawMessage]);
@@ -1090,7 +1090,7 @@ describe("a provider whose delete did not finish", () => {
     await r.store.insert(stored);
     await r.store.markDeleting("idp_held");
 
-    const throughUpdate = await failure(r.commands.update(provider({}, { id: "idp_held" })));
+    const throughUpdate = await failure(r.commands.update({ resource: provider({}, { id: "idp_held" }), updateMask: { paths: ["*"] } }));
     expect(throughUpdate.code).toBe(Code.FailedPrecondition);
     expect(throughUpdate.rawMessage).toBe(PROVIDER_BEING_DELETED_MESSAGE);
 
@@ -1115,7 +1115,7 @@ describe("a provider whose delete did not finish", () => {
     const r = rig({ store });
     await store.insert(storedProvider({ id: "idp_held", org: "acme", slug: "acme-platform" }));
 
-    const refused = await failure(r.commands.update(provider({}, { id: "idp_held" })));
+    const refused = await failure(r.commands.update({ resource: provider({}, { id: "idp_held" }), updateMask: { paths: ["*"] } }));
     expect(refused.code).toBe(Code.NotFound);
   });
 
@@ -1427,11 +1427,11 @@ describe("the sign-in fields on save", () => {
     const sso = await failure(r.commands.create(ssoWith({ createAccountsOnSignIn: true, signInRole: role })));
     expect(sso.rawMessage, "an SSO provider too").toBe(copy);
 
-    const stored = storedProvider({ id: "idp_a", org: "acme", slug: "a" });
+    const stored = storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" });
     await r.store.insert(stored);
     const updated = await failure(
       r.commands.update(
-        withSignIn(provider({}, { id: "idp_a" }), { createAccountsOnSignIn: true, signInRole: role }),
+        { resource: withSignIn(provider({}, { id: "idp_a" }), { createAccountsOnSignIn: true, signInRole: role }), updateMask: { paths: ["*"] } },
       ),
     );
     expect(updated.code).toBe(Code.InvalidArgument);
@@ -1473,11 +1473,11 @@ describe("the sign-in fields on save", () => {
 
   it("refuses an owner sign-in role on update and leaves the stored row as it was", async () => {
     const r = rig();
-    const stored = storedProvider({ id: "idp_a", org: "acme", slug: "a" });
+    const stored = storedProvider({ id: "idp_a", org: "acme", slug: "idp-a" });
     await r.store.insert(stored);
 
     const error = await failure(
-      r.commands.update(withSignIn(provider({}, { id: "idp_a" }), OWNER_GRANT)),
+      r.commands.update({ resource: withSignIn(provider({}, { id: "idp_a" }), OWNER_GRANT), updateMask: { paths: ["*"] } }),
     );
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe(OWNER_SIGN_IN_ROLE_REFUSED);
@@ -1575,14 +1575,16 @@ describe("the sign-in requirement", () => {
     if (renamed.spec !== undefined) {
       renamed.spec.displayName = "Acme Okta";
     }
-    expect((await r.commands.update(renamed)).spec?.displayName).toBe("Acme Okta");
+    expect((await r.commands.update({ resource: renamed, updateMask: { paths: ["*"] } })).spec?.displayName).toBe("Acme Okta");
     expect(r.checks).not.toContainEqual(OWNERS_ON_ACME);
 
     const turnedOn = clone(IdentityProviderSchema, renamed);
+    // No etag: the update above moved the row since this copy was read.
+    turnedOn.metadata!.etag = "";
     if (turnedOn.spec !== undefined) {
       turnedOn.spec.ssoRequired = true;
     }
-    const error = await failure(r.commands.update(turnedOn));
+    const error = await failure(r.commands.update({ resource: turnedOn, updateMask: { paths: ["*"] } }));
     expect(error.rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
     expect((await r.store.findById(created.metadata?.id ?? ""))?.spec?.ssoRequired).toBe(false);
   });
@@ -1598,18 +1600,18 @@ describe("the sign-in requirement", () => {
 
     const repointed = clone(IdentityProviderSchema, stored);
     repointed.spec!.allowedIssuers = ["https://login.acme.test"];
-    const error = await failure(r.commands.update(repointed));
+    const error = await failure(r.commands.update({ resource: repointed, updateMask: { paths: ["*"] } }));
     expect(error.rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
 
     const rekeyed = clone(IdentityProviderSchema, stored);
     rekeyed.spec!.jwksUri = "https://login.acme.test/keys";
-    expect((await failure(r.commands.update(rekeyed))).rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
+    expect((await failure(r.commands.update({ resource: rekeyed, updateMask: { paths: ["*"] } }))).rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
 
     r.checks.length = 0;
     const respelled = clone(IdentityProviderSchema, stored);
     respelled.spec!.allowedIssuers = ["https://idp.acme.test/"];
     respelled.spec!.displayName = "Acme Okta";
-    expect((await r.commands.update(respelled)).spec?.displayName).toBe("Acme Okta");
+    expect((await r.commands.update({ resource: respelled, updateMask: { paths: ["*"] } })).spec?.displayName).toBe("Acme Okta");
     expect(r.checks).not.toContainEqual(OWNERS_ON_ACME);
   });
 
@@ -1649,13 +1651,13 @@ describe("the sign-in requirement", () => {
     if (edited.spec !== undefined) {
       edited.spec.displayName = "Acme Okta";
     }
-    const kept = await later.commands.update(edited);
+    const kept = await later.commands.update({ resource: edited, updateMask: { paths: ["*"] } });
     expect(kept.spec?.ssoRequired).toBe(true);
     const off = clone(IdentityProviderSchema, kept);
     if (off.spec !== undefined) {
       off.spec.ssoRequired = false;
     }
-    expect((await later.commands.update(off)).spec?.ssoRequired).toBe(false);
+    expect((await later.commands.update({ resource: off, updateMask: { paths: ["*"] } })).spec?.ssoRequired).toBe(false);
     expect(asked).toEqual([]);
   });
 
@@ -1673,18 +1675,20 @@ describe("the sign-in requirement", () => {
       renamed.spec.displayName = "Acme Okta";
       renamed.spec.ssoRequired = false;
     }
-    expect((await failure(frozen.commands.update(renamed))).rawMessage).toBe("the license has ended");
+    expect((await failure(frozen.commands.update({ resource: renamed, updateMask: { paths: ["*"] } }))).rawMessage).toBe("the license has ended");
 
     const off = clone(IdentityProviderSchema, on);
     if (off.spec !== undefined) {
       off.spec.ssoRequired = false;
     }
-    expect((await frozen.commands.update(off)).spec?.ssoRequired).toBe(false);
+    expect((await frozen.commands.update({ resource: off, updateMask: { paths: ["*"] } })).spec?.ssoRequired).toBe(false);
     const again = clone(IdentityProviderSchema, off);
+    // No etag: the update above moved the row since this copy was read.
+    again.metadata!.etag = "";
     if (again.spec !== undefined) {
       again.spec.ssoRequired = true;
     }
-    expect((await failure(frozen.commands.update(again))).rawMessage).toBe("the license has ended");
+    expect((await failure(frozen.commands.update({ resource: again, updateMask: { paths: ["*"] } }))).rawMessage).toBe("the license has ended");
   });
 
   it("the login page reads whether the organization requires it", async () => {

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
+import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -27,7 +29,7 @@ afterEach(cleanup);
 
 interface MockOverrides {
   create?: (input: AgentChannelInput) => Promise<unknown>;
-  apply?: (input: AgentChannelInput) => Promise<unknown>;
+  update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
   initiateInstall?: (input: unknown) => Promise<unknown>;
   get?: (id: string) => Promise<unknown>;
   /** Org channel apps returned by channelapp.listByOrg (serving picker). */
@@ -78,7 +80,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         vi.fn().mockResolvedValue({
           metadata: { id: "ach_new", org: "acme", slug: "support-agent-whatsapp" },
         }),
-      apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
+      update: overrides.update ?? vi.fn().mockResolvedValue({}),
       initiateInstall:
         overrides.initiateInstall ??
         vi.fn().mockResolvedValue({ completed: true }),
@@ -311,9 +313,9 @@ describe("ConnectWhatsAppDialog", () => {
 
   it("retries a pending channel without re-creating it, saving only when edits were made", async () => {
     const create = vi.fn();
-    const apply = vi.fn().mockResolvedValue(pendingChannel());
+    const update = vi.fn().mockResolvedValue(pendingChannel());
     const initiateInstall = vi.fn().mockResolvedValue({ completed: true });
-    const client = createMockStigmer({ create, apply, initiateInstall });
+    const client = createMockStigmer({ create, update, initiateInstall });
 
     render(
       <Providers client={client}>
@@ -343,16 +345,16 @@ describe("ConnectWhatsAppDialog", () => {
       ),
     );
     // Nothing changed → a plain retry is one call, not a save + install.
-    expect(apply).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
   });
 
   it("persists an edited number before re-installing", async () => {
-    const apply = vi.fn().mockResolvedValue(
+    const update = vi.fn().mockResolvedValue(
       pendingChannel({ phoneNumberId: "222" }),
     );
     const initiateInstall = vi.fn().mockResolvedValue({ completed: true });
-    const client = createMockStigmer({ apply, initiateInstall });
+    const client = createMockStigmer({ update, initiateInstall });
 
     render(
       <Providers client={client}>
@@ -371,17 +373,13 @@ describe("ConnectWhatsAppDialog", () => {
       screen.getByRole("button", { name: /reconnect to whatsapp/i }),
     );
 
-    // The edit rides a full-input apply (agentChannelToInput) so the
-    // save can never wipe the agent ref, app binding, or credentials.
-    await waitFor(() =>
-      expect(apply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          whatsapp: { phoneNumberId: "222" },
-          appRef: { org: "acme", slug: "acme-meta-app" },
-          agentRef: { org: "acme", slug: "support-agent" },
-        }),
-      ),
-    );
+    // The edit names the number and the app binding alone, so the agent
+    // reference and the credentials keep their stored values.
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    const sent = sentUpdate<AgentChannel>(update);
+    expect(sent.paths).toEqual(["spec.whatsapp", "spec.app_ref"]);
+    expect(sent.resource.spec?.providerConfig).toMatchObject({ case: "whatsapp", value: { phoneNumberId: "222" } });
+    expect(sent.resource.spec?.appRef).toMatchObject({ org: "acme", slug: "acme-meta-app" });
     await waitFor(() => expect(initiateInstall).toHaveBeenCalled());
   });
 

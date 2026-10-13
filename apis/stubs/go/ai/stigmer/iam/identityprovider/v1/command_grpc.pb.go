@@ -86,7 +86,8 @@ type IdentityProviderCommandControllerClient interface {
 	//   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
 	//     SSO enforcement. Metadata: feature ("sso_enforcement"), org.
 	Create(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
-	// Update an existing identity provider.
+	// Update an identity provider: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
 	// On Stigmer Enterprise, changing how people sign in is growth the
 	// server's license pays for. Once the license and its grace period have
@@ -111,9 +112,20 @@ type IdentityProviderCommandControllerClient interface {
 	// an organization that already requires it keeps it, and may always
 	// turn it off.
 	//
-	// An update names the identity provider by its id, and the slug changes
-	// only through rename.
-	Update(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
+	// resource.metadata.id names the identity provider; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the identity provider does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the identity provider kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateIdentityProviderInput, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Rename an identity provider: change its slug, the name people type.
 	//
 	// The identity provider keeps its id, so everything that names it keeps
@@ -196,7 +208,7 @@ func (c *identityProviderCommandControllerClient) Create(ctx context.Context, in
 	return out, nil
 }
 
-func (c *identityProviderCommandControllerClient) Update(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error) {
+func (c *identityProviderCommandControllerClient) Update(ctx context.Context, in *UpdateIdentityProviderInput, opts ...grpc.CallOption) (*IdentityProvider, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdentityProvider)
 	err := c.cc.Invoke(ctx, IdentityProviderCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -303,7 +315,8 @@ type IdentityProviderCommandControllerServer interface {
 	//   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
 	//     SSO enforcement. Metadata: feature ("sso_enforcement"), org.
 	Create(context.Context, *IdentityProvider) (*IdentityProvider, error)
-	// Update an existing identity provider.
+	// Update an identity provider: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
 	// On Stigmer Enterprise, changing how people sign in is growth the
 	// server's license pays for. Once the license and its grace period have
@@ -328,9 +341,20 @@ type IdentityProviderCommandControllerServer interface {
 	// an organization that already requires it keeps it, and may always
 	// turn it off.
 	//
-	// An update names the identity provider by its id, and the slug changes
-	// only through rename.
-	Update(context.Context, *IdentityProvider) (*IdentityProvider, error)
+	// resource.metadata.id names the identity provider; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the identity provider does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the identity provider kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateIdentityProviderInput) (*IdentityProvider, error)
 	// Rename an identity provider: change its slug, the name people type.
 	//
 	// The identity provider keeps its id, so everything that names it keeps
@@ -398,7 +422,7 @@ func (UnimplementedIdentityProviderCommandControllerServer) Apply(context.Contex
 func (UnimplementedIdentityProviderCommandControllerServer) Create(context.Context, *IdentityProvider) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedIdentityProviderCommandControllerServer) Update(context.Context, *IdentityProvider) (*IdentityProvider, error) {
+func (UnimplementedIdentityProviderCommandControllerServer) Update(context.Context, *UpdateIdentityProviderInput) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedIdentityProviderCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*IdentityProvider, error) {
@@ -470,7 +494,7 @@ func _IdentityProviderCommandController_Create_Handler(srv interface{}, ctx cont
 }
 
 func _IdentityProviderCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IdentityProvider)
+	in := new(UpdateIdentityProviderInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -482,7 +506,7 @@ func _IdentityProviderCommandController_Update_Handler(srv interface{}, ctx cont
 		FullMethod: IdentityProviderCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityProviderCommandControllerServer).Update(ctx, req.(*IdentityProvider))
+		return srv.(IdentityProviderCommandControllerServer).Update(ctx, req.(*UpdateIdentityProviderInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

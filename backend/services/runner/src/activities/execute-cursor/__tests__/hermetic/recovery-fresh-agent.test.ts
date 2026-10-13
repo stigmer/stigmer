@@ -146,8 +146,8 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
     expect(String(fresh.sends[0].message), "the rebuilt prompt carries the user's message").toContain(USER_MESSAGE);
 
     // The session now points at the fresh agent (the stale id is superseded).
-    const lastSessionWrite = record.sessionUpdates.at(-1);
-    expect(lastSessionWrite?.spec?.harnessStateId).toBe(FRESH_AGENT_ID);
+    const lastSessionWrite = record.harnessBinds.at(-1);
+    expect(lastSessionWrite?.harnessStateId).toBe(FRESH_AGENT_ID);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);

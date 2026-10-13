@@ -1,6 +1,7 @@
 from ai.stigmer.agentic.memory.v1 import api_pb2 as _api_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -30,3 +31,11 @@ class MemoryList(_message.Message):
     total_count: int
     items: _containers.RepeatedCompositeFieldContainer[_api_pb2.Memory]
     def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.Memory, _Mapping]]] = ...) -> None: ...
+
+class UpdateMemoryInput(_message.Message):
+    __slots__ = ("resource", "update_mask")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MASK_FIELD_NUMBER: _ClassVar[int]
+    resource: _api_pb2.Memory
+    update_mask: _field_mask_pb2.FieldMask
+    def __init__(self, resource: _Optional[_Union[_api_pb2.Memory, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...

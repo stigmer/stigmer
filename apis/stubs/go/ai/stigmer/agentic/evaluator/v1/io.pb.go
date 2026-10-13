@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -114,16 +115,81 @@ func (x *GetEvaluatorByAgentRequest) GetAgentId() string {
 	return ""
 }
 
+// The changes an update makes to an evaluator: the fields update_mask names,
+// taken from resource.
+type UpdateEvaluatorInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The evaluator carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *Evaluator `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEvaluatorInput) Reset() {
+	*x = UpdateEvaluatorInput{}
+	mi := &file_ai_stigmer_agentic_evaluator_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEvaluatorInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEvaluatorInput) ProtoMessage() {}
+
+func (x *UpdateEvaluatorInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_evaluator_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEvaluatorInput.ProtoReflect.Descriptor instead.
+func (*UpdateEvaluatorInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_evaluator_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UpdateEvaluatorInput) GetResource() *Evaluator {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateEvaluatorInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_evaluator_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_evaluator_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/evaluator/v1/io.proto\x12\x1fai.stigmer.agentic.evaluator.v1\x1a\x1bbuf/validate/validate.proto\"0\n" +
+	"(ai/stigmer/agentic/evaluator/v1/io.proto\x12\x1fai.stigmer.agentic.evaluator.v1\x1a)ai/stigmer/agentic/evaluator/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"0\n" +
 	"\vEvaluatorId\x12!\n" +
 	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"C\n" +
 	"\x1aGetEvaluatorByAgentRequest\x12%\n" +
 	"\bagent_id\x18\x01 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\aagentIdB\xa5\x02\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\aagentId\"\xef\x02\n" +
+	"\x14UpdateEvaluatorInput\x12N\n" +
+	"\bresource\x18\x01 \x01(\v2*.ai.stigmer.agentic.evaluator.v1.EvaluatorB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xc1\x01\xbaH\xbd\x01\x1a\xba\x01\n" +
+	"\x17update_names_its_target\x12Iresource.metadata.id is required: an update names the evaluator by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xa5\x02\n" +
 	"#com.ai.stigmer.agentic.evaluator.v1B\aIoProtoP\x01ZTgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/evaluator/v1;evaluatorv1\xa2\x02\x04ASAE\xaa\x02\x1fAi.Stigmer.Agentic.Evaluator.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Evaluator\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Evaluator\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Evaluator::V1b\x06proto3"
 
 var (
@@ -138,17 +204,22 @@ func file_ai_stigmer_agentic_evaluator_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_evaluator_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_evaluator_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_evaluator_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_evaluator_v1_io_proto_goTypes = []any{
 	(*EvaluatorId)(nil),                // 0: ai.stigmer.agentic.evaluator.v1.EvaluatorId
 	(*GetEvaluatorByAgentRequest)(nil), // 1: ai.stigmer.agentic.evaluator.v1.GetEvaluatorByAgentRequest
+	(*UpdateEvaluatorInput)(nil),       // 2: ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput
+	(*Evaluator)(nil),                  // 3: ai.stigmer.agentic.evaluator.v1.Evaluator
+	(*fieldmaskpb.FieldMask)(nil),      // 4: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_evaluator_v1_io_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	3, // 0: ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput.resource:type_name -> ai.stigmer.agentic.evaluator.v1.Evaluator
+	4, // 1: ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput.update_mask:type_name -> google.protobuf.FieldMask
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_evaluator_v1_io_proto_init() }
@@ -156,13 +227,14 @@ func file_ai_stigmer_agentic_evaluator_v1_io_proto_init() {
 	if File_ai_stigmer_agentic_evaluator_v1_io_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_evaluator_v1_api_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_evaluator_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_evaluator_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

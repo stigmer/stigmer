@@ -5,8 +5,8 @@
 
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { AgentId, UpdateAgentInput } from "./io_pbjs";
 import { RenameInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
-import { AgentId } from "./io_pbjs";
 import { TagAgentVersionInput } from "./version_pbjs";
 
 /**
@@ -59,18 +59,28 @@ export const AgentCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing agent.
+     * Update an agent: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the agent was
-     * renamed away from is refused with SLUG_RENAMED (see apply).
+     * resource.metadata.id names the agent; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.update
      */
     update: {
       name: "update",
-      I: Agent,
+      I: UpdateAgentInput,
       O: Agent,
       kind: MethodKind.Unary,
     },

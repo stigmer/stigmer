@@ -62,13 +62,23 @@ type OAuthAppCommandControllerClient interface {
 	//   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
 	//     and it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
-	// Update an existing OAuth app.
+	// Update an OAuth app: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The slug changes only through rename. An update authorizes the id it names,
-	// so wherever the server authorizes requests, an update without an id is
-	// refused before its slug is read; where it reads one, a slug the OAuth app
-	// was renamed away from is refused with SLUG_RENAMED (see apply).
-	Update(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error)
+	// resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the OAuth app does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the OAuth app kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateOAuthAppInput, opts ...grpc.CallOption) (*OAuthApp, error)
 	// Rename an OAuth app: change its slug, the name people type.
 	//
 	// The OAuth app keeps its id, so everything that names it keeps working, and
@@ -119,7 +129,7 @@ func (c *oAuthAppCommandControllerClient) Create(ctx context.Context, in *OAuthA
 	return out, nil
 }
 
-func (c *oAuthAppCommandControllerClient) Update(ctx context.Context, in *OAuthApp, opts ...grpc.CallOption) (*OAuthApp, error) {
+func (c *oAuthAppCommandControllerClient) Update(ctx context.Context, in *UpdateOAuthAppInput, opts ...grpc.CallOption) (*OAuthApp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(OAuthApp)
 	err := c.cc.Invoke(ctx, OAuthAppCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -184,13 +194,23 @@ type OAuthAppCommandControllerServer interface {
 	//   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
 	//     and it still leads there. Metadata: slug.
 	Create(context.Context, *OAuthApp) (*OAuthApp, error)
-	// Update an existing OAuth app.
+	// Update an OAuth app: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The slug changes only through rename. An update authorizes the id it names,
-	// so wherever the server authorizes requests, an update without an id is
-	// refused before its slug is read; where it reads one, a slug the OAuth app
-	// was renamed away from is refused with SLUG_RENAMED (see apply).
-	Update(context.Context, *OAuthApp) (*OAuthApp, error)
+	// resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the OAuth app does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the OAuth app kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateOAuthAppInput) (*OAuthApp, error)
 	// Rename an OAuth app: change its slug, the name people type.
 	//
 	// The OAuth app keeps its id, so everything that names it keeps working, and
@@ -226,7 +246,7 @@ func (UnimplementedOAuthAppCommandControllerServer) Apply(context.Context, *OAut
 func (UnimplementedOAuthAppCommandControllerServer) Create(context.Context, *OAuthApp) (*OAuthApp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedOAuthAppCommandControllerServer) Update(context.Context, *OAuthApp) (*OAuthApp, error) {
+func (UnimplementedOAuthAppCommandControllerServer) Update(context.Context, *UpdateOAuthAppInput) (*OAuthApp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedOAuthAppCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*OAuthApp, error) {
@@ -292,7 +312,7 @@ func _OAuthAppCommandController_Create_Handler(srv interface{}, ctx context.Cont
 }
 
 func _OAuthAppCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OAuthApp)
+	in := new(UpdateOAuthAppInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -304,7 +324,7 @@ func _OAuthAppCommandController_Update_Handler(srv interface{}, ctx context.Cont
 		FullMethod: OAuthAppCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OAuthAppCommandControllerServer).Update(ctx, req.(*OAuthApp))
+		return srv.(OAuthAppCommandControllerServer).Update(ctx, req.(*UpdateOAuthAppInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

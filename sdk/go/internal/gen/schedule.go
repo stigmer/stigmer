@@ -11,6 +11,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // ScheduleClient provides operations on schedule resources.
@@ -44,12 +45,11 @@ func (s *ScheduleClient) Create(ctx context.Context, input *ScheduleInput) (*sch
 	return resp, wrapErr(err)
 }
 
-func (s *ScheduleClient) Update(ctx context.Context, input *ScheduleInput) (*schedulev1.Schedule, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := s.command.Update(ctx, req)
+func (s *ScheduleClient) Update(ctx context.Context, resource *schedulev1.Schedule, paths []string) (*schedulev1.Schedule, error) {
+	resp, err := s.command.Update(ctx, &schedulev1.UpdateScheduleInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -99,12 +99,12 @@ func (s *ScheduleClient) ListFires(ctx context.Context, input *schedulev1.ListSc
 	return resp, wrapErr(err)
 }
 
-// ScheduleInput holds the fields for creating/updating a Schedule.
+// ScheduleInput holds the fields for creating or applying a Schedule.
 type ScheduleInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id         string
 	Name       string
 	Slug       string

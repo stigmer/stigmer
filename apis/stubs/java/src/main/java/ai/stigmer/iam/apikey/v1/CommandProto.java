@@ -41,25 +41,25 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "roto\032+ai/stigmer/commons/rpc/method_opti" +
       "ons.proto\032\"ai/stigmer/iam/apikey/v1/api." +
       "proto\032!ai/stigmer/iam/apikey/v1/io.proto" +
-      "2\302\004\n\027ApiKeyCommandController\022R\n\006create\022 " +
+      "2\326\004\n\027ApiKeyCommandController\022R\n\006create\022 " +
       ".ai.stigmer.iam.apikey.v1.ApiKey\032 .ai.st" +
       "igmer.iam.apikey.v1.ApiKey\"\004\320\270\030\001\022\305\001\n\027cre" +
       "ateForServiceAccount\0226.ai.stigmer.iam.ap" +
       "ikey.v1.CreateServiceAccountKeyInput\032 .a" +
       "i.stigmer.iam.apikey.v1.ApiKey\"P\302\270\030L\0107\020\013" +
       "\"\022service_account_id*2unauthorized to ma" +
-      "nage this service account\'s keys\022\203\001\n\006upd" +
-      "ate\022 .ai.stigmer.iam.apikey.v1.ApiKey\032 ." +
-      "ai.stigmer.iam.apikey.v1.ApiKey\"5\302\270\0301\010\002\020" +
-      "\014\"\013metadata.id*\036unauthorized to update a" +
-      "pi key\022\177\n\006delete\022\".ai.stigmer.iam.apikey" +
-      ".v1.ApiKeyId\032 .ai.stigmer.iam.apikey.v1." +
-      "ApiKey\"/\302\270\030+\010\003\020\014\"\005value*\036unauthorized to" +
-      " delete api key\032\004\240\377+\014B\223\001B\014CommandProtoP\001" +
-      "\242\002\004ASIA\252\002\030Ai.Stigmer.Iam.Apikey.V1\312\002\030Ai\\" +
-      "Stigmer\\Iam\\Apikey\\V1\342\002$Ai\\Stigmer\\Iam\\A" +
-      "pikey\\V1\\GPBMetadata\352\002\034Ai::Stigmer::Iam:" +
-      ":Apikey::V1b\006proto3"
+      "nage this service account\'s keys\022\227\001\n\006upd" +
+      "ate\022+.ai.stigmer.iam.apikey.v1.UpdateApi" +
+      "KeyInput\032 .ai.stigmer.iam.apikey.v1.ApiK" +
+      "ey\">\302\270\030:\010\002\020\014\"\024resource.metadata.id*\036unau" +
+      "thorized to update api key\022\177\n\006delete\022\".a" +
+      "i.stigmer.iam.apikey.v1.ApiKeyId\032 .ai.st" +
+      "igmer.iam.apikey.v1.ApiKey\"/\302\270\030+\010\003\020\014\"\005va" +
+      "lue*\036unauthorized to delete api key\032\004\240\377+" +
+      "\014B\223\001B\014CommandProtoP\001\242\002\004ASIA\252\002\030Ai.Stigmer" +
+      ".Iam.Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\Apikey\\V" +
+      "1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata" +
+      "\352\002\034Ai::Stigmer::Iam::Apikey::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
