@@ -1441,6 +1441,7 @@ SessionStatus contains system-managed state for a session.
     agentId: { type: "string", description: "ID of the agent spec.agent_ref resolved to when it was last written." },
     agentVersionHash: { type: "string", description: "Content hash of the agent version this conversation runs (AgentStatus.version_hash when the reference resolved; resolvable through AgentQueryController.getVersion with agent_id)." },
     vaultAttachers: { type: "Record<string, string>", description: "Who attached each of this resource's vaults, by vault id: the account whose permission to use the vault each run checks when it has no person." },
+    state: { type: "string", description: "Whether the session is working: running (a turn works) or idle (it waits for input), the newest session.status_running or session.status_idle event's word." },
   }}
 />
 

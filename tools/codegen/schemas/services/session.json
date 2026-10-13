@@ -1713,6 +1713,16 @@
         },
         "description": "Who attached each of this resource's vaults, by vault id: the account\n whose permission to use the vault each run checks when it has no\n person.",
         "required": false
+      },
+      {
+        "name": "State",
+        "jsonName": "state",
+        "protoField": "state",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Whether the session is working: running (a turn works) or idle (it\n waits for input), the newest session.status_running or\n session.status_idle event's word. A session none of whose turns ever\n worked reads idle.",
+        "required": false
       }
     ]
   },

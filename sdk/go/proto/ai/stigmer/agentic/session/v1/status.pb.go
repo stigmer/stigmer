@@ -43,8 +43,13 @@ type SessionStatus struct {
 	// whose permission to use the vault each run checks when it has no
 	// person.
 	VaultAttachers map[string]string `protobuf:"bytes,3,rep,name=vault_attachers,json=vaultAttachers,proto3" json:"vault_attachers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Whether the session is working: running (a turn works) or idle (it
+	// waits for input), the newest session.status_running or
+	// session.status_idle event's word. A session none of whose turns ever
+	// worked reads idle.
+	State         string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SessionStatus) Reset() {
@@ -105,16 +110,24 @@ func (x *SessionStatus) GetVaultAttachers() map[string]string {
 	return nil
 }
 
+func (x *SessionStatus) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_session_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xce\x02\n" +
+	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xe4\x02\n" +
 	"\rSessionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12,\n" +
 	"\x12agent_version_hash\x18\x02 \x01(\tR\x10agentVersionHash\x12i\n" +
-	"\x0fvault_attachers\x18\x03 \x03(\v2@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x1aA\n" +
+	"\x0fvault_attachers\x18\x03 \x03(\v2@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x12\x14\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x9d\x02\n" +

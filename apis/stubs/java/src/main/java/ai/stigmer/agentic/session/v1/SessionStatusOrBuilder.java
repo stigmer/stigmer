@@ -156,4 +156,30 @@ java.lang.String defaultValue);
    */
   java.lang.String getVaultAttachersOrThrow(
       java.lang.String key);
+
+  /**
+   * <pre>
+   * Whether the session is working: running (a turn works) or idle (it
+   * waits for input), the newest session.status_running or
+   * session.status_idle event's word. A session none of whose turns ever
+   * worked reads idle.
+   * </pre>
+   *
+   * <code>string state = 4 [json_name = "state"];</code>
+   * @return The state.
+   */
+  java.lang.String getState();
+  /**
+   * <pre>
+   * Whether the session is working: running (a turn works) or idle (it
+   * waits for input), the newest session.status_running or
+   * session.status_idle event's word. A session none of whose turns ever
+   * worked reads idle.
+   * </pre>
+   *
+   * <code>string state = 4 [json_name = "state"];</code>
+   * @return The bytes for state.
+   */
+  com.google.protobuf.ByteString
+      getStateBytes();
 }

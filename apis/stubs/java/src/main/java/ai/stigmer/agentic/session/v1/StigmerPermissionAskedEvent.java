@@ -41,6 +41,7 @@ private static final long serialVersionUID = 0L;
     argsPreview_ = "";
     policySource_ = "";
     policyHook_ = "";
+    contentDigest_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -406,6 +407,57 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int CONTENT_DIGEST_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object contentDigest_ = "";
+  /**
+   * <pre>
+   * A digest of the content the call would write, when its harness
+   * identifies an edit by its content: an approval allows that exact edit
+   * and no other proposed under the same call. Empty otherwise.
+   * </pre>
+   *
+   * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+   * @return The contentDigest.
+   */
+  @java.lang.Override
+  public java.lang.String getContentDigest() {
+    java.lang.Object ref = contentDigest_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      contentDigest_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * A digest of the content the call would write, when its harness
+   * identifies an edit by its content: an approval allows that exact edit
+   * and no other proposed under the same call. Empty otherwise.
+   * </pre>
+   *
+   * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+   * @return The bytes for contentDigest.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getContentDigestBytes() {
+    java.lang.Object ref = contentDigest_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      contentDigest_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -441,6 +493,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyHook_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, policyHook_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(contentDigest_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, contentDigest_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -471,6 +526,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyHook_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, policyHook_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(contentDigest_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, contentDigest_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -500,6 +558,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getPolicySource())) return false;
     if (!getPolicyHook()
         .equals(other.getPolicyHook())) return false;
+    if (!getContentDigest()
+        .equals(other.getContentDigest())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -525,6 +585,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getPolicySource().hashCode();
     hash = (37 * hash) + POLICY_HOOK_FIELD_NUMBER;
     hash = (53 * hash) + getPolicyHook().hashCode();
+    hash = (37 * hash) + CONTENT_DIGEST_FIELD_NUMBER;
+    hash = (53 * hash) + getContentDigest().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -669,6 +731,7 @@ private static final long serialVersionUID = 0L;
       argsPreview_ = "";
       policySource_ = "";
       policyHook_ = "";
+      contentDigest_ = "";
       return this;
     }
 
@@ -723,6 +786,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.policyHook_ = policyHook_;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.contentDigest_ = contentDigest_;
+      }
     }
 
     @java.lang.Override
@@ -770,6 +836,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getPolicyHook().isEmpty()) {
         policyHook_ = other.policyHook_;
         bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      if (!other.getContentDigest().isEmpty()) {
+        contentDigest_ = other.contentDigest_;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -833,6 +904,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 66: {
+              contentDigest_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1530,6 +1606,108 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       policyHook_ = value;
       bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object contentDigest_ = "";
+    /**
+     * <pre>
+     * A digest of the content the call would write, when its harness
+     * identifies an edit by its content: an approval allows that exact edit
+     * and no other proposed under the same call. Empty otherwise.
+     * </pre>
+     *
+     * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+     * @return The contentDigest.
+     */
+    public java.lang.String getContentDigest() {
+      java.lang.Object ref = contentDigest_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        contentDigest_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * A digest of the content the call would write, when its harness
+     * identifies an edit by its content: an approval allows that exact edit
+     * and no other proposed under the same call. Empty otherwise.
+     * </pre>
+     *
+     * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+     * @return The bytes for contentDigest.
+     */
+    public com.google.protobuf.ByteString
+        getContentDigestBytes() {
+      java.lang.Object ref = contentDigest_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        contentDigest_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * A digest of the content the call would write, when its harness
+     * identifies an edit by its content: an approval allows that exact edit
+     * and no other proposed under the same call. Empty otherwise.
+     * </pre>
+     *
+     * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+     * @param value The contentDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setContentDigest(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      contentDigest_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * A digest of the content the call would write, when its harness
+     * identifies an edit by its content: an approval allows that exact edit
+     * and no other proposed under the same call. Empty otherwise.
+     * </pre>
+     *
+     * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearContentDigest() {
+      contentDigest_ = getDefaultInstance().getContentDigest();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * A digest of the content the call would write, when its harness
+     * identifies an edit by its content: an approval allows that exact edit
+     * and no other proposed under the same call. Empty otherwise.
+     * </pre>
+     *
+     * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+     * @param value The bytes for contentDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setContentDigestBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      contentDigest_ = value;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }

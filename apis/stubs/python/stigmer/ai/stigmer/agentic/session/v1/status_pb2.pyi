@@ -8,7 +8,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionStatus(_message.Message):
-    __slots__ = ("audit", "agent_id", "agent_version_hash", "vault_attachers")
+    __slots__ = ("audit", "agent_id", "agent_version_hash", "vault_attachers", "state")
     class VaultAttachersEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -20,8 +20,10 @@ class SessionStatus(_message.Message):
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     AGENT_VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
     VAULT_ATTACHERS_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     agent_id: str
     agent_version_hash: str
     vault_attachers: _containers.ScalarMap[str, str]
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    state: str
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., state: _Optional[str] = ...) -> None: ...

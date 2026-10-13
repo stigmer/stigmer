@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIpACCg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRo1ChNWYXVsdEF0dGFjaGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIp8CCg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRINCgVzdGF0ZRgEIAEoCRo1ChNWYXVsdEF0dGFjaGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * SessionStatus contains system-managed state for a session.
@@ -57,6 +57,16 @@ export type SessionStatus = Message<"ai.stigmer.agentic.session.v1.SessionStatus
    * @generated from field: map<string, string> vault_attachers = 3;
    */
   vaultAttachers: { [key: string]: string };
+
+  /**
+   * Whether the session is working: running (a turn works) or idle (it
+   * waits for input), the newest session.status_running or
+   * session.status_idle event's word. A session none of whose turns ever
+   * worked reads idle.
+   *
+   * @generated from field: string state = 4;
+   */
+  state: string;
 };
 
 /**

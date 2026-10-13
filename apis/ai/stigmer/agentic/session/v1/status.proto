@@ -40,4 +40,14 @@ message SessionStatus {
   // drops entries for removed vaults, so an editor's unrelated edit never
   // re-attributes someone else's attachment.
   map<string, string> vault_attachers = 3;
+
+  // Whether the session is working: running (a turn works) or idle (it
+  // waits for input), the newest session.status_running or
+  // session.status_idle event's word. A session none of whose turns ever
+  // worked reads idle.
+  //
+  // @internal
+  // Computed from the session's events on every read and never stored: a
+  // value sent on a write is ignored.
+  string state = 4;
 }
