@@ -206,7 +206,7 @@ const COVERAGE_FLOORS_PATHSPECS = [COVERAGE_FLOORS_NAME, `**/${COVERAGE_FLOORS_N
 const FLOOR_FIGURES = ["lines", "branches", "cases"];
 
 /** The services a gate provides: a file's name carries one exactly when the file reaches it. */
-export const SERVICE_WORDS = ["openfga", "postgres", "temporal", "vault"];
+export const SERVICE_WORDS = ["openfga", "postgres", "redis", "temporal", "vault"];
 /** The layers a name may carry; each goes only where its layer lives. */
 export const LAYER_WORDS = ["browser", "composed", "conformance", "live", "load"];
 /** Words that meant different things in different places, refused as a name's last word. */
@@ -241,6 +241,7 @@ const GATE_VARIABLES = new Map([
   ["CLOUD_SCHEMA_TEST_DATABASE_URL", "postgres"],
   ["TEST_FGA_API_URL", "openfga"],
   ["TEST_VAULT_ADDR", "vault"],
+  ["TEST_REDIS_URL", "redis"],
 ]);
 /** The calls that reach the Postgres a gate provides (backend/services/stigmer-server's store test support). */
 const POSTGRES_CALLS = new Set(["testDatabaseAdminUrl", "createTestDatabase"]);

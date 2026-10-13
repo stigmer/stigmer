@@ -511,6 +511,7 @@ it("the report counts the run's skips and lists the explained ones", () => {
 it("a name's words are its last segment and the service and layer words before it; the topic is never a word", () => {
   assert.deepEqual(nameWords("x/__tests__/team.openfga.postgres.test.ts"), { words: ["openfga", "postgres"], last: "postgres", before: undefined });
   assert.deepEqual(nameWords("x/__tests__/panel.a11y.browser.test.tsx"), { words: ["browser"], last: "browser", before: "a11y" });
+  assert.deepEqual(nameWords("x/__tests__/rate-gate.redis.test.ts"), { words: ["redis"], last: "redis", before: undefined });
   assert.deepEqual(nameWords("x/__tests__/postgres-kinds.postgres.test.ts"), { words: ["postgres"], last: "postgres", before: undefined });
   assert.deepEqual(nameWords("x/__tests__/postgres.test.ts"), { words: [], last: undefined, before: undefined });
   assert.deepEqual(nameWords("x/__tests__/scope.load-tenancy.test.ts"), { words: [], last: "load-tenancy", before: undefined });
@@ -522,6 +523,7 @@ it("reaching a service is a value use of its entry point; types, strings and an 
   const services = (text) => [...scanModule(ts, "p/__tests__/a.test.ts", text).services].sort();
   assert.deepEqual(services(`const url = gateDependency("TEST_FGA_API_URL", "OpenFGA");`), ["openfga"]);
   assert.deepEqual(services(`const a = gateDependency("TEST_VAULT_ADDR", "OpenBAO"); const b = gateDependency("CLOUD_SCHEMA_TEST_DATABASE_URL", "x");`), ["postgres", "vault"]);
+  assert.deepEqual(services(`const url = gateDependency("TEST_REDIS_URL", "a password-protected Redis");`), ["redis"]);
   assert.deepEqual(services(`const db = await createTestDatabase();`), ["postgres"]);
   assert.deepEqual(services(`import { createTestDatabase as make } from "./support.js"; await make();`), ["postgres"]);
   assert.deepEqual(services(`import { gateDependency as needs } from "./test-gate.js"; needs("TEST_FGA_API_URL", "OpenFGA");`), ["openfga"]);
@@ -580,6 +582,11 @@ it("a service reached through a test helper must be named, and a named service m
   assert.deepEqual(layout({ ...support, "pkg/src/store/__tests__/repo.test.ts": reaches }), ["layout-service-unnamed pkg/src/store/__tests__/repo.test.ts postgres"]);
   assert.deepEqual(layout({ ...support, "pkg/src/store/__tests__/repo.postgres.test.ts": reaches }), []);
   assert.deepEqual(layout({ "pkg/src/store/__tests__/repo.postgres.test.ts": `it("a", () => {});` }), ["layout-service-unreached pkg/src/store/__tests__/repo.postgres.test.ts postgres"]);
+  const cache = { "pkg/src/__test-utils__/redis.ts": `export const TEST_REDIS_URL = gateDependency("TEST_REDIS_URL", "a password-protected Redis");` };
+  const counts = `import { TEST_REDIS_URL } from "../../__test-utils__/redis.js"; it("a", () => { connect(TEST_REDIS_URL); });`;
+  assert.deepEqual(layout({ ...cache, "pkg/src/sharing/__tests__/gate.test.ts": counts }), ["layout-service-unnamed pkg/src/sharing/__tests__/gate.test.ts redis"]);
+  assert.deepEqual(layout({ ...cache, "pkg/src/sharing/__tests__/gate.redis.test.ts": counts }), []);
+  assert.deepEqual(layout({ "pkg/src/sharing/__tests__/gate.redis.test.ts": `it("a", () => {});` }), ["layout-service-unreached pkg/src/sharing/__tests__/gate.redis.test.ts redis"]);
 });
 
 it("composed, conformance, load and live files, and the suites' own trees, may use any service unnamed", () => {
