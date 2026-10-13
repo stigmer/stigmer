@@ -59,10 +59,23 @@
  * the composition opens it to (resource-store.ts), and on open source it
  * does not. A driver
  * written against the one-argument methods still satisfies this interface.
+ *
+ * Reading the history. Every edition above open source keeps a history and
+ * serves it (the access-policy controller's `listAccessHistory`), so a
+ * store composed there must keep one and read it back through
+ * `listChanges`: each organization's changes numbered from 1 in commit
+ * order with no gaps, and times that never go back, so "everything after
+ * N", asked again later, never skips a change that committed late. A store
+ * that keeps no history answers an empty list. The kit's history section
+ * (`iamPolicyStoreContract` with `keepsHistory`) holds a store to this.
  */
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 
-import type { PolicyChangeRecord } from "./change.js";
+import type {
+  PolicyChange,
+  PolicyChangePage,
+  PolicyChangeRecord,
+} from "./change.js";
 
 /**
  * Raised by `save` when the id is already held, so the grant path runs its
@@ -130,4 +143,14 @@ export interface IamPolicyStore {
     resourceKind: string,
     resourceId: string,
   ): Promise<IamPolicy | undefined>;
+  /**
+   * One organization's recorded changes: newest first below `page.before`,
+   * or oldest first above `page.after`, at most `page.limit`; empty for a
+   * store that keeps no history. A limit that is not a positive integer
+   * rejects.
+   */
+  listChanges(
+    org: string,
+    page: PolicyChangePage,
+  ): Promise<ReadonlyArray<PolicyChange>>;
 }

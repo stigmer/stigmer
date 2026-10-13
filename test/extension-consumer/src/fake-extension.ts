@@ -586,6 +586,9 @@ const consumerIamPolicyStore: IamPolicyStore = {
   countDistinctPrincipalsByResource: () => Promise.resolve(0),
   findScopeTuple: () => Promise.resolve(undefined),
   findByResourceKindAndRelation: () => Promise.resolve([]),
+  // A store that keeps no history answers none; one composed above open
+  // source keeps one and reads it back here.
+  listChanges: () => Promise.resolve([]),
 };
 
 /**
@@ -602,6 +605,7 @@ export function consumerIamPolicyStoreContract(): ReadonlyArray<IamPolicyStoreCo
       disconnect: () => Promise.resolve(),
       cleanup: () => Promise.resolve(),
     }),
+    { keepsHistory: false },
   );
 }
 

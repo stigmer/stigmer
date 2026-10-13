@@ -76,7 +76,10 @@ organization (`hashtextextended('iam_policy_history/' || org)`) before the row;
 SQLite runs under `BEGIN IMMEDIATE`. A write with no change takes no lock. Only
 the IamPolicy adapter hands a change, and only in a composition that keeps a
 history (`domain/iampolicy/resource-store.ts`); the table is append-only and an
-organization's purge leaves it in place.
+organization's purge leaves it in place. `Store.listPermissionHistory` reads one
+organization's entries on the primary key: newest first below a number, or
+oldest first above one, a bounded page at a time. The numbering is what makes
+"everything after N", asked again later, skip nothing.
 
 ## Contract and continuity
 

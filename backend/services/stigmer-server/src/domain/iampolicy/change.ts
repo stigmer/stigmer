@@ -29,6 +29,7 @@
  * than the rows it describes already do.
  */
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
 import type { CallerClass, CallerIdentity } from "../../extensions/identity.js";
@@ -99,6 +100,36 @@ export interface PolicyChangeRecord {
    * outside organization scope, a legacy row with no scope link).
    */
   readonly organizationId: string;
+}
+
+/**
+ * Which recorded changes one read of an organization's history returns
+ * (`IamPolicyStore.listChanges`): newest first, below `before` when given;
+ * or, with `after`, oldest first, above it. At most `limit`, a positive
+ * integer, either way.
+ */
+export type PolicyChangePage =
+  | { readonly limit: number; readonly before?: bigint }
+  | { readonly limit: number; readonly after: bigint };
+
+/** One recorded change, as a store that keeps a history reads it back. */
+export interface PolicyChange {
+  /** The organization's number for it: 1 for its first, one more for each after, in commit order. */
+  readonly sequence: bigint;
+  /** When it committed: fixed-width UTC with milliseconds, never before the change numbered before it. */
+  readonly occurredAt: string;
+  /** Whether the row was written or removed. */
+  readonly change: "granted" | "revoked";
+  readonly actor: PolicyActor;
+  /**
+   * The stored cause: a `PolicyChangeCause` when this binary wrote it, but
+   * a reader may meet one a later binary added, so it reads as a string.
+   */
+  readonly cause: string;
+  /** The organization the change was recorded in. */
+  readonly organizationId: string;
+  /** The row as granted, or as it stood when revoked. */
+  readonly policy: IamPolicy;
 }
 
 const ACCOUNT_KIND = kindEnumName(ApiResourceKind.identity_account);
