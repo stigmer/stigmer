@@ -1,44 +1,50 @@
 /**
- * Size-bounding guard for the persisted RunStatus payload.
+ * Size-bounding guards for what one persist carries: the turn's rows (read
+ * by the session event emitter) and the run's status (sent to the server).
  *
  * Tool outputs (an MCP screenshot's base64 image, a giant accessibility-tree
  * dump, a multi-MB shell log, a huge file write) are stored inline in
- * `ToolCall.result`/`args_preview`, which live in `status.messages` AND in
- * each `status.sub_agent_executions[].messages` (a delegated tool call's
- * result is just as unbounded), and are re-serialized whole on every
- * `persistStatus` -> `updateStatus` gRPC call.
- * Left unchecked, a single large result pushes the message past the server's
+ * `ToolCall.result`/`args_preview`, which live in the turn's rows
+ * (`rows.messages` AND each `rows.sub_agent_runs[].messages`: a delegated
+ * tool call's result is just as unbounded), and reach the session's log as
+ * events. Captured file bodies live on the turn's file-review ledger and
+ * reach the server on the run's file record (`RunStatus.file_changes`),
+ * re-serialized whole on every `persistStatus` -> `updateStatus` gRPC call.
+ * Left unchecked, a large record pushes the message past the server's
  * 4 MiB gRPC receive cap; the call fails with `resource_exhausted`, progress
  * stops persisting, and the live UI freezes mid-execution.
  *
- * This module enforces, at the single persist boundary, that the payload stays
- * under the limit:
+ * This module enforces, at the single persist boundary, that both stay
+ * bounded:
  *
- *   1. offloadOversizedToolOutputs — per-tool-call, SIZE-DRIVEN (not keyed on
- *      tool type): any result over the byte threshold is spilled to artifact
- *      storage and replaced with a short head plus a typed ToolCallOutputRef.
- *      Images are uploaded as their decoded bytes (so the UI can render an
- *      <img>); other large output is uploaded as text with a preview head.
- *      Idempotent and content-hash-deduped so the throttled, repeated persists
- *      (and result re-inflation by the builder's `tool_finished` upsert) upload each blob once.
+ *   1. offloadOversizedToolOutputs — over the rows, per-tool-call,
+ *      SIZE-DRIVEN (not keyed on tool type): any result over the byte
+ *      threshold is spilled to artifact storage and replaced with a short
+ *      head plus a typed ToolCallOutputRef, which the emitter writes as the
+ *      result's `stigmer.tool_result.full_output`. Images are uploaded as
+ *      their decoded bytes (so the UI can render an <img>); other large
+ *      output is uploaded as text with a preview head. Idempotent and
+ *      content-hash-deduped so the throttled, repeated persists (and result
+ *      re-inflation by the builder's `tool_finished` upsert) upload each blob
+ *      once. Oversized captured file bodies on the ledger go the same way.
  *
  *   2. offloadCandidateChangesToFit — an aggregate, storage-backed step for the
- *      file-review ledger: if the status still exceeds the soft cap after (1),
+ *      run's file record: if the status still exceeds the soft cap after (1),
  *      it offloads the largest still-inline captured before/after bodies to
  *      retrievable refs (biggest-first) until it fits, so a captured file stays
  *      REVIEWABLE (the UI lazily fetches the ref) instead of being dropped. The
  *      persisted body is a display projection — reconcile sources bytes from the
  *      git refs / CAS manifest, never this body — so this is correctness-neutral.
  *
- *   3. enforceStatusSizeLimit — an aggregate, type-agnostic backstop that runs
- *      even when no artifact storage is available: if the encoded status still
- *      exceeds a soft cap (comfortably under 4 MiB), it elides the largest
- *      remaining inline fields in place until the payload fits. For file-review
- *      bodies this is the LAST resort (no storage, or (2) could not free enough):
- *      the body is dropped and the file marked SIZE_ELIDED / incomplete.
+ *   3. enforceStatusSizeLimit — the storage-less backstop over the status: if
+ *      the encoded status still exceeds a soft cap (comfortably under 4 MiB),
+ *      it drops the largest inline captured bodies of the file record and
+ *      marks those files SIZE_ELIDED / incomplete until the payload fits.
  *
- * All operate ONLY on what is persisted/streamed; the agent's working context
- * is managed by the harness/SDK separately, so reasoning is unaffected.
+ * The session event emitter bounds each event on its own
+ * ({@link elideToEncodedSize}). All operate ONLY on what is persisted or
+ * written to the log; the agent's working context is managed by the
+ * harness/SDK separately, so reasoning is unaffected.
  */
 
 import { createHash } from "node:crypto";
@@ -54,7 +60,7 @@ import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/
 import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { deriveDiffCompleteness } from "./filereview/events.js";
-import type { AgentMessage, ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { AgentMessage, ToolCall, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /**
  * A single tool output (result or args_preview) larger than this many bytes is
@@ -132,21 +138,19 @@ function formatBytes(n: number): string {
 }
 
 /**
- * Every message list carried on the status: the parent transcript plus each
+ * Every message list the rows carry: the parent transcript plus each
  * sub-agent's nested transcript. Sub-agent tool calls hold real results (a
- * delegated read/grep/screenshot can be as large as a top-level one), so every
- * size-bounding pass in this module walks THIS set — a location covered by
- * offload but not elision (or vice versa) would be a hole in the persist
- * boundary's bounded-payload guarantee.
+ * delegated read/grep/screenshot can be as large as a top-level one), so the
+ * offload walks THIS set — a location it missed would reach the log whole.
  */
-function allMessageLists(status: RunStatus): readonly (readonly AgentMessage[])[] {
-  return [status.messages, ...status.subAgentRuns.map((sa) => sa.messages)];
+function allMessageLists(rows: TurnRows): readonly (readonly AgentMessage[])[] {
+  return [rows.messages, ...rows.subAgentRuns.map((sa) => sa.messages)];
 }
 
-/** Every tool call in the status, across the parent and all sub-agents. */
-function allToolCalls(status: RunStatus): ToolCall[] {
+/** Every tool call in the rows, across the parent and all sub-agents. */
+function allToolCalls(rows: TurnRows): ToolCall[] {
   const out: ToolCall[] = [];
-  for (const messages of allMessageLists(status)) {
+  for (const messages of allMessageLists(rows)) {
     for (const msg of messages) {
       for (const tc of msg.toolCalls) out.push(tc);
     }
@@ -426,14 +430,16 @@ async function maybeOffloadFileContent(
 
 /**
  * Every captured file change carried on a CANDIDATE_CAPTURED event in the
- * file_review ledger. The before/after bodies live HERE (not on tool calls)
- * under the apply-then-review model, so the persist-boundary size guards must
- * cover this location too — otherwise a large captured file silently pushes the
- * status past the gRPC cap (the freeze this module exists to prevent).
+ * turn's file_review ledger. The before/after bodies live HERE (not on tool
+ * calls) under the apply-then-review model, and the run's file record
+ * (`filereview/record.ts`) holds these same change objects, so a body
+ * offloaded here is offloaded on the record too — otherwise a large captured
+ * file silently pushes the status past the gRPC cap (the freeze this module
+ * exists to prevent).
  */
-function candidateChanges(status: RunStatus): CapturedFileChange[] {
+function candidateChanges(rows: TurnRows): CapturedFileChange[] {
   const out: CapturedFileChange[] = [];
-  for (const ev of status.fileReviewEventStream?.events ?? []) {
+  for (const ev of rows.fileReviewEventStream?.events ?? []) {
     if (ev.payload.case === "candidateCaptured") {
       out.push(...ev.payload.value.changes);
     }
@@ -441,13 +447,18 @@ function candidateChanges(status: RunStatus): CapturedFileChange[] {
   return out;
 }
 
+/** Every captured file change on the run's file record. */
+function recordChanges(status: RunStatus): CapturedFileChange[] {
+  return status.fileChanges.flatMap((set) => set.changes);
+}
+
 /** Offload oversized before/after bodies of every captured file-review change. */
 async function maybeOffloadCandidateChanges(
-  status: RunStatus,
+  rows: TurnRows,
   ctx: ToolOutputOffloadContext,
   maxBytes: number,
 ): Promise<void> {
-  const changes = candidateChanges(status);
+  const changes = candidateChanges(rows);
   for (const change of changes) {
     const base = `artifacts/${ctx.executionId}/filereview/${change.id}`;
     await maybeOffloadFileContent(change.before, `${base}.before.txt`, ctx, maxBytes);
@@ -461,28 +472,28 @@ export interface OffloadedOutput {
   readonly outputRef: ToolCallOutputRef;
 }
 
-/** Every tool call in `status` whose output the offload has lifted to a ref. */
-export function offloadedOutputs(status: RunStatus): OffloadedOutput[] {
+/** Every tool call in `rows` whose output the offload has lifted to a ref. */
+export function offloadedOutputs(rows: TurnRows): OffloadedOutput[] {
   const out: OffloadedOutput[] = [];
-  for (const tc of allToolCalls(status)) {
+  for (const tc of allToolCalls(rows)) {
     if (tc.outputRef) out.push({ toolCallId: tc.id, outputRef: tc.outputRef });
   }
   return out;
 }
 
 /**
- * Take another copy's offloads into `status`: a tool call whose result is
+ * Take another copy's offloads into `rows`: a tool call whose result is
  * still exactly the bytes a ref was made from gets that ref and the
  * collapsed result, as the offload itself would have left it. A result that
  * has changed since is left alone, for the next persist's offload. The agent
- * host's copy of a turn's status takes the runtime's offloads this way
+ * host's copy of a turn's rows takes the runtime's offloads this way
  * (`agent-host/host-sink.ts`), so it does not carry, and re-send, the outputs
  * the runtime has already uploaded.
  */
-export function adoptOffloadedOutputs(status: RunStatus, offloads: readonly OffloadedOutput[]): void {
+export function adoptOffloadedOutputs(rows: TurnRows, offloads: readonly OffloadedOutput[]): void {
   if (offloads.length === 0) return;
   const byId = new Map(offloads.map((o) => [o.toolCallId, o.outputRef]));
-  for (const tc of allToolCalls(status)) {
+  for (const tc of allToolCalls(rows)) {
     const ref = byId.get(tc.id);
     if (ref === undefined || tc.result === undefined || sha256(tc.result) !== ref.contentHash) continue;
     tc.outputRef = create(ToolCallOutputRefSchema, ref);
@@ -491,7 +502,7 @@ export function adoptOffloadedOutputs(status: RunStatus, offloads: readonly Offl
 }
 
 /**
- * Offload every oversized tool result in the status to artifact storage,
+ * Offload every oversized tool result in the rows to artifact storage,
  * replacing the inline value with a short head + ToolCallOutputRef. Per-tool
  * failures fall back to an inline truncation (a bounded result beats a failed
  * persist) and never throw, so a storage hiccup cannot fail the execution.
@@ -502,12 +513,12 @@ export function adoptOffloadedOutputs(status: RunStatus, offloads: readonly Offl
  * inline and the aggregate backstop (enforceStatusSizeLimit) drops it if needed.
  */
 export async function offloadOversizedToolOutputs(
-  status: RunStatus,
+  rows: TurnRows,
   ctx: ToolOutputOffloadContext,
 ): Promise<void> {
   const maxBytes = ctx.maxInlineBytes ?? INLINE_TOOL_OUTPUT_MAX_BYTES;
   const maxFileBytes = ctx.maxInlineFileBytes ?? INLINE_FILE_CONTENT_MAX_BYTES;
-  for (const tc of allToolCalls(status)) {
+  for (const tc of allToolCalls(rows)) {
     try {
       await maybeOffloadToolCall(tc, ctx, maxBytes);
     } catch (err) {
@@ -527,7 +538,7 @@ export async function offloadOversizedToolOutputs(
   // persisted"). A failure is non-fatal — the body stays inline and the
   // mark-incomplete backstop handles it without corrupting the ledger.
   try {
-    await maybeOffloadCandidateChanges(status, ctx, maxFileBytes);
+    await maybeOffloadCandidateChanges(rows, ctx, maxFileBytes);
   } catch {
     console.warn(
       `[status-offload] execution=${ctx.executionId} ` +
@@ -537,7 +548,7 @@ export async function offloadOversizedToolOutputs(
 }
 
 /**
- * Aggregate-budget offload of file-review candidate bodies (async, storage-backed).
+ * Aggregate-budget offload of the file record's captured bodies (async, storage-backed).
  *
  * The per-item pass ({@link offloadOversizedToolOutputs}) only offloads a body
  * over {@link INLINE_FILE_CONTENT_MAX_BYTES}; many mid-sized captured files (each
@@ -579,7 +590,7 @@ export async function offloadCandidateChangesToFit(
     readonly bytes: number;
   }
   const sides: InlineCandidateSide[] = [];
-  for (const change of candidateChanges(status)) {
+  for (const change of recordChanges(status)) {
     const base = `artifacts/${ctx.executionId}/filereview/${change.id}`;
     if (change.before?.body.case === "inline" && byteLen(change.before.body.value) > ELISION_MIN_BYTES) {
       sides.push({ content: change.before, key: `${base}.before.txt`, bytes: byteLen(change.before.body.value) });
@@ -678,11 +689,11 @@ function dropInlineBodiesIfLarge(change: CapturedFileChange): boolean {
 }
 
 /**
- * Aggregate, type-agnostic backstop. If the encoded status exceeds
- * `softLimitBytes`, elide the largest inline tool fields (and, as a last
- * resort, message content) in place until it fits. Returns true if anything
- * was elided. This guarantees a bounded payload even without artifact storage
- * (e.g. offload disabled) or when many medium results sum past the limit.
+ * The storage-less backstop over the status. If the encoded status exceeds
+ * `softLimitBytes`, drop the largest inline captured bodies of its file
+ * record in place until it fits. Returns true if anything was dropped. This
+ * guarantees a bounded payload even without artifact storage (offload
+ * disabled) or when many medium bodies sum past the limit.
  */
 export function enforceStatusSizeLimit(
   status: RunStatus,
@@ -690,86 +701,42 @@ export function enforceStatusSizeLimit(
 ): boolean {
   if (encodedSize(status) <= softLimitBytes) return false;
 
-  const toolCalls = allToolCalls(status);
-  // Largest inline footprint first so we shed the most bytes per elision.
-  toolCalls.sort(
-    (a, b) =>
-      byteLen(b.result) + byteLen(b.argsPreview) -
-      (byteLen(a.result) + byteLen(a.argsPreview)),
-  );
-
-  let elidedAny = false;
-  for (const tc of toolCalls) {
-    if (encodedSize(status) <= softLimitBytes) return elidedAny;
-    if (byteLen(tc.result) > ELISION_MIN_BYTES) {
-      tc.result = ELISION_MARKER;
-      elidedAny = true;
-    }
-    if (byteLen(tc.argsPreview) > ELISION_MIN_BYTES) {
-      tc.argsPreview = ELISION_MARKER;
-      elidedAny = true;
-    }
-    if (tc.args !== undefined) {
-      tc.args = undefined;
-      elidedAny = true;
-    }
-  }
-
-  // File-review ledger bodies — the storage-less LAST resort. When storage is
+  // The file record's bodies — the storage-less LAST resort. When storage is
   // available, offloadCandidateChangesToFit has already turned oversized captured
   // bodies into retrievable refs (kept reviewable); a body still inline here means
   // there was no storage, or offloading everything still did not free enough.
-  // Unlike a tool output, we never overwrite the captured body with the elision
-  // marker — the review renders this body, so a marker would show corrupt content;
-  // instead we DROP it and mark the file incomplete (SIZE_ELIDED). Reconcile
-  // sources bytes from the git refs / CAS manifest (never this display body), and
-  // the review surface blocks approval of an incomplete diff. This trades
-  // reviewability for a bounded payload, never correctness.
-  if (encodedSize(status) > softLimitBytes) {
-    for (const ev of status.fileReviewEventStream?.events ?? []) {
+  // We never overwrite the captured body with the elision marker — the review
+  // renders this body, so a marker would show corrupt content; instead we DROP
+  // it and mark the file incomplete (SIZE_ELIDED). Reconcile sources bytes from
+  // the git refs / CAS manifest (never this display body), and the review
+  // surface blocks approval of an incomplete diff. This trades reviewability
+  // for a bounded payload, never correctness.
+  let elidedAny = false;
+  for (const set of status.fileChanges) {
+    if (encodedSize(status) <= softLimitBytes) break;
+    let markedAny = false;
+    for (const change of set.changes) {
       if (encodedSize(status) <= softLimitBytes) break;
-      if (ev.payload.case !== "candidateCaptured") continue;
-      const candidate = ev.payload.value;
-      let markedAny = false;
-      for (const change of candidate.changes) {
-        if (encodedSize(status) <= softLimitBytes) break;
-        if (dropInlineBodiesIfLarge(change)) {
-          change.diffComplete = false;
-          // Record the honest cause so the review UI distinguishes a size-elided
-          // diff from a secret-withheld one. Don't overwrite a reason a
-          // more specific producer already set (e.g. SECRET_WITHHELD).
-          if (change.blockedReason === FileReviewBlockReason.UNSPECIFIED) {
-            change.blockedReason = FileReviewBlockReason.SIZE_ELIDED;
-          }
-          markedAny = true;
-          elidedAny = true;
+      if (dropInlineBodiesIfLarge(change)) {
+        change.diffComplete = false;
+        // Record the honest cause so the review UI distinguishes a size-elided
+        // diff from a secret-withheld one. Don't overwrite a reason a
+        // more specific producer already set (e.g. SECRET_WITHHELD).
+        if (change.blockedReason === FileReviewBlockReason.UNSPECIFIED) {
+          change.blockedReason = FileReviewBlockReason.SIZE_ELIDED;
         }
-      }
-      if (markedAny) {
-        // Re-derive the rollup from the now-elided changes via the single shared
-        // rule. A dropped inline body is non-binary incomplete, so the set
-        // downgrades to PARTIAL_BLOCKED (a BINARY_SUMMARY_ONLY set that loses a
-        // text body is no longer binary-only); computing it here keeps the rule
-        // in one place instead of hardcoding the outcome.
-        candidate.diffCompleteness = deriveDiffCompleteness(candidate.changes);
-      }
-    }
-  }
-
-  // Last resort: oversized message content (e.g. a huge AI response),
-  // parent and sub-agent alike.
-  if (encodedSize(status) > softLimitBytes) {
-    const byContent = allMessageLists(status).flat().sort(
-      (a, b) => byteLen(b.content) - byteLen(a.content),
-    );
-    for (const msg of byContent) {
-      if (encodedSize(status) <= softLimitBytes) break;
-      if (byteLen(msg.content) > ELISION_MIN_BYTES) {
-        msg.content = headChars(msg.content, TEXT_PREVIEW_HEAD_CHARS) + `\n\n${ELISION_MARKER}`;
+        markedAny = true;
         elidedAny = true;
       }
     }
+    if (markedAny) {
+      // Re-derive the rollup from the now-elided changes via the single shared
+      // rule. A dropped inline body is non-binary incomplete, so the set
+      // downgrades to PARTIAL_BLOCKED (a BINARY_SUMMARY_ONLY set that loses a
+      // text body is no longer binary-only); computing it here keeps the rule
+      // in one place instead of hardcoding the outcome.
+      set.diffCompleteness = deriveDiffCompleteness(set.changes);
+    }
   }
-
   return elidedAny;
 }

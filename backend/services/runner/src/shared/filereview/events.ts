@@ -12,7 +12,6 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   CapturedFileChangeSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
@@ -45,6 +44,10 @@ import {
   type FileReviewEvent,
 } from "../../gen/turn/ai/stigmer/runner/turn/v1/ledger_pb.js";
 import { FileReviewEventType, FileReviewFailureKind } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+
+/** Where the turn's ledger lives: the turn's rows. */
+export type LedgerHolder = Pick<TurnRows, "fileReviewEventStream">;
 
 // The runner is the author of capture/reconcile/failure events. "runner" (not
 // the generic "system") matches the cross-edition corpus fixtures and the
@@ -466,18 +469,18 @@ export function buildFailedEvent(
 }
 
 /**
- * Whether a CANDIDATE_CAPTURED event exists for `changeSetId` on the status's
- * file_review stream — i.e. this turn actually produced a reviewable change
+ * Whether a CANDIDATE_CAPTURED event exists for `changeSetId` on the turn's
+ * file_review ledger — i.e. this turn actually produced a reviewable change
  * set. The capture seam authors no event for a no-op turn (an edit fully
  * reverted before the boundary), so this is the single signal both harnesses
  * gate on before opening a review or stamping transcript rows: a row must
  * never reference a change set that does not exist.
  */
 export function hasCandidateCaptured(
-  status: RunStatus,
+  rows: LedgerHolder,
   changeSetId: string,
 ): boolean {
-  return (status.fileReviewEventStream?.events ?? []).some(
+  return (rows.fileReviewEventStream?.events ?? []).some(
     (e) =>
       e.changeSetId === changeSetId &&
       e.eventType === FileReviewEventType.CANDIDATE_CAPTURED,
@@ -485,24 +488,24 @@ export function hasCandidateCaptured(
 }
 
 /**
- * Append the runner-authored events onto the status's file_review stream
- * (seeding it if absent), idempotently by event_id. The server re-applies the
- * same append-only/by-id discipline on receipt, so re-sending across throttled
- * persists is safe; this keeps the in-runner status consistent between persists.
+ * Append the runner-authored events onto the turn's file_review ledger
+ * (seeding it if absent), idempotently by event_id, so a re-run of a capture
+ * step never authors a second copy. The run's file record is read from it on
+ * every persist (`record.ts`).
  */
 export function appendFileReviewEvents(
-  status: RunStatus,
+  rows: LedgerHolder,
   executionId: string,
   events: readonly FileReviewEvent[],
 ): void {
   if (events.length === 0) return;
-  if (!status.fileReviewEventStream) {
-    status.fileReviewEventStream = create(FileReviewEventStreamSchema, {
+  if (!rows.fileReviewEventStream) {
+    rows.fileReviewEventStream = create(FileReviewEventStreamSchema, {
       runId: executionId,
       events: [],
     });
   }
-  const stream = status.fileReviewEventStream;
+  const stream = rows.fileReviewEventStream;
   const seen = new Set(stream.events.map((e) => e.eventId));
   for (const ev of events) {
     if (seen.has(ev.eventId)) continue;
