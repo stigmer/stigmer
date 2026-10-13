@@ -225,6 +225,7 @@ export async function updateStatus(
       name: "NotifyStatusObservers",
       async execute(ctx) {
         const execution = ctx.get(EXECUTION_KEY) as Run | undefined;
+        /* v8 ignore next 6 -- @preserve: the merge step sets the key or throws, so only a reordered chain reaches this */
         if (execution === undefined) {
           throw internalError(
             new Error("execution not found in context"),

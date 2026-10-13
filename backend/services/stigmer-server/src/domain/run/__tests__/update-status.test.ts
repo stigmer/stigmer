@@ -113,6 +113,21 @@ describe("the phase latch", () => {
     expect(merged.status?.completedAt).toBe("2026-08-24T10:00:00Z");
   });
 
+  it("leaves the run as it is for a direct call with no status, and decides nothing", () => {
+    const existing = existingWith(RunPhase.RUN_IN_PROGRESS);
+    const merged = clone(RunSchema, existing);
+    const decided = applyUpdateStatusMerge(
+      merged,
+      create(RunUpdateStatusInputSchema, { runId: "exec-guard" }),
+      silentLogger,
+      "wire",
+      true,
+      EMPTY_RUN_REVIEW_LOG,
+    );
+    expect(decided).toEqual([]);
+    expect(merged.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+  });
+
   it("builds a status for a run that has none from the runner's first write", () => {
     const merged = runBuildStep(create(RunSchema, { metadata: { id: "exec-new" } }), { phase: RunPhase.RUN_IN_PROGRESS });
     expect(merged.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
