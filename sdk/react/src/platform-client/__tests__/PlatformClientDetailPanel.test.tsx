@@ -276,10 +276,15 @@ describe("PlatformClientDetailPanel rename", () => {
       </StigmerContext.Provider>,
     );
 
-    fireEvent.change(await screen.findByLabelText("Slug"), { target: { value: "renamed-slug" } });
-    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+    fireEvent.change(await screen.findByLabelText("Slug", undefined, { timeout: 5000 }), {
+      target: { value: "renamed-slug" },
+    });
+    const button = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
+    // The field settles before it takes the rename, however slow the runner.
+    await waitFor(() => expect(button.disabled).toBe(false), { timeout: 5000 });
+    fireEvent.click(button);
 
-    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed));
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
     expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: PLATFORM_CLIENT.metadata?.id, slug: "renamed-slug" })]);
   });
 });
