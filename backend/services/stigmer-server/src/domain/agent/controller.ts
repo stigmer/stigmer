@@ -119,7 +119,8 @@ import {
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
-import { newPersistOntoLiveRowStep, newPersistStep } from "../../pipeline/steps/persist.js";
+import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -256,7 +257,7 @@ async function createAgent(
         deps.logger,
       ),
     )
-    .addStep(newSaveAgentVersionStep(deps.store, deps.logger, true))
+    .addStep(newSaveAgentVersionStep(deps.store, deps.logger))
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
     .build()
     .execute(reqCtx)
@@ -268,44 +269,47 @@ async function createAgent(
  * Update — chain per Go buildUpdatePipeline. The stored spec is hashed
  * after the run-defaults check; a new spec records a version, a reproduced one
  * points back at it, an unchanged one records none and still moves a newly
- * named tag. Persist follows the archive and flushes any revert.
+ * named tag. The archive follows Persist, so a write that loses its swap
+ * and runs again from a fresh read (runGuardedWrite) archives nothing.
  */
 async function update(
   deps: AgentControllerDeps,
   agent: Agent,
   ctx: HandlerContext,
 ): Promise<Agent> {
-  const reqCtx = new RequestContext(
-    AgentSchema,
-    agent,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof AgentSchema>("agent-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(AgentCommandController.method.update, deps.authorizer),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newNormalizeReferencesStep(deps.store))
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateHooksStep())
-    .addStep(newValidateSubagentListStep())
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newValidatePluginListStep(deps.store))
-    .addStep(newValidateSubagentNamesStep(deps.store))
-    .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
-    .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
-    .addStep(newComputeAgentVersionHashStep())
-    .addStep(newPopulateAgentVersionStep())
-    .addStep(newSaveAgentVersionStep(deps.store, deps.logger, false))
-    .addStep(newPersistOntoLiveRowStep(deps.store))
-    .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      AgentSchema,
+      agent,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof AgentSchema>("agent-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(AgentCommandController.method.update, deps.authorizer),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newValidateHooksStep())
+      .addStep(newValidateSubagentListStep())
+      .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+      .addStep(newValidatePluginListStep(deps.store))
+      .addStep(newValidateSubagentNamesStep(deps.store))
+      .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
+      .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
+      .addStep(newComputeAgentVersionHashStep())
+      .addStep(newPopulateAgentVersionStep())
+      .addStep(newPersistStep(deps.store))
+      .addStep(newSaveAgentVersionStep(deps.store, deps.logger))
+      .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /**

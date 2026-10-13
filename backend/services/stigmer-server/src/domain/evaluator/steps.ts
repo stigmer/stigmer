@@ -9,24 +9,24 @@
  * edit an agent learns nothing from this lane about whether it exists.
  *
  * Status has one writer besides create and update's audit stamp: the
- * grading budget (budget.ts). An update therefore persists through the
- * store's atomic read-modify-write and keeps the live row's spend and
- * counts (PersistEvaluatorSettings), so a person saving settings while a
- * grade settles never loses the grade's increment.
+ * grading budget (budget.ts). An update therefore persists by
+ * compare-and-swap on the row it read (PersistEvaluatorSettings), and a
+ * grade that settles in between makes it run again from a fresh read
+ * (pipeline/guarded-write.ts), so a person saving settings never loses
+ * the grade's increment.
  *
  * Proven by __tests__/steps.test.ts (the faults),
  * temporal/grading/__tests__/judge-composed.test.ts and
  * evaluator.conformance.test.ts.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
-import { clone, create } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import type { GetEvaluatorByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
-import { EvaluatorStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -44,6 +44,7 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { assignServerId, generateId } from "../../pipeline/steps/defaults.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { swapOntoLoadedRow } from "../../pipeline/steps/persist.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -202,10 +203,11 @@ export function newValidateEvaluatorUpdateStep(): PipelineStep<
 }
 
 /**
- * PersistEvaluatorSettings: the update's write, through the store's atomic
- * read-modify-write. The settings, metadata and audit come from the
- * request; the month's spend and counts from the live row, so a budget
- * write between this chain's read and its write is kept (module header).
+ * PersistEvaluatorSettings: the update's write. The settings, metadata and
+ * audit come from the request, the month's spend and counts from the row
+ * the chain read (BuildUpdateState), stored by compare-and-swap on that
+ * row, so a budget write between the read and the write makes the chain
+ * run again rather than be undone (module header).
  */
 export function newPersistEvaluatorSettingsStep(
   store: Store,
@@ -213,32 +215,11 @@ export function newPersistEvaluatorSettingsStep(
   return {
     name: "PersistEvaluatorSettings",
     async execute(ctx: RequestContext<typeof EvaluatorSchema>): Promise<void> {
-      const next = ctx.newState;
-      const id = next.metadata?.id ?? "";
-      refuseBoundElsewhere(ctx.callerIdentity, next.metadata?.org ?? "");
-      try {
-        const saved = await store.updateResource(
-          ApiResourceKind.evaluator,
-          id,
-          EvaluatorSchema,
-          (live) => {
-            const status = clone(
-              EvaluatorStatusSchema,
-              live.status ?? create(EvaluatorStatusSchema),
-            );
-            status.audit = next.status?.audit;
-            live.metadata = next.metadata;
-            live.spec = next.spec;
-            live.status = status;
-          },
-        );
-        ctx.setNewState(saved);
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("Evaluator", id);
-        }
-        throw internalError(error, "failed to save the evaluator");
-      }
+      refuseBoundElsewhere(
+        ctx.callerIdentity,
+        ctx.newState.metadata?.org ?? "",
+      );
+      await swapOntoLoadedRow(store, ctx);
     },
   };
 }

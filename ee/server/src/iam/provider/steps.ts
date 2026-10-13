@@ -40,6 +40,7 @@ import type {
 } from "@stigmer/server";
 import {
   alreadyExistsError,
+  EXISTING_RESOURCE_BYTES_KEY,
   EXISTING_RESOURCE_KEY,
   failedPreconditionError,
   findResourceForWrite,
@@ -133,7 +134,7 @@ export const PROVIDER_BEING_DELETED_MESSAGE =
  * Authorize step, so only a caller who may edit it learns of the delete.
  */
 export function newLoadExistingProviderStep(
-  providers: Pick<IdentityProviderStore, "findById" | "isLive">,
+  providers: Pick<IdentityProviderStore, "findById" | "isLive" | "readForWrite">,
 ): PipelineStep<typeof IdentityProviderSchema> {
   return {
     name: "LoadExisting",
@@ -142,14 +143,16 @@ export function newLoadExistingProviderStep(
       if (id === "") {
         throw invalidArgumentError("resource id is required for update");
       }
-      const existing = await requireProvider(providers, id);
-      if (!(await providers.isLive(id))) {
-        // Not live is either marked or, if its delete finished between
+      const read = await providers.readForWrite(id);
+      if (read === undefined || !(await providers.isLive(id))) {
+        // Absent, or not live: marked, or, if its delete finished between
         // the two reads, gone; a gone provider answers as one.
         await requireProvider(providers, id);
         throw failedPreconditionError(PROVIDER_BEING_DELETED_MESSAGE);
       }
-      ctx.set(EXISTING_RESOURCE_KEY, existing);
+      ctx.set(EXISTING_RESOURCE_KEY, read.row);
+      // The bytes the update's guarded write swaps on.
+      ctx.set(EXISTING_RESOURCE_BYTES_KEY, read.bytes);
     },
   };
 }

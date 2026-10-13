@@ -259,6 +259,15 @@ export type {
   PortContractFixture,
 } from "./store/port-contract.js";
 export { portContractCases } from "./store/port-contract.js";
+// The guarded write a port of a kind kept outside the shared store offers
+// (store/guarded-port.ts): its two members, and the contract lines every
+// driver of such a port runs, bound to the port's fields.
+export type {
+  GuardedPortBinding,
+  GuardedRead,
+  GuardedWritePort,
+} from "./store/guarded-port.js";
+export { guardedPortDeclarations } from "./store/guarded-port.js";
 // A session's ordered event log (store/session-events.ts): the sub-store a
 // Store carries and the atomic resource write that appends with a row, the
 // shapes they speak, and their vitest-free contract kit, so a composition
@@ -618,7 +627,24 @@ export { newResolveSlugStep } from "./pipeline/steps/slug.js";
 // reads. The loaders stay the composition's for CheckDuplicate's reason:
 // they read its own table.
 export { newBuildUpdateStateStep } from "./pipeline/steps/build-update-state.js";
-export { EXISTING_RESOURCE_KEY } from "./pipeline/steps/load-existing.js";
+export {
+  EXISTING_RESOURCE_BYTES_KEY,
+  EXISTING_RESOURCE_KEY,
+} from "./pipeline/steps/load-existing.js";
+// The guarded write of such an update (pipeline/guarded-write.ts): the
+// loader keeps the row's stored bytes under EXISTING_RESOURCE_BYTES_KEY,
+// the persist swaps through the port on them, and the handler runs the
+// chain under runGuardedWrite, so a write that lands between the read and
+// the swap is never undone.
+export { swapOntoLoadedPortRow } from "./pipeline/steps/persist.js";
+export {
+  changeThroughGuardedPort,
+  GUARDED_WRITE_ATTEMPTS,
+  isWriteConflict,
+  runGuardedWrite,
+  WRITE_CONFLICT_REASON,
+  writeConflictError,
+} from "./pipeline/guarded-write.js";
 export {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,

@@ -83,7 +83,9 @@ import {
   setAuditFieldsForCreate,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
-import { claimNameOf, findResourceByName } from "../../pipeline/steps/names.js";
+import { claimNameOf, findResourceByNameForWrite } from "../../pipeline/steps/names.js";
+import { EXISTING_RESOURCE_BYTES_KEY } from "../../pipeline/steps/load-existing.js";
+import { storeLoadedOrNew } from "../../pipeline/steps/persist.js";
 import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
 import { checkDerivedSlug, generateSlug } from "../../pipeline/steps/slug.js";
 import {
@@ -91,7 +93,7 @@ import {
   rejectUnsupportedVisibility,
 } from "../../pipeline/steps/validate-visibility.js";
 import { newArchiveCurrentVersionStep } from "../../pipeline/steps/version-archive.js";
-import type { Store } from "../../store/interface.js";
+import type { ResourceReadForWrite, Store } from "../../store/interface.js";
 import { openPluginArchive } from "./archive.js";
 import { VERSION_TAG_PATTERN } from "./constants.js";
 import type { OpenedPluginArchive } from "./archive.js";
@@ -216,14 +218,17 @@ export function newFindExistingPluginBySlugStep(
     name: "FindExistingBySlug",
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
       const plugin = ctx.get(PLUGIN_KEY) as Plugin;
-      let existing: Plugin | undefined;
+      let found: ResourceReadForWrite<typeof PluginSchema> | undefined;
       try {
-        existing = await findResourceByName(store, ctx.apiResourceKind, PluginSchema, plugin.metadata!.org, plugin.metadata!.slug);
+        found = await findResourceByNameForWrite(store, ctx.apiResourceKind, PluginSchema, plugin.metadata!.org, plugin.metadata!.slug);
       } catch (error) {
         throw internalError(error, "failed to search for existing plugin");
       }
-      if (existing !== undefined) {
+      if (found !== undefined) {
+        const existing = found.resource;
         plugin.metadata!.id = existing.metadata!.id;
+        // The bytes a re-push's write swaps on (storeLoadedOrNew).
+        ctx.set(EXISTING_RESOURCE_BYTES_KEY, found.bytes);
         ctx.set(EXISTING_PLUGIN_KEY, existing);
         ctx.set(SHOULD_CREATE_PLUGIN_KEY, false);
       } else {
@@ -526,7 +531,12 @@ export function newClaimPluginNameStep(store: Store): PipelineStep<PushDesc> {
   };
 }
 
-/** StorePlugin — persists the plugin, the install's one write. */
+/**
+ * StorePlugin — persists the plugin, the install's one write: a re-push by
+ * compare-and-swap on the row FindExistingBySlug read, so a visibility
+ * change or another push that lands in between makes the push run again
+ * from a fresh read (pipeline/guarded-write.ts); a first push as new.
+ */
 export function newStorePluginStep(
   store: Store,
   stepName: string,
@@ -534,17 +544,7 @@ export function newStorePluginStep(
   return {
     name: stepName,
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const plugin = ctx.get(PLUGIN_KEY) as Plugin;
-      try {
-        await store.saveResource(
-          ctx.apiResourceKind,
-          plugin.metadata!.id,
-          PluginSchema,
-          plugin,
-        );
-      } catch (error) {
-        throw internalError(error, "failed to save plugin");
-      }
+      await storeLoadedOrNew(store, ctx, PluginSchema, ctx.get(PLUGIN_KEY) as Plugin);
     },
   };
 }

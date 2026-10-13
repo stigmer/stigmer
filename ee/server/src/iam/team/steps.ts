@@ -7,7 +7,8 @@
  *   CheckDuplicate   the org-scoped slug check before a create persists
  *                    (`@stigmer/server`'s `pipeline/steps/duplicate.ts` copy)
  *   LoadExisting     the update's stored row, under EXISTING_RESOURCE_KEY,
- *                    for the OSS BuildUpdateState
+ *                    for the OSS BuildUpdateState, with its stored bytes
+ *                    for the update's guarded write
  *   LoadByReference  the reference read's row, under TARGET_RESOURCE_KEY,
  *                    for the OSS AuthorizeResolvedTarget; a miss is
  *                    NOT_FOUND only to the organization's viewers, who see
@@ -31,6 +32,7 @@ import type {
 } from "@stigmer/server";
 import {
   alreadyExistsError,
+  EXISTING_RESOURCE_BYTES_KEY,
   EXISTING_RESOURCE_KEY,
   internalError,
   invalidArgumentError,
@@ -108,7 +110,7 @@ export function duplicateTeamError(existing: Team): Error {
 
 /** The update's stored row, for the OSS BuildUpdateState. */
 export function newLoadExistingTeamStep(
-  teams: Pick<TeamStore, "findById">,
+  teams: Pick<TeamStore, "readForWrite">,
 ): PipelineStep<typeof TeamSchema> {
   return {
     name: "LoadExisting",
@@ -117,7 +119,12 @@ export function newLoadExistingTeamStep(
       if (id === "") {
         throw invalidArgumentError("resource id is required for update");
       }
-      ctx.set(EXISTING_RESOURCE_KEY, await requireTeam(teams, id));
+      const read = await teams.readForWrite(id);
+      if (read === undefined) {
+        throw notFoundError(TEAM_DISPLAY_NAME, id);
+      }
+      ctx.set(EXISTING_RESOURCE_KEY, read.row);
+      ctx.set(EXISTING_RESOURCE_BYTES_KEY, read.bytes);
     },
   };
 }

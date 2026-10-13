@@ -36,13 +36,13 @@ import {
   invalidArgumentError,
   notFoundError,
 } from "../../pipeline/errors.js";
-import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { storedRowHolder } from "../../pipeline/steps/names.js";
 import { moveName } from "../../pipeline/steps/rename.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { swapOntoLoadedRow } from "../../pipeline/steps/persist.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type {
   ResourceNameEntry,
@@ -281,45 +281,20 @@ function persistFailure(error: unknown, id: string): Error {
 
 /**
  * Update's persist: the vault's own fields from the request, its entries,
- * its visibility and its slug (rename's alone, pipeline/steps/rename.ts)
- * as the row holds them at the moment of the write,
- * inside the store's atomic read-modify-write, so an entry saved or a
- * visibility change made after the chain loaded the vault is never undone
- * (an update never changes visibility, and a reverted row would disagree
- * with the visibility tuples updateVisibility wrote). Runs where Persist
- * would.
+ * visibility and slug (rename's alone) from the row the chain read
+ * (KeepStoredOwnerAndEntries, BuildUpdateState), stored by compare-and-swap
+ * on that row. An entry saved, a visibility change or a rename that lands
+ * after the chain's read makes the swap lose, and the chain runs again from
+ * a fresh read (pipeline/guarded-write.ts), so none of them is undone (an
+ * update never changes visibility, and a reverted row would disagree with
+ * the visibility tuples updateVisibility wrote). Runs where Persist would.
  */
 export function newPersistVaultUpdateStep(store: Store): PipelineStep<VaultDesc> {
   return {
     name: "PersistVaultUpdate",
     async execute(ctx: RequestContext<VaultDesc>): Promise<void> {
-      const id = ctx.newState.metadata?.id ?? "";
       refuseBoundElsewhere(ctx.callerIdentity, ctx.newState.metadata?.org ?? "");
-      const next = ctx.newState;
-      let written: Vault;
-      try {
-        written = await store.updateResource(ApiResourceKind.vault, id, VaultSchema, (row) => {
-          const spec = (next.spec ??= create(VaultSpecSchema));
-          spec.secrets = row.spec?.secrets ?? {};
-          spec.connections = row.spec?.connections ?? {};
-          const metadata = next.metadata;
-          if (metadata !== undefined && row.metadata !== undefined) {
-            metadata.visibility = row.metadata.visibility;
-            metadata.slug = row.metadata.slug;
-          }
-          row.apiVersion = next.apiVersion;
-          row.kind = next.kind;
-          row.metadata = metadata;
-          row.spec = spec;
-          row.status = next.status;
-          // Stamped here, under the row lock: the chain's stamp predates
-          // any entry write that landed since its load.
-          setAuditFieldsForUpdate(VaultSchema, row, "spec_audit", ctx.callerIdentity);
-        });
-      } catch (error) {
-        throw persistFailure(error, id);
-      }
-      ctx.setNewState(written);
+      await swapOntoLoadedRow(store, ctx);
     },
   };
 }

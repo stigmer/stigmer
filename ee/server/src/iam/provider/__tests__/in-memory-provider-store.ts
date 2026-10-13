@@ -13,7 +13,7 @@
  * adapter is pinned to the same contract over its real tables in its own
  * suites.
  */
-import { clone, create } from "@bufbuild/protobuf";
+import { clone, create, toBinary } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -26,11 +26,13 @@ import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identitypr
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 
+import type { GuardedRead } from "@stigmer/server";
+
 import { routesOf, type ProviderRoute } from "../routes.js";
 import type {
   IdentityProviderStore,
   ProviderInsertOutcome,
-  ProviderReplaceOutcome,
+  ProviderSwapOutcome,
 } from "../store.js";
 
 /**
@@ -38,6 +40,11 @@ import type {
  * or the write is a programming error, answered as a rejected write the
  * way an async driver answers it.
  */
+/** Whether two stored forms are the same bytes, as the Postgres swap compares them. */
+function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
+  return left.length === right.length && left.every((byte, index) => byte === right[index]);
+}
+
 function unshapedRefusal(provider: IdentityProvider): Error | undefined {
   const shaped =
     (provider.metadata?.id ?? "") !== "" &&
@@ -81,19 +88,23 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     return Promise.resolve({ kind: "inserted" });
   }
 
-  replace(provider: IdentityProvider): Promise<ProviderReplaceOutcome> {
+  readForWrite(id: string): Promise<GuardedRead<IdentityProvider> | undefined> {
+    const held = this.rows.get(id);
+    return Promise.resolve(
+      held === undefined
+        ? undefined
+        : { row: clone(IdentityProviderSchema, held), bytes: toBinary(IdentityProviderSchema, held) },
+    );
+  }
+
+  swap(id: string, expectedBytes: Uint8Array, provider: IdentityProvider): Promise<ProviderSwapOutcome> {
     const refused = unshapedRefusal(provider);
     if (refused !== undefined) {
       return Promise.reject(refused);
     }
-    const id = provider.metadata?.id ?? "";
     const held = this.rows.get(id);
-    if (held === undefined) {
-      return Promise.resolve({ kind: "missing" });
-    }
-    const storedSlug = held.metadata?.slug;
-    if (provider.metadata !== undefined && storedSlug !== undefined) {
-      provider.metadata.slug = storedSlug;
+    if (held === undefined || !sameBytes(toBinary(IdentityProviderSchema, held), expectedBytes)) {
+      return Promise.resolve({ kind: "changed" });
     }
     if (this.ssoHeldByAnother(provider, id)) {
       return Promise.resolve({ kind: "sso-taken" });

@@ -12,22 +12,27 @@
  * events in the same transaction, domain/session/events/run-writes.ts);
  * the step's name and place in the chain are the same either way.
  *
- * An update of a renamable kind persists with newPersistOntoLiveRowStep
- * instead, under the same name: the request's state written onto the live
- * row inside the store's atomic write, keeping the row's slug. The state
- * was built from a row loaded earlier, and a rename may have landed since;
- * writing the loaded slug back would leave the row behind the name table
- * (pipeline/steps/rename.ts says why the slug is the rename's alone).
+ * An update persists by compare-and-swap on the bytes LoadExisting read
+ * (EXISTING_RESOURCE_BYTES_KEY): the new state was built from that row
+ * across awaited steps, and a status write, a rename or another person's
+ * edit may have landed since. A lost swap throws writeConflictError, and
+ * the controller's runGuardedWrite runs the chain again from a fresh read
+ * (pipeline/guarded-write.ts). A create, which loaded nothing, saves.
+ *
+ * A ConnectError a custom `save` throws reaches the caller as it is; any
+ * other store failure is internal.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
 
-import { ResourceNotFoundError } from "../../store/interface.js";
+import type { GuardedWritePort } from "../../store/guarded-port.js";
 import type { Store } from "../../store/interface.js";
-import { getKindName } from "../apiresource-meta.js";
-import { internalError, notFoundError } from "../errors.js";
+import { internalError } from "../errors.js";
+import { writeConflictError } from "../guarded-write.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { belongsToAnOrganization } from "../../authorization/credential-binding.js";
+import { EXISTING_RESOURCE_BYTES_KEY } from "./load-existing.js";
 import { refuseBoundElsewhere } from "./refuse-bound-elsewhere.js";
 import { metadataOf } from "./shapes.js";
 
@@ -51,6 +56,10 @@ export function newPersistStep<Desc extends DescMessage>(
       if (belongsToAnOrganization(ctx.apiResourceKind)) {
         refuseBoundElsewhere(ctx.callerIdentity, metadata.org);
       }
+      if (ctx.get(EXISTING_RESOURCE_BYTES_KEY) !== undefined) {
+        await swapOntoLoadedRow(store, ctx);
+        return;
+      }
       try {
         await (save === undefined
           ? store.saveResource(
@@ -61,6 +70,9 @@ export function newPersistStep<Desc extends DescMessage>(
             )
           : save(ctx.newState));
       } catch (error) {
+        if (error instanceof ConnectError) {
+          throw error;
+        }
         throw internalError(error, "failed to save resource to store");
       }
     },
@@ -68,52 +80,114 @@ export function newPersistStep<Desc extends DescMessage>(
 }
 
 /**
- * Persist for an update of a renamable kind: the new state written onto
- * the live row inside the store's atomic read-modify-write, every field
- * from the request but the slug, which stays the row's. The written row
- * becomes the new state, so the steps after it and the response see what
- * landed. A row deleted since the load answers NotFound rather than being
- * written back.
+ * An update chain's write: the new state stored by compare-and-swap on the
+ * bytes LoadExisting read (EXISTING_RESOURCE_BYTES_KEY). A row that moved
+ * or was deleted since the read loses the swap and throws
+ * writeConflictError, which runGuardedWrite retries from a fresh read.
+ * Persist calls it, and so does a kind whose update persists under its own
+ * step name.
  */
-export function newPersistOntoLiveRowStep<Desc extends DescMessage>(
+export async function swapOntoLoadedRow<Desc extends DescMessage>(
   store: Store,
-): PipelineStep<Desc> {
-  return {
-    name: "Persist",
-    async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const metadata = metadataOf(ctx.newState);
-      if (metadata === undefined || metadata.id === "") {
-        throw internalError(
-          new Error("resource ID is empty, cannot persist"),
-          "persist",
-        );
-      }
-      if (belongsToAnOrganization(ctx.apiResourceKind)) {
-        refuseBoundElsewhere(ctx.callerIdentity, metadata.org);
-      }
-      const next = ctx.newState;
-      let written: MessageShape<Desc>;
-      try {
-        written = await store.updateResource(
-          ctx.apiResourceKind,
-          metadata.id,
-          ctx.schema,
-          (row) => {
-            const slug = metadataOf(row)?.slug;
-            Object.assign(row, next);
-            const rowMetadata = metadataOf(row);
-            if (rowMetadata !== undefined && slug !== undefined) {
-              rowMetadata.slug = slug;
-            }
-          },
-        );
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          throw notFoundError(getKindName(ctx.apiResourceKind), metadata.id);
-        }
-        throw internalError(error, "failed to save resource to store");
-      }
-      ctx.setNewState(written);
-    },
-  };
+  ctx: RequestContext<Desc>,
+): Promise<void> {
+  const loadedBytes = ctx.get(EXISTING_RESOURCE_BYTES_KEY);
+  const metadata = metadataOf(ctx.newState);
+  if (!(loadedBytes instanceof Uint8Array) || metadata === undefined) {
+    throw internalError(
+      new Error(
+        "the loaded row's bytes are not in context - LoadExisting must run first",
+      ),
+      "persist",
+    );
+  }
+  let landed: boolean;
+  try {
+    landed = await store.swapResource(
+      ctx.apiResourceKind,
+      metadata.id,
+      ctx.schema,
+      loadedBytes,
+      ctx.newState,
+    );
+  } catch (error) {
+    throw internalError(error, "failed to save resource to store");
+  }
+  if (!landed) {
+    throw writeConflictError(ctx.apiResourceKind, metadata.org, metadata.slug);
+  }
+}
+
+/**
+ * swapOntoLoadedRow for a kind kept outside the shared store: the new
+ * state stored through the port's guarded write (store/guarded-port.ts) on
+ * the bytes the chain's loader read with `readForWrite` and kept under
+ * EXISTING_RESOURCE_BYTES_KEY. A lost swap throws writeConflictError.
+ */
+export async function swapOntoLoadedPortRow<Desc extends DescMessage>(
+  port: GuardedWritePort<MessageShape<Desc>>,
+  ctx: RequestContext<Desc>,
+): Promise<void> {
+  const loadedBytes = ctx.get(EXISTING_RESOURCE_BYTES_KEY);
+  const metadata = metadataOf(ctx.newState);
+  if (!(loadedBytes instanceof Uint8Array) || metadata === undefined) {
+    throw internalError(
+      new Error(
+        "the loaded row's bytes are not in context - the chain's loader must read for a write",
+      ),
+      "persist",
+    );
+  }
+  let landed: boolean;
+  try {
+    landed = await port.swap(metadata.id, loadedBytes, ctx.newState);
+  } catch (error) {
+    throw internalError(error, "failed to save resource to store");
+  }
+  if (!landed) {
+    throw writeConflictError(ctx.apiResourceKind, metadata.org, metadata.slug);
+  }
+}
+
+/**
+ * The write of a chain whose resource rides a context key rather than its
+ * new state (a push): stored by compare-and-swap on the bytes its loader
+ * kept under EXISTING_RESOURCE_BYTES_KEY when it found one, else saved as
+ * new. A lost swap throws writeConflictError.
+ */
+export async function storeLoadedOrNew<
+  Desc extends DescMessage,
+  RequestDesc extends DescMessage,
+>(
+  store: Store,
+  ctx: RequestContext<RequestDesc>,
+  schema: Desc,
+  resource: MessageShape<Desc>,
+): Promise<void> {
+  const metadata = metadataOf(resource);
+  const id = metadata?.id ?? "";
+  const loadedBytes = ctx.get(EXISTING_RESOURCE_BYTES_KEY);
+  let landed = true;
+  try {
+    if (loadedBytes instanceof Uint8Array) {
+      landed = await store.swapResource(
+        ctx.apiResourceKind,
+        id,
+        schema,
+        loadedBytes,
+        resource,
+      );
+    } else {
+      await store.saveResource(ctx.apiResourceKind, id, schema, resource);
+    }
+  } catch (error) {
+    throw internalError(error, "failed to save resource to store");
+  }
+  if (!landed) {
+    throw writeConflictError(
+      ctx.apiResourceKind,
+      metadata?.org ?? "",
+      metadata?.slug ?? "",
+    );
+  }
 }

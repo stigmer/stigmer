@@ -42,12 +42,14 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 
+import type { GuardedRead } from "@stigmer/server";
+
 import { inTransaction } from "../../postgres/transaction.js";
 import { routesOf, type ProviderRoute } from "./routes.js";
 import type {
   IdentityProviderStore,
   ProviderInsertOutcome,
-  ProviderReplaceOutcome,
+  ProviderSwapOutcome,
 } from "./store.js";
 
 const TABLE = "ee.iam_identity_provider";
@@ -129,20 +131,30 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
       });
     },
 
-    async replace(provider): Promise<ProviderReplaceOutcome> {
+    async readForWrite(id): Promise<GuardedRead<IdentityProvider> | undefined> {
+      const result = await pool.query<ProviderRow>(
+        `SELECT data FROM ${TABLE} WHERE id = $1`,
+        [id],
+      );
+      const row = result.rows[0];
+      return row === undefined
+        ? undefined
+        : { row: rowToProvider(row), bytes: new Uint8Array(row.data) };
+    },
+
+    async swap(id, expectedBytes, provider): Promise<ProviderSwapOutcome> {
       const columns = columnsOf(provider);
-      return inTransaction<ProviderReplaceOutcome>(pool, async (client) => {
+      if (columns.id !== id) {
+        throw new Error(`swap of provider '${id}' was handed provider '${columns.id}'`);
+      }
+      return inTransaction<ProviderSwapOutcome>(pool, async (client) => {
         const locked = await client.query<ProviderRow>(
           `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
           [columns.id],
         );
         const held = locked.rows[0];
-        if (held === undefined) {
-          return { commit: false, value: { kind: "missing" } };
-        }
-        const storedSlug = rowToProvider(held).metadata?.slug;
-        if (provider.metadata !== undefined && storedSlug !== undefined) {
-          provider.metadata.slug = storedSlug;
+        if (held === undefined || !held.data.equals(Buffer.from(expectedBytes))) {
+          return { commit: false, value: { kind: "changed" } };
         }
         let rowCount = 0;
         const refused = await claiming(async () => {
@@ -156,7 +168,7 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
           return { commit: false, value: { kind: "sso-taken" } };
         }
         if (rowCount === 0) {
-          return { commit: false, value: { kind: "missing" } };
+          return { commit: false, value: { kind: "changed" } };
         }
         await client.query(
           `DELETE FROM ${ROUTE_TABLE} WHERE identity_provider_id = $1`,
@@ -315,7 +327,7 @@ function claimOf(error: unknown): Claim | undefined {
 }
 
 /**
- * Refuses a `modifyById` that moved what only `replace` may: the
+ * Refuses a `modifyById` that moved what only `swap` may: the
  * organization, the SSO flag or a route claim.
  */
 function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): void {
@@ -327,7 +339,7 @@ function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): voi
     routeKey(before.routes) !== routeKey(after.routes)
   ) {
     throw new Error(
-      "modifyById changes a provider's payload and slug alone; its organization, SSO flag and routes change through replace",
+      "modifyById changes a provider's payload and slug alone; its organization, SSO flag and routes change through an update",
     );
   }
 }

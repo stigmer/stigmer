@@ -79,7 +79,12 @@ import {
   resolveNameEntry,
 } from "../../pipeline/steps/names.js";
 import type { NameHolder } from "../../pipeline/steps/names.js";
-import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  EXISTING_RESOURCE_BYTES_KEY,
+  EXISTING_RESOURCE_KEY,
+} from "../../pipeline/steps/load-existing.js";
+import { swapOntoLoadedPortRow } from "../../pipeline/steps/persist.js";
+import type { GuardedRead } from "../../store/guarded-port.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
 import {
@@ -278,8 +283,10 @@ export function newPersistNewClientStep(
 
 /**
  * Loads the client by id, else by org-scoped slug (the id written back),
- * into EXISTING_RESOURCE_KEY. A slug the client was renamed away from is
- * refused with SLUG_RENAMED, as every write's is (findResourceForWrite).
+ * into EXISTING_RESOURCE_KEY, with its stored bytes under
+ * EXISTING_RESOURCE_BYTES_KEY for the update's guarded write. A slug the
+ * client was renamed away from is refused with SLUG_RENAMED, as every
+ * write's is (findResourceForWrite).
  */
 export function newLoadExistingClientStep(
   store: Store,
@@ -289,29 +296,33 @@ export function newLoadExistingClientStep(
     name: "LoadExisting",
     async execute(ctx: ClientContext): Promise<void> {
       const metadata = requireMetadata(ctx, "load existing");
-      let existing: PlatformClient | undefined;
+      let read: GuardedRead<PlatformClient> | undefined;
       if (metadata.id !== "") {
-        existing = await clients.findById(metadata.id);
-        if (existing === undefined) {
+        read = await clients.readForWrite(metadata.id);
+        if (read === undefined) {
           throw notFoundError(PLATFORM_CLIENT_KIND_NAME, metadata.id);
         }
       } else if (metadata.slug !== "") {
-        existing = await findResourceForWrite<typeof PlatformClientSchema>(
+        await findResourceForWrite<typeof PlatformClientSchema>(
           store,
           ApiResourceKind.platform_client,
           { id: "", org: metadata.org, slug: metadata.slug },
-          (id) => clients.findById(id),
+          async (id) => {
+            read = await clients.readForWrite(id);
+            return read?.row;
+          },
         );
-        if (existing === undefined) {
+        if (read === undefined) {
           throw notFoundError(PLATFORM_CLIENT_KIND_NAME, metadata.slug);
         }
-        metadata.id = existing.metadata?.id ?? "";
+        metadata.id = read.row.metadata?.id ?? "";
       } else {
         throw invalidArgumentError(
           "resource id or slug is required for update",
         );
       }
-      ctx.set(EXISTING_RESOURCE_KEY, existing);
+      ctx.set(EXISTING_RESOURCE_KEY, read.row);
+      ctx.set(EXISTING_RESOURCE_BYTES_KEY, read.bytes);
     },
   };
 }
@@ -331,10 +342,11 @@ export function newPreserveClientCredentialsStep(): ClientStep {
 }
 
 /**
- * Writes the update onto the live row through the port's atomic write,
- * every field from the request but the slug, which stays the row's
- * (rename's alone, pipeline/steps/rename.ts). The written row becomes the
- * new state; a client deleted since the load answers NotFound.
+ * The update's write: the new state stored through the port's guarded
+ * write on the row LoadExisting read (store/guarded-port.ts). A stamp, a
+ * rotation or a rename that lands in between makes the swap lose, and the
+ * chain runs again from a fresh read (pipeline/guarded-write.ts); a client
+ * deleted since the load answers NotFound on that read.
  */
 export function newPersistUpdatedClientStep(
   clients: PlatformClientStore,
@@ -342,24 +354,7 @@ export function newPersistUpdatedClientStep(
   return {
     name: "Persist",
     async execute(ctx: ClientContext): Promise<void> {
-      const next = ctx.newState;
-      const id = next.metadata?.id ?? "";
-      let written: PlatformClient | undefined;
-      try {
-        written = await clients.modifyById(id, (row) => {
-          const slug = row.metadata?.slug;
-          Object.assign(row, next);
-          if (row.metadata !== undefined && slug !== undefined) {
-            row.metadata.slug = slug;
-          }
-        });
-      } catch (error) {
-        throw internalError(error, "failed to save platform client");
-      }
-      if (written === undefined) {
-        throw notFoundError(PLATFORM_CLIENT_KIND_NAME, id);
-      }
-      ctx.setNewState(written);
+      await swapOntoLoadedPortRow(clients, ctx);
     },
   };
 }

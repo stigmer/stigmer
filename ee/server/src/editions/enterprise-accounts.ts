@@ -38,12 +38,14 @@ import { TimestampSchema } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { CallOptions } from "@connectrpc/connect";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import type { ComposedServices, IdentityAccountStore } from "@stigmer/server";
 import {
+  changeThroughGuardedPort,
   DuplicateAccountError,
   encodeInProcessCaller,
   IN_PROCESS_CALLER_HEADER,
@@ -83,7 +85,8 @@ export function newEnterpriseAccounts(): EnterpriseAccounts {
   type Store = IdentityAccountStore;
   const store: Store = {
     save: async (...args: Parameters<Store["save"]>) => domain().store.save(...args),
-    update: async (...args: Parameters<Store["update"]>) => domain().store.update(...args),
+    readForWrite: async (...args: Parameters<Store["readForWrite"]>) => domain().store.readForWrite(...args),
+    swap: async (...args: Parameters<Store["swap"]>) => domain().store.swap(...args),
     deleteById: async (...args: Parameters<Store["deleteById"]>) => domain().store.deleteById(...args),
     findById: async (...args: Parameters<Store["findById"]>) => domain().store.findById(...args),
     findByIdpId: async (...args: Parameters<Store["findByIdpId"]>) => domain().store.findByIdpId(...args),
@@ -129,15 +132,19 @@ export function newEnterpriseAccounts(): EnterpriseAccounts {
       }
     },
 
-    async updateAccount(account: IdentityAccount): Promise<IdentityAccount> {
-      const specAudit = account.status?.audit?.specAudit;
-      if (specAudit !== undefined) {
-        specAudit.updatedAt = create(TimestampSchema, {
-          seconds: BigInt(Math.floor(Date.now() / 1000)),
-        });
-      }
-      await store.update(account);
-      return account;
+    updateAccount(
+      id: string,
+      change: (account: IdentityAccount) => void,
+    ): Promise<IdentityAccount | undefined> {
+      return changeThroughGuardedPort(store, ApiResourceKind.identity_account, id, (account) => {
+        change(account);
+        const specAudit = account.status?.audit?.specAudit;
+        if (specAudit !== undefined) {
+          specAudit.updatedAt = create(TimestampSchema, {
+            seconds: BigInt(Math.floor(Date.now() / 1000)),
+          });
+        }
+      });
     },
 
     async deleteAccount(account: IdentityAccount, actingFor?: string): Promise<void> {

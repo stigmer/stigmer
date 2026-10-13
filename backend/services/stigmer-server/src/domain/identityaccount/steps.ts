@@ -76,7 +76,11 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { assignServerId } from "../../pipeline/steps/defaults.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
-import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  EXISTING_RESOURCE_BYTES_KEY,
+  EXISTING_RESOURCE_KEY,
+} from "../../pipeline/steps/load-existing.js";
+import { swapOntoLoadedPortRow } from "../../pipeline/steps/persist.js";
 import {
   claimNameOf,
   portHolder,
@@ -374,7 +378,11 @@ export function newPersistNewAccountStep(
 // Update
 // ---------------------------------------------------------------------------
 
-/** Loads the existing account by id into EXISTING_RESOURCE_KEY; the domain's NOT_FOUND copy. */
+/**
+ * Loads the existing account by id into EXISTING_RESOURCE_KEY, with its
+ * stored bytes under EXISTING_RESOURCE_BYTES_KEY for the update's guarded
+ * write; the domain's NOT_FOUND copy.
+ */
 export function newLoadExistingAccountStep(
   accounts: IdentityAccountStore,
 ): AccountStep {
@@ -388,8 +396,12 @@ export function newLoadExistingAccountStep(
         // an identity.
         throw invalidArgumentError("resource id is required for update");
       }
-      const existing = await readAccount(accounts, metadata.id);
-      ctx.set(EXISTING_RESOURCE_KEY, existing);
+      const read = await accounts.readForWrite(metadata.id);
+      if (read === undefined) {
+        throw accountNotFoundError(metadata.id);
+      }
+      ctx.set(EXISTING_RESOURCE_KEY, read.row);
+      ctx.set(EXISTING_RESOURCE_BYTES_KEY, read.bytes);
     },
   };
 }
@@ -560,18 +572,19 @@ export function revertServiceAccountRenameOnFailure(
   };
 }
 
-/** Replaces the row through the port. */
+/**
+ * The update's write through the port's guarded write on the row
+ * LoadExisting read (store/guarded-port.ts): a write in between makes it
+ * lose, and the chain, its rename revert included, runs again from a fresh
+ * read (pipeline/guarded-write.ts).
+ */
 export function newPersistUpdatedAccountStep(
   accounts: IdentityAccountStore,
 ): AccountStep {
   return {
     name: "Persist",
     async execute(ctx: AccountContext): Promise<void> {
-      try {
-        await accounts.update(ctx.newState);
-      } catch (error) {
-        throw internalError(error, "failed to save identity account");
-      }
+      await swapOntoLoadedPortRow(accounts, ctx);
     },
   };
 }

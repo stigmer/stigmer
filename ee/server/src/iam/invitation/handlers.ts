@@ -98,7 +98,7 @@
  */
 import { randomBytes } from "node:crypto";
 
-import { clone, create, fromBinary } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ServiceImpl } from "@connectrpc/connect";
@@ -136,6 +136,7 @@ import type {
 import type { ServiceAccountLookup } from "@stigmer/server";
 import {
   internalError,
+  notFoundError,
   listPageFingerprint,
   OWNER_ASSIGNMENT_DENIED_MESSAGE,
   newBuildNewStateStep,
@@ -152,6 +153,7 @@ import type { OrganizationFacts, OrganizationLookup } from "../organization-link
 import type { IamPolicyGrantPathClient } from "../policy/grant-path-client.js";
 import { grantableRolesFor } from "../policy/roles.js";
 import {
+  INVITATION_DISPLAY_NAME,
   invitationAt,
   newLoadInvitationStep,
   newRefuseNonPersonCallerStep,
@@ -230,11 +232,13 @@ export function invitationCommands(deps: InvitationLaneDeps): Commands {
           if (invitation.status?.state === InvitationState.revoked) {
             return invitation; // idempotent no-op
           }
-          const revoked = clone(InvitationSchema, invitation);
-          if (revoked.status !== undefined) {
-            revoked.status.state = InvitationState.revoked;
+          // Under the row lock redemption takes, so a redemption recorded
+          // since the load is kept.
+          const id = invitation.metadata?.id ?? "";
+          const revoked = await deps.store.revoke(id);
+          if (revoked === undefined) {
+            throw notFoundError(INVITATION_DISPLAY_NAME, id);
           }
-          await deps.store.update(revoked);
           return revoked;
         },
         {

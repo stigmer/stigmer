@@ -69,14 +69,16 @@ import {
   setAuditFieldsForCreate,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
-import { claimNameOf, findResourceByName } from "../../pipeline/steps/names.js";
+import { claimNameOf, findResourceByNameForWrite } from "../../pipeline/steps/names.js";
+import { EXISTING_RESOURCE_BYTES_KEY } from "../../pipeline/steps/load-existing.js";
+import { storeLoadedOrNew } from "../../pipeline/steps/persist.js";
 import { checkDerivedSlug, generateSlug } from "../../pipeline/steps/slug.js";
 import {
   ARTIFACT_BYTES_KEY,
   newResolveArtifactSourceStep as newSharedResolveArtifactSourceStep,
 } from "../../pipeline/steps/resolve-artifact-source.js";
 import { newArchiveCurrentVersionStep } from "../../pipeline/steps/version-archive.js";
-import type { Store } from "../../store/interface.js";
+import type { ResourceReadForWrite, Store } from "../../store/interface.js";
 import { TRANSFER_LANE_NOT_CONFIGURED } from "./constants.js";
 import { skillSearchExtractor } from "./search-extractor.js";
 import { extractSkillMd } from "./storage/zip-gate.js";
@@ -200,14 +202,17 @@ export function newFindExistingBySlugStep(
     name: "FindExistingBySlug",
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
       const skill = ctx.get(SKILL_KEY) as Skill;
-      let existing: Skill | undefined;
+      let found: ResourceReadForWrite<typeof SkillSchema> | undefined;
       try {
-        existing = await findResourceByName(store, ctx.apiResourceKind, SkillSchema, skill.metadata!.org, skill.metadata!.slug);
+        found = await findResourceByNameForWrite(store, ctx.apiResourceKind, SkillSchema, skill.metadata!.org, skill.metadata!.slug);
       } catch (error) {
         throw internalError(error, "failed to search for existing skill");
       }
-      if (existing !== undefined) {
+      if (found !== undefined) {
+        const existing = found.resource;
         skill.metadata!.id = existing.metadata!.id;
+        // The bytes a re-push's write swaps on (storeLoadedOrNew).
+        ctx.set(EXISTING_RESOURCE_BYTES_KEY, found.bytes);
         ctx.set(EXISTING_SKILL_KEY, existing);
         ctx.set(SHOULD_CREATE_SKILL_KEY, false);
       } else {
@@ -418,22 +423,17 @@ export function newClaimSkillNameStep(store: Store): PipelineStep<PushDesc> {
   };
 }
 
-/** StoreSkill — persists the fully populated head. */
+/**
+ * StoreSkill — persists the fully populated head: a re-push by
+ * compare-and-swap on the row FindExistingBySlug read, so a visibility
+ * change or another push that lands in between makes the push run again
+ * from a fresh read (pipeline/guarded-write.ts); a first push as new.
+ */
 export function newStoreSkillStep(store: Store): PipelineStep<PushDesc> {
   return {
     name: "StoreSkill",
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      const skill = ctx.get(SKILL_KEY) as Skill;
-      try {
-        await store.saveResource(
-          ctx.apiResourceKind,
-          skill.metadata!.id,
-          SkillSchema,
-          skill,
-        );
-      } catch (error) {
-        throw internalError(error, "failed to save skill");
-      }
+      await storeLoadedOrNew(store, ctx, SkillSchema, ctx.get(SKILL_KEY) as Skill);
     },
   };
 }

@@ -55,6 +55,8 @@ import type {
   ApiResourceReference,
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import { ArtifactNotFoundError } from "../../archive/content-store.js";
 import type { ContentAddressedArchiveStore } from "../../archive/content-store.js";
@@ -155,6 +157,8 @@ import {
   newSweepPluginEvalsAfterDeleteStep,
 } from "../plugin-eval/cascade.js";
 import type { PluginEvalCascadeDeps } from "../plugin-eval/cascade.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
 
 export interface PluginControllerDeps {
   readonly store: Store;
@@ -212,73 +216,83 @@ async function push(
   req: PushPluginRequest,
   ctx: HandlerContext,
 ): Promise<Plugin> {
-  const reqCtx = new RequestContext(
-    PushPluginRequestSchema,
-    req,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof PushPluginRequestSchema>(
-    "plugin-push-plan",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(PluginCommandController.method.push, deps.authorizer),
+  // A retried attempt keeps the artifact bytes the first one consumed: an
+  // upload reference is single-use (ResolveArtifactSource).
+  let previous: RequestContext<typeof PushPluginRequestSchema> | undefined;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      PushPluginRequestSchema,
+      req,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    const consumed = previous?.get(ARTIFACT_BYTES_KEY);
+    if (consumed !== undefined) {
+      reqCtx.set(ARTIFACT_BYTES_KEY, consumed);
+    }
+    previous = reqCtx;
+    await newPipeline<typeof PushPluginRequestSchema>(
+      "plugin-push-plan",
+      deps.logger,
     )
-    .addStep(newValidateProtoStep())
-    .addStep(
-      newResolveArtifactSourceStep<typeof PushPluginRequestSchema>(
-        deps.staging,
-        {
-          source: (input) => ({
-            artifact: input.artifact,
-            artifactUploadRef: input.artifactUploadRef,
-          }),
-          laneNotConfigured: TRANSFER_LANE_NOT_CONFIGURED,
-        },
-      ),
-    )
-    .addStep(newGateAndHashArchiveStep())
-    .addStep(newReadPluginPackageStep())
-    .addStep(newBuildInitialPluginStep())
-    .addStep(newFindExistingPluginBySlugStep(deps.store))
-    .addStep(newGeneratePluginIdIfNeededStep())
-    .addStep(newPlanPluginStatusStep())
-    .addStep(newGuardPluginVisibilityStep(deps.store))
-    .addStep(newResolveConvergenceStep())
-    .build()
-    .execute(reqCtx);
+      .addStep(
+        newAuthorizeStep(PluginCommandController.method.push, deps.authorizer),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(
+        newResolveArtifactSourceStep<typeof PushPluginRequestSchema>(
+          deps.staging,
+          {
+            source: (input) => ({
+              artifact: input.artifact,
+              artifactUploadRef: input.artifactUploadRef,
+            }),
+            laneNotConfigured: TRANSFER_LANE_NOT_CONFIGURED,
+          },
+        ),
+      )
+      .addStep(newGateAndHashArchiveStep())
+      .addStep(newReadPluginPackageStep())
+      .addStep(newBuildInitialPluginStep())
+      .addStep(newFindExistingPluginBySlugStep(deps.store))
+      .addStep(newGeneratePluginIdIfNeededStep())
+      .addStep(newPlanPluginStatusStep())
+      .addStep(newGuardPluginVisibilityStep(deps.store))
+      .addStep(newResolveConvergenceStep())
+      .build()
+      .execute(reqCtx);
 
-  if (reqCtx.get(PLUGIN_CONVERGED_KEY) === true) {
-    return reqCtx.get(EXISTING_PLUGIN_KEY) as Plugin;
-  }
+    if (reqCtx.get(PLUGIN_CONVERGED_KEY) === true) {
+      return reqCtx.get(EXISTING_PLUGIN_KEY) as Plugin;
+    }
 
-  await newPipeline<typeof PushPluginRequestSchema>(
-    "plugin-push-install",
-    deps.logger,
-  )
-    .addStep(
-      newProbeServerSignInsStep({
-        outboundFetch: deps.outboundFetch,
-        logger: deps.logger,
-      }),
+    await newPipeline<typeof PushPluginRequestSchema>(
+      "plugin-push-install",
+      deps.logger,
     )
-    .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
-    .addStep(newPopulatePluginFieldsStep())
-    .addStep(newArchiveCurrentPluginStep(deps.store, deps.logger))
-    .addStep(newClaimPluginNameStep(deps.store))
-    .addStep(newStorePluginStep(deps.store, "StorePlugin"))
-    .addStep(
-      newPluginPushAuthorizationTuplesStep(
-        deps.authorizationLifecycle,
-        deps.logger,
-      ),
-    )
-    .addStep(newIndexPluginSearchStep(deps.store, deps.logger))
-    .build()
-    .execute(reqCtx)
-    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
-  return reqCtx.get(PLUGIN_KEY) as Plugin;
+      .addStep(
+        newProbeServerSignInsStep({
+          outboundFetch: deps.outboundFetch,
+          logger: deps.logger,
+        }),
+      )
+      .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
+      .addStep(newPopulatePluginFieldsStep())
+      .addStep(newClaimPluginNameStep(deps.store))
+      .addStep(newStorePluginStep(deps.store, "StorePlugin"))
+      .addStep(newArchiveCurrentPluginStep(deps.store, deps.logger))
+      .addStep(
+        newPluginPushAuthorizationTuplesStep(
+          deps.authorizationLifecycle,
+          deps.logger,
+        ),
+      )
+      .addStep(newIndexPluginSearchStep(deps.store, deps.logger))
+      .build()
+      .execute(reqCtx)
+      .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
+    return reqCtx.get(PLUGIN_KEY) as Plugin;
+  });
 }
 
 // ─── createArtifactUploadUrl ─────────────────────────────────────────────
@@ -759,17 +773,35 @@ function newPersistPluginStep<Desc extends UpdateVisibilityDesc>(
   return {
     name: stepName,
     async execute(ctx: RequestContext<Desc>): Promise<void> {
+      // The visibility and status audit the chain set on the loaded plugin,
+      // applied to the live row inside the store's atomic write, so a push
+      // that landed since the load stays (the agent's
+      // PersistAgentForVisibilityUpdate).
       const plugin = ctx.get(key) as Plugin;
+      const id = plugin.metadata?.id ?? "";
+      let written: Plugin;
       try {
-        await store.saveResource(
+        written = await store.updateResource(
           ctx.apiResourceKind,
-          plugin.metadata?.id ?? "",
+          id,
           PluginSchema,
-          plugin,
+          (row) => {
+            if (row.metadata !== undefined) {
+              row.metadata.visibility =
+                plugin.metadata?.visibility ?? row.metadata.visibility;
+            }
+            const audit = ((row.status ??= create(PluginStatusSchema)).audit ??=
+              create(ApiResourceAuditSchema));
+            audit.statusAudit = plugin.status?.audit?.statusAudit;
+          },
         );
       } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("plugin", id);
+        }
         throw internalError(error, "failed to save plugin");
       }
+      ctx.set(key, written);
     },
   };
 }

@@ -103,6 +103,7 @@ import {
 import { newCreateAuthorizationTuplesStep } from "../../pipeline/steps/authorization-tuples.js";
 import { readListPage } from "../../pipeline/steps/list-page.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -135,7 +136,6 @@ import {
 import {
   newClaimOrganizationSlugStep,
   newOrganizationNameResolver,
-  newSettleOrganizationSlugStep,
   releaseSlugClaimAfterFailure,
 } from "./names.js";
 import type { OrganizationPurgeKick } from "./purge/runner.js";
@@ -347,37 +347,38 @@ async function update(
   org: Organization,
   ctx: HandlerContext,
 ): Promise<Organization> {
-  const reqCtx = new RequestContext(
-    OrganizationSchema,
-    org,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof OrganizationSchema>(
-    "organization-update",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(
-        OrganizationCommandController.method.update,
-        deps.authorizer,
-      ),
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      OrganizationSchema,
+      org,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof OrganizationSchema>(
+      "organization-update",
+      deps.logger,
     )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingOrganizationStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newPreserveChildLinkStep())
-    .addStep(newPreservePoliciesStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newPersistStep(deps.store))
-    .addStep(newSettleOrganizationSlugStep(deps.store, deps.logger))
-    .addStep(
-      newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),
-    )
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+      .addStep(
+        newAuthorizeStep(
+          OrganizationCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingOrganizationStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newPreserveChildLinkStep())
+      .addStep(newPreservePoliciesStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newPersistStep(deps.store))
+      .addStep(
+        newIndexSearchStep(deps.store, organizationSearchExtractor, deps.logger),
+      )
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /**

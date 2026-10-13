@@ -55,6 +55,7 @@ import type {
   ResourceNameClaim,
   ResourceNameEntry,
   ResourceNameKey,
+  ResourceReadForWrite,
   Store,
 } from "../../store/interface.js";
 import { getKindName, kindEnumName, kindNoun } from "../apiresource-meta.js";
@@ -570,6 +571,33 @@ export async function findResourceByName<Desc extends DescMessage>(
     return undefined;
   }
   return readById(store, kind, schema, id);
+}
+
+/**
+ * findResourceByName for a write that will swap on the row (a push onto a
+ * resource it finds by slug): the resource with its exact stored bytes
+ * (Store.readResourceForWrite), or undefined when the name holds none.
+ */
+export async function findResourceByNameForWrite<Desc extends DescMessage>(
+  store: Store,
+  kind: ApiResourceKind,
+  schema: Desc,
+  org: string,
+  slug: string,
+  now: Date = new Date(),
+): Promise<ResourceReadForWrite<Desc> | undefined> {
+  const id = await resolveName(store, kind, org, slug, now);
+  if (id === undefined) {
+    return undefined;
+  }
+  try {
+    return await store.readResourceForWrite(kind, id, schema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
 /** What a write names its resource by: the request's metadata. */

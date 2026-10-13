@@ -60,6 +60,7 @@ import {
 } from "../../pipeline/steps/load-target.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
@@ -162,25 +163,27 @@ async function updateEvaluator(
   evaluator: Evaluator,
   ctx: HandlerContext,
 ): Promise<Evaluator> {
-  const reqCtx = new RequestContext(
-    EvaluatorSchema,
-    evaluator,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof EvaluatorSchema>("evaluator-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(EvaluatorCommandController.method.update, deps.authorizer),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newValidateEvaluatorUpdateStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newPersistEvaluatorSettingsStep(deps.store))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      EvaluatorSchema,
+      evaluator,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof EvaluatorSchema>("evaluator-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(EvaluatorCommandController.method.update, deps.authorizer),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateEvaluatorUpdateStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newPersistEvaluatorSettingsStep(deps.store))
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /** Delete: can_delete on the evaluator (can_edit on its agent). Scores already recorded stay. */

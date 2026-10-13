@@ -105,6 +105,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -255,41 +256,43 @@ async function update(
   channel: AgentChannel,
   ctx: HandlerContext,
 ): Promise<AgentChannel> {
-  const reqCtx = new RequestContext(
-    AgentChannelSchema,
-    channel,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof AgentChannelSchema>(
-    "agent-channel-update",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(
-        AgentChannelCommandController.method.update,
-        deps.authorizer,
-      ),
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      AgentChannelSchema,
+      channel,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof AgentChannelSchema>(
+      "agent-channel-update",
+      deps.logger,
     )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newNormalizeReferencesStep(deps.store))
-    .addStep(
-      newValidateChannelUpdateStep(
-        deps.store,
-        deps.modelRegistry,
-        deps.channelRuntime,
-      ),
-    )
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
-    .addStep(newPersistStep(deps.store))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+      .addStep(
+        newAuthorizeStep(
+          AgentChannelCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(
+        newValidateChannelUpdateStep(
+          deps.store,
+          deps.modelRegistry,
+          deps.channelRuntime,
+        ),
+      )
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
+      .addStep(newPersistStep(deps.store))
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /**

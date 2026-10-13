@@ -132,9 +132,22 @@ function reasonDetail(reason: RefusalReason) {
   };
 }
 
-/** Go AbortedError — retryable conflict (e.g. an in-flight dedupe claim). */
-export function abortedError(message: string): ConnectError {
-  return new ConnectError(message, Code.Aborted);
+/**
+ * Go AbortedError — retryable conflict (e.g. an in-flight dedupe claim).
+ * With a reason, the conflict also carries it as an ErrorInfo detail, so a
+ * client (and the guarded-write runner, pipeline/guarded-write.ts) can tell
+ * a write that lost a race from any other abort.
+ */
+export function abortedError(
+  message: string,
+  reason?: RefusalReason,
+): ConnectError {
+  if (reason === undefined) {
+    return new ConnectError(message, Code.Aborted);
+  }
+  return new ConnectError(message, Code.Aborted, undefined, [
+    reasonDetail(reason),
+  ]);
 }
 
 /** Go UnavailableError — a dependency is temporarily unreachable. */

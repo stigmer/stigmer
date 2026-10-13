@@ -118,18 +118,19 @@ const SERVICE_CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountServic
     },
   ],
   [
-    "updateAccount writes the profile as given, email included",
+    "updateAccount applies the change to the stored account and writes it, email included",
     async ({ store: host }) => {
       const { provider, service } = host;
       const created = await service.createAccount(
         federatedRequest(provider, "okta|fay", "fay@acme.example"),
         provider.id,
       );
-      const spec = created.spec;
-      assert.ok(spec !== undefined, "a created account carries its spec");
-      spec.email = "fay.reyes@acme.example";
-      spec.lastName = "Reyes-Ortiz";
-      await service.updateAccount(created);
+      const updated = await service.updateAccount(created.metadata?.id ?? "", (account) => {
+        assert.ok(account.spec !== undefined, "a stored account carries its spec");
+        account.spec.email = "fay.reyes@acme.example";
+        account.spec.lastName = "Reyes-Ortiz";
+      });
+      assert.equal(updated?.spec?.email, "fay.reyes@acme.example", "the written account is answered");
       const stored = await service.store.findById(created.metadata?.id ?? "");
       assert.equal(stored?.spec?.email, "fay.reyes@acme.example", "a changed email at the provider reaches the account");
       assert.equal(stored?.spec?.lastName, "Reyes-Ortiz");

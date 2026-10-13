@@ -39,7 +39,7 @@
  */
 import assert from "node:assert/strict";
 
-import { clone, create } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
@@ -96,15 +96,10 @@ function recordedOf(outcome: RedemptionOutcome): Invitation {
   return outcome.invitation;
 }
 
-/** Writes the invitation back revoked. */
+/** Revokes the invitation through the port. */
 async function revoke(store: InvitationStore, id: string): Promise<void> {
-  const held = await store.findById(id);
-  assert.ok(held?.status !== undefined, `invitation ${id} is held`);
-  const revoked = clone(InvitationSchema, held);
-  if (revoked.status !== undefined) {
-    revoked.status.state = InvitationState.revoked;
-  }
-  await store.update(revoked);
+  const revoked = await store.revoke(id);
+  assert.equal(revoked?.status?.state, InvitationState.revoked, `invitation ${id} is held and revoked`);
 }
 
 const CASES: ReadonlyArray<PortContractDeclaration<InvitationStore>> = [

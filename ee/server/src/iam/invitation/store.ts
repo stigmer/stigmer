@@ -11,6 +11,11 @@
  * the guard rejected: the slot race was lost or the invitation was
  * concurrently revoked or deleted.
  *
+ * revoke writes the revoked state onto the row under the same row lock, so
+ * a redemption recorded between the revoke's read and its write is never
+ * undone (nor counted twice): it answers the revoked post-image, the row as
+ * it was when it was already revoked, or undefined when the row is gone.
+ *
  * releaseRedemption is its undo, for a redemption whose grant failed after
  * it was recorded (the handler records before it grants): atomically it
  * removes one ledger entry matching the person and the recorded instant,
@@ -47,7 +52,8 @@ export type ReleaseOutcome = { readonly kind: "released" } | { readonly kind: "a
 
 export interface InvitationStore {
   save(invitation: Invitation): Promise<void>;
-  update(invitation: Invitation): Promise<void>;
+  /** The row revoked under its lock (see above); undefined when it is gone. */
+  revoke(invitationId: string): Promise<Invitation | undefined>;
   deleteById(id: string): Promise<void>;
   findById(id: string): Promise<Invitation | undefined>;
   findByToken(token: string): Promise<Invitation | undefined>;

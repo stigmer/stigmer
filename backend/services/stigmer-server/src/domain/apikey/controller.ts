@@ -91,6 +91,7 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import {
   newRefuseServiceAccountCallerStep,
   refuseServiceAccountCaller,
@@ -299,26 +300,28 @@ async function update(
   apiKey: ApiKey,
   ctx: HandlerContext,
 ): Promise<ApiKey> {
-  const reqCtx = new RequestContext(
-    ApiKeySchema,
-    apiKey,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof ApiKeySchema>("apikey-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(ApiKeyCommandController.method.update, deps.authorizer),
-    )
-    .addStep(newRefuseServiceAccountCallerStep(UPDATE_KEY_ACT, deps.accounts))
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newPreserveKeyMaterialStep())
-    .addStep(newPersistStep(deps.store))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      ApiKeySchema,
+      apiKey,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof ApiKeySchema>("apikey-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(ApiKeyCommandController.method.update, deps.authorizer),
+      )
+      .addStep(newRefuseServiceAccountCallerStep(UPDATE_KEY_ACT, deps.accounts))
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newPreserveKeyMaterialStep())
+      .addStep(newPersistStep(deps.store))
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /** Delete — returns the pre-delete resource (the canonical delete chain). */

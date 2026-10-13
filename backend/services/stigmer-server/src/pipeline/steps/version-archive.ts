@@ -20,10 +20,15 @@
  *     re-push or an unchanged re-apply naming a new tag moves it there;
  *   - safe degradation: archive failure clears the version hash from the
  *     head (the persisted head never references an unresolvable audit
- *     entry); tag-assignment failure clears the live tag. A chain whose
- *     archive runs after its last write re-persists either revert
- *     (`persistOnRevert`); a chain that persists after the archive needs
- *     no such arm.
+ *     entry); tag-assignment failure clears the live tag.
+ *
+ * The archive runs after the chain's write, so an archived version is
+ * always one that became live: a write that loses its compare-and-swap
+ * and is retried from a fresh read (pipeline/guarded-write.ts) archives
+ * nothing. A revert, and a tag shown from the archive, therefore reach
+ * the stored row through a narrow write of their one field onto the live
+ * row, taken only while the live head still holds this version, so it
+ * never undoes a write that landed after this one.
  *
  * The version-metadata rule (PopulateVersionHash) is for kinds applied as a
  * whole resource (agents), whose update replaces
@@ -122,11 +127,6 @@ export interface ArchiveCurrentVersionBinding<Desc extends DescMessage> {
    * whose head is its new state (an applied kind's create and update).
    */
   readonly resourceKey: string | undefined;
-  /**
-   * Re-persist the head after a revert, for a chain in which no write
-   * follows the archive (it runs after the chain's last persist).
-   */
-  readonly persistOnRevert?: boolean;
   readonly schema: Desc;
   /** The noun in log lines: "agent", "skill", "plugin". */
   readonly noun: string;
@@ -146,8 +146,8 @@ export interface ArchiveCurrentVersionBinding<Desc extends DescMessage> {
 
 /**
  * Repoint or archive, then the single-holder tag assignment, each with its
- * safe degradation. Runs AFTER the populate step so the archived snapshot
- * is the fully populated head.
+ * safe degradation. Runs AFTER the chain's write, so the archived snapshot
+ * is the head that landed.
  */
 export function newArchiveCurrentVersionStep<
   Desc extends DescMessage,
@@ -173,24 +173,30 @@ export function newArchiveCurrentVersionStep<
       const resourceId = metadataOf(resource)?.id ?? "";
       const idField = `${binding.noun}Id`;
 
-      // A revert changes the head after the chain's last write, so in a
-      // chain with no later persist it reaches the stored row only through
-      // this re-persist. A failure here is logged, never a failed write:
-      // the response is already consistent and the next write rewrites the
-      // row.
-      const flushRevert = async (revert: string): Promise<void> => {
-        if (binding.persistOnRevert !== true) {
-          return;
-        }
+      // A change to the head after the chain's write: applied to the
+      // response, and to the live row inside the store's atomic write while
+      // that row still holds this version (a later write keeps what it
+      // wrote). A failure here is logged, never a failed write: the next
+      // write of the head rewrites the field.
+      const amendHead = async (
+        change: string,
+        applies: (head: MessageShape<Desc>) => boolean,
+        amend: (head: MessageShape<Desc>) => void,
+      ): Promise<void> => {
+        amend(resource);
         try {
-          await store.saveResource(
+          await store.updateResource(
             ctx.apiResourceKind,
             resourceId,
             binding.schema,
-            resource,
+            (row) => {
+              if (binding.headHashOf(row) === versionHash && applies(row)) {
+                amend(row);
+              }
+            },
           );
         } catch (persistError) {
-          logger.error(`failed to re-persist ${binding.noun} after ${revert}`, {
+          logger.error(`failed to write ${binding.noun} after ${change}`, {
             [idField]: resourceId,
             error:
               persistError instanceof Error
@@ -253,8 +259,11 @@ export function newArchiveCurrentVersionStep<
           // Revert: the persisted head must never reference an audit entry
           // that does not exist. The push still succeeds, but without
           // version tracking for this apply.
-          binding.clearHeadHash(resource);
-          await flushRevert("reverting its version hash");
+          await amendHead(
+            "reverting its version hash",
+            () => true,
+            (head) => binding.clearHeadHash(head),
+          );
           return;
         }
       }
@@ -283,8 +292,11 @@ export function newArchiveCurrentVersionStep<
           // The audit head is now untagged; keep the live head consistent
           // so get / getByReference never advertise a tag the store cannot
           // resolve.
-          binding.clearLiveTag(resource);
-          await flushRevert("clearing its tag");
+          await amendHead(
+            "clearing its tag",
+            (head) => binding.liveTagOf(head) === tag,
+            (head) => binding.clearLiveTag(head),
+          );
         }
       }
 
@@ -293,14 +305,21 @@ export function newArchiveCurrentVersionStep<
       // this write loaded the row stays where it was moved. A failed read
       // leaves the head untagged, the state the audit column cannot
       // contradict.
-      if (alreadyArchived && tag === "" && binding.showArchivedTag !== undefined) {
+      const showArchivedTag = binding.showArchivedTag;
+      if (alreadyArchived && tag === "" && showArchivedTag !== undefined) {
         try {
           const record = await store.getAuditRecordByHash(
             ctx.apiResourceKind,
             resourceId,
             versionHash,
           );
-          binding.showArchivedTag(resource, record.tag);
+          if (record.tag !== "") {
+            await amendHead(
+              "showing its archived tag",
+              (head) => binding.liveTagOf(head) === "",
+              (head) => showArchivedTag(head, record.tag),
+            );
+          }
         } catch (error) {
           logger.warn(
             `Could not read the tag of the archived ${binding.noun} version — leaving the head untagged`,
