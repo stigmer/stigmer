@@ -1,39 +1,33 @@
-// Unit arms for the per-tool-call facts of a sample, over hand-built
-// Run messages and turn timelines.
+// Unit arms for the per-tool-call facts of a sample, over a hand-built
+// session log folded (turn-events.ts) and turn timelines.
 // Domain: conformance benchmark.
 //
-// Pinned: rows are read in start order across messages, whichever message
-// the builder attached them to; each takes the round of the first unmatched
+// Pinned: the primary thread's calls are read in the order the agent made
+// them, a sub-agent's never; each takes the round of the first unmatched
 // timeline span of its name, an MCP span matching by its bare name; a
 // timeline with a sub-agent, or none, places no call; the target is the
 // first of `file_path`, `path`, `pattern`, else the command's head; a paged
-// read keeps its window; a completed row whose result is the engine's
+// read keeps its window; a completed call whose result is the engine's
 // returned edit failure is `not_found` or `not_unique` in both backends'
-// words; the final to-do list is counted by state.
-import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+// words; a denied call is `skipped`; the final to-do list is counted by
+// state.
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { ToolUse } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import type { TimingLine } from "../report";
 import { COMMAND_TARGET_CHARS, outcomeOf, targetOf, todoCounts, toolCallFacts } from "../tool-call-facts";
+import { denied, result, subAgentThread, turnFrom, use, userMessage } from "./turn-events";
 
-type RowInit = { name: string; startedAt: string; args?: Record<string, string | number>; result?: string; status?: ToolCallStatus };
+type CallInit = { name: string; args?: JsonObject; result?: string };
 
-function row({ name, startedAt, args = {}, result = "ok", status = ToolCallStatus.TOOL_CALL_COMPLETED }: RowInit) {
-  return { id: `${name}-${startedAt}`, name, startedAt, args, result, status };
-}
-
-function execution(messages: RowInit[][]) {
-  return create(RunSchema, {
-    status: {
-      messages: messages.map((rows, index) => ({
-        type: MessageType.MESSAGE_AI,
-        content: `message ${index}`,
-        toolCalls: rows.map(row),
-      })),
-    },
+// A turn whose primary thread made `calls` in order, each returning its result.
+function turnWith(calls: CallInit[], extra: SessionEvent[] = []) {
+  const events: SessionEvent[] = [userMessage("go")];
+  calls.forEach((call, index) => {
+    events.push(use(`c${index}`, call.name, call.args ?? {}), result(`c${index}`, call.result ?? "ok"));
   });
+  return turnFrom([...events, ...extra]);
 }
 
 function timeline(names: string[]): TimingLine {
@@ -46,54 +40,60 @@ function timeline(names: string[]): TimingLine {
 }
 
 describe("toolCallFacts", () => {
-  it("reads rows in start order and places each on its round, not on the message the builder attached it to", () => {
-    // Round 1 wrote text and read two files; round 2 wrote no text, so the
-    // builder attached its edit to the first message; round 3 ran the tests.
-    const turn = execution([
-      [
-        { name: "read_file", startedAt: "2026-09-28T10:00:01Z", args: { file_path: "/duration/duration.go" } },
-        { name: "read_file", startedAt: "2026-09-28T10:00:01.5Z", args: { file_path: "/duration/duration_test.go" } },
-        { name: "edit_file", startedAt: "2026-09-28T10:00:03Z", args: { file_path: "/duration/duration.go" } },
-      ],
-      [{ name: "execute", startedAt: "2026-09-28T10:00:05Z", args: { command: "go test ./..." } }],
+  it("reads the calls in the order the agent made them and places each on its round", () => {
+    const turn = turnWith([
+      { name: "read_file", args: { file_path: "/duration/duration.go" } },
+      { name: "read_file", args: { file_path: "/duration/duration_test.go" } },
+      { name: "edit_file", args: { file_path: "/duration/duration.go" } },
+      { name: "execute", args: { command: "go test ./..." } },
     ]);
     const facts = toolCallFacts(
       turn,
       timeline(["model_round", "tool:read_file", "tool:read_file", "model_round", "tool:edit_file", "model_round", "tool:execute", "model_round"]),
     );
-    expect(facts.map(({ round, name, target }) => ({ round, name, target }))).toEqual([
-      { round: 1, name: "read_file", target: "/duration/duration.go" },
-      { round: 1, name: "read_file", target: "/duration/duration_test.go" },
-      { round: 2, name: "edit_file", target: "/duration/duration.go" },
-      { round: 3, name: "execute", target: "go test ./..." },
+    expect(facts.map(({ round, name, target, status, outcome }) => ({ round, name, target, status, outcome }))).toEqual([
+      { round: 1, name: "read_file", target: "/duration/duration.go", status: "completed", outcome: "ok" },
+      { round: 1, name: "read_file", target: "/duration/duration_test.go", status: "completed", outcome: "ok" },
+      { round: 2, name: "edit_file", target: "/duration/duration.go", status: "completed", outcome: "ok" },
+      { round: 3, name: "execute", target: "go test ./...", status: "completed", outcome: "ok" },
+    ]);
+  });
+
+  it("never reads a sub-agent's calls", () => {
+    const turn = turnWith([{ name: "read_file", args: { file_path: "/a.go" } }], [
+      ...subAgentThread("task1", "looking"),
+      use("sub1", "read_file", { file_path: "/sub.go" }, "run_1.task1"),
+    ]);
+    expect(toolCallFacts(turn, null).map((fact) => [fact.name, fact.target])).toEqual([
+      ["read_file", "/a.go"],
+      ["task", ""],
     ]);
   });
 
   it("matches an MCP tool's span by its bare name", () => {
-    const turn = execution([[{ name: "lookup_order", startedAt: "2026-09-28T10:00:01Z", args: { order_id: "ORD-4821" } }]]);
+    const turn = turnWith([{ name: "lookup_order", args: { order_id: "ORD-4821" } }]);
     const [fact] = toolCallFacts(turn, timeline(["model_round", "tool:orders-api/lookup_order", "model_round"]));
     expect(fact?.round).toBe(1);
     expect(fact?.target, "an argument that names no path, pattern or command is no target").toBe("");
   });
 
   it("places no call when the timeline carries a sub-agent or is absent", () => {
-    const turn = execution([[{ name: "read_file", startedAt: "2026-09-28T10:00:01Z" }]]);
+    const turn = turnWith([{ name: "read_file" }]);
     const withSubAgent = timeline(["model_round", "sub_agent:explore", "model_round", "tool:read_file", "model_round"]);
     expect(toolCallFacts(turn, withSubAgent)[0]?.round).toBeNull();
     expect(toolCallFacts(turn, null)[0]?.round).toBeNull();
+    expect(toolCallFacts(undefined, null)).toEqual([]);
   });
 
   it("leaves a call the timeline never saw unplaced", () => {
-    const turn = execution([[{ name: "think", startedAt: "2026-09-28T10:00:01Z" }]]);
+    const turn = turnWith([{ name: "think" }]);
     expect(toolCallFacts(turn, timeline(["model_round"]))[0]?.round).toBeNull();
   });
 
   it("keeps a paged read's window and nothing when the call set none", () => {
-    const turn = execution([
-      [
-        { name: "read_file", startedAt: "2026-09-28T10:00:01Z", args: { file_path: "/a.go", offset: 100, limit: 100 } },
-        { name: "read_file", startedAt: "2026-09-28T10:00:02Z", args: { file_path: "/b.go" } },
-      ],
+    const turn = turnWith([
+      { name: "read_file", args: { file_path: "/a.go", offset: 100, limit: 100 } },
+      { name: "read_file", args: { file_path: "/b.go" } },
     ]);
     const [paged, whole] = toolCallFacts(turn, null);
     expect(paged).toMatchObject({ offset: 100, limit: 100 });
@@ -101,14 +101,17 @@ describe("toolCallFacts", () => {
     expect(whole).not.toHaveProperty("limit");
   });
 
-  it("names each row's status without the enum prefix", () => {
-    const turn = execution([[{ name: "execute", startedAt: "2026-09-28T10:00:01Z", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL }]]);
-    expect(toolCallFacts(turn, null)[0]).toMatchObject({ status: "waiting_approval", outcome: "unsettled" });
+  it("names each call's state as the log folds it", () => {
+    const turn = turnFrom([userMessage("go"), use("c0", "execute", { command: "ls" })]);
+    expect(toolCallFacts(turn, null)[0]).toMatchObject({ status: "running", outcome: "unsettled" });
   });
 });
 
 describe("outcomeOf", () => {
-  const completed = (result: string) => create(ToolCallSchema, { status: ToolCallStatus.TOOL_CALL_COMPLETED, result });
+  const completed = (text: string): Pick<ToolUse, "state" | "result"> => ({
+    state: "completed",
+    result: { id: "r", text, isError: false, processedAt: "" },
+  });
 
   it("reads the engine's returned edit failures in both backends' words", () => {
     expect(outcomeOf(completed("Error: String not found in file: 'return 0'"))).toBe("not_found");
@@ -124,10 +127,18 @@ describe("outcomeOf", () => {
     expect(outcomeOf(completed("Successfully replaced 1 occurrence(s) in '/a.go'"))).toBe("ok");
   });
 
-  it("maps the settled statuses that are not a completion", () => {
-    expect(outcomeOf(create(ToolCallSchema, { status: ToolCallStatus.TOOL_CALL_FAILED, error: "boom" }))).toBe("failed");
-    expect(outcomeOf(create(ToolCallSchema, { status: ToolCallStatus.TOOL_CALL_SKIPPED }))).toBe("skipped");
-    expect(outcomeOf(create(ToolCallSchema, { status: ToolCallStatus.TOOL_CALL_INTERRUPTED }))).toBe("unsettled");
+  it("maps the states that are not a completion", () => {
+    const turn = turnFrom([
+      userMessage("go"),
+      use("c0", "execute", { command: "rm" }),
+      result("c0", "boom", { isError: true }),
+      use("c1", "execute", { command: "rm -rf" }),
+      denied("c1"),
+    ]);
+    const [failed, refused] = turn.items.filter((item): item is ToolUse => item.kind === "tool_use");
+    expect(outcomeOf(failed!)).toBe("failed");
+    expect(outcomeOf(refused!)).toBe("skipped");
+    expect(outcomeOf({ state: "stopped", result: undefined })).toBe("unsettled");
   });
 });
 
@@ -143,21 +154,24 @@ describe("targetOf", () => {
 });
 
 describe("todoCounts", () => {
-  it("counts the final list by state, an unset state as pending", () => {
-    const turn = create(RunSchema, {
-      status: {
-        todos: {
-          a: { content: "one", status: TodoStatus.TODO_COMPLETED },
-          b: { content: "two", status: TodoStatus.TODO_IN_PROGRESS },
-          c: { content: "three", status: TodoStatus.TODO_PENDING },
-          d: { content: "four" },
-        },
-      },
-    });
+  it("counts the final list by state", () => {
+    const turn = turnFrom([
+      userMessage("go"),
+      use("t0", "write_todos", {
+        todos: [
+          { content: "one", status: "completed" },
+          { content: "two", status: "in_progress" },
+          { content: "three", status: "pending" },
+          { content: "four", status: "pending" },
+        ],
+      }),
+      result("t0", "ok"),
+    ]);
     expect(todoCounts(turn)).toEqual({ pending: 2, in_progress: 1, completed: 1, cancelled: 0 });
   });
 
-  it("reads an execution with no list as all zeros", () => {
-    expect(todoCounts(create(RunSchema, {}))).toEqual({ pending: 0, in_progress: 0, completed: 0, cancelled: 0 });
+  it("reads a turn with no list as all zeros", () => {
+    expect(todoCounts(turnWith([]))).toEqual({ pending: 0, in_progress: 0, completed: 0, cancelled: 0 });
+    expect(todoCounts(undefined)).toEqual({ pending: 0, in_progress: 0, completed: 0, cancelled: 0 });
   });
 });

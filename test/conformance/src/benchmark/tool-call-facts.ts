@@ -3,26 +3,24 @@
 // list held at the end. Counts alone (`rounds`, `tool_calls`) say that a turn
 // took nine rounds; these facts say why: a read repeated, an edit that did
 // not match, a test run twice, a list never kept.
-// Domain: conformance benchmark (the status-borne facts, per tool call).
+// Domain: conformance benchmark (the session's log, per tool call).
 //
 // Where each fact comes from, and why there:
-// - The call itself is the ROOT transcript's tool-call row
-//   (`status.messages[].tool_calls[]`): name, args, result, status. Sub-agent
-//   rows live under `sub_agent_executions` and are not the thread measured.
-// - The round is NOT the row's message: the one transcript builder attaches a
-//   tool row to the latest AI message WITH TEXT, so the calls of a round that
-//   wrote no text sit on an earlier message (runner harness/transcript/
-//   builder.ts, "The AI-message boundary"). The runner's turn timeline is the
-//   one record of rounds: one `model_round` span per provider call, one
-//   `tool:<name>` span per call (`tool:<slug>/<name>` for an MCP tool), in
-//   start order (runner harness/turn-timeline.ts). A row takes the round of
-//   the first unmatched span of its name, in order. A sub-agent's rounds and
-//   tools are spans on the same timeline, so when any `sub_agent:` span is
-//   present the alignment is ambiguous and every round is left `null` rather
-//   than guessed.
-// - The outcome is read from the row, because the native engine RETURNS a
+// - The call itself is a tool use on the turn's PRIMARY thread in the
+//   session's log, folded (`Turn`, @stigmer/session-log): name, input,
+//   result, state, in the order the agent made the calls. A sub-agent's calls
+//   are on its own thread and are not the thread measured.
+// - The round is NOT in the log: the runner's turn timeline is the one record
+//   of rounds: one `model_round` span per provider call, one `tool:<name>`
+//   span per call (`tool:<slug>/<name>` for an MCP tool), in start order
+//   (runner harness/turn-timeline.ts). A call takes the round of the first
+//   unmatched span of its name, in order. A sub-agent's rounds and tools are
+//   spans on the same timeline, so when any `sub_agent:` span is present the
+//   alignment is ambiguous and every round is left `null` rather than
+//   guessed.
+// - The outcome is read from the result, because the native engine RETURNS a
 //   failed edit as a plain result string ("Error: String not found in
-//   file: ..."), so a row can be COMPLETED and have done nothing (deepagents
+//   file: ..."), so a call can complete and have done nothing (deepagents
 //   backends/utils.ts `performStringReplacement`; its sandbox twin words the
 //   same two failures differently). The recognised wordings are listed once
 //   below; anything else that starts `Error:` is `failed`.
@@ -30,9 +28,7 @@
 //   is kept with the record of the work and read by people, and a call's
 //   target (a path, a pattern, the head of a command) is what a reader needs
 //   to tell a re-read from a new read.
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { ToolUse, Turn } from "@stigmer/sdk";
 import type { TimingLine, TodoCounts, ToolCallFact, ToolCallOutcome } from "./report";
 
 /** The longest command head a fact keeps: enough to tell `go test ./...` from `ls -la`. */
@@ -53,63 +49,49 @@ const TARGET_ARGS = ["file_path", "path", "pattern"] as const;
 const NOT_FOUND_RESULTS = [/^Error: String not found in file/, /^String not found in file/];
 const NOT_UNIQUE_RESULTS = [/has multiple occurrences/, /^Multiple occurrences found in/];
 
-/** Every root tool call of the turn, in the order the calls started, each placed on its model round. */
-export function toolCallFacts(execution: Run, turnPhases: TimingLine | null): ToolCallFact[] {
-  const rows = (execution.status?.messages ?? [])
-    .flatMap((message) => message.toolCalls)
-    .map((row, index) => ({ row, index }))
-    .sort((a, b) => instantOf(a.row.startedAt) - instantOf(b.row.startedAt) || a.index - b.index)
-    .map(({ row }) => row);
+/** Every primary-thread tool call of the turn, in the order the agent made them, each placed on its model round. */
+export function toolCallFacts(turn: Turn | undefined, turnPhases: TimingLine | null): ToolCallFact[] {
+  const uses = (turn?.items ?? []).filter((item): item is ToolUse => item.kind === "tool_use");
   const rounds = roundsByToolSpan(turnPhases);
-  return rows.map((row) => {
-    const args = row.args ?? {};
+  return uses.map((use) => {
+    const args = use.input;
     const offset = args["offset"];
     const limit = args["limit"];
     return {
-      round: rounds === null ? null : takeRound(rounds, row.name),
-      name: row.name,
+      round: rounds === null ? null : takeRound(rounds, use.name),
+      name: use.name,
       target: targetOf(args),
       ...(typeof offset === "number" ? { offset } : {}),
       ...(typeof limit === "number" ? { limit } : {}),
-      status: statusName(row.status),
-      outcome: outcomeOf(row),
+      status: use.state,
+      outcome: outcomeOf(use),
     };
   });
 }
 
 /** The turn's to-do list at its end, counted by state: what the user's progress card showed. */
-export function todoCounts(execution: Run): TodoCounts {
+export function todoCounts(turn: Turn | undefined): TodoCounts {
   const counts: TodoCounts = { pending: 0, in_progress: 0, completed: 0, cancelled: 0 };
-  for (const item of Object.values(execution.status?.todos ?? {})) {
-    switch (item.status) {
-      case TodoStatus.TODO_IN_PROGRESS:
-        counts.in_progress += 1;
-        break;
-      case TodoStatus.TODO_COMPLETED:
-        counts.completed += 1;
-        break;
-      case TodoStatus.TODO_CANCELLED:
-        counts.cancelled += 1;
-        break;
-      default:
-        counts.pending += 1;
-    }
-  }
+  for (const item of turn?.todos ?? []) counts[item.status] += 1;
   return counts;
 }
 
-/** How a row ended. A COMPLETED row whose result is a returned error is not `ok`. */
-export function outcomeOf(row: Pick<ToolCall, "status" | "result" | "error">): ToolCallOutcome {
-  switch (row.status) {
-    case ToolCallStatus.TOOL_CALL_COMPLETED: {
-      const head = row.result.trimStart();
+/**
+ * How a call ended. A completed call whose result is a returned error is not
+ * `ok`; a call a person or a rule refused is `skipped`; one still running,
+ * waiting, or stopped by its turn's end is `unsettled`.
+ */
+export function outcomeOf(use: Pick<ToolUse, "state" | "result">): ToolCallOutcome {
+  switch (use.state) {
+    case "completed": {
+      const head = (use.result?.text ?? "").trimStart();
       if (NOT_FOUND_RESULTS.some((pattern) => pattern.test(head))) return "not_found";
       if (NOT_UNIQUE_RESULTS.some((pattern) => pattern.test(head))) return "not_unique";
       return head.startsWith("Error:") ? "failed" : "ok";
     }
-    case ToolCallStatus.TOOL_CALL_FAILED:
+    case "failed":
       return "failed";
-    case ToolCallStatus.TOOL_CALL_SKIPPED:
+    case "denied":
       return "skipped";
     default:
       return "unsettled";
@@ -152,16 +134,4 @@ function takeRound(spans: { name: string; round: number }[], name: string): numb
   if (index === -1) return null;
   const [span] = spans.splice(index, 1);
   return span?.round ?? null;
-}
-
-// A row's start as milliseconds, by parse rather than by string order: two ISO
-// stamps whose fractional digits differ do not sort as text. A row with no
-// stamp keeps its transcript order among the others.
-function instantOf(startedAt: string): number {
-  const at = Date.parse(startedAt);
-  return Number.isNaN(at) ? Number.POSITIVE_INFINITY : at;
-}
-
-function statusName(status: ToolCallStatus): string {
-  return (ToolCallStatus[status] ?? "TOOL_CALL_STATUS_UNSPECIFIED").replace(/^TOOL_CALL_/, "").toLowerCase();
 }
