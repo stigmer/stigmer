@@ -31,6 +31,7 @@ import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { resolveReconcileTurn, type ResolutionDeps, type TurnFrame } from "../turn-context.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const env = createHermeticEnvironment();
 afterAll(() => env.dispose());
@@ -41,6 +42,7 @@ const LOCK_TIMEOUT_MS = 250;
 function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: ResolutionDeps; labels: string[] } {
   const labels: string[] = [];
   const status = create(RunStatusSchema, {});
+  const rows = create(TurnRowsSchema);
   return {
     labels,
     deps: {
@@ -48,7 +50,8 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
       client,
       config: testConfig({ workspaceRootDir: env.workspaceRootDir, workspaceLockTimeoutMs: LOCK_TIMEOUT_MS }),
       status,
-      transcript: new TranscriptBuilder(`aex-${sessionId}`, status),
+      rows,
+      transcript: new TranscriptBuilder(`aex-${sessionId}`, rows, status),
       artifactStorage: undefined,
       timing: new TimingRecorder(),
       signal: new AbortController().signal,
@@ -64,7 +67,7 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
 }
 
 function emptyFrame(): TurnFrame {
-  return { primaryDir: undefined, releaseWorkspaceLock: undefined, writeback: null, evalMocks: undefined, evalReadFiles: undefined, runWroteEvents: false };
+  return { primaryDir: undefined, releaseWorkspaceLock: undefined, writeback: null, evalMocks: undefined, evalReadFiles: undefined, runWroteEvents: false, priorAnswer: undefined };
 }
 
 describe("resolveReconcileTurn: the settlements before the undo", () => {
