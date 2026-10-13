@@ -125,6 +125,7 @@ import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_p
 import type {
   AuthorizationQueryEngine,
   Authorizer,
+  AuthzRefusal,
   CallerIdentity,
   CredentialBinding,
   ExtensionServiceRegistration,
@@ -135,11 +136,13 @@ import type {
 } from "@stigmer/server";
 import type { ServiceAccountLookup } from "@stigmer/server";
 import {
+  deniedError,
   internalError,
   listPageFingerprint,
   OWNER_ASSIGNMENT_DENIED_MESSAGE,
   newBuildNewStateStep,
   newRefuseServiceAccountCallerStep,
+  permissionDeniedWithReasonError,
   readPage,
   resolveResourceCreatedEvent,
   restrictListByReadScope,
@@ -188,7 +191,7 @@ export interface InvitationLaneDeps {
    * not the Authorizer, so a credential limited to one organization is
    * refused here when the invitation is another's.
    */
-  readonly credentialBinding: Pick<CredentialBinding, "admitsOrganization">;
+  readonly credentialBinding: Pick<CredentialBinding, "admitsOrganization" | "signInRefusal">;
   /** The identity-account port: whether the caller is a service account, which invites nobody. */
   readonly accounts: ServiceAccountLookup;
 }
@@ -381,6 +384,7 @@ async function redeemInvitation(
   }
 
   refuseBoundElsewhere(deps.credentialBinding, caller, org);
+  await refuseRequiredSignIn(deps.credentialBinding, caller, org);
   await refuseExistingMember(deps.authorizer, caller, org);
 
   // Record before grant: a lost slot then has nothing to undo, so no
@@ -529,7 +533,7 @@ function refusalReason(state: InvitationState): string {
 }
 
 /** Why the row itself cannot be redeemed (its state, expiry or uses), or undefined. */
-function rowRefusal(invitation: Invitation): string | undefined {
+export function rowRefusal(invitation: Invitation): string | undefined {
   const state = invitation.status?.state;
   if (state !== InvitationState.active) {
     return refusalReason(state ?? InvitationState.invitation_state_unspecified);
@@ -574,6 +578,7 @@ async function refuseUnlessOwner(
     case "allow":
       return;
     case "deny":
+      throw deniedError(decision, OWNER_ASSIGNMENT_DENIED_MESSAGE);
     case "not-found":
       throw new ConnectError(OWNER_ASSIGNMENT_DENIED_MESSAGE, Code.PermissionDenied);
     case "unavailable":
@@ -633,6 +638,33 @@ function refuseBoundElsewhere(
 ): void {
   if (!binding.admitsOrganization(caller, org)) {
     throw new ConnectError(BOUND_CREDENTIAL_REDEEMS_ELSEWHERE, Code.PermissionDenied);
+  }
+}
+
+/**
+ * Refuses a person the organization's sign-in rule refuses (an
+ * organization that requires sign-in through its SSO provider, redeemed by
+ * an account another sign-in made), with the rule's own reason, before
+ * anything is written: a role granted to that account could never be used
+ * there. Asked after the binding, before membership, which the rule's
+ * refusal would otherwise read as "not a member".
+ */
+async function refuseRequiredSignIn(
+  binding: Pick<CredentialBinding, "signInRefusal">,
+  caller: CallerIdentity,
+  org: string,
+): Promise<void> {
+  let refusal: AuthzRefusal | undefined;
+  try {
+    refusal = await binding.signInRefusal(caller, org);
+  } catch (error) {
+    throw internalError(error, "failed to verify the organization's sign-in requirement");
+  }
+  if (refusal !== undefined) {
+    throw permissionDeniedWithReasonError(refusal.message, {
+      reason: refusal.reason,
+      metadata: refusal.metadata,
+    });
   }
 }
 

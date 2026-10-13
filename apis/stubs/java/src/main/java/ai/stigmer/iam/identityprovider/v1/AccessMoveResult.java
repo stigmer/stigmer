@@ -33,6 +33,8 @@ private static final long serialVersionUID = 0L;
   }
   private AccessMoveResult() {
     org_ = "";
+    invitationIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -142,6 +144,63 @@ private static final long serialVersionUID = 0L;
     return moved_ == null ? ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult.getDefaultInstance() : moved_;
   }
 
+  public static final int INVITATION_IDS_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList invitationIds_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+   * @return A list containing the invitationIds.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getInvitationIdsList() {
+    return invitationIds_;
+  }
+  /**
+   * <pre>
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+   * @return The count of invitationIds.
+   */
+  public int getInvitationIdsCount() {
+    return invitationIds_.size();
+  }
+  /**
+   * <pre>
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+   * @param index The index of the element to return.
+   * @return The invitationIds at the given index.
+   */
+  public java.lang.String getInvitationIds(int index) {
+    return invitationIds_.get(index);
+  }
+  /**
+   * <pre>
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the invitationIds at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getInvitationIdsBytes(int index) {
+    return invitationIds_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -162,6 +221,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(2, getMoved());
     }
+    for (int i = 0; i < invitationIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, invitationIds_.getRaw(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -177,6 +239,14 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, getMoved());
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < invitationIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(invitationIds_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getInvitationIdsList().size();
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -200,6 +270,8 @@ private static final long serialVersionUID = 0L;
       if (!getMoved()
           .equals(other.getMoved())) return false;
     }
+    if (!getInvitationIdsList()
+        .equals(other.getInvitationIdsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -216,6 +288,10 @@ private static final long serialVersionUID = 0L;
     if (hasMoved()) {
       hash = (37 * hash) + MOVED_FIELD_NUMBER;
       hash = (53 * hash) + getMoved().hashCode();
+    }
+    if (getInvitationIdsCount() > 0) {
+      hash = (37 * hash) + INVITATION_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getInvitationIdsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -364,6 +440,8 @@ private static final long serialVersionUID = 0L;
         movedBuilder_.dispose();
         movedBuilder_ = null;
       }
+      invitationIds_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -407,6 +485,10 @@ private static final long serialVersionUID = 0L;
             : movedBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        invitationIds_.makeImmutable();
+        result.invitationIds_ = invitationIds_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -429,6 +511,16 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasMoved()) {
         mergeMoved(other.getMoved());
+      }
+      if (!other.invitationIds_.isEmpty()) {
+        if (invitationIds_.isEmpty()) {
+          invitationIds_ = other.invitationIds_;
+          bitField0_ |= 0x00000004;
+        } else {
+          ensureInvitationIdsIsMutable();
+          invitationIds_.addAll(other.invitationIds_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -468,6 +560,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 26: {
+              ensureInvitationIdsIsMutable();
+              invitationIds_.add(input.readStringRequireUtf8());
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -741,6 +838,162 @@ private static final long serialVersionUID = 0L;
         moved_ = null;
       }
       return movedBuilder_;
+    }
+
+    private com.google.protobuf.LazyStringArrayList invitationIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureInvitationIdsIsMutable() {
+      if (!invitationIds_.isModifiable()) {
+        invitationIds_ = new com.google.protobuf.LazyStringArrayList(invitationIds_);
+      }
+      bitField0_ |= 0x00000004;
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @return A list containing the invitationIds.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getInvitationIdsList() {
+      invitationIds_.makeImmutable();
+      return invitationIds_;
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @return The count of invitationIds.
+     */
+    public int getInvitationIdsCount() {
+      return invitationIds_.size();
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @param index The index of the element to return.
+     * @return The invitationIds at the given index.
+     */
+    public java.lang.String getInvitationIds(int index) {
+      return invitationIds_.get(index);
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the invitationIds at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getInvitationIdsBytes(int index) {
+      return invitationIds_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @param index The index to set the value at.
+     * @param value The invitationIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setInvitationIds(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureInvitationIdsIsMutable();
+      invitationIds_.set(index, value);
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @param value The invitationIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addInvitationIds(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureInvitationIdsIsMutable();
+      invitationIds_.add(value);
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @param values The invitationIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllInvitationIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureInvitationIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, invitationIds_);
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearInvitationIds() {
+      invitationIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000004);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The open invitations the old account created in the organization,
+     * which stopped redeeming, to make again as the new account.
+     * </pre>
+     *
+     * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+     * @param value The bytes of the invitationIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addInvitationIdsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureInvitationIdsIsMutable();
+      invitationIds_.add(value);
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.iam.identityprovider.v1.AccessMoveResult)

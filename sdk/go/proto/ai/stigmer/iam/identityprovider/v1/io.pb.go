@@ -429,7 +429,10 @@ type AccessMoveTicket struct {
 	// The organization's SSO provider, to sign in through next.
 	Provider *SsoProviderInfo `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
 	// What the move will do.
-	Preview       *v1.MoveOrgAccessResult `protobuf:"bytes,5,opt,name=preview,proto3" json:"preview,omitempty"`
+	Preview *v1.MoveOrgAccessResult `protobuf:"bytes,5,opt,name=preview,proto3" json:"preview,omitempty"`
+	// The open invitations the account created in the organization, which
+	// stop redeeming once its role moves: their creator no longer holds it.
+	InvitationIds []string `protobuf:"bytes,6,rep,name=invitation_ids,json=invitationIds,proto3" json:"invitation_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -499,6 +502,13 @@ func (x *AccessMoveTicket) GetPreview() *v1.MoveOrgAccessResult {
 	return nil
 }
 
+func (x *AccessMoveTicket) GetInvitationIds() []string {
+	if x != nil {
+		return x.InvitationIds
+	}
+	return nil
+}
+
 // RedeemAccessMoveInput redeems an access move ticket.
 type RedeemAccessMoveInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -552,7 +562,10 @@ type AccessMoveResult struct {
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// What moved, the My vault entries deleted and the automations that
 	// stopped, to make again as the new account.
-	Moved         *v1.MoveOrgAccessResult `protobuf:"bytes,2,opt,name=moved,proto3" json:"moved,omitempty"`
+	Moved *v1.MoveOrgAccessResult `protobuf:"bytes,2,opt,name=moved,proto3" json:"moved,omitempty"`
+	// The open invitations the old account created in the organization,
+	// which stopped redeeming, to make again as the new account.
+	InvitationIds []string `protobuf:"bytes,3,rep,name=invitation_ids,json=invitationIds,proto3" json:"invitation_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -597,6 +610,13 @@ func (x *AccessMoveResult) GetOrg() string {
 func (x *AccessMoveResult) GetMoved() *v1.MoveOrgAccessResult {
 	if x != nil {
 		return x.Moved
+	}
+	return nil
+}
+
+func (x *AccessMoveResult) GetInvitationIds() []string {
+	if x != nil {
+		return x.InvitationIds
 	}
 	return nil
 }
@@ -813,20 +833,22 @@ const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"\x11expected_audience\x18\x04 \x01(\tR\x10expectedAudience\x12!\n" +
 	"\fsso_required\x18\x05 \x01(\bR\vssoRequired\".\n" +
 	"\x11AccessMoveRequest\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x94\x02\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xbb\x02\n" +
 	"\x10AccessMoveTicket\x12\x16\n" +
 	"\x06ticket\x18\x01 \x01(\tR\x06ticket\x129\n" +
 	"\n" +
 	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x10\n" +
 	"\x03org\x18\x03 \x01(\tR\x03org\x12O\n" +
 	"\bprovider\x18\x04 \x01(\v23.ai.stigmer.iam.identityprovider.v1.SsoProviderInfoR\bprovider\x12J\n" +
-	"\apreview\x18\x05 \x01(\v20.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultR\apreview\";\n" +
+	"\apreview\x18\x05 \x01(\v20.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultR\apreview\x12%\n" +
+	"\x0einvitation_ids\x18\x06 \x03(\tR\rinvitationIds\";\n" +
 	"\x15RedeemAccessMoveInput\x12\"\n" +
 	"\x06ticket\x18\x01 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x06ticket\"l\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x06ticket\"\x93\x01\n" +
 	"\x10AccessMoveResult\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12F\n" +
-	"\x05moved\x18\x02 \x01(\v20.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultR\x05moved\"7\n" +
+	"\x05moved\x18\x02 \x01(\v20.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultR\x05moved\x12%\n" +
+	"\x0einvitation_ids\x18\x03 \x03(\tR\rinvitationIds\"7\n" +
 	"\x1aSsoRequirementPreviewInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xca\x01\n" +
 	"\x15SsoRequirementPreview\x12R\n" +

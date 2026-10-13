@@ -65,18 +65,20 @@ class AccessMoveRequest(_message.Message):
     def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class AccessMoveTicket(_message.Message):
-    __slots__ = ("ticket", "expires_at", "org", "provider", "preview")
+    __slots__ = ("ticket", "expires_at", "org", "provider", "preview", "invitation_ids")
     TICKET_FIELD_NUMBER: _ClassVar[int]
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     PREVIEW_FIELD_NUMBER: _ClassVar[int]
+    INVITATION_IDS_FIELD_NUMBER: _ClassVar[int]
     ticket: str
     expires_at: _timestamp_pb2.Timestamp
     org: str
     provider: SsoProviderInfo
     preview: _io_pb2.MoveOrgAccessResult
-    def __init__(self, ticket: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., org: _Optional[str] = ..., provider: _Optional[_Union[SsoProviderInfo, _Mapping]] = ..., preview: _Optional[_Union[_io_pb2.MoveOrgAccessResult, _Mapping]] = ...) -> None: ...
+    invitation_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, ticket: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., org: _Optional[str] = ..., provider: _Optional[_Union[SsoProviderInfo, _Mapping]] = ..., preview: _Optional[_Union[_io_pb2.MoveOrgAccessResult, _Mapping]] = ..., invitation_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class RedeemAccessMoveInput(_message.Message):
     __slots__ = ("ticket",)
@@ -85,12 +87,14 @@ class RedeemAccessMoveInput(_message.Message):
     def __init__(self, ticket: _Optional[str] = ...) -> None: ...
 
 class AccessMoveResult(_message.Message):
-    __slots__ = ("org", "moved")
+    __slots__ = ("org", "moved", "invitation_ids")
     ORG_FIELD_NUMBER: _ClassVar[int]
     MOVED_FIELD_NUMBER: _ClassVar[int]
+    INVITATION_IDS_FIELD_NUMBER: _ClassVar[int]
     org: str
     moved: _io_pb2.MoveOrgAccessResult
-    def __init__(self, org: _Optional[str] = ..., moved: _Optional[_Union[_io_pb2.MoveOrgAccessResult, _Mapping]] = ...) -> None: ...
+    invitation_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, org: _Optional[str] = ..., moved: _Optional[_Union[_io_pb2.MoveOrgAccessResult, _Mapping]] = ..., invitation_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SsoRequirementPreviewInput(_message.Message):
     __slots__ = ("org",)

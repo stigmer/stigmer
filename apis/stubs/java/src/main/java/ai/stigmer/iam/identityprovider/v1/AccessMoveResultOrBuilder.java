@@ -59,4 +59,49 @@ public interface AccessMoveResultOrBuilder extends
    * <code>.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult moved = 2 [json_name = "moved"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultOrBuilder getMovedOrBuilder();
+
+  /**
+   * <pre>
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+   * @return A list containing the invitationIds.
+   */
+  java.util.List<java.lang.String>
+      getInvitationIdsList();
+  /**
+   * <pre>
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+   * @return The count of invitationIds.
+   */
+  int getInvitationIdsCount();
+  /**
+   * <pre>
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+   * @param index The index of the element to return.
+   * @return The invitationIds at the given index.
+   */
+  java.lang.String getInvitationIds(int index);
+  /**
+   * <pre>
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 3 [json_name = "invitationIds"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the invitationIds at the given index.
+   */
+  com.google.protobuf.ByteString
+      getInvitationIdsBytes(int index);
 }

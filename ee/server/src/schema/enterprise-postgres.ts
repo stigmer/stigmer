@@ -1,5 +1,5 @@
 /**
- * The identity unit's Postgres half as a host builds it: the four store
+ * The identity unit's Postgres half as a host builds it: the five store
  * adapters and the schema chain's ensure, all over the one pool the host
  * hands in. The unit itself constructs no store and reads no
  * configuration (extension/enterprise-identity.ts); a host calls this once
@@ -13,6 +13,8 @@
  */
 import type { Pool } from "pg";
 
+import { newAccessMoveTicketStore } from "../iam/access-move/postgres-store.js";
+import type { AccessMoveTicketStore } from "../iam/access-move/store.js";
 import { newSignInGrantLedger } from "../iam/federation/postgres-sign-in-grants.js";
 import type { SignInGrantLedger } from "../iam/federation/sign-in-grants.js";
 import { newInvitationStore } from "../iam/invitation/postgres-store.js";
@@ -33,6 +35,7 @@ export interface EnterprisePostgres {
   readonly teams: TeamStore;
   readonly invitations: InvitationStore;
   readonly signInGrants: SignInGrantLedger;
+  readonly accessMoves: AccessMoveTicketStore;
   readonly schema: EnterpriseSchema;
 }
 
@@ -42,6 +45,7 @@ export function newEnterprisePostgres(pool: Pool): EnterprisePostgres {
     teams: newTeamStore(pool),
     invitations: newInvitationStore(pool),
     signInGrants: newSignInGrantLedger(pool),
+    accessMoves: newAccessMoveTicketStore(pool),
     schema: {
       async ensure(): Promise<void> {
         const client = await pool.connect();

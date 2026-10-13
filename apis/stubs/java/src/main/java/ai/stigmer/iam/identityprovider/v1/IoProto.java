@@ -122,35 +122,37 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "cted_audience\030\004 \001(\tR\020expectedAudience\022!\n" +
       "\014sso_required\030\005 \001(\010R\013ssoRequired\".\n\021Acce" +
       "ssMoveRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org" +
-      "\"\224\002\n\020AccessMoveTicket\022\026\n\006ticket\030\001 \001(\tR\006t" +
+      "\"\273\002\n\020AccessMoveTicket\022\026\n\006ticket\030\001 \001(\tR\006t" +
       "icket\0229\n\nexpires_at\030\002 \001(\0132\032.google.proto" +
       "buf.TimestampR\texpiresAt\022\020\n\003org\030\003 \001(\tR\003o" +
       "rg\022O\n\010provider\030\004 \001(\01323.ai.stigmer.iam.id" +
       "entityprovider.v1.SsoProviderInfoR\010provi" +
       "der\022J\n\007preview\030\005 \001(\01320.ai.stigmer.iam.ia" +
-      "mpolicy.v1.MoveOrgAccessResultR\007preview\"" +
-      ";\n\025RedeemAccessMoveInput\022\"\n\006ticket\030\001 \001(\t" +
-      "B\n\272H\007r\005\020\001\030\200\002R\006ticket\"l\n\020AccessMoveResult" +
+      "mpolicy.v1.MoveOrgAccessResultR\007preview\022" +
+      "%\n\016invitation_ids\030\006 \003(\tR\rinvitationIds\";" +
+      "\n\025RedeemAccessMoveInput\022\"\n\006ticket\030\001 \001(\tB" +
+      "\n\272H\007r\005\020\001\030\200\002R\006ticket\"\223\001\n\020AccessMoveResult" +
       "\022\020\n\003org\030\001 \001(\tR\003org\022F\n\005moved\030\002 \001(\01320.ai.s" +
       "tigmer.iam.iampolicy.v1.MoveOrgAccessRes" +
-      "ultR\005moved\"7\n\032SsoRequirementPreviewInput" +
-      "\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"\312\001\n\025SsoRequi" +
-      "rementPreview\022R\n\007members\030\001 \003(\01328.ai.stig" +
-      "mer.iam.identityprovider.v1.SsoRequireme" +
-      "ntMemberR\007members\022]\n\rexempt_owners\030\002 \003(\013" +
-      "28.ai.stigmer.iam.identityprovider.v1.Ss" +
-      "oRequirementMemberR\014exemptOwners\"\370\001\n\024Sso" +
-      "RequirementMember\022.\n\023identity_account_id" +
-      "\030\001 \001(\tR\021identityAccountId\022\024\n\005email\030\002 \001(\t" +
-      "R\005email\022!\n\014display_name\030\003 \001(\tR\013displayNa" +
-      "me\022%\n\016invitation_ids\030\004 \003(\tR\rinvitationId" +
-      "s\022P\n\013automations\030\005 \003(\0132..ai.stigmer.iam." +
-      "iampolicy.v1.AccountAutomationR\013automati" +
-      "onsB\266\001B\007IoProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Ia" +
-      "m.Identityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\I" +
-      "dentityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\Iden" +
-      "tityprovider\\V1\\GPBMetadata\352\002&Ai::Stigme" +
-      "r::Iam::Identityprovider::V1b\006proto3"
+      "ultR\005moved\022%\n\016invitation_ids\030\003 \003(\tR\rinvi" +
+      "tationIds\"7\n\032SsoRequirementPreviewInput\022" +
+      "\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"\312\001\n\025SsoRequir" +
+      "ementPreview\022R\n\007members\030\001 \003(\01328.ai.stigm" +
+      "er.iam.identityprovider.v1.SsoRequiremen" +
+      "tMemberR\007members\022]\n\rexempt_owners\030\002 \003(\0132" +
+      "8.ai.stigmer.iam.identityprovider.v1.Sso" +
+      "RequirementMemberR\014exemptOwners\"\370\001\n\024SsoR" +
+      "equirementMember\022.\n\023identity_account_id\030" +
+      "\001 \001(\tR\021identityAccountId\022\024\n\005email\030\002 \001(\tR" +
+      "\005email\022!\n\014display_name\030\003 \001(\tR\013displayNam" +
+      "e\022%\n\016invitation_ids\030\004 \003(\tR\rinvitationIds" +
+      "\022P\n\013automations\030\005 \003(\0132..ai.stigmer.iam.i" +
+      "ampolicy.v1.AccountAutomationR\013automatio" +
+      "nsB\266\001B\007IoProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam" +
+      ".Identityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Id" +
+      "entityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\Ident" +
+      "ityprovider\\V1\\GPBMetadata\352\002&Ai::Stigmer" +
+      "::Iam::Identityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -207,7 +209,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityprovider_v1_AccessMoveTicket_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityprovider_v1_AccessMoveTicket_descriptor,
-        new java.lang.String[] { "Ticket", "ExpiresAt", "Org", "Provider", "Preview", });
+        new java.lang.String[] { "Ticket", "ExpiresAt", "Org", "Provider", "Preview", "InvitationIds", });
     internal_static_ai_stigmer_iam_identityprovider_v1_RedeemAccessMoveInput_descriptor =
       getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_iam_identityprovider_v1_RedeemAccessMoveInput_fieldAccessorTable = new
@@ -219,7 +221,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityprovider_v1_AccessMoveResult_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityprovider_v1_AccessMoveResult_descriptor,
-        new java.lang.String[] { "Org", "Moved", });
+        new java.lang.String[] { "Org", "Moved", "InvitationIds", });
     internal_static_ai_stigmer_iam_identityprovider_v1_SsoRequirementPreviewInput_descriptor =
       getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_iam_identityprovider_v1_SsoRequirementPreviewInput_fieldAccessorTable = new

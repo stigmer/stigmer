@@ -130,4 +130,49 @@ public interface AccessMoveTicketOrBuilder extends
    * <code>.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult preview = 5 [json_name = "preview"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultOrBuilder getPreviewOrBuilder();
+
+  /**
+   * <pre>
+   * The open invitations the account created in the organization, which
+   * stop redeeming once its role moves: their creator no longer holds it.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 6 [json_name = "invitationIds"];</code>
+   * @return A list containing the invitationIds.
+   */
+  java.util.List<java.lang.String>
+      getInvitationIdsList();
+  /**
+   * <pre>
+   * The open invitations the account created in the organization, which
+   * stop redeeming once its role moves: their creator no longer holds it.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 6 [json_name = "invitationIds"];</code>
+   * @return The count of invitationIds.
+   */
+  int getInvitationIdsCount();
+  /**
+   * <pre>
+   * The open invitations the account created in the organization, which
+   * stop redeeming once its role moves: their creator no longer holds it.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 6 [json_name = "invitationIds"];</code>
+   * @param index The index of the element to return.
+   * @return The invitationIds at the given index.
+   */
+  java.lang.String getInvitationIds(int index);
+  /**
+   * <pre>
+   * The open invitations the account created in the organization, which
+   * stop redeeming once its role moves: their creator no longer holds it.
+   * </pre>
+   *
+   * <code>repeated string invitation_ids = 6 [json_name = "invitationIds"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the invitationIds at the given index.
+   */
+  com.google.protobuf.ByteString
+      getInvitationIdsBytes(int index);
 }

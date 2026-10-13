@@ -119,6 +119,10 @@ export type {
 // .boundOrg), read the one way every consumer shares: a composition's
 // verifier sets the field, and its own lanes read it through this.
 export { boundOrgOf } from "./extensions/identity.js";
+// Whether a bearer is a platform token naming a PlatformClient (a person
+// spoken for by an organization's own app): a composition's rule that
+// exempts an organization's own clients reads it the library's one way.
+export { carriesPlatformClientClaim } from "./extensions/identity.js";
 // An organization's service account: its caller class, the one predicate
 // that reads it, and the refusal every edition's membership and credential
 // lanes splice (pipeline/steps/refuse-service-account.ts), so a

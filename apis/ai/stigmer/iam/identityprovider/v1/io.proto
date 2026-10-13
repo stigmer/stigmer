@@ -108,6 +108,10 @@ message AccessMoveTicket {
 
   // What the move will do.
   ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult preview = 5;
+
+  // The open invitations the account created in the organization, which
+  // stop redeeming once its role moves: their creator no longer holds it.
+  repeated string invitation_ids = 6;
 }
 
 // RedeemAccessMoveInput redeems an access move ticket.
@@ -127,6 +131,10 @@ message AccessMoveResult {
   // What moved, the My vault entries deleted and the automations that
   // stopped, to make again as the new account.
   ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult moved = 2;
+
+  // The open invitations the old account created in the organization,
+  // which stopped redeeming, to make again as the new account.
+  repeated string invitation_ids = 3;
 }
 
 // SsoRequirementPreviewInput names the organization to preview.
