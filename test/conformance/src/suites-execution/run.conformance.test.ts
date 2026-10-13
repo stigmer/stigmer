@@ -8,8 +8,8 @@
 // the runner picks up and drives through an LLM loop served by the in-process mock proxy.
 // Every run is scripted by enqueuing turns on that mock — a single text turn
 // reaches COMPLETED; a `delayMs`-held turn keeps an execution genuinely
-// IN_PROGRESS so lifecycle RPCs (cancel/terminate/pause/resume) act on a running
-// thing.
+// IN_PROGRESS so lifecycle RPCs (terminate/pause/resume, and the session's
+// interrupt) act on a running thing.
 //
 // Contract points encoded as assertions below:
 // - No AlreadyExists on create: repeated identical creates yield distinct run_
@@ -41,7 +41,7 @@
 //
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
-// - submitApproval / HITL tool approval -> run-approval.conformance.test.ts.
+// - the session's answers / HITL tool approval -> run-approval.conformance.test.ts.
 //
 // A completed run's usage reports count its tokens: from the server's meter
 // where the target routes the runner's model calls through one
@@ -54,7 +54,7 @@
 // Deliberately out of scope (each needs machinery this suite doesn't build, and
 // is a conscious deferral, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
-// - artifact content, subscribe streaming, sub-agents.
+// - artifact content, sub-agents.
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -64,11 +64,7 @@ import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  RunPhase,
-  FileDecisionAction,
-  FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -82,17 +78,16 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent, makeAgentRef } from "../support/agents";
-import { collectStream } from "../support/collect-stream";
 import {
   AGENT_EXECUTION_API_VERSION,
   AGENT_EXECUTION_KIND,
   awaitPhase,
   awaitTerminal,
   makeAgentExecution,
-  pollExecution,
   requireLlmProxy,
   sessionIdOf,
 } from "../support/runs";
+import { messagesOf, turnById } from "../support/turn";
 import { pollUntil } from "../support/run-poll";
 import { foreignId, uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -106,7 +101,7 @@ const fixtures = new FixtureTracker();
 // Long enough to keep a held execution IN_PROGRESS across the poll-and-act window
 // (tests act within ~1s), well under the runner activity's 2-minute heartbeat and
 // 24-hour start-to-close. A held turn aborts the instant the client disconnects
-// (cancel/terminate/pause), so the wall-clock cost is tiny.
+// (interrupt/terminate/pause), so the wall-clock cost is tiny.
 const HOLD_MS = 30_000;
 
 // Collection-time capability read: whether this target's runner reaches a
@@ -429,23 +424,25 @@ describe("Run conformance — lifecycle (running execution)", () => {
     const running = await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_IN_PROGRESS);
     expect(running.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
 
-    // Settle the run before the next test; cancel of a running execution is the
+    // Settle the run before the next test; stopping a running turn is the
     // next test's subject.
-    await clients.agentExecutionCommand.cancel({ id: created.metadata!.id });
+    await clients.sessionCommand.interrupt({ sessionId: sessionIdOf(running) });
     await awaitPhase(clients, created.metadata!.id, RunPhase.RUN_CANCELLED);
   });
 
-  it("[rpc:RunCommandController.cancel] cancel transitions a running execution to CANCELLED with completed_at", async () => {
+  it("[rpc:SessionCommandController.interrupt] interrupt stops a running turn: CANCELLED by the person, with completed_at", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
     const id = created.metadata!.id;
-    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
+    const running = await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
 
-    await clients.agentExecutionCommand.cancel({ id, reason: "conformance" });
+    const stopped = await clients.sessionCommand.interrupt({ sessionId: sessionIdOf(running) });
+    expect(stopped.stoppedRunIds).toEqual([id]);
 
     const cancelled = await awaitPhase(clients, id, RunPhase.RUN_CANCELLED);
-    expect(cancelled.status?.completedAt, "cancel records completed_at").toBeTruthy();
+    expect(cancelled.status?.completedAt, "the stop records completed_at").toBeTruthy();
+    expect(cancelled.status?.stopCause).toBe("user");
   });
 
   it("[rpc:RunCommandController.terminate] terminate transitions a running execution to TERMINATED", async () => {
@@ -461,25 +458,24 @@ describe("Run conformance — lifecycle (running execution)", () => {
     expect(terminated.status?.phase).toBe(RunPhase.RUN_TERMINATED);
   });
 
-  // A repeated stop on an execution the same stop already ended is a benign
-  // no-op, not a FailedPrecondition: a client that retries a cancel (or a UI
-  // whose button was clicked twice) must not see an error for a state it
-  // asked for. Distinct from a cancel on a COMPLETED run, which the negatives
-  // below reject — the precondition is "not terminal by another outcome".
+  // A repeated stop is a benign no-op, not an error: a client that retries an
+  // interrupt (or a UI whose button was clicked twice) must not see an error
+  // for a state it asked for. The interrupt stops only what is unfinished, so
+  // the second one stops nothing and the turn stays as the first left it.
   // (From the Go offline suite's lifecycle arms.)
-  it("[rpc:RunCommandController.cancel] a second cancel on a CANCELLED execution is a benign no-op", async () => {
+  it("[rpc:SessionCommandController.interrupt] a second interrupt, once the turn is stopped, stops nothing", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createHeldExecution(org, agent);
     const id = created.metadata!.id;
-    await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
-    await clients.agentExecutionCommand.cancel({ id, reason: "conformance" });
+    const running = await awaitPhase(clients, id, RunPhase.RUN_IN_PROGRESS);
+    const sessionId = sessionIdOf(running);
+    await clients.sessionCommand.interrupt({ sessionId });
     await awaitPhase(clients, id, RunPhase.RUN_CANCELLED);
 
-    const again = await clients.agentExecutionCommand.cancel({ id, reason: "conformance, again" });
-    expect(again.status?.phase, "the second cancel answers the already-cancelled execution").toBe(
-      RunPhase.RUN_CANCELLED,
-    );
+    const again = await clients.sessionCommand.interrupt({ sessionId });
+    expect(again.stoppedRunIds, "nothing was left to stop").toEqual([]);
+    expect((await clients.agentExecutionQuery.get({ value: id })).status?.phase).toBe(RunPhase.RUN_CANCELLED);
   });
 
   it("[rpc:RunCommandController.terminate] a second terminate on a TERMINATED execution is a benign no-op", async () => {
@@ -540,70 +536,46 @@ describe("Run conformance — lifecycle (running execution)", () => {
     // which is exactly the ~1-in-5 full-suite flake this fences, observed
     // as the result and the pause landing in ONE activation ~50ms apart).
     // A time fence is the only option: every clean observable of the
-    // workflow's progress is value-identical to an RPC write and therefore
-    // suppressed by subscribe's consecutive-duplicate guard (Go
-    // sameFrame), and the cancelled-but-parked activity neither
-    // heartbeats nor touches the mock. 2s is ~40x the worst observed
-    // activation lag; a lost race still fails loudly downstream, it just
-    // cannot silently pass.
+    // workflow's progress is value-identical to an RPC write, and the
+    // cancelled-but-parked activity neither heartbeats nor touches the mock.
+    // 2s is ~40x the worst observed activation lag; a lost race still fails
+    // loudly downstream, it just cannot silently pass.
     await new Promise((resolve) => setTimeout(resolve, 2_000));
 
     // Releasing the held turn lets BOTH turns finish: the superseded one
-    // persists its stale terminal COMPLETED ("Working...") and the
-    // resumed one persists its own ("Working RESUMED...") — in EITHER
-    // order (stigmer#869: neither edition guards stale writes yet). Proof
-    // that the resumed re-invocation ran must therefore not depend on the
-    // order: the subscribe stream catches the resumed persist when the
-    // rogue write lands LAST (a poll of the stored state would miss it —
-    // observed ~1-in-3 on this machine), and the stored-state poll
-    // catches it when the rogue write lands FIRST. The release fires
-    // inside the stream's first predicate call (the registration
-    // snapshot), guaranteeing the subscription sees every later persist.
-    const hasResumedText = (e: Run): boolean =>
-      e.status?.messages.some((m) => m.content === "Working RESUMED...") ?? false;
-    let released = false;
-    const stream = await collectStream(
-      (signal) => clients.agentExecutionQuery.subscribe({ value: id }, { signal }),
-      {
-        until: (messages) => {
-          if (!released) {
-            released = true;
-            mock.releaseHolds();
-          }
-          return hasResumedText(messages.at(-1)!);
-        },
-        timeoutMs: 60_000,
-      },
+    // writes its stale "Working..." and the resumed one its own "Working
+    // RESUMED..." — in EITHER order (stigmer#869: neither edition guards
+    // stale writes yet). The session's log is append-only, so the resumed
+    // re-invocation's message is in it whichever lands last; polling the log
+    // also FENCES the resumed turn's queue consumption inside this test
+    // (ending earlier would let the still-running resumed activity steal the
+    // NEXT test's enqueued response).
+    mock.releaseHolds();
+    const sessionId = sessionIdOf(await clients.agentExecutionQuery.get({ value: id }));
+    await pollUntil(
+      () => turnById(clients, sessionId, id),
+      (turn) => messagesOf(turn).some((message) => message.text === "Working RESUMED..."),
+      (last, timeoutMs) =>
+        `run ${id}: the resumed turn's message was not in the log within ${timeoutMs}ms ` +
+        `(messages: ${JSON.stringify(last === undefined ? [] : messagesOf(last).map((message) => message.text))})`,
+      { timeoutMs: 60_000 },
     );
-
-    if (!stream.messages.some(hasResumedText)) {
-      // The stream closed on the rogue's terminal update instead — then
-      // the resumed persist lands LAST and the stored state proves it.
-      // This poll also FENCES the resumed turn's queue consumption inside
-      // this test (ending earlier would let the still-running resumed
-      // activity steal the NEXT test's enqueued response); in the stream
-      // arm above, the resumed text in status.messages already proves the
-      // queue was consumed.
-      await pollExecution(clients, id, hasResumedText, {
-        label: "the resumed turn's persisted state",
-      });
-    }
     const settled = await awaitTerminal(clients, id);
     expect(settled.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 });
 
 describe("Run conformance — lifecycle preconditions & negatives", () => {
-  it("[rpc:RunCommandController.cancel] cancel of a completed execution is rejected with FailedPrecondition", async () => {
+  it("[rpc:SessionCommandController.interrupt] an interrupt after the turn completed stops nothing and leaves it COMPLETED", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
-    await awaitTerminal(clients, created.metadata!.id);
+    const ended = await awaitTerminal(clients, created.metadata!.id);
 
-    await expectGrpcCode(
-      () => clients.agentExecutionCommand.cancel({ id: created.metadata!.id }),
-      Code.FailedPrecondition,
-      "cancel a completed execution",
+    const stopped = await clients.sessionCommand.interrupt({ sessionId: sessionIdOf(ended) });
+    expect(stopped.stoppedRunIds, "a finished turn is left as it is").toEqual([]);
+    expect((await clients.agentExecutionQuery.get({ value: created.metadata!.id })).status?.phase).toBe(
+      RunPhase.RUN_COMPLETED,
     );
   });
 
@@ -645,16 +617,6 @@ describe("Run conformance — lifecycle preconditions & negatives", () => {
       "resume a completed execution",
     );
   });
-
-  it("[rpc:RunCommandController.cancel] cancel rejects an empty id with InvalidArgument", () =>
-    expectGrpcCode(() => clients.agentExecutionCommand.cancel({ id: "" }), Code.InvalidArgument, "cancel empty id"));
-
-  it("[rpc:RunCommandController.cancel] cancel of a missing execution returns NotFound", () =>
-    expectGrpcCode(
-      () => clients.agentExecutionCommand.cancel({ id: "aex_doesnotexist" }),
-      Code.NotFound,
-      "cancel missing execution",
-    ));
 
   it("[rpc:RunCommandController.pause] pause of a missing execution returns NotFound", () =>
     expectGrpcCode(
@@ -1175,51 +1137,9 @@ describe("Run conformance — attachments (#285)", () => {
   });
 });
 
-// --- the subscribe lane and the read surfaces a real run populates ---------
-//
-// Streams are consumed through collectStream, the bounded reader that keeps
-// the idle-forever quirk (pinned below) from hanging the suite.
+// --- the read surfaces a real run populates ---------------------------------
 
-describe("Run conformance — subscribe & populated read surfaces", () => {
-  it("[rpc:RunQueryController.subscribe] subscribe on a LIVE run streams the snapshot, its updates, and closes on the terminal one", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await provisionAgent(org);
-    const created = await createExecution(org, agent);
-
-    // Subscribed while the run is in flight: the lane's contract is
-    // snapshot-first, then full-snapshot updates, then a clean server close
-    // when an UPDATE reaches a terminal phase.
-    const stream = await collectStream((signal) =>
-      clients.agentExecutionQuery.subscribe({ value: created.metadata!.id }, { signal }),
-    );
-    expect(stream.outcome, "the server closes on the terminal update").toBe("closed");
-    expect(stream.messages.length, "at least the snapshot plus the terminal update").toBeGreaterThanOrEqual(2);
-    expect(stream.messages[0]?.metadata?.id).toBe(created.metadata?.id);
-    expect(stream.messages.at(-1)?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-  });
-
-  it("[rpc:RunQueryController.subscribe] subscribe sends the snapshot but never closes on an already-terminal run (the pinned idle-forever quirk)", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await provisionAgent(org);
-    const created = await createExecution(org, agent);
-    await awaitTerminal(clients, created.metadata!.id);
-
-    // The terminal-close check fires only on broker UPDATES, never on the
-    // initial snapshot — a subscription to a finished run receives the
-    // snapshot and then idles forever. Pinned deliberately: the server keeps
-    // it consciously, or fixes it in both editions.
-    const stream = await collectStream(
-      (signal) => clients.agentExecutionQuery.subscribe({ value: created.metadata!.id }, { signal }),
-      { timeoutMs: 3_000 },
-    );
-    // The store serializes the runner's terminal write and the workflow's
-    // fallback persist, so no trailing broker update ever follows the snapshot
-    // to trip the close check — exactly one message, and the reader aborts.
-    expect(stream.outcome, "no server close — the bounded reader had to abort").toBe("timeout");
-    expect(stream.messages).toHaveLength(1);
-    expect(stream.messages[0]?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-  });
-
+describe("Run conformance — populated read surfaces", () => {
   describe.skipIf(capabilities.runModelCallsMetered)("a run whose model calls no meter served", () => {
     it("[billing.rpc.get-run-usage-report.unmetered-run-counts-runner-report] [rpc:RunQueryController.getRunUsageReport] [rpc:RunQueryController.getSessionUsageReport] [rpc:RunQueryController.getAgentUsageReport] a completed run's usage reports carry its runner's tokens, marked estimated", async () => {
       const { org } = await target.provisionTenancy();
@@ -1308,32 +1228,5 @@ describe("Run conformance — subscribe & populated read surfaces", () => {
     expect(before.totalRuns, "a window ending the day before leaves the run out").toBe(0);
     const after = await clients.agentExecutionQuery.getOrgUsageReport({ org, fromDate: dayShift(day, 1), toDate: dayShift(day, 1) });
     expect(after.totalRuns, "a window starting the day after leaves the run out").toBe(0);
-  });
-
-  it("[rpc:RunCommandController.submitFileDecision] submitFileDecision refuses a run with no actionable file change sets (FailedPrecondition)", async () => {
-    const { org } = await target.provisionTenancy();
-    const agent = await provisionAgent(org);
-    const created = await createExecution(org, agent);
-    await awaitTerminal(clients, created.metadata!.id);
-
-    // A text-only completed run has an empty file-review stream: there is
-    // nothing to decide, whatever its phase (a finished turn's sets stay
-    // decidable, so the phase alone refuses nothing). The change set id is
-    // well formed for this run, so the refusal is the missing set's. The
-    // deeper arms need file-edit choreography and live in
-    // run-file-review.conformance.test.ts. The code is the contract; the
-    // copy is the server's.
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitFileDecision({
-          runId: created.metadata!.id,
-          changeSetId: `${created.metadata!.id}:1`,
-          expectedDigest: "digest",
-          scope: FileDecisionScope.CHANGE_SET,
-          action: FileDecisionAction.APPROVE,
-        }),
-      Code.FailedPrecondition,
-      "submitFileDecision on a run that produced no file changes",
-    );
   });
 });
