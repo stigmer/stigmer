@@ -12,28 +12,16 @@
  *     https://github.com URL, the only clone the runner authenticates (a
  *     token elsewhere would be sealed and never used);
  *   - every read shows the redaction marker in place of each token;
- *   - a write that sends the marker back keeps the stored token. This is
- *     what keeps them alive: the runner rewrites the whole session after
- *     every turn (harness_state_id), sending back what it read. A marker
- *     with nothing stored behind it is refused, and so is a value shaped
- *     like server ciphertext, at every write;
- *   - a stale write never drops a token it could not have seen, and never
- *     changes the vault choice. A write is stale when the spec audit stamp
- *     it echoes (status.audit.spec_audit.updated_at, read from the request
- *     as sent) is older than the stored row's: every write of a session
- *     advances that stamp, so another write landed after this one's read.
- *     The runner is the common case, whatever caller class an edition
- *     stamps it with: it sends back the session it read when its turn
- *     started. A stale write keeps the token of a repository it sends by
- *     the same name and URL with none, drops without a word a marker whose
- *     token was removed since, and keeps the stored vaults and
- *     include_my_vault (`newKeepStoredVaultChoiceOnStaleWriteStep`), so it
- *     neither detaches a vault attached since, nor re-attaches one removed
- *     since, nor switches My vault back. A write that echoes no stamp, or
- *     the current one, drops what it omits and is refused for a marker
- *     with nothing behind it. The stamp is the writer's word, and
- *     believing an old one only keeps what is stored: it never reveals a
- *     value or adds one;
+ *   - a write that sends the marker back keeps the stored token, so an
+ *     editor that read the session can save its workspace entries without
+ *     knowing a token. A marker with nothing stored behind it is refused,
+ *     and so is a value shaped like server ciphertext, at every write;
+ *   - an update changes only the paths its mask names, onto the row as
+ *     stored when it lands (pipeline/steps/update-mask.ts), so a write
+ *     that does not name the workspace entries or the vaults never drops a
+ *     token or changes the vault choice made since it read the session.
+ *     An editor that wants a refusal instead of a merge sends the etag it
+ *     read;
  *   - tokens a write drops have their backing state destroyed after the
  *     persist, and the delete chain destroys the rest; a replaced token
  *     has none to destroy: it is sealed under the organization's scope
@@ -47,15 +35,13 @@
  * entry's name and URL together (`repositoryTokenKey`), the identity its
  * stored slot has, so it fills only the clone of that repository.
  *
- * Proven by __tests__/session-values.test.ts, the stale write through the
- * composed session chain in __tests__/session-values-composed.test.ts, and
- * the repository token arms of the vault conformance suite.
+ * Proven by __tests__/session-values.test.ts, the masked update through
+ * the composed session chain in __tests__/session-values-composed.test.ts,
+ * and the repository token arms of the vault conformance suite.
  */
-import { clone } from "@bufbuild/protobuf";
 
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import {
@@ -100,8 +86,6 @@ interface ValueSlot {
   readonly label: string;
   get(): string;
   set(value: string): void;
-  /** Takes the token out of the write. */
-  drop(): void;
 }
 
 function slotsOf(session: Session | undefined): ValueSlot[] {
@@ -122,9 +106,6 @@ function slotsOf(session: Session | undefined): ValueSlot[] {
       get: () => repo.token,
       set: (value) => {
         repo.token = value;
-      },
-      drop: () => {
-        repo.token = "";
       },
     });
   }
@@ -180,18 +161,11 @@ export function newPreserveSessionValuesStep(): PipelineStep<SessionDesc> {
         }
       }
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-      const stale = isStaleSessionWrite(ctx);
       for (const slot of slotsOf(ctx.newState)) {
         const value = slot.get();
         if (value === REDACTED_MARKER) {
           const stored = storedValueOf(existing, slot.key);
           if (stored === undefined || stored === "") {
-            if (stale) {
-              // Removed after this write's read: the echo is of a value
-              // gone, not a forged one.
-              slot.drop();
-              continue;
-            }
             throw invalidArgumentError(markerRejectionMessage(slot.label));
           }
           slot.set(stored);
@@ -201,75 +175,8 @@ export function newPreserveSessionValuesStep(): PipelineStep<SessionDesc> {
           throw invalidArgumentError(forgedCiphertextMessage(slot.label));
         }
       }
-      if (stale) {
-        keepStoredTokensOmitted(existing, spec);
-      }
     },
   };
-}
-
-/**
- * Whether an update was built on an older read than the row it lands on:
- * the spec audit stamp the request echoes, as sent (BuildUpdateState
- * replaces the status the write carries), is older than the stored
- * row's. A request with no stamp, a row with none, or an equal stamp is
- * not stale.
- */
-export function isStaleSessionWrite(ctx: RequestContext<SessionDesc>): boolean {
-  const sent = ctx.input.status?.audit?.specAudit?.updatedAt;
-  const existing = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-  const stored = existing?.status?.audit?.specAudit?.updatedAt;
-  if (sent === undefined || stored === undefined) {
-    return false;
-  }
-  return sent.seconds < stored.seconds || (sent.seconds === stored.seconds && sent.nanos < stored.nanos);
-}
-
-/**
- * Keeps the stored vault choice on a stale update: the vaults and
- * include_my_vault. The write cannot have seen a vault attached or
- * removed, or My vault included or left out, after its read, so it
- * neither detaches nor re-attaches a vault and never switches My vault
- * back: the runner's write after every turn sends the session it read
- * when the turn started. Runs right after BuildUpdateState, before the
- * reference rule and VaultAttachments judge what the write introduces.
- */
-export function newKeepStoredVaultChoiceOnStaleWriteStep(): PipelineStep<SessionDesc> {
-  return {
-    // The step's name predates include_my_vault and stays: step names are
-    // shared vocabulary (backend/services/stigmer-server/AGENTS.md).
-    name: "KeepStoredVaultsOnStaleWrite",
-    execute(ctx: RequestContext<SessionDesc>): void {
-      const spec = ctx.newState.spec;
-      if (spec === undefined || !isStaleSessionWrite(ctx)) {
-        return;
-      }
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-      spec.vaults = (existing?.spec?.vaults ?? []).map((ref) => clone(ApiResourceReferenceSchema, ref));
-      spec.includeMyVault = existing?.spec?.includeMyVault ?? false;
-    },
-  };
-}
-
-/**
- * Copies into a stale write the token of every repository it sends, by
- * the same name and URL, with none. The write was read before the stored
- * row's last write, so the token it lacks may have been added since.
- */
-function keepStoredTokensOmitted(existing: Session | undefined, spec: NonNullable<Session["spec"]>): void {
-  const stored = existing?.spec;
-  for (const entry of stored?.workspaceEntries ?? []) {
-    const source = entry.source?.source;
-    const sent = spec.workspaceEntries.find((candidate) => candidate.name === entry.name)?.source?.source;
-    if (
-      source?.case === "gitRepo" &&
-      sent?.case === "gitRepo" &&
-      sent.value.url === source.value.url &&
-      sent.value.token === ""
-    ) {
-      sent.value.token = source.value.token;
-    }
-  }
 }
 
 /**

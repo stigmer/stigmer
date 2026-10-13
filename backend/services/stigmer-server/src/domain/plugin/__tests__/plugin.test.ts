@@ -852,7 +852,7 @@ describe("Plugin delete and visibility", () => {
     await pluginQuery.get({ value: installed.metadata!.id });
 
     mine.spec!.plugins = [];
-    await agents.update(mine);
+    await agents.update({ resource: mine, updateMask: { paths: ["*"] } });
     const deleted = await plugins.delete({ value: installed.metadata!.id });
     expect(deleted.metadata?.id).toBe(installed.metadata?.id);
     await expectCode(

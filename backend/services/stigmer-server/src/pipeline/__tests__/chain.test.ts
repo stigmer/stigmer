@@ -66,7 +66,7 @@ function testHarness(handlers: {
         create: (request, context) =>
           (handlers.create?.(context) as never) ?? create(AgentSchema, request),
         apply: (request) => request,
-        update: (request) => request,
+        update: (request) => request.resource ?? create(AgentSchema, VALID_AGENT),
         updateVisibility: () => create(AgentSchema, VALID_AGENT),
         delete: () => create(AgentSchema, VALID_AGENT),
       });

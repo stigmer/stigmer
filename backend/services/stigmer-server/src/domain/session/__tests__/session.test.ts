@@ -67,6 +67,7 @@ import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import {
   ExecutionTarget,
@@ -222,7 +223,7 @@ async function markSessionUsed(
     sessionId,
     SessionSchema,
   );
-  stored.spec!.harnessStateId = harnessStateId;
+  (stored.status ??= create(SessionStatusSchema)).harnessStateId = harnessStateId;
   await namingSaves(server.store).saveResource(
     ApiResourceKind.session,
     sessionId,
@@ -299,17 +300,17 @@ describe("session create and update — the agent it names", () => {
     const session = await createSession({});
 
     const withAgent = await command.update(
-      updateInput(session, { agentRef: agentRef(first.metadata!.slug) }),
+      { resource: updateInput(session, { agentRef: agentRef(first.metadata!.slug) }), updateMask: { paths: ["*"] } },
     );
     expect(withAgent.spec?.agentRef?.slug).toBe(first.metadata!.slug);
     expect(withAgent.status?.agentId).toBe(first.metadata!.id);
 
     const changed = await command.update(
-      updateInput(withAgent, { agentRef: agentRef(second.metadata!.slug) }),
+      { resource: updateInput(withAgent, { agentRef: agentRef(second.metadata!.slug) }), updateMask: { paths: ["*"] } },
     );
     expect(changed.status?.agentId).toBe(second.metadata!.id);
 
-    const dropped = await command.update(updateInput(changed, {}));
+    const dropped = await command.update({ resource: updateInput(changed, {}), updateMask: { paths: ["*"] } });
     expect(dropped.spec?.agentRef).toBeUndefined();
     expect(dropped.status?.agentId ?? "").toBe("");
     const fetched = await query.get({ value: session.metadata!.id });
@@ -325,30 +326,30 @@ describe("session create and update — the agent it names", () => {
     });
     const firstHash = session.status!.agentVersionHash;
 
-    const saved = await agentCommand.update({
+    const saved = await agentCommand.update({ resource: {
       ...agent,
       spec: {
         ...agent.spec!,
         instructions: "You are the agent's second version.",
       },
-    });
+    }, updateMask: { paths: ["*"] } });
     const secondHash = saved.status?.versionHash ?? "";
     expect(secondHash).not.toBe("");
     expect(secondHash).not.toBe(firstHash);
 
     const echoed = await command.update(
-      updateInput(session, {
+      { resource: updateInput(session, {
         agentRef: agentRef(agent.metadata!.slug),
         subject: "echoed",
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
     expect(echoed.status?.agentVersionHash).toBe(firstHash);
 
     const moved = await command.update(
-      updateInput(echoed, {
+      { resource: updateInput(echoed, {
         agentRef: agentRef(agent.metadata!.slug, "latest"),
         subject: "echoed",
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
     expect(moved.status?.agentId).toBe(agent.metadata!.id);
     expect(moved.status?.agentVersionHash).toBe(secondHash);
@@ -368,7 +369,7 @@ describe("session update — the reference rule", () => {
     named: string,
   ): Promise<void> {
     const error = await grpcError(() =>
-      command.update(updateInput(session, spec)),
+      command.update({ resource: updateInput(session, spec), updateMask: { paths: ["*"] } }),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toContain(named);
@@ -469,12 +470,12 @@ describe("session update — references the stored row already carries", () => {
     // The echo is what a reader read: the reference by id and the name it
     // had, written back after the skill left.
     const echoed = await command.update(
-      updateInput(session, {
+      { resource: updateInput(session, {
         skillRefs: session.spec!.skillRefs,
-        harnessStateId: "thread-written-back",
-      }),
+        subject: "written back",
+      }), updateMask: { paths: ["*"] } },
     );
-    expect(echoed.spec?.harnessStateId).toBe("thread-written-back");
+    expect(echoed.spec?.subject).toBe("written back");
     // The skill is gone, so the answer names it by no slug; the id stands.
     expect(echoed.spec?.skillRefs.map((ref) => [ref.id, ref.slug])).toEqual([
       ["skl_session_echo", ""],
@@ -484,7 +485,7 @@ describe("session update — references the stored row already carries", () => {
     // refused.
     const fresh = await createSession({});
     const error = await grpcError(() =>
-      command.update(updateInput(fresh, { skillRefs: [skillRef] })),
+      command.update({ resource: updateInput(fresh, { skillRefs: [skillRef] }), updateMask: { paths: ["*"] } }),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toContain("echoed-skill");
@@ -600,9 +601,9 @@ describe("session update — harness immutability", () => {
     });
 
     const updated = await command.update(
-      updateInput(session, {
+      { resource: updateInput(session, {
         harness: Harness.CURSOR,
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
     expect(updated.spec?.harness).toBe(Harness.CURSOR);
   });
@@ -615,9 +616,9 @@ describe("session update — harness immutability", () => {
 
     const error = await grpcError(() =>
       command.update(
-        updateInput(session, {
+        { resource: updateInput(session, {
           harness: Harness.CURSOR,
-        }),
+        }), updateMask: { paths: ["*"] } },
       ),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
@@ -631,9 +632,9 @@ describe("session update — harness immutability", () => {
     await markSessionUsed(session.metadata!.id, "thread-3");
 
     const updated = await command.update(
-      updateInput(session, {
+      { resource: updateInput(session, {
         subject: "still native",
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
     expect(updated.spec?.subject).toBe("still native");
   });
@@ -641,11 +642,11 @@ describe("session update — harness immutability", () => {
   it("an update naming no harness keeps a stored Cursor engine, before and after the first execution", async () => {
     const session = await createSession({ harness: Harness.CURSOR });
 
-    const unused = await command.update(updateInput(session, { subject: "re-applied" }));
+    const unused = await command.update({ resource: updateInput(session, { subject: "re-applied" }), updateMask: { paths: ["*"] } });
     expect(unused.spec?.harness).toBe(Harness.CURSOR);
 
     await markSessionUsed(session.metadata!.id, "thread-cursor");
-    const used = await command.update(updateInput(session, { subject: "re-applied again" }));
+    const used = await command.update({ resource: updateInput(session, { subject: "re-applied again" }), updateMask: { paths: ["*"] } });
     expect(used.spec?.harness).toBe(Harness.CURSOR);
   });
 
@@ -654,9 +655,9 @@ describe("session update — harness immutability", () => {
     await markSessionUsed(session.metadata!.id, "thread-4");
 
     const updated = await command.update(
-      updateInput(session, {
+      { resource: updateInput(session, {
         harness: Harness.NATIVE,
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
     expect(updated.spec?.harness).toBe(Harness.NATIVE);
 
@@ -664,9 +665,9 @@ describe("session update — harness immutability", () => {
     await markSessionUsed(session.metadata!.id, "thread-4");
     const error = await grpcError(() =>
       command.update(
-        updateInput(session, {
+        { resource: updateInput(session, {
           harness: Harness.CURSOR,
-        }),
+        }), updateMask: { paths: ["*"] } },
       ),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
@@ -680,7 +681,7 @@ describe("session update — execution-target immutability (oss#397)", () => {
     await markSessionUsed(session.metadata!.id, "thread-t1");
 
     const updated = await command.update(
-      updateInput(session, { subject: "no move" }),
+      { resource: updateInput(session, { subject: "no move" }), updateMask: { paths: ["*"] } },
     );
     expect(updated.spec?.subject).toBe("no move");
   });
@@ -690,9 +691,9 @@ describe("session update — execution-target immutability (oss#397)", () => {
     await markSessionUsed(session.metadata!.id, "thread-t2");
 
     const updated = await command.update(
-      updateInput(session, {
+      { resource: updateInput(session, {
         executionTarget: ExecutionTarget.LOCAL,
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
     expect(updated.spec?.executionTarget).toBe(ExecutionTarget.LOCAL);
   });
@@ -703,9 +704,9 @@ describe("session update — execution-target immutability (oss#397)", () => {
 
     const error = await grpcError(() =>
       command.update(
-        updateInput(session, {
+        { resource: updateInput(session, {
           executionTarget: ExecutionTarget.CLOUD,
-        }),
+        }), updateMask: { paths: ["*"] } },
       ),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
@@ -727,10 +728,8 @@ describe("session update — execution-target immutability (oss#397)", () => {
     const step = newValidateExecutionTargetImmutabilityStep(cloudConfig);
 
     const existing = create(SessionSchema, {
-      spec: {
-        harnessStateId: "thread-x",
-        executionTarget: ExecutionTarget.UNSPECIFIED,
-      },
+      spec: { executionTarget: ExecutionTarget.UNSPECIFIED },
+      status: { harnessStateId: "thread-x" },
     });
 
     // unset existing + explicit CLOUD input: both resolve CLOUD — passes.
@@ -784,45 +783,6 @@ describe("session update — execution-target immutability (oss#397)", () => {
   });
 });
 
-describe("session update — server-owned harness_state_id_history", () => {
-  it("appends the replaced id, never duplicates, and discards client-sent history", async () => {
-    const session = await createSession({});
-    await markSessionUsed(session.metadata!.id, "hs-1");
-
-    // Replace hs-1 with hs-2: the replaced id lands in the history.
-    const first = await command.update(
-      updateInput(session, {
-        harnessStateId: "hs-2",
-      }),
-    );
-    expect(first.spec?.harnessStateId).toBe("hs-2");
-    expect(first.spec?.harnessStateIdHistory).toEqual(["hs-1"]);
-
-    // Same id again, with client-forged history: no duplicate append and
-    // the forged entry is discarded (server-owned field).
-    const second = await command.update(
-      updateInput(session, {
-        harnessStateId: "hs-2",
-        harnessStateIdHistory: ["client-forged"],
-      }),
-    );
-    expect(second.spec?.harnessStateId).toBe("hs-2");
-    expect(second.spec?.harnessStateIdHistory).toEqual(["hs-1"]);
-
-    // A second replacement appends behind the first.
-    const third = await command.update(
-      updateInput(session, {
-        harnessStateId: "hs-3",
-      }),
-    );
-    expect(third.spec?.harnessStateIdHistory).toEqual(["hs-1", "hs-2"]);
-
-    // The persisted row agrees with the wire answer.
-    const fetched = await query.get({ value: session.metadata!.id });
-    expect(fetched.spec?.harnessStateIdHistory).toEqual(["hs-1", "hs-2"]);
-  });
-});
-
 describe("session update — a write that lands mid-update", () => {
   it("an update keeps a write that lands between its read and its write", async () => {
     const session = await createSession({ subject: "before" });
@@ -842,7 +802,7 @@ describe("session update — a write that lands mid-update", () => {
         id,
         ApiResourceVisibility.visibility_org,
       ),
-      () => command.update(updateInput(session, { subject: "after" })),
+      () => command.update({ resource: updateInput(session, { subject: "after" }), updateMask: { paths: ["*"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);

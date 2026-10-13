@@ -265,9 +265,9 @@ describe("session-update run gate (composed server)", () => {
     gate.runGateChecks.length = 0;
     const err = await captureError(() =>
       sessionCommand.update(
-        edited(session, (spec) => {
+        { resource: edited(session, (spec) => {
           spec.agentRef = agentRef(second.slug);
-        }),
+        }), updateMask: { paths: ["*"] } },
       ),
     );
 
@@ -289,14 +289,14 @@ describe("session-update run gate (composed server)", () => {
     decision = { kind: "deny", reason: "" };
     gate.runGateChecks.length = 0;
     const echoed = await sessionCommand.update(
-      edited(session, (spec) => {
+      { resource: edited(session, (spec) => {
         spec.subject = "Renamed by an echo";
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
     const latest = await sessionCommand.update(
-      edited(echoed, (spec) => {
+      { resource: edited(echoed, (spec) => {
         spec.agentRef = agentRef(agent.slug, "latest");
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
 
     expect(gate.runGateChecks).toHaveLength(0);

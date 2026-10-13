@@ -440,7 +440,7 @@ describe("evaluators", () => {
       spec: { agentId, enabled: true, sampleRate: 1, monthlyLimitUsd: 10 },
     });
     const moved = await failureOf(
-      evaluators.update({ ...created, spec: { ...created.spec!, agentId: await newAgent() } }),
+      evaluators.update({ resource: { ...created, spec: { ...created.spec!, agentId: await newAgent() } }, updateMask: { paths: ["*"] } }),
     );
     expect(moved.code).toBe(Code.FailedPrecondition);
     expect(moved.rawMessage).toBe(EVALUATOR_AGENT_IMMUTABLE_MESSAGE);
@@ -462,7 +462,7 @@ describe("evaluators", () => {
     // A grade's reservation lands between the person's read and their save.
     const read = await evaluatorQuery.get({ value: created.metadata!.id });
     expect(await reserve(server.store, created.metadata!.id, new Date(), PER_GRADE_CAP_USD, "limit")).toBe("reserved");
-    const saved = await evaluators.update({ ...read, spec: { ...read.spec!, sampleRate: 0.5 } });
+    const saved = await evaluators.update({ resource: { ...read, spec: { ...read.spec!, sampleRate: 0.5 } }, updateMask: { paths: ["*"] } });
     expect(saved.spec?.sampleRate).toBe(0.5);
     expect(saved.status?.reservedUsd, "the reservation written meanwhile is kept").toBe(PER_GRADE_CAP_USD);
 
@@ -481,7 +481,7 @@ describe("evaluators", () => {
       ApiResourceKind.evaluator,
       id,
       visibilityWrite(server.store, ApiResourceKind.evaluator, EvaluatorSchema, id, ApiResourceVisibility.visibility_org),
-      () => evaluators.update({ ...created, spec: { ...created.spec!, sampleRate: 0.25 } }),
+      () => evaluators.update({ resource: { ...created, spec: { ...created.spec!, sampleRate: 0.25 } }, updateMask: { paths: ["*"] } }),
     );
     expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
     expect(updated.spec?.sampleRate).toBe(0.25);

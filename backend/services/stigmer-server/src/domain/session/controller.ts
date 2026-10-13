@@ -141,7 +141,6 @@ import {
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import {
   newDestroyDroppedSessionValuesStep,
-  newKeepStoredVaultChoiceOnStaleWriteStep,
   newPreserveSessionValuesStep,
   newSealSessionValuesStep,
   redactSessionValues,
@@ -386,7 +385,6 @@ async function update(
       .addStep(newValidateHarnessImmutabilityStep())
       .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
       .addStep(newNormalizeReferencesStep(deps.store))
-      .addStep(newKeepStoredVaultChoiceOnStaleWriteStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(
         newValidateReferencesStep(deps.store, deps.authorizer, {

@@ -260,7 +260,7 @@ describe("renames, through a composed server", () => {
         "update",
         () =>
           agents().update(
-            agentInput(ORG, "stale-file", "changed by a stale file"),
+            { resource: agentInput(ORG, "stale-file", "changed by a stale file"), updateMask: { paths: ["*"] } },
           ),
       ],
     ] as const) {
@@ -287,10 +287,10 @@ describe("renames, through a composed server", () => {
       agentInput(ORG, "fresh-name", "changed by a fresh file"),
     );
     expect(applied.metadata?.id).toBe(id);
-    const byId = await agents().update({
+    const byId = await agents().update({ resource: {
       ...agentInput(ORG, "stale-file", "changed by id"),
       metadata: { id, org: ORG, name: "x", slug: "stale-file" },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(byId.metadata?.slug, "an update by id keeps the slug").toBe(
       "fresh-name",
     );
@@ -539,10 +539,10 @@ describe("renames, through a composed server", () => {
     );
     const id = created.metadata!.id;
     const firstHash = created.status!.versionHash;
-    await agents().update({
+    await agents().update({ resource: {
       ...agentInput(ORG, "versioned-old", "second version"),
       metadata: { id, org: ORG, name: "v", slug: "versioned-old" },
-    });
+    }, updateMask: { paths: ["*"] } });
     await agents().rename({ resourceId: id, slug: "versioned-new" });
 
     const pinned = await agentQuery().getByReference({
@@ -654,10 +654,10 @@ describe("renames, through a composed server", () => {
         id,
         () => agents().rename({ resourceId: id, slug: "race-agent-renamed" }),
         () =>
-          agents().update({
+          agents().update({ resource: {
             ...agentInput(ORG, "race-agent", "edited mid-rename"),
             metadata: { id, org: ORG, name: "r", slug: "race-agent" },
-          }),
+          }, updateMask: { paths: ["*"] } }),
       );
       const row = await expectSlugKept(
         ApiResourceKind.agent,
@@ -715,7 +715,7 @@ describe("renames, through a composed server", () => {
             slug: "race-channel-app-renamed",
           }),
         () =>
-          channelApps().update({
+          channelApps().update({ resource: {
             apiVersion: AGENTIC,
             kind: "ChannelApp",
             metadata: {
@@ -734,7 +734,7 @@ describe("renames, through a composed server", () => {
                 },
               },
             },
-          }),
+          }, updateMask: { paths: ["*"] } }),
       );
       const row = await expectSlugKept(
         ApiResourceKind.channel_app,
@@ -771,7 +771,7 @@ describe("renames, through a composed server", () => {
             slug: "race-oauth-app-renamed",
           }),
         () =>
-          oauthApps().update({
+          oauthApps().update({ resource: {
             apiVersion: IAM,
             kind: "OAuthApp",
             metadata: {
@@ -781,7 +781,7 @@ describe("renames, through a composed server", () => {
               slug: "race-oauth-app",
             },
             spec: { ...spec, clientSecret: "***REDACTED***" },
-          }),
+          }, updateMask: { paths: ["*"] } }),
       );
       const row = await expectSlugKept(
         ApiResourceKind.oauth_app,
@@ -826,7 +826,7 @@ describe("renames, through a composed server", () => {
           schedules().rename({ resourceId: id, slug: "race-schedule-renamed" }),
         () =>
           schedules().update(
-            input("race-schedule", "0 10 * * *", id, "race-schedule"),
+            { resource: input("race-schedule", "0 10 * * *", id, "race-schedule"), updateMask: { paths: ["*"] } },
           ),
       );
       const row = await expectSlugKept(
@@ -851,12 +851,12 @@ describe("renames, through a composed server", () => {
         id,
         () => vaults().rename({ resourceId: id, slug: "race-vault-renamed" }),
         () =>
-          vaults().update({
+          vaults().update({ resource: {
             apiVersion: AGENTIC,
             kind: "Vault",
             metadata: { id, name: "race-vault", org: ORG, slug: "race-vault" },
             spec: { description: "edited mid-rename" },
-          }),
+          }, updateMask: { paths: ["*"] } }),
       );
       const row = await expectSlugKept(
         ApiResourceKind.vault,
@@ -884,7 +884,7 @@ describe("renames, through a composed server", () => {
             slug: "race-client-renamed",
           }),
         () =>
-          platformClients().update({
+          platformClients().update({ resource: {
             apiVersion: IAM,
             kind: "PlatformClient",
             metadata: {
@@ -894,7 +894,7 @@ describe("renames, through a composed server", () => {
               slug: "race-client",
             },
             spec: {},
-          }),
+          }, updateMask: { paths: ["*"] } }),
       );
       let row = await expectSlugKept(
         ApiResourceKind.platform_client,
@@ -1000,12 +1000,12 @@ describe("renames, through a composed server", () => {
         [
           "vanishing-update",
           (id) =>
-            platformClients().update({
+            platformClients().update({ resource: {
               apiVersion: IAM,
               kind: "PlatformClient",
               metadata: { id, name: "gone", org: ORG },
               spec: {},
-            }),
+            }, updateMask: { paths: ["*"] } }),
         ],
         [
           "vanishing-rotate",

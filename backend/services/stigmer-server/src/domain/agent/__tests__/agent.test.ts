@@ -522,7 +522,7 @@ describe("agent update — a write that lands mid-update", () => {
         id,
         ApiResourceVisibility.visibility_org,
       ),
-      () => command.update(created),
+      () => command.update({ resource: created, updateMask: { paths: ["*"] } }),
     );
     return { id, originalHash, ...race };
   }

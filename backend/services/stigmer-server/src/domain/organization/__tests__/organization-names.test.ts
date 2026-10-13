@@ -306,11 +306,11 @@ describe("organization names (composed server, trusted-local posture)", () => {
       now,
     });
 
-    await organizations.update({
+    await organizations.update({ resource: {
       ...organizationInput("settle-a"),
       metadata: { id, name: "settle-a", slug: "settle-a" },
       spec: { description: "an update between the move and the row write" },
-    });
+    }, updateMask: { paths: ["*"] } });
     // The rename's own row write lands after the update, and settles the
     // row on the table's name by writing the slug alone.
     const renamed = await server.store.getResource(ApiResourceKind.organization, id, OrganizationSchema);
@@ -538,7 +538,7 @@ describe("organization names (composed server, trusted-local posture)", () => {
 
     for (const write of [
       () => organizations.apply({ ...organizationInput("hooli"), spec: { description: "applied by the old slug" } }),
-      () => organizations.update({ ...organizationInput("hooli"), spec: { description: "updated by the old slug" } }),
+      () => organizations.update({ resource: { ...organizationInput("hooli"), spec: { description: "updated by the old slug" } }, updateMask: { paths: ["*"] } }),
     ]) {
       const refusal = await grpcError(write);
       expect(refusal.code).toBe(Code.FailedPrecondition);
@@ -560,10 +560,10 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(withId.metadata?.slug, "an apply never renames").toBe("hooli-xyz");
     expect(await resolve("hooli-new")).toBeUndefined();
 
-    const updated = await organizations.update({
+    const updated = await organizations.update({ resource: {
       ...organizationInput("hooli-xyz"),
       spec: { description: "updated by the current slug" },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.id).toBe(id);
     expect(updated.spec?.description).toBe("updated by the current slug");
   });

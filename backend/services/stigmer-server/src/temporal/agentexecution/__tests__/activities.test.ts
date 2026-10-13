@@ -286,7 +286,7 @@ describe("ReadHarnessStateId activity", () => {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Session",
         metadata: { id: "ses_h1", name: "s", org: "o" },
-        spec: { harnessStateId: "cursor-agent-42" },
+        status: { harnessStateId: "cursor-agent-42" },
       }),
     );
     await expect(

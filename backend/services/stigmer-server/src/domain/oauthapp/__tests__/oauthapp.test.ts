@@ -205,7 +205,7 @@ describe("oauthapp domain (encryption enabled)", () => {
 
     const fetched = await ts.query.get({ value: created.metadata!.id });
     expect(fetched.spec?.clientSecret).toBe(REDACTED_MARKER);
-    const updated = await ts.command.update(fetched);
+    const updated = await ts.command.update({ resource: fetched, updateMask: { paths: ["*"] } });
     expect(updated.spec?.clientSecret).toBe(REDACTED_MARKER);
 
     const after = (await storedApp(ts.server.store, created.metadata!.id)).spec!.clientSecret;
@@ -218,7 +218,7 @@ describe("oauthapp domain (encryption enabled)", () => {
 
     const fetched = await ts.query.get({ value: created.metadata!.id });
     fetched.spec!.clientSecret = "rotated-secret";
-    await ts.command.update(fetched);
+    await ts.command.update({ resource: fetched, updateMask: { paths: ["*"] } });
 
     const after = (await storedApp(ts.server.store, created.metadata!.id)).spec!.clientSecret;
     expect(after.startsWith(ENCRYPTED_PREFIX)).toBe(true);
@@ -245,7 +245,7 @@ describe("oauthapp domain (encryption enabled)", () => {
     const created = await ts.command.create(appInput());
     const fetched = await ts.query.get({ value: created.metadata!.id });
     fetched.spec!.clientSecret = "enc:v1:Zm9yZ2Vk";
-    const err = await grpcError(() => ts.command.update(fetched));
+    const err = await grpcError(() => ts.command.update({ resource: fetched, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(CIPHERTEXT_SHAPED_SECRET_MESSAGE);
   });
@@ -304,7 +304,7 @@ describe("oauthapp domain (encryption enabled)", () => {
       ApiResourceKind.oauth_app,
       id,
       visibilityWrite(ts.server.store, ApiResourceKind.oauth_app, OAuthAppSchema, id, ApiResourceVisibility.visibility_org),
-      () => ts.command.update({ ...created, spec: { ...created.spec!, clientId: "rotated-client-id" } }),
+      () => ts.command.update({ resource: { ...created, spec: { ...created.spec!, clientId: "rotated-client-id" } }, updateMask: { paths: ["*"] } }),
     );
     expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
 
@@ -358,7 +358,7 @@ describe("oauthapp domain (encryption enabled)", () => {
       const dropped = `https://dropped-${counter}.example/mcp`;
       const added = `https://added-${counter}.example/mcp`;
       const app = await ts.command.create(appInput({ addresses: [kept, dropped] }));
-      const updated = await ts.command.update({ ...app, spec: { ...app.spec!, addresses: [kept, added] } });
+      const updated = await ts.command.update({ resource: { ...app, spec: { ...app.spec!, addresses: [kept, added] } }, updateMask: { paths: ["*"] } });
       expect(updated.spec?.addresses).toEqual([kept, added]);
       expect(await findOrganizationApp(ts.server.store, orgId(), dropped)).toBeUndefined();
       expect((await findOrganizationApp(ts.server.store, orgId(), added))?.metadata?.id).toBe(app.metadata?.id);
@@ -383,7 +383,7 @@ describe("oauthapp domain (encryption enabled)", () => {
         ApiResourceKind.oauth_app,
         id,
         visibilityWrite(ts.server.store, ApiResourceKind.oauth_app, OAuthAppSchema, id, ApiResourceVisibility.visibility_org),
-        () => ts.command.update({ ...app, spec: { ...app.spec!, addresses: [kept, added] } }),
+        () => ts.command.update({ resource: { ...app, spec: { ...app.spec!, addresses: [kept, added] } }, updateMask: { paths: ["*"] } }),
       );
       expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
       expect(updated.spec?.addresses).toEqual([kept, added]);
@@ -433,12 +433,12 @@ describe("oauthapp domain (encryption enabled)", () => {
 
       const app = await ts.command.create(appInput());
       const onUpdate = await grpcError(() =>
-        ts.command.update({ ...app, spec: { ...app.spec!, userinfoUrl: "http://vendor.example.com/me" } }),
+        ts.command.update({ resource: { ...app, spec: { ...app.spec!, userinfoUrl: "http://vendor.example.com/me" } }, updateMask: { paths: ["*"] } }),
       );
       expect(onUpdate.code).toBe(Code.InvalidArgument);
       expect(onUpdate.rawMessage).toContain("spec.userinfo_url must be an https URL");
 
-      const local = await ts.command.update({ ...app, spec: { ...app.spec!, tokenUrl: "http://127.0.0.1:4000/token" } });
+      const local = await ts.command.update({ resource: { ...app, spec: { ...app.spec!, tokenUrl: "http://127.0.0.1:4000/token" } }, updateMask: { paths: ["*"] } });
       expect(local.spec?.tokenUrl).toBe("http://127.0.0.1:4000/token");
       await ts.command.delete({ resourceId: app.metadata!.id });
     });
