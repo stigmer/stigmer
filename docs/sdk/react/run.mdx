@@ -459,7 +459,7 @@ const { sessionId } = await create({
 
 ### useFileChangeContent
 
-Behavior hook that resolves a `FileChange`'s before/after sides to the
+Behavior hook that resolves a [`DisplayFileChange`](#displayfilechange)'s before/after sides to the
 text the diff renderer needs.
 
 Small bodies are carried inline on the proto and returned with zero cost.
@@ -479,12 +479,12 @@ Rules-of-hooks safe: both sides always issue a (possibly skipped)
 **Signature**
 
 ```tsx
-function useFileChangeContent(change: FileChange): UseFileChangeContentReturn
+function useFileChangeContent(change: DisplayFileChange): UseFileChangeContentReturn
 ```
 
 <TypeTable
   type={{
-    change: { type: "FileChange", description: "The file change whose content to resolve.", required: true },
+    change: { type: "DisplayFileChange", description: "The file change whose content to resolve.", required: true },
   }}
 />
 
@@ -1289,13 +1289,11 @@ border + muted surface, tokens only).
 
 ### FileChangeDiff
 
-Renders the diff for a single `FileChange`, adapting to how completely
-the runner captured it:
+Renders the diff for a single [`DisplayFileChange`](#displayfilechange):
 
-- **Whole-file** (native): a true before/after diff via [`DiffViewer`](/docs/sdk/react/version-history#diffviewer).
-  Offloaded bodies are fetched lazily; loading, error, and too-large
-  (server-truncated) states are surfaced honestly.
-- **Hunk-only** (Cursor today): the captured unified diff, labeled as such.
+- a true before/after diff via [`DiffViewer`](/docs/sdk/react/version-history#diffviewer). Offloaded bodies are
+  fetched lazily; loading, error, and too-large (server-truncated) states
+  are surfaced honestly;
 - **Binary**: a "binary file changed" notice instead of a text diff.
 
 Importable on its own by platform builders composing custom change UIs.
@@ -1306,7 +1304,7 @@ Importable on its own by platform builders composing custom change UIs.
   type={{
     bodyClassName: { type: "string", description: "Optional class applied to the scrolling diff body (the `DiffViewer` table or unified-diff `<pre>`). A raw height cap with no reveal control; prefer bounded for the consistent clamp-and-reveal used across tool cards." },
     bounded: { type: "boolean", description: "When `true`, the diff body is wrapped in the shared BoundedContent primitive: clamped to the standard preview height with a bottom fade and an in-place \"Show more\" / \"Show less\", identical to the always-visible edit/write diff body in the timeline. Defaults to `false` so the dedicated Changes view (FileChangesView) renders the full diff; the approval gate opts in so a large change cannot push the decision buttons off-screen while still letting the reviewer expand the whole diff in place." },
-    change: { type: "FileChange", description: "The single file change to render.", required: true },
+    change: { type: "DisplayFileChange", description: "The single file change to render.", required: true, typeDescriptionLink: "#displayfilechange" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     showFileName: { type: "boolean", description: "Whether to render the filename header (the `FilePathLink` + any rename prefix). Defaults to `true`. Set to `false` where an ancestor already names the file — the approval gate header, or a tool-call row — so the diff is not captioned with a path the user just read; the `+N -M` stats still render." },
     showStats: { type: "boolean", description: "Whether to render the `+N -M` summary. Defaults to `true`. Set to `false` where an ancestor row already shows the result summary (a tool-call row) so the body does not repeat the counts. Orthogonal to showFileName: the approval gate suppresses the name but keeps the stats." },
@@ -1320,10 +1318,10 @@ Consolidated, GitHub-style view of the files an agent changed: a summary
 bar, a file selector (when more than one file changed), and the unified diff
 for the selected file.
 
-Renders the runner's authoritative `FileChange` captures directly
-(proto-first). Whole-file captures (native) become a true before/after diff;
-hunk-only captures (Cursor today) render their unified diff; offloaded bodies
-are fetched lazily only when their file is opened (see [`FileChangeDiff`](#filechangediff)).
+Renders the run's captured changes (its file record, projected to
+[`DisplayFileChange`](#displayfilechange)). Every capture is whole-file, so each becomes a
+true before/after diff; offloaded bodies are fetched lazily only when their
+file is opened (see [`FileChangeDiff`](#filechangediff)).
 
 Zero Console dependencies — safe for platform builder embedding.
 
@@ -1331,7 +1329,7 @@ Zero Console dependencies — safe for platform builder embedding.
 
 <TypeTable
   type={{
-    changes: { type: "readonly FileChange[]", description: "Net file changes to render, typically from useSessionFileChanges. One entry per changed file.", required: true },
+    changes: { type: "readonly DisplayFileChange[]", description: "Net file changes to render, typically from useSessionFileChanges. One entry per changed file.", required: true },
     className: { type: "string", description: "Additional CSS classes for the root container." },
   }}
 />
@@ -2062,17 +2060,6 @@ decision UI is shown (a read-only transcript).
 />
 
 
-### approvalPolicySourceOf
-
-The `ApprovalPolicySource` a provenance word names (an ask's
-`policySource`); `UNSPECIFIED` for "" (no rule recorded) or a word this
-client does not know.
-
-```tsx
-function approvalPolicySourceOf(word: string): ApprovalPolicySource
-```
-
-
 ### ARTIFACT_DOCUMENT_ENTRY_ID
 
 Virtual entry id of the artifact document FAMILY. Unlike the plan (one tab
@@ -2269,38 +2256,33 @@ function defaultDisclosureForCategory(category: ToolCategory): ToolDisclosure
 ### deriveRunFileChanges
 
 Collapses the file changes captured across `executions` into one *net*
-`FileChange` per path, ordered for a file list (modified, then
-created/renamed, then deleted; alphabetical within each group).
+[`DisplayFileChange`](#displayfilechange) per path, ordered for a file list (modified, then
+added/renamed, then deleted; alphabetical within each group).
 
-**Source (ledger-first).** Under apply-then-review the changes live in the
-file-review ledger; [`displayFileChangeSets`](#displayfilechangesets) reads the server's live
-projection or folds the durable ledger for a terminal run (whose
-projection is nil), and each captured change is projected onto the display
-`FileChange` via [`toDisplayFileChange`](#todisplayfilechange). The execution-scoped
-ledger already includes sub-agent captures, so one pass per
-run suffices.
+**Source.** Each run's file record ([`displayFileChangeSets`](#displayfilechangesets): the
+change sets it captured, `RunStatus.file_changes`), each captured change
+projected via [`toDisplayFileChange`](#todisplayfilechange). A run's record already includes
+sub-agent captures, so one pass per run suffices. What was decided about a
+file is the session's events, not this list.
 
-**Net-diff (not latest-wins).** A `FileChange` is a *delta* — an
-agent often rewrites the same file several times, and showing only the last
-edit's diff would misrepresent what changed. So changes to the same path
-are reduced to a single net change: `before` from the first change, `after`
-from the last. Because a WHOLE_FILE `after` is a complete file snapshot,
-`first.before → last.after` is exactly the net change. A group with one
-change (the common case) is passed through untouched; multi-edit groups
-synthesize a net `FileChange` so every consumer speaks one proto
-type.
+**Net-diff (not latest-wins).** A change is a *delta*: an agent often
+rewrites the same file several times, and showing only the last edit's diff
+would misrepresent what changed. So changes to the same path are reduced to
+a single net change: `before` from the first change, `after` from the last.
+Every capture is a complete file snapshot, so `first.before -> last.after`
+is exactly the net change. A group with one change (the common case) is
+passed through untouched.
 
 **Ordering is a correctness input.** `executions` MUST be chronological:
 the net collapse anchors on each path's first and last change, so two
 runs touching the same path (a session's follow-up turns) produce a
 wrong net diff if visited out of order.
 
-Counts and unified diffs for whole-file captures stay derivable by the
-presentation layer (the runner emits 0/"" sentinels), matching the
-contract the SDK `tool-view` established.
+Counts for captures stay derivable by the presentation layer, matching
+the contract the SDK `tool-view` established.
 
 ```tsx
-function deriveRunFileChanges(executions: readonly Run[]): readonly FileChange[]
+function deriveRunFileChanges(executions: readonly Run[]): readonly DisplayFileChange[]
 ```
 
 
@@ -2317,23 +2299,38 @@ Aggregate change statistics parsed from a `git diff --stat` summary line.
 />
 
 
+### DisplayFileChange
+
+One changed file, as a diff renderer shows it.
+
+<TypeTable
+  type={{
+    after: { type: "FileContent | undefined", description: "The file after the change; undefined for a deleted file.", required: true },
+    before: { type: "FileContent | undefined", description: "The file before the change; undefined for an added file.", required: true },
+    changeType: { type: "DisplayFileChangeType", description: "", required: true, typeDescriptionLink: "#displayfilechangetype" },
+    linesAdded: { type: "number", description: "The runner's capture-time line counts, so a renderer can show `+N -M` even when a body was offloaded and no inline diff is computable. Zero means no count exists (binary or withheld): hide the stat, never show \"+0 -0\".", required: true },
+    linesRemoved: { type: "number", description: "", required: true },
+    path: { type: "string", description: "The file's path after the change (its path before, for a deletion).", required: true },
+    renameFrom: { type: "string", description: "The path before a rename; \"\" for any other change.", required: true },
+  }}
+/>
+
+
 ### displayFileChangeSets
 
-The single read seam for displaying a run's file change sets.
-
-Returns the server-computed `status.file_change_sets` projection when it is
-present (the projection is structurally shared across stream frames, so
-consumers keep stable references and streaming re-renders stay scoped to
-the actively-changing card), and otherwise folds the ledger (a status read
-without the projection; the ledger is always preserved).
-
-The two branches are equivalent by construction (the fold IS the server
-projection — locked by the corpus parity test), so this accessor is a
-single consistent source whichever branch it takes.
+A run's captured change sets, in the order the run recorded them: its file
+record. Returns the record's own array (no copy), so memoized consumers
+keep their reference.
 
 ```tsx
-function displayFileChangeSets(status: RunStatus | undefined): FileChangeSet[]
+function displayFileChangeSets(status: RunStatus | undefined): readonly FileChangeSet[]
 ```
+
+
+### DisplayFileChangeType
+
+How a file changed, in the word the session's file-review events use
+(`FileReviewFile.change` in @stigmer/session-log).
 
 
 ### EmptyChangeKind
@@ -2449,6 +2446,16 @@ Props for [`FileChangeProgressBar`](#filechangeprogressbar).
     progress: { type: "FileChangeProgress | undefined", description: "The transient mid-run progress snapshot for the active turn. Feed this from `useSessionConversation().fileChangeProgress`. Renders nothing when undefined or when no files have changed yet — the server clears it once the turn's change set leaves CAPTURING, so the bar disappears exactly when the decision surface (FileReviewDock) takes over.", required: true },
   }}
 />
+
+
+### fileChangeSetOf
+
+One captured change set of a run's file record, by its id: what a review
+card joins to a folded `FileReviewSet` (`changeSetId`) to render its diffs.
+
+```tsx
+function fileChangeSetOf(status: RunStatus | undefined, changeSetId: string): FileChangeSet | undefined
+```
 
 
 ### fileDecisionKey
@@ -2667,27 +2674,6 @@ decide whether the plan is being worked.
 
 ```tsx
 function findActiveTodo(todos: readonly Todo[]): Todo | null
-```
-
-
-### foldFileReviewEventStream
-
-Folds a file-review event ledger into its list of `FileChangeSet`s,
-grouped by `change_set_id` in first-seen order.
-
-This is the display fold, the server projection's twin: a status that
-carries no projection still yields its sets. Prefer the server-computed
-`status.file_change_sets` when present (it is structurally shared across
-stream frames) — see [`displayFileChangeSets`](#displayfilechangesets).
-
-The fold is a faithful port of the Go/Java projector: scalar and snapshot
-fields are last-writer-wins, `decisions` accumulate, `changes` are replaced
-wholesale by the latest `CANDIDATE_CAPTURED`, and terminal `RECONCILED` /
-`FAILED` statuses are sticky (a later non-terminal event never downgrades
-them).
-
-```tsx
-function foldFileReviewEventStream(stream: FileReviewEventStream | undefined): FileChangeSet[]
 ```
 
 
@@ -3248,9 +3234,9 @@ function registerToolPresenter(kind: ToolKind, presenter: ToolPresenter): () => 
 ```
 
 ```tsx
-import { registerToolPresenter, ToolKind } from "@stigmer/react";
+import { registerToolPresenter } from "@stigmer/react";
 
-const dispose = registerToolPresenter(ToolKind.SHELL, {
+const dispose = registerToolPresenter("shell", {
   label: () => "Run command",
   summary: (_tc, result) =>
     result.type === "terminal" && result.exitCode ? `failed (${result.exitCode})` : null,
@@ -3341,7 +3327,7 @@ function resolveToolCategoryFromCall(toolUse: ToolIdentity): ToolCategoryInfo
 
 Resolves presentation metadata from an explicit `ToolKind` plus the
 tool name and MCP slug, for a surface that already holds the kind. Falls
-back to name-based resolution when the kind is unset.
+back to name-based resolution when the kind is `unknown`.
 
 ```tsx
 function resolveToolCategoryFromKind(toolKind: ToolKind, toolName: string, mcpServerSlug?: string): ToolCategoryInfo
@@ -3605,14 +3591,11 @@ session's fold.
 
 ### toDisplayFileChange
 
-Adapts a `CapturedFileChange` to the `FileChange` the diff
-renderers consume. The two reuse the same `FileContent` for before/after, so
-the bodies map directly; a capture is always WHOLE_FILE (the candidate carries
-the byte-exact sides), so the resulting `FileChange` renders as a true
-before/after diff.
+Adapts a `CapturedFileChange` to the [`DisplayFileChange`](#displayfilechange) the
+diff renderers consume.
 
 ```tsx
-function toDisplayFileChange(captured: CapturedFileChange): FileChange
+function toDisplayFileChange(captured: CapturedFileChange): DisplayFileChange
 ```
 
 
@@ -3671,18 +3654,17 @@ function todoCompletionSummary(todos: readonly Todo[]): string | null
 
 ### toFileDiffEntry
 
-Projects a `FileChange` into a [`FileDiffEntry`](/docs/sdk/react/version-history#filediffentry) for a file list
-(`DiffFileList`).
+Projects a [`DisplayFileChange`](#displayfilechange) into a [`FileDiffEntry`](/docs/sdk/react/version-history#filediffentry) for a file
+list (`DiffFileList`).
 
-Counts: hunk-only uses the runner's authoritative numbers; whole-file inline
-is derived from the content (identical to the runner's capture-time counts by
+Counts: inline content is derived from the content (identical to the runner's capture-time counts by
 construction — same diff algorithm). A whole-file side with no synchronous
 content (offloaded / binary) falls back to the runner's capture-time
 `linesAdded`/`linesRemoved` — zero when no count exists, which the list
 renders as no stat.
 
 ```tsx
-function toFileDiffEntry(change: FileChange): FileDiffEntry
+function toFileDiffEntry(change: DisplayFileChange): FileDiffEntry
 ```
 
 

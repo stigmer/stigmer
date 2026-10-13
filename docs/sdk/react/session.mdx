@@ -602,7 +602,7 @@ file changes in the transcript (stamped edit rows + the per-turn decision
 bar) and does not consume this hook.
 
 A thin memoizing wrapper over [`deriveRunFileChanges`](/docs/sdk/react/run#deriverunfilechanges) — the
-execution-domain core. The source (ledger-first via
+execution-domain core. The source (each run's file record, via
 `displayFileChangeSets`), the net-diff collapse, and the file-list ordering
 are all documented on the core.
 
@@ -623,7 +623,7 @@ function useSessionFileChanges(executions: readonly Run[]): UseSessionFileChange
 <TypeTable
   type={{
     fileChangeCount: { type: "number", description: "Number of distinct files changed." },
-    fileChanges: { type: "readonly FileChange[]", description: "One FileChange per file touched in the session — the *net* change for that path (see deriveRunFileChanges for the net-diff semantics) — ordered for a file-list (modified, then created/renamed, then deleted; alphabetical within each group)." },
+    fileChanges: { type: "readonly DisplayFileChange[]", description: "One DisplayFileChange per file touched in the session — the *net* change for that path (see deriveRunFileChanges for the net-diff semantics) — ordered for a file-list (modified, then created/renamed, then deleted; alphabetical within each group)." },
     hasFileChanges: { type: "boolean", description: "`true` when at least one file was changed across all runs." },
   }}
 />

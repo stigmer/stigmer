@@ -522,7 +522,7 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     builtInViews: { type: "readonly (\"search\" | \"files\")[]", description: "Which built-in rail views the surface offers, in rail order. Defaults to all of them; hosts without a workspace file source pass `[]` so the rail carries only their injected `extraViews` — an honest facet-only surface instead of inert Explorer/Search icons (an opt-in behavior change with a backward-compatible default)." },
-    change: { type: "FileChange", description: "The session FileChange that touched the open file, when it was changed this session. When present the editor defaults to the authoritative `baseline→candidate` diff, matching the inspector's Viewer tab." },
+    change: { type: "DisplayFileChange", description: "The session DisplayFileChange that touched the open file, when it was changed this session. When present the editor defaults to the authoritative `baseline→candidate` diff, matching the inspector's Viewer tab.", typeDescriptionLink: "/docs/sdk/react/run#displayfilechange" },
     className: { type: "string", description: "Additional CSS classes for the root element." },
     editors: { type: "readonly OpenEditor[]", description: "Open editor tabs in order (VS Code open-editors model).", required: true },
     entries: { type: "readonly WorkspaceEntry[]", description: "The workspace entries whose files are browsable (multi-root).", required: true },
@@ -601,7 +601,7 @@ Props for [`FileViewer`](#fileviewer).
 
 <TypeTable
   type={{
-    change: { type: "FileChange", description: "The session FileChange that touched this file, when it was changed this session. When present the viewer defaults to the authoritative `baseline→candidate` diff and — for a non-DELETE change with a `reader` — offers a labeled toggle to the live \"File\" view. `undefined` (the default) keeps the viewer a pure read-only browser (backward compatible). Callers correlate the open file to its change with `findChangeForSelection`; a platform builder can pass any `FileChange`." },
+    change: { type: "DisplayFileChange", description: "The session DisplayFileChange that touched this file, when it was changed this session. When present the viewer defaults to the authoritative `baseline→candidate` diff and — for a non-DELETE change with a `reader` — offers a labeled toggle to the live \"File\" view. `undefined` (the default) keeps the viewer a pure read-only browser (backward compatible). Callers correlate the open file to its change with `findChangeForSelection`; a platform builder can pass any `DisplayFileChange`.", typeDescriptionLink: "/docs/sdk/react/run#displayfilechange" },
     className: { type: "string", description: "Additional CSS classes for the root element." },
     entries: { type: "readonly WorkspaceEntry[]", description: "Live workspace entries. The viewer resolves `selectedFile.entryId` against this list, so a removed entry deselects into a gentle empty state rather than reading a stale value.", required: true },
     onClose: { type: "() => void", description: "Called when the user closes the viewer (close button or Escape)." },
