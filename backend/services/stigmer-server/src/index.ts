@@ -123,6 +123,12 @@ export { boundOrgOf } from "./extensions/identity.js";
 // spoken for by an organization's own app): a composition's rule that
 // exempts an organization's own clients reads it the library's one way.
 export { carriesPlatformClientClaim } from "./extensions/identity.js";
+// Whether a caller is a person speaking for themselves on the wire, and
+// whether a bearer is an API key: a composition's lane that only a
+// person's own sign-in may use (one that hands a credential's holder
+// another account's access) reads them the library's one way.
+export { isFirstPartyHumanOperator } from "./extensions/identity.js";
+export { isApiKeyToken } from "./domain/apikey/keymaterial.js";
 // An organization's service account: its caller class, the one predicate
 // that reads it, and the refusal every edition's membership and credential
 // lanes splice (pipeline/steps/refuse-service-account.ts), so a

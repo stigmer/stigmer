@@ -7,6 +7,9 @@
  *     ten minutes long, with the library door's preview, the invitations
  *     the caller created there and the provider to sign in through; only
  *     the ticket's hash is kept, and expired tickets are swept;
+ *   - only a person's own sign-in session may ask or redeem: never an API
+ *     key, a request the server composes, or a credential bound to another
+ *     organization (a leaked key must not move its owner's access);
  *   - it refuses a caller that is not a person, an account a provider made,
  *     an organization with no SSO provider, and a caller with nothing to
  *     move; the door's owner refusal reaches the caller unchanged;
@@ -199,6 +202,9 @@ describe("createAccessMove", () => {
 
   it.each([
     ["a service account", person(EMAIL, "service_account"), Code.PermissionDenied, ONLY_A_PERSON_MOVES_MESSAGE],
+    ["an API key", { ...person(EMAIL), rawToken: "stk_leaked" }, Code.PermissionDenied, ONLY_A_PERSON_MOVES_MESSAGE],
+    ["a credential bound to another organization", { ...person(EMAIL), boundOrg: "org_globex" }, Code.PermissionDenied, ONLY_A_PERSON_MOVES_MESSAGE],
+    ["a request the server composes", { ...person(EMAIL), origin: "in-process" as const }, Code.PermissionDenied, ONLY_A_PERSON_MOVES_MESSAGE],
     ["an account an SSO provider made", person(SSO), Code.FailedPrecondition, ALREADY_SSO_ACCOUNT_MESSAGE],
     ["an account this server does not hold", person("ida_gone"), Code.PermissionDenied, ONLY_A_PERSON_MOVES_MESSAGE],
   ])("refuses %s", async (_case, caller, code, copy) => {
@@ -253,6 +259,19 @@ describe("redeemAccessMove", () => {
     const ticket = await ask(r, person(EMAIL));
     r.now = new Date(NOW.getTime() + ACCESS_MOVE_TICKET_TTL_MS);
     expect((await refusal(redeem(r, person(SSO), ticket.ticket))).rawMessage).toBe(TICKET_NOT_VALID_MESSAGE);
+  });
+
+  it("refuses an API key or a credential bound elsewhere as the redeemer, even one the provider's account made", async () => {
+    const r = await rig();
+    const ticket = await ask(r, person(EMAIL));
+    r.moves.length = 0;
+    for (const caller of [{ ...person(SSO), rawToken: "stk_sso_key" }, { ...person(SSO), boundOrg: "org_globex" }]) {
+      const error = await refusal(redeem(r, caller, ticket.ticket));
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(ONLY_A_PERSON_MOVES_MESSAGE);
+    }
+    expect(r.moves).toEqual([]);
+    expect((await redeem(r, { ...person(SSO), boundOrg: ACME }, ticket.ticket)).moved?.movedPolicies).toBe(3);
   });
 
   it("refuses a redeemer the organization's provider did not make, and the ticket stays usable", async () => {

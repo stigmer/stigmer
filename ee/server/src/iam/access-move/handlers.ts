@@ -28,6 +28,15 @@
  * URL and log, and the redeemer must be the organization's SSO account, so a
  * ticket alone moves nothing to anyone else.
  *
+ * Only a person's own sign-in session may ask for a ticket or redeem one:
+ * never an API key, a platform client's user token, a request the server
+ * composes, or a credential bound to another organization. A move hands
+ * the redeemer the asker's access, so a credential that may not act as the
+ * whole person in this organization must not start one: a leaked key, even
+ * one limited to another organization or one this organization's
+ * requirement already refuses, would otherwise let its holder move its
+ * owner's access to an SSO account of their own.
+ *
  * What never moves, by the door's own rule (@stigmer/server's
  * bootstrapMoveOrgAccess): an owner's access (owners are exempt from the
  * requirement and keep their own sign-in, so the ticket is refused), API
@@ -68,6 +77,7 @@ import {
   AccessMoveTicketSchema,
 } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import type { CallerIdentity, IdentityAccountStore, Logger, RequestContext } from "@stigmer/server";
+import { boundOrgOf, isApiKeyToken, isFirstPartyHumanOperator } from "@stigmer/server";
 
 import { rowRefusal } from "../invitation/handlers.js";
 import type { InvitationStore } from "../invitation/store.js";
@@ -79,7 +89,11 @@ import type { AccessMoveTicketStore } from "./store.js";
 /** How long a ticket works. */
 export const ACCESS_MOVE_TICKET_TTL_MS = 10 * 60 * 1000;
 
-/** A caller that is not a person (a service account, a run, the platform's pipelines). */
+/**
+ * A caller that is not a person's own sign-in session: a service account, a
+ * run, the platform's pipelines, an API key, a platform client's token, or a
+ * credential bound to another organization.
+ */
 export const ONLY_A_PERSON_MOVES_MESSAGE = "Only a person signed in as themselves can move their access";
 
 /** createAccessMove asked by an account an SSO provider made. */
@@ -112,8 +126,8 @@ export async function createAccessMove(
   reqCtx: RequestContext<typeof AccessMoveRequestSchema>,
   deps: AccessMoveDeps,
 ): Promise<AccessMoveTicket> {
-  const caller = requirePerson(reqCtx.callerIdentity);
   const org = reqCtx.input.org;
+  const caller = requireSignInSession(reqCtx.callerIdentity, org);
   const provider = await requireLiveSsoProvider(deps, org);
   const account = await deps.accounts.findById(caller.identityId);
   if (account === undefined) {
@@ -156,13 +170,13 @@ export async function redeemAccessMove(
   reqCtx: RequestContext<typeof RedeemAccessMoveInputSchema>,
   deps: AccessMoveDeps,
 ): Promise<AccessMoveResult> {
-  const caller = requirePerson(reqCtx.callerIdentity);
   const tokenHash = hashOf(reqCtx.input.ticket);
   const now = nowOf(deps);
   const ticket = await deps.tickets.findByHash(tokenHash);
   if (ticket === undefined || ticket.redeemedAt !== undefined || ticket.expiresAt.getTime() <= now.getTime()) {
     throw new ConnectError(TICKET_NOT_VALID_MESSAGE, Code.FailedPrecondition);
   }
+  const caller = requireSignInSession(reqCtx.callerIdentity, ticket.org);
   const provider = await requireLiveSsoProvider(deps, ticket.org);
   const account = await deps.accounts.findById(caller.identityId);
   if (account === undefined || federatedProviderOf(account) !== (provider.metadata?.id ?? "")) {
@@ -198,8 +212,20 @@ function federatedProviderOf(account: IdentityAccount): string {
   return account.spec?.identityProviderRef?.id ?? "";
 }
 
-function requirePerson(caller: CallerIdentity): CallerIdentity {
-  if (caller.callerClass !== "user" || caller.identityId === "") {
+/**
+ * The caller as a person's own sign-in session in `org`: a person on the
+ * wire (not a request the server composes, not a platform client's user
+ * token), not an API key, and a credential that names no organization or
+ * names this one (an SSO provider's token is bound to its organization).
+ */
+function requireSignInSession(caller: CallerIdentity, org: string): CallerIdentity {
+  const bound = boundOrgOf(caller);
+  if (
+    !isFirstPartyHumanOperator(caller) ||
+    isApiKeyToken(caller.rawToken) ||
+    caller.identityId === "" ||
+    (bound !== undefined && bound !== org)
+  ) {
     throw new ConnectError(ONLY_A_PERSON_MOVES_MESSAGE, Code.PermissionDenied);
   }
   return caller;
