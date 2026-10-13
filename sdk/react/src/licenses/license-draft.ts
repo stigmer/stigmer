@@ -22,7 +22,6 @@ import {
   dayStartUtc,
   toDate,
   utcDay,
-  type GrantableFeature,
   type IssuableTerm,
 } from "./license-format.js";
 
@@ -66,7 +65,6 @@ export interface LicenseDraft {
   readonly maxUsers: number | undefined;
   /** `undefined` means unlimited, as the contract reads an absent limit. */
   readonly maxOrgs: number | undefined;
-  readonly features: readonly GrantableFeature[];
   /** Operator notes; never signed, never shown to the customer. */
   readonly notes: string;
 }
@@ -164,10 +162,8 @@ export function toLicenseInput(draft: LicenseDraft): LicenseInput {
       contactEmail: draft.customer.contactEmail.trim(),
       ...(organization ? { org: organization } : {}),
     },
-    entitlements: {
-      ...(Object.keys(limits).length > 0 && { limits }),
-      features: [...draft.features],
-    },
+    // A license carries limits only: no server reads a license's features.
+    entitlements: Object.keys(limits).length > 0 ? { limits } : {},
     term: draft.term,
     expiresAt,
     graceUntil,

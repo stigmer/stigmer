@@ -18,7 +18,6 @@ const PLAN_FEATURES: readonly NamedFeature[] = [
   Feature.sharing,
   Feature.teams,
   Feature.child_orgs,
-  Feature.sso_enforcement,
 ];
 
 /** Props for {@link PlanCreateForm}. */

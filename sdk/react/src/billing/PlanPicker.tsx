@@ -87,7 +87,7 @@ export function PlanPicker({
       <li className="stg:flex stg:flex-col stg:rounded-lg stg:border stg:border-border stg:bg-card stg:p-4">
         <p className="stg:text-sm stg:font-medium stg:text-foreground">Enterprise</p>
         <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-          A dedicated deployment, SSO enforcement, an SLA and annual invoicing, quoted for your organization.
+          A dedicated deployment, an SLA and annual invoicing, quoted for your organization.
         </p>
         <a
           href={enterpriseHref}

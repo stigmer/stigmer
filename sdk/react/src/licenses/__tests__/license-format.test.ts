@@ -1,29 +1,12 @@
 // The licenses surface's display vocabulary: "covered through" steps back
 // from the expiry instant, relative days count UTC days, an absent limit
-// reads as unlimited rather than blank, the plan-only and ungated features
-// are never offered on a license, and only the offered ones are counted.
+// reads as unlimited rather than blank, and a license's features, which no
+// server reads, are never counted.
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import {
-  coveredThroughDay,
-  entitlementParts,
-  formatDayFromToday,
-  GRANTABLE_FEATURES,
-} from "../license-format";
-
-describe("GRANTABLE_FEATURES", () => {
-  it("offers every license feature and never a plan-only or ungated one", () => {
-    expect(GRANTABLE_FEATURES).toEqual([Feature.sso_enforcement]);
-    expect(GRANTABLE_FEATURES).not.toContain(Feature.channels);
-    expect(GRANTABLE_FEATURES).not.toContain(Feature.sharing);
-    expect(GRANTABLE_FEATURES).not.toContain(Feature.teams);
-    expect(GRANTABLE_FEATURES).not.toContain(Feature.child_orgs);
-    expect(GRANTABLE_FEATURES).not.toContain(Feature.platform_client);
-    expect(GRANTABLE_FEATURES).not.toContain(Feature.byo_provider_keys);
-  });
-});
+import { coveredThroughDay, entitlementParts, formatDayFromToday } from "../license-format";
 
 describe("coveredThroughDay", () => {
   it("is the day before a midnight expiry and the same day for a mid-day one", () => {
@@ -47,23 +30,17 @@ describe("formatDayFromToday", () => {
 describe("entitlementParts", () => {
   it("names each limit, saying unlimited where the contract reads absence as unlimited", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrgs: 1 }, features: [Feature.sso_enforcement] })),
-    ).toEqual(["5 users", "1 organization", "1 feature"]);
+      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrgs: 1 } })),
+    ).toEqual(["5 users", "1 organization"]);
     expect(entitlementParts(create(EntitlementsSchema, {}))).toEqual([
       "Unlimited users",
       "Unlimited organizations",
-      "No features",
     ]);
   });
 
-  it("counts only the features the console offers, as the names and the detail list them", () => {
+  it("names the limits only, even for a license issued with features", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { features: [Feature.platform_client, Feature.byo_provider_keys, Feature.sso_enforcement] })),
-    ).toEqual(["Unlimited users", "Unlimited organizations", "1 feature"]);
-    expect(
-      entitlementParts(
-        create(EntitlementsSchema, { features: [Feature.channels, Feature.sharing, Feature.sso_enforcement] }),
-      ),
-    ).toEqual(["Unlimited users", "Unlimited organizations", "1 feature"]);
+      entitlementParts(create(EntitlementsSchema, { features: [Feature.sso_enforcement, Feature.channels] })),
+    ).toEqual(["Unlimited users", "Unlimited organizations"]);
   });
 });

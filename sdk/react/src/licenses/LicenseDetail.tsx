@@ -8,11 +8,9 @@ import { Button } from "../button/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import {
-  FEATURE_LABELS,
   coveredThroughDay,
   formatDayFromToday,
   formatInstantUtc,
-  isGrantableFeature,
   termLabel,
   toDate,
 } from "./license-format.js";
@@ -60,7 +58,6 @@ export function LicenseDetail({
   const spec = license.spec;
   const customer = spec?.customer;
   const limits = spec?.entitlements?.limits;
-  const features = (spec?.entitlements?.features ?? []).filter(isGrantableFeature);
   const expiresAt = toDate(spec?.expiresAt);
   const graceUntil = toDate(spec?.graceUntil);
   const issuedAt = toDate(license.status?.issuedAt);
@@ -144,15 +141,6 @@ export function LicenseDetail({
               ? `${limits.maxOrgs} organizations`
               : "Unlimited organizations"}
           </span>
-        </Row>
-        <Row label="Features">
-          {features.length === 0
-            ? "None"
-            : features.map((f) => (
-                <span key={f} className="stg:block">
-                  {FEATURE_LABELS[f].label}
-                </span>
-              ))}
         </Row>
         <Row label="Issued">
           {issuedAt ? <Instant date={issuedAt}>{formatInstantUtc(issuedAt)}</Instant> : "Unknown"}

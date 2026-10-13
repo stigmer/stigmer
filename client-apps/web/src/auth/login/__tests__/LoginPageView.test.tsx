@@ -1,83 +1,78 @@
 // ---------------------------------------------------------------------------
-// LoginPageView — shaped by the edition's tiers, not by a guess
+// LoginPageView — one sign-in on every edition
 //
-// /login is the signed-out landing. Its shape follows the codebase's one
-// mechanism for "what does this edition serve": the SSO organization prompt
-// renders only where `identity_provider` is available (tier enterprise, so
-// Enterprise and Cloud); everywhere else the page is the logo and one "Sign
-// in" button — the configured issuer's flow, which the SSO editions label
-// "Sign in with email" beside the prompt. Until the server has answered
-// getServerInfo the page shows its skeleton, never the hostname guess.
+// /login is the signed-out landing. Every edition signs in through the
+// deployment's own issuer, so the page is the logo and one "Sign in"
+// button, and that button starts the configured issuer's flow with the
+// post-login path set to the console's home.
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import type { DeploymentMode } from "@stigmer/sdk";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const mocks = vi.hoisted(() => ({
-  deployment: { mode: "cloud" as DeploymentMode, resolved: false },
+  signinRedirect: vi.fn(),
+  createUserManager: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(),
-}));
 vi.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: "light" }),
 }));
-// The tier mechanism (`isResourceAvailable`) stays real: it is the thing
-// under test. Only the client constructor is stubbed.
 vi.mock("@stigmer/sdk", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@stigmer/sdk")>()),
   Stigmer: class {},
 }));
 vi.mock("@stigmer/react", () => ({
   StigmerProvider: ({ children }: { children: React.ReactNode }) => children,
-  SsoLoginPrompt: () => <div data-testid="sso-prompt" />,
 }));
 vi.mock("@/config/env", () => ({
   getApiBaseUrl: () => "https://stigmer.example.com",
 }));
 vi.mock("@/auth/config", () => ({
-  resolveAuthConfig: () => ({ mode: "disabled" }),
+  resolveAuthConfig: () => ({
+    mode: "oidc",
+    oidc: {
+      issuer: "https://issuer.example.com/",
+      clientId: "console",
+      audience: "https://api.example.com",
+    },
+  }),
 }));
 vi.mock("@/auth/oidc/oidc-manager", () => ({
-  createUserManager: vi.fn(),
-}));
-vi.mock("@/domain/_shared/hooks/useDeploymentMode", () => ({
-  useDeploymentMode: () => mocks.deployment,
+  createUserManager: mocks.createUserManager,
 }));
 
 import { LoginPageView } from "../LoginPageView";
 
 describe("LoginPageView", () => {
-  beforeEach(() => {
-    mocks.deployment = { mode: "cloud", resolved: false };
+  afterEach(() => {
+    cleanup();
+    sessionStorage.clear();
+    mocks.createUserManager.mockReset();
+    mocks.signinRedirect.mockReset();
   });
 
-  afterEach(cleanup);
-
-  it("shows the skeleton and no sign-in controls until the server has answered", () => {
+  it("shows one 'Sign in' button and nothing else to press", () => {
     render(<LoginPageView />);
-    expect(screen.queryByTestId("sso-prompt")).toBeNull();
-    expect(screen.queryByRole("button")).toBeNull();
-  });
-
-  it("open source: one 'Sign in' button, no organization prompt", () => {
-    mocks.deployment = { mode: "local", resolved: true };
-    render(<LoginPageView />);
-    expect(screen.queryByTestId("sso-prompt")).toBeNull();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Sign in" })).toBeTruthy();
+    expect(screen.queryByRole("textbox")).toBeNull();
   });
 
-  it.each<DeploymentMode>(["enterprise", "cloud"])(
-    "%s: the SSO organization prompt beside 'Sign in with email'",
-    (mode) => {
-      mocks.deployment = { mode, resolved: true };
-      render(<LoginPageView />);
-      expect(screen.getByTestId("sso-prompt")).toBeTruthy();
-      expect(
-        screen.getByRole("button", { name: "Sign in with email" }),
-      ).toBeTruthy();
-    },
-  );
+  it("starts the configured issuer's flow and returns home after it", () => {
+    mocks.createUserManager.mockReturnValue({
+      signinRedirect: mocks.signinRedirect,
+    });
+    render(<LoginPageView />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(mocks.createUserManager).toHaveBeenCalledWith({
+      issuer: "https://issuer.example.com/",
+      clientId: "console",
+      audience: "https://api.example.com",
+    });
+    expect(mocks.signinRedirect).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("stigmer:auth:redirect_path")).toBe("/");
+  });
 });

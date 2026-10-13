@@ -7,14 +7,6 @@ import { setAuthToken } from "../token-store";
 import type { AuthState, AuthUser } from "../types";
 import type { OidcConfig } from "./types";
 import { createUserManager } from "./oidc-manager";
-import {
-  getSsoLoginState,
-  clearSsoLoginState,
-  saveSsoSession,
-  getSsoSession,
-  clearSsoSession,
-  isValidSsoState,
-} from "./sso-session";
 
 const CALLBACK_PATH = "/auth/callback";
 /** The signed-out landing — the console's own sign-in page. */
@@ -31,28 +23,6 @@ async function removeUserBestEffort(manager: UserManager): Promise<void> {
 }
 
 /**
- * Resolve the UserManager for the current session.
- *
- * If an SSO session exists in sessionStorage (written after a successful
- * SSO callback), create a UserManager configured for the SSO IdP so that
- * `getUser()` restores the SSO session and `automaticSilentRenew` renews
- * against the correct token endpoint.
- *
- * Otherwise, fall back to the Auth0 manager from runtime config.
- */
-function resolveActiveManager(auth0Config: OidcConfig) {
-  const ssoSession = getSsoSession();
-  if (ssoSession && isValidSsoState(ssoSession)) {
-    return createUserManager({
-      issuer: ssoSession.issuer,
-      clientId: ssoSession.clientId,
-      audience: ssoSession.audience,
-    });
-  }
-  return createUserManager(auth0Config);
-}
-
-/**
  * OIDC auth provider — manages the full OIDC lifecycle.
  *
  * Creates an oidc-client-ts `UserManager` and subscribes to its events to
@@ -66,13 +36,6 @@ function resolveActiveManager(auth0Config: OidcConfig) {
  * `STIGMER_OIDC_CONSOLE_CLIENT_ID` (stigmer#924). Nothing in
  * here is vendor-shaped: discovery, PKCE, refresh and sign-out are the
  * OIDC standard's, so the same code signs in against every one of them.
- *
- * **SSO support**: Detects SSO callbacks via `stigmer:sso:login` in
- * sessionStorage. When present, creates a temporary SSO `UserManager` for
- * the code exchange, then persists the SSO config as `stigmer:sso:session`
- * so future page loads restore the session with the correct IdP. On
- * logout, SSO sessions are cleared locally and the user is redirected to
- * `/login?org=...` (no RP-initiated logout with the SSO IdP).
  *
  * **Callback detection**: On mount, if the current path is `/auth/callback`,
  * the provider processes the Authorization Code exchange via
@@ -101,7 +64,7 @@ export default function OidcAuthProvider({
   // unconditionally). Populated during the first render, so it is always
   // non-null by the time effects and callbacks run.
   const managerRef = useRef<UserManager | null>(null);
-  managerRef.current ??= resolveActiveManager(config);
+  managerRef.current ??= createUserManager(config);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -120,7 +83,7 @@ export default function OidcAuthProvider({
           // values. setUser/setAuthToken are naturally idempotent, and
           // replace() with the same URL is harmless.
           const { user: callbackUser, redirectPath } =
-            await processSsoOrAuth0Callback(manager);
+            await processCallback(manager);
           setUser(callbackUser);
           setAuthToken(callbackUser.access_token);
 
@@ -195,17 +158,6 @@ export default function OidcAuthProvider({
     setIsLoggingOut(true);
     setAuthToken(null);
     const manager = managerRef.current!;
-
-    const ssoSession = getSsoSession();
-    if (ssoSession) {
-      clearSsoSession();
-      await removeUserBestEffort(manager);
-      const orgParam = ssoSession.org
-        ? `?org=${encodeURIComponent(ssoSession.org)}`
-        : "";
-      window.location.replace(`${LOGIN_PATH}${orgParam}`);
-      return;
-    }
 
     const endSession = await manager.metadataService
       .getEndSessionEndpoint()
@@ -291,53 +243,29 @@ interface CallbackResult {
 let callbackResult: Promise<CallbackResult> | null = null;
 
 /**
- * Process the `/auth/callback` for either an SSO or Auth0 login.
+ * Process the `/auth/callback` of the deployment's own sign-in.
  *
  * Single-flighted: React StrictMode runs mount effects twice, and any
  * remount of the provider on the callback page would otherwise redeem the
  * one-time authorization code a second time — the identity provider
  * rejects that with `invalid_grant` ("Invalid authorization code").
- * Every non-idempotent step (token exchange, SSO session save/clear,
- * redirect-path consumption) lives inside the memoized run so all
+ * Every non-idempotent step (token exchange, redirect-path consumption)
+ * lives inside the memoized run so all
  * callers receive identical, safely reusable values.
  */
-function processSsoOrAuth0Callback(
-  auth0Manager: UserManager,
-): Promise<CallbackResult> {
-  callbackResult ??= doCallbackExchange(auth0Manager);
+function processCallback(manager: UserManager): Promise<CallbackResult> {
+  callbackResult ??= doCallbackExchange(manager);
   return callbackResult;
 }
 
 /**
- * Perform the authorization-code exchange and consume one-shot state.
- *
- * Checks sessionStorage for SSO login state (written by the login page
- * before the SSO redirect). If present, creates an SSO-specific
- * UserManager to exchange the authorization code, persists the SSO
- * session config for future page loads, and cleans up the ephemeral
- * login state. If absent, delegates to the default Auth0 manager.
- * Finally, consumes (reads + removes) the saved pre-login path.
+ * Perform the authorization-code exchange with the deployment's issuer,
+ * then consume (read + remove) the saved pre-login path.
  */
 async function doCallbackExchange(
-  auth0Manager: UserManager,
+  manager: UserManager,
 ): Promise<CallbackResult> {
-  const ssoLogin = getSsoLoginState();
-
-  let callbackUser: User;
-  if (ssoLogin && isValidSsoState(ssoLogin)) {
-    const ssoManager = createUserManager({
-      issuer: ssoLogin.issuer,
-      clientId: ssoLogin.clientId,
-      audience: ssoLogin.audience,
-    });
-
-    callbackUser = await ssoManager.signinRedirectCallback();
-
-    saveSsoSession(ssoLogin);
-    clearSsoLoginState();
-  } else {
-    callbackUser = await auth0Manager.signinRedirectCallback();
-  }
+  const callbackUser = await manager.signinRedirectCallback();
 
   const redirectPath = sessionStorage.getItem(REDIRECT_PATH_KEY) ?? "/";
   sessionStorage.removeItem(REDIRECT_PATH_KEY);

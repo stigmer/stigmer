@@ -445,8 +445,7 @@ function IdentityProvidersSummary({ orgId }: { orgId: string }) {
               const spec = idp.spec;
               const displayName =
                 spec?.displayName || idp.metadata?.name || "Unnamed";
-              const isSso = spec?.isSsoProvider;
-              const isJit = !isSso && spec?.createAccountsOnSignIn;
+              const isJit = spec?.createAccountsOnSignIn;
 
               return (
                 <div
@@ -455,11 +454,6 @@ function IdentityProvidersSummary({ orgId }: { orgId: string }) {
                 >
                   <ShieldSmallIcon />
                   <span className="stg:text-foreground stg:truncate">{displayName}</span>
-                  {isSso && (
-                    <span className="stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-1.5 stg:py-px stg:text-[0.6rem] stg:font-medium stg:text-primary">
-                      SSO
-                    </span>
-                  )}
                   {isJit && (
                     <span className="stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-1.5 stg:py-px stg:text-[0.6rem] stg:font-medium stg:text-primary">
                       JIT

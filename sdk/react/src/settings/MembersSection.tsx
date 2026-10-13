@@ -41,9 +41,9 @@ export function MembersSection({ serviceAccountsHref }: MembersSectionProps = {}
   );
 
   // A provider with a sign-in role adds people here on their first
-  // sign-in; an SSO provider always has one.
-  const hasSignInRoleProviders = identityProviders.some(
-    (idp) => Boolean(idp.spec?.signInRole) || idp.spec?.isSsoProvider,
+  // sign-in.
+  const hasSignInRoleProviders = identityProviders.some((idp) =>
+    Boolean(idp.spec?.signInRole),
   );
 
   return (

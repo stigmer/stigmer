@@ -21,10 +21,9 @@ import { IdentityProviderDetailPanel } from "../IdentityProviderDetailPanel";
  *   - the Edit button is offered only to a caller the server says holds
  *     `can_edit` on the provider, so a member who may view a provider is
  *     never handed a form the server would refuse;
- *   - an SSO provider always creates accounts and grants a role: turning
- *     SSO on locks account creation on and fills an unset sign-in role
- *     with viewer, and the form will not save an SSO provider whose role
- *     is None.
+ *   - a provider's sign-in settings are edited as the admin sets them: a
+ *     provider with none reads "None", and the save carries the account
+ *     creation and role the admin turns on.
  */
 
 const IDP: IdentityProvider = create(IdentityProviderSchema, {
@@ -39,7 +38,6 @@ const IDP: IdentityProvider = create(IdentityProviderSchema, {
     jwksUri: "https://acme.okta.example/jwks",
     allowedIssuers: ["https://acme.okta.example"],
     expectedAudience: "stigmer",
-    isSsoProvider: false,
     createAccountsOnSignIn: true,
     signInRole: IamRole.admin,
     externalIdClaim: "org_slug",
@@ -118,7 +116,7 @@ describe("IdentityProviderDetailPanel edit gate", () => {
   });
 });
 
-describe("IdentityProviderDetailPanel SSO sign-in settings", () => {
+describe("IdentityProviderDetailPanel sign-in settings", () => {
   const PLAIN: IdentityProvider = create(IdentityProviderSchema, {
     metadata: { id: "idp-2", name: "Acme Auth", slug: "acme-auth", org: "acme" },
     spec: {
@@ -141,7 +139,7 @@ describe("IdentityProviderDetailPanel SSO sign-in settings", () => {
     );
   }
 
-  it("turning SSO on creates accounts with viewer, and None refuses to save", async () => {
+  it("saves the account creation and role the admin turns on", async () => {
     const update = vi.fn(async (_input: IdentityProviderInput) => PLAIN);
     renderPlain(update);
 
@@ -155,29 +153,19 @@ describe("IdentityProviderDetailPanel SSO sign-in settings", () => {
     expect(createAccounts.getAttribute("aria-checked")).toBe("false");
     expect(role.value).toBe(String(IamRole.iam_role_unspecified));
 
-    // The SSO switch is the form's first.
-    fireEvent.click(screen.getAllByRole("switch")[0]!);
-    fireEvent.change(screen.getByLabelText("OIDC client ID"), {
-      target: { value: "client-1" },
-    });
-
+    fireEvent.click(createAccounts);
+    fireEvent.change(role, { target: { value: String(IamRole.viewer) } });
     expect(createAccounts.getAttribute("aria-checked")).toBe("true");
-    expect((createAccounts as HTMLButtonElement).disabled).toBe(true);
-    expect(role.value).toBe(String(IamRole.viewer));
 
     const save = screen.getByRole("button", { name: "Save changes" }) as HTMLButtonElement;
-    fireEvent.change(role, { target: { value: String(IamRole.iam_role_unspecified) } });
-    expect(save.disabled).toBe(true);
-
-    fireEvent.change(role, { target: { value: String(IamRole.viewer) } });
     expect(save.disabled).toBe(false);
     fireEvent.click(save);
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     const input = update.mock.calls[0]![0];
-    expect(input.isSsoProvider).toBe(true);
     expect(input.createAccountsOnSignIn).toBe(true);
     expect(input.signInRole).toBe(IamRole.viewer);
+    expect(input.externalIdClaim).toBeUndefined();
   });
 });
 

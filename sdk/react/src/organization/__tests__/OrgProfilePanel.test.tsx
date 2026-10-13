@@ -38,8 +38,7 @@ import { OrgProfileSection } from "../../settings/OrgProfileSection";
  * that serve identity providers: the list holds only the providers the
  * caller may view, so a caller the server refuses `can_create_idp` is told
  * the organization's admins manage them, and is not invited to set one up.
- * Each listed provider carries its badge: SSO, or JIT for a delegation
- * provider that creates accounts on sign-in.
+ * A listed provider that creates accounts on sign-in carries a JIT badge.
  */
 
 // The id differs from the slug, as for every organization made today; an
@@ -175,21 +174,19 @@ describe("OrgProfilePanel identity-provider summary", () => {
     expect(asked).toContainEqual(["organization", ACME_ID, "can_create_idp"]);
   });
 
-  it("badges an SSO provider SSO and a provider that creates accounts JIT", async () => {
+  it("badges a provider that creates accounts JIT", async () => {
     const idp = (id: string, displayName: string, spec: object) =>
       create(IdentityProviderSchema, {
         metadata: { id, name: displayName, org: ACME_ID },
         spec: { displayName, ...spec },
       });
     renderCloudPanel(true, [
-      idp("idp-1", "Okta", { isSsoProvider: true, createAccountsOnSignIn: true }),
       idp("idp-2", "Platform", { createAccountsOnSignIn: true }),
       idp("idp-3", "Manual", {}),
     ]);
 
     const row = async (name: string) =>
       (await screen.findByText(name)).parentElement?.textContent;
-    expect(await row("Okta")).toBe("OktaSSO");
     expect(await row("Platform")).toBe("PlatformJIT");
     expect(await row("Manual")).toBe("Manual");
   });

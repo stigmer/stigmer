@@ -9,11 +9,6 @@ export {
 } from "./useIdentityProvider.js";
 
 export {
-  useSsoProvider,
-  type UseSsoProviderReturn,
-} from "./useSsoProvider.js";
-
-export {
   useCreateIdentityProvider,
   type UseCreateIdentityProviderReturn,
 } from "./useCreateIdentityProvider.js";
@@ -60,8 +55,3 @@ export {
   IdentityProviderDetailPanel,
   type IdentityProviderDetailPanelProps,
 } from "./IdentityProviderDetailPanel.js";
-
-export {
-  SsoLoginPrompt,
-  type SsoLoginPromptProps,
-} from "./SsoLoginPrompt.js";

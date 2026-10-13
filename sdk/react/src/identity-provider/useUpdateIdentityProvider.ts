@@ -31,12 +31,10 @@ export interface UseUpdateIdentityProviderReturn {
  * const { update, isUpdating, error } = useUpdateIdentityProvider();
  *
  * await update({
- *   name: "Acme Corp SSO",
- *   slug: "acme-sso",
+ *   name: "Acme Platform",
+ *   slug: "acme-platform",
  *   org: "acme",
- *   displayName: "Acme Corp SSO",
- *   isSsoProvider: true,
- *   oidcClientId: "abc123",
+ *   displayName: "Acme Platform",
  *   createAccountsOnSignIn: true,
  *   signInRole: IamRole.viewer,
  * });

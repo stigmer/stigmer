@@ -140,7 +140,6 @@ describe("LicensesConsole calendar", () => {
     const entitlements = within(within(rows[3]!).getAllByRole("cell")[2]!);
     expect(entitlements.getByText("5 users")).toBeTruthy();
     expect(entitlements.getByText("1 organization")).toBeTruthy();
-    expect(entitlements.getByText("1 feature")).toBeTruthy();
   });
 });
 
@@ -159,10 +158,10 @@ describe("LicensesConsole detail", () => {
     expect(client.license.get).toHaveBeenCalledWith("lic_paid");
     expect(screen.getByText("Paid")).toBeTruthy();
     expect(screen.getByText("PO 4411")).toBeTruthy();
-    expect(screen.getByText("SSO enforcement")).toBeTruthy();
-    // The license also carries platform_client, which gates nothing, and
-    // channels, which no license grants: neither is shown.
-    expect(screen.queryByText("Platform clients")).toBeNull();
+    // The license was issued when licenses listed features: no server reads
+    // them any more, so the detail names none of them.
+    expect(screen.queryByText("Features")).toBeNull();
+    expect(screen.queryByText("SSO enforcement")).toBeNull();
     expect(screen.queryByText("Channels")).toBeNull();
     expect(screen.queryByText(/eyJhbGciOiJFZERTQSJ9/)).toBeNull();
 
@@ -215,11 +214,8 @@ describe("LicensesConsole issue", () => {
     await user.type(screen.getByLabelText(/Contact email/), "ops@initech.test");
     await user.click(screen.getByLabelText(/Paid/));
     await user.type(screen.getByLabelText(/Max users/), "25");
-    // A license offers only what a license can grant: channels and sharing
-    // are Cloud plan features.
-    expect(screen.queryByLabelText(/Channels/)).toBeNull();
-    expect(screen.queryByLabelText(/Sharing/)).toBeNull();
-    await user.click(screen.getByLabelText(/SSO enforcement/));
+    // A license carries limits only: the form offers no features.
+    expect(screen.queryByRole("checkbox")).toBeNull();
     expect(screen.getByText("Paid license for Initech until 2027-09-27")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Issue license" }));
 
@@ -229,11 +225,12 @@ describe("LicensesConsole issue", () => {
       name: "Paid license for Initech until 2027-09-27",
       org: "",
       customer: { displayName: "Initech", contactEmail: "ops@initech.test" },
-      entitlements: { limits: { maxUsers: 25 }, features: [Feature.sso_enforcement] },
+      entitlements: { limits: { maxUsers: 25 } },
       term: LicenseTerm.paid,
       expiresAt: new Date("2027-09-28T00:00:00Z"),
       graceUntil: new Date("2027-10-28T00:00:00Z"),
     });
+    expect(input.entitlements).toEqual({ limits: { maxUsers: 25 } });
     expect(input.customer.id).toMatch(/^cus_[0-9a-hjkmnp-tv-z]{26}$/);
 
     await waitFor(() => expect(screen.getByText(/License issued and signed/)).toBeTruthy());
@@ -281,8 +278,8 @@ describe("LicensesConsole issue", () => {
 
   it("renews from the customer's current license with its terms and continued coverage", async () => {
     const user = userEvent.setup();
-    // Issued when a license could list channels: the renewal carries SSO
-    // enforcement forward and drops channels, which no license grants.
+    // Issued when licenses listed features: the renewal carries none of
+    // them forward, since no server reads a license's features.
     const current = license({
       id: "lic_globex",
       customerId: "cus_globex",
@@ -306,8 +303,7 @@ describe("LicensesConsole issue", () => {
     expect(within(customerSection).getByText("Globex")).toBeTruthy();
     expect(within(customerSection).queryByRole("combobox")).toBeNull();
     expect((screen.getByLabelText(/Paid/) as HTMLInputElement).checked).toBe(true);
-    expect((screen.getByLabelText(/SSO enforcement/) as HTMLInputElement).checked).toBe(true);
-    expect(screen.queryByLabelText(/Channels/)).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
     // Covered through 2026-09-30, so the renewal starts 2026-10-01.
     expect(screen.getByText("Paid license for Globex until 2027-09-30")).toBeTruthy();
   });
