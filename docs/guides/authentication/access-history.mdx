@@ -1,0 +1,150 @@
+---
+title: Access history
+description:
+  Read who gave whom access to what in your Organization, and when, and export
+  it to your security team's tools as JSON Lines.
+---
+
+A security review asks one question first: who could reach what, and who decided
+that. The members list answers "who has access now". The access history answers
+how it got that way: every time someone was given a role in your Organization or
+on anything in it, or lost one, it records who made the change, why, and when.
+
+The history is kept by Stigmer Enterprise and Stigmer Cloud. An open-source
+server keeps no access history and says so when asked. On Stigmer Cloud, reading
+the history is part of the Enterprise plan; on other plans it is still recorded,
+so an Organization that upgrades reads its whole past.
+
+## Who can read it
+
+Your Organization's owners and admins read its access history. An Organization's
+admins also read the history of each of its
+[child organizations](/docs/concepts/organizations#parent-and-child-organizations).
+Members, viewers and guests see who has access, on the members list, but not how
+it changed.
+
+## What an entry says
+
+Each entry is one change:
+
+- **What changed**: access was given (`granted`) or taken away (`revoked`).
+- **Who was affected**: a person, a service account, or a group, such as the
+  members of a Team.
+- **The role**, as the members list shows it.
+- **What the access is to**: the Organization itself, or a resource in it, named
+  as it is called today. A resource deleted since is shown as deleted.
+- **Who made the change**: the person or service account, named as they are
+  called today. When the server made the change on someone's behalf, such as
+  redeeming the invitation they sent, the entry says the server did it for them.
+- **Why**: the cause, below.
+- **When**, and its **sequence**: its number in the Organization's history.
+
+The causes:
+
+| Cause                         | What happened                                                                             |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| `grant`                       | Someone gave a person, a service account or a group a role                                |
+| `revoke`                      | Someone took a role away                                                                  |
+| `organization_access_revoked` | Someone removed a person from the Organization                                            |
+| `left_organization`           | A person left, and the server took away what they still held on its resources             |
+| `resource_deleted`            | A resource was deleted, and the access to it with it                                      |
+| `structural`                  | Creating a resource, or setting who it is visible to, gave its creator or audience access |
+| `organization_created`        | A person created the Organization and became its owner                                    |
+| `first_sign_in`               | A person signed in for the first time and got the roles the server gives new people       |
+| `role_reconciliation`         | The server gave existing accounts the roles its membership rules give                     |
+| `operator_ownership`          | The server's operator became owner of an Organization nobody owned                        |
+| `platform_client_grant`       | A person signed in through a PlatformClient and got the role it grants                    |
+| `service_account_created`     | An admin created a service account with its Organization role                             |
+
+## Read it in the Console
+
+Open **Settings > Access history**. The newest change is first; **Load more**
+reads further back. The entry only appears in the settings navigation for those
+who can read the history.
+
+## Read it with the CLI
+
+In the Organization your CLI context names (or the one `--org` names):
+
+```bash
+stigmer access-history list
+stigmer access-history list --limit 200 -o json
+```
+
+`list` shows the newest 50 changes by default.
+
+## Export it to your tools
+
+`export` writes the history as [JSON Lines](https://jsonlines.org): one change
+per line, oldest first.
+
+```bash
+stigmer access-history export > acme-access-history.jsonl
+```
+
+Each line is one entry in the API's JSON form. Its `sequence` is a string, as
+the JSON form writes every 64-bit number:
+
+```json
+{
+  "sequence": "42",
+  "occurredAt": "2026-10-09T14:03:11.402Z",
+  "change": "revoked",
+  "cause": "organization_access_revoked",
+  "actor": {
+    "kind": "identity_account",
+    "id": "ida_…",
+    "name": "Ana Silva",
+    "email": "ana@acme.example"
+  },
+  "actorClass": "user",
+  "principal": {
+    "kind": "identity_account",
+    "id": "ida_…",
+    "name": "Raj Patel",
+    "email": "raj@acme.example"
+  },
+  "role": { "id": "member", "code": "member", "name": "Member" },
+  "resource": {
+    "org": "org_…",
+    "kind": "organization",
+    "id": "org_…",
+    "slug": "acme"
+  }
+}
+```
+
+The Console's **Download JSON Lines** writes the same lines.
+
+### Keep a copy up to date
+
+Each Organization numbers its changes 1, 2, 3 and so on, in the order they
+happened, with no gaps. A tool that keeps its own copy stores the last
+`sequence` it wrote and, next time, asks only for what came after it:
+
+```bash
+stigmer access-history export --after 42 >> acme-access-history.jsonl
+```
+
+No change can be skipped this way: a change that was still being made when the
+tool last asked gets a number after the one it stored.
+
+A tool that runs on a schedule needs a key of its own. Create a
+[service account](/docs/guides/authentication/service-accounts) with the
+**Admin** role and give the tool its API key: reading the history needs an
+admin's role.
+
+## What it does not hold
+
+- **Anything before it began.** The history starts when your server first kept
+  it: when Stigmer Cloud began recording, or when a self-hosted server was
+  upgraded to a release that records it. Nothing earlier is filled in.
+- **Settings changes and sign-ins.** It records who has access, not what people
+  did with it.
+- **A deleted Organization's history, to anyone.** Deleting an Organization
+  keeps its history, but nobody holds a role in an Organization that is gone, so
+  nobody can read it through Stigmer. On a self-hosted server, the operator
+  keeps it in the database
+  ([After an Organization is deleted](/docs/guides/self-hosting/operations#after-an-organization-is-deleted)).
+
+How long the history is kept is not configurable yet: today it is kept for good.

@@ -916,6 +916,27 @@ that should keep working when the person who set it up leaves.
 
 ---
 
+#### Access history
+
+The record of every time someone in an Organization was given or lost access,
+who made the change, why, and when.
+
+- **Capitalize**: No. "access history" in prose; "Access history" as a console
+  heading.
+- **API surface**: `IamPolicyQueryController.listAccessHistory`, answering
+  `AccessHistoryEntry` items; the permission `can_view_access_history`. CLI:
+  `stigmer access-history list|export`.
+- **Context rule**: "access history" for what people read. "Permission history"
+  is the operator's word for the stored table (`iam_policy_history`), in
+  self-hosting docs only. Never "audit log": it records access changes, not
+  everything people did.
+- **Note**: Kept by Stigmer Enterprise and Stigmer Cloud, read by an
+  Organization's owners and admins. Each Organization numbers its entries in
+  order with no gaps (`sequence`), which is what lets a tool export "everything
+  after N". See [Access history](/docs/guides/authentication/access-history).
+
+---
+
 #### API key
 
 A static secret that authenticates calls to the Stigmer API.
