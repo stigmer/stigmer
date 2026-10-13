@@ -588,6 +588,7 @@ export async function composeServer(
     resources: newStoredResources(
       store,
       extensions.drivers.resourceRowReaders,
+      identityAccounts,
     ),
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,

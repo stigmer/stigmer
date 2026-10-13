@@ -73,8 +73,9 @@ export interface ComposedIdentityAccounts {
  * relation on a kind; its grant gate finds a resource's structural link.
  * A write goes through the domain's grant path (an RPC over the in-process
  * transport), never through this store, so no second write path exists.
- * A sign-in rule asks whether a person holds `owner` on an organization
- * (one pair's rows), without the Authorizer the binding wraps.
+ * A sign-in rule asks whether a person is one of an organization's own
+ * people and whether they own it (one pair's rows, and the person's team
+ * memberships), without the Authorizer the binding wraps.
  */
 export type ComposedIamPolicies = Pick<
   IamPolicyStore,
@@ -82,6 +83,7 @@ export type ComposedIamPolicies = Pick<
   | "findScopeTuple"
   | "findByResourceKindAndRelation"
   | "findByPrincipalAndResource"
+  | "findByPrincipal"
 >;
 
 export interface ComposedServices {

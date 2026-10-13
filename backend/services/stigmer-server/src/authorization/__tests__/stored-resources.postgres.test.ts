@@ -16,6 +16,11 @@
  *   - A kind a unit keeps in its own table is read through the unit's row
  *     reader, never the store (a team's organization, which a move inside
  *     the organization needs to find its memberships).
+ *   - authoredIn answers what an account made in an organization, the rows
+ *     a move grants the target as owner: every kind whose owner is its
+ *     creator, the account's stamp by its id or by the raw subject rows
+ *     stamped before 3.15.0 carry, and nothing another account made, nothing
+ *     in another organization, nothing of a kind a unit keeps itself.
  *
  * Postgres is skipped without `TEST_DATABASE_URL` (drivers.ts); the gate
  * provides it.
@@ -147,6 +152,90 @@ describe.each(
     expect(
       await resources.creatorOf("identity_account", ACCOUNT),
     ).toBeUndefined();
+  });
+});
+
+describe.each(
+  driverFixtures([ApiResourceKind.agent, ApiResourceKind.session]),
+)("StoredResources.authoredIn over the $name store", (fixture) => {
+  let opened: OpenedStore;
+  const MINE = "ses_authoredmine0000000000000";
+  const OLD_STAMP = "ses_authoredold00000000000000";
+  const THEIRS = "ses_authoredtheirs00000000000";
+  const FAR = "ses_authoredfar00000000000000";
+  const AGENT_MINE = "agt_authoredmine0000000000000";
+  const SUBJECT = "auth0|creator";
+  const accounts = {
+    findById: (id: string) =>
+      Promise.resolve(id === CREATOR ? create(IdentityAccountSchema, { metadata: { id: CREATOR } }) : undefined),
+    findDirectByIdpId: (idpId: string) =>
+      Promise.resolve(idpId === SUBJECT ? create(IdentityAccountSchema, { metadata: { id: CREATOR } }) : undefined),
+  };
+
+  beforeEach(async (context) => {
+    if (fixture.skip) {
+      context.skip("no TEST_DATABASE_URL: the gate provides Postgres");
+    }
+    opened = await fixture.open();
+    const stamped = (stamp: string) => ({ audit: { specAudit: { createdBy: { id: stamp } } } });
+    for (const [id, org, stamp] of [
+      [MINE, "acme", CREATOR],
+      [OLD_STAMP, "acme", SUBJECT],
+      [THEIRS, "acme", "ida_someoneelse0000000000000"],
+      [FAR, "globex", CREATOR],
+    ] as const) {
+      await opened.store.saveResource(
+        ApiResourceKind.session,
+        id,
+        SessionSchema,
+        create(SessionSchema, { metadata: { id, org }, status: stamped(stamp) }),
+      );
+    }
+    await opened.store.saveResource(
+      ApiResourceKind.agent,
+      AGENT_MINE,
+      AgentSchema,
+      create(AgentSchema, { metadata: { id: AGENT_MINE, org: "acme" }, status: stamped(CREATOR) }),
+    );
+  });
+
+  afterEach(async () => {
+    await opened?.close();
+  });
+
+  afterAll(async () => {
+    await dropPostgresFixture();
+  });
+
+  const refs = (found: ReadonlyArray<{ kind: string; id: string }>) =>
+    found.map((ref) => `${ref.kind}:${ref.id}`).sort();
+
+  it("answers what the account made in the organization, by its id or its old subject stamp", async () => {
+    const resources = newStoredResources(opened.store, undefined, accounts);
+    expect(refs(await resources.authoredIn("acme", CREATOR))).toEqual(
+      [`agent:${AGENT_MINE}`, `session:${MINE}`, `session:${OLD_STAMP}`].sort(),
+    );
+    expect(refs(await resources.authoredIn("globex", CREATOR))).toEqual([`session:${FAR}`]);
+  });
+
+  it("matches only the account's own id without the account port, and nothing for an empty organization or account", async () => {
+    const resources = newStoredResources(opened.store);
+    expect(refs(await resources.authoredIn("acme", CREATOR))).toEqual(
+      [`agent:${AGENT_MINE}`, `session:${MINE}`].sort(),
+    );
+    expect(await resources.authoredIn("", CREATOR)).toEqual([]);
+    expect(await resources.authoredIn("acme", "")).toEqual([]);
+  });
+
+  it("leaves out a kind a unit keeps itself", async () => {
+    const resources = newStoredResources(
+      opened.store,
+      new Map([[ApiResourceKind.agent, { findById: () => Promise.resolve(undefined) }]]),
+      accounts,
+    );
+    expect(refs(await resources.authoredIn("acme", CREATOR))).toEqual(
+      [`session:${MINE}`, `session:${OLD_STAMP}`].sort(),
+    );
   });
 });
 

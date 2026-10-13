@@ -32,6 +32,11 @@
  *     is asked at most once per organization per request. A read fault
  *     throws, and the binding answers it as an authorization outage, never
  *     as an admission.
+ *   - Whom it holds is the rule's to say. The binding asks about every
+ *     person reaching a row of a requiring organization, its own people or
+ *     not (a child organization's member reading what the organization
+ *     shares down, say); a rule that holds only the organization's own
+ *     people answers nothing for anyone else, as Enterprise's does.
  */
 import type { AuthzRefusal } from "./authorizer.js";
 import type { CallerIdentity } from "./identity.js";

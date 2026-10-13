@@ -185,6 +185,11 @@ function affiliationOf(
   return { identityAccountId: principal.id, organizationId: resource.id };
 }
 
+/** A resource's `kind:id`, the key a move compares resources by. */
+function resourceKey(resource: ApiResourceRef | undefined): string {
+  return `${resource?.kind ?? ""}:${resource?.id ?? ""}`;
+}
+
 /**
  * The relations a resource's creation records for its creator: `owner`
  * on a kind whose owner is its creator, `creator` on a kind that also
@@ -249,11 +254,14 @@ export interface IamPolicyGrantPath {
    * the organization itself and on its resources, authorship included) to
    * the target account, as `caller`, through the `access_moved` door:
    * every grant to the target first, then every revoke from the source,
-   * then the source's departure. Refuses an owner of the organization
+   * then the source's departure. The target is also granted `owner` on
+   * every resource inside the organization the source created whose owner
+   * row it does not hold (`StoredResources.authoredIn`), so the person keeps
+   * what they made. Refuses an owner of the organization
    * (FAILED_PRECONDITION: an owner's access is never moved) and a move to
    * itself (INVALID_ARGUMENT). With `previewOnly` nothing is written.
-   * Answers how many rows moved (or would). Re-runnable: a move that
-   * stopped partway completes.
+   * Answers how many rows the target was granted (or would be).
+   * Re-runnable: a move that stopped partway completes.
    */
   moveOrgAccess(
     fromAccountId: string,
@@ -282,6 +290,15 @@ export interface StoredResources {
    * already deleted).
    */
   organizationOf(kind: string, id: string): Promise<string>;
+  /**
+   * The resources inside the organization whose recorded creator is the
+   * account, of every kind whose owner is its creator: what a move grants
+   * the target as owner. A kind this server stores no list of answers none.
+   */
+  authoredIn(
+    organizationId: string,
+    accountId: string,
+  ): Promise<ReadonlyArray<ApiResourceRef>>;
 }
 
 /**
@@ -584,6 +601,28 @@ export function newIamPolicyGrantPath(
     return [...onOrganization, ...below];
   }
 
+  /**
+   * The resources the account created inside the organization whose owner
+   * relation is not among its held rows: where a composition stores an
+   * author's owner row (the cloud), the move carries the row itself; where
+   * the owner is derived from the creation stamp (open source's built-in
+   * posture), nothing would carry it, so the move grants it. Either way
+   * the target ends up owning what the person made there.
+   */
+  async function ownershipOfAuthored(
+    accountId: string,
+    organizationId: string,
+    inside: ReadonlyArray<HeldRow>,
+  ): Promise<ReadonlyArray<ApiResourceRef>> {
+    const owned = new Set(
+      inside
+        .filter((row) => row.spec.relation === OWNER_RELATION)
+        .map((row) => resourceKey(row.spec.resource)),
+    );
+    const authored = await resources.authoredIn(organizationId, accountId);
+    return authored.filter((resource) => !owned.has(resourceKey(resource)));
+  }
+
   return {
     grant(spec, caller, cause): Promise<GrantResult> {
       return grantWith(spec, caller, { actor: policyActorOf(caller), cause });
@@ -614,8 +653,14 @@ export function newIamPolicyGrantPath(
           Code.FailedPrecondition,
         );
       }
+      const authored = await ownershipOfAuthored(
+        fromAccountId,
+        organizationId,
+        inside,
+      );
+      const granted = inside.length + authored.length;
       if (previewOnly) {
-        return inside.length;
+        return granted;
       }
       const change: Change = {
         actor: policyActorOf(caller),
@@ -625,11 +670,24 @@ export function newIamPolicyGrantPath(
       // Every grant first, so a move that stops partway leaves both
       // accounts holding what was moved, never neither; a second run finds
       // the target's rows held and the source's still there, and finishes.
+      // The ownership of what the source made comes after its rows, so the
+      // target is affiliated before it owns anything below.
       for (const row of inside) {
         await grantWith(
           create(IamPolicySpecSchema, {
             ...row.spec,
             principal: { ...row.principal, id: toAccountId },
+          }),
+          caller,
+          change,
+        );
+      }
+      for (const resource of authored) {
+        await grantWith(
+          create(IamPolicySpecSchema, {
+            principal: { kind: ACCOUNT_KIND, id: toAccountId },
+            relation: OWNER_RELATION,
+            resource,
           }),
           caller,
           change,
@@ -645,11 +703,12 @@ export function newIamPolicyGrantPath(
         toIdentityAccountId: toAccountId,
         organizationId,
         moved: String(inside.length),
+        owned: String(authored.length),
       });
       // The source now holds nothing in the organization: it departs, as
       // a person removed from it does.
       await departures?.(fromAccountId, organizationId, caller);
-      return inside.length;
+      return granted;
     },
 
     async revokeBySpec(spec, caller): Promise<IamPolicy | undefined> {

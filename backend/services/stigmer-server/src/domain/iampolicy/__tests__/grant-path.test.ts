@@ -1227,12 +1227,15 @@ describe("moveOrgAccess: one account's access inside an organization moves to an
    * agent's owner row there, a team membership there, and a role and a
    * share in globex; the departures it causes are recorded.
    */
-  async function seeded(lifecycle?: ResourceAuthorizationLifecycle) {
+  async function seeded(
+    lifecycle?: ResourceAuthorizationLifecycle,
+    resources: StoredResources = NO_STORED_RESOURCES,
+  ) {
     const recorded: RecordedEvent[] = [];
     const departures: string[] = [];
     const policies = fakeIamPolicyStore(recorded);
     const path = newIamPolicyGrantPath({
-      resources: NO_STORED_RESOURCES,
+      resources,
       policies,
       lifecycle,
       logger: silentLogger,
@@ -1298,6 +1301,45 @@ describe("moveOrgAccess: one account's access inside an organization moves to an
     }
     expect(policies.changes.slice(0, 4).every((change) => change.op === "save")).toBe(true);
     expect(departures).toEqual([`${EMAIL}@acme`]);
+  });
+
+  it("grants the target owner on what the source made there whose owner is derived, never twice, and nothing elsewhere", async () => {
+    const SESSION = "ses_movmine00000000000000000";
+    const THEIRS = "ses_movtheirs000000000000000";
+    const FAR = "ses_movfar0000000000000000000";
+    const { policies, path } = await seeded(
+      undefined,
+      storedResources({
+        creators: {
+          [`agent:${AUTHORED}`]: EMAIL,
+          [`session:${SESSION}`]: EMAIL,
+          [`session:${THEIRS}`]: BOB,
+          [`session:${FAR}`]: EMAIL,
+        },
+        organizations: {
+          [`agent:${AUTHORED}`]: "acme",
+          [`session:${SESSION}`]: "acme",
+          [`session:${THEIRS}`]: "acme",
+          [`session:${FAR}`]: "globex",
+        },
+      }),
+    );
+    expect(await path.moveOrgAccess(EMAIL, "", "acme", sso, true)).toBe(5);
+    expect(policies.changes).toEqual([]);
+
+    expect(await path.moveOrgAccess(EMAIL, SSO, "acme", sso, false)).toBe(5);
+    expect(holds(policies, SSO)).toEqual(
+      [
+        "admin organization:acme",
+        `member team:${TEAM}`,
+        `owner agent:${AUTHORED}`,
+        `owner session:${SESSION}`,
+        `viewer agent:${SHARED}`,
+      ].sort(),
+    );
+    const ownershipId = policyIdFor(triple(account(SSO), "owner", { kind: "session", id: SESSION }));
+    const ownership = policies.changes.find((change) => change.op === "save" && change.id === ownershipId);
+    expect(ownership?.record).toMatchObject({ cause: "access_moved", organizationId: "acme" });
   });
 
   it("refuses an owner of the organization and writes nothing", async () => {
