@@ -30,19 +30,34 @@
  * The console assets themselves are asserted present in the isolated copy
  * before boot — a missing console/ is a packaging failure by itself.
  *
- * Usage: node scripts/verify-slim-artifact.mjs
+ * Usage: node scripts/verify-slim-artifact.mjs [--dir=<tree>]
  *        (expects a Temporal dev server on TEMPORAL_HOST_PORT, default
- *        127.0.0.1:7233, and a built dist-slim/)
+ *        127.0.0.1:7233, and a built dist-slim/, or the tree --dir names:
+ *        one bundled by bundle-slim.mjs --entry-package --out, for this host)
  */
 import { spawn } from "node:child_process";
 import { cpSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertConsoleServed } from "../../../../test/install/lib/stigmer-smoke.mjs";
 
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
-const slimDir = join(serverRoot, "dist-slim");
+
+function slimDirFromArgs() {
+  let dir = join(serverRoot, "dist-slim");
+  for (const arg of process.argv.slice(2)) {
+    const m = arg.match(/^--dir=(.+)$/);
+    if (m === null) {
+      console.error(`verify-slim-artifact: unknown argument: ${arg}`);
+      process.exit(1);
+    }
+    dir = resolve(m[1]);
+  }
+  return dir;
+}
+
+const slimDir = slimDirFromArgs();
 const BOOT_TIMEOUT_MS = 60_000;
 // After both markers: the shutdown itself gets a deadline too — a wedged
 // worker drain is exactly the class of bug this gate exists to find, and
@@ -56,7 +71,7 @@ const LISTENING_MARKER = "stigmer-server listening";
 
 if (!existsSync(join(slimDir, "main.js"))) {
   console.error(
-    "verify-slim-artifact: dist-slim/main.js not found — run `npm run build:slim` first",
+    `verify-slim-artifact: ${join(slimDir, "main.js")} not found — run \`npm run build:slim\` first`,
   );
   process.exit(1);
 }

@@ -1,12 +1,21 @@
 #!/usr/bin/env node
 
 /**
- * Stages @stigmer/server the way a consumer installs it: the server tarball
- * and every @stigmer/* package it depends on, packed from THIS checkout at
- * one version. A consumer that pins the library at an exact release (the
- * cloud composition) installs the set to run its own suite against an
+ * Stages @stigmer/server the way a consumer installs it: the server tarball,
+ * every @stigmer/* package it depends on, and @stigmer/enterprise (ee/server),
+ * packed from THIS checkout at one version. A consumer that pins the library
+ * at an exact release (a host composing the server, with or without the
+ * Enterprise identity unit) installs the set to run its own suite against an
  * unreleased server change (committed or not, pushed or not) with nothing
  * published and nothing written to its manifest.
+ *
+ * Enterprise is staged beside the server because a release ships them at
+ * one version, and a host that depends on both cannot take one from the
+ * stage and the other from the registry: the Enterprise package declares
+ * @stigmer/server at its exact release, so beside a staged server npm nests
+ * a second server under it, and its identity unit composes against a
+ * different server than the host's (stigmer#2207). Its links must stay
+ * inside the staged set (`unstagedLinks`), so the one install resolves it.
  *
  * Why tarballs and not `npm link`: a linked package resolves its own
  * dependencies from this checkout's node_modules, so the consumer's tree
@@ -17,8 +26,9 @@
  * node_modules: the consumer's install resolves its dependencies against
  * the consumer's own tree, exactly as a release would.
  *
- *   <out>/pkgs/*.tgz   the server (publish-standalone.mjs --pack-dir) and
- *                      the @stigmer/* closure of its `file:` links
+ *   <out>/pkgs/*.tgz   the server and Enterprise (publish-standalone.mjs
+ *                      --pack-dir, as the release packs each) and the
+ *                      @stigmer/* closure of the server's `file:` links
  *                      (publish-libs.mjs --pack-dir, one --only per link),
  *                      every @stigmer/* edge pinned to the one version. One
  *                      `npm install` of all of them resolves our graph among
@@ -34,8 +44,9 @@
  *
  * "Stage from what you have, build what you don't": by default the TS
  * stubs (`make -C apis ts-stubs`, which regenerates only when the protos
- * changed), the server's libs and the server (`make build-server`) are
- * built first; --skip-build packs the dist/ already present.
+ * changed), the server's libs, the server and Enterprise (`make build-ee`,
+ * which builds the server first) are built first; --skip-build packs the
+ * dist/ already present in both.
  *
  * Usage:
  *   node scripts/stage-server-library.mjs [--version=<semver>] [--out=<dir>] [--skip-build]
@@ -60,6 +71,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const serverRoot = join(repoRoot, "backend", "services", "stigmer-server");
+const enterpriseRoot = join(repoRoot, "ee", "server");
+
+/** The standalone packages the stage packs with publish-standalone.mjs, in pack order. */
+export const STANDALONE_PACKAGES = ["backend/services/stigmer-server", "ee/server"];
 
 function fail(message) {
   console.error(`stage-server-library: ${message}`);
@@ -119,6 +134,16 @@ export function linkedLibs(manifest) {
     .sort();
 }
 
+/**
+ * The @stigmer/* packages `manifest` links that the stage packs no tarball
+ * for, sorted: `staged` names the packages the stage packs (the server's
+ * lib closure and the standalone packages). A link left out would be
+ * pinned to a version no registry holds, and the one install would fail.
+ */
+export function unstagedLinks(manifest, staged) {
+  return linkedLibs(manifest).filter((name) => !staged.includes(name));
+}
+
 function main() {
   let opts;
   try {
@@ -130,10 +155,14 @@ function main() {
 
   if (!opts.skipBuild) {
     run("make", ["-C", "apis", "ts-stubs"], { cwd: repoRoot });
-    run("make", ["build-server"], { cwd: repoRoot });
+    run("make", ["build-ee"], { cwd: repoRoot });
   } else if (!existsSync(join(serverRoot, "dist", "main.js"))) {
     fail(
       "backend/services/stigmer-server/dist/main.js not found — run without --skip-build, or `make build-server` first",
+    );
+  } else if (!existsSync(join(enterpriseRoot, "dist", "index.js"))) {
+    fail(
+      "ee/server/dist/index.js not found — run without --skip-build, or `make build-ee` first",
     );
   }
 
@@ -163,19 +192,31 @@ function main() {
       { cwd: repoRoot },
     );
   }
-  run(
-    "node",
-    [
-      "scripts/publish-standalone.mjs",
-      "--package",
-      "backend/services/stigmer-server",
-      "--version",
-      opts.version,
-      "--pack-dir",
-      pkgsDir,
-    ],
-    { cwd: repoRoot },
+  const enterprise = JSON.parse(
+    readFileSync(join(enterpriseRoot, "package.json"), "utf8"),
   );
+  const standaloneNames = [manifest.name, enterprise.name];
+  const unstaged = unstagedLinks(enterprise, [...libs, ...standaloneNames]);
+  if (unstaged.length > 0) {
+    fail(
+      `ee/server links ${unstaged.join(", ")}, which the server stage does not pack; stage it beside the server's libs`,
+    );
+  }
+  for (const pkg of STANDALONE_PACKAGES) {
+    run(
+      "node",
+      [
+        "scripts/publish-standalone.mjs",
+        "--package",
+        pkg,
+        "--version",
+        opts.version,
+        "--pack-dir",
+        pkgsDir,
+      ],
+      { cwd: repoRoot },
+    );
+  }
 
   writeFileSync(join(opts.out, "VERSION"), `${opts.version}\n`);
   const staged = readdirSync(pkgsDir).sort();

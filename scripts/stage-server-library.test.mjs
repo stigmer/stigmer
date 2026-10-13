@@ -2,9 +2,10 @@
 // Run via `node --test scripts/stage-server-library.test.mjs` (wired into root `npm test`).
 //
 // What these guard: a consumer installs the staged set in one `npm install`
-// and trusts it to replace every @stigmer/* package the server brings. So
-// the set must be complete (every lib the server links, with everything
-// those libs depend on), the version must be one npm accepts and never a
+// and trusts it to replace every @stigmer/* package the server brings, and
+// the Enterprise package beside it. So the set must be complete (every lib
+// the server links, with everything those libs depend on, and every package
+// Enterprise links), the version must be one npm accepts and never a
 // registry version, and a repeat stage must not reuse a version. The pack
 // itself runs npm and is proven by running the script, not here.
 
@@ -19,6 +20,8 @@ import {
   linkedLibs,
   localVersion,
   parseArgs,
+  STANDALONE_PACKAGES,
+  unstagedLinks,
 } from "./stage-server-library.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -120,4 +123,39 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "backend/libs/ts/tool-vocabulary",
     "backend/libs/ts/session-log",
   ]);
+});
+
+test("unstagedLinks names the @stigmer/* links the stage packs no tarball for, sorted", () => {
+  const manifest = {
+    dependencies: {
+      "@stigmer/server": "file:../../backend/services/stigmer-server",
+      "@stigmer/protos": "file:../../apis/stubs/ts",
+      "@stigmer/new-lib": "file:../../backend/libs/ts/new-lib",
+      "@stigmer/another": "file:../../backend/libs/ts/another",
+      "@stigmer/pinned": "3.38.3",
+      pg: "8.23.0",
+    },
+  };
+  assert.deepEqual(
+    unstagedLinks(manifest, ["@stigmer/protos", "@stigmer/server"]),
+    ["@stigmer/another", "@stigmer/new-lib"],
+  );
+  assert.deepEqual(unstagedLinks({}, []), []);
+});
+
+test("the stage packs the server and Enterprise, and Enterprise links nothing the stage leaves out", () => {
+  // A host that composes the Enterprise unit installs both from the stage
+  // (stigmer#2207): Enterprise declares the server at the one version, so
+  // the registry's copy beside a staged server is a second server. Pinned so
+  // a new link on ee/server that the server's closure does not carry fails
+  // here, before a consumer's install does.
+  assert.deepEqual(STANDALONE_PACKAGES, ["backend/services/stigmer-server", "ee/server"]);
+  const read = (dir) => JSON.parse(readFileSync(join(repoRoot, dir, "package.json"), "utf8"));
+  const server = read("backend/services/stigmer-server");
+  const enterprise = read("ee/server");
+  assert.equal(enterprise.name, "@stigmer/enterprise");
+  const staged = [...linkedLibs(server), server.name, enterprise.name];
+  assert.deepEqual(unstagedLinks(enterprise, staged), []);
+  // The links themselves, so the reason the set closes is visible.
+  assert.deepEqual(linkedLibs(enterprise), ["@stigmer/outbound", "@stigmer/protos", "@stigmer/server"]);
 });

@@ -553,6 +553,20 @@ smoke-docker-image: build-server build-web ## Build the server Docker image from
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
 	@cd $(SERVER_DIR) && node scripts/smoke-docker-image.mjs
 
+# Stigmer Enterprise's image, stigmer-server-ee: the server's bundler over
+# Enterprise's compiled entry (--entry-package; its imports resolve from the server's
+# tree, so the bundle adds no second copy of a shared package), into
+# ee/server/dist-slim, then the server's Dockerfile with Enterprise's labels
+# and the Enterprise smoke (ee/server/scripts/smoke-image.mjs): no key boots
+# as open source, a bad key refuses. Linux for THIS machine's arch, as above.
+.PHONY: bundle-ee-slim smoke-ee-image
+bundle-ee-slim: build-ee build-web ## Bundle Stigmer Enterprise's slim tree (ee/server/dist-slim) for this machine's linux arch, the image's input
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs --entry-package=$(CURDIR)/$(EE_DIR) --out=$(CURDIR)/$(EE_DIR)/dist-slim --platform=linux-$$(node -e "process.stdout.write(process.arch==='x64'?'x64':'arm64')")
+
+smoke-ee-image: bundle-ee-slim ## Build the stigmer-server-ee image from a fresh Enterprise tree and smoke it: no key boots as open source, a bad key refuses (needs Docker)
+	@command -v docker >/dev/null 2>&1 || { echo "error: docker not found — the image smoke needs a Docker daemon"; exit 1; }
+	@cd $(EE_DIR) && node scripts/smoke-image.mjs
+
 # The all-in-one evaluation image: stage every package the image
 # bakes from THIS checkout (scripts/stage-all-in-one.mjs — the workspace
 # tarballs, the slim server and runner packages for this arch, the verified
@@ -575,15 +589,16 @@ smoke-all-in-one: build-runner build-server build-web ## Stage, build and boot-s
 stage-compose-runner-cli: build-libs ## Stage the CLI tarballs the compose-runner image installs (from this checkout, dev version)
 	node scripts/stage-compose-runner-cli.mjs --skip-build
 
-# The @stigmer/server library as a consumer installs it: the server and the
-# @stigmer/* closure of its file: links, packed from THIS checkout at one
+# The @stigmer/server library as a consumer installs it: the server, the
+# @stigmer/* closure of its file: links and @stigmer/enterprise (ee/server,
+# whose links stay inside that set), packed from THIS checkout at one
 # 0.0.0-local.<stamp> version into backend/services/stigmer-server/stage/library
 # (scripts/stage-server-library.mjs; out=<dir> moves it). A consumer that
 # pins the library installs the set with `npm install --no-save` and runs its
 # own suite against an unreleased server change, with nothing published. The
-# script builds the stubs, the linked libs and the server first.
+# script builds the stubs, the linked libs, the server and Enterprise first.
 .PHONY: stage-server-library
-stage-server-library: node_modules ## Stage @stigmer/server and its @stigmer/* libs as tarballs from this checkout, no registry (out=<dir>)
+stage-server-library: node_modules ## Stage @stigmer/server, its @stigmer/* libs and @stigmer/enterprise as tarballs from this checkout, no registry (out=<dir>)
 	node scripts/stage-server-library.mjs $(if $(out),--out=$(out))
 
 # The compose gate: build both images from source and
@@ -1407,7 +1422,7 @@ release: release-preflight ## Tag and push a release (usage: make release [bump=
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
 	@echo "  - Desktop app installers (draft) (release.desktop.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
-	@echo "    + the server, runner and all-in-one images on GHCR, and the Helm chart"
+	@echo "    + the server, Enterprise server, runner and all-in-one images on GHCR, and the Helm chart"
 	@echo "      at oci://ghcr.io/stigmer/charts/stigmer, each smoked before it is promoted or pushed"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"

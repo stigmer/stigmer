@@ -415,8 +415,15 @@ export const LANES = {
       "scripts/turbo-set.mjs",
       "scripts/publish-libs.mjs",
       // The consumer-install check the lane runs, and the helpers it imports.
+      // scripts/lib/ is also imported by the server's bundle-slim.mjs, which
+      // bundles the Enterprise image's tree.
       "scripts/verify-consumer-install.mjs",
       "scripts/lib/**",
+      // The Enterprise image job runs the server's verify-slim-artifact.mjs
+      // and smoke-docker-image.mjs, which import the shared console-lane
+      // probe (test/install/lib/stigmer-smoke.mjs; ci.stigmer-server says
+      // why: #1087).
+      "test/install/lib/**",
       // The Makefile its build target comes from (ci.all-in-one says why).
       "Makefile",
       // The Node version the lane sets up (ci.all-in-one says why).
