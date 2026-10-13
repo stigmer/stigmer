@@ -139,7 +139,7 @@ describe("ApiKey conformance", () => {
     const created = await createKey(org);
     const expiry = new Date("2030-06-01T00:00:00Z");
 
-    const updated = await clients.apiKeyCommand.update({
+    const updated = await clients.apiKeyCommand.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: {
@@ -155,7 +155,7 @@ describe("ApiKey conformance", () => {
         expiresAt: timestampFromDate(expiry),
         neverExpires: true,
       },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.spec?.expiresAt?.seconds).toBe(
       BigInt(Math.floor(expiry.getTime() / 1000)),
@@ -170,7 +170,7 @@ describe("ApiKey conformance", () => {
     const plaintext = created.spec?.keyHash ?? "";
     const storedHash = storageHash(plaintext);
 
-    const updated = await clients.apiKeyCommand.update({
+    const updated = await clients.apiKeyCommand.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: {
@@ -186,7 +186,7 @@ describe("ApiKey conformance", () => {
         fingerprint: "forged",
         neverExpires: true,
       },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(
       updated.spec?.keyHash,

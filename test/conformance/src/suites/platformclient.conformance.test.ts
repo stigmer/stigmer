@@ -154,7 +154,7 @@ describe("PlatformClient conformance — CRUD on the primary", () => {
     });
     edited.spec = spec;
 
-    const updated = await clients.platformClientCommand.update(edited);
+    const updated = await clients.platformClientCommand.update({ resource: edited, updateMask: { paths: ["*"] } });
 
     expect(updated.spec?.allowedOrigins).toEqual(["https://app.example"]);
     expect(updated.spec?.clientId).toBe(client.credentials.clientId);

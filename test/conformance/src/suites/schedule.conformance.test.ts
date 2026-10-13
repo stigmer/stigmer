@@ -211,12 +211,12 @@ describe("Schedule update contract", () => {
     const { slug: agentSlug } = await createAgentFixture(org);
     const created = await createScheduleFixture(org, agentSlug);
 
-    const updated = await clients.scheduleCommand.update({
+    const updated = await clients.scheduleCommand.update({ resource: {
       apiVersion: created.apiVersion,
       kind: created.kind,
       metadata: created.metadata,
       spec: { ...created.spec!, cron: "15 6 * * 1", timeZone: "UTC" },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.id).toBe(created.metadata?.id);
     expect(updated.metadata?.slug).toBe(created.metadata?.slug);
@@ -235,7 +235,7 @@ describe("Schedule update contract", () => {
     // different agent in the spec.
     const repointed = makeSchedule(org, created.metadata!.name, otherAgentSlug);
     await expectGrpcCode(
-      () => clients.scheduleCommand.update({ ...repointed, metadata: created.metadata }),
+      () => clients.scheduleCommand.update({ resource: { ...repointed, metadata: created.metadata }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update that repoints the schedule's agent",
     );

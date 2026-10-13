@@ -145,10 +145,10 @@ const KINDS: readonly RenamableKind[] = [
     readByReference: async (org, slug) =>
       namedOf(await clients.vaultQuery.getByReference({ org, slug })),
     writeBySlug: (org, slug) =>
-      clients.vaultCommand.update({
+      clients.vaultCommand.update({ resource: {
         ...makeSharedVault({ org, name: slug }),
         metadata: { name: slug, org, slug },
-      }),
+      }, updateMask: { paths: ["*"] } }),
   },
   {
     title: "[rpc:ScheduleCommandController.rename] a schedule",
@@ -260,12 +260,12 @@ const KINDS: readonly RenamableKind[] = [
     readByReference: async (org, slug) =>
       namedOf(await clients.platformClientQuery.getByReference({ org, slug })),
     writeBySlug: (org, slug) =>
-      clients.platformClientCommand.update({
+      clients.platformClientCommand.update({ resource: {
         apiVersion: "iam.stigmer.ai/v1",
         kind: "PlatformClient",
         metadata: { name: slug, org, slug },
         spec: {},
-      }),
+      }, updateMask: { paths: ["*"] } }),
   },
 ];
 

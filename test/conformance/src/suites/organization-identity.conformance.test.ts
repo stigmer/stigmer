@@ -183,7 +183,7 @@ describe("Organization identity conformance", () => {
 
     for (const [verb, write] of [
       ["apply", () => clients.organizationCommand.apply({ apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } })],
-      ["update", () => clients.organizationCommand.update({ apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } })],
+      ["update", () => clients.organizationCommand.update({ resource: { apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } }, updateMask: { paths: ["*"] } })],
     ] as const) {
       if (verb === "update" && target.capabilities.enforcingAuthorizer) {
         // An update authorizes its metadata.id: without one it is refused

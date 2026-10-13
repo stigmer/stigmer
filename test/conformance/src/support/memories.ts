@@ -117,7 +117,7 @@ export async function enableOrganizationMemory(
       : clone(OrganizationSpecSchema, organization.spec);
   spec.preferences ??= create(OrganizationPreferencesSchema);
   spec.preferences.memoryEnabled = true;
-  await clients.organizationCommand.update({
+  await clients.organizationCommand.update({ resource: {
     apiVersion: organization.apiVersion,
     kind: organization.kind,
     metadata: {
@@ -125,7 +125,7 @@ export async function enableOrganizationMemory(
       name: organization.metadata!.name,
     },
     spec,
-  });
+  }, updateMask: { paths: ["*"] } });
 }
 
 // Turns the memory switch ON for the calling person's own account — the
@@ -144,12 +144,12 @@ export async function enableMyMemory(
       : clone(IdentityAccountSpecSchema, me.spec);
   spec.preferences ??= create(IdentityAccountPreferencesSchema);
   spec.preferences.memoryEnabled = true;
-  return clients.identityAccountCommand.update({
+  return clients.identityAccountCommand.update({ resource: {
     apiVersion: me.apiVersion,
     kind: me.kind,
     metadata: me.metadata,
     spec,
-  });
+  }, updateMask: { paths: ["*"] } });
 }
 
 export interface OrgWithConfirmedFacts {

@@ -492,13 +492,13 @@ describe("vault resolution — a person's run", () => {
     const fresh = await clients.sessionQuery.get({ value: created.metadata!.id });
     fresh.spec!.includeMyVault = false;
     fresh.spec!.vaults = [];
-    const changed = await clients.sessionCommand.update(fresh);
+    const changed = await clients.sessionCommand.update({ resource: fresh, updateMask: { paths: ["*"] } });
     expect(changed.spec?.includeMyVault).toBe(false);
     expect(changed.spec?.vaults).toEqual([]);
 
     // The runner's after-turn write echoes the older read: it keeps the
     // stored choice and the stored token.
-    const afterTurn = await clients.sessionCommand.update(turnStartRead);
+    const afterTurn = await clients.sessionCommand.update({ resource: turnStartRead, updateMask: { paths: ["*"] } });
     expect(afterTurn.spec?.includeMyVault, "a stale write never switches My vault back").toBe(false);
     expect(afterTurn.spec?.vaults, "nor re-attaches a vault removed since").toEqual([]);
     expect(tokenOf(afterTurn)).toBe(REDACTED_MARKER);
@@ -506,7 +506,7 @@ describe("vault resolution — a person's run", () => {
     // A current write sending the marker back is accepted only when a token
     // is stored behind it: the token survived both writes.
     const current = await clients.sessionQuery.get({ value: created.metadata!.id });
-    const kept = await clients.sessionCommand.update(current);
+    const kept = await clients.sessionCommand.update({ resource: current, updateMask: { paths: ["*"] } });
     expect(tokenOf(kept), "the marker kept the sealed token").toBe(REDACTED_MARKER);
   });
 

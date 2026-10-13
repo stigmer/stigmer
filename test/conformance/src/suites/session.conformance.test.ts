@@ -146,12 +146,12 @@ async function createSession(
 // A full update of `session` with the given spec (identity carried over).
 function updateSession(session: Session, spec: MessageInitShape<typeof SessionSpecSchema>) {
   const { id, name, slug, org } = session.metadata!;
-  return clients.sessionCommand.update({
+  return clients.sessionCommand.update({ resource: {
     apiVersion: SESSION_API_VERSION,
     kind: SESSION_KIND,
     metadata: { id, name, slug, org },
     spec,
-  });
+  }, updateMask: { paths: ["*"] } });
 }
 
 describe("Session conformance — CRUD & identity", () => {
@@ -204,13 +204,13 @@ describe("Session conformance — CRUD & identity", () => {
     const { id, slug } = created.metadata!;
 
     const renamed = uniqueName("renamed");
-    const updated = await clients.sessionCommand.update({
+    const updated = await clients.sessionCommand.update({ resource: {
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
       // Attempts to mutate slug/org must be ignored; only name and spec change.
       metadata: { id, name: renamed, slug: "attempted-different-slug", org: "attempted-different-org" },
       spec: makeSessionSpec({ agentRef, subject: "after" }),
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.id).toBe(id);
     expect(updated.metadata?.slug).toBe(slug);
@@ -618,24 +618,24 @@ describe("Session conformance — negative paths", () => {
     fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
     const { id, name, slug } = created.metadata!;
 
-    const bound = await clients.sessionCommand.update({
+    const bound = await clients.sessionCommand.update({ resource: {
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
       metadata: { id, name, slug, org },
       spec: makeSessionSpec({ agentRef }),
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(bound.spec?.agentRef?.slug).toBe(agentRef.slug);
     expect(bound.status?.agentId, "gaining an agent pins it").not.toBe("");
 
     // The agent is not an immutable field (the harness and the execution
     // target are): no reference on update returns the conversation to the
     // built-in assistant and clears the pin.
-    const dropped = await clients.sessionCommand.update({
+    const dropped = await clients.sessionCommand.update({ resource: {
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
       metadata: { id, name, slug, org },
       spec: makeSessionSpec(),
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(dropped.spec?.agentRef).toBeUndefined();
     expect(dropped.status?.agentId ?? "").toBe("");
     expect(dropped.status?.agentVersionHash ?? "").toBe("");
@@ -788,13 +788,13 @@ describe("Session conformance — the agent pin", () => {
     const session = await createSession(org, uniqueName("session"), agentRefOf(agent));
     const { id, name, slug } = session.metadata!;
 
-    const updated = await clients.sessionCommand.update({
+    const updated = await clients.sessionCommand.update({ resource: {
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
       metadata: { id, name, slug, org },
       spec: makeSessionSpec({ agentRef: agentRefOf(agent), subject: "renamed" }),
       status: { agentId: "agt_forged", agentVersionHash: "f".repeat(64) },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.status?.agentId).toBe(agent.metadata?.id);
     expect(updated.status?.agentVersionHash).toBe(agent.status?.versionHash);

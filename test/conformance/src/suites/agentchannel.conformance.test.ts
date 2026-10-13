@@ -136,12 +136,12 @@ describe("AgentChannel conformance — CRUD & identity", () => {
     const agent = await createAgentFixture(org);
     const created = await createChannelFixture(org, agent.metadata!.slug);
 
-    const updated = await clients.agentChannelCommand.update({
+    const updated = await clients.agentChannelCommand.update({ resource: {
       ...makeSlackAgentChannel(org, created.metadata!.name, agent.metadata!.slug, {
         enabled: false,
       }),
       metadata: created.metadata,
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.id).toBe(created.metadata?.id);
     expect(updated.spec?.enabled).toBe(false);
@@ -338,10 +338,10 @@ describe("AgentChannel conformance — update immutability", () => {
 
     const err = await expectGrpcCode(
       () =>
-        clients.agentChannelCommand.update({
+        clients.agentChannelCommand.update({ resource: {
           ...makeSlackAgentChannel(org, created.metadata!.name, otherAgent.metadata!.slug),
           metadata: created.metadata,
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update re-pointing the channel at a different agent",
     );
@@ -355,12 +355,12 @@ describe("AgentChannel conformance — update immutability", () => {
 
     const err = await expectGrpcCode(
       () =>
-        clients.agentChannelCommand.update({
+        clients.agentChannelCommand.update({ resource: {
           ...makeWhatsAppAgentChannel(org, created.metadata!.name, agent.metadata!.slug, {
             appRefSlug: "some-app",
           }),
           metadata: created.metadata,
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update flipping slack → whatsapp",
     );
@@ -380,18 +380,18 @@ describe("AgentChannel conformance — update immutability", () => {
     // pending_install channels rebind freely — the freeze applies only to
     // installed channels, a state this edition never reaches (the install
     // lane is a refusal; see the suite header's disclosed exclusion).
-    const bound = await clients.agentChannelCommand.update({
+    const bound = await clients.agentChannelCommand.update({ resource: {
       ...makeSlackAgentChannel(org, created.metadata!.name, agent.metadata!.slug, {
         appRefSlug: app.metadata!.slug,
       }),
       metadata: created.metadata,
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(bound.spec?.appRef?.slug).toBe(app.metadata?.slug);
 
-    const unbound = await clients.agentChannelCommand.update({
+    const unbound = await clients.agentChannelCommand.update({ resource: {
       ...makeSlackAgentChannel(org, created.metadata!.name, agent.metadata!.slug),
       metadata: created.metadata,
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(unbound.spec?.appRef?.slug ?? "").toBe("");
   });
 });

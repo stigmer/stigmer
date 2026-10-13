@@ -154,13 +154,13 @@ describe("ChannelApp conformance — the per-field secret contract", () => {
     // the per-field independence the multi-secret arm exists for. Reads
     // always redact, so preservation is proven behaviorally: the update is
     // accepted and every subsequent read still answers the marker.
-    const updated = await clients.channelAppCommand.update({
+    const updated = await clients.channelAppCommand.update({ resource: {
       ...makeSlackChannelApp(org, created.metadata!.name, {
         clientSecret: CHANNELAPP_REDACTED_MARKER,
         signingSecret: "rotated-signing-secret",
       }),
       metadata: created.metadata,
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.id).toBe(created.metadata?.id);
     const slack = updated.spec?.providerConfig?.case === "slack" ? updated.spec.providerConfig.value : undefined;
@@ -199,12 +199,12 @@ describe("ChannelApp conformance — the per-field secret contract", () => {
     const created = await createSlackAppFixture(org);
     await expectGrpcCode(
       () =>
-        clients.channelAppCommand.update({
+        clients.channelAppCommand.update({ resource: {
           ...makeSlackChannelApp(org, created.metadata!.name, {
             clientSecret: "enc:v2:ZnV0dXJlLXZlcnNpb24=",
           }),
           metadata: created.metadata,
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.InvalidArgument,
       "update with ciphertext-shaped client_secret",
     );
@@ -230,10 +230,10 @@ describe("ChannelApp conformance — provider immutability", () => {
 
     const err = await expectGrpcCode(
       () =>
-        clients.channelAppCommand.update({
+        clients.channelAppCommand.update({ resource: {
           ...makeWhatsAppChannelApp(org, created.metadata!.name),
           metadata: created.metadata,
-        }),
+        }, updateMask: { paths: ["*"] } }),
       // Deliberately InvalidArgument, not FailedPrecondition — see the
       // suite header's as-is pin note.
       Code.InvalidArgument,

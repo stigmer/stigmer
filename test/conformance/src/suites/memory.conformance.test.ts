@@ -284,7 +284,7 @@ describe("Memory conformance", () => {
     // A wholesale spec replacement editing content only (status wiped,
     // as generated update mappers send it): the decision must survive
     // by mechanism.
-    const updated = await clients.memoryCommand.update({
+    const updated = await clients.memoryCommand.update({ resource: {
       apiVersion: memory.apiVersion,
       kind: memory.kind,
       metadata: memory.metadata,
@@ -293,7 +293,7 @@ describe("Memory conformance", () => {
         subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,
         provenance: memory.spec!.provenance,
       },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.spec?.content).toBe("Deploys to eu-west-1.");
     expect(updated.status?.lifecycleState).toBe(
       MemoryLifecycleState.lifecycle_state_confirmed,
@@ -302,12 +302,12 @@ describe("Memory conformance", () => {
     // Re-aiming the record at another person is refused.
     const subjectErr = await expectGrpcCode(
       () =>
-        clients.memoryCommand.update({
+        clients.memoryCommand.update({ resource: {
           apiVersion: memory.apiVersion,
           kind: memory.kind,
           metadata: memory.metadata,
           spec: { content: "x", subjectIdentityAccountId: "ida_someone_else" },
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update changing the subject",
     );
@@ -316,7 +316,7 @@ describe("Memory conformance", () => {
     // Inventing attribution is refused.
     const provenanceErr = await expectGrpcCode(
       () =>
-        clients.memoryCommand.update({
+        clients.memoryCommand.update({ resource: {
           apiVersion: memory.apiVersion,
           kind: memory.kind,
           metadata: memory.metadata,
@@ -325,7 +325,7 @@ describe("Memory conformance", () => {
             subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,
             provenance: { agentId: "agt_invented" },
           },
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update changing provenance",
     );

@@ -93,7 +93,12 @@ export async function optInToMemory(
     me.spec?.preferences ?? create(IdentityAccountPreferencesSchema),
   );
   preferences.memoryEnabled = true;
-  await clients.identityAccountCommand.update(withPreferences(me, preferences));
+  // The one field this write changes: every other preference keeps its
+  // stored value, whoever set it since the read.
+  await clients.identityAccountCommand.update({
+    resource: withPreferences(me, preferences),
+    updateMask: { paths: ["spec.preferences.memory_enabled"] },
+  });
 }
 
 // The fetched account with a different subject — the request the server

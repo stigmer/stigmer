@@ -567,12 +567,12 @@ describe.skipIf(!runnerServesTries)("AgentEval — what a try is given and where
     const spec = clone(OrganizationSpecSchema, organization.spec ?? create(OrganizationSpecSchema));
     spec.preferences ??= create(OrganizationPreferencesSchema);
     spec.preferences.standingContext = standing;
-    await clients.organizationCommand.update({
+    await clients.organizationCommand.update({ resource: {
       apiVersion: organization.apiVersion,
       kind: organization.kind,
       metadata: { id: organization.metadata!.id, name: organization.metadata!.name },
       spec,
-    });
+    }, updateMask: { paths: ["*"] } });
     const notes = await installed("aev-notes", () => [doneCase("plain-notes")], org);
     const agent = await agentWith([notes.plugin], { org });
 

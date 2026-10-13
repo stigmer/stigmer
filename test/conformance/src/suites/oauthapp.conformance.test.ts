@@ -124,10 +124,10 @@ describe("OAuthApp conformance — CRUD & identity", () => {
     const { org } = await target.provisionTenancy();
     const created = await createOAuthAppFixture(org);
 
-    const updated = await clients.oauthAppCommand.update({
+    const updated = await clients.oauthAppCommand.update({ resource: {
       ...makeOAuthApp(org, created.metadata!.name, { clientId: "rotated-client-id" }),
       metadata: created.metadata,
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.id).toBe(created.metadata?.id);
     expect(updated.metadata?.slug).toBe(created.metadata?.slug);
@@ -193,12 +193,12 @@ describe("OAuthApp conformance — the client-secret contract", () => {
 
     await expectGrpcCode(
       () =>
-        clients.oauthAppCommand.update({
+        clients.oauthAppCommand.update({ resource: {
           ...makeOAuthApp(org, created.metadata!.name, {
             clientSecret: "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=",
           }),
           metadata: created.metadata,
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.InvalidArgument,
       "update with ciphertext-shaped client_secret",
     );
@@ -257,22 +257,22 @@ describe("OAuthApp conformance — the addresses an app signs in to", () => {
 
     await expectGrpcCode(
       () =>
-        clients.oauthAppCommand.update({
+        clients.oauthAppCommand.update({ resource: {
           ...makeOAuthApp(org, second.metadata!.name, { addresses: [moved] }),
           metadata: second.metadata,
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.AlreadyExists,
       "update adding an address another app holds",
     );
 
-    await clients.oauthAppCommand.update({
+    await clients.oauthAppCommand.update({ resource: {
       ...makeOAuthApp(org, first.metadata!.name, { addresses: [kept] }),
       metadata: first.metadata,
-    });
-    const taken = await clients.oauthAppCommand.update({
+    }, updateMask: { paths: ["*"] } });
+    const taken = await clients.oauthAppCommand.update({ resource: {
       ...makeOAuthApp(org, second.metadata!.name, { addresses: [moved] }),
       metadata: second.metadata,
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(taken.spec?.addresses).toEqual([moved]);
   });
 
