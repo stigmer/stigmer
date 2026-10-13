@@ -44,10 +44,7 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { createdByOf } from "../../pipeline/steps/authorization-facts.js";
-import {
-  deniedError,
-  evaluateAuthorizer,
-} from "../../pipeline/steps/authorize.js";
+import { deniedError, evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
   collectSpecReferences,
@@ -62,9 +59,7 @@ import { personOf } from "./service.js";
 
 /** Where a kind keeps who attached each of its vaults. */
 export interface AttachersSlot<Desc extends DescMessage> {
-  get(
-    row: MessageShape<Desc>,
-  ): { readonly [vaultId: string]: string } | undefined;
+  get(row: MessageShape<Desc>): { readonly [vaultId: string]: string } | undefined;
   set(row: MessageShape<Desc>, attachers: { [vaultId: string]: string }): void;
 }
 
@@ -76,19 +71,13 @@ export interface VaultAttachmentOptions<Desc extends DescMessage> {
   /** Whether the kind may carry its owner's own My vault (a schedule). */
   readonly allowsOwnersMyVault?: boolean;
   /** When true, every vault the write keeps counts as introduced (a schedule whose agent changes). */
-  readonly rejudgeAllWhen?: (
-    existing: MessageShape<Desc>,
-    next: MessageShape<Desc>,
-  ) => boolean;
+  readonly rejudgeAllWhen?: (existing: MessageShape<Desc>, next: MessageShape<Desc>) => boolean;
   /**
    * Whether an update changes what the surface's runs do. While the stored
    * row names a My vault, only that vault's person may make such a change;
    * anyone else's is refused unless it also removes the vault (a schedule).
    */
-  readonly changesRuns?: (
-    existing: MessageShape<Desc>,
-    next: MessageShape<Desc>,
-  ) => boolean;
+  readonly changesRuns?: (existing: MessageShape<Desc>, next: MessageShape<Desc>) => boolean;
 }
 
 function sameReference(a: SpecReference, b: SpecReference): boolean {
@@ -103,8 +92,7 @@ function vaultReferencesOf<Desc extends DescMessage>(
     return [];
   }
   return collectSpecReferences(schema, row as Message).filter(
-    (ref) =>
-      ref.kind === ApiResourceKind.vault && (ref.id !== "" || ref.slug !== ""),
+    (ref) => ref.kind === ApiResourceKind.vault && (ref.id !== "" || ref.slug !== ""),
   );
 }
 
@@ -138,35 +126,23 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
     name: "VaultAttachments",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
       const next = ctx.newState;
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as
-        | MessageShape<Desc>
-        | undefined;
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as MessageShape<Desc> | undefined;
       const refs = vaultReferencesOf(ctx.schema, next);
       const stored = vaultReferencesOf(ctx.schema, existing);
       const rejudgeAll =
-        existing !== undefined &&
-        options.rejudgeAllWhen?.(existing, next) === true;
+        existing !== undefined && options.rejudgeAllWhen?.(existing, next) === true;
       const caller = ctx.callerIdentity;
       const org = metadataOf(next)?.org ?? "";
 
-      const named: Array<{
-        ref: SpecReference;
-        vault: Vault | undefined;
-        kept: boolean;
-      }> = [];
+      const named: Array<{ ref: SpecReference; vault: Vault | undefined; kept: boolean }> = [];
       for (const ref of refs) {
         try {
           named.push({
             ref,
-            vault: await loadReferenced(
-              store,
-              ApiResourceKind.vault,
-              VaultSchema,
-              {
-                org: ref.org || org,
-                id: ref.id,
-              },
-            ),
+            vault: await loadReferenced(store, ApiResourceKind.vault, VaultSchema, {
+              org: ref.org || org,
+              id: ref.id,
+            }),
             kept: stored.some((held) => sameReference(held, ref)),
           });
         } catch (error) {
@@ -219,10 +195,7 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
               resourceId: vaultId,
             });
             if (decision.kind === "unavailable") {
-              throw internalError(
-                decision.cause,
-                "failed to authorize an attached vault",
-              );
+              throw internalError(decision.cause, "failed to authorize an attached vault");
             }
             if (decision.kind === "deny" && decision.refusal !== undefined) {
               // A refusal the caller can act on (their organization
@@ -231,10 +204,7 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
             }
             if (decision.kind !== "allow") {
               throw permissionDeniedError(
-                rejudgedVaultRefusal({
-                  ...ref,
-                  slug: vault.metadata?.slug ?? ref.slug,
-                }),
+                rejudgedVaultRefusal({ ...ref, slug: vault.metadata?.slug ?? ref.slug }),
               );
             }
           }
