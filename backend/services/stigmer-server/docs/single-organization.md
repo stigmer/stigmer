@@ -172,6 +172,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | IamPolicyCommandController.bootstrapRevokeOrgAccess | org |
 | IamPolicyCommandController.revokeOrgAccess | org |
 | IamPolicyQueryController.getPrincipalsCount | org |
+| IamPolicyQueryController.listAccessHistory | org |
 
 ## `ai.stigmer.iam.oauthapp.v1`
 
