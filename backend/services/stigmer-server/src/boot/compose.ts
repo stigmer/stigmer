@@ -568,8 +568,15 @@ export async function composeServer(
   // hooks — never the built-in lifecycle below, which sits ON TOP of the
   // grant path; that direction keeps the two acyclic. Both
   // bindings are what the IamPolicy controller registers over (routes).
+  // An edition above open source keeps the permission history: the
+  // edition is the composition's one declaration of that difference, so
+  // open source's adapter records every access row change in the row's
+  // transaction there, and nowhere else. A composed driver keeps its own.
   const iamPolicies =
-    extensions.drivers.iamPolicyStore ?? newResourceIamPolicyStore(store);
+    extensions.drivers.iamPolicyStore ??
+    newResourceIamPolicyStore(store, {
+      keepsHistory: extensions.edition !== ServerEdition.oss,
+    });
   // The PlatformClient store PORT, bound the same way
   // (`drivers.platformClientStore`; open source's adapter over `store`
   // when absent): the chains, the mint and the verifier's liveness read all

@@ -123,7 +123,7 @@ describe.each(
     beforeEach(async () => {
       opened = await fixture.open();
       principalReads = 0;
-      policies = newResourceIamPolicyStore(opened.store);
+      policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
       accounts = newResourceIdentityAccountStore(opened.store);
       for (const [id, subject] of [
         [FOUNDER, "auth0|founder"],

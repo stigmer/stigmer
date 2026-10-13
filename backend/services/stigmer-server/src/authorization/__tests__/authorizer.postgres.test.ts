@@ -207,7 +207,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
       beforeEach(async () => {
         opened = await fixture.open();
         storeReads = 0;
-        policies = newResourceIamPolicyStore(opened.store);
+        policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
         accounts = newResourceIdentityAccountStore(opened.store);
         for (const who of [FOUNDER, ADMIN, MEMBER, OUTSIDER]) {
           await provision(who);

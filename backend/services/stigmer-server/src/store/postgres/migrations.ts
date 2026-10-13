@@ -215,8 +215,11 @@ export const SCHEMA_VERSION_25 = 25;
 /** v26: each session event's gates (the tool use it opens or closes), derived at open (DDL only). */
 export const SCHEMA_VERSION_26 = 26;
 
+/** v27: the permission history and its per-organization heads (DDL only). */
+export const SCHEMA_VERSION_27 = 27;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_26;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_27;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -283,6 +286,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_24, (migrating) => migrateToV24(migrating, logger)],
       [SCHEMA_VERSION_25, (migrating) => migrateToV25(migrating, logger)],
       [SCHEMA_VERSION_26, migrateToV26],
+      [SCHEMA_VERSION_27, migrateToV27],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1809,5 +1813,49 @@ async function migrateToV26(client: PoolClient): Promise<void> {
     CREATE INDEX idx_session_events_closes_gate ON session_events (session_id, closes_gate)
       WHERE closes_gate <> '';
     CREATE INDEX idx_session_events_gate_revision ON session_events (gate_revision);
+  `);
+}
+
+/**
+ * v27: the permission history (../permission-history.ts): one entry per
+ * change to an access row, written by the store in the row's transaction
+ * when an edition keeps one, and the per-organization heads its numbers
+ * come from. `change` is granted or revoked; `cause`, `actor_id` and
+ * `actor_class` say why and who; `policy_id`, the decomposed triple and
+ * `data` (the row as granted, or as it stood when revoked) are read from
+ * the row itself. `occurred_at` is fixed-width UTC text, compared as bytes
+ * like every ledger time here. The primary key (org, sequence) is an
+ * organization's entries in order; no other index until a query needs
+ * one. Not the Cloud's `cloud.iam_policy_history`, which its own policy
+ * store writes; the columns match so one reader reads both alike. The
+ * SQLite driver's v32 in this engine's terms.
+ */
+async function migrateToV27(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE TABLE iam_policy_history (
+      org TEXT NOT NULL,
+      sequence BIGINT NOT NULL,
+      occurred_at TEXT NOT NULL,
+      change TEXT NOT NULL CHECK (change IN ('granted', 'revoked')),
+      cause TEXT NOT NULL CHECK (cause <> ''),
+      actor_id TEXT NOT NULL,
+      actor_class TEXT NOT NULL,
+      policy_id TEXT NOT NULL,
+      principal_kind TEXT NOT NULL,
+      principal_id TEXT NOT NULL,
+      principal_relation TEXT NOT NULL DEFAULT '',
+      relation TEXT NOT NULL,
+      resource_kind TEXT NOT NULL,
+      resource_id TEXT NOT NULL,
+      data BYTEA NOT NULL,
+      PRIMARY KEY (org, sequence)
+    );
+    -- An organization's high-water mark: the last number and time it handed
+    -- out. Numbers come from here, so they never repeat or go back.
+    CREATE TABLE iam_policy_history_heads (
+      org TEXT PRIMARY KEY,
+      last_sequence BIGINT NOT NULL,
+      last_occurred_at TEXT NOT NULL
+    );
   `);
 }

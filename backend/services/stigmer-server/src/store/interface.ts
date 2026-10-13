@@ -34,6 +34,7 @@ import type {
   ListIndexQuery,
   ListIndexRow,
 } from "./list-index.js";
+import type { PermissionChange } from "./permission-history.js";
 import type {
   ResourceEventWriteResult,
   ResourceEventWriter,
@@ -658,6 +659,22 @@ export interface Store {
     msg: MessageShape<Desc>,
   ): Promise<void>;
 
+  /**
+   * Stores a NEW resource: true when the row was written, false when the id
+   * is already held, in which case nothing is written. The store's key
+   * decides, so of two concurrent inserts of one id exactly one answers
+   * true. With a `change` (iam_policy rows only; permission-history.ts) the
+   * written row's permission-history entry commits in the same transaction,
+   * and a refused insert records nothing.
+   */
+  insertResource<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    msg: MessageShape<Desc>,
+    change?: PermissionChange,
+  ): Promise<boolean>;
+
   /** Retrieves a resource; throws ResourceNotFoundError if absent. */
   getResource<Desc extends DescMessage>(
     kind: ApiResourceKind,
@@ -741,8 +758,18 @@ export interface Store {
     query: ListIndexQuery<K>,
   ): Promise<ListIndexRow[]>;
 
-  /** Removes a resource; NO error if it does not exist. */
-  deleteResource(kind: ApiResourceKind, id: string): Promise<void>;
+  /**
+   * Removes a resource; NO error if it does not exist. Answers whether a row
+   * was removed. With a `change` (iam_policy rows only;
+   * permission-history.ts) the removal and the removed row's
+   * permission-history entry commit in one transaction, and removing
+   * nothing records nothing.
+   */
+  deleteResource(
+    kind: ApiResourceKind,
+    id: string,
+    change?: PermissionChange,
+  ): Promise<boolean>;
 
   /**
    * The one door for a write that must commit with session events

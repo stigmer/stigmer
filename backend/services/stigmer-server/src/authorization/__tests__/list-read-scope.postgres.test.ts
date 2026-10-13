@@ -236,7 +236,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           storeReads = { rows: 0, scans: 0 };
           accountReads = 0;
           rows.clear();
-          policies = newResourceIamPolicyStore(opened.store);
+          policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
           accounts = newResourceIdentityAccountStore(opened.store);
           for (const [id, subject] of [
             [FOUNDER, "auth0|founder"],

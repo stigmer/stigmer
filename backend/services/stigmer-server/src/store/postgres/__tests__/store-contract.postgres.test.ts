@@ -28,6 +28,7 @@ import type { StoreContractFixture } from "../../__tests__/store-contract.js";
 import {
   CONTRACT_STORE_OPTIONS,
   describeStoreContract,
+  permissionHistoryRowOf,
 } from "../../__tests__/store-contract.js";
 import { PostgresStore } from "../store.js";
 import {
@@ -50,6 +51,8 @@ const ALL_TABLES = [
   "connect_attempt",
   "session_events",
   "session_event_heads",
+  "iam_policy_history",
+  "iam_policy_history_heads",
 ] as const;
 
 describe.skipIf(testDatabaseAdminUrl() === undefined)(
@@ -93,6 +96,17 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             `SELECT COUNT(*) AS count FROM pending_oauth_state`,
           );
           return Number((result.rows[0] as { count: string }).count);
+        },
+        async permissionHistory() {
+          const result = await hooks.query(
+            `SELECT org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+                  principal_kind, principal_id, principal_relation, relation, resource_kind,
+                  resource_id, data
+           FROM iam_policy_history ORDER BY org, sequence`,
+          );
+          return (
+            result.rows as Array<Record<string, string | number | Uint8Array>>
+          ).map(permissionHistoryRowOf);
         },
         async writeAsOlderBinary(kind, id, data) {
           // The statement this driver ran before the list index existed.

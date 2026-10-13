@@ -16,6 +16,10 @@
  * unlike the in-process mutex, the transaction also excludes OTHER
  * processes sharing the database file.
  *
+ * insertResource and deleteResource with a permission change run under
+ * BEGIN IMMEDIATE too, so an organization's history numbers are read and
+ * written by one writer at a time (../permission-history.ts).
+ *
  * Multi-statement operations (setAuditTag, upsertSearchIndex,
  * pendingOAuthStates.getAndDelete) run in explicit transactions exactly where Go used one. All code between BEGIN
  * and COMMIT is synchronous — nothing can interleave into an open
@@ -90,7 +94,6 @@ import {
   gatesOfDraft,
   openGatesOf,
   sameBytes,
-  sessionEventInstant,
 } from "../session-events.js";
 import type {
   OpenSessionEventGate,
@@ -114,7 +117,15 @@ import {
   filterRowsByLabel,
   scanForFieldMatch,
 } from "../proto-fields.js";
-import { rfc3339Seconds } from "../rfc3339.js";
+import {
+  assertPermissionChangeKind,
+  permissionHistoryEntryOf,
+} from "../permission-history.js";
+import type {
+  PermissionChange,
+  PermissionHistoryEntry,
+} from "../permission-history.js";
+import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { normalizeBm25Score, renderFts5MatchExpression } from "./fts5.js";
 import { runMigrations } from "./migrations.js";
 
@@ -136,6 +147,12 @@ const NOW = `strftime('%Y-%m-%d %H:%M:%f', 'now')`;
 const UPSERT_RESOURCE_SQL = `INSERT OR REPLACE INTO resources
   (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
   VALUES (?, ?, ?, ${NOW}, ?, ?, ?, ${NOW})`;
+
+/** insertResource's create-only write: the primary key (kind, id) decides, and a held id changes nothing. */
+const INSERT_NEW_RESOURCE_SQL = `INSERT INTO resources
+  (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
+  VALUES (?, ?, ?, ${NOW}, ?, ?, ?, ${NOW})
+  ON CONFLICT (kind, id) DO NOTHING`;
 
 /**
  * The rows of a kind whose facts are not proven current under a revision
@@ -307,6 +324,49 @@ export class SqliteStore implements Store {
       );
       replaceListKeys(db, kindName, id, facts);
       db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  async insertResource<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    msg: MessageShape<Desc>,
+    change?: PermissionChange,
+  ): Promise<boolean> {
+    assertPermissionChangeKind(kind, change);
+    const db = this.open();
+    const data = toBinary(schema, msg);
+    const kindName = apiResourceKindName(kind);
+    const facts = this.listIndexes.factsOf(kind, msg);
+    const insert = db.prepare(INSERT_NEW_RESOURCE_SQL);
+    if (facts === undefined && change === undefined) {
+      return Number(insert.run(kindName, id, data, null, null, null).changes) > 0;
+    }
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const inserted =
+        Number(
+          insert.run(
+            kindName,
+            id,
+            data,
+            facts?.org ?? null,
+            facts?.createdAt ?? null,
+            facts?.revision ?? null,
+          ).changes,
+        ) > 0;
+      if (inserted && facts !== undefined) {
+        replaceListKeys(db, kindName, id, facts);
+      }
+      if (inserted && change !== undefined) {
+        appendPermissionHistory(db, permissionHistoryEntryOf(change, "granted", id, data));
+      }
+      db.exec("COMMIT");
+      return inserted;
     } catch (error) {
       db.exec("ROLLBACK");
       throw error;
@@ -493,17 +553,43 @@ export class SqliteStore implements Store {
     return mergeListIndexRows(proven, unprovenRows, query.limit);
   }
 
-  async deleteResource(kind: ApiResourceKind, id: string): Promise<void> {
+  async deleteResource(
+    kind: ApiResourceKind,
+    id: string,
+    change?: PermissionChange,
+  ): Promise<boolean> {
+    assertPermissionChangeKind(kind, change);
     const db = this.open();
     const kindName = apiResourceKindName(kind);
-    db.prepare(`DELETE FROM resources WHERE kind = ? AND id = ?`).run(
-      kindName,
-      id,
-    );
-    db.prepare(`DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`).run(
-      kindName,
-      id,
-    );
+    if (change === undefined) {
+      const removed = db
+        .prepare(`DELETE FROM resources WHERE kind = ? AND id = ?`)
+        .run(kindName, id).changes;
+      db.prepare(`DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`).run(
+        kindName,
+        id,
+      );
+      return Number(removed) > 0;
+    }
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const removed = db
+        .prepare(`DELETE FROM resources WHERE kind = ? AND id = ? RETURNING data`)
+        .all(kindName, id) as Array<{ data: Uint8Array }>;
+      db.prepare(`DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`).run(
+        kindName,
+        id,
+      );
+      const row = removed[0];
+      if (row !== undefined) {
+        appendPermissionHistory(db, permissionHistoryEntryOf(change, "revoked", id, row.data));
+      }
+      db.exec("COMMIT");
+      return row !== undefined;
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   async writeResourceAppendingEvents<Desc extends DescMessage>(
@@ -1527,6 +1613,45 @@ class SqliteBootstrapStateStore implements BootstrapStateStore {
   async clear(): Promise<void> {
     this.open().exec(`DELETE FROM bootstrap_state`);
   }
+}
+
+/**
+ * One permission-history entry, numbered from its organization's head and
+ * stamped never before the head's time, on the caller's BEGIN IMMEDIATE
+ * transaction (postgres/store.ts's twin).
+ */
+function appendPermissionHistory(db: DatabaseSync, entry: PermissionHistoryEntry): void {
+  const head = db
+    .prepare(`SELECT last_sequence, last_occurred_at FROM iam_policy_history_heads WHERE org = ?`)
+    .get(entry.org) as { last_sequence: number; last_occurred_at: string } | undefined;
+  const sequence = (head === undefined ? 0 : Number(head.last_sequence)) + 1;
+  const occurredAt = instantNotBefore(Date.now(), head?.last_occurred_at);
+  db.prepare(
+    `INSERT INTO iam_policy_history
+       (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+        principal_kind, principal_id, principal_relation, relation, resource_kind, resource_id, data)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    entry.org,
+    sequence,
+    occurredAt,
+    entry.change,
+    entry.cause,
+    entry.actorId,
+    entry.actorClass,
+    entry.policyId,
+    entry.principalKind,
+    entry.principalId,
+    entry.principalRelation,
+    entry.relation,
+    entry.resourceKind,
+    entry.resourceId,
+    entry.data,
+  );
+  db.prepare(
+    `INSERT INTO iam_policy_history_heads (org, last_sequence, last_occurred_at) VALUES (?, ?, ?)
+     ON CONFLICT (org) DO UPDATE SET last_sequence = excluded.last_sequence, last_occurred_at = excluded.last_occurred_at`,
+  ).run(entry.org, sequence, occurredAt);
 }
 
 /**
@@ -2604,7 +2729,7 @@ function insertSessionEvents(
   const last = db
     .prepare(`SELECT last_seq, last_processed_at FROM session_event_heads WHERE session_id = ?`)
     .get(sessionId) as { last_seq: number; last_processed_at: string } | undefined;
-  const processedAt = sessionEventInstant(Date.now(), last?.last_processed_at);
+  const processedAt = instantNotBefore(Date.now(), last?.last_processed_at);
   let seq = last === undefined ? 0 : Number(last.last_seq);
   const insert = db.prepare(
     `INSERT INTO session_events

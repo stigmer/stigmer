@@ -50,13 +50,33 @@ update: authorization, reference checks, a version hash) reads it with
 (`pipeline/guarded-write.ts`). A kind kept outside this store offers the same
 pair on its port (`guarded-port.ts`, with the contract lines every driver
 runs). `saveResource`, the upsert, is for a row that is new;
-`__tests__/write-discipline.test.ts` holds every caller to that.
+`__tests__/write-discipline.test.ts` holds every caller to that. A row that must
+be created exactly once uses `insertResource`, which writes only when the id is
+not held and answers whether it did, so the store's key decides a race.
 
 ## The session event log
 
 Each session's ordered event log (`session-events.ts`) is its own table, `session_events`, numbered per session (`seq`) and stamped with the fixed-width UTC time the store accepted each event. Writers reach it two ways: `Store.sessionEvents.append`, a runner's events guarded by its run's row, and `Store.writeResourceAppendingEvents`, the one door for a resource write that must commit with events (a run's phase change and its session's status). The second reads the committed row and counts the session's other working rows from one list key (`working_session` on runs) without decoding a row, hands both to a synchronous writer, and commits the row and its events in one transaction. A writer that must know which run holds the session's newest event of a type (the run of the newest `user.message`, the conversation's newest turn) names that type in its scope, and only that writer pays the read. Each event's gates (the ask it opens or closes: a tool use that waits for a person, its answer or its result) are kept in columns beside its bytes, derived by the declaration the domain hands the store at open (`StoreOpenOptions.sessionEventGates`, `domain/session/events/gates.ts`) on every write and, for a row stamped with another revision, at open, as list keys are. A writer whose scope names the waiting key (`waiting_session` on runs) is also handed the session's other waiting rows and the open gates of those rows and of the written row, read from the columns without decoding an event.
 
 One lock order everywhere: the session first, then rows. Postgres takes a transaction-scoped advisory lock on the session (`hashtextextended('session_events/' || id)`), then the row `FOR UPDATE`; an append takes the session's lock, then reads its guard row `FOR SHARE`. SQLite serializes every writer under `BEGIN IMMEDIATE`. So a session's numbers, times and working count are assigned by one writer at a time. The contract both drivers pass, and a composition runs over its own database, is the kit `session-events-contract.ts`.
+
+## The permission history
+
+Every change to an access row can be recorded in `iam_policy_history`
+(`permission-history.ts`), in the same transaction as the row. A writer hands
+`Store.insertResource` or `Store.deleteResource` a `PermissionChange` (the
+cause, the actor, the organization) and the store appends one entry: `granted`
+for a row it inserted, `revoked` for a row it removed, nothing for an insert
+that found the id held or a delete that found nothing. The entry's triple and
+bytes are read from the row the store wrote or removed, never handed in, so an
+entry cannot describe another row. Entries are numbered per organization from
+`iam_policy_history_heads`, in commit order with no gaps, with times that never
+go back. Lock order: Postgres takes a transaction-scoped advisory lock on the
+organization (`hashtextextended('iam_policy_history/' || org)`) before the row;
+SQLite runs under `BEGIN IMMEDIATE`. A write with no change takes no lock. Only
+the IamPolicy adapter hands a change, and only in a composition that keeps a
+history (`domain/iampolicy/resource-store.ts`); the table is append-only and an
+organization's purge leaves it in place.
 
 ## Contract and continuity
 

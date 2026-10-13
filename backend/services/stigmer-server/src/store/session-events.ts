@@ -332,12 +332,6 @@ export type ResourceEventWriter<Desc extends DescMessage> = (
   session: SessionEventContext,
 ) => ResourceEventWrite<Desc>;
 
-/** The instant the store stamps: fixed-width UTC with milliseconds, never before the session's newest event. */
-export function sessionEventInstant(nowMillis: number, newest: string | undefined): string {
-  const now = new Date(nowMillis).toISOString();
-  return newest !== undefined && newest > now ? newest : now;
-}
-
 /** Refuses a limit a caller cannot mean: zero, negative or fractional. */
 export function assertSessionEventLimit(limit: number): void {
   if (!Number.isInteger(limit) || limit < 1) {

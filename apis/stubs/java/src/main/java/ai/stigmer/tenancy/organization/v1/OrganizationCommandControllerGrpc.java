@@ -404,7 +404,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -602,7 +603,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -782,7 +784,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -961,7 +964,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -1145,7 +1149,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
