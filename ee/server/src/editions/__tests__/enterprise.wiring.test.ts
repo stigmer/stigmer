@@ -17,8 +17,8 @@
  *     through the guarded fetch on the operator's word); this suite pins
  *     that there is exactly one such fetch and what it is built from.
  *   - The composition builds exactly one Postgres pool, named `enterprise`,
- *     through postgres/pool.ts's closed name set, so a second pool arrives
- *     as a new name reviewed there and a new line here. A bare
+ *     through postgres/pool.ts, so a second pool arrives as a reviewed new
+ *     line here, whatever it is named or wherever its name comes from. A bare
  *     `new pg.Pool(...)` boots and serves, and exits the process the first
  *     time the database drops an idle connection, because nothing listens
  *     for the pool's `'error'`.
@@ -52,7 +52,8 @@ describe("the self-hosted Enterprise server's wiring", () => {
 
   it("builds exactly one named pool, enterprise, and no bare one", () => {
     const enterprise = compositionSource();
-    const names = [...enterprise.matchAll(/newCompositionPool\(\{\s*name:\s*"([a-z]+)"/g)].map((match) => match[1]);
+    expect(enterprise.match(/\bnewCompositionPool\(/g) ?? [], "newCompositionPool calls").toHaveLength(1);
+    const names = [...enterprise.matchAll(/newCompositionPool\(\{[^}]*?\bname:\s*"([^"]+)"/g)].map((match) => match[1]);
     expect(names).toEqual(["enterprise"]);
     expect(enterprise).not.toMatch(/\bnew\s+(?:pg\.)?Pool\s*\(/);
   });

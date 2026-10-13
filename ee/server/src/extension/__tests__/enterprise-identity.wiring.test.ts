@@ -56,19 +56,24 @@ describe("the identity unit's wiring", () => {
   it("takes none of the composition's instances as a port, and takes them on the hand-over", () => {
     const unit = unitSource();
     const ports = block(unit, "export interface EnterpriseIdentityPorts {", "\n}\n");
-    for (const member of [
-      "authorizer",
-      "authorizationQueries",
-      "listReadScope",
-      "lifecycle",
+    const members = new Set([...ports.matchAll(/^\s*(?:readonly\s+)?([A-Za-z_]\w*)\??\s*:/gm)].map((m) => m[1]));
+    expect(members.size, "EnterpriseIdentityPorts members parsed").toBeGreaterThan(5);
+
+    // What the composition hands over: every `services.<name>` the hand-over
+    // reads and every key it keeps, read from the block itself so a new
+    // instance taken there joins this rule without an edit here; and the
+    // forms an instance would take as a port under its own name.
+    const handOver = block(unit, "onComposed(services: ComposedServices): void {", "\n    },\n");
+    const composed = new Set([
+      ...[...handOver.matchAll(/\bservices\.([A-Za-z_]\w*)/g)].map((m) => m[1]),
+      ...[...block(handOver, "handedOver = {", "};").matchAll(/^\s*([A-Za-z_]\w*):/gm)].map((m) => m[1]),
+      "transport",
       "transportRef",
       "policies",
       "policyStore",
-      "iamPolicies",
-    ]) {
-      expect(ports, `EnterpriseIdentityPorts.${member}`).not.toMatch(new RegExp(`readonly ${member}\\??:`));
-    }
-    expect(unit).toMatch(/onComposed\(services: ComposedServices\): void \{/);
+    ]);
+    expect(composed.size, "instances the hand-over takes").toBeGreaterThan(8);
+    expect([...composed].filter((name) => members.has(name)), "a composition instance taken as a port").toEqual([]);
     expect(unit).toMatch(/^\s*iamPolicies: services\.iamPolicies,\s*$/m);
     expect(unit).toMatch(/async start\(\): Promise<void> \{/);
   });

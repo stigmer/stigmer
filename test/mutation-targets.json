@@ -69,7 +69,7 @@
         "!src/**/__tests__/**",
         "!src/**/*.test.ts"
       ],
-      "concurrency": 6
+      "concurrency": 4
     },
     "ee-federation-verifier": {
       "title": "Stigmer Enterprise's federated token verification",
@@ -79,7 +79,7 @@
         "!src/**/__tests__/**",
         "!src/**/*.test.ts"
       ],
-      "concurrency": 6
+      "concurrency": 4
     },
     "runner-middleware-pricing-guards": {
       "title": "the runner's middleware, pricing and guards",
