@@ -3,8 +3,14 @@
  * none of its asks is open, and the gate a history recorded before the
  * open-gate count replays is the length of the pending approvals in the
  * run JSON its load recorded, read as written, never anything else of the
- * run (a change set awaiting review never holds a turn, stigmer#1471).
+ * run (a change set awaiting review never holds a turn, stigmer#1471). The
+ * committed HITL history's own recorded load reads as the one pending
+ * approval the original run waited on, so its replay waits for the signal
+ * as the run did.
  */
+import { readFileSync } from "node:fs";
+
+import type { JsonValue } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { gateResolved, unresolvedGateCountOfJson } from "../gate.js";
@@ -43,5 +49,24 @@ describe("the HITL gate", () => {
     expect(unresolvedGateCountOfJson(null)).toBe(0);
     expect(unresolvedGateCountOfJson([1, 2])).toBe(0);
     expect(unresolvedGateCountOfJson({ status: { pendingApprovals: "two" } })).toBe(0);
+  });
+
+  it("reads the load the committed HITL history recorded as the one approval its run waited on", () => {
+    const history = JSON.parse(
+      readFileSync(
+        new URL("../../../../temporal/agentexecution/__tests__/replay-histories/hitl-approval.json", import.meta.url),
+        "utf8",
+      ),
+    ) as {
+      events: Array<{
+        markerRecordedEventAttributes?: { details?: Record<string, { payloads?: Array<{ data?: string }> }> };
+      }>;
+    };
+    const loads = history.events.flatMap((event) =>
+      (event.markerRecordedEventAttributes?.details?.["result"]?.payloads ?? []).flatMap((payload) =>
+        payload.data === undefined ? [] : [JSON.parse(Buffer.from(payload.data, "base64").toString("utf8")) as JsonValue],
+      ),
+    );
+    expect(loads.map(unresolvedGateCountOfJson)).toEqual([1]);
   });
 });
