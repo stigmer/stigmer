@@ -5,14 +5,20 @@
  * An answer is a session event the server writes (`confirmToolUse`,
  * `grantPermission`, or the `submitApproval` adapter onto them): a
  * `user.tool_confirmation` (`allow` or `deny`, a deny with the reason the
- * person gave) per call answered, and a `stigmer.permission.grant` on the
- * call a person allowed "for the rest of the turn". The reader lists the
- * run's two answer types once, at the reinvocation's start
- * (`turn-context.ts` `reconcileReinvocation`), and maps each answer to the
- * seeded row it names: the row still WAITING_APPROVAL whose tool use id
+ * person gave) per call answered, and a `stigmer.permission.grant` (with
+ * its lease: a category, a server, or a hook's asks on one tool) on the
+ * call a person allowed "for the rest of the turn". Beside them the reader
+ * lists the runner's own `stigmer.permission.asked`, one per ask, for what
+ * the call was asked under: the rule that asked (its policy source word,
+ * and the hook) and the content digest of an edit identified by its
+ * content. Every answer, grant and ask is keyed by the tool use id it names
  * (`events/ids.ts` `toolUseEventId`, the id the emitter wrote the ask
- * under) the answer carries. So the verdict comes from the log, never
- * from the row.
+ * under).
+ *
+ * The reader lists the run's three types once, on every reinvocation
+ * (`turn-context.ts` `reconcileReinvocation`): a turn with no row still
+ * waiting reads them too, since the calls answered in earlier invocations
+ * of the run carry their answers and the grants their leases.
  *
  *   allow ..................... APPROVE
  *   deny ...................... REJECT, with its deny message
@@ -23,68 +29,118 @@
  * SKIP is not a verdict any more: a person's skip and reject are one deny,
  * told apart only by whether a reason was given.
  *
- * Everything downstream still keys on the decision map
- * (`TurnInput.approvalDecisions`) and reads each row's own stamps for the
- * rest (leases, provenance, the settle of a denied row,
- * `approval-decisions.ts`): the server stamps `approval_action` on the row in
- * the same transaction that appends the answer, and the seed is the run
- * fetched after it, so the two agree. They move to the log when the rows
- * leave the status.
+ * Two readings of the answers reach the turn:
  *
- * The rows read are the root transcript's, the same set the runtime has
- * always resumed by: a sub-agent's ask surfaces as a root WAITING row on the
- * engine that pauses for it.
+ *  - the decision map (`TurnInput.approvalDecisions`) for the root rows
+ *    still WAITING_APPROVAL, the set the runtime has always resumed by: a
+ *    sub-agent's ask surfaces as a root WAITING row on the engine that
+ *    pauses for it;
+ *  - the answer on every row ({@link copyAnswersOntoRows}). The rows are
+ *    the runtime's working memory of the transcript, and the seed copies
+ *    each call's answer from the log onto its row's `approval_action`
+ *    (clearing whatever the fetched row carried), so every later reader of
+ *    that field (the exact-apply, the settle, provenance, the boundary's
+ *    closed-gate rule) reads the log's answer and never a server stamp.
  *
  * Failure. The read is a control-plane read like the turn's own fetches: it
- * throws, and the activity's retry runs the turn's start again. A turn whose
- * seed holds no WAITING row reads nothing.
+ * throws, and the activity's retry runs the turn's start again.
  *
  * Proven by `__tests__/approval-answers.test.ts`, by both test kits (which
- * answer on a modelled log, as the server would) and the hermetic goldens.
+ * answer only on a modelled log, as the server does) and the hermetic
+ * goldens.
  */
 
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
+import type { LeaseGrant } from "../shared/approval-policy.js";
 import { toolUseEventId } from "./events/ids.js";
 
-/** The log types that answer a call: what the door lists. */
-export const APPROVAL_ANSWER_EVENT_TYPES = ["user.tool_confirmation", "stigmer.permission.grant"] as const;
+/** The log types the door lists: the answers, the grants, and the asks they answer. */
+export const APPROVAL_ANSWER_EVENT_TYPES = ["user.tool_confirmation", "stigmer.permission.grant", "stigmer.permission.asked"] as const;
 
-/** One call's answer, as the turn resumes with it. */
-export interface ApprovalAnswer {
-  readonly action: ApprovalAction;
+/** One call's answer, as the log holds it. */
+export interface LoggedAnswer {
+  readonly result: "allow" | "deny";
   /** The reason a person gave with a deny; "" otherwise. */
   readonly denyMessage: string;
 }
 
-/** What the door hands the turn: the verdicts by row id, and the reasons given with a deny. */
-export interface ApprovalAnswers {
-  /** Every answered WAITING row, by tool-call id, in transcript order. */
-  readonly decisions: ReadonlyMap<string, ApprovalAction>;
-  /** The deny message of each denied row that carries one, by tool-call id. */
-  readonly denyMessages: ReadonlyMap<string, string>;
+/** What a call was asked under, as its `stigmer.permission.asked` states it. */
+export interface ApprovalAsk {
+  /** The rule that asked, as the log's word (`hook`, `builtin_category`, ...); "" for none. */
+  readonly policySource: string;
+  /** The plugin whose hook asked; "" for the agent's own hooks or none. */
+  readonly policyHook: string;
+  /** The digest of the content the call would write, when its harness identifies an edit by its content; "" otherwise. */
+  readonly contentDigest: string;
 }
 
-/** No answers: a fresh turn, or nothing answered yet. */
-export const NO_APPROVAL_ANSWERS: ApprovalAnswers = { decisions: new Map(), denyMessages: new Map() };
+/** What the door hands the turn. */
+export interface ApprovalAnswers {
+  /** Every answered root WAITING row's verdict, by tool-call id, in transcript order. */
+  readonly decisions: ReadonlyMap<string, ApprovalAction>;
+  /** The deny message of each denied root WAITING row that carries one, by tool-call id. */
+  readonly denyMessages: ReadonlyMap<string, string>;
+  /** Every answer of the run, by tool use id; the first answer to a call stands. */
+  readonly answers: ReadonlyMap<string, LoggedAnswer>;
+  /** Every grant of the run, by the tool use id it was given on: its lease. */
+  readonly grants: ReadonlyMap<string, LeaseGrant>;
+  /** Every ask of the run, by tool use id. */
+  readonly asks: ReadonlyMap<string, ApprovalAsk>;
+}
+
+/** No answers: a fresh turn. */
+export const NO_APPROVAL_ANSWERS: ApprovalAnswers = {
+  decisions: new Map(),
+  denyMessages: new Map(),
+  answers: new Map(),
+  grants: new Map(),
+  asks: new Map(),
+};
+
+/** The verdict the log gives the call under `toolUseId`; UNSPECIFIED when it holds no answer. */
+export function loggedActionOf(answers: Pick<ApprovalAnswers, "answers" | "grants">, toolUseId: string): ApprovalAction {
+  const answer = answers.answers.get(toolUseId);
+  if (answer === undefined) return ApprovalAction.UNSPECIFIED;
+  if (answer.result === "deny") return ApprovalAction.REJECT;
+  return answers.grants.has(toolUseId) ? ApprovalAction.APPROVE_ALL : ApprovalAction.APPROVE;
+}
 
 /**
- * The answers among `events` for the root rows of `status` still
- * WAITING_APPROVAL, keyed by tool-call id in transcript order. A pure map:
- * the reader below and both test kits share it.
+ * The run's answers, grants and asks among `events`, and the verdicts for
+ * the root rows of `status` still WAITING_APPROVAL, keyed by tool-call id in
+ * transcript order. A pure map: the reader below and both test kits share
+ * it.
  */
 export function approvalAnswersOf(runId: string, status: RunStatus, events: readonly SessionEvent[]): ApprovalAnswers {
-  const confirmed = new Map<string, { readonly result: string; readonly denyMessage: string }>();
-  const granted = new Set<string>();
+  const answers = new Map<string, LoggedAnswer>();
+  const grants = new Map<string, LeaseGrant>();
+  const asks = new Map<string, ApprovalAsk>();
   for (const event of events) {
-    if (event.event.case === "userToolConfirmation") {
-      const { toolUseId, result, denyMessage } = event.event.value;
-      if (!confirmed.has(toolUseId)) confirmed.set(toolUseId, { result, denyMessage });
-    } else if (event.event.case === "stigmerPermissionGrant") {
-      granted.add(event.event.value.toolUseId);
+    switch (event.event.case) {
+      case "userToolConfirmation": {
+        const { toolUseId, result, denyMessage } = event.event.value;
+        if ((result === "allow" || result === "deny") && !answers.has(toolUseId)) answers.set(toolUseId, { result, denyMessage });
+        break;
+      }
+      case "stigmerPermissionGrant": {
+        const { toolUseId, lease } = event.event.value;
+        if (lease !== undefined && !grants.has(toolUseId)) {
+          grants.set(toolUseId, { category: lease.category, server: lease.server, hook: lease.hook, tool: lease.tool });
+        }
+        break;
+      }
+      case "stigmerPermissionAsked": {
+        const { toolUseId, policySource, policyHook, contentDigest } = event.event.value;
+        if (!asks.has(toolUseId)) asks.set(toolUseId, { policySource, policyHook, contentDigest });
+        break;
+      }
+      default:
+        break;
     }
   }
   const decisions = new Map<string, ApprovalAction>();
@@ -93,35 +149,42 @@ export function approvalAnswersOf(runId: string, status: RunStatus, events: read
     for (const row of message.toolCalls) {
       if (row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) continue;
       const useId = toolUseEventId(runId, row.id);
-      const answer = confirmed.get(useId);
-      if (answer === undefined) continue;
-      if (answer.result === "deny") {
-        decisions.set(row.id, ApprovalAction.REJECT);
-        if (answer.denyMessage !== "") denyMessages.set(row.id, answer.denyMessage);
-      } else if (answer.result === "allow") {
-        decisions.set(row.id, granted.has(useId) ? ApprovalAction.APPROVE_ALL : ApprovalAction.APPROVE);
-      }
+      const action = loggedActionOf({ answers, grants }, useId);
+      if (action === ApprovalAction.UNSPECIFIED) continue;
+      decisions.set(row.id, action);
+      const denyMessage = answers.get(useId)?.denyMessage ?? "";
+      if (action === ApprovalAction.REJECT && denyMessage !== "") denyMessages.set(row.id, denyMessage);
     }
   }
-  return { decisions, denyMessages };
-}
-
-/** Whether the seed holds a root row still waiting for an answer: only then is there anything to read. */
-export function hasWaitingRow(status: RunStatus): boolean {
-  return status.messages.some((message) =>
-    message.toolCalls.some((row) => row.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL),
-  );
+  return { decisions, denyMessages, answers, grants, asks };
 }
 
 /**
- * Read the run's answers from its session's log and map them onto the
- * seeded rows (the module header). Throws when the log cannot be read.
+ * The seed's copy of the log's answers onto the rows (the module header):
+ * every row of the root transcript and of every sub-agent run has its
+ * `approval_action` cleared, then set from the answer the log holds for its
+ * tool use. Sub-agent rows take their tool use id from the run and their own
+ * id, as the emitter wrote them. In place.
+ */
+export function copyAnswersOntoRows(runId: string, status: RunStatus, answers: Pick<ApprovalAnswers, "answers" | "grants">): void {
+  const copy = (messages: readonly AgentMessage[]): void => {
+    for (const message of messages) {
+      for (const row of message.toolCalls) row.approvalAction = loggedActionOf(answers, toolUseEventId(runId, row.id));
+    }
+  };
+  copy(status.messages);
+  for (const subAgent of status.subAgentRuns) copy(subAgent.messages);
+}
+
+/**
+ * Read the run's answers, grants and asks from its session's log and map
+ * them onto the seeded rows (the module header). Throws when the log cannot
+ * be read.
  */
 export async function readApprovalAnswers(
   client: Pick<StigmerClient, "listRunSessionEvents">,
   args: { readonly sessionId: string; readonly runId: string; readonly status: RunStatus },
 ): Promise<ApprovalAnswers> {
-  if (!hasWaitingRow(args.status)) return NO_APPROVAL_ANSWERS;
   const events = await client.listRunSessionEvents(args.sessionId, args.runId, APPROVAL_ANSWER_EVENT_TYPES);
   return approvalAnswersOf(args.runId, args.status, events);
 }

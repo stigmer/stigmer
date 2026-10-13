@@ -281,12 +281,16 @@ export const SEARCH_TABLE: TableShape = {
 // A session's identity for follow-up commands is its ID (`stigmer session
 // resume <id>`), so the ID leads; agent and subject are how a human
 // recognizes which conversation it was.
+// STATE is whether the session works (running) or waits for input (idle),
+// which the server computes from the session's events on every read
+// (SessionStatus.state); a server that predates it sends none, shown "-".
 const SESSION_TABLE: TableShape = {
   resourceName: "sessions",
-  headers: ["SESSION ID", "AGENT", "SUBJECT", "CREATED"],
+  headers: ["SESSION ID", "STATE", "AGENT", "SUBJECT", "CREATED"],
   orgs: (json) => [str(obj(obj(json, "spec"), "agent_ref"), "org")],
   row: (json, orgLabel) => [
     str(obj(json, "metadata"), "id"),
+    str(obj(json, "status"), "state") || "-",
     sessionAgent(json, orgLabel),
     truncate(str(obj(json, "spec"), "subject") || "-", 50),
     date(str(obj(json, "metadata"), "created_at")),

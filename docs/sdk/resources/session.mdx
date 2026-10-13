@@ -77,11 +77,10 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listEvents`](#listevents) | List a session's events, oldest first unless desc is asked for. | |
 | [`apply`](#apply) | Create or update a session. | |
 | [`create`](#create) | Create a session. | |
-| [`update`](#update) | Update a session: the fields update_mask names change, every other field keeps its stored value. | |
+| [`update`](#update) | Update an existing session (e.g., subject, thread_id). | |
 | [`updateSubject`](#updatesubject) | Set the session subject. | |
 | [`delete`](#delete) | Delete a session. | |
 | [`appendEvents`](#appendevents) | Append a run's events to its session's log. | |
-| [`bindHarnessState`](#bindharnessstate) | Record the harness's conversation id for a run's session. | |
 | [`confirmToolUse`](#confirmtooluse) | Allow or deny a tool use that waits for an answer. | |
 | [`grantPermission`](#grantpermission) | Allow a tool use, and every call of its class for the rest of the turn. | |
 | [`interrupt`](#interrupt) | Stop the session's unfinished work. | |
@@ -365,6 +364,8 @@ const session = await stigmer.session.apply({
   labels: {},
   agentRef: {},
   subject: "...",
+  harnessStateId: "...",
+  harnessStateIdHistory: [],
   metadata: {},
   workspaceEntries: [],
   skillRefs: [],
@@ -381,22 +382,24 @@ const session = await stigmer.session.apply({
 <Tab value="Go">
 ```go
 session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentRef:         &stigmer.ResourceRef{},
-  Subject:          "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-  Harness:          "...",
-  CursorMode:       "...",
-  ExecutionTarget:  "...",
-  Vaults:           []stigmer.ResourceRef{},
-  IncludeMyVault:   false,
-  Plugins:          []stigmer.ResourceRef{},
-  FileReview:       false,
+  Name:                  "my-session",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  AgentRef:              &stigmer.ResourceRef{},
+  Subject:               "...",
+  HarnessStateId:        "...",
+  HarnessStateIdHistory: []string{},
+  Metadata:              map[string]string{},
+  WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
+  SkillRefs:             []stigmer.ResourceRef{},
+  Harness:               "...",
+  CursorMode:            "...",
+  ExecutionTarget:       "...",
+  Vaults:                []stigmer.ResourceRef{},
+  IncludeMyVault:        false,
+  Plugins:               []stigmer.ResourceRef{},
+  FileReview:            false,
 })
 ```
 </Tab>
@@ -409,6 +412,8 @@ session = client.sessions.apply(SessionInput(
     labels={},
     agent_ref=None,
     subject="...",
+    harness_state_id="...",
+    harness_state_id_history=[],
     metadata={},
     workspace_entries=[],
     skill_refs=[],
@@ -431,6 +436,8 @@ Session session = client.sessions().apply(SessionInput.builder()
     .labels(Map.of())
     .agentRef(null)
     .subject("...")
+    .harnessStateId("...")
+    .harnessStateIdHistory(List.of())
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .skillRefs(List.of())
@@ -464,6 +471,8 @@ const session = await stigmer.session.create({
   labels: {},
   agentRef: {},
   subject: "...",
+  harnessStateId: "...",
+  harnessStateIdHistory: [],
   metadata: {},
   workspaceEntries: [],
   skillRefs: [],
@@ -480,22 +489,24 @@ const session = await stigmer.session.create({
 <Tab value="Go">
 ```go
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentRef:         &stigmer.ResourceRef{},
-  Subject:          "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-  Harness:          "...",
-  CursorMode:       "...",
-  ExecutionTarget:  "...",
-  Vaults:           []stigmer.ResourceRef{},
-  IncludeMyVault:   false,
-  Plugins:          []stigmer.ResourceRef{},
-  FileReview:       false,
+  Name:                  "my-session",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  AgentRef:              &stigmer.ResourceRef{},
+  Subject:               "...",
+  HarnessStateId:        "...",
+  HarnessStateIdHistory: []string{},
+  Metadata:              map[string]string{},
+  WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
+  SkillRefs:             []stigmer.ResourceRef{},
+  Harness:               "...",
+  CursorMode:            "...",
+  ExecutionTarget:       "...",
+  Vaults:                []stigmer.ResourceRef{},
+  IncludeMyVault:        false,
+  Plugins:               []stigmer.ResourceRef{},
+  FileReview:            false,
 })
 ```
 </Tab>
@@ -508,6 +519,8 @@ session = client.sessions.create(SessionInput(
     labels={},
     agent_ref=None,
     subject="...",
+    harness_state_id="...",
+    harness_state_id_history=[],
     metadata={},
     workspace_entries=[],
     skill_refs=[],
@@ -530,6 +543,8 @@ Session session = client.sessions().create(SessionInput.builder()
     .labels(Map.of())
     .agentRef(null)
     .subject("...")
+    .harnessStateId("...")
+    .harnessStateIdHistory(List.of())
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .skillRefs(List.of())
@@ -551,52 +566,108 @@ Session session = client.sessions().create(SessionInput.builder()
 
 ### update
 
-Update a session: the fields update_mask names change, every other field keeps its stored value.
-
-resource.metadata.id names the session; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the session does not have, is refused with INVALID_ARGUMENT naming the path.
-
-An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
-
-- ETAG_MISMATCH — resource.metadata.etag is set and the session changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the session kept changing while the update was being saved: try again. No metadata.
+Update an existing session (e.g., subject, thread_id).
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const session = await stigmer.session.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
-session.metadata!.name = "New name";
-const updated = await stigmer.session.update(session, ["metadata.name"]);
+const session = await stigmer.session.update({
+  name: "my-session",
+  org: "acme",
+  slug: "...",
+  labels: {},
+  agentRef: {},
+  subject: "...",
+  harnessStateId: "...",
+  harnessStateIdHistory: [],
+  metadata: {},
+  workspaceEntries: [],
+  skillRefs: [],
+  harness: "...",
+  cursorMode: "...",
+  executionTarget: "...",
+  vaults: [],
+  includeMyVault: false,
+  plugins: [],
+  fileReview: false,
+});
 ```
 </Tab>
 <Tab value="Go">
 ```go
-session, err := client.Session.Get(ctx, "ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
-session.Metadata.Name = "New name"
-updated, err := client.Session.Update(ctx, session, []string{"metadata.name"})
+session, err := client.Session.Update(ctx, &stigmer.SessionInput{
+  Name:                  "my-session",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  AgentRef:              &stigmer.ResourceRef{},
+  Subject:               "...",
+  HarnessStateId:        "...",
+  HarnessStateIdHistory: []string{},
+  Metadata:              map[string]string{},
+  WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
+  SkillRefs:             []stigmer.ResourceRef{},
+  Harness:               "...",
+  CursorMode:            "...",
+  ExecutionTarget:       "...",
+  Vaults:                []stigmer.ResourceRef{},
+  IncludeMyVault:        false,
+  Plugins:               []stigmer.ResourceRef{},
+  FileReview:            false,
+})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-session = client.sessions.get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3")
-session.metadata.name = "New name"
-updated = client.sessions.update(session, ["metadata.name"])
+session = client.sessions.update(SessionInput(
+    name="my-session",
+    org="acme",
+    slug="...",
+    labels={},
+    agent_ref=None,
+    subject="...",
+    harness_state_id="...",
+    harness_state_id_history=[],
+    metadata={},
+    workspace_entries=[],
+    skill_refs=[],
+    harness="...",
+    cursor_mode="...",
+    execution_target="...",
+    vaults=[],
+    include_my_vault=False,
+    plugins=[],
+    file_review=False,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
-Session updated = client.sessions().update(
-    session.toBuilder().setMetadata(session.getMetadata().toBuilder().setName("New name")).build(),
-    java.util.List.of("metadata.name"));
+Session session = client.sessions().update(SessionInput.builder()
+    .name("my-session")
+    .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .agentRef(null)
+    .subject("...")
+    .harnessStateId("...")
+    .harnessStateIdHistory(List.of())
+    .metadata(Map.of())
+    .workspaceEntries(List.of())
+    .skillRefs(List.of())
+    .harness("...")
+    .cursorMode("...")
+    .executionTarget("...")
+    .vaults(List.of())
+    .includeMyVault(false)
+    .plugins(List.of())
+    .fileReview(false)
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `resource` | [`Session`](#session) | The session, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
-| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
+**Parameters**: [`SessionInput`](#sessioninput)
 
 **Returns**: [`Session`](#session)
 
@@ -732,51 +803,6 @@ AppendSessionEventsResponse appendSessionEventsResponse = client.sessions().appe
 **Parameters**: [`AppendSessionEventsInput`](#appendsessioneventsinput)
 
 **Returns**: [`AppendSessionEventsResponse`](#appendsessioneventsresponse)
-
-### bindHarnessState
-
-Record the harness's conversation id for a run's session.
-
-Only the runner acting for the run may call it, while the run is not finished. The id replaced, if any, joins the session's harness_state_id_history.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const bindHarnessStateResponse = await stigmer.session.bindHarnessState({
-  runId: "...",
-  harnessStateId: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-bindHarnessStateResponse, err := client.Session.BindHarnessState(ctx, &stigmer.BindHarnessStateInput{
-  RunId:          "...",
-  HarnessStateId: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-bind_harness_state_response = client.sessions.bind_harness_state(BindHarnessStateInput(
-    run_id="...",
-    harness_state_id="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-BindHarnessStateResponse bindHarnessStateResponse = client.sessions().bindHarnessState(BindHarnessStateInput.builder()
-    .runId("...")
-    .harnessStateId("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`BindHarnessStateInput`](#bindharnessstateinput)
-
-**Returns**: [`BindHarnessStateResponse`](#bindharnessstateresponse)
 
 ### confirmToolUse
 
@@ -1052,6 +1078,8 @@ Input for creating or updating a Session.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     agentRef: { type: "ResourceRef", description: "The agent this conversation runs, as 'org/slug' with an optional version; empty means no agent, and the built-in assistant answers with the plugins and skills this session itself declares.", typeDescriptionLink: "#resourceref" },
     subject: { type: "string", description: "Conversation title for UI display." },
+    harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
+    harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
@@ -1123,17 +1151,6 @@ LocalPathSource uses an existing directory on the host filesystem as the workspa
 <TypeTable
   type={{
     path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
-  }}
-/>
-
-### UpdateSessionInput
-
-The changes an update makes to a session: the fields update_mask names, taken from resource.
-
-<TypeTable
-  type={{
-    resource: { type: "SessionInput", description: "The session carrying the new values, named by metadata.id.", typeDescriptionLink: "#sessioninput" },
-    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 
@@ -1296,28 +1313,6 @@ AppendSessionEventsResponse says where each event of the request sits in the log
   }}
 />
 
-### BindHarnessStateInput
-
-BindHarnessStateInput names a run and the harness's conversation id its session continues from.
-
-<TypeTable
-  type={{
-    runId: { type: "string", description: "The run whose session the id belongs to.", required: true },
-    harnessStateId: { type: "string", description: "The harness's conversation id (a LangGraph thread id, a Cursor agent id).", required: true },
-  }}
-/>
-
-### BindHarnessStateResponse
-
-BindHarnessStateResponse answers the session's harness state after the write.
-
-<TypeTable
-  type={{
-    harnessStateId: { type: "string", description: "The id now recorded." },
-    harnessStateIdHistory: { type: "string[]", description: "The ids the session owned before, oldest first." },
-  }}
-/>
-
 ### ListSessionsRequest
 
 ListSessionsRequest specifies parameters for listing sessions.
@@ -1446,8 +1441,7 @@ SessionStatus contains system-managed state for a session.
     agentId: { type: "string", description: "ID of the agent spec.agent_ref resolved to when it was last written." },
     agentVersionHash: { type: "string", description: "Content hash of the agent version this conversation runs (AgentStatus.version_hash when the reference resolved; resolvable through AgentQueryController.getVersion with agent_id)." },
     vaultAttachers: { type: "Record<string, string>", description: "Who attached each of this resource's vaults, by vault id: the account whose permission to use the vault each run checks when it has no person." },
-    harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
-    harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
+    state: { type: "string", description: "Whether the session is working: running (a turn works) or idle (it waits for input), the newest session.status_running or session.status_idle event's word." },
   }}
 />
 

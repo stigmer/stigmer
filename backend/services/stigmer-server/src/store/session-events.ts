@@ -35,10 +35,18 @@
  * every row stamped with another revision, so a log written before the
  * columns existed gains its gates. A writer that asks (`scope.waitingKey`)
  * is handed the open gates of the session's waiting rows and of the
- * written row, read from the columns without decoding an event. A gate is
+ * written row, read from the columns without decoding an event; a reader
+ * outside a write asks the store for one run's open gates
+ * (`SessionEventStore.openGates`) from the same columns. A gate is
  * closed only by an event of the run that opened it. What waits
  * is computed from the log on every read; nothing about it is stored
  * beside the log.
+ *
+ * A writer that decides from what its run's log already says (a
+ * file-review decision, a policy keep's consent) names the types it needs
+ * (`scope.runEventTypes`) and is handed the run's events of them, read
+ * under the same lock its write commits under, so no decision is made
+ * from a log another writer has since added to.
  *
  * Lock order, everywhere: the session first, then rows. An append takes
  * the session's lock, then reads the row it is guarded by.
@@ -83,6 +91,11 @@ export interface SessionEventQuery {
   readonly types?: ReadonlyArray<string>;
   /** Only events of this run; absent reads every run's. */
   readonly runId?: string;
+  /**
+   * Only the events with these ids (the (session_id, event_id) index);
+   * absent reads every id, and an empty list reads none.
+   */
+  readonly eventIds?: ReadonlyArray<string>;
   /** Bounds on processedAt, each fixed-width UTC text compared as bytes. */
   readonly processedAtGt?: string;
   readonly processedAtGte?: string;
@@ -173,6 +186,16 @@ export interface SessionEventStore {
   list(sessionId: string, query: SessionEventQuery): Promise<SessionEventRecord[]>;
 
   /**
+   * The open gates of one run in a session, in log order: the gates its
+   * events open that no event of the same run closes, read from the gate
+   * columns without decoding an event (the same rule a writer is handed
+   * as `SessionEventContext.gates`). Read without the session's lock: a
+   * reader that must act on it under the lock reads the gates it is
+   * handed there.
+   */
+  openGates(sessionId: string, runId: string): Promise<OpenSessionEventGate[]>;
+
+  /**
    * Appends events to a session's log, in order, all or none, after the
    * guard admits its row under the session's lock. An event whose id the
    * session already holds with the same bytes is not appended again: the
@@ -235,6 +258,15 @@ export interface SessionEventScope {
    * read it from. A written row whose session differs is refused.
    */
   readonly sessionId?: string;
+  /**
+   * Event types of the written row's own run (events whose run is the
+   * row's id) the writer is handed, in log order
+   * (`SessionEventContext.runEvents`): a writer that decides from what
+   * the run's log already says (a file-review decision, the consent a
+   * policy keep verifies) reads it under the same lock it writes under.
+   * Opt-in, so a write that does not ask pays no read.
+   */
+  readonly runEventTypes?: ReadonlyArray<string>;
 }
 
 /** What a resource write that carries events persists. */
@@ -283,6 +315,11 @@ export interface SessionEventContext {
    * undefined when the scope does not ask, or the session has no such event.
    */
   readonly runOfNewestType: string | undefined;
+  /**
+   * The written row's own events of `scope.runEventTypes`, in log order;
+   * empty when the scope does not ask, or the row is in no session.
+   */
+  readonly runEvents: ReadonlyArray<SessionEventRecord>;
 }
 
 /**

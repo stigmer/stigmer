@@ -599,8 +599,9 @@ export class TranscriptBuilder {
   /**
    * A hook's provenance for a call that runs (`ToolPolicyEvent`): stamped on
    * the row now, or held until the row opens, so it outranks whatever its
-   * `tool_started` said in either order. A row a person already decided
-   * keeps the provenance that asked them, as a re-emitted start does: on
+   * `tool_started` said in either order. A row a person already decided (its
+   * answer, copied from the session's log onto the row at the seed) keeps
+   * the provenance that asked them, as a re-emitted start does: on
    * resume the hook runs again and an "approve all" it just leased answers
    * it, and re-stamping that as the lease would make the next turn read the
    * row as the tool's whole category or server instead of the hook.

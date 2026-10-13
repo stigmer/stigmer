@@ -32,7 +32,9 @@
  * ask, interrupt.ts and ../hitl/answer.ts): they come first, and the asks
  * they close are closed before the status is computed. An update that must know the conversation's newest turn asks for
  * the run of the session's newest `user.message` (`runOfNewestType`), and
- * only that update pays the read.
+ * an update that decides from what the run's log says (a file-review
+ * decision, a policy keep) asks for the run's events of the types it
+ * reads (`runEventTypes`); only an update that asks pays either read.
  *
  * The decided mirror. A file decision has one home on its run's
  * file-review ledger (FILE_DECIDED) and one in the session's log
@@ -96,6 +98,12 @@ export interface RunUpdateOptions {
    * conversation's newest turn.
    */
   readonly runOfNewestType?: string;
+  /**
+   * Event types of the run's own `modify` is handed, read under the
+   * session's lock (`SessionEventContext.runEvents`): a write that decides
+   * from what the run's log says (filereview/logged.ts) reads it there.
+   */
+  readonly runEventTypes?: ReadonlyArray<string>;
 }
 
 function scopeOf(sessionId?: string, options: RunUpdateOptions = {}): SessionEventScope {
@@ -106,6 +114,7 @@ function scopeOf(sessionId?: string, options: RunUpdateOptions = {}): SessionEve
     stateEventTypes: SESSION_STATUS_TYPES,
     ...(sessionId === undefined ? {} : { sessionId }),
     ...(options.runOfNewestType === undefined ? {} : { runOfNewestType: options.runOfNewestType }),
+    ...(options.runEventTypes === undefined ? {} : { runEventTypes: options.runEventTypes }),
   };
 }
 

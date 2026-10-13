@@ -81,6 +81,7 @@ import { ensureLoaded as ensurePricingLoaded, resolveModelId } from "./model-pri
 import {
   appendStructuredOutputDirective,
   buildPrompt,
+  isHitlReinvocation,
   primarySendCarriesImages,
   promptCarriesStandingContext,
   type BuildPromptInput,
@@ -92,10 +93,11 @@ import {
   createCloudAgent,
   resolveAgentWithTransportRecovery,
   type AgentResolution,
+  type AgentResolutionReason,
   type CreateAgentOptions,
   type CreateCloudAgentOptions,
 } from "./session-lifecycle.js";
-import { composeTurnRecoveryDigest } from "./turn-recovery.js";
+import { readTurnRecoveryDigest } from "./turn-recovery.js";
 import type { TurnStreamState } from "./turn-stream.js";
 import { buildCursorSubAgentDefinitions, subagentNamesInScope, subagentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
@@ -442,14 +444,23 @@ export function resolveTimeoutMessage(facts: { readonly resuming: boolean; reado
 
 /**
  * The adapter's own read of the adjudicated rows the runtime already turned
- * into verdicts. Create-vs-resume is the adapter's fact about its ENGINE: a
- * bound agent id (`threadId`, engine-minted) means the Cursor agent already
- * holds this session's conversation, so this turn resumes it — the runtime's
- * `isReinvocation` answers its own question and is not consulted here.
+ * into verdicts, with what each was asked under: both from the log, as the
+ * runtime read it (`input.approvalDecisions`, `input.approvalAsks`); the
+ * rows give only the set and the calls. Create-vs-resume is the adapter's
+ * fact about its ENGINE: a bound agent id (`threadId`, engine-minted) means
+ * the Cursor agent already holds this session's conversation, so this turn
+ * resumes it — the runtime's `isReinvocation` answers its own question and
+ * is not consulted here.
  */
 export function readAdjudicatedRows(input: TurnInput, status: RunStatus): AdjudicatedRows {
   const reinvoked = input.threadId !== "";
-  const adjudicated = reinvoked ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? []) : undefined;
+  const adjudicated = reinvoked
+    ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? [], {
+        runId: input.executionId,
+        decisions: input.approvalDecisions,
+        asks: input.approvalAsks,
+      })
+    : undefined;
   return {
     isReinvocation: reinvoked,
     adjudicatedApprovals: adjudicated?.pendingApprovals ?? [],
@@ -877,15 +888,22 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     ? await standing.selectRecalledMemories()
     : undefined;
 
+  // The turn's recorded transcript, read from the run's events in the
+  // session's log. Consumed only by the HITL-recovery shape (a HITL
+  // reinvocation on a fresh agent, `prompt-builder.ts` `promptShape`), so the
+  // log is read only for that shape.
+  const recoveryDigest = (reason: AgentResolutionReason): Promise<string | undefined> =>
+    isHitlReinvocation(approvalDecisions) && promptCarriesStandingContext(reason)
+      ? readTurnRecoveryDigest(input.readRunEvents, executionId)
+      : Promise.resolve(undefined);
+
   const prompt = buildPrompt({
     ...shared(),
     resolution: engine.resolution,
     recalledMemories,
-    // The turn's recorded transcript, seeded from the persisted execution on
-    // a reinvocation. Consumed only by the HITL-recovery shape — reached from
-    // HERE when the stored handle failed to resume at resolution time (issue
-    // #366 crossing 2).
-    turnRecoveryDigest: rows.isReinvocation ? composeTurnRecoveryDigest(sink.status.messages) : undefined,
+    // Reached from HERE when the stored handle failed to resume at
+    // resolution time (issue #366 crossing 2).
+    turnRecoveryDigest: rows.isReinvocation ? await recoveryDigest(engine.resolution.reason) : undefined,
   });
 
   // The structured output instruction is a per-turn directive, so like
@@ -935,9 +953,9 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
           // Lazily selected: the primary send may have been a resumed-agent
           // shape that carried no memories, but this fresh agent's prompt must.
           recalledMemories: await standing.selectRecalledMemories(),
-          // Composed fresh: the failed primary stream may have appended partial
-          // work onto the transcript, and the replacement agent should know it.
-          turnRecoveryDigest: composeTurnRecoveryDigest(sink.status.messages),
+          // Read fresh: the failed primary stream may have written partial
+          // work to the log, and the replacement agent should know it.
+          turnRecoveryDigest: await recoveryDigest(fresh.reason),
         }),
         structuredOutputSchema,
       ),

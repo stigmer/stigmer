@@ -26,6 +26,7 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { CreateWorkerOptions, WorkerFactoryDeps } from "../../manager.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
+  COUNT_OPEN_GATES_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
@@ -72,6 +73,7 @@ describe("the agent-execution worker factory", () => {
       expect(Object.keys(options.activities).sort()).toEqual(
         [
           CLOSE_FILE_REVIEW_ACTIVITY_NAME,
+          COUNT_OPEN_GATES_ACTIVITY_NAME,
           LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
           READ_HARNESS_STATE_ID_ACTIVITY_NAME,
           RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,

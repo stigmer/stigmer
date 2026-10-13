@@ -103,7 +103,8 @@
       "message": "publishing needs a person",
       "args_preview": "{\"command\":\"echo publish\",\"cwd\":\"\",\"timeout\":30000}",
       "policy_source": "hook",
-      "policy_hook": "safety"
+      "policy_hook": "safety",
+      "content_digest": "args:833019951efa23a75abd5c7a203ba84931c4ba7c0fef1e96ed7b22ed85b986ae"
     }
   }
 ]

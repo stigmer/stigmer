@@ -3,7 +3,7 @@
  * when its harness state moves from its spec to its status.
  *
  *   - SessionSpec fields 3 and 13 leave the spec and land in
- *     SessionStatus fields 4 and 5, and the result is exactly the bytes the
+ *     SessionStatus fields 5 and 6, and the result is exactly the bytes the
  *     current release writes for the session, every other field kept;
  *   - a status that already holds a value keeps it;
  *   - a spec field no release defined is kept;

@@ -1,25 +1,32 @@
 /**
- * A plugin eval's one reader of a try's transcript: what the format's
- * graders look at, in Claude Code's names. The third named reader of a
- * run's transcript beside `actionsOf` (../checks/actions.ts, hashes for
- * the free checks) and `subjectPartsOf` (../judge/subject.ts, what the
- * judge is shown); when the transcript moves off the run's status onto a session
- * event log, these three are rewritten and no grader changes.
+ * A plugin eval's one reader of a try: what the format's graders look at,
+ * in Claude Code's names. The third reader of a turn beside `actionsOf`
+ * (../checks/actions.ts, hashes for the free checks) and `subjectPartsOf`
+ * (../judge/subject.ts, what the judge is shown), all three reading the
+ * turn's session events through the fold every client uses (../turn.ts);
+ * no grader depends on where the turn is stored. The files are the
+ * exception: their bytes stay on the run (the file-review ledger and the
+ * files the runner returned), and are read from there.
  *
  * The view (`EvalTrace`):
  *
- *   - the final message: the run's last assistant message;
+ *   - the final message: the turn's last agent message with text;
  *   - the trace: the session as JSON, one message per line, in Claude
  *     Code's transcript shape (a user line for the request, an assistant
- *     line per assistant message with its text and `tool_use` blocks, a
- *     user line with the matching `tool_result` blocks), which is what an
- *     author's `trace` regex was written against;
+ *     line per agent message with its text and the `tool_use` blocks of
+ *     the calls that follow it, a user line with the matching
+ *     `tool_result` blocks), which is what an author's `trace` regex was
+ *     written against. The log writes a message, then its tool uses, then
+ *     their results, and no message for one without text; so a tool use
+ *     after the previous uses' results opens an assistant line of its
+ *     own, and a message's calls stay on its line. A block's id is the
+ *     provider's call id (../turn.ts `callIdOf`);
  *   - the tool calls, each with its Claude name and its JSON-encoded
  *     input. An engine name reads as the Claude tool it covers
  *     (`@stigmer/tool-vocabulary` `claudeNameOf`): a tool that writes and
  *     edits reads as Write when its file was created in the run, as Edit
  *     otherwise. An MCP call reads as `mcp__<server>__<tool>`, its
- *     `mcp_server_slug` already the name a turn gives a plugin's server,
+ *     MCP server name already the name a turn gives a plugin's server,
  *     `plugin_<plugin>_<server>`, as Claude Code does. A read of a mounted
  *     skill's `SKILL.md` reads as `Skill {"skill": "<plugin>:<name>"}`,
  *     since Stigmer activates a skill by reading that file on both
@@ -42,9 +49,8 @@
  *     the files are `not-recorded` and a file grader leaves the try not
  *     graded.
  *
- * Sub-agent runs are not traversed, as the other two readers do not
- * traverse them. A system or thinking message, and a message type this
- * server does not know, add no line.
+ * Sub-agent threads are not traversed, as the other two readers do not
+ * traverse them. A thinking, a harness note and a compaction add no line.
  *
  * The skill mounts, on both engines, rendered by
  * execute-deep-agent/prompt-builder.ts `renderSkillsSection` and
@@ -59,7 +65,8 @@
  * a mount moves, a skill read stops reading as `Skill` and every
  * `tool_used: Skill` grader fails.
  *
- * Proven by __tests__/trace.test.ts, over a native and a Cursor transcript.
+ * Proven by __tests__/trace.test.ts, over a native and a Cursor transcript,
+ * and ../__tests__/transcript-from-events.test.ts.
  */
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 
@@ -69,12 +76,15 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileChangeKind,
   FileReviewEventType,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { PluginEvalFile } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { eventIdOf } from "@stigmer/session-log";
+import type { ToolUse } from "@stigmer/session-log";
+
+import type { RunTranscript } from "../../session/events/run-events.js";
+import { callIdOf, lastMessageOf, turnOfTranscript } from "../turn.js";
 
 /** One tool call, in Claude Code's names. */
 export interface EvalToolCall {
@@ -150,16 +160,20 @@ export interface EvalTraceDeps {
   readArtifact(storageKey: string): Promise<Uint8Array>;
 }
 
-/** The graders' view of `run` (the module header). */
+/** The graders' view of `transcript`'s run (the module header). */
 export async function evalTraceOf(
-  run: Run,
+  transcript: RunTranscript,
   deps: EvalTraceDeps,
 ): Promise<EvalTrace> {
+  const { run } = transcript;
+  const turn = turnOfTranscript(transcript);
   const files = await filesOf(run, deps);
   const created = new Set(files.kind === "recorded" ? files.created : []);
   const engine: ToolEngine =
     deps.harness === Harness.CURSOR ? "cursor" : "native";
-  const messages = run.status?.messages ?? [];
+  const seqOf = new Map(
+    transcript.events.map((event) => [eventIdOf(event), event.seq] as const),
+  );
 
   const toolCalls: EvalToolCall[] = [];
   const traceLines: string[] = [];
@@ -167,124 +181,111 @@ export async function evalTraceOf(
   const mockedServers = new Map(
     (run.spec?.pluginEvalCase?.mocks ?? []).map((mock) => [mock.segment, mock.server] as const),
   );
-  if (!messages.some((message) => message.type === MessageType.MESSAGE_HUMAN)) {
+  traceLines.push(
+    line({
+      type: "user",
+      message: {
+        role: "user",
+        content: turn?.userMessage?.text ?? run.spec?.message ?? "",
+      },
+    }),
+  );
+
+  let group: { text: string; uses: ToolUse[] } | undefined;
+  const flush = (): void => {
+    if (group === undefined) {
+      return;
+    }
+    const content: JsonValue[] = [];
+    if (group.text !== "") {
+      content.push({ type: "text", text: group.text });
+    }
+    const results: JsonValue[] = [];
+    for (const use of group.uses) {
+      const named = namedCall(use, engine, deps, created);
+      toolCalls.push(named);
+      const text = use.result?.text ?? "";
+      const errored = use.result?.isError === true;
+      const mockedServer = mockedServers.get(use.mcpServerName);
+      if (use.mcpServerName !== "" && mockedServer !== undefined) {
+        mockCalls.push(
+          line({ server: mockedServer, tool: use.name, input: use.input, answer: text }),
+        );
+      }
+      content.push({
+        type: "tool_use",
+        id: callIdOf(use),
+        name: named.name,
+        input: JSON.parse(named.input) as JsonValue,
+      });
+      results.push({
+        type: "tool_result",
+        tool_use_id: callIdOf(use),
+        content: text,
+        ...(errored ? { is_error: true } : {}),
+      });
+    }
     traceLines.push(
-      line({
-        type: "user",
-        message: { role: "user", content: run.spec?.message ?? "" },
-      }),
+      line({ type: "assistant", message: { role: "assistant", content } }),
     );
-  }
-  for (const message of messages) {
-    switch (message.type) {
-      case MessageType.MESSAGE_HUMAN:
-        traceLines.push(
-          line({
-            type: "user",
-            message: { role: "user", content: message.content },
-          }),
-        );
+    if (results.length > 0) {
+      traceLines.push(
+        line({ type: "user", message: { role: "user", content: results } }),
+      );
+    }
+    group = undefined;
+  };
+  for (const item of turn?.items ?? []) {
+    switch (item.kind) {
+      case "message":
+        flush();
+        group = { text: item.text, uses: [] };
         break;
-      case MessageType.MESSAGE_AI: {
-        const content: JsonValue[] = [];
-        if (message.content !== "") {
-          content.push({ type: "text", text: message.content });
+      case "tool_use": {
+        const at = seqOf.get(item.id) ?? 0n;
+        const answered = group?.uses.some((use) => {
+          const resultAt = seqOf.get(use.result?.id ?? "");
+          return resultAt !== undefined && resultAt < at;
+        });
+        if (group === undefined || answered === true) {
+          flush();
+          group = { text: "", uses: [] };
         }
-        const results: JsonValue[] = [];
-        for (const call of message.toolCalls) {
-          const named = namedCall(call, engine, deps, created);
-          toolCalls.push(named);
-          const mockedServer = mockedServers.get(call.mcpServerSlug);
-          if (call.mcpServerSlug !== "" && mockedServer !== undefined) {
-            mockCalls.push(
-              line({
-                server: mockedServer,
-                tool: call.name,
-                input: call.args ?? {},
-                answer: call.error !== "" ? call.error : call.result,
-              }),
-            );
-          }
-          content.push({
-            type: "tool_use",
-            id: call.id,
-            name: named.name,
-            input: JSON.parse(named.input) as JsonValue,
-          });
-          results.push({
-            type: "tool_result",
-            tool_use_id: call.id,
-            content: call.error !== "" ? call.error : call.result,
-            ...(call.error !== "" ? { is_error: true } : {}),
-          });
-        }
-        traceLines.push(
-          line({ type: "assistant", message: { role: "assistant", content } }),
-        );
-        if (results.length > 0) {
-          traceLines.push(
-            line({ type: "user", message: { role: "user", content: results } }),
-          );
-        }
+        group.uses.push(item);
         break;
       }
-      case MessageType.MESSAGE_TOOL:
-        traceLines.push(
-          line({
-            type: "user",
-            message: {
-              role: "user",
-              content: [{ type: "tool_result", content: message.content }],
-            },
-          }),
-        );
+      case "thinking":
+      case "note":
+      case "compacted":
         break;
-      case MessageType.MESSAGE_SYSTEM:
-      case MessageType.MESSAGE_THINKING:
-      case MessageType.MESSAGE_TYPE_UNSPECIFIED:
-        break;
+      /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
       default: {
-        // Proto enums are open: a type this server's protos do not name
-        // (an engine newer than it) decodes as its number. Left out, as a
-        // system message is, so the try is still graded.
-        const unknown: never = message.type;
-        void unknown;
-        break;
+        const exhausted: never = item;
+        return exhausted;
       }
     }
   }
+  flush();
 
-  return { lastMessage: lastMessageOf(run), traceLines, toolCalls, mockCalls, files };
+  return { lastMessage: lastMessageOf(turn), traceLines, toolCalls, mockCalls, files };
 }
 
 function line(value: JsonObject): string {
   return JSON.stringify(value);
 }
 
-/** The run's final message: its last assistant message with text. */
-function lastMessageOf(run: Run): string {
-  const messages = run.status?.messages ?? [];
-  for (let index = messages.length - 1; index >= 0; index--) {
-    const message = messages[index];
-    if (message?.type === MessageType.MESSAGE_AI && message.content !== "") {
-      return message.content;
-    }
-  }
-  return "";
-}
-
 /** One call in Claude Code's names (the module header). */
 function namedCall(
-  call: ToolCall,
+  use: ToolUse,
   engine: ToolEngine,
   deps: EvalTraceDeps,
   created: ReadonlySet<string>,
 ): EvalToolCall {
   const { pluginName } = deps;
-  const args: JsonObject = call.args ?? {};
+  const args: JsonObject = use.input;
   const input = JSON.stringify(args);
-  if (call.mcpServerSlug !== "") {
-    return { name: `mcp__${call.mcpServerSlug}__${call.name}`, input };
+  if (use.mcpServerName !== "") {
+    return { name: `mcp__${use.mcpServerName}__${use.name}`, input };
   }
   const path = pathArgumentOf(args);
   const fileChange =
@@ -293,7 +294,7 @@ function namedCall(
       : created.has(normalise(path))
         ? "add"
         : "modify";
-  const name = claudeNameOf(engine, call.name, fileChange);
+  const name = claudeNameOf(engine, use.name, fileChange);
   if (name === "Read" && path !== undefined) {
     const pluginSkill = PLUGIN_SKILL_READ_PATH.exec(path)?.[1];
     const skill =

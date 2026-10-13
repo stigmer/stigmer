@@ -13,6 +13,8 @@
  *  - an upload outside the turn's own key prefix: refused, nothing stored;
  *  - usage with negative or non-finite counts: clamped to zero;
  *  - a plugin verify for a plugin the turn does not have: refused;
+ *  - a read of the run's events: only the turn's own run is read, whatever
+ *    the host asks;
  *  - a notice for a turn that has settled: dropped;
  *  - artifact rows and tool-output refs that point outside the turn's own
  *    key prefix (another execution's, a traversal): dropped, rows the turn
@@ -32,6 +34,7 @@ import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/sub
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -40,7 +43,7 @@ import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { encodeMessage } from "../codec.js";
+import { decodeMessage, encodeMessage } from "../codec.js";
 import { assertTurnArtifactKey, confineCasSnapshot, createRemoteAdapter } from "../remote-adapter.js";
 import { AgentHostSupervisor } from "../supervisor.js";
 import {
@@ -320,6 +323,26 @@ describe("a host that does not follow the rules", () => {
     await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
 
     expect(refusal).toBe("plugin 'not-mine' is not one of this turn's");
+  });
+
+  it("reads only the turn's own run's events for the host", async () => {
+    let answered: string[] = [];
+    const adapter = hostileHarness(async (host, turnId) => {
+      answered = (await host.call("readRunEvents", { turnId })).map((wire) => decodeMessage(SessionEventSchema, wire).runId);
+    });
+    await adapter.boot(testConfig());
+    const runs: string[] = [];
+    const input = turnInputFixture({
+      readRunEvents: async () => {
+        runs.push(input.executionId);
+        return [create(SessionEventSchema, { runId: input.executionId, event: { case: "stigmerHarnessNote", value: { id: "n", text: "note" } } })];
+      },
+    });
+
+    await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
+
+    expect(runs, "the runtime's own read, bound to the turn's run").toEqual([input.executionId]);
+    expect(answered).toEqual([input.executionId]);
   });
 
   it("refuses an upload for a turn that has no artifact store", async () => {

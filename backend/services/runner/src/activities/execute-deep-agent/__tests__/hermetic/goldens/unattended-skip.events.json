@@ -1,0 +1,51 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "I will run the command."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "input": {
+        "command": "echo hermetic-a"
+      },
+      "name": "execute",
+      "evaluated_permission": "deny"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-exec-0001.r",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "Tool 'execute' requires an approval that is not available in this conversation, so it was skipped automatically. Do not retry it or attempt a workaround. Adapt your plan, and explain to the user in plain language what you could not do and what they can do instead — never mention tools, approvals, or platform mechanics."
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Done with the command."
+        }
+      ]
+    }
+  }
+]

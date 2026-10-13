@@ -19,7 +19,9 @@
  *     pause queued while no attempt is running pauses the next attempt
  *     immediately (Go's buffered signal channel semantics).
  *   - HITL loop: while the runner reports WAITING_FOR_APPROVAL, persist
- *     the phase, re-read the gate (pending approvals) from the DB, and
+ *     the phase, count the turn's open gates in its session's log
+ *     (CountOpenGates, behind OPEN_GATES_FROM_LOG_PATCH_ID; a history from
+ *     before it replays its load of the run's pending approvals), and
  *     either wait for approvalGateResolved or fail fast after
  *     MAX_ZERO_GATE_CYCLES empty-gate cycles. File review never holds a
  *     turn (stigmer#1471): a turn with review on ends with its edits
@@ -106,6 +108,7 @@ import {
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   CLOSE_FILE_REVIEW_PATCH_ID,
+  COUNT_OPEN_GATES_ACTIVITY_NAME,
   DEFAULT_ACTIVITY_TASK_QUEUE,
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
@@ -113,6 +116,7 @@ import {
   GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
+  OPEN_GATES_FROM_LOG_PATCH_ID,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   SIGNAL_APPROVAL_GATE_RESOLVED,
@@ -331,6 +335,10 @@ interface LocalActivities {
     executionId: string,
     sessionId: string,
   ) => Promise<void>;
+  [COUNT_OPEN_GATES_ACTIVITY_NAME]: (
+    executionId: string,
+    sessionId: string,
+  ) => Promise<number>;
   [READ_HARNESS_STATE_ID_ACTIVITY_NAME]: (sessionId: string) => Promise<string>;
   [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: (
     executionId: string,
@@ -507,6 +515,7 @@ async function executeDeepAgentFlow(
     executeWithHitl: () =>
       executeWithHitlLoop({
         executionId,
+        sessionId,
         signals,
         firstInvoke: () =>
           agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME](
@@ -554,6 +563,7 @@ async function executeCursorFlow(
     executeWithHitl: () =>
       executeWithHitlLoop({
         executionId,
+        sessionId,
         signals,
         firstInvoke: async () => {
           let harnessStateId: string;
@@ -874,6 +884,8 @@ async function runPausableAttempt(
 
 interface HitlLoopOptions {
   readonly executionId: string;
+  /** The run's session, whose log holds the turn's open gates. */
+  readonly sessionId: string;
   readonly signals: SignalBuffers;
   readonly firstInvoke: () => Promise<RunnerActivityResult | null>;
   readonly reinvoke: (turnSeq: number) => Promise<RunnerActivityResult | null>;
@@ -883,8 +895,8 @@ interface HitlLoopOptions {
 
 /**
  * Runs the agent activity and re-invokes it while the runner reports
- * WAITING_FOR_APPROVAL. The gate is pending approvals alone: file review
- * never holds a turn (filereview/gate.ts). TurnSeq is the approvalCycle:
+ * WAITING_FOR_APPROVAL. The gate is the turn's open asks in its session's
+ * log alone: file review never holds a turn (filereview/gate.ts). TurnSeq is the approvalCycle:
  * the runner mints the deterministic change-set id `executionId:turnSeq`
  * from it, so ledger authoring stays idempotent across Temporal retries.
  */
@@ -924,22 +936,10 @@ async function executeWithHitlLoop(
       "Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
     );
 
-    // Re-read the gate from the system of record; a load failure
+    // Re-read the gate from the system of record; a read failure
     // defaults to 1 (wait for the signal — failing open would re-invoke
     // against an undecided gate).
-    let gateCount: number;
-    try {
-      const execution = await loadExecution(executionId);
-      gateCount = unresolvedGateCount(
-        execution.status ?? create(RunStatusSchema),
-      );
-    } catch (error) {
-      log.warn(
-        "Failed to load execution from DB for gate count (non-fatal, will wait for signal)",
-        { executionId, error: errorMessage(error) },
-      );
-      gateCount = 1;
-    }
+    const gateCount = await readGateCount(executionId, options.sessionId);
 
     log.info("Execution waiting at HITL gate — waiting for approvalGateResolved signal", {
       executionId,
@@ -1162,6 +1162,40 @@ async function persistResumedStatus(executionId: string): Promise<void> {
     }),
     "Failed to persist resumed status (non-fatal)",
   );
+}
+
+/**
+ * The turn's open gates (module header, HITL loop): counted from the
+ * session's log by CountOpenGates (filereview/gate.ts) behind
+ * OPEN_GATES_FROM_LOG_PATCH_ID; a run whose history loaded the run for its
+ * pending approvals replays that load. Either read's failure counts 1, so
+ * the turn waits for the signal.
+ */
+async function readGateCount(executionId: string, sessionId: string): Promise<number> {
+  if (patched(OPEN_GATES_FROM_LOG_PATCH_ID)) {
+    try {
+      return await localActivities[COUNT_OPEN_GATES_ACTIVITY_NAME](executionId, sessionId);
+    } catch (error) {
+      if (isCancellation(error)) {
+        throw error;
+      }
+      log.warn(
+        "Failed to count the turn's open gates (non-fatal, will wait for signal)",
+        { executionId, error: errorMessage(error) },
+      );
+      return 1;
+    }
+  }
+  try {
+    const execution = await loadExecution(executionId);
+    return unresolvedGateCount(execution.status ?? create(RunStatusSchema));
+  } catch (error) {
+    log.warn(
+      "Failed to load execution from DB for gate count (non-fatal, will wait for signal)",
+      { executionId, error: errorMessage(error) },
+    );
+    return 1;
+  }
 }
 
 /**

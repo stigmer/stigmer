@@ -520,6 +520,11 @@ message StigmerPermissionAskedEvent {
   // The plugin whose hook asked; empty for the agent's own hooks, or when no
   // hook asked.
   string policy_hook = 7;
+
+  // A digest of the content the call would write, when its harness
+  // identifies an edit by its content: an approval allows that exact edit
+  // and no other proposed under the same call. Empty otherwise.
+  string content_digest = 8;
 }
 
 // StigmerHarnessNoteEvent is a line the platform added to the conversation

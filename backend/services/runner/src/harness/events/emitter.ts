@@ -19,10 +19,14 @@
  * sub-agents interleave as they run. Sealed means no later step can
  * rewrite it:
  *   - a message, once it stops streaming (an empty one writes nothing);
- *   - a tool use, once it is known to run or to ask: at start on a harness
- *     whose boundary never rewrites a row, and on one that does (Cursor,
- *     the `boundaryRewritesRow` capability) once the row is beyond the
- *     boundary's reach or the turn's terminal write proves the boundary ran;
+ *   - a tool use, once it is known to run, to ask or to be skipped: at
+ *     start on a harness whose boundary never rewrites a row, and on one
+ *     that does (Cursor, the `boundaryRewritesRow` capability) once the row
+ *     is beyond the boundary's reach or the turn's terminal write proves
+ *     the boundary ran. A call an unattended turn skipped carries
+ *     `evaluated_permission: "deny"` ({@link permissionOf}): native's gate
+ *     opens its row already saying so, and Cursor's boundary stamps it
+ *     before the row's use is written;
  *   - a tool result, once its row settles, with the same boundary rule;
  *   - a hidden row (the collapsed shape) writes nothing.
  * A result whose output the chokepoint offloaded carries the output's
@@ -185,6 +189,18 @@ export const POLICY_SOURCE_WORDS: Readonly<Record<ApprovalPolicySource, string>>
   [ApprovalPolicySource.UNATTENDED_SKIP]: "unattended_skip",
   [ApprovalPolicySource.HOOK]: "hook",
 };
+
+/**
+ * The permission policy's word for a call, as Managed Agents writes it on
+ * `evaluated_permission`: "deny" for a call an unattended turn skipped
+ * (UNATTENDED_SKIP: it would have asked, and no one could answer), "ask"
+ * for a call that asks a person, "" otherwise. A hook's refusal stays "":
+ * its row is a failure the hook reported, and reads as one.
+ */
+function permissionOf(row: ToolCall): string {
+  if (row.approvalPolicySource === ApprovalPolicySource.UNATTENDED_SKIP) return "deny";
+  return row.requiresApproval ? "ask" : "";
+}
 
 /** A ledger change kind as the log's word (`stigmer.file_review.changes`): a binary change is a modification. */
 export const FILE_CHANGE_WORDS: Readonly<Record<FileChangeKind, string>> = {
@@ -472,7 +488,7 @@ export class SessionEventEmitter {
     if (!asks && this.awaitsBoundary(row, final)) return false;
     const id = toolUseEventId(this.deps.runId, row.id);
     const input = (row.args ?? {}) as JsonObject;
-    const permission = row.requiresApproval ? "ask" : "";
+    const permission = permissionOf(row);
     const sessionThreadId = thread.threadId;
     if (row.mcpServerSlug !== "") {
       this.push(thread.threadId, id, {
@@ -496,6 +512,7 @@ export class SessionEventEmitter {
           argsPreview: row.argsPreview,
           policySource: POLICY_SOURCE_WORDS[row.approvalPolicySource],
           policyHook: row.approvalPolicyHook,
+          contentDigest: row.approvalContentDigest,
         },
       });
     }

@@ -213,7 +213,7 @@ export class RuntimeExecutionDriver {
     return invocation;
   }
 
-  /** The server's act between invocations: answer every WAITING row on the log and stamp it. Returns how many. */
+  /** The server's act between invocations: answer every WAITING row on the log. Returns how many. */
   decide(action: ApprovalAction, denyMessage = ""): number {
     this.harness.clock.tick();
     return this.record.decideWaitingToolCalls(action, new Date().toISOString(), undefined, denyMessage);

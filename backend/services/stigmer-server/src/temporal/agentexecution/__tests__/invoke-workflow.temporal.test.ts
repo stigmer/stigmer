@@ -13,7 +13,10 @@
  *     and no activity beyond an ordinary run's;
  *   - the HITL loop (WAITING persist → gate re-read → approvalGateResolved
  *     → re-invoke with TurnSeq = approvalCycle — the deterministic
- *     change-set id input);
+ *     change-set id input); a new run reads its gate as the count of the
+ *     turn's open asks in its session's log (CountOpenGates, with the run
+ *     and its session) and never loads the run for it, and a count that
+ *     cannot be read waits for the signal;
  *   - the zero-gate fail-fast bound (MAX_ZERO_GATE_CYCLES): file review
  *     never holds a turn, so a gate with no pending approval is empty
  *     whatever its change sets say (stigmer#1471);
@@ -142,6 +145,12 @@ interface ActivityScript {
   subjectArguments: unknown[];
   /** Consumed per LoadAgentExecution call, in order; last one sticks. */
   loadResults: JsonValue[];
+  /** How many times LoadAgentExecution was called. */
+  loadCalls: number;
+  /** Consumed per CountOpenGates call, in order; last one sticks. An Error fails the call. */
+  openGateCounts: Array<number | Error>;
+  /** Each CountOpenGates call's (execution id, session id), in order. */
+  gateCalls: Array<[string, string]>;
   /** Consumed per ReadHarnessStateId call, in order; last one sticks. */
   harnessStateIds: Array<string | (() => Promise<string>)>;
   persistedStatuses: RecordedStatus[];
@@ -180,6 +189,9 @@ function resetScript(): void {
     executeCredentials: [],
     subjectArguments: [],
     loadResults: [],
+    loadCalls: 0,
+    openGateCounts: [],
+    gateCalls: [],
     harnessStateIds: [],
     persistedStatuses: [],
     deletedExecutionContexts: [],
@@ -218,19 +230,6 @@ function executionJson(status: RunStatus): JsonValue {
       status,
     }),
   );
-}
-
-function statusWithPendingApproval(): RunStatus {
-  return create(RunStatusSchema, {
-    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-    pendingApprovals: [{ toolCallId: "tc-1", toolName: "echo" }],
-  });
-}
-
-function statusWithEmptyGate(): RunStatus {
-  return create(RunStatusSchema, {
-    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-  });
 }
 
 /** An empty gate beside a change set awaiting review: the set holds nothing. */
@@ -295,6 +294,7 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
       }
     },
     LoadAgentExecution: async (): Promise<JsonValue> => {
+      script.loadCalls++;
       const result =
         script.loadResults.length > 1
           ? script.loadResults.shift()!
@@ -303,6 +303,21 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
         throw new Error("test script exhausted: unexpected LoadAgentExecution");
       }
       return result;
+    },
+    CountOpenGates: async (executionId: string, sessionId: string): Promise<number> => {
+      script.gateCalls.push([executionId, sessionId]);
+      const entry =
+        script.openGateCounts.length > 1
+          ? script.openGateCounts.shift()!
+          : script.openGateCounts[0];
+      if (entry === undefined) {
+        throw new Error("test script exhausted: unexpected CountOpenGates");
+      }
+      if (entry instanceof Error) {
+        const { ApplicationFailure } = await import("@temporalio/common");
+        throw ApplicationFailure.create({ message: entry.message, nonRetryable: true });
+      }
+      return entry;
     },
     ReadHarnessStateId: async (): Promise<string> => {
       const entry =
@@ -515,7 +530,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
-    script.loadResults = [executionJson(statusWithPendingApproval())];
+    script.openGateCounts = [1];
 
     const handle = await startWorkflow(workflowInput());
     await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
@@ -534,7 +549,29 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
           entry.status.phase === RunPhase.RUN_WAITING_FOR_APPROVAL,
       ),
     ).toBe(true);
+    // The gate is the turn's open asks in its session's log; the run is
+    // never loaded for it.
+    expect(script.gateCalls).toEqual([[currentExecutionId, "ses-1"]]);
+    expect(script.loadCalls).toBe(0);
     expectRetiredCleanupSkipped();
+  }, 30_000);
+
+  it("waits for the signal when the turn's open gates cannot be counted", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
+    ];
+    script.openGateCounts = [new Error("store unavailable")];
+
+    const handle = await startWorkflow(workflowInput());
+    await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+    // Counted as one open gate: no re-invocation until the signal.
+    expect(script.executeCalls).toHaveLength(1);
+    await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+    await handle.result();
+
+    expect(script.executeCalls).toHaveLength(2);
+    expect(script.loadCalls).toBe(0);
   }, 30_000);
 
   it("fails fast after MAX_ZERO_GATE_CYCLES consecutive empty-gate WAITING cycles", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -543,7 +580,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     script.executeBehaviors = Array.from({ length: 8 }, () => async () =>
       slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
     );
-    script.loadResults = [executionJson(statusWithEmptyGate())];
+    script.openGateCounts = [0];
 
     const handle = await startWorkflow(workflowInput());
     await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
@@ -563,13 +600,17 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     script.executeBehaviors = Array.from({ length: 8 }, () => async () =>
       slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
     );
+    // The run holds a set awaiting review; the gate counts the log's open
+    // asks alone, and none is open.
     script.loadResults = [executionJson(statusAwaitingReviewOnly())];
+    script.openGateCounts = [0];
 
     const handle = await startWorkflow(workflowInput());
     // No signal is ever sent: a review-held gate would wait forever here.
     await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
 
     expect(script.executeCalls).toHaveLength(4);
+    expect(script.loadCalls).toBe(0);
   }, 60_000);
 
   it("closes the previous turn's file review first, with the run and its session, before the runner", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -771,7 +812,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
-    script.loadResults = [executionJson(statusWithPendingApproval())];
+    script.openGateCounts = [1];
     // First read: empty (the activity creates the Cursor agent); the
     // re-invocation read returns the stored agentId for Agent.resume.
     script.harnessStateIds = ["", "cursor-agent-1"];
@@ -794,7 +835,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
       async () => slimResult(RunPhase.RUN_COMPLETED),
     ];
-    script.loadResults = [executionJson(statusWithPendingApproval())];
+    script.openGateCounts = [1];
 
     const handle = await startWorkflow(
       workflowInput({ execution_context_token: "run-credential-1" }),

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIswCCg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRIYChBoYXJuZXNzX3N0YXRlX2lkGAQgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgFIAMoCRo1ChNWYXVsdEF0dGFjaGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIp8CCg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRINCgVzdGF0ZRgEIAEoCRo1ChNWYXVsdEF0dGFjaGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * SessionStatus contains system-managed state for a session.
@@ -59,33 +59,14 @@ export type SessionStatus = Message<"ai.stigmer.agentic.session.v1.SessionStatus
   vaultAttachers: { [key: string]: string };
 
   /**
-   * Harness-specific state identifier for conversation continuity.
+   * Whether the session is working: running (a turn works) or idle (it
+   * waits for input), the newest session.status_running or
+   * session.status_idle event's word. A session none of whose turns ever
+   * worked reads idle.
    *
-   * Populated after the first run completes; empty until then.
-   * Each harness uses this field differently:
-   *
-   * - NATIVE: LangGraph thread ID, derived deterministically as
-   *   "thread-{session_id}" by the EnsureThread activity. Stored here
-   *   so the immutability sentinel works uniformly across harnesses.
-   *
-   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-   *   returned by Agent.create(). Used for Agent.resume() on
-   *   subsequent runs.
-   *
-   * @generated from field: string harness_state_id = 4;
+   * @generated from field: string state = 4;
    */
-  harnessStateId: string;
-
-  /**
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   *
-   * @generated from field: repeated string harness_state_id_history = 5;
-   */
-  harnessStateIdHistory: string[];
+  state: string;
 };
 
 /**

@@ -36,6 +36,7 @@ import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_p
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApprovalAction, MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { TurnSubagent } from "../../harness/types.js";
@@ -52,9 +53,11 @@ import {
   applyAdapterProjection,
   applyRuntimeFields,
   decodeCasSnapshot,
+  decodeRunEvents,
   decodeTurnInput,
   encodeAdapterProjection,
   encodeCasSnapshot,
+  encodeRunEvents,
   encodeTurnInput,
   type HostTurnServices,
 } from "../codec.js";
@@ -77,8 +80,18 @@ function noServices(calls: string[] = []): HostTurnServices {
     verifyPlugin: async (slug) => {
       calls.push(`verify ${slug}`);
     },
+    readRunEvents: async () => {
+      calls.push("events");
+      return decodeRunEvents(encodeRunEvents([RUN_EVENT]));
+    },
   };
 }
+
+/** One event of the turn's run, as the log holds it. */
+const RUN_EVENT = create(SessionEventSchema, {
+  runId: "run_1",
+  event: { case: "stigmerPermissionAsked", value: { id: "run_1.c1.ask", toolUseId: "run_1.c1", policySource: "hook", contentDigest: "args:abc" } },
+});
 
 /** The wire is JSON: encode, stringify, parse, decode, as the pipe does. */
 function crossed(input: ReturnType<typeof turnInputFixture>, services = noServices()) {
@@ -96,6 +109,7 @@ describe("the turn input across the pipe", () => {
     const input = turnInputFixture({
       approvalDecisions: new Map([["call-1", ApprovalAction.APPROVE], ["call-2", ApprovalAction.REJECT]]),
       approvalDenyMessages: new Map([["call-2", "use make clean instead"]]),
+      approvalAsks: new Map([["run_1.call-2", { policySource: "hook", policyHook: "safety", contentDigest: "args:abc" }]]),
       values: {
         agent: { API_TOKEN: "value" },
         tools: new Map([[toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
@@ -128,6 +142,9 @@ describe("the turn input across the pipe", () => {
     expect(decoded.mcp.mcpDefault.leasedServers, "one Set of leased servers").toBe(decoded.mcp.leases.servers);
     expect([...decoded.approvalDecisions]).toEqual([["call-1", ApprovalAction.APPROVE], ["call-2", ApprovalAction.REJECT]]);
     expect([...decoded.approvalDenyMessages], "a deny's reason crosses to the host's engine").toEqual([["call-2", "use make clean instead"]]);
+    expect([...decoded.approvalAsks], "what each call was asked under crosses with it").toEqual([
+      ["run_1.call-2", { policySource: "hook", policyHook: "safety", contentDigest: "args:abc" }],
+    ]);
     expect(decoded.values.agent).toEqual({ API_TOKEN: "value" });
     expect([...decoded.values.tools]).toEqual([
       [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
@@ -257,7 +274,7 @@ describe("the turn input across the pipe", () => {
     expect(calls, "the host's verify calls back, never the runner's closure").toEqual(["verify guard"]);
   });
 
-  it("calls back to the runner for the memory selection, the upload and a plugin's verify", async () => {
+  it("calls back to the runner for the memory selection, the upload, a plugin's verify and the run's events", async () => {
     const calls: string[] = [];
     const input = turnInputFixture({
       hooks: { sources: [{ plugin: { id: "plg_lint", slug: "lint", name: "Lint", root: "/r", data: "/d", verify: async () => void calls.push("local verify") }, format: "claude-code", groups: [] }], pluginServers: new Map() },
@@ -269,7 +286,9 @@ describe("the turn input across the pipe", () => {
     await decoded.artifactStorage!.upload("artifacts/x/a.txt", Buffer.from("a"));
     expect(decoded.hooks.sources[0]!.plugin!.id, "the id a plugin's hook values are grouped by").toBe("plg_lint");
     await decoded.hooks.sources[0]!.plugin!.verify();
-    expect(calls).toEqual(["recall", "upload artifacts/x/a.txt", "verify lint"]);
+    const events = await decoded.readRunEvents();
+    expect(events.map((event) => toBinary(SessionEventSchema, event)), "each event crosses whole").toEqual([toBinary(SessionEventSchema, RUN_EVENT)]);
+    expect(calls).toEqual(["recall", "upload artifacts/x/a.txt", "verify lint", "events"]);
   });
 
   it("carries the turn's appended system prompt and a turn layer that hides skills", () => {

@@ -6,6 +6,7 @@
  * @stigmer/eval-runtime.
  *
  * The load-bearing pins:
+ *   - the parts are read from the run's session events, its rows unread;
  *   - sampling is fixed by the run's id and lands near the rate over ten
  *     thousand ids; a rate of 1 picks every run;
  *   - the parts are the request, each top-level call with its canonical
@@ -13,22 +14,21 @@
  *     output when delivered); a spilled result is marked cut;
  *   - the earlier turns are the session's runs strictly before the graded
  *     one in the index's order, at most three, oldest first, never a later
- *     run, another session's or another organization's;
+ *     run, another session's or another organization's, each with its own
+ *     answer events;
  *   - the judge run carries the reserved label, the grade's cap, the
  *     verdict schema, a session subject and the native harness, in the
  *     judged run's organization, under a name fixed by the judged run.
  */
 import { create } from "@bufbuild/protobuf";
+import type { JsonObject } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { VERDICT_SCHEMA, renderSubject } from "@stigmer/eval-runtime/judge";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -41,9 +41,16 @@ import {
   judgeRunRequest,
 } from "../judge-run.js";
 import { isSampled } from "../sampling.js";
-import { earlierRunsOf, subjectPartsOf } from "../subject.js";
+import { earlierRunsOf, earlierTurnsOf, subjectPartsOf } from "../subject.js";
+import type { RunTranscript } from "../../../session/events/run-events.js";
+import {
+  RunEventsBuilder,
+  appendRunEvents,
+} from "../../../session/events/__tests__/run-events-fixture.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
+
+const RUN_ID = "run_01j5q3k7m8r2s4tnz2hfp0q0f5";
 
 function runWith(opts: {
   readonly message?: string;
@@ -55,29 +62,32 @@ function runWith(opts: {
     readonly error?: string;
   }>;
   readonly answer?: string;
-}): Run {
-  return create(RunSchema, {
-    metadata: { id: "run_01j5q3k7m8r2s4tnz2hfp0q0f5", org: "org_a" },
+  readonly output?: JsonObject;
+}): RunTranscript {
+  const run = create(RunSchema, {
+    metadata: { id: RUN_ID, org: "org_a" },
     spec: { message: opts.message ?? "Assign the ticket to Priya." },
-    status: {
-      messages: [
-        {
-          type: MessageType.MESSAGE_AI,
-          toolCalls: (opts.calls ?? []).map((call) => ({
-            name: call.name,
-            result: call.result ?? "",
-            status: call.status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
-            error: call.error ?? "",
-            args: { ticket: "T-1" },
-            ...(call.spilled === true
-              ? { outputRef: { contentHash: "abc", storageKey: "k" } }
-              : {}),
-          })),
-        },
-        { type: MessageType.MESSAGE_AI, content: opts.answer ?? "Done." },
-      ],
-    },
   });
+  const events = new RunEventsBuilder(RUN_ID)
+    .turnMessage(
+      "",
+      (opts.calls ?? []).map((call, index) => {
+        const failed = call.status === ToolCallStatus.TOOL_CALL_FAILED;
+        return {
+          id: `c${index}`,
+          name: call.name,
+          input: { ticket: "T-1" },
+          result: failed ? (call.error ?? "") : (call.result ?? ""),
+          isError: failed,
+          ...(call.spilled === true ? { offloadedHash: "abc" } : {}),
+        };
+      }),
+    )
+    .turnMessage(opts.answer ?? "Done.");
+  if (opts.output !== undefined) {
+    events.structuredOutput(opts.output);
+  }
+  return { run, events: events.build() };
 }
 
 describe("sampling", () => {
@@ -130,9 +140,18 @@ describe("subjectPartsOf", () => {
   });
 
   it("reads a delivered structured output as the answer", () => {
-    const run = runWith({});
-    if (run.status !== undefined) run.status.structuredOutput = { label: "bug" };
+    const run = runWith({ output: { label: "bug" } });
     expect(subjectPartsOf(run, []).answer).toBe('{"label":"bug"}');
+  });
+
+  it("reads a turn its log holds nothing of as no calls and no answer", () => {
+    const run = create(RunSchema, { metadata: { id: "run_x" }, spec: { message: "hi" } });
+    expect(subjectPartsOf({ run, events: [] }, [])).toEqual({
+      earlierTurns: [],
+      request: "hi",
+      toolCalls: [],
+      answer: "",
+    });
   });
 
   it("reads each earlier run as its request and final answer, in the order given", () => {
@@ -182,6 +201,34 @@ describe("earlierRunsOf", () => {
     expect(await earlierRunsOf(temp.store, await seed("run_first", 3_000, "ses_4"))).toEqual([]);
   });
 
+  it("reads each earlier turn with its answer events, and no other run's", async () => {
+    await seed("run_a", 1_000, "ses_5");
+    const graded = await seed("run_b", 1_001, "ses_5");
+    await appendRunEvents(
+      temp.store,
+      "ses_5",
+      "org_a",
+      new RunEventsBuilder("run_a")
+        .user("request run_a")
+        .turnMessage("Thinking aloud.", [{ id: "c1", name: "lookup", result: "found" }])
+        .turnMessage("The answer.")
+        .build(),
+    );
+    await appendRunEvents(
+      temp.store,
+      "ses_5",
+      "org_a",
+      new RunEventsBuilder("run_b", 100).turnMessage("Not an earlier turn.").build(),
+    );
+    const earlier = await earlierTurnsOf(temp.store, graded);
+    expect(earlier.map((turn) => turn.events.map((event) => event.event.case))).toEqual([
+      ["agentMessage", "agentMessage"],
+    ]);
+    expect(subjectPartsOf({ run: graded, events: [] }, earlier).earlierTurns).toEqual([
+      { request: "request run_a", answer: "The answer." },
+    ]);
+  });
+
   it("reads none for a run with no session", async () => {
     expect(await earlierRunsOf(temp.store, create(RunSchema, { metadata: { id: "run_x", org: "org_a" } }))).toEqual([]);
   });
@@ -189,7 +236,7 @@ describe("earlierRunsOf", () => {
 
 describe("the judge run", () => {
   it("is labelled, capped, shaped and named for the run it grades", () => {
-    const judged = runWith({});
+    const judged = runWith({}).run;
     const request = judgeRunRequest({
       judged,
       modelName: "claude-haiku-4-5",

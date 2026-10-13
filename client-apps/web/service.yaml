@@ -1,0 +1,48 @@
+# Service Hub's record of stigmer-web, the hosted web console, in the hosted service's organization on new
+# Planton: where its source lives, how it is built, and that it deploys from _kustomize/ -- one
+# environment per directory under overlays/. Registered once with `planton apply -f service.yaml`;
+# from then on a merge to main that touches a build input builds and deploys the first environment.
+apiVersion: service-hub.planton.ai/v1alpha1
+kind: Service
+metadata:
+  name: stigmer-web
+  org: stigmer
+  slug: stigmer-web
+spec:
+  description: "The hosted web console: the Next.js static export served by nginx"
+  gitRepo:
+    gitConnection: github-stigmer # the connection to the stigmer GitHub organization, named by the account it opens
+    ownerName: stigmer
+    name: stigmer
+    defaultBranch: main
+    browserUrl: https://github.com/stigmer/stigmer
+    cloneUrl: https://github.com/stigmer/stigmer.git
+    gitRepoProvider: github
+    projectRoot: client-apps/web # the console's folder: a change under it triggers a build, and the kustomize tree is read from here
+  build:
+    # The console's own Dockerfile, built from the repository root: its builder stage installs the workspace
+    # and builds the libraries the console imports before the console itself.
+    dockerfile:
+      context: "."
+      dockerfilePath: client-apps/web/Dockerfile
+    registry: gar-stigmer # the hosted service's Artifact Registry repository, which its clusters read
+    imageRepositoryPath: stigmer-web # inside that repository, the path the kustomize base pulls
+    triggers:
+      # Besides the project root, every other input the Dockerfile copies.
+      paths:
+      - .dockerignore
+      - package.json
+      - package-lock.json
+      - apis/stubs/ts
+      - backend/libs/ts/eval-runtime
+      - backend/libs/ts/plugin-package
+      - backend/libs/ts/tool-vocabulary
+      - backend/libs/ts/session-log
+      - sdk/typescript
+      - sdk/theme
+      - sdk/react
+      - sdk/embed
+      - brand
+  deploy:
+    kustomize:
+      baseDirectory: _kustomize

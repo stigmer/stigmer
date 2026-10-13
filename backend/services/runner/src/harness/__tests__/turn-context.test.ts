@@ -4,9 +4,11 @@
  *
  *  - `isReinvocation`: the runtime's one reading of "does this invocation
  *    resume rather than begin", keyed on how the harness mints its state id.
- *    The engine-minted arm is `!!threadId`; the deterministic arm is the
- *    persisted transcript's non-emptiness, whatever the thread id says (the
- *    id exists on the first turn too), and never the live engine checkpoint.
+ *    The engine-minted arm is `!!threadId`; the deterministic arm is
+ *    whether the log holds an event the run's engine wrote
+ *    (`runWroteEngineEvents`, one bounded read of the types only an
+ *    engine's rows produce), whatever the thread id says (the id exists on
+ *    the first turn too), and never the live engine checkpoint.
  *  - `fileReviewOn`: a turn's file review is on when the session asks for
  *    it or the run is a plugin-eval try, and off otherwise (the default).
  *  - `reconcileTurnSettlement`: a reconcile turn completes, its rows naming
@@ -19,58 +21,72 @@
  * The phases that fetch and provision are exercised end to end by the
  * hermetic goldens (`activities/execute-cursor/__tests__/hermetic/`), which
  * pin their observable behavior byte for byte; nothing here re-drives a
- * client.
+ * client beyond the one bounded read the reinvocation asks, on a stub.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { fileReviewOn, isReinvocation, reconcileTurnSettlement, regeneratesApprovedWrites } from "../turn-context.js";
+import {
+  ENGINE_EVENT_TYPES,
+  fileReviewOn,
+  isReinvocation,
+  reconcileTurnSettlement,
+  regeneratesApprovedWrites,
+  runEventsReader,
+  runWroteEngineEvents,
+} from "../turn-context.js";
 
 const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
 
-/** An execution with no persisted history (a first run) or with `n` persisted AI rows (a continuation). */
-function executionWithTranscript(rows: number) {
-  return create(RunSchema, {
-    status: {
-      messages: Array.from({ length: rows }, (_, i) =>
-        create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: `row ${i}` }),
-      ),
-    },
-  });
-}
-const FIRST_RUN = executionWithTranscript(0);
-const CONTINUATION = executionWithTranscript(1);
-
 describe("isReinvocation", () => {
   it("engine-minted: an empty state id is a first turn, any id is a resume", () => {
-    expect(isReinvocation("engine-minted", INPUT, FIRST_RUN)).toBe(false);
-    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" }, FIRST_RUN)).toBe(true);
+    expect(isReinvocation("engine-minted", INPUT, false)).toBe(false);
+    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" }, false)).toBe(true);
   });
 
   it("engine-minted: turnSeq is NOT the signal (a pure-reconcile turn does not advance it; the legacy wire shape yields 0)", () => {
-    expect(isReinvocation("engine-minted", { ...INPUT, turnSeq: 3 }, FIRST_RUN)).toBe(false);
-    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42", turnSeq: 0 }, FIRST_RUN)).toBe(true);
+    expect(isReinvocation("engine-minted", { ...INPUT, turnSeq: 3 }, false)).toBe(false);
+    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42", turnSeq: 0 }, false)).toBe(true);
   });
 
-  it("engine-minted: the transcript is NOT the signal (the bound id is; a follow-up turn with a bound id and an empty transcript still resumes the engine)", () => {
-    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" }, FIRST_RUN)).toBe(true);
-    expect(isReinvocation("engine-minted", INPUT, CONTINUATION)).toBe(false);
+  it("engine-minted: the log is NOT the signal (the bound id is; a follow-up turn with a bound id and nothing written still resumes the engine)", () => {
+    expect(isReinvocation("engine-minted", { ...INPUT, threadId: "agent-42" }, false)).toBe(true);
+    expect(isReinvocation("engine-minted", INPUT, true)).toBe(false);
   });
 
-  it("deterministic: the persisted transcript is the signal — empty is a first run, any committed history is a continuation", () => {
-    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1" }, FIRST_RUN)).toBe(false);
-    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1" }, CONTINUATION)).toBe(true);
+  it("deterministic: what the run's engine wrote to the log is the signal — nothing is a first run, any event is a continuation", () => {
+    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1" }, false)).toBe(false);
+    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1" }, true)).toBe(true);
   });
 
   it("deterministic: the thread id is NOT the signal (a deterministic harness has one on its first turn too)", () => {
-    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1", turnSeq: 0 }, FIRST_RUN)).toBe(false);
-    expect(isReinvocation("deterministic", { ...INPUT, threadId: "", turnSeq: 0 }, CONTINUATION)).toBe(true);
+    expect(isReinvocation("deterministic", { ...INPUT, threadId: "thread-ses_1", turnSeq: 0 }, false)).toBe(false);
+    expect(isReinvocation("deterministic", { ...INPUT, threadId: "", turnSeq: 0 }, true)).toBe(true);
+  });
+});
+
+describe("runWroteEngineEvents", () => {
+  it("asks the run's log for one event of the types only the engine's rows produce", async () => {
+    const client = { hasRunSessionEvent: vi.fn(async () => true) };
+    expect(await runWroteEngineEvents(client, "ses_1", "run_1")).toBe(true);
+    expect(client.hasRunSessionEvent).toHaveBeenCalledExactlyOnceWith("ses_1", "run_1", ENGINE_EVENT_TYPES);
+    // The server's user.message, the memory recall and a start's undo say nothing about the engine.
+    expect(ENGINE_EVENT_TYPES).not.toContain("user.message");
+    expect(ENGINE_EVENT_TYPES).not.toContain("stigmer.memory.recalled");
+    expect(ENGINE_EVENT_TYPES).not.toContain("stigmer.file_review.reconciled");
+  });
+});
+
+describe("runEventsReader", () => {
+  it("reads the run's events afresh on each call, and not before", async () => {
+    const client = { listRunSessionEvents: vi.fn(async () => []) };
+    const read = runEventsReader(client, "ses_1", "run_1");
+    expect(client.listRunSessionEvents).not.toHaveBeenCalled();
+    await read();
+    await read();
+    expect(client.listRunSessionEvents.mock.calls).toEqual([["ses_1", "run_1"], ["ses_1", "run_1"]]);
   });
 });
 

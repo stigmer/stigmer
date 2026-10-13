@@ -4,7 +4,7 @@
  * and the ids it replaced are the runner's to write (through the session's
  * bindHarnessState door), so they left SessionSpec, as fields 3
  * (harness_state_id) and 13 (harness_state_id_history), for SessionStatus
- * fields 4 and 5. The drivers own the SQL; this module owns what one row
+ * fields 5 and 6. The drivers own the SQL; this module owns what one row
  * becomes.
  *
  * A session stored before the move holds the two spec fields, which the

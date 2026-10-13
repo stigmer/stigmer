@@ -41,6 +41,16 @@ message SessionStatus {
   // re-attributes someone else's attachment.
   map<string, string> vault_attachers = 3;
 
+  // Whether the session is working: running (a turn works) or idle (it
+  // waits for input), the newest session.status_running or
+  // session.status_idle event's word. A session none of whose turns ever
+  // worked reads idle.
+  //
+  // @internal
+  // Computed from the session's events on every read and never stored: a
+  // value sent on a write is ignored.
+  string state = 4;
+
   // Harness-specific state identifier for conversation continuity.
   //
   // Populated after the first run completes; empty until then.
@@ -59,7 +69,7 @@ message SessionStatus {
   // acting for one of the session's runs. Also serves as the immutability
   // sentinel: when non-empty, the session's harness and cursor_mode cannot
   // be changed — each harness owns its conversation state independently.
-  string harness_state_id = 4;
+  string harness_state_id = 5;
 
   // Prior harness state identifiers this session has owned, oldest first.
   //
@@ -72,5 +82,5 @@ message SessionStatus {
   // Billing reconciliation joins Cursor ledger events on the union of
   // current + prior ids; dropping a replaced id would orphan the ledger
   // events of every turn that ran under it.
-  repeated string harness_state_id_history = 5;
+  repeated string harness_state_id_history = 6;
 }

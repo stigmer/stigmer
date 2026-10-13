@@ -16,6 +16,8 @@
  *     counts and names;
  *   - the organization report's top agents order by tokens and its total
  *     is the sum of its runs;
+ *   - the session report counts each run's sub-agents from the
+ *     `session.thread_created` events of its session's log, not its row;
  *   - a store fault on the index read, or on a session's harness read,
  *     fails the report as Internal, and an index row that will not decode
  *     is skipped while the rest are counted.
@@ -58,6 +60,10 @@ import type {
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
+import {
+  RunEventsBuilder,
+  appendRunEvents,
+} from "../../session/events/__tests__/run-events-fixture.js";
 import { agentExecutionListIndex } from "../list-index.js";
 import {
   getAgentUsageReport,
@@ -248,6 +254,32 @@ describe("a run counted from its runner's report", () => {
     expect(report.totalUsage?.totalTokens).toBe(46_965n);
     expect(report.totalUsage?.primaryProvider).toBe("cursor");
     expect(report.runs.map((r) => [r.runId, r.totalTokens, r.isEstimated])).toEqual([["run_cursor_1", 46_965n, true]]);
+  });
+});
+
+describe("the session report's sub-agent count", () => {
+  it("counts each run's sub-agent threads from its session's events, not its row", async () => {
+    await seedSession("ses_threads", "org_threads", Harness.NATIVE);
+    await seedRun("run_threads_a", { org: "org_threads", sessionId: "ses_threads", startedAt: "2026-10-13T09:00:00Z" });
+    await seedRun("run_threads_b", { org: "org_threads", sessionId: "ses_threads", startedAt: "2026-10-13T10:00:00Z" });
+    await appendRunEvents(
+      store,
+      "ses_threads",
+      "org_threads",
+      new RunEventsBuilder("run_threads_a")
+        .threadCreated("run_threads_a.t1", "researcher")
+        .threadCreated("run_threads_a.t2", "writer")
+        .build(),
+    );
+    const report = await getSessionUsageReport(
+      deps(),
+      create(GetSessionUsageReportInputSchema, { sessionId: "ses_threads" }),
+      testCallerIdentity(),
+    );
+    expect(report.runs.map((r) => [r.runId, r.subAgentCount])).toEqual([
+      ["run_threads_a", 2],
+      ["run_threads_b", 0],
+    ]);
   });
 });
 

@@ -225,6 +225,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     writeback: null,
     evalMocks: undefined,
     evalReadFiles: undefined,
+    runWroteEvents: false,
   };
   const stop = new StopController();
   let usage: UsageAccumulator | undefined;
@@ -366,11 +367,12 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
 
   async function runEngineTurn(turn: TurnInput): Promise<Settled> {
     // The emitter starts with the engine's turn, after the reinvocation's
-    // seed: a run that already persisted rows, or an attempt Temporal
-    // retried, reads back what it already wrote first.
+    // seed: a run whose engine already wrote to the log (the reinvocation
+    // phase's read), or an attempt Temporal retried, reads back what it
+    // already wrote first.
     await events.begin({
       sessionId: turn.sessionId,
-      resumed: (turn.execution.status?.messages.length ?? 0) > 0 || activity.info.attempt > 1,
+      resumed: frame.runWroteEvents || activity.info.attempt > 1,
       status,
     });
     runSpan.model(turn.model.requested);

@@ -87,7 +87,7 @@ import { watch } from "node:fs";
 import { writeFile, readFile, mkdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
@@ -96,6 +96,8 @@ import { extractArgKey, approvalCategory, resolveApprovalMessage, POLICY_ENGINE_
 import { DESTRUCTIVE_MCP_APPROVAL_MESSAGE } from "../../shared/approval-policy.js";
 import { encodeHookToolScope, SCOPE_KEY_PREFIX, UNRESTRICTED_HOOK_SCOPE, type HookToolScope } from "./hook-scope.js";
 import { contentDigest } from "../../shared/file-tools.js";
+import type { ApprovalAsk } from "../../harness/approval-answers.js";
+import { toolUseEventId } from "../../harness/events/ids.js";
 import {
   fingerprintCoarseIdentity,
   type FingerprintKey,
@@ -185,7 +187,8 @@ export interface ApprovalGrant {
   contentDigest: string;
   /**
    * Id of the adjudicated tool call this grant was minted from — the transcript
-   * row carrying the SERVER-authored approval_action. The approved-command
+   * row carrying the person's answer (approval_action, copied from the log at
+   * the seed). The approved-command
    * auto-keep provenance cites this row as the consent the backend can
    * verify; the hook itself never reads it.
    */
@@ -1009,21 +1012,21 @@ export async function removeActiveTurnPointer(gateDir: string): Promise<void> {
 }
 
 /**
- * Reconstruct the adjudicated approvals for a HITL reinvocation directly from
- * the tool calls in messages.
+ * Reconstruct the adjudicated approvals for a HITL reinvocation from the
+ * root rows still WAITING_APPROVAL and the session's log.
  *
- * The tool call — not pending_approvals — is the source of truth for an approval
- * decision. The backend projects pending_approvals from tool-call status
- * (PendingApprovalComputer) and CLEARS entries once they carry an approval_action,
- * so by the time the workflow reinvokes this activity, pending_approvals is empty
- * and the decision survives only on the tool call (status WAITING_APPROVAL +
- * approval_action set). The runtime reads the decisions themselves from the
- * answers on the session's log, mapped onto the same rows
- * (`harness/approval-answers.ts`, on `TurnInput.approvalDecisions`, for every
- * harness); the server stamps the row in the same write. This reader exists for
- * the two facts only this harness needs beside them — the pending-approval
- * protos the grant and prompt builders take, and the content digests for the
- * exact grant — and a test pins the two readers' agreement.
+ * The row set is the seeded transcript's waiting rows, the set the runtime
+ * resumes by; the backend's pending_approvals projection is empty by the
+ * time the workflow reinvokes this activity. Everything a person or a rule
+ * said about a row comes from the log, read once by the runtime's door
+ * (`harness/approval-answers.ts`) and handed over on `TurnInput`: the
+ * verdict from `approvalDecisions` (a row with none is unanswered and left
+ * out), and from the call's `stigmer.permission.asked` (`approvalAsks`, by
+ * the row's tool use id) whether a hook asked and the content digest it was
+ * asked under. This reader exists for the facts only this harness needs
+ * beside the verdicts — the pending-approval protos the grant and prompt
+ * builders take, the content digests for the exact grant, and the hook asks
+ * — and a test pins its agreement with the runtime's map.
  *
  * Returns a PendingApproval list reconstructed from those tool calls (so the
  * existing grant/prompt builders work unchanged) alongside the decision map.
@@ -1032,20 +1035,32 @@ export interface AdjudicatedApprovals {
   pendingApprovals: PendingApproval[];
   decisions: Map<string, ApprovalAction>;
   /**
-   * tool-call id -> content digest of the approved edit, for the content-exact
-   * grant. Sourced from the persisted `approval_content_digest` field (stable,
-   * immune to the size-limit elision that can drop `args`), falling back to a
-   * recompute from `args` only when the field is absent (an execution that
-   * predates the field). Empty for a non-content tool — the grant then degrades
-   * to the coarse token.
+   * tool-call id -> the content digest the call was asked under, for the
+   * content-exact grant: the ask's `content_digest`, written from the gate's
+   * authoritative captured input (immune to the size-limit elision that can
+   * drop `args`). A hook's ask carries its whole-input digest
+   * ({@link hookAskDigest}), which binds the grant to that exact call. Empty
+   * for a non-content tool, and for an ask the log holds no digest for — the
+   * grant then degrades to the coarse token.
    */
   contentDigests: Map<string, string>;
   /** The approvals a hook asked for, by tool-call id: a refusal of one binds that exact call ({@link buildPersonRefusals}). */
   hookAsked: Set<string>;
 }
 
+/** What the runtime read from the log for this run (`TurnInput`): the verdicts by tool-call id, the asks by tool use id. */
+export interface LoggedApprovals {
+  readonly runId: string;
+  readonly decisions: ReadonlyMap<string, ApprovalAction>;
+  readonly asks: ReadonlyMap<string, ApprovalAsk>;
+}
+
+/** The ask's policy source word when a hook asked (`harness/events/emitter.ts` `POLICY_SOURCE_WORDS`, the contract's `policy_source` word). */
+const HOOK_POLICY_SOURCE_WORD = "hook";
+
 export function reconstructAdjudicatedApprovals(
-  messages: AgentMessage[],
+  messages: readonly AgentMessage[],
+  logged: LoggedApprovals,
 ): AdjudicatedApprovals {
   const pendingApprovals: PendingApproval[] = [];
   const decisions = new Map<string, ApprovalAction>();
@@ -1055,18 +1070,13 @@ export function reconstructAdjudicatedApprovals(
   for (const msg of messages) {
     for (const tc of msg.toolCalls) {
       if (tc.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) continue;
-      if (tc.approvalAction === ApprovalAction.UNSPECIFIED) continue;
+      const decision = logged.decisions.get(tc.id);
+      if (decision === undefined || decision === ApprovalAction.UNSPECIFIED) continue;
 
-      decisions.set(tc.id, tc.approvalAction);
-      if (tc.approvalPolicySource === ApprovalPolicySource.HOOK) hookAsked.add(tc.id);
-      // Prefer the persisted digest (set at the gate from the authoritative
-      // captured input, and never elided); recompute from args only for an
-      // execution that predates the field.
-      contentDigests.set(
-        tc.id,
-        tc.approvalContentDigest ||
-          (tc.args ? contentDigest(tc.args as Record<string, unknown>) : ""),
-      );
+      decisions.set(tc.id, decision);
+      const ask = logged.asks.get(toolUseEventId(logged.runId, tc.id));
+      if (ask?.policySource === HOOK_POLICY_SOURCE_WORD) hookAsked.add(tc.id);
+      contentDigests.set(tc.id, ask?.contentDigest ?? "");
       pendingApprovals.push(
         create(PendingApprovalSchema, {
           toolCallId: tc.id,

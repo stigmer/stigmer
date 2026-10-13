@@ -139,7 +139,7 @@ describe("ExecuteDeepAgent hermetic — a session saved with a think call resume
     const record = deepAgentExecutionRecord({ message: THINK_RETIREMENT_MESSAGE });
     const scenario = beginDeepAgentScenario({ env, clock, record, checkpointer: "sqlite", script: SCRIPT });
     await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-    record.applyStatusUpdate(fromJson(RunStatusSchema, fixture.status));
+    await record.restorePausedTurn(fromJson(RunStatusSchema, fixture.status));
     // The approval arrives after the pause, as it does live; the resumed
     // turn's checkpoints must sort after the paused one they continue.
     clock.tick(RESUME_AFTER_MS);

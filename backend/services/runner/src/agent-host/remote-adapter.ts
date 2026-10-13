@@ -49,6 +49,7 @@ import {
   decodeCasSnapshot,
   decodeMessage,
   encodeMessage,
+  encodeRunEvents,
   encodeTurnInput, encodeOffloads } from "./codec.js";
 import { fromWireError, type WireError, type WireOutcome } from "./protocol.js";
 import type { AgentHostSupervisor, RemoteTurnEndpoint } from "./supervisor.js";
@@ -178,6 +179,7 @@ class RemoteTurn {
           await plugin.verify();
           return null;
         },
+        readRunEvents: async () => encodeRunEvents(await input.readRunEvents()),
       },
       notices: {
         activity: ({ detail }) => sink.recordActivity(detail ?? undefined),

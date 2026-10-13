@@ -34,9 +34,7 @@ private static final long serialVersionUID = 0L;
   private SessionStatus() {
     agentId_ = "";
     agentVersionHash_ = "";
-    harnessStateId_ = "";
-    harnessStateIdHistory_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
+    state_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -321,142 +319,57 @@ java.lang.String defaultValue) {
     return map.get(key);
   }
 
-  public static final int HARNESS_STATE_ID_FIELD_NUMBER = 4;
+  public static final int STATE_FIELD_NUMBER = 4;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object harnessStateId_ = "";
+  private volatile java.lang.Object state_ = "";
   /**
    * <pre>
-   * Harness-specific state identifier for conversation continuity.
-   *
-   * Populated after the first run completes; empty until then.
-   * Each harness uses this field differently:
-   *
-   * - NATIVE: LangGraph thread ID, derived deterministically as
-   * "thread-{session_id}" by the EnsureThread activity. Stored here
-   * so the immutability sentinel works uniformly across harnesses.
-   *
-   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-   * returned by Agent.create(). Used for Agent.resume() on
-   * subsequent runs.
+   * Whether the session is working: running (a turn works) or idle (it
+   * waits for input), the newest session.status_running or
+   * session.status_idle event's word. A session none of whose turns ever
+   * worked reads idle.
    * </pre>
    *
-   * <code>string harness_state_id = 4 [json_name = "harnessStateId"];</code>
-   * @return The harnessStateId.
+   * <code>string state = 4 [json_name = "state"];</code>
+   * @return The state.
    */
   @java.lang.Override
-  public java.lang.String getHarnessStateId() {
-    java.lang.Object ref = harnessStateId_;
+  public java.lang.String getState() {
+    java.lang.Object ref = state_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      harnessStateId_ = s;
+      state_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Harness-specific state identifier for conversation continuity.
-   *
-   * Populated after the first run completes; empty until then.
-   * Each harness uses this field differently:
-   *
-   * - NATIVE: LangGraph thread ID, derived deterministically as
-   * "thread-{session_id}" by the EnsureThread activity. Stored here
-   * so the immutability sentinel works uniformly across harnesses.
-   *
-   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-   * returned by Agent.create(). Used for Agent.resume() on
-   * subsequent runs.
+   * Whether the session is working: running (a turn works) or idle (it
+   * waits for input), the newest session.status_running or
+   * session.status_idle event's word. A session none of whose turns ever
+   * worked reads idle.
    * </pre>
    *
-   * <code>string harness_state_id = 4 [json_name = "harnessStateId"];</code>
-   * @return The bytes for harnessStateId.
+   * <code>string state = 4 [json_name = "state"];</code>
+   * @return The bytes for state.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getHarnessStateIdBytes() {
-    java.lang.Object ref = harnessStateId_;
+      getStateBytes() {
+    java.lang.Object ref = state_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      harnessStateId_ = b;
+      state_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
-  }
-
-  public static final int HARNESS_STATE_ID_HISTORY_FIELD_NUMBER = 5;
-  @SuppressWarnings("serial")
-  private com.google.protobuf.LazyStringArrayList harnessStateIdHistory_ =
-      com.google.protobuf.LazyStringArrayList.emptyList();
-  /**
-   * <pre>
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   * </pre>
-   *
-   * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-   * @return A list containing the harnessStateIdHistory.
-   */
-  public com.google.protobuf.ProtocolStringList
-      getHarnessStateIdHistoryList() {
-    return harnessStateIdHistory_;
-  }
-  /**
-   * <pre>
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   * </pre>
-   *
-   * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-   * @return The count of harnessStateIdHistory.
-   */
-  public int getHarnessStateIdHistoryCount() {
-    return harnessStateIdHistory_.size();
-  }
-  /**
-   * <pre>
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   * </pre>
-   *
-   * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-   * @param index The index of the element to return.
-   * @return The harnessStateIdHistory at the given index.
-   */
-  public java.lang.String getHarnessStateIdHistory(int index) {
-    return harnessStateIdHistory_.get(index);
-  }
-  /**
-   * <pre>
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   * </pre>
-   *
-   * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-   * @param index The index of the value to return.
-   * @return The bytes of the harnessStateIdHistory at the given index.
-   */
-  public com.google.protobuf.ByteString
-      getHarnessStateIdHistoryBytes(int index) {
-    return harnessStateIdHistory_.getByteString(index);
   }
 
   private byte memoizedIsInitialized = -1;
@@ -485,11 +398,8 @@ java.lang.String defaultValue) {
         internalGetVaultAttachers(),
         VaultAttachersDefaultEntryHolder.defaultEntry,
         3);
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harnessStateId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, harnessStateId_);
-    }
-    for (int i = 0; i < harnessStateIdHistory_.size(); i++) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 5, harnessStateIdHistory_.getRaw(i));
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(state_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, state_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -519,16 +429,8 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(3, vaultAttachers__);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harnessStateId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, harnessStateId_);
-    }
-    {
-      int dataSize = 0;
-      for (int i = 0; i < harnessStateIdHistory_.size(); i++) {
-        dataSize += computeStringSizeNoTag(harnessStateIdHistory_.getRaw(i));
-      }
-      size += dataSize;
-      size += 1 * getHarnessStateIdHistoryList().size();
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(state_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, state_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -560,10 +462,8 @@ java.lang.String defaultValue) {
         .equals(other.getAgentVersionHash())) return false;
     if (!internalGetVaultAttachers().equals(
         other.internalGetVaultAttachers())) return false;
-    if (!getHarnessStateId()
-        .equals(other.getHarnessStateId())) return false;
-    if (!getHarnessStateIdHistoryList()
-        .equals(other.getHarnessStateIdHistoryList())) return false;
+    if (!getState()
+        .equals(other.getState())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -587,12 +487,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + VAULT_ATTACHERS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetVaultAttachers().hashCode();
     }
-    hash = (37 * hash) + HARNESS_STATE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getHarnessStateId().hashCode();
-    if (getHarnessStateIdHistoryCount() > 0) {
-      hash = (37 * hash) + HARNESS_STATE_ID_HISTORY_FIELD_NUMBER;
-      hash = (53 * hash) + getHarnessStateIdHistoryList().hashCode();
-    }
+    hash = (37 * hash) + STATE_FIELD_NUMBER;
+    hash = (53 * hash) + getState().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -764,9 +660,7 @@ java.lang.String defaultValue) {
       agentId_ = "";
       agentVersionHash_ = "";
       internalGetMutableVaultAttachers().clear();
-      harnessStateId_ = "";
-      harnessStateIdHistory_ =
-          com.google.protobuf.LazyStringArrayList.emptyList();
+      state_ = "";
       return this;
     }
 
@@ -818,11 +712,7 @@ java.lang.String defaultValue) {
         result.vaultAttachers_.makeImmutable();
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.harnessStateId_ = harnessStateId_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
-        harnessStateIdHistory_.makeImmutable();
-        result.harnessStateIdHistory_ = harnessStateIdHistory_;
+        result.state_ = state_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -855,19 +745,9 @@ java.lang.String defaultValue) {
       internalGetMutableVaultAttachers().mergeFrom(
           other.internalGetVaultAttachers());
       bitField0_ |= 0x00000008;
-      if (!other.getHarnessStateId().isEmpty()) {
-        harnessStateId_ = other.harnessStateId_;
+      if (!other.getState().isEmpty()) {
+        state_ = other.state_;
         bitField0_ |= 0x00000010;
-        onChanged();
-      }
-      if (!other.harnessStateIdHistory_.isEmpty()) {
-        if (harnessStateIdHistory_.isEmpty()) {
-          harnessStateIdHistory_ = other.harnessStateIdHistory_;
-          bitField0_ |= 0x00000020;
-        } else {
-          ensureHarnessStateIdHistoryIsMutable();
-          harnessStateIdHistory_.addAll(other.harnessStateIdHistory_);
-        }
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -916,15 +796,10 @@ java.lang.String defaultValue) {
               break;
             } // case 26
             case 34: {
-              harnessStateId_ = input.readStringRequireUtf8();
+              state_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000010;
               break;
             } // case 34
-            case 42: {
-              ensureHarnessStateIdHistoryIsMutable();
-              harnessStateIdHistory_.add(input.readStringRequireUtf8());
-              break;
-            } // case 42
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1499,33 +1374,25 @@ java.lang.String defaultValue) {
       return this;
     }
 
-    private java.lang.Object harnessStateId_ = "";
+    private java.lang.Object state_ = "";
     /**
      * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then.
-     * Each harness uses this field differently:
-     *
-     * - NATIVE: LangGraph thread ID, derived deterministically as
-     * "thread-{session_id}" by the EnsureThread activity. Stored here
-     * so the immutability sentinel works uniformly across harnesses.
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
      * </pre>
      *
-     * <code>string harness_state_id = 4 [json_name = "harnessStateId"];</code>
-     * @return The harnessStateId.
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @return The state.
      */
-    public java.lang.String getHarnessStateId() {
-      java.lang.Object ref = harnessStateId_;
+    public java.lang.String getState() {
+      java.lang.Object ref = state_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        harnessStateId_ = s;
+        state_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -1533,31 +1400,23 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then.
-     * Each harness uses this field differently:
-     *
-     * - NATIVE: LangGraph thread ID, derived deterministically as
-     * "thread-{session_id}" by the EnsureThread activity. Stored here
-     * so the immutability sentinel works uniformly across harnesses.
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
      * </pre>
      *
-     * <code>string harness_state_id = 4 [json_name = "harnessStateId"];</code>
-     * @return The bytes for harnessStateId.
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @return The bytes for state.
      */
     public com.google.protobuf.ByteString
-        getHarnessStateIdBytes() {
-      java.lang.Object ref = harnessStateId_;
+        getStateBytes() {
+      java.lang.Object ref = state_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        harnessStateId_ = b;
+        state_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -1565,266 +1424,59 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then.
-     * Each harness uses this field differently:
-     *
-     * - NATIVE: LangGraph thread ID, derived deterministically as
-     * "thread-{session_id}" by the EnsureThread activity. Stored here
-     * so the immutability sentinel works uniformly across harnesses.
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
      * </pre>
      *
-     * <code>string harness_state_id = 4 [json_name = "harnessStateId"];</code>
-     * @param value The harnessStateId to set.
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @param value The state to set.
      * @return This builder for chaining.
      */
-    public Builder setHarnessStateId(
+    public Builder setState(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      harnessStateId_ = value;
+      state_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then.
-     * Each harness uses this field differently:
-     *
-     * - NATIVE: LangGraph thread ID, derived deterministically as
-     * "thread-{session_id}" by the EnsureThread activity. Stored here
-     * so the immutability sentinel works uniformly across harnesses.
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
      * </pre>
      *
-     * <code>string harness_state_id = 4 [json_name = "harnessStateId"];</code>
+     * <code>string state = 4 [json_name = "state"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearHarnessStateId() {
-      harnessStateId_ = getDefaultInstance().getHarnessStateId();
+    public Builder clearState() {
+      state_ = getDefaultInstance().getState();
       bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Harness-specific state identifier for conversation continuity.
-     *
-     * Populated after the first run completes; empty until then.
-     * Each harness uses this field differently:
-     *
-     * - NATIVE: LangGraph thread ID, derived deterministically as
-     * "thread-{session_id}" by the EnsureThread activity. Stored here
-     * so the immutability sentinel works uniformly across harnesses.
-     *
-     * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-     * returned by Agent.create(). Used for Agent.resume() on
-     * subsequent runs.
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
      * </pre>
      *
-     * <code>string harness_state_id = 4 [json_name = "harnessStateId"];</code>
-     * @param value The bytes for harnessStateId to set.
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @param value The bytes for state to set.
      * @return This builder for chaining.
      */
-    public Builder setHarnessStateIdBytes(
+    public Builder setStateBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      harnessStateId_ = value;
+      state_ = value;
       bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-
-    private com.google.protobuf.LazyStringArrayList harnessStateIdHistory_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-    private void ensureHarnessStateIdHistoryIsMutable() {
-      if (!harnessStateIdHistory_.isModifiable()) {
-        harnessStateIdHistory_ = new com.google.protobuf.LazyStringArrayList(harnessStateIdHistory_);
-      }
-      bitField0_ |= 0x00000020;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @return A list containing the harnessStateIdHistory.
-     */
-    public com.google.protobuf.ProtocolStringList
-        getHarnessStateIdHistoryList() {
-      harnessStateIdHistory_.makeImmutable();
-      return harnessStateIdHistory_;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @return The count of harnessStateIdHistory.
-     */
-    public int getHarnessStateIdHistoryCount() {
-      return harnessStateIdHistory_.size();
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @param index The index of the element to return.
-     * @return The harnessStateIdHistory at the given index.
-     */
-    public java.lang.String getHarnessStateIdHistory(int index) {
-      return harnessStateIdHistory_.get(index);
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the harnessStateIdHistory at the given index.
-     */
-    public com.google.protobuf.ByteString
-        getHarnessStateIdHistoryBytes(int index) {
-      return harnessStateIdHistory_.getByteString(index);
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @param index The index to set the value at.
-     * @param value The harnessStateIdHistory to set.
-     * @return This builder for chaining.
-     */
-    public Builder setHarnessStateIdHistory(
-        int index, java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureHarnessStateIdHistoryIsMutable();
-      harnessStateIdHistory_.set(index, value);
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @param value The harnessStateIdHistory to add.
-     * @return This builder for chaining.
-     */
-    public Builder addHarnessStateIdHistory(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      ensureHarnessStateIdHistoryIsMutable();
-      harnessStateIdHistory_.add(value);
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @param values The harnessStateIdHistory to add.
-     * @return This builder for chaining.
-     */
-    public Builder addAllHarnessStateIdHistory(
-        java.lang.Iterable<java.lang.String> values) {
-      ensureHarnessStateIdHistoryIsMutable();
-      com.google.protobuf.AbstractMessageLite.Builder.addAll(
-          values, harnessStateIdHistory_);
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearHarnessStateIdHistory() {
-      harnessStateIdHistory_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000020);;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Prior harness state identifiers this session has owned, oldest first.
-     *
-     * A session can span multiple harness-side conversations: when the
-     * cursor-runner's resume fails, it creates a fresh Cursor agent and
-     * replaces harness_state_id, and the replaced id lands here.
-     * </pre>
-     *
-     * <code>repeated string harness_state_id_history = 5 [json_name = "harnessStateIdHistory"];</code>
-     * @param value The bytes of the harnessStateIdHistory to add.
-     * @return This builder for chaining.
-     */
-    public Builder addHarnessStateIdHistoryBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      ensureHarnessStateIdHistoryIsMutable();
-      harnessStateIdHistory_.add(value);
-      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }

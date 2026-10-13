@@ -254,6 +254,7 @@ describe("the chain writers and store faults", () => {
             runOfNewestType: undefined,
             othersWaiting: [],
             gates: [],
+            runEvents: [],
           });
           throw new Error("unreachable");
         },

@@ -19,6 +19,10 @@
  *     an echo of a skill deleted since the session named it passes (the
  *     runner's harness-state write-back sends the whole row);
  *   - list leaves out a plugin eval's tries, which get still answers;
+ *   - a session's state is computed from its event log on every read (get,
+ *     list, listByAgent): idle when fresh, running while its newest status
+ *     event says so; never stored, and a state a client sends on create or
+ *     update is dropped before the write;
  *   - listByAgent answers the sessions whose pin names the agent (a plugin
  *     eval's tries left out), and
  *     refuses an empty agent_id, at the filter step as well as at proto
@@ -102,6 +106,10 @@ import {
   type OrganizationIds,
 } from "../../organization/__tests__/support.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import {
+  RunEventsBuilder,
+  appendRunEvents,
+} from "../events/__tests__/run-events-fixture.js";
 import {
   visibilityWrite,
   writeLandsMidUpdate,
@@ -525,6 +533,55 @@ describe("session list — a plugin eval's tries", () => {
     for (const session of [chat, evalTry]) {
       await command.delete({ value: session.metadata!.id });
     }
+  });
+});
+
+describe("session state — computed from the log on every read, never stored", () => {
+  it("reads idle on a fresh session and what the newest status event says after, on get, list and listByAgent", async () => {
+    const agent = await createAgent("State agent");
+    const session = await createSession({ agentRef: agentRef(agent.metadata!.slug) });
+    const id = session.metadata!.id;
+    const listed = async () =>
+      (await query.list({ org: orgIds.get(ORG)! })).entries.find((s) => s.metadata?.id === id)?.status?.state;
+    const byAgent = async () =>
+      (await query.listByAgent({ agentId: agent.metadata!.id })).entries.map((s) => s.status?.state);
+
+    expect((await query.get({ value: id })).status?.state).toBe("idle");
+    expect(await listed()).toBe("idle");
+    expect(await byAgent()).toEqual(["idle"]);
+
+    const runId = await seedExecution(id, RunPhase.RUN_COMPLETED);
+    await appendRunEvents(server.store, id, ORG, new RunEventsBuilder(runId).sessionStatus("running").build());
+    expect((await query.get({ value: id })).status?.state).toBe("running");
+    expect(await listed()).toBe("running");
+    expect(await byAgent()).toEqual(["running"]);
+    const stored = await server.store.getResource(ApiResourceKind.session, id, SessionSchema);
+    expect(stored.status?.state, "the row never holds it").toBe("");
+
+    await appendRunEvents(server.store, id, ORG, new RunEventsBuilder(runId, 2).sessionStatus("idle").build());
+    expect((await query.get({ value: id })).status?.state).toBe("idle");
+
+    await command.delete({ value: id });
+  });
+
+  it("drops a state a client sends on create and on update", async () => {
+    const created = await command.create({
+      apiVersion: API_VERSION,
+      kind: "Session",
+      metadata: { name: "Session sending a state", org: ORG },
+      spec: {},
+      status: { state: "running" },
+    });
+    const id = created.metadata!.id;
+    const storedState = async () =>
+      (await server.store.getResource(ApiResourceKind.session, id, SessionSchema)).status?.state;
+    expect(await storedState()).toBe("");
+
+    await command.update({ ...updateInput(created, { subject: "renamed" }), status: { state: "running" } });
+    expect(await storedState()).toBe("");
+    expect((await query.get({ value: id })).status?.state).toBe("idle");
+
+    await command.delete({ value: id });
   });
 });
 

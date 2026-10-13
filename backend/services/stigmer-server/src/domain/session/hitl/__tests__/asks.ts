@@ -1,13 +1,16 @@
 /**
  * Test support: writes into a session's log the asks a runner writes for a
  * run's waiting rows (an `agent.tool_use`, or `agent.mcp_tool_use`, with
- * evaluated_permission `ask`, under the id the runner derives), so a test
- * that seeds a gated run straight into the store holds the log the server
- * decides what waits from. Rows of a sub-agent are written in its thread.
+ * evaluated_permission `ask`, under the id the runner derives, and its
+ * `stigmer.permission.asked` with the row's policy source as one word and
+ * its hook), so a test that seeds a gated run straight into the store
+ * holds the log the server decides what waits from. Rows of a sub-agent
+ * are written in its thread.
  */
 import { create } from "@bufbuild/protobuf";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalPolicySourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
@@ -21,9 +24,23 @@ import { draftOf } from "../../events/codec.js";
 import { toolUseEventId } from "../../events/ids.js";
 import { sessionIdOfRun } from "../../events/transitions.js";
 
-function askOf(runId: string, call: ToolCall, threadId: string): SessionEvent {
+/** The asked event's word for a row's policy source: the enum's name without its prefix, "" for none. */
+function policySourceWord(call: ToolCall): string {
+  const value = ApprovalPolicySourceSchema.values.find((v) => v.number === call.approvalPolicySource);
+  return value === undefined || value.number === 0 ? "" : value.name.slice("APPROVAL_POLICY_SOURCE_".length).toLowerCase();
+}
+
+function askOf(runId: string, call: ToolCall, threadId: string): SessionEvent[] {
   const id = toolUseEventId(runId, call.id);
-  return create(SessionEventSchema, {
+  const asked = create(SessionEventSchema, {
+    runId,
+    threadId,
+    event: {
+      case: "stigmerPermissionAsked",
+      value: { id: `${id}.ask`, toolUseId: id, policySource: policySourceWord(call), policyHook: call.approvalPolicyHook },
+    },
+  });
+  const use = create(SessionEventSchema, {
     runId,
     threadId,
     event:
@@ -44,6 +61,7 @@ function askOf(runId: string, call: ToolCall, threadId: string): SessionEvent {
             },
           },
   });
+  return [use, asked];
 }
 
 /** The ask events of every row of `run` that asked, as the runner writes them. */
@@ -53,7 +71,7 @@ export function asksOf(run: Run): SessionEvent[] {
   for (const message of run.status?.messages ?? []) {
     for (const call of message.toolCalls) {
       if (call.requiresApproval) {
-        asks.push(askOf(runId, call, ""));
+        asks.push(...askOf(runId, call, ""));
       }
     }
   }
@@ -62,7 +80,7 @@ export function asksOf(run: Run): SessionEvent[] {
     for (const message of subAgent.messages) {
       for (const call of message.toolCalls) {
         if (call.requiresApproval) {
-          asks.push(askOf(runId, call, threadId));
+          asks.push(...askOf(runId, call, threadId));
         }
       }
     }
@@ -70,11 +88,16 @@ export function asksOf(run: Run): SessionEvent[] {
   return asks;
 }
 
-/** Appends the stored run's asks to its session's log; none for a run in no session. */
-export async function appendAsks(store: Store, runId: string): Promise<void> {
+/**
+ * Appends the stored run's asks to its session's log, or only those of
+ * the calls `callIds` names; none for a run in no session.
+ */
+export async function appendAsks(store: Store, runId: string, callIds?: ReadonlyArray<string>): Promise<void> {
   const run = await store.getResource(ApiResourceKind.run, runId, RunSchema);
   const sessionId = sessionIdOfRun(run);
-  const asks = asksOf(run);
+  const asks = asksOf(run).filter(
+    (ask) => callIds === undefined || callIds.some((callId) => ask.event.value?.id.startsWith(toolUseEventId(runId, callId)) === true),
+  );
   if (sessionId === "" || asks.length === 0) {
     return;
   }

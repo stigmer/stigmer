@@ -16,6 +16,8 @@
  *    gets each plugin server listed at turn start, and the default asks for
  *    the destructive tools and every tool of an unlisted server; one that
  *    reads them itself gets no listing and a default of the leases alone;
+ *  - the leases are the run's grants (read from the log by the
+ *    reinvocation phase) and its pre-armed bypass;
  *  - a server the lists exclude whole is not connected, while a server
  *    excluded tool by tool and the platform's own still are (#2106):
  *    `callableServers` is the one filter, applied before the tool listing
@@ -56,6 +58,7 @@ import {
 } from "../turn-context.js";
 import { caseArchiveOf } from "../../shared/plugin-eval/case-archive.js";
 import { ToolScope } from "../../shared/tool-lists.js";
+import { hookLeaseKey, type LeaseGrant } from "../../shared/approval-policy.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { CHANNEL_ATTACHMENT_SLUG } from "../../shared/channel-attachment.js";
@@ -141,6 +144,7 @@ function args(options: {
   readonly plugins?: Plugin[];
   readonly values?: RunValues;
   readonly readsToolMarks?: boolean;
+  readonly grants?: ReadonlyMap<string, LeaseGrant>;
 }) {
   const session = create(SessionSchema, {
     metadata: create(ApiResourceMetadataSchema, {
@@ -180,6 +184,7 @@ function args(options: {
     blueprint,
     values: options.values ?? NO_RUN_VALUES,
     readsToolMarks: options.readsToolMarks ?? true,
+    grants: options.grants ?? new Map<string, LeaseGrant>(),
   };
 }
 
@@ -304,6 +309,24 @@ describe("resolveMcpServersAndPolicies — the plugins' servers", () => {
     expect(mcp.mcpDefault.leasedServers).toBe(mcp.leases.servers);
   });
 
+  it("arms the leases the run's grants name, and the run's pre-armed bypass, and nothing from the rows", async () => {
+    const turn = args({
+      attachments: false,
+      grants: new Map<string, LeaseGrant>([
+        ["run_1.c1", { category: "", server: "plugin_linear_api", hook: undefined, tool: "" }],
+        ["run_1.c2", { category: "shell", server: "", hook: undefined, tool: "" }],
+        ["run_1.c3", { category: "", server: "", hook: "safety", tool: "execute" }],
+      ]),
+    });
+    turn.execution.spec!.autoApproveAll = true;
+    const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), turn);
+    expect([...mcp.leases.servers]).toEqual(["plugin_linear_api"]);
+    expect([...mcp.leases.categories]).toEqual(["shell"]);
+    expect([...mcp.leases.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);
+    expect(mcp.leases.global).toBe(true);
+    expect(mcp.mcpDefault.leasedServers).toBe(mcp.leases.servers);
+  });
+
   it("lists nothing when the turn has no plugin server", async () => {
     const mcp = await resolveMcpServersAndPolicies(
       deps({ channels: false }),
@@ -379,6 +402,7 @@ describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' p
     writeback: null,
     evalMocks: undefined,
     evalReadFiles: undefined,
+    runWroteEvents: false,
   });
 
   /**

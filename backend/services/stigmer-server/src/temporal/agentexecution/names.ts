@@ -102,3 +102,17 @@ export const VALUES_FETCHED_PATCH_ID = "values-fetched-from-vaults";
  * so a replay of it makes none. Byte-pinned.
  */
 export const CLOSE_FILE_REVIEW_PATCH_ID = "close-file-review";
+
+/**
+ * The count of a turn's open gates, read from its session's log
+ * (store/session-events.ts `openGates`): the workflow's HITL wait reads it
+ * in place of the run's pending approvals. Byte-pinned.
+ */
+export const COUNT_OPEN_GATES_ACTIVITY_NAME = "CountOpenGates";
+
+/**
+ * The workflow patch behind which the HITL wait counts the turn's open
+ * gates from the log (COUNT_OPEN_GATES_ACTIVITY_NAME): a run whose history
+ * loaded the run for its pending approvals replays that load. Byte-pinned.
+ */
+export const OPEN_GATES_FROM_LOG_PATCH_ID = "open-gates-from-log";

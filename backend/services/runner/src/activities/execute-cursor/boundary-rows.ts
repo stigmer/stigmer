@@ -1150,7 +1150,8 @@ export function settleUnresolvedToolCalls(
  * Scope: hook-blocked FAILED rows and still-non-terminal (PENDING/RUNNING)
  * rows only — a COMPLETED row is a real execution and is never rewritten
  * (an unattended deny cannot produce one). `approval_action`/`approved_by`
- * stay untouched: server-owned, human-decision-only fields.
+ * stay untouched: they record a person's decision only (the runtime's seed
+ * copies the answer from the session's log).
  * Unmatched ledger entries need no synthesis — there is no pause to
  * surface; the model already saw the deny and adapted in-turn.
  *

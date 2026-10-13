@@ -31,7 +31,7 @@
  */
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SENSITIVE_ARG_KEYS } from "./args-preview.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
 import { extractFilePath } from "./file-tools.js";
@@ -47,13 +47,10 @@ import type { McpToolListing } from "./mcp-tool-listing.js";
  * ({@link ToolApprovalCategory}) for a built-in tool, or an MCP server slug for
  * an MCP tool. A different class of action proposed later is still gated.
  *
- * This is the DERIVED form of the lease — it is not (yet) a persisted proto.
- * Each lease rides the `ToolCall.approval_action == APPROVE_ALL` decision that
- * is already persisted and preserved (Go PreserveApprovalFields / Java
- * ApprovalFieldPreserver), and its scope is recomputed on read from the tool's
- * name + mcp_server_slug. Keeping it derived means one source of truth with
- * nothing to drift; a persisted/transmitted `ApprovalLease` proto is warranted
- * only once a lease must cross a trust boundary (a later phase).
+ * Each lease is read from the session's log: the `stigmer.permission.grant` a
+ * person's "approve all" wrote names its class (`StigmerPermissionLease`),
+ * which the server derives from the call with {@link deriveLeaseScope}'s
+ * rule. {@link deriveActiveLeases} builds the sets from the run's grants.
  *
  * `global` is the one remaining UNSCOPED bypass: the deliberate, pre-armed
  * spec.auto_approve_all ("trust this whole run", set before the run via
@@ -101,9 +98,11 @@ export function hookLeaseKey(hook: string, server: string, tool: string): string
 }
 
 /**
- * Reduce a single tool call to the scope its APPROVE_ALL would lease — the core
- * of {@link deriveActiveLeases}, extracted so the cross-edition lease-scope
- * corpus (apis/testdata/hitl/lease-scope) can exercise it directly.
+ * Reduce a single tool call to the scope its APPROVE_ALL would lease — the
+ * rule the server's grant applies to name a lease (a grant's event carries
+ * the result, which {@link deriveActiveLeases} reads), kept here so the
+ * cross-edition lease-scope corpus (apis/testdata/hitl/lease-scope) proves
+ * the runner's reading agrees with it.
  *
  * A row a hook asked for (source HOOK) leases that hook's asks on that tool
  * and nothing else. Otherwise the MCP server slug takes precedence over the
@@ -129,69 +128,50 @@ export function deriveLeaseScope(row: LeaseScopeInput): LeaseScope | undefined {
 }
 
 /**
- * Derive the active approval leases for an execution.
+ * The class of calls a grant allows, as its `stigmer.permission.grant`
+ * states it (`StigmerPermissionLease`): a hook's asks on one tool (`hook`
+ * set, `""` for the agent's own hooks), else an MCP server's tools
+ * (`server` set), else a built-in category (`category`: write, delete or
+ * shell). The server derives it from the call it was given on with the
+ * same rule as {@link deriveLeaseScope}.
+ */
+export interface LeaseGrant {
+  readonly category: string;
+  readonly server: string;
+  readonly hook: string | undefined;
+  readonly tool: string;
+}
+
+const LEASABLE_CATEGORIES: ReadonlySet<string> = new Set<ToolApprovalCategory>(["write", "delete", "shell"]);
+
+/**
+ * Derive the active approval leases for a turn from the run's grants.
  *
  * The scoped successor to the former all-or-nothing hasApproveAllDecision:
- * instead of "any APPROVE_ALL anywhere disables the whole gate", each
- * APPROVE_ALL decision is reduced (via {@link deriveLeaseScope}) to the SCOPE of
- * the tool it was made on — the built-in category for a built-in tool (read-only
- * tools are never gated, so a built-in lease is always write/delete/shell), or
- * the MCP server slug for an MCP tool — and only that scope is auto-approved for
- * the rest of the run.
+ * instead of "any APPROVE_ALL anywhere disables the whole gate", each grant
+ * a person gave ("approve all") leases only the class its event names: one
+ * hook's asks on one tool, an MCP server's tools, or a built-in category
+ * (read-only tools are never gated, so a built-in lease is always
+ * write/delete/shell). A category word the runner does not know leases
+ * nothing.
  *
- * Scans root and sub-agent tool calls so a lease granted anywhere applies
- * execution-wide (matching the prior cross-sub-agent behavior, now bounded by
- * scope). Both harnesses call this so the contract is defined in exactly one
- * place. The scope derivation reuses {@link toolApprovalCategory}, the same
- * corpus-tested oracle the Go and Java editions mirror, so the backend's
- * scope-aware bulk-approve and this runner-side evaluation can never disagree.
+ * The grants are the run's, read from the session's log at the
+ * reinvocation (`harness/approval-answers.ts`), so a lease granted on any
+ * call, root or sub-agent, applies run-wide (bounded by its scope); a fresh
+ * turn has none. Both harnesses take the result through the runtime, so the
+ * contract is defined in exactly one place. `autoApproveAll` is the run's
+ * pre-armed `spec.auto_approve_all`, the one unscoped bypass.
  */
-export function deriveActiveLeases(execution: Run): ActiveLeases {
+export function deriveActiveLeases(grants: Iterable<LeaseGrant>, autoApproveAll: boolean): ActiveLeases {
   const categories = new Set<ToolApprovalCategory>();
   const servers = new Set<string>();
   const hooks = new Set<string>();
-
-  const addLease = (tc: LeaseScopeInput & { approvalAction: ApprovalAction }): void => {
-    if (tc.approvalAction !== ApprovalAction.APPROVE_ALL) return;
-    const scope = deriveLeaseScope(tc);
-    if (!scope) return;
-    switch (scope.kind) {
-      case "server":
-        servers.add(scope.server);
-        return;
-      case "category":
-        categories.add(scope.category);
-        return;
-      case "hook":
-        hooks.add(hookLeaseKey(scope.hook, scope.server, scope.tool));
-        return;
-      /* v8 ignore start -- @preserve: the never arm; the compiler proves no scope kind reaches it */
-      default: {
-        const exhaustive: never = scope;
-        throw new Error(`deriveActiveLeases: unknown lease scope ${JSON.stringify(exhaustive)}`);
-      }
-      /* v8 ignore stop */
-    }
-  };
-
-  const status = execution.status;
-  if (status) {
-    for (const message of status.messages) {
-      for (const tc of message.toolCalls) addLease(tc);
-    }
-    for (const sa of status.subAgentRuns) {
-      for (const message of sa.messages) {
-        for (const tc of message.toolCalls) addLease(tc);
-      }
-    }
+  for (const grant of grants) {
+    if (grant.hook !== undefined) hooks.add(hookLeaseKey(grant.hook, grant.server, grant.tool));
+    else if (grant.server !== "") servers.add(grant.server);
+    else if (LEASABLE_CATEGORIES.has(grant.category)) categories.add(grant.category as ToolApprovalCategory);
   }
-
-  return {
-    global: execution.spec?.autoApproveAll ?? false,
-    categories,
-    servers,
-    hooks,
-  };
+  return { global: autoApproveAll, categories, servers, hooks };
 }
 
 /**

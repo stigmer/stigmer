@@ -22,6 +22,10 @@
  * the composed list read scope. Per-RPC posture:
  * docs/authorization-coverage.md §8.
  *
+ * Every session a read answers (get, list, listByAgent, listByChannel)
+ * carries its state, computed from its event log and never stored
+ * (events/state.ts).
+ *
  * The session's event log (events/): listEvents and streamEvents read it
  * under can_view on the session, appendEvents is the runner's own lane
  * (events/append.ts carries its gate), and delete removes the log before
@@ -155,6 +159,7 @@ import { bindHarnessState } from "./bind-harness.js";
 import type { SessionEventBroker } from "./events/broker.js";
 import { newDeleteSessionEventsStep } from "./events/delete-step.js";
 import { listSessionEvents } from "./events/list.js";
+import { newStampSessionStateStep } from "./events/state.js";
 import { streamSessionEvents } from "./events/stream.js";
 import type { ReconcileTurnCreatorProvider } from "./filereview/decide.js";
 import { reviewFileChanges } from "./filereview/review-file-changes.js";
@@ -645,6 +650,11 @@ async function get(
     )
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetStep(deps.store, SessionSchema))
+    .addStep(
+      newStampSessionStateStep(deps.store, (ctx) => [
+        ctx.get(TARGET_RESOURCE_KEY) as Session,
+      ]),
+    )
     .build()
     .execute(reqCtx);
   return redacted(reqCtx.get(TARGET_RESOURCE_KEY) as Session);
@@ -673,6 +683,7 @@ async function list(
     .addStep(
       newListAllSessionsStep(deps.store, deps.logger, deps.listReadScope),
     )
+    .addStep(newStampSessionStateStep(deps.store, listedSessions))
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));
@@ -702,6 +713,7 @@ async function listByAgent(
     )
     .addStep(newValidateProtoStep())
     .addStep(newFilterByAgentStep(deps.store, deps.logger, deps.listReadScope))
+    .addStep(newStampSessionStateStep(deps.store, listedSessions))
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));
@@ -734,9 +746,15 @@ async function listByChannel(
     .addStep(
       newFilterByChannelStep(deps.store, deps.logger, deps.listReadScope),
     )
+    .addStep(newStampSessionStateStep(deps.store, listedSessions))
     .build()
     .execute(reqCtx);
   return requireListResult(reqCtx.get(LIST_RESULT_KEY));
+}
+
+/** The sessions a list chain's step left in its context; none before it ran. */
+function listedSessions(ctx: { get(key: string): unknown }): ReadonlyArray<Session> {
+  return (ctx.get(LIST_RESULT_KEY) as SessionList | undefined)?.entries ?? [];
 }
 
 function requireListResult(result: unknown): SessionList {

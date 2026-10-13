@@ -553,6 +553,7 @@ export class SqliteStore implements Store {
         runOfNewestType: undefined,
         othersWaiting: [],
         gates: [],
+        runEvents: [],
       };
       if (sessionId !== "") {
         const latestState = latestOfTypes(db, sessionId, scope.stateEventTypes);
@@ -571,6 +572,8 @@ export class SqliteStore implements Store {
           othersWaiting,
           gates:
             scope.waitingKey === undefined ? [] : openGatesOfRuns(db, sessionId, [...othersWaiting, id]),
+          runEvents:
+            scope.runEventTypes === undefined ? [] : eventsOfRun(db, sessionId, id, scope.runEventTypes),
         };
       }
       const outcome = write(previous, context);
@@ -2560,6 +2563,26 @@ function openGatesOfRuns(
   );
 }
 
+/** A run's events of `types` in a session, in log order (postgres/store.ts's twin); none for no type. */
+function eventsOfRun(
+  db: DatabaseSync,
+  sessionId: string,
+  runId: string,
+  types: ReadonlyArray<string>,
+): SessionEventRecord[] {
+  if (types.length === 0) {
+    return [];
+  }
+  const rows = db
+    .prepare(
+      `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+       WHERE session_id = ? AND run_id = ? AND type IN (${types.map(() => "?").join(", ")})
+       ORDER BY seq ASC`,
+    )
+    .all(sessionId, runId, ...types) as unknown as SessionEventRow[];
+  return rows.map(sessionEventOf);
+}
+
 /** The run of the session's newest event of `type`; undefined when it has none. */
 function runOfNewestOfType(db: DatabaseSync, sessionId: string, type: string): string | undefined {
   const row = db
@@ -2637,6 +2660,13 @@ class SqliteSessionEventStore implements SessionEventStore {
       where.push("run_id = ?");
       params.push(query.runId);
     }
+    if (query.eventIds !== undefined) {
+      if (query.eventIds.length === 0) {
+        return [];
+      }
+      where.push(`event_id IN (${query.eventIds.map(() => "?").join(", ")})`);
+      params.push(...query.eventIds);
+    }
     const bounds: Array<[string | undefined, string]> = [
       [query.processedAtGt, ">"],
       [query.processedAtGte, ">="],
@@ -2663,6 +2693,10 @@ class SqliteSessionEventStore implements SessionEventStore {
       )
       .all(...params) as unknown as SessionEventRow[];
     return rows.map(sessionEventOf);
+  }
+
+  async openGates(sessionId: string, runId: string): Promise<OpenSessionEventGate[]> {
+    return openGatesOfRuns(this.open(), sessionId, [runId]);
   }
 
   async append(

@@ -550,6 +550,18 @@ export class StigmerClient {
   }
 
   /**
+   * Whether the log holds any event of one run of `types`: one page of at
+   * most one event, so the answer costs the same however long the run is.
+   * What a turn's start asks to learn whether an earlier invocation of the
+   * run already wrote what its engine did (`harness/turn-context.ts`
+   * `isReinvocation`).
+   */
+  async hasRunSessionEvent(sessionId: string, runId: string, types: readonly string[]): Promise<boolean> {
+    const page = await this.sessionQuery.listEvents({ sessionId, runId, types: [...types], pageSize: 1, pageToken: "" });
+    return page.events.length > 0;
+  }
+
+  /**
    * One page of a session's log, filtered by event type, in the order asked
    * for: the read a turn's start pages back through, newest first, to find
    * the undos still owed (`harness/owed-undos.ts`). The caller pages and
