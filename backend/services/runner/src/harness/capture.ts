@@ -9,8 +9,9 @@
  * `file_review`, or a plugin-eval try) and the workspace has a substrate
  * (`TurnWorkspace.captureMode`). It never holds the turn: the edits are
  * applied, the turn takes its own terminal (`run-turn.ts`), and the change
- * set is offered for Keep or Undo after it, on the run's ledger and as the
- * session's `stigmer.file_review.changes` (`events/emitter.ts`).
+ * set is offered for Keep or Undo after it, on the run's file record
+ * (`RunStatus.file_changes`, read from the turn's ledger at every persist)
+ * and as the session's `stigmer.file_review.changes` (`events/emitter.ts`).
  *
  * ONE CAPTURE, ONE MOMENT, ONE OWNER
  * ----------------------------------
@@ -69,7 +70,6 @@
  */
 
 import { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
@@ -88,7 +88,7 @@ import {
 import { collectSettledToolCallIds, collectSubAgentToolCallIds, stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "../shared/tool-row.js";
 import type { FileReviewIdentity } from "./capabilities.js";
 import type { TurnWorkspace } from "./types.js";
-import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { ToolCall, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The mid-run progress the chokepoint refreshes on every write: the substrate and the floor it throttles by. */
@@ -141,21 +141,21 @@ const NOTHING_OBSERVED: CasTouchedSnapshot = { before: new Map(), blockedSecretP
  * no substrate the classic deny-gate governs them.
  */
 export async function pinCaptureBaseline(args: {
-  readonly status: RunStatus;
+  readonly rows: TurnRows;
   readonly executionId: string;
   readonly workspace: TurnWorkspace;
   readonly fileReview: FileReviewIdentity;
   readonly artifactStorage: ArtifactStorage | undefined;
 }): Promise<TurnCapture | undefined> {
-  const { status, executionId, workspace, fileReview, artifactStorage } = args;
+  const { rows, executionId, workspace, fileReview, artifactStorage } = args;
   if (!workspace.captureMode) return undefined;
   const { primaryDir, gitWorkspace, changeSetId } = workspace;
 
-  const priorSettledToolCallIds = collectSettledToolCallIds(status.messages);
-  const priorSubAgentToolCallIds = collectSubAgentToolCallIds(status.subAgentRuns);
+  const priorSettledToolCallIds = collectSettledToolCallIds(rows.messages);
+  const priorSubAgentToolCallIds = collectSubAgentToolCallIds(rows.subAgentRuns);
 
   const baselineTree = await captureBaselineToLedger({
-    status,
+    rows,
     gitRoot: primaryDir,
     executionId,
     changeSetId,
@@ -251,7 +251,7 @@ function buildShapedProgressSubstrate(args: {
  * decides how the turn ends.
  */
 export async function captureCandidate(args: {
-  readonly status: RunStatus;
+  readonly rows: TurnRows;
   readonly executionId: string;
   readonly workspace: TurnWorkspace;
   readonly fileReview: FileReviewIdentity;
@@ -260,7 +260,7 @@ export async function captureCandidate(args: {
   /** `spec.auto_approve_all`, the one whole-run bypass: qualifies every executed command as consented. */
   readonly globalBypass: boolean;
 }): Promise<boolean> {
-  const { status, executionId, workspace, fileReview, artifactStorage, capture, globalBypass } = args;
+  const { rows, executionId, workspace, fileReview, artifactStorage, capture, globalBypass } = args;
   const { primaryDir, gitWorkspace } = workspace;
   const { changeSetId } = capture;
 
@@ -268,7 +268,7 @@ export async function captureCandidate(args: {
   const observed = artifactStorage && capture.casObservations ? await capture.casObservations() : NOTHING_OBSERVED;
   const { casCaptures, unreviewablePaths } = await buildCasTurnCaptures(observed, primaryDir, casCaptureClass);
 
-  const commandProvenance = deriveCommandProvenance(status, capture, globalBypass);
+  const commandProvenance = deriveCommandProvenance(rows, capture, globalBypass);
   if (commandProvenance) {
     console.log(
       `capture: turn qualifies for approved-command auto-keep ` +
@@ -278,7 +278,7 @@ export async function captureCandidate(args: {
   }
 
   await captureCandidateToLedger({
-    status,
+    rows,
     gitRoot: primaryDir,
     executionId,
     changeSetId,
@@ -293,12 +293,12 @@ export async function captureCandidate(args: {
     commandProvenance,
   });
 
-  const captured = hasCandidateCaptured(status, changeSetId);
+  const captured = hasCandidateCaptured(rows, changeSetId);
   if (captured) {
     // A row must never reference a change set that does not exist, so the
     // stamp is gated on the authored candidate.
-    stampFlowedFileEditRows(status.messages, changeSetId, { flowed: isCompletedRow });
-    stampFlowedSubAgentFileEditRows(status.subAgentRuns, changeSetId, capture.priorSubAgentToolCallIds, isCompletedRow);
+    stampFlowedFileEditRows(rows.messages, changeSetId, { flowed: isCompletedRow });
+    stampFlowedSubAgentFileEditRows(rows.subAgentRuns, changeSetId, capture.priorSubAgentToolCallIds, isCompletedRow);
     console.log(`capture: change set ${changeSetId} authored to the file_review ledger; working tree left applied for review (execution=${executionId})`);
   }
   return captured;
@@ -312,23 +312,23 @@ function isCompletedRow(tc: ToolCall): boolean {
 /**
  * The runtime's two inputs to the shared approved-command rule (see the
  * header). Pure
- * over the status and the pre-turn snapshots; exported for its own tests.
+ * over the rows and the pre-turn snapshots; exported for its own tests.
  */
 export function deriveCommandProvenance(
-  status: RunStatus,
+  rows: Pick<TurnRows, "messages" | "subAgentRuns">,
   capture: Pick<TurnCapture, "priorSettledToolCallIds" | "priorSubAgentToolCallIds">,
   globalBypass: boolean,
 ): TurnCommandProvenance | undefined {
   // Any sub-agent activity this turn disqualifies — a sub-agent
   // that ran contributes at least one row id absent from the pre-turn set,
   // and its writes fold into this change set without a consented command.
-  for (const id of collectSubAgentToolCallIds(status.subAgentRuns)) {
+  for (const id of collectSubAgentToolCallIds(rows.subAgentRuns)) {
     if (!capture.priorSubAgentToolCallIds.has(id)) return undefined;
   }
-  const turnToolCalls = status.messages.flatMap((m) => m.toolCalls).filter((tc) => !capture.priorSettledToolCallIds.has(tc.id));
+  const turnToolCalls = rows.messages.flatMap((m) => m.toolCalls).filter((tc) => !capture.priorSettledToolCallIds.has(tc.id));
   return qualifyTurnCommandProvenance({
     turnToolCalls,
-    messages: status.messages,
+    messages: rows.messages,
     isExecutedCommand: isCompletedRow,
     resolveDirectConsent: (tc) =>
       tc.approvalAction === ApprovalAction.APPROVE || tc.approvalAction === ApprovalAction.APPROVE_ALL ? tc.id : undefined,

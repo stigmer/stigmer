@@ -8,8 +8,9 @@
  * What one write does, in order:
  *  1. The never-persist-secret backstop: content is withheld from
  *     any built-in write row targeting a secret-like path, top-level and
- *     sub-agent. The single airtight choke point for a deny-gate harness and
- *     the only guarantee under `auto_approve_all`. Idempotent.
+ *     sub-agent, before the rows reach the session's log. The single
+ *     airtight choke point for a deny-gate harness and the only guarantee
+ *     under `auto_approve_all`. Idempotent.
  *  2. `file_change_progress` is refreshed from the turn's capture (the "N
  *     files changed so far" strip) when the turn is in capture mode:
  *     the tree is read at most once per floor interval and only re-attached
@@ -22,13 +23,15 @@
  *     and `request()` keeps its promise to the adapters.
  *  3. `streaming_usage` is refreshed from the accumulator when it has turns,
  *     so the summary the UI shows is the one the write carries.
- *  4. `persistStatus` (`shared/status.ts`): tool-output offload, then the
+ *  4. `persistStatus` (`shared/status.ts`): tool-output offload over the
+ *     rows, the run's file record read from the rows' ledger, then the
  *     session event flush (`events/emitter.ts`: what the agent did, read from
  *     the rows as offloaded and appended to the session's log before the
- *     status that describes it), then the aggregate size cap, transient
+ *     status that follows it), then the aggregate size cap, transient
  *     retry, oversize recovery. Never rejects. The flush is a second RPC
  *     under the same single flight: an adapter's coalesced follow-up covers
- *     both.
+ *     both. The status sent carries lifecycle, stamps and files, never the
+ *     rows.
  *  5. A Temporal heartbeat, so a long streaming turn's liveness is proven by
  *     the writes it makes.
  *  6. The control plane's answer: STOP becomes the runtime's platform-stop
@@ -61,11 +64,14 @@ import type { SessionEventEmitter } from "./events/emitter.js";
 import { withholdSecretContentFromMessages } from "../shared/tool-row.js";
 import type { TurnProgress } from "./capture.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
+import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 export interface PersistChokepointDeps {
   readonly client: StigmerClient;
   readonly executionId: string;
   readonly status: RunStatus;
+  /** The turn's rows: bounded and read into the session's log on every write, never sent with the status. */
+  readonly rows: TurnRows;
   /** Present when artifact storage resolved; enables tool-output offload on every write. */
   readonly offload: ToolOutputOffloadContext | undefined;
   /**
@@ -125,8 +131,8 @@ export class PersistChokepoint {
    * session event emitter writes every row that is left.
    */
   async write(opts: { readonly final?: boolean } = {}): Promise<void> {
-    const { client, executionId, status, offload, heartbeat } = this.deps;
-    withholdSecretContentFromMessages(status.messages, status.subAgentRuns);
+    const { client, executionId, status, rows, offload, heartbeat } = this.deps;
+    withholdSecretContentFromMessages(rows.messages, rows.subAgentRuns);
     const progress = this.deps.progress();
     if (progress) {
       await captureFileChangeProgress({ status, changeSetId: progress.changeSetId, substrate: progress.substrate, state: progress.state });
@@ -137,8 +143,9 @@ export class PersistChokepoint {
     }
     const events = this.deps.events;
     const signal = await persistStatus(client, executionId, status, {
+      rows,
       offload,
-      ...(events ? { afterOffload: () => events.flush(status, { final: opts.final === true }) } : {}),
+      ...(events ? { afterOffload: () => events.flush(rows, { final: opts.final === true }) } : {}),
     });
     heartbeat();
     if (signal === RunControlSignal.STOP) {

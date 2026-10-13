@@ -259,8 +259,7 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
 - `apis/`: `apis/ai/stigmer/agentic/run/v1/io.proto`,
   `apis/ai/stigmer/agentic/run/v1/usage.proto`,
   `apis/ai/stigmer/billing/v1/model_pricing_baseline.proto` (free-form
-  provider or harness strings with examples); the fixtures under
-  `apis/testdata/hitl/file-review/`.
+  provider or harness strings with examples).
 - The server: `backend/services/stigmer-server/src/domain/session/steps.ts` (the
   immutability check; no per-harness arm);
   `backend/services/stigmer-server/src/temporal/agentexecution/dispatch.ts`,

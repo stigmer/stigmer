@@ -39,8 +39,7 @@
  * arbiter for both harnesses.
  */
 
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { AgentMessage } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { AgentMessage, TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The row's error for a REJECT; byte-pinned by the native goldens (`reject.turn2.status.json`) and the conformance suite. */
@@ -52,7 +51,7 @@ export const REJECTED_BY_USER_ERROR = "Rejected by user";
  * decision and re-settles identically. A REJECT row's `error` is set only
  * when empty, so an engine's own denial text, if any, stands.
  */
-export function terminalizeNonExecutingDecisions(status: RunStatus): void {
+export function terminalizeNonExecutingDecisions(rows: Pick<TurnRows, "messages" | "subAgentRuns">): void {
   const settle = (messages: readonly AgentMessage[]): void => {
     for (const message of messages) {
       for (const row of message.toolCalls) {
@@ -76,8 +75,8 @@ export function terminalizeNonExecutingDecisions(status: RunStatus): void {
       }
     }
   };
-  settle(status.messages);
-  for (const subAgent of status.subAgentRuns) {
+  settle(rows.messages);
+  for (const subAgent of rows.subAgentRuns) {
     settle(subAgent.messages);
   }
 }

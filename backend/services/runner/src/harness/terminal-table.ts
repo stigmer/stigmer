@@ -58,7 +58,7 @@ import type { WorkspaceLockTimeoutError } from "../shared/workspace/workspace-lo
 import type { FailureSurface } from "./types.js";
 import type { MockAbort } from "./stop-controller.js";
 import { formatTryStop } from "@stigmer/eval-runtime";
-import { AgentMessageSchema } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, type TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
@@ -361,28 +361,30 @@ export function unexpectedErrorArm(errorType: string, errorMessage: string): Ter
 
 /**
  * Append system rows, each with its own timestamp, in order. Module-private
- * on purpose: rows reach a status only through `applyTerminalArm`, so no
- * caller can append an arm's copy a second time (the shape of stigmer#1054).
+ * on purpose: rows reach the turn's rows only through `applyTerminalArm`, so
+ * no caller can append an arm's copy a second time (the shape of
+ * stigmer#1054).
  */
-function appendSystemRows(status: RunStatus, rows: readonly string[]): void {
-  for (const content of rows) {
-    status.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content, timestamp: utcTimestamp() }));
+function appendSystemRows(rows: Pick<TurnRows, "messages">, contents: readonly string[]): void {
+  for (const content of contents) {
+    rows.messages.push(create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content, timestamp: utcTimestamp() }));
   }
 }
 
 /**
- * Write an arm onto the status: phase, error, completion stamp, stop cause,
- * rows. The caller persists and disposes. Returns the root positions of the
- * rows it appended: they repeat the stop the session's status events and
- * the stop cause already say, so the session event emitter is told never to
- * write them as notes of the harness (`events/emitter.ts`).
+ * Write an arm onto the status (phase, error, completion stamp, stop cause)
+ * and its rows onto the turn's rows. The caller persists and disposes.
+ * Returns the root positions of the rows it appended: they repeat the stop
+ * the session's status events and the stop cause already say, so the
+ * session event emitter is told never to write them as notes of the harness
+ * (`events/emitter.ts`).
  */
-export function applyTerminalArm(status: RunStatus, arm: TerminalArm): readonly number[] {
+export function applyTerminalArm(status: RunStatus, rows: Pick<TurnRows, "messages">, arm: TerminalArm): readonly number[] {
   status.phase = arm.phase;
   if (arm.error !== undefined) status.error = arm.error;
   if (arm.completes) status.completedAt = utcTimestamp();
   if (arm.stopCause !== null) status.stopCause = arm.stopCause;
-  const first = status.messages.length;
-  appendSystemRows(status, arm.rows);
+  const first = rows.messages.length;
+  appendSystemRows(rows, arm.rows);
   return arm.rows.map((_, index) => first + index);
 }

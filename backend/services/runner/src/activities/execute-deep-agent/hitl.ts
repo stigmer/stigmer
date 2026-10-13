@@ -19,9 +19,8 @@
  */
 
 import { Command } from "@langchain/langgraph";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { POLICY_ENGINE_VERSION, unattendedSkipMessage, type PolicySource } from "../../shared/approval-policy.js";
-import type { AgentMessage } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { AgentMessage, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
@@ -203,7 +202,7 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
  * the parent's registry instance.
  */
 export function reconcileUnattendedSkips(
-  status: RunStatus,
+  rows: Pick<TurnRows, "messages" | "subAgentRuns">,
   unattendedSkips: ReadonlyMap<string, string | null> | undefined,
 ): void {
   if (!unattendedSkips || unattendedSkips.size === 0) return;
@@ -223,8 +222,8 @@ export function reconcileUnattendedSkips(
     }
   };
 
-  apply(status.messages);
-  for (const subAgent of status.subAgentRuns) {
+  apply(rows.messages);
+  for (const subAgent of rows.subAgentRuns) {
     apply(subAgent.messages);
   }
 }

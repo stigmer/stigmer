@@ -1,7 +1,8 @@
 /**
- * TranscriptBuilder — folds `TranscriptEvent`s into the transcript half of
- * the RunStatus proto it is handed: messages, tool-call rows and
- * their approval status, sub-agent rows, todos, artifacts, write-backs.
+ * TranscriptBuilder — folds `TranscriptEvent`s into the turn's rows it is
+ * handed (`TurnRows`, the runner's own proto: messages, tool-call rows and
+ * their approval status, sub-agent rows, todos), and registers the turn's
+ * artifacts and write-backs on the run's status it is handed beside them.
  *
  * The one transcript builder, for every harness (#1097). It
  * was the native harness's `V3StatusBuilder` (the one builder there since
@@ -12,11 +13,11 @@
  * fact reaches it as a translator's output, on one union. The Cursor
  * harness feeds it through a translator; the runtime constructs it once
  * per turn and hands it to every adapter as `TurnSink.transcript`, so
- * a transcript row has exactly one way into the status — a source-walking
+ * a transcript row has exactly one way into the rows — a source-walking
  * fence, `harness/__tests__/transcript-writers.test.ts`, refuses a second.
  *
  * ONE set of handlers over ONE scope shape: every handler takes
- * the scope's {@link Transcript} — the root's over `status.messages`, or a
+ * the scope's {@link Transcript} — the root's over `rows.messages`, or a
  * sub-agent's over its row's — from `TranscriptState`, so a sub-agent's
  * transcript is folded by exactly the rules the root's is. Until #1097 the
  * sub-agents' half was a second module (`SubAgentTracker`) with its own copy
@@ -32,8 +33,8 @@
  * `harness/transcript/__tests__/builder.test.ts` and the harness whose rule
  * it generalises in parentheses:
  *
- *   - A row per `callId`, indexed over the status as handed and over what
- *     {@link seed} appends (a reinvocation's prior rows, indexed by the same
+ *   - A row per `callId`, indexed over the rows as handed and over what
+ *     {@link seed} appends (a reinvocation's asks, indexed by the same
  *     routine, so a builder born before the seed is no different from one
  *     born after it), reconciled in place on a re-emitted start — an UNSETTLED row becomes
  *     RUNNING (a WAITING row on native's durable-checkpoint resume; an
@@ -75,7 +76,7 @@
  *   - `system_note` is a SYSTEM message in the scope, in the harness's
  *     voice; it hosts no rows and moves no boundary.
  *   - A completed `ToolKind.TODO` call in the ROOT scope is projected into
- *     `status.todos` through the shared `applyTodoUpdate`, a full replace
+ *     `rows.todos` through the shared `applyTodoUpdate`, a full replace
  *     unless the call's args say `merge: true` (the row stays — the
  *     clients filter it); a sub-agent's is not.
  *   - `finalize()` clears every streaming flag in every scope.
@@ -117,6 +118,7 @@
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource, type PolicySource } from "../../shared/approval-policy.js";
@@ -175,16 +177,17 @@ export class TranscriptBuilder {
   private readonly pendingPolicies = new Map<string, ToolPolicyEvent>();
 
   /**
-   * Builds INTO `status`, by reference: its `messages`, `subAgentExecutions`
-   * and every sub-agent row's `messages` are the arrays indexed and pushed
-   * into, never replaced, so a caller that wraps the same status (the
+   * Builds INTO `rows`, by reference: its `messages`, `subAgentRuns` and
+   * every sub-agent row's `messages` are the arrays indexed and pushed
+   * into, never replaced, so a caller that holds the same rows (the
    * runtime's chokepoint, a settle amending rows by identity) keeps seeing
-   * every row. Rows already on the status are indexed here; rows a
-   * reinvocation carries over arrive later through {@link seed}, indexed by
-   * the same routine, so a re-driven event reconciles onto them either way.
+   * every row. Rows already there are indexed here; the asks a reinvocation
+   * resumes onto arrive later through {@link seed}, indexed by the same
+   * routine, so a re-driven event reconciles onto them either way. The
+   * turn's artifacts and write-backs are registered on `status`.
    *
-   * The builder hands nothing back. A reader holds the status it built the
-   * builder over — `TurnSink.status` in production, the test's own in a
+   * The builder hands nothing back. A reader holds the rows it built the
+   * builder over — `TurnSink.rows` in production, the test's own in a
    * test — so the transcript has one read handle and one write handle, and
    * no second spelling of either.
    *
@@ -192,24 +195,24 @@ export class TranscriptBuilder {
    * header's rule). The runtime passes its turn timeline; the contract kit
    * and the test doubles pass nothing.
    */
-  constructor(executionId: string, status: RunStatus, observer?: TranscriptObserver) {
+  constructor(executionId: string, rows: TurnRows, status: RunStatus, observer?: TranscriptObserver) {
     this.executionId = executionId;
-    this.state = new TranscriptState(status);
+    this.state = new TranscriptState(rows, status);
     this.observer = observer;
   }
 
   /**
-   * Append a reinvocation's persisted transcript — messages, sub-agent
-   * rows, artifacts, write-backs, todos — and index it, so the turn that
-   * follows APPENDS onto prior history and a re-issued call reconciles onto
-   * its seeded row instead of duplicating it. The runtime calls this once,
-   * in its reinvocation phase, before any harness runs; the reasons every
-   * collection is seeded are that phase's (`harness/turn-context.ts`
-   * `seedFromPersistedStatus`). Seeded rows are last turn's facts: this sets
-   * neither {@link dirty} nor {@link awaitingApproval}.
+   * Append a reinvocation's asks — the asked calls its engine resumes onto,
+   * read from the session's log, and the sub-agent rows that hold them —
+   * and index them, so a re-issued call reconciles onto its seeded row
+   * instead of duplicating it. The runtime calls this once, in its
+   * reinvocation phase, before any harness runs (`harness/resume-seed.ts`
+   * says what is seeded and why nothing else is). Seeded rows are an earlier
+   * invocation's facts: this sets neither {@link dirty} nor
+   * {@link awaitingApproval}.
    */
-  seed(persisted: TranscriptSeed): void {
-    this.state.seed(persisted);
+  seed(seeded: TranscriptSeed): void {
+    this.state.seed(seeded);
   }
 
   /**
@@ -262,10 +265,10 @@ export class TranscriptBuilder {
    * Tell the observer about an event the agent host's builder folded
    * (`agent-host/remote-adapter.ts`): the host's builder is the adapter's,
    * this one is the runtime's, and the runtime's timeline observes through
-   * this one. Nothing is folded here; the host's rows reach this status
+   * this one. Nothing is folded here; the host's rows reach these rows
    * with its next persist. `atMs` is the host's fold instant on this
    * process's `performance.now()` scale, `place` where the host's fold left
-   * a delta's row (the host's status is this one's, row for row). Never
+   * a delta's row (the host's rows are these, row for row). Never
    * throws.
    */
   relayObserved(event: TranscriptEvent, atMs: number, place?: FoldPlace): void {
@@ -399,7 +402,7 @@ export class TranscriptBuilder {
   // ── Artifact & WriteBack ───────────────────────────────────────────
 
   addArtifact(artifact: RunArtifact): void {
-    const artifacts = this.state.proto.artifacts;
+    const artifacts = this.state.status.artifacts;
     const idx = artifacts.findIndex(a => a.sandboxPath === artifact.sandboxPath);
 
     if (idx >= 0) {
@@ -415,7 +418,7 @@ export class TranscriptBuilder {
   }
 
   addWriteBack(wb: WorkspaceWriteBack): void {
-    const backs = this.state.proto.workspaceWriteBacks;
+    const backs = this.state.status.workspaceWriteBacks;
     const idx = backs.findIndex(b => b.workspaceEntryName === wb.workspaceEntryName);
 
     if (idx >= 0) {
@@ -527,7 +530,7 @@ export class TranscriptBuilder {
     // never a second gate. Keyed by the provider's tool_call_id, so this is an
     // exact match (no name heuristics). Two shapes reach here: the durable
     // checkpoint re-emitting a seeded WAITING call now that approval is granted
-    // (native's resume; the runtime's `seedFromPersistedStatus`), and a
+    // (native's resume; the runtime's seed from the log, `resume-seed.ts`), and a
     // recovery replaying a call the server had marked INTERRUPTED when the
     // execution terminalized with it in flight (the enum's supersede rule; the
     // Cursor accumulator's merge). Either way an UNSETTLED row becomes RUNNING
@@ -651,7 +654,7 @@ export class TranscriptBuilder {
     scope.argBuffers.delete(callId);
     if (wasSettled && !resultChanged) return;
 
-    // Project a completed to-do write into status.todos. deepagents' write_todos
+    // Project a completed to-do write into rows.todos. deepagents' write_todos
     // runs its state-mutating Command when the tool node COMPLETES, so we mirror
     // it here (not at tool-start) — a call cancelled before finishing correctly
     // projects nothing. Keyed on the harness-agnostic ToolKind.TODO (stamped at
@@ -662,7 +665,7 @@ export class TranscriptBuilder {
     // call itself stays in messages (the client filters ToolKind.TODO from the
     // thread).
     if (scope === this.state.root && tc.toolKind === ToolKind.TODO) {
-      applyTodoUpdate(this.state.proto.todos, tc.args?.todos, { merge: tc.args?.merge === true });
+      applyTodoUpdate(this.state.rows.todos, tc.args?.todos, { merge: tc.args?.merge === true });
     }
 
     this._dirty = true;

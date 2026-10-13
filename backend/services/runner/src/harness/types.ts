@@ -39,14 +39,15 @@
  *    is the act; one fact, one act, no second writer.
  *  - No `reason` on `interrupted`, no payload on `completed`, no `retryable`
  *    on `failed`. Every cause of stopping is the runtime's own evidence; the
- *    final text and structured output are already folded onto the status;
+ *    final text and structured output are already folded onto the rows;
  *    Temporal never retries a returned activity, so a retryable flag would
  *    have no reader.
  *  - No token-rotation hook. `Config.stigmerTokenRef` is the canonical
  *    mutable ref; an adapter's transport reads it per request.
- *  - No `TurnInput.status`. The runtime seeds `TurnSink.status` from the
- *    persisted transcript; a second copy on the input is the drift the
- *    single-source-of-truth mandate forbids.
+ *  - No `TurnInput.status` or `TurnInput.rows`. The runtime seeds
+ *    `TurnSink.rows` with a reinvocation's asks from the session's log; a
+ *    second copy on the input is the drift the single-source-of-truth
+ *    mandate forbids.
  *  - No execution context. "This activity is execution X" is the runtime's
  *    ambient fact for the WHOLE activity (`shared/execution-context.ts`, an
  *    `AsyncLocalStorage` the runtime enters before anything runs); the
@@ -102,6 +103,7 @@ import type { HarnessCapabilities } from "./capabilities.js";
 import type { ApprovalAsk } from "./approval-answers.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type { ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /**
  * One harness, as the runtime sees it. ONE adapter object exists per worker
@@ -153,7 +155,7 @@ export interface HarnessAdapter {
 
   /**
    * Turn lifetime: run ONE engine turn against the resolved input, folding
-   * the engine's transcript rows into `sink.status` as they arrive, and
+   * the engine's transcript rows into `sink.rows` as they arrive, and
    * settle with a {@link TurnOutcome}.
    *
    * The rules every implementation is held to (the kit's invariants):
@@ -168,7 +170,7 @@ export interface HarnessAdapter {
    *    runtime's heartbeat is live for the whole activity, and a live
    *    heartbeat over an unbounded call keeps a dead activity alive forever.
    *  - Proposes, never adjudicates. A gated side effect surfaces as a
-   *    WAITING_APPROVAL row on `sink.status` and the turn ends
+   *    WAITING_APPROVAL row on `sink.rows` and the turn ends
    *    `awaiting_approval`; the decision arrives on the next invocation in
    *    `input.approvalDecisions`. APPROVE executes exactly once; REJECT and
    *    SKIP never execute.
@@ -357,7 +359,7 @@ export interface TurnStandingContext {
   readonly conversationCatchup: string | undefined;
   /**
    * The semantic memory selection, memoized to at most one run per
-   * invocation and stamping `status.recalledMemoriesReport` once. A thunk
+   * invocation and stamping `rows.recalledMemoriesReport` once. A thunk
    * because only the harness knows whether its prompt carries standing
    * context (a successfully resumed engine already holds it).
    */
@@ -468,16 +470,18 @@ export interface TurnInput extends NormalizedActivityInput {
 // ---------------------------------------------------------------------------
 
 /**
- * The runtime's face during one turn: what an adapter may ask of it, and the
- * one status it folds into. One sink per turn, owned by the runtime; the
- * adapter never constructs one.
+ * The runtime's face during one turn: what an adapter may ask of it, the
+ * rows it folds into and the status the runtime writes. One sink per turn,
+ * owned by the runtime; the adapter never constructs one.
  *
- * Field ownership on `status` (since #1097, the canonical transcript):
+ * Field ownership on `rows` and `status` (since #1097, the canonical
+ * transcript; the rows are the runner's own `TurnRows`, written to the
+ * session's log and never sent with the status):
  *
  *  - Transcript rows — messages, tool-call rows, sub-agent rows, todos — are
  *    CREATED through `transcript` and nowhere else: the adapter translates
- *    its engine's events and applies them; a reinvocation's prior rows are
- *    seeded through it by the runtime. The one exception, the runtime's own
+ *    its engine's events and applies them; a reinvocation's asks are seeded
+ *    through it by the runtime from the session's log. The one exception, the runtime's own
  *    terminal system rows (`harness/terminal-table.ts`), is the second name
  *    on the writer fence's allow-list (`__tests__/transcript-writers.test.ts`).
  *  - Artifacts and write-backs a turn produces register through `transcript`
@@ -505,14 +509,22 @@ export interface TurnInput extends NormalizedActivityInput {
  */
 export interface TurnSink {
   /**
-   * The one execution status this turn folds into. On a reinvocation it is
-   * seeded by the runtime from the persisted transcript, so the WAITING rows
-   * the adapter wrote last time, and their decisions, are already on it.
+   * The one execution status this turn writes: lifecycle, stamps, artifacts,
+   * write-backs and the file record. It carries no rows.
    */
   readonly status: RunStatus;
 
   /**
-   * The one transcript builder over `status`, constructed by the runtime
+   * The turn's rows, which `transcript` folds into. On a reinvocation the
+   * runtime has seeded them with the asks the engine resumes onto, read
+   * from the session's log, each carrying the log's answer, so the WAITING
+   * rows the adapter wrote last time, and their decisions, are already on
+   * them. Every other row is this invocation's own.
+   */
+  readonly rows: TurnRows;
+
+  /**
+   * The one transcript builder over `rows`, constructed by the runtime
    * per turn and already holding a reinvocation's seeded rows. The ONE way
    * a transcript row is created: a harness translates its engine's events
    * into `TranscriptEvent`s and `apply`s them; its post-stream facts (a
@@ -669,10 +681,10 @@ export type FailureSurface = "engine" | "actionable" | "internal";
 
 /**
  * How one turn ended, carrying ONLY what the runtime cannot read from
- * `sink.status` or its own evidence.
+ * `sink.rows`, `sink.status` or its own evidence.
  *
  *  - `completed`: the engine finished. The final text and any structured
- *    output are already folded onto the status; nothing rides here.
+ *    output are already folded onto the rows; nothing rides here.
  *  - `cancelled`: the engine ended its own run cancelled and there is nothing
  *    to wait for — an SDK-side cancel, or a deny-and-retry adapter that
  *    stopped its run to gate a call and then found nothing to pause for
@@ -680,7 +692,7 @@ export type FailureSurface = "engine" | "actionable" | "internal";
  *    runtime's `stopSignal` never fired. The runtime writes
  *    `RUN_CANCELLED` with no copy and completes the turn.
  *  - `awaiting_approval`: the engine proposed at least one gated side effect
- *    and stopped. The WAITING_APPROVAL rows are already on the status; the
+ *    and stopped. The WAITING_APPROVAL rows are already on the rows; the
  *    runtime persists them and returns to the workflow, which reinvokes with
  *    the decisions.
  *  - `failed`: the engine or its transport failed in a way the adapter can
