@@ -40,6 +40,12 @@ name: release.sandbox-cloud
 #     cloud sandbox image.
 #   - workflow_dispatch: manual rebuild; dispatched from a v* tag it
 #     re-publishes that release's version tag (and prod, for a release).
+#
+# A red main push files (or comments on) a `ci-sandbox-cloud-failure` issue
+# (notify-failure.yaml): nobody watches a main push, and a smoke that failed
+# silently once held latest and every release's runner for days
+# (stigmer/stigmer#2253). Tag pushes and dispatches are watched by whoever
+# started them.
 on:
   push:
     branches:
@@ -260,15 +266,16 @@ jobs:
       # Gate before promotion: the runner itself boots inside the built image,
       # started as the drivers start it (/runner/bin/start, which checks the
       # image and execs its own /runner/bin/node; the slim artifact at
-      # /runner/dist). The runner's slim check runs from the checkout,
-      # mounted read-only (its scripts import only Node built-ins and each
-      # other), against the Temporal dev server on the host network: the
-      # cloud-mode boot to the Temporal dial, @cursor/sdk and its platform
-      # package, the attach waiter, a worker that reaches RUNNING, the
-      # manager lifecycle, and a warm-pool member booted with an OTLP endpoint
-      # set, as production sets one. A broken image or a runner that dies at boot (the
-      # 2026-04 stale-image failure mode) fails here, and no tag but
-      # main-<sha> names it.
+      # /runner/dist, booted in place, so the runner's agent user reads it
+      # with the modes a sandbox gives it). The runner's slim check runs from
+      # the checkout, mounted read-only (its scripts import only Node
+      # built-ins and each other), against the Temporal dev server on the
+      # host network: the cloud-mode boot to the Temporal dial, @cursor/sdk
+      # and its platform package, the attach waiter, a worker that reaches
+      # RUNNING, the manager lifecycle, and a warm-pool member booted with an
+      # OTLP endpoint set, as production sets one. A broken image or a runner
+      # that dies at boot (the 2026-04 stale-image failure mode) fails here,
+      # and no tag but main-<sha> names it.
       - name: Smoke-test the runner in the image
         if: matrix.arch == 'amd64'
         timeout-minutes: 8
@@ -279,7 +286,7 @@ jobs:
             --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
             --env TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7233 \
             "$IMAGE" \
-            /runner/bin/node /verify/verify-slim-artifact.mjs --node /runner/bin/start --artifact /runner/dist
+            /runner/bin/node /verify/verify-slim-artifact.mjs --in-place --node /runner/bin/start --artifact /runner/dist
 
       - name: Promote the smoke-tested image
         if: matrix.arch == 'amd64'
@@ -359,7 +366,7 @@ jobs:
             --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
             --env TEMPORAL_SERVICE_ADDRESS=127.0.0.1:7233 \
             probe/ubuntu-joined \
-            /runner/bin/node /verify/verify-slim-artifact.mjs --node /runner/bin/start --artifact /runner/dist
+            /runner/bin/node /verify/verify-slim-artifact.mjs --in-place --node /runner/bin/start --artifact /runner/dist
           got="$(docker run --rm --env 'NODE_OPTIONS=--require /nonexistent.js' --env NODE_PATH=/nonexistent \
             probe/ubuntu-joined \
             /runner/bin/start -e 'console.log(JSON.stringify([process.argv.slice(1), process.env.NODE_OPTIONS ?? null, process.env.NODE_PATH ?? null]))' a 'b c' 2>/dev/null)"
@@ -465,3 +472,25 @@ jobs:
             echo ""
             echo "Both legs booted the layer on ubuntu:24.04 and saw it refuse alpine."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Only a main push is unattended: a tag push is a release someone is
+  # watching, and a dispatch is watched by whoever started it. A skipped build
+  # (no runner path changed) is not failure() and files nothing.
+  notify-failure:
+    name: File Sandbox Image Failure Issue
+    needs: [detect-changes, build-and-push, publish-layer-and-base]
+    if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      issues: write
+    uses: ./.github/workflows/notify-failure.yaml
+    with:
+      label: ci-sandbox-cloud-failure
+      title: "release.sandbox-cloud: the sandbox runner image build on main is failing"
+      body-context: >-
+        This lane builds ghcr.io/stigmer/runner, runner-layer and runner-base
+        on every main push that touches the runner, boots the runner inside
+        the built image (verify-slim-artifact.mjs --in-place), and only then
+        moves latest. While it is red, latest stays on the last green build
+        and a release tag would publish no runner image. Start with the
+        failed step's log: the smoke names the check that failed, and the
+        foreign-base steps name the join or the start script.
