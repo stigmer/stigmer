@@ -46,27 +46,27 @@ public final class VaultCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.Vault,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.UpdateVaultInput,
       ai.stigmer.agentic.vault.v1.Vault> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.vault.v1.Vault.class,
+      requestType = ai.stigmer.agentic.vault.v1.UpdateVaultInput.class,
       responseType = ai.stigmer.agentic.vault.v1.Vault.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.Vault,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.UpdateVaultInput,
       ai.stigmer.agentic.vault.v1.Vault> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.Vault, ai.stigmer.agentic.vault.v1.Vault> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.vault.v1.UpdateVaultInput, ai.stigmer.agentic.vault.v1.Vault> getUpdateMethod;
     if ((getUpdateMethod = VaultCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (VaultCommandControllerGrpc.class) {
         if ((getUpdateMethod = VaultCommandControllerGrpc.getUpdateMethod) == null) {
           VaultCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.vault.v1.Vault, ai.stigmer.agentic.vault.v1.Vault>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.vault.v1.UpdateVaultInput, ai.stigmer.agentic.vault.v1.Vault>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.vault.v1.Vault.getDefaultInstance()))
+                  ai.stigmer.agentic.vault.v1.UpdateVaultInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.vault.v1.Vault.getDefaultInstance()))
               .setSchemaDescriptor(new VaultCommandControllerMethodDescriptorSupplier("update"))
@@ -475,23 +475,25 @@ public final class VaultCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a vault's name, description and external id.
-     * Entries are kept as stored: change them with setSecrets, removeSecrets,
-     * setConnection and removeConnections.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the vault was renamed away from, named
-     * without the vault's id, is refused with FAILED_PRECONDITION
-     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-     * write by a name that stops resolving after 30 days would later make a
-     * second vault:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-     *     for reading, but a write names its current slug. Metadata: slug (the
-     *     one the request named).
+     * Update a vault: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its name, description and external id may change. Entries are kept as
+     * stored: change them with setSecrets, removeSecrets, setConnection and
+     * removeConnections.
+     * resource.metadata.id names the vault; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the vault does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the vault kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.vault.v1.Vault request,
+    default void update(ai.stigmer.agentic.vault.v1.UpdateVaultInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -688,23 +690,25 @@ public final class VaultCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a vault's name, description and external id.
-     * Entries are kept as stored: change them with setSecrets, removeSecrets,
-     * setConnection and removeConnections.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the vault was renamed away from, named
-     * without the vault's id, is refused with FAILED_PRECONDITION
-     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-     * write by a name that stops resolving after 30 days would later make a
-     * second vault:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-     *     for reading, but a write names its current slug. Metadata: slug (the
-     *     one the request named).
+     * Update a vault: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its name, description and external id may change. Entries are kept as
+     * stored: change them with setSecrets, removeSecrets, setConnection and
+     * removeConnections.
+     * resource.metadata.id names the vault; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the vault does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the vault kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.vault.v1.Vault request,
+    public void update(ai.stigmer.agentic.vault.v1.UpdateVaultInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -897,23 +901,25 @@ public final class VaultCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a vault's name, description and external id.
-     * Entries are kept as stored: change them with setSecrets, removeSecrets,
-     * setConnection and removeConnections.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the vault was renamed away from, named
-     * without the vault's id, is refused with FAILED_PRECONDITION
-     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-     * write by a name that stops resolving after 30 days would later make a
-     * second vault:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-     *     for reading, but a write names its current slug. Metadata: slug (the
-     *     one the request named).
+     * Update a vault: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its name, description and external id may change. Entries are kept as
+     * stored: change them with setSecrets, removeSecrets, setConnection and
+     * removeConnections.
+     * resource.metadata.id names the vault; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the vault does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the vault kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.vault.v1.Vault update(ai.stigmer.agentic.vault.v1.Vault request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.vault.v1.Vault update(ai.stigmer.agentic.vault.v1.UpdateVaultInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -1095,23 +1101,25 @@ public final class VaultCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a vault's name, description and external id.
-     * Entries are kept as stored: change them with setSecrets, removeSecrets,
-     * setConnection and removeConnections.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the vault was renamed away from, named
-     * without the vault's id, is refused with FAILED_PRECONDITION
-     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-     * write by a name that stops resolving after 30 days would later make a
-     * second vault:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-     *     for reading, but a write names its current slug. Metadata: slug (the
-     *     one the request named).
+     * Update a vault: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its name, description and external id may change. Entries are kept as
+     * stored: change them with setSecrets, removeSecrets, setConnection and
+     * removeConnections.
+     * resource.metadata.id names the vault; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the vault does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the vault kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.vault.v1.Vault update(ai.stigmer.agentic.vault.v1.Vault request) {
+    public ai.stigmer.agentic.vault.v1.Vault update(ai.stigmer.agentic.vault.v1.UpdateVaultInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -1294,24 +1302,26 @@ public final class VaultCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a vault's name, description and external id.
-     * Entries are kept as stored: change them with setSecrets, removeSecrets,
-     * setConnection and removeConnections.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the vault was renamed away from, named
-     * without the vault's id, is refused with FAILED_PRECONDITION
-     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-     * write by a name that stops resolving after 30 days would later make a
-     * second vault:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-     *     for reading, but a write names its current slug. Metadata: slug (the
-     *     one the request named).
+     * Update a vault: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Its name, description and external id may change. Entries are kept as
+     * stored: change them with setSecrets, removeSecrets, setConnection and
+     * removeConnections.
+     * resource.metadata.id names the vault; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the vault does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the vault kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.Vault> update(
-        ai.stigmer.agentic.vault.v1.Vault request) {
+        ai.stigmer.agentic.vault.v1.UpdateVaultInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -1497,7 +1507,7 @@ public final class VaultCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.vault.v1.Vault) request,
+          serviceImpl.update((ai.stigmer.agentic.vault.v1.UpdateVaultInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault>) responseObserver);
           break;
         case METHODID_UPDATE_VISIBILITY:
@@ -1569,7 +1579,7 @@ public final class VaultCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.vault.v1.Vault,
+              ai.stigmer.agentic.vault.v1.UpdateVaultInput,
               ai.stigmer.agentic.vault.v1.Vault>(
                 service, METHODID_UPDATE)))
         .addMethod(

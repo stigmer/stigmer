@@ -7,13 +7,15 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ChannelApp } from "./api_pb.js";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/channelapp/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_channelapp_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEiTAoLQ2hhbm5lbEFwcHMSPQoHZW50cmllcxgBIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAiMQoZTGlzdENoYW5uZWxBcHBzQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_agentic_channelapp_v1_api, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEiTAoLQ2hhbm5lbEFwcHMSPQoHZW50cmllcxgBIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAiMQoZTGlzdENoYW5uZWxBcHBzQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAEi3gIKFVVwZGF0ZUNoYW5uZWxBcHBJbnB1dBJGCghyZXNvdXJjZRgBIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHBCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrDAbpIvwEavAEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EktyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBjaGFubmVsIGFwcCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_channelapp_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * ChannelApps contains a list of channel app resources.
@@ -57,4 +59,37 @@ export type ListChannelAppsByOrgInput = Message<"ai.stigmer.agentic.channelapp.v
  */
 export const ListChannelAppsByOrgInputSchema: GenMessage<ListChannelAppsByOrgInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_channelapp_v1_io, 1);
+
+/**
+ * The changes an update makes to a channel app: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput
+ */
+export type UpdateChannelAppInput = Message<"ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput"> & {
+  /**
+   * The channel app carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.agentic.channelapp.v1.ChannelApp resource = 1;
+   */
+  resource?: ChannelApp;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput.
+ * Use `create(UpdateChannelAppInputSchema)` to create a new message.
+ */
+export const UpdateChannelAppInputSchema: GenMessage<UpdateChannelAppInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_channelapp_v1_io, 2);
 

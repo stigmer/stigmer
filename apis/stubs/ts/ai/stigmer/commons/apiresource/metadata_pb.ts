@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/metadata.proto.
  */
 export const file_ai_stigmer_commons_apiresource_metadata: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvbWV0YWRhdGEucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSK/BAoTQXBpUmVzb3VyY2VNZXRhZGF0YRIZCgRuYW1lGAEgASgJQgu6SAjYAQFyAxjIARI1CgRzbHVnGAIgASgJQie6SCTYAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSCgoCaWQYAyABKAkSCwoDb3JnGAQgASgJElMKCnZpc2liaWxpdHkYBSABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5Qgi6SAWCAQIQARJPCgZsYWJlbHMYBiADKAsyPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YS5MYWJlbHNFbnRyeRJZCgthbm5vdGF0aW9ucxgHIAMoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhLkFubm90YXRpb25zRW50cnkSDAoEdGFncxgIIAMoCRJLCgd2ZXJzaW9uGAkgASgLMjouYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFWZXJzaW9uGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaMgoQQW5ub3RhdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBImMKGkFwaVJlc291cmNlTWV0YWRhdGFWZXJzaW9uEgoKAmlkGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSGwoTcHJldmlvdXNfdmVyc2lvbl9pZBgDIAEoCRILCgN0YWcYBCABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvbWV0YWRhdGEucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSLNBAoTQXBpUmVzb3VyY2VNZXRhZGF0YRIZCgRuYW1lGAEgASgJQgu6SAjYAQFyAxjIARI1CgRzbHVnGAIgASgJQie6SCTYAQFyHxACGD8yGV5bYS16XVthLXowLTktXSpbYS16MC05XSQSCgoCaWQYAyABKAkSCwoDb3JnGAQgASgJElMKCnZpc2liaWxpdHkYBSABKA4yNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VWaXNpYmlsaXR5Qgi6SAWCAQIQARJPCgZsYWJlbHMYBiADKAsyPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YS5MYWJlbHNFbnRyeRJZCgthbm5vdGF0aW9ucxgHIAMoCzJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhLkFubm90YXRpb25zRW50cnkSDAoEdGFncxgIIAMoCRJLCgd2ZXJzaW9uGAkgASgLMjouYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFWZXJzaW9uEgwKBGV0YWcYCiABKAkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARoyChBBbm5vdGF0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiYwoaQXBpUmVzb3VyY2VNZXRhZGF0YVZlcnNpb24SCgoCaWQYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIbChNwcmV2aW91c192ZXJzaW9uX2lkGAMgASgJEgsKA3RhZxgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_enum, file_buf_validate_validate]);
 
 /**
  * ApiResourceMetadata contains standard metadata for all API resources.
@@ -138,6 +138,18 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadataVersion version = 9;
    */
   version?: ApiResourceMetadataVersion;
+
+  /**
+   * A fingerprint of what a person edits on the resource: its spec, name,
+   * labels, tags and annotations, as stored.
+   *
+   * Send it back on update or apply to refuse the write with ABORTED
+   * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+   * empty and the last write wins. A status write never changes it.
+   *
+   * @generated from field: string etag = 10;
+   */
+  etag: string;
 };
 
 /**

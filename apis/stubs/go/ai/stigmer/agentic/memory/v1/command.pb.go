@@ -26,25 +26,26 @@ var File_ai_stigmer_agentic_memory_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_memory_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/memory/v1/command.proto\x12\x1cai.stigmer.agentic.memory.v1\x1a&ai/stigmer/agentic/memory/v1/api.proto\x1a%ai/stigmer/agentic/memory/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa5\x05\n" +
+	"*ai/stigmer/agentic/memory/v1/command.proto\x12\x1cai.stigmer.agentic.memory.v1\x1a&ai/stigmer/agentic/memory/v1/api.proto\x1a%ai/stigmer/agentic/memory/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb9\x05\n" +
 	"\x17MemoryCommandController\x12Z\n" +
-	"\x06create\x12$.ai.stigmer.agentic.memory.v1.Memory\x1a$.ai.stigmer.agentic.memory.v1.Memory\"\x04и\x18\x01\x12\x8a\x01\n" +
-	"\x06update\x12$.ai.stigmer.agentic.memory.v1.Memory\x1a$.ai.stigmer.agentic.memory.v1.Memory\"4¸\x180\b\x02\x109\"\vmetadata.id*\x1dunauthorized to update memory\x12\x86\x01\n" +
+	"\x06create\x12$.ai.stigmer.agentic.memory.v1.Memory\x1a$.ai.stigmer.agentic.memory.v1.Memory\"\x04и\x18\x01\x12\x9e\x01\n" +
+	"\x06update\x12/.ai.stigmer.agentic.memory.v1.UpdateMemoryInput\x1a$.ai.stigmer.agentic.memory.v1.Memory\"=¸\x189\b\x02\x109\"\x14resource.metadata.id*\x1dunauthorized to update memory\x12\x86\x01\n" +
 	"\x06delete\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\".¸\x18*\b\x03\x109\"\x05value*\x1dunauthorized to delete memory\x12\x88\x01\n" +
 	"\aconfirm\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\"/¸\x18+\b\x02\x109\"\x05value*\x1eunauthorized to confirm memory\x12\x86\x01\n" +
 	"\x06reject\x12&.ai.stigmer.agentic.memory.v1.MemoryId\x1a$.ai.stigmer.agentic.memory.v1.Memory\".¸\x18*\b\x02\x109\"\x05value*\x1dunauthorized to reject memory\x1a\x04\xa0\xff+9B\x95\x02\n" +
 	" com.ai.stigmer.agentic.memory.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/memory/v1;memoryv1\xa2\x02\x04ASAM\xaa\x02\x1cAi.Stigmer.Agentic.Memory.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Memory\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Memory::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_memory_v1_command_proto_goTypes = []any{
-	(*Memory)(nil),   // 0: ai.stigmer.agentic.memory.v1.Memory
-	(*MemoryId)(nil), // 1: ai.stigmer.agentic.memory.v1.MemoryId
+	(*Memory)(nil),            // 0: ai.stigmer.agentic.memory.v1.Memory
+	(*UpdateMemoryInput)(nil), // 1: ai.stigmer.agentic.memory.v1.UpdateMemoryInput
+	(*MemoryId)(nil),          // 2: ai.stigmer.agentic.memory.v1.MemoryId
 }
 var file_ai_stigmer_agentic_memory_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.memory.v1.MemoryCommandController.create:input_type -> ai.stigmer.agentic.memory.v1.Memory
-	0, // 1: ai.stigmer.agentic.memory.v1.MemoryCommandController.update:input_type -> ai.stigmer.agentic.memory.v1.Memory
-	1, // 2: ai.stigmer.agentic.memory.v1.MemoryCommandController.delete:input_type -> ai.stigmer.agentic.memory.v1.MemoryId
-	1, // 3: ai.stigmer.agentic.memory.v1.MemoryCommandController.confirm:input_type -> ai.stigmer.agentic.memory.v1.MemoryId
-	1, // 4: ai.stigmer.agentic.memory.v1.MemoryCommandController.reject:input_type -> ai.stigmer.agentic.memory.v1.MemoryId
+	1, // 1: ai.stigmer.agentic.memory.v1.MemoryCommandController.update:input_type -> ai.stigmer.agentic.memory.v1.UpdateMemoryInput
+	2, // 2: ai.stigmer.agentic.memory.v1.MemoryCommandController.delete:input_type -> ai.stigmer.agentic.memory.v1.MemoryId
+	2, // 3: ai.stigmer.agentic.memory.v1.MemoryCommandController.confirm:input_type -> ai.stigmer.agentic.memory.v1.MemoryId
+	2, // 4: ai.stigmer.agentic.memory.v1.MemoryCommandController.reject:input_type -> ai.stigmer.agentic.memory.v1.MemoryId
 	0, // 5: ai.stigmer.agentic.memory.v1.MemoryCommandController.create:output_type -> ai.stigmer.agentic.memory.v1.Memory
 	0, // 6: ai.stigmer.agentic.memory.v1.MemoryCommandController.update:output_type -> ai.stigmer.agentic.memory.v1.Memory
 	0, // 7: ai.stigmer.agentic.memory.v1.MemoryCommandController.delete:output_type -> ai.stigmer.agentic.memory.v1.Memory

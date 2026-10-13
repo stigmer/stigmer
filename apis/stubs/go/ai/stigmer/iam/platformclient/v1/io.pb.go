@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -225,11 +226,71 @@ func (x *PlatformClientCreateResponse) GetClientSecret() string {
 	return ""
 }
 
+// The changes an update makes to a platform client: the fields update_mask names,
+// taken from resource.
+type UpdatePlatformClientInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The platform client carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *PlatformClient `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePlatformClientInput) Reset() {
+	*x = UpdatePlatformClientInput{}
+	mi := &file_ai_stigmer_iam_platformclient_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePlatformClientInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePlatformClientInput) ProtoMessage() {}
+
+func (x *UpdatePlatformClientInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_platformclient_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePlatformClientInput.ProtoReflect.Descriptor instead.
+func (*UpdatePlatformClientInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_platformclient_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UpdatePlatformClientInput) GetResource() *PlatformClient {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdatePlatformClientInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_platformclient_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_platformclient_v1_io_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/iam/platformclient/v1/io.proto\x12 ai.stigmer.iam.platformclient.v1\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"3\n" +
+	")ai/stigmer/iam/platformclient/v1/io.proto\x12 ai.stigmer.iam.platformclient.v1\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"3\n" +
 	"\x10PlatformClientId\x12\x1f\n" +
 	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"]\n" +
 	"\x0fPlatformClients\x12J\n" +
@@ -238,7 +299,12 @@ const file_ai_stigmer_iam_platformclient_v1_io_proto_rawDesc = "" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x9e\x01\n" +
 	"\x1cPlatformClientCreateResponse\x12Y\n" +
 	"\x0fplatform_client\x18\x01 \x01(\v20.ai.stigmer.iam.platformclient.v1.PlatformClientR\x0eplatformClient\x12#\n" +
-	"\rclient_secret\x18\x02 \x01(\tR\fclientSecretB\xb0\x02\n" +
+	"\rclient_secret\x18\x02 \x01(\tR\fclientSecret\"\x80\x03\n" +
+	"\x19UpdatePlatformClientInput\x12T\n" +
+	"\bresource\x18\x01 \x01(\v20.ai.stigmer.iam.platformclient.v1.PlatformClientB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xc7\x01\xbaH\xc3\x01\x1a\xc0\x01\n" +
+	"\x17update_names_its_target\x12Oresource.metadata.id is required: an update names the platform client by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xb0\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
@@ -253,22 +319,26 @@ func file_ai_stigmer_iam_platformclient_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_platformclient_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_platformclient_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_iam_platformclient_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_iam_platformclient_v1_io_proto_goTypes = []any{
 	(*PlatformClientId)(nil),              // 0: ai.stigmer.iam.platformclient.v1.PlatformClientId
 	(*PlatformClients)(nil),               // 1: ai.stigmer.iam.platformclient.v1.PlatformClients
 	(*ListPlatformClientsByOrgInput)(nil), // 2: ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput
 	(*PlatformClientCreateResponse)(nil),  // 3: ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
-	(*PlatformClient)(nil),                // 4: ai.stigmer.iam.platformclient.v1.PlatformClient
+	(*UpdatePlatformClientInput)(nil),     // 4: ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput
+	(*PlatformClient)(nil),                // 5: ai.stigmer.iam.platformclient.v1.PlatformClient
+	(*fieldmaskpb.FieldMask)(nil),         // 6: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_platformclient_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.iam.platformclient.v1.PlatformClients.entries:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	4, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse.platform_client:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	5, // 0: ai.stigmer.iam.platformclient.v1.PlatformClients.entries:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClient
+	5, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse.platform_client:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClient
+	5, // 2: ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput.resource:type_name -> ai.stigmer.iam.platformclient.v1.PlatformClient
+	6, // 3: ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput.update_mask:type_name -> google.protobuf.FieldMask
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_platformclient_v1_io_proto_init() }
@@ -283,7 +353,7 @@ func file_ai_stigmer_iam_platformclient_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_platformclient_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_platformclient_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

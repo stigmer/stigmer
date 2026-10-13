@@ -26,11 +26,11 @@
         },
         {
           "name": "Update",
-          "inputType": "IdentityProvider",
-          "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "inputType": "UpdateIdentityProviderInput",
+          "inputFullType": "ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Update an existing identity provider.\n\n On Stigmer Enterprise, changing how people sign in is growth the\n server's license pays for. Once the license and its grace period have\n ended, an update is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the\n     identity provider keeps signing people in as it is, and can still\n     be deleted. No metadata.\n\n An update names the identity provider by its id, and the slug changes\n only through rename."
+          "description": "Update an identity provider: the fields update_mask names change, every other\n field keeps its stored value.\n\n On Stigmer Enterprise, changing how people sign in is growth the\n server's license pays for. Once the license and its grace period have\n ended, an update is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the\n     identity provider keeps signing people in as it is, and can still\n     be deleted. No metadata.\n\n resource.metadata.id names the identity provider; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the identity provider does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the identity provider kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "Rename",
@@ -91,6 +91,39 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateIdentityProviderInput",
+      "description": "The changes an update makes to an identity provider: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput",
+      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "IdentityProvider"
+          },
+          "description": "The identity provider carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "RenameInput",
       "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",

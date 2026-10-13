@@ -25,9 +25,10 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.tenancy.organization.v1 import api_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2
 from ai.stigmer.tenancy.organization.v1 import spec_pb2 as ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_spec__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"[\n\rOrganizations\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.tenancy.organization.v1.OrganizationR\x07\x65ntries\"\x7f\n\x10OrganizationList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12J\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x30.ai.stigmer.tenancy.organization.v1.OrganizationR\x07\x65ntries\"1\n\x0eOrganizationId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\x90\x01\n\x1aOrganizationExternalLookup\x12+\n\x0b\x65xternal_id\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02R\nexternalId\x12(\n\nparent_org\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\tparentOrgJ\x04\x08\x01\x10\x02R\x15identity_provider_ref\"\x80\x01\n\x12ListChildOrgsInput\x12\x1b\n\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\x82\x01\n\x0c\x43hildOrgList\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.tenancy.organization.v1.OrganizationR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa1\x01\n\x1fUpdateOrganizationPoliciesInput\x12 \n\x06org_id\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05orgId\x12\\\n\x08policies\x18\x02 \x01(\x0b\x32\x38.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesB\x06\xbaH\x03\xc8\x01\x01R\x08policiesB\xde\x01\n&com.ai.stigmer.tenancy.organization.v1B\x07IoProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"[\n\rOrganizations\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.tenancy.organization.v1.OrganizationR\x07\x65ntries\"\x7f\n\x10OrganizationList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12J\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x30.ai.stigmer.tenancy.organization.v1.OrganizationR\x07\x65ntries\"1\n\x0eOrganizationId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\x90\x01\n\x1aOrganizationExternalLookup\x12+\n\x0b\x65xternal_id\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02R\nexternalId\x12(\n\nparent_org\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\tparentOrgJ\x04\x08\x01\x10\x02R\x15identity_provider_ref\"\x80\x01\n\x12ListChildOrgsInput\x12\x1b\n\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x03org\x12$\n\tpage_size\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\'\n\npage_token\x18\x03 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x08R\tpageToken\"\x82\x01\n\x0c\x43hildOrgList\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.tenancy.organization.v1.OrganizationR\x07\x65ntries\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa1\x01\n\x1fUpdateOrganizationPoliciesInput\x12 \n\x06org_id\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05orgId\x12\\\n\x08policies\x18\x02 \x01(\x0b\x32\x38.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesB\x06\xbaH\x03\xc8\x01\x01R\x08policies\"\xfb\x02\n\x17UpdateOrganizationInput\x12T\n\x08resource\x18\x01 \x01(\x0b\x32\x30.ai.stigmer.tenancy.organization.v1.OrganizationB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc4\x01\xbaH\xc0\x01\x1a\xbd\x01\n\x17update_names_its_target\x12Lresource.metadata.id is required: an update names the organization by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xde\x01\n&com.ai.stigmer.tenancy.organization.v1B\x07IoProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -51,18 +52,26 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATEORGANIZATIONPOLICIESINPUT'].fields_by_name['org_id']._serialized_options = b'\272H\006r\004\020\001\030@'
   _globals['_UPDATEORGANIZATIONPOLICIESINPUT'].fields_by_name['policies']._loaded_options = None
   _globals['_UPDATEORGANIZATIONPOLICIESINPUT'].fields_by_name['policies']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_ORGANIZATIONS']._serialized_start=205
-  _globals['_ORGANIZATIONS']._serialized_end=296
-  _globals['_ORGANIZATIONLIST']._serialized_start=298
-  _globals['_ORGANIZATIONLIST']._serialized_end=425
-  _globals['_ORGANIZATIONID']._serialized_start=427
-  _globals['_ORGANIZATIONID']._serialized_end=476
-  _globals['_ORGANIZATIONEXTERNALLOOKUP']._serialized_start=479
-  _globals['_ORGANIZATIONEXTERNALLOOKUP']._serialized_end=623
-  _globals['_LISTCHILDORGSINPUT']._serialized_start=626
-  _globals['_LISTCHILDORGSINPUT']._serialized_end=754
-  _globals['_CHILDORGLIST']._serialized_start=757
-  _globals['_CHILDORGLIST']._serialized_end=887
-  _globals['_UPDATEORGANIZATIONPOLICIESINPUT']._serialized_start=890
-  _globals['_UPDATEORGANIZATIONPOLICIESINPUT']._serialized_end=1051
+  _globals['_UPDATEORGANIZATIONINPUT'].fields_by_name['resource']._loaded_options = None
+  _globals['_UPDATEORGANIZATIONINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
+  _globals['_UPDATEORGANIZATIONINPUT'].fields_by_name['update_mask']._loaded_options = None
+  _globals['_UPDATEORGANIZATIONINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_UPDATEORGANIZATIONINPUT']._loaded_options = None
+  _globals['_UPDATEORGANIZATIONINPUT']._serialized_options = b'\272H\300\001\032\275\001\n\027update_names_its_target\022Lresource.metadata.id is required: an update names the organization by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
+  _globals['_ORGANIZATIONS']._serialized_start=239
+  _globals['_ORGANIZATIONS']._serialized_end=330
+  _globals['_ORGANIZATIONLIST']._serialized_start=332
+  _globals['_ORGANIZATIONLIST']._serialized_end=459
+  _globals['_ORGANIZATIONID']._serialized_start=461
+  _globals['_ORGANIZATIONID']._serialized_end=510
+  _globals['_ORGANIZATIONEXTERNALLOOKUP']._serialized_start=513
+  _globals['_ORGANIZATIONEXTERNALLOOKUP']._serialized_end=657
+  _globals['_LISTCHILDORGSINPUT']._serialized_start=660
+  _globals['_LISTCHILDORGSINPUT']._serialized_end=788
+  _globals['_CHILDORGLIST']._serialized_start=791
+  _globals['_CHILDORGLIST']._serialized_end=921
+  _globals['_UPDATEORGANIZATIONPOLICIESINPUT']._serialized_start=924
+  _globals['_UPDATEORGANIZATIONPOLICIESINPUT']._serialized_end=1085
+  _globals['_UPDATEORGANIZATIONINPUT']._serialized_start=1088
+  _globals['_UPDATEORGANIZATIONINPUT']._serialized_end=1467
 # @@protoc_insertion_point(module_scope)

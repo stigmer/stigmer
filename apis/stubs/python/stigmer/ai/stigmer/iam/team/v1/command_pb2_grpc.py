@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.iam.team.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2
+from ai.stigmer.iam.team.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2
 
 
 class TeamCommandControllerStub(object):
@@ -26,7 +27,7 @@ class TeamCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.iam.team.v1.TeamCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.UpdateTeamInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
                 _registered_method=True)
         self.rename = channel.unary_unary(
@@ -79,10 +80,24 @@ class TeamCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update a team's name or description.
+        """Update a team: the fields update_mask names change, every other
+        field keeps its stored value.
 
-        An update names the team by its id, and the slug changes only through
-        rename.
+        A team's name and description may change.
+
+        resource.metadata.id names the team; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the team does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the team changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the team kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -123,7 +138,7 @@ def add_TeamCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.UpdateTeamInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.SerializeToString,
             ),
             'rename': grpc.unary_unary_rpc_method_handler(
@@ -193,7 +208,7 @@ class TeamCommandController(object):
             request,
             target,
             '/ai.stigmer.iam.team.v1.TeamCommandController/update',
-            ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2.UpdateTeamInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
             options,
             channel_credentials,

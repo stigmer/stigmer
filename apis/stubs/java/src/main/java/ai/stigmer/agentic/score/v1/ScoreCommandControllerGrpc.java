@@ -46,27 +46,27 @@ public final class ScoreCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.Score,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.UpdateScoreInput,
       ai.stigmer.agentic.score.v1.Score> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.score.v1.Score.class,
+      requestType = ai.stigmer.agentic.score.v1.UpdateScoreInput.class,
       responseType = ai.stigmer.agentic.score.v1.Score.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.Score,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.UpdateScoreInput,
       ai.stigmer.agentic.score.v1.Score> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.Score, ai.stigmer.agentic.score.v1.Score> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.UpdateScoreInput, ai.stigmer.agentic.score.v1.Score> getUpdateMethod;
     if ((getUpdateMethod = ScoreCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (ScoreCommandControllerGrpc.class) {
         if ((getUpdateMethod = ScoreCommandControllerGrpc.getUpdateMethod) == null) {
           ScoreCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.score.v1.Score, ai.stigmer.agentic.score.v1.Score>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.score.v1.UpdateScoreInput, ai.stigmer.agentic.score.v1.Score>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.score.v1.Score.getDefaultInstance()))
+                  ai.stigmer.agentic.score.v1.UpdateScoreInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.score.v1.Score.getDefaultInstance()))
               .setSchemaDescriptor(new ScoreCommandControllerMethodDescriptorSupplier("update"))
@@ -190,13 +190,24 @@ public final class ScoreCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it, and only
-     * its value and comment: every other field, the score's name and labels
-     * included, stays as created. A check's verdict never changes.
+     * Update a score: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only feedback is editable, only by the person who gave it, and only its
+     * value and comment; a check's verdict never changes.
+     * resource.metadata.id names the score; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the score does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the score kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.score.v1.Score request,
+    default void update(ai.stigmer.agentic.score.v1.UpdateScoreInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.Score> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -264,13 +275,24 @@ public final class ScoreCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it, and only
-     * its value and comment: every other field, the score's name and labels
-     * included, stays as created. A check's verdict never changes.
+     * Update a score: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only feedback is editable, only by the person who gave it, and only its
+     * value and comment; a check's verdict never changes.
+     * resource.metadata.id names the score; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the score does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the score kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.score.v1.Score request,
+    public void update(ai.stigmer.agentic.score.v1.UpdateScoreInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.Score> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -325,13 +347,24 @@ public final class ScoreCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it, and only
-     * its value and comment: every other field, the score's name and labels
-     * included, stays as created. A check's verdict never changes.
+     * Update a score: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only feedback is editable, only by the person who gave it, and only its
+     * value and comment; a check's verdict never changes.
+     * resource.metadata.id names the score; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the score does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the score kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.score.v1.Score update(ai.stigmer.agentic.score.v1.Score request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.score.v1.Score update(ai.stigmer.agentic.score.v1.UpdateScoreInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -384,13 +417,24 @@ public final class ScoreCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it, and only
-     * its value and comment: every other field, the score's name and labels
-     * included, stays as created. A check's verdict never changes.
+     * Update a score: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only feedback is editable, only by the person who gave it, and only its
+     * value and comment; a check's verdict never changes.
+     * resource.metadata.id names the score; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the score does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the score kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.score.v1.Score update(ai.stigmer.agentic.score.v1.Score request) {
+    public ai.stigmer.agentic.score.v1.Score update(ai.stigmer.agentic.score.v1.UpdateScoreInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -444,14 +488,25 @@ public final class ScoreCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a person's rating: its value and comment.
-     * Only feedback is editable, and only by the person who gave it, and only
-     * its value and comment: every other field, the score's name and labels
-     * included, stays as created. A check's verdict never changes.
+     * Update a score: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * Only feedback is editable, only by the person who gave it, and only its
+     * value and comment; a check's verdict never changes.
+     * resource.metadata.id names the score; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the score does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the score kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.score.v1.Score> update(
-        ai.stigmer.agentic.score.v1.Score request) {
+        ai.stigmer.agentic.score.v1.UpdateScoreInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -496,7 +551,7 @@ public final class ScoreCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.Score>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.score.v1.Score) request,
+          serviceImpl.update((ai.stigmer.agentic.score.v1.UpdateScoreInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.Score>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -532,7 +587,7 @@ public final class ScoreCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.score.v1.Score,
+              ai.stigmer.agentic.score.v1.UpdateScoreInput,
               ai.stigmer.agentic.score.v1.Score>(
                 service, METHODID_UPDATE)))
         .addMethod(

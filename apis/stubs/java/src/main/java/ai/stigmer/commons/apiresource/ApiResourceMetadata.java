@@ -40,6 +40,7 @@ private static final long serialVersionUID = 0L;
     visibility_ = 0;
     tags_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    etag_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -678,6 +679,63 @@ java.lang.String defaultValue) {
     return version_ == null ? ai.stigmer.commons.apiresource.ApiResourceMetadataVersion.getDefaultInstance() : version_;
   }
 
+  public static final int ETAG_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object etag_ = "";
+  /**
+   * <pre>
+   * A fingerprint of what a person edits on the resource: its spec, name,
+   * labels, tags and annotations, as stored.
+   *
+   * Send it back on update or apply to refuse the write with ABORTED
+   * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+   * empty and the last write wins. A status write never changes it.
+   * </pre>
+   *
+   * <code>string etag = 10 [json_name = "etag"];</code>
+   * @return The etag.
+   */
+  @java.lang.Override
+  public java.lang.String getEtag() {
+    java.lang.Object ref = etag_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      etag_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * A fingerprint of what a person edits on the resource: its spec, name,
+   * labels, tags and annotations, as stored.
+   *
+   * Send it back on update or apply to refuse the write with ABORTED
+   * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+   * empty and the last write wins. A status write never changes it.
+   * </pre>
+   *
+   * <code>string etag = 10 [json_name = "etag"];</code>
+   * @return The bytes for etag.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getEtagBytes() {
+    java.lang.Object ref = etag_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      etag_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -724,6 +782,9 @@ java.lang.String defaultValue) {
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(9, getVersion());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(etag_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, etag_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -782,6 +843,9 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(9, getVersion());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(etag_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, etag_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -817,6 +881,8 @@ java.lang.String defaultValue) {
       if (!getVersion()
           .equals(other.getVersion())) return false;
     }
+    if (!getEtag()
+        .equals(other.getEtag())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -854,6 +920,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + VERSION_FIELD_NUMBER;
       hash = (53 * hash) + getVersion().hashCode();
     }
+    hash = (37 * hash) + ETAG_FIELD_NUMBER;
+    hash = (53 * hash) + getEtag().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1036,6 +1104,7 @@ java.lang.String defaultValue) {
         versionBuilder_.dispose();
         versionBuilder_ = null;
       }
+      etag_ = "";
       return this;
     }
 
@@ -1103,6 +1172,9 @@ java.lang.String defaultValue) {
             : versionBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.etag_ = etag_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1159,6 +1231,11 @@ java.lang.String defaultValue) {
       }
       if (other.hasVersion()) {
         mergeVersion(other.getVersion());
+      }
+      if (!other.getEtag().isEmpty()) {
+        etag_ = other.etag_;
+        bitField0_ |= 0x00000200;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1241,6 +1318,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 82: {
+              etag_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2580,6 +2662,123 @@ java.lang.String defaultValue) {
         version_ = null;
       }
       return versionBuilder_;
+    }
+
+    private java.lang.Object etag_ = "";
+    /**
+     * <pre>
+     * A fingerprint of what a person edits on the resource: its spec, name,
+     * labels, tags and annotations, as stored.
+     *
+     * Send it back on update or apply to refuse the write with ABORTED
+     * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+     * empty and the last write wins. A status write never changes it.
+     * </pre>
+     *
+     * <code>string etag = 10 [json_name = "etag"];</code>
+     * @return The etag.
+     */
+    public java.lang.String getEtag() {
+      java.lang.Object ref = etag_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        etag_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * A fingerprint of what a person edits on the resource: its spec, name,
+     * labels, tags and annotations, as stored.
+     *
+     * Send it back on update or apply to refuse the write with ABORTED
+     * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+     * empty and the last write wins. A status write never changes it.
+     * </pre>
+     *
+     * <code>string etag = 10 [json_name = "etag"];</code>
+     * @return The bytes for etag.
+     */
+    public com.google.protobuf.ByteString
+        getEtagBytes() {
+      java.lang.Object ref = etag_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        etag_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * A fingerprint of what a person edits on the resource: its spec, name,
+     * labels, tags and annotations, as stored.
+     *
+     * Send it back on update or apply to refuse the write with ABORTED
+     * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+     * empty and the last write wins. A status write never changes it.
+     * </pre>
+     *
+     * <code>string etag = 10 [json_name = "etag"];</code>
+     * @param value The etag to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEtag(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      etag_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * A fingerprint of what a person edits on the resource: its spec, name,
+     * labels, tags and annotations, as stored.
+     *
+     * Send it back on update or apply to refuse the write with ABORTED
+     * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+     * empty and the last write wins. A status write never changes it.
+     * </pre>
+     *
+     * <code>string etag = 10 [json_name = "etag"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearEtag() {
+      etag_ = getDefaultInstance().getEtag();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * A fingerprint of what a person edits on the resource: its spec, name,
+     * labels, tags and annotations, as stored.
+     *
+     * Send it back on update or apply to refuse the write with ABORTED
+     * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+     * empty and the last write wins. A status write never changes it.
+     * </pre>
+     *
+     * <code>string etag = 10 [json_name = "etag"];</code>
+     * @param value The bytes for etag to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEtagBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      etag_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.commons.apiresource.ApiResourceMetadata)

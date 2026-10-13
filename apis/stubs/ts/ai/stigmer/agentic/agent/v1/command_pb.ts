@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
-import type { AgentIdSchema } from "./io_pb.js";
+import type { AgentIdSchema, UpdateAgentInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
 import type { TagAgentVersionInputSchema } from "./version_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_version } from "./version_pb.js";
@@ -19,7 +19,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxMvcHChZBZ2VudENvbW1hbmRDb250cm9sbGVyEk8KBWFwcGx5EiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EpsBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiScK4GEUIBhAeIgxtZXRhZGF0YS5vcmcqMXVuYXV0aG9yaXplZCB0byBjcmVhdGUgYWdlbnQgaW4gdGhpcyBvcmdhbml6YXRpb24ShQEKBnVwZGF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIzwrgYLwgCECgiC21ldGFkYXRhLmlkKhx1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50Eq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCI+wrgYOggwECgiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFnZW50IHZpc2liaWxpdHkSjgEKBnJlbmFtZRIrLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5SZW5hbWVJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIzwrgYLwgDECgiC3Jlc291cmNlX2lkKhx1bmF1dGhvcml6ZWQgdG8gcmVuYW1lIGFnZW50EoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCItwrgYKQgDECgiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGFnZW50EpoBCgp0YWdWZXJzaW9uEjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlRhZ0FnZW50VmVyc2lvbklucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50IjXCuBgxCAIQKCIIYWdlbnRfaWQqIXVuYXV0aG9yaXplZCB0byB0YWcgYWdlbnQgdmVyc2lvbhoEoP8rKGIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_agentic_agent_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxMosIChZBZ2VudENvbW1hbmRDb250cm9sbGVyEk8KBWFwcGx5EiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50EpsBCgZjcmVhdGUSIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiScK4GEUIBhAeIgxtZXRhZGF0YS5vcmcqMXVuYXV0aG9yaXplZCB0byBjcmVhdGUgYWdlbnQgaW4gdGhpcyBvcmdhbml6YXRpb24SmQEKBnVwZGF0ZRItLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5VcGRhdGVBZ2VudElucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50IjzCuBg4CAIQKCIUcmVzb3VyY2UubWV0YWRhdGEuaWQqHHVuYXV0aG9yaXplZCB0byB1cGRhdGUgYWdlbnQSrQEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50Ij7CuBg6CDAQKCILcmVzb3VyY2VfaWQqJ3VuYXV0aG9yaXplZCB0byB1cGRhdGUgYWdlbnQgdmlzaWJpbGl0eRKOAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50IjPCuBgvCAMQKCILcmVzb3VyY2VfaWQqHHVuYXV0aG9yaXplZCB0byByZW5hbWUgYWdlbnQSgQEKBmRlbGV0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudElkGiIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50Ii3CuBgpCAMQKCIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgYWdlbnQSmgEKCnRhZ1ZlcnNpb24SMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuVGFnQWdlbnRWZXJzaW9uSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiNcK4GDEIAhAoIghhZ2VudF9pZCohdW5hdXRob3JpemVkIHRvIHRhZyBhZ2VudCB2ZXJzaW9uGgSg/ysoYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_agentic_agent_v1_version, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentCommandController handles write operations for AI agents.
@@ -67,18 +67,28 @@ export const AgentCommandController: GenService<{
     output: typeof AgentSchema;
   },
   /**
-   * Update an existing agent.
+   * Update an agent: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * The slug changes only through rename. An update authorizes the id it names,
-   * so wherever the server authorizes requests, an update without an id is
-   * refused before its slug is read; where it reads one, a slug the agent was
-   * renamed away from is refused with SLUG_RENAMED (see apply).
+   * resource.metadata.id names the agent; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the agent does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the agent kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof AgentSchema;
+    input: typeof UpdateAgentInputSchema;
     output: typeof AgentSchema;
   },
   /**

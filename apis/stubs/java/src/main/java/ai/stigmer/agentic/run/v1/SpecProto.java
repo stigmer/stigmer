@@ -73,7 +73,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "i/stigmer/agentic/session/v1/spec.proto\032" +
       "\033buf/validate/validate.proto\032\034google/pro" +
       "tobuf/struct.proto\032\037google/protobuf/time" +
-      "stamp.proto\"\271\016\n\007RunSpec\022\037\n\nsession_id\030\001 " +
+      "stamp.proto\"\343\014\n\007RunSpec\022\037\n\nsession_id\030\001 " +
       "\001(\tH\000R\tsessionId\022O\n\014session_spec\030\r \001(\0132*" +
       ".ai.stigmer.agentic.session.v1.SessionSp" +
       "ecH\000R\013sessionSpec\022\030\n\007message\030\003 \001(\tR\007mess" +
@@ -106,44 +106,39 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "_eval_case\030\031 \001(\01320.ai.stigmer.agentic.ru" +
       "n.v1.PluginEvalCaseContextR\016pluginEvalCa" +
       "se\0222\n\025reconcile_file_review\030\032 \001(\010R\023recon" +
-      "cileFileReview:\273\002\272H\267\002\032a\n\024run.message_req" +
-      "uired\022\023message is required\0324this.reconci" +
-      "le_file_review || size(this.message) > 0" +
-      "\032\321\001\n\036run.session_spec_harness_state\022jses" +
-      "sion_spec.harness_state_id must be empty" +
-      " \342\200\224 harness state is created by the run" +
-      "ner after the first run\032C!has(this.sessi" +
-      "on_spec) || this.session_spec.harness_st" +
-      "ate_id == \'\'B\010\n\006targetJ\004\010\002\020\003J\004\010\006\020\007J\004\010\010\020\t" +
-      "J\004\010\013\020\014J\004\010\021\020\022J\004\010\017\020\020J\004\010\020\020\021J\004\010\004\020\005J\004\010\005\020\006R\010ag" +
-      "ent_idR\016callback_tokenR\022parent_workflow_" +
-      "idR\023activity_task_queueR\006parentR\024declare" +
-      "d_preferencesR\021recalled_memoriesR\020execut" +
-      "ion_configR\013runtime_env\"\226\003\n\nAttachment\022\342" +
-      "\001\n\010filename\030\001 \001(\tB\305\001\272H\301\001r\002\020\001\272\001\271\001\n\033attach" +
-      "ment.filename.no_path\022Nfilename must be " +
-      "a bare filename without path separators " +
-      "or traversal segments\032J!this.contains(\'/" +
-      "\') && !this.contains(\'\\\\\') && this != \'." +
-      "\' && this != \'..\'R\010filename\022(\n\013storage_k" +
-      "ey\030\002 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022\035\n\nmount_p" +
-      "ath\030\003 \001(\tR\tmountPath\022!\n\014content_type\030\004 \001" +
-      "(\tR\013contentType\022\030\n\007extract\030\005 \001(\010R\007extrac" +
-      "t\022\035\n\nlocal_path\030\006 \001(\tR\tlocalPath\"h\n\023Conv" +
-      "ersationCatchup\022\026\n\006digest\030\001 \001(\tR\006digest\022" +
-      "9\n\nwindow_end\030\002 \001(\0132\032.google.protobuf.Ti" +
-      "mestampR\twindowEnd\"Y\n\023DeclaredPreference" +
-      "s\022\037\n\013org_context\030\001 \001(\tR\norgContext\022!\n\014us" +
-      "er_context\030\002 \001(\tR\013userContext\"q\n\020Recalle" +
-      "dMemories\022\030\n\007enabled\030\001 \001(\010R\007enabled\022C\n\005f" +
-      "acts\030\002 \003(\0132-.ai.stigmer.agentic.run.v1.R" +
-      "ecalledMemoryFactR\005facts\"K\n\022RecalledMemo" +
-      "ryFact\022\033\n\tmemory_id\030\001 \001(\tR\010memoryId\022\030\n\007c" +
-      "ontent\030\002 \001(\tR\007contentB\224\001B\tSpecProtoP\001\242\002\004" +
-      "ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\St" +
-      "igmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agenti" +
-      "c\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Agen" +
-      "tic::Run::V1b\006proto3"
+      "cileFileReview:f\272Hc\032a\n\024run.message_requi" +
+      "red\022\023message is required\0324this.reconcile" +
+      "_file_review || size(this.message) > 0B\010" +
+      "\n\006targetJ\004\010\002\020\003J\004\010\006\020\007J\004\010\010\020\tJ\004\010\013\020\014J\004\010\021\020\022J\004" +
+      "\010\017\020\020J\004\010\020\020\021J\004\010\004\020\005J\004\010\005\020\006R\010agent_idR\016callba" +
+      "ck_tokenR\022parent_workflow_idR\023activity_t" +
+      "ask_queueR\006parentR\024declared_preferencesR" +
+      "\021recalled_memoriesR\020execution_configR\013ru" +
+      "ntime_env\"\226\003\n\nAttachment\022\342\001\n\010filename\030\001 " +
+      "\001(\tB\305\001\272H\301\001r\002\020\001\272\001\271\001\n\033attachment.filename." +
+      "no_path\022Nfilename must be a bare filenam" +
+      "e without path separators or traversal s" +
+      "egments\032J!this.contains(\'/\') && !this.co" +
+      "ntains(\'\\\\\') && this != \'.\' && this != \'" +
+      "..\'R\010filename\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r" +
+      "\002\020\001R\nstorageKey\022\035\n\nmount_path\030\003 \001(\tR\tmou" +
+      "ntPath\022!\n\014content_type\030\004 \001(\tR\013contentTyp" +
+      "e\022\030\n\007extract\030\005 \001(\010R\007extract\022\035\n\nlocal_pat" +
+      "h\030\006 \001(\tR\tlocalPath\"h\n\023ConversationCatchu" +
+      "p\022\026\n\006digest\030\001 \001(\tR\006digest\0229\n\nwindow_end\030" +
+      "\002 \001(\0132\032.google.protobuf.TimestampR\twindo" +
+      "wEnd\"Y\n\023DeclaredPreferences\022\037\n\013org_conte" +
+      "xt\030\001 \001(\tR\norgContext\022!\n\014user_context\030\002 \001" +
+      "(\tR\013userContext\"q\n\020RecalledMemories\022\030\n\007e" +
+      "nabled\030\001 \001(\010R\007enabled\022C\n\005facts\030\002 \003(\0132-.a" +
+      "i.stigmer.agentic.run.v1.RecalledMemoryF" +
+      "actR\005facts\"K\n\022RecalledMemoryFact\022\033\n\tmemo" +
+      "ry_id\030\001 \001(\tR\010memoryId\022\030\n\007content\030\002 \001(\tR\007" +
+      "contentB\224\001B\tSpecProtoP\001\242\002\004ASAR\252\002\031Ai.Stig" +
+      "mer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\" +
+      "Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMe" +
+      "tadata\352\002\035Ai::Stigmer::Agentic::Run::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

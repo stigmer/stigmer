@@ -30,7 +30,7 @@ class AgentCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.agent.v1.AgentCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.UpdateAgentInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
                 _registered_method=True)
         self.updateVisibility = channel.unary_unary(
@@ -93,12 +93,22 @@ class AgentCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing agent.
+        """Update an agent: the fields update_mask names change, every other
+        field keeps its stored value.
 
-        The slug changes only through rename. An update authorizes the id it names,
-        so wherever the server authorizes requests, an update without an id is
-        refused before its slug is read; where it reads one, a slug the agent was
-        renamed away from is refused with SLUG_RENAMED (see apply).
+        resource.metadata.id names the agent; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the agent does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the agent kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -179,7 +189,7 @@ def add_AgentCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.UpdateAgentInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
             ),
             'updateVisibility': grpc.unary_unary_rpc_method_handler(
@@ -283,7 +293,7 @@ class AgentCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.agent.v1.AgentCommandController/update',
-            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.UpdateAgentInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
             options,
             channel_credentials,

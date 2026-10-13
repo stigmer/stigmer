@@ -5,6 +5,7 @@
 
 import { ChannelApp } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { UpdateChannelAppInput } from "./io_pbjs";
 import { ApiResourceDeleteInput, RenameInput } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -64,21 +65,31 @@ export const ChannelAppCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing channel app.
+     * Update a channel app: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * Sending the redaction marker for a secret field preserves the
-     * stored value; the provider arm is immutable.
+     * Sending the redaction marker for a secret field preserves the stored
+     * value; the provider arm is immutable.
      *
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the channel app
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * resource.metadata.id names the channel app; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the channel app does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the channel app changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the channel app kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.update
      */
     update: {
       name: "update",
-      I: ChannelApp,
+      I: UpdateChannelAppInput,
       O: ChannelApp,
       kind: MethodKind.Unary,
     },

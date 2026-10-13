@@ -41,28 +41,29 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "tigmer/agentic/memory/v1/io.proto\0328ai/st" +
       "igmer/commons/apiresource/rpc_service_op" +
       "tions.proto\032+ai/stigmer/commons/rpc/meth" +
-      "od_options.proto2\245\005\n\027MemoryCommandContro" +
+      "od_options.proto2\271\005\n\027MemoryCommandContro" +
       "ller\022Z\n\006create\022$.ai.stigmer.agentic.memo" +
       "ry.v1.Memory\032$.ai.stigmer.agentic.memory" +
-      ".v1.Memory\"\004\320\270\030\001\022\212\001\n\006update\022$.ai.stigmer" +
-      ".agentic.memory.v1.Memory\032$.ai.stigmer.a" +
-      "gentic.memory.v1.Memory\"4\302\270\0300\010\002\0209\"\013metad" +
-      "ata.id*\035unauthorized to update memory\022\206\001" +
-      "\n\006delete\022&.ai.stigmer.agentic.memory.v1." +
-      "MemoryId\032$.ai.stigmer.agentic.memory.v1." +
-      "Memory\".\302\270\030*\010\003\0209\"\005value*\035unauthorized to" +
-      " delete memory\022\210\001\n\007confirm\022&.ai.stigmer." +
-      "agentic.memory.v1.MemoryId\032$.ai.stigmer." +
-      "agentic.memory.v1.Memory\"/\302\270\030+\010\002\0209\"\005valu" +
-      "e*\036unauthorized to confirm memory\022\206\001\n\006re" +
-      "ject\022&.ai.stigmer.agentic.memory.v1.Memo" +
-      "ryId\032$.ai.stigmer.agentic.memory.v1.Memo" +
-      "ry\".\302\270\030*\010\002\0209\"\005value*\035unauthorized to rej" +
-      "ect memory\032\004\240\377+9B\243\001B\014CommandProtoP\001\242\002\004AS" +
-      "AM\252\002\034Ai.Stigmer.Agentic.Memory.V1\312\002\034Ai\\S" +
-      "tigmer\\Agentic\\Memory\\V1\342\002(Ai\\Stigmer\\Ag" +
-      "entic\\Memory\\V1\\GPBMetadata\352\002 Ai::Stigme" +
-      "r::Agentic::Memory::V1b\006proto3"
+      ".v1.Memory\"\004\320\270\030\001\022\236\001\n\006update\022/.ai.stigmer" +
+      ".agentic.memory.v1.UpdateMemoryInput\032$.a" +
+      "i.stigmer.agentic.memory.v1.Memory\"=\302\270\0309" +
+      "\010\002\0209\"\024resource.metadata.id*\035unauthorized" +
+      " to update memory\022\206\001\n\006delete\022&.ai.stigme" +
+      "r.agentic.memory.v1.MemoryId\032$.ai.stigme" +
+      "r.agentic.memory.v1.Memory\".\302\270\030*\010\003\0209\"\005va" +
+      "lue*\035unauthorized to delete memory\022\210\001\n\007c" +
+      "onfirm\022&.ai.stigmer.agentic.memory.v1.Me" +
+      "moryId\032$.ai.stigmer.agentic.memory.v1.Me" +
+      "mory\"/\302\270\030+\010\002\0209\"\005value*\036unauthorized to c" +
+      "onfirm memory\022\206\001\n\006reject\022&.ai.stigmer.ag" +
+      "entic.memory.v1.MemoryId\032$.ai.stigmer.ag" +
+      "entic.memory.v1.Memory\".\302\270\030*\010\002\0209\"\005value*" +
+      "\035unauthorized to reject memory\032\004\240\377+9B\243\001B" +
+      "\014CommandProtoP\001\242\002\004ASAM\252\002\034Ai.Stigmer.Agen" +
+      "tic.Memory.V1\312\002\034Ai\\Stigmer\\Agentic\\Memor" +
+      "y\\V1\342\002(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBM" +
+      "etadata\352\002 Ai::Stigmer::Agentic::Memory::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

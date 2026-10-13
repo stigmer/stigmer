@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentShareSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agentshare_v1_api } from "./api_pb.js";
-import type { AgentShareIdSchema, RotateShareLinkInputSchema } from "./io_pb.js";
+import type { AgentShareIdSchema, RotateShareLinkInputSchema, UpdateAgentShareInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agentshare_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentshare/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MTLuBQobQWdlbnRTaGFyZUNvbW1hbmRDb250cm9sbGVyEmMKBWFwcGx5EiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUSagoGY3JlYXRlEiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiBNC4GAESnwEKBnVwZGF0ZRIsLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUaLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIjnCuBg1CAIQLiILbWV0YWRhdGEuaWQqInVuYXV0aG9yaXplZCB0byB1cGRhdGUgYWdlbnQgc2hhcmUStwEKD3JvdGF0ZVNoYXJlTGluaxI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLlJvdGF0ZVNoYXJlTGlua0lucHV0GiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZSI+wrgYOggCEC4iC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gcm90YXRlIGFnZW50IHNoYXJlIGxpbmsSmwEKBmRlbGV0ZRIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmVJZBosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiM8K4GC8IAxAuIgV2YWx1ZSoidW5hdXRob3JpemVkIHRvIGRlbGV0ZSBhZ2VudCBzaGFyZRoEoP8rLmIGcHJvdG8z", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_agentic_agentshare_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MTKCBgobQWdlbnRTaGFyZUNvbW1hbmRDb250cm9sbGVyEmMKBWFwcGx5EiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUSagoGY3JlYXRlEiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZRosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiBNC4GAESswEKBnVwZGF0ZRI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLlVwZGF0ZUFnZW50U2hhcmVJbnB1dBosLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmUiQsK4GD4IAhAuIhRyZXNvdXJjZS5tZXRhZGF0YS5pZCoidW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhZ2VudCBzaGFyZRK3AQoPcm90YXRlU2hhcmVMaW5rEjYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuUm90YXRlU2hhcmVMaW5rSW5wdXQaLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIj7CuBg6CAIQLiILcmVzb3VyY2VfaWQqJ3VuYXV0aG9yaXplZCB0byByb3RhdGUgYWdlbnQgc2hhcmUgbGluaxKbAQoGZGVsZXRlEi4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZUlkGiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZSIzwrgYLwgDEC4iBXZhbHVlKiJ1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGFnZW50IHNoYXJlGgSg/ysuYgZwcm90bzM", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_agentic_agentshare_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentShareCommandController handles write operations for agent shares.
@@ -48,17 +48,32 @@ export const AgentShareCommandController: GenService<{
     output: typeof AgentShareSchema;
   },
   /**
-   * Update an existing agent share.
+   * Update an agent share: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * Replaces the spec wholesale: a manifest that omits audience makes the
-   * share organization-only, and one that omits vaults detaches them (both
-   * fail closed). The slug and referenced agent are immutable.
+   * The referenced agent is immutable. A mask naming the audience or the
+   * vaults replaces them whole: an empty audience makes the share
+   * organization-only, and empty vaults detach them (both fail closed).
+   *
+   * resource.metadata.id names the agent share; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the agent share does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the agent share kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof AgentShareSchema;
+    input: typeof UpdateAgentShareInputSchema;
     output: typeof AgentShareSchema;
   },
   /**

@@ -26,11 +26,11 @@
         },
         {
           "name": "Update",
-          "inputType": "Session",
-          "inputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "inputType": "UpdateSessionInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.UpdateSessionInput",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Update an existing session (e.g., subject, thread_id)."
+          "description": "Update a session: the fields update_mask names change, every other\n field keeps its stored value.\n\n resource.metadata.id names the session; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the session does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the session kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "UpdateSubject",
@@ -87,6 +87,14 @@
           "outputType": "AppendSessionEventsResponse",
           "outputFullType": "ai.stigmer.agentic.session.v1.AppendSessionEventsResponse",
           "description": "Append a run's events to its session's log.\n\n Only the runner acting for the run may call it, while the run is not\n finished. It accepts the events a runner produces: agent.*,\n session.thread_* and session.error. The batch is appended whole or not\n at all."
+        },
+        {
+          "name": "BindHarnessState",
+          "inputType": "BindHarnessStateInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.BindHarnessStateInput",
+          "outputType": "BindHarnessStateResponse",
+          "outputFullType": "ai.stigmer.agentic.session.v1.BindHarnessStateResponse",
+          "description": "Record the harness's conversation id for a run's session.\n\n Only the runner acting for the run may call it, while the run is not\n finished. The id replaced, if any, joins the session's\n harness_state_id_history."
         }
       ]
     },
@@ -148,6 +156,39 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateSessionInput",
+      "description": "The changes an update makes to a session: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.agentic.session.v1.UpdateSessionInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "Session"
+          },
+          "description": "The session carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "UpdateSessionSubjectRequest",
       "description": "UpdateSessionSubjectRequest sets the conversation title for a session.",
@@ -979,6 +1020,71 @@
       ]
     },
     {
+      "name": "BindHarnessStateInput",
+      "description": "BindHarnessStateInput names a run and the harness's conversation id its\n session continues from.",
+      "protoType": "ai.stigmer.agentic.session.v1.BindHarnessStateInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run whose session the id belongs to.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "HarnessStateId",
+          "jsonName": "harnessStateId",
+          "protoField": "harness_state_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The harness's conversation id (a LangGraph thread id, a Cursor agent id).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "BindHarnessStateResponse",
+      "description": "BindHarnessStateResponse answers the session's harness state after the\n write.",
+      "protoType": "ai.stigmer.agentic.session.v1.BindHarnessStateResponse",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "HarnessStateId",
+          "jsonName": "harnessStateId",
+          "protoField": "harness_state_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The id now recorded.",
+          "required": false
+        },
+        {
+          "name": "HarnessStateIdHistory",
+          "jsonName": "harnessStateIdHistory",
+          "protoField": "harness_state_id_history",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The ids the session owned before, oldest first.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "ListSessionsRequest",
       "description": "ListSessionsRequest specifies parameters for listing sessions.",
       "protoType": "ai.stigmer.agentic.session.v1.ListSessionsRequest",
@@ -1712,6 +1818,29 @@
           }
         },
         "description": "Who attached each of this resource's vaults, by vault id: the account\n whose permission to use the vault each run checks when it has no\n person.",
+        "required": false
+      },
+      {
+        "name": "HarnessStateId",
+        "jsonName": "harnessStateId",
+        "protoField": "harness_state_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first run completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent runs.",
+        "required": false
+      },
+      {
+        "name": "HarnessStateIdHistory",
+        "jsonName": "harnessStateIdHistory",
+        "protoField": "harness_state_id_history",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "string"
+          }
+        },
+        "description": "Prior harness state identifiers this session has owned, oldest first.\n\n A session can span multiple harness-side conversations: when the\n cursor-runner's resume fails, it creates a fresh Cursor agent and\n replaces harness_state_id, and the replaced id lands here.",
         "required": false
       }
     ]

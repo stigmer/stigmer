@@ -9,13 +9,15 @@ import { file_ai_stigmer_agentic_agentchannel_v1_api } from "./api_pb.js";
 import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/agentchannel/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIicKDkFnZW50Q2hhbm5lbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEifAoeR2V0QWdlbnRDaGFubmVsc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiaAoQQWdlbnRDaGFubmVsTGlzdBITCgt0b3RhbF9jb3VudBgBIAEoBRI/CgVpdGVtcxgCIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIu4BChhMaXN0QWdlbnRDaGFubmVsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABElgKBmxhYmVscxgCIAMoCzJILmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuTGlzdEFnZW50Q2hhbm5lbHNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI6ChtJbml0aWF0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJbChxJbml0aWF0ZUNoYW5uZWxJbnN0YWxsT3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEhEKCWNvbXBsZXRlZBgDIAEoCCJnChtDb21wbGV0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIVCgVzdGF0ZRgCIAEoCUIGukgDyAEBEhQKBGNvZGUYAyABKAlCBrpIA8gBAWIGcHJvdG8z", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIicKDkFnZW50Q2hhbm5lbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEifAoeR2V0QWdlbnRDaGFubmVsc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiaAoQQWdlbnRDaGFubmVsTGlzdBITCgt0b3RhbF9jb3VudBgBIAEoBRI/CgVpdGVtcxgCIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIu4BChhMaXN0QWdlbnRDaGFubmVsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABElgKBmxhYmVscxgCIAMoCzJILmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuTGlzdEFnZW50Q2hhbm5lbHNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI6ChtJbml0aWF0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJbChxJbml0aWF0ZUNoYW5uZWxJbnN0YWxsT3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEhEKCWNvbXBsZXRlZBgDIAEoCCJnChtDb21wbGV0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIVCgVzdGF0ZRgCIAEoCUIGukgDyAEBEhQKBGNvZGUYAyABKAlCBrpIA8gBASLmAgoXVXBkYXRlQWdlbnRDaGFubmVsSW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbEIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsUBukjBARq+AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSTXJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIGFnZW50IGNoYW5uZWwgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * AgentChannelId wraps an agent channel identifier.
@@ -247,4 +249,37 @@ export type CompleteChannelInstallInput = Message<"ai.stigmer.agentic.agentchann
  */
 export const CompleteChannelInstallInputSchema: GenMessage<CompleteChannelInstallInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_io, 6);
+
+/**
+ * The changes an update makes to an agent channel: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput
+ */
+export type UpdateAgentChannelInput = Message<"ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput"> & {
+  /**
+   * The agent channel carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.agentic.agentchannel.v1.AgentChannel resource = 1;
+   */
+  resource?: AgentChannel;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput.
+ * Use `create(UpdateAgentChannelInputSchema)` to create a new message.
+ */
+export const UpdateAgentChannelInputSchema: GenMessage<UpdateAgentChannelInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_io, 7);
 

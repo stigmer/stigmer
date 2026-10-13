@@ -29,7 +29,7 @@ class PlatformClientCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.UpdatePlatformClientInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
                 _registered_method=True)
         self.rename = channel.unary_unary(
@@ -85,25 +85,26 @@ class PlatformClientCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing platform client.
+        """Update a platform client: the fields update_mask names change, every other
+        field keeps its stored value.
 
-        The name, labels and every spec field can be changed except the
-        credential fields (client_id, client_secret_hash, secret_fingerprint),
-        which are kept from the stored client. Use rotateSecret to change the
-        client secret. A system-managed client cannot be updated.
+        The credential fields (client_id, client_secret_hash, secret_fingerprint)
+        are kept from the stored client: use rotateSecret to change the client
+        secret. A system-managed client cannot be updated.
 
-        The slug changes only through rename. An update authorizes the id it
-        names, so wherever the server authorizes requests, an update without an
-        id is refused before its slug is read. Where it reads one (a server that
-        admits every caller), a slug the platform client was renamed away from,
-        named without the platform client's id, is refused with
-        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-        "stigmer.ai"), because a write by a name that stops resolving after 30 days
-        would later make a second platform client:
+        resource.metadata.id names the platform client; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the platform client does not have, is refused with
+        INVALID_ARGUMENT naming the path.
 
-        - SLUG_RENAMED — the slug was renamed: it still leads to the same
-        platform client for reading, but a write names its current slug.
-        Metadata: slug (the one the request named).
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the platform client kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -169,7 +170,7 @@ def add_PlatformClientCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.UpdatePlatformClientInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
             ),
             'rename': grpc.unary_unary_rpc_method_handler(
@@ -246,7 +247,7 @@ class PlatformClientCommandController(object):
             request,
             target,
             '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/update',
-            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_io__pb2.UpdatePlatformClientInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
             options,
             channel_credentials,

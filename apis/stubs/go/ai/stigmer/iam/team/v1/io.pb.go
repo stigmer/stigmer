@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -114,15 +115,80 @@ func (x *ListTeamsByOrgInput) GetOrg() string {
 	return ""
 }
 
+// The changes an update makes to a team: the fields update_mask names,
+// taken from resource.
+type UpdateTeamInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The team carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *Team `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateTeamInput) Reset() {
+	*x = UpdateTeamInput{}
+	mi := &file_ai_stigmer_iam_team_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateTeamInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateTeamInput) ProtoMessage() {}
+
+func (x *UpdateTeamInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_team_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateTeamInput.ProtoReflect.Descriptor instead.
+func (*UpdateTeamInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_team_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UpdateTeamInput) GetResource() *Team {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateTeamInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_team_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_team_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1fai/stigmer/iam/team/v1/io.proto\x12\x16ai.stigmer.iam.team.v1\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"?\n" +
+	"\x1fai/stigmer/iam/team/v1/io.proto\x12\x16ai.stigmer.iam.team.v1\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"?\n" +
 	"\x05Teams\x126\n" +
 	"\aentries\x18\x01 \x03(\v2\x1c.ai.stigmer.iam.team.v1.TeamR\aentries\"0\n" +
 	"\x13ListTeamsByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03orgB\xea\x01\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xd7\x02\n" +
+	"\x0fUpdateTeamInput\x12@\n" +
+	"\bresource\x18\x01 \x01(\v2\x1c.ai.stigmer.iam.team.v1.TeamB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xbc\x01\xbaH\xb8\x01\x1a\xb5\x01\n" +
+	"\x17update_names_its_target\x12Dresource.metadata.id is required: an update names the team by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xea\x01\n" +
 	"\x1acom.ai.stigmer.iam.team.v1B\aIoProtoP\x01ZFgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/team/v1;teamv1\xa2\x02\x04ASIT\xaa\x02\x16Ai.Stigmer.Iam.Team.V1\xca\x02\x16Ai\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1aAi::Stigmer::Iam::Team::V1b\x06proto3"
 
 var (
@@ -137,19 +203,23 @@ func file_ai_stigmer_iam_team_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_team_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_team_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_iam_team_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_iam_team_v1_io_proto_goTypes = []any{
-	(*Teams)(nil),               // 0: ai.stigmer.iam.team.v1.Teams
-	(*ListTeamsByOrgInput)(nil), // 1: ai.stigmer.iam.team.v1.ListTeamsByOrgInput
-	(*Team)(nil),                // 2: ai.stigmer.iam.team.v1.Team
+	(*Teams)(nil),                 // 0: ai.stigmer.iam.team.v1.Teams
+	(*ListTeamsByOrgInput)(nil),   // 1: ai.stigmer.iam.team.v1.ListTeamsByOrgInput
+	(*UpdateTeamInput)(nil),       // 2: ai.stigmer.iam.team.v1.UpdateTeamInput
+	(*Team)(nil),                  // 3: ai.stigmer.iam.team.v1.Team
+	(*fieldmaskpb.FieldMask)(nil), // 4: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_team_v1_io_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.iam.team.v1.Teams.entries:type_name -> ai.stigmer.iam.team.v1.Team
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	3, // 0: ai.stigmer.iam.team.v1.Teams.entries:type_name -> ai.stigmer.iam.team.v1.Team
+	3, // 1: ai.stigmer.iam.team.v1.UpdateTeamInput.resource:type_name -> ai.stigmer.iam.team.v1.Team
+	4, // 2: ai.stigmer.iam.team.v1.UpdateTeamInput.update_mask:type_name -> google.protobuf.FieldMask
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_team_v1_io_proto_init() }
@@ -164,7 +234,7 @@ func file_ai_stigmer_iam_team_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_team_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_team_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

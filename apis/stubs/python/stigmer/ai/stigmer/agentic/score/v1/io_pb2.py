@@ -24,9 +24,10 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.agentic.score.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_api__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/score/v1/io.proto\x12\x1b\x61i.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\"\'\n\x07ScoreId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"8\n\x16ListScoresByRunRequest\x12\x1e\n\x06run_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05runId\"D\n\x1aListScoresBySessionRequest\x12&\n\nsession_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\tsessionId\"\x8e\x01\n\tScoreList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x38\n\x05items\x18\x02 \x03(\x0b\x32\".ai.stigmer.agentic.score.v1.ScoreR\x05items\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"|\n\x1cGetAgentQualityReportRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n\x08\x61gent_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x61gentId\x12\x1d\n\x04\x64\x61ys\x18\x03 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04\x64\x61ys\"\xde\x02\n\x12\x41gentQualityReport\x12\x1b\n\tfrom_date\x18\x01 \x01(\tR\x08\x66romDate\x12\x17\n\x07to_date\x18\x02 \x01(\tR\x06toDate\x12\x41\n\x05total\x18\x03 \x01(\x0b\x32+.ai.stigmer.agentic.score.v1.QualitySummaryR\x05total\x12;\n\x04\x64\x61ys\x18\x04 \x03(\x0b\x32\'.ai.stigmer.agentic.score.v1.QualityDayR\x04\x64\x61ys\x12G\n\x08versions\x18\x05 \x03(\x0b\x32+.ai.stigmer.agentic.score.v1.QualityVersionR\x08versions\x12I\n\tagreement\x18\x06 \x03(\x0b\x32+.ai.stigmer.agentic.score.v1.JudgeAgreementR\tagreement\"\xca\x01\n\x0eJudgeAgreement\x12+\n\x11\x65valuator_version\x18\x01 \x01(\tR\x10\x65valuatorVersion\x12\x12\n\x04runs\x18\x02 \x01(\x05R\x04runs\x12\x35\n\x17thumbs_down_none_failed\x18\x03 \x01(\x05R\x14thumbsDownNoneFailed\x12@\n\x05rules\x18\x04 \x03(\x0b\x32*.ai.stigmer.agentic.score.v1.RuleAgreementR\x05rules\"\xd3\x01\n\rRuleAgreement\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12,\n\x12\x66\x61iled_thumbs_down\x18\x02 \x01(\x05R\x10\x66\x61iledThumbsDown\x12(\n\x10\x66\x61iled_thumbs_up\x18\x03 \x01(\x05R\x0e\x66\x61iledThumbsUp\x12,\n\x12passed_thumbs_down\x18\x04 \x01(\x05R\x10passedThumbsDown\x12(\n\x10passed_thumbs_up\x18\x05 \x01(\x05R\x0epassedThumbsUp\"h\n\x0eQualitySummary\x12\x12\n\x04runs\x18\x01 \x01(\x05R\x04runs\x12\x42\n\x07metrics\x18\x02 \x03(\x0b\x32(.ai.stigmer.agentic.score.v1.MetricTallyR\x07metrics\"\x84\x02\n\x0bMetricTally\x12\x16\n\x06metric\x18\x01 \x01(\tR\x06metric\x12+\n\x11\x65valuator_version\x18\x02 \x01(\tR\x10\x65valuatorVersion\x12\x16\n\x06passed\x18\x03 \x01(\x05R\x06passed\x12\x16\n\x06\x66\x61iled\x18\x04 \x01(\x05R\x06\x66\x61iled\x12\x1d\n\nnot_graded\x18\x05 \x01(\x05R\tnotGraded\x12\x18\n\x07pending\x18\x06 \x01(\x05R\x07pending\x12G\n\x08\x63riteria\x18\x07 \x03(\x0b\x32+.ai.stigmer.agentic.score.v1.CriterionTallyR\x08\x63riteria\"{\n\x0e\x43riterionTally\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n\x06passed\x18\x02 \x01(\x05R\x06passed\x12\x16\n\x06\x66\x61iled\x18\x03 \x01(\x05R\x06\x66\x61iled\x12%\n\x0enot_applicable\x18\x04 \x01(\x05R\rnotApplicable\"g\n\nQualityDay\x12\x12\n\x04\x64\x61te\x18\x01 \x01(\tR\x04\x64\x61te\x12\x45\n\x07summary\x18\x02 \x01(\x0b\x32+.ai.stigmer.agentic.score.v1.QualitySummaryR\x07summary\"\xc1\x01\n\x0eQualityVersion\x12,\n\x12\x61gent_version_hash\x18\x01 \x01(\tR\x10\x61gentVersionHash\x12\x1d\n\nfirst_date\x18\x02 \x01(\tR\tfirstDate\x12\x1b\n\tlast_date\x18\x03 \x01(\tR\x08lastDate\x12\x45\n\x07summary\x18\x04 \x01(\x0b\x32+.ai.stigmer.agentic.score.v1.QualitySummaryR\x07summary\"\xc4\x01\n\x1fListFlaggedScoresByAgentRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n\x08\x61gent_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x61gentId\x12\x1d\n\x04\x64\x61ys\x18\x03 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04\x64\x61ys\x12$\n\tpage_size\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x05 \x01(\tR\tpageTokenB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/score/v1/io.proto\x12\x1b\x61i.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"\'\n\x07ScoreId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"8\n\x16ListScoresByRunRequest\x12\x1e\n\x06run_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05runId\"D\n\x1aListScoresBySessionRequest\x12&\n\nsession_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\tsessionId\"\x8e\x01\n\tScoreList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x38\n\x05items\x18\x02 \x03(\x0b\x32\".ai.stigmer.agentic.score.v1.ScoreR\x05items\x12&\n\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"|\n\x1cGetAgentQualityReportRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n\x08\x61gent_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x61gentId\x12\x1d\n\x04\x64\x61ys\x18\x03 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04\x64\x61ys\"\xde\x02\n\x12\x41gentQualityReport\x12\x1b\n\tfrom_date\x18\x01 \x01(\tR\x08\x66romDate\x12\x17\n\x07to_date\x18\x02 \x01(\tR\x06toDate\x12\x41\n\x05total\x18\x03 \x01(\x0b\x32+.ai.stigmer.agentic.score.v1.QualitySummaryR\x05total\x12;\n\x04\x64\x61ys\x18\x04 \x03(\x0b\x32\'.ai.stigmer.agentic.score.v1.QualityDayR\x04\x64\x61ys\x12G\n\x08versions\x18\x05 \x03(\x0b\x32+.ai.stigmer.agentic.score.v1.QualityVersionR\x08versions\x12I\n\tagreement\x18\x06 \x03(\x0b\x32+.ai.stigmer.agentic.score.v1.JudgeAgreementR\tagreement\"\xca\x01\n\x0eJudgeAgreement\x12+\n\x11\x65valuator_version\x18\x01 \x01(\tR\x10\x65valuatorVersion\x12\x12\n\x04runs\x18\x02 \x01(\x05R\x04runs\x12\x35\n\x17thumbs_down_none_failed\x18\x03 \x01(\x05R\x14thumbsDownNoneFailed\x12@\n\x05rules\x18\x04 \x03(\x0b\x32*.ai.stigmer.agentic.score.v1.RuleAgreementR\x05rules\"\xd3\x01\n\rRuleAgreement\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12,\n\x12\x66\x61iled_thumbs_down\x18\x02 \x01(\x05R\x10\x66\x61iledThumbsDown\x12(\n\x10\x66\x61iled_thumbs_up\x18\x03 \x01(\x05R\x0e\x66\x61iledThumbsUp\x12,\n\x12passed_thumbs_down\x18\x04 \x01(\x05R\x10passedThumbsDown\x12(\n\x10passed_thumbs_up\x18\x05 \x01(\x05R\x0epassedThumbsUp\"h\n\x0eQualitySummary\x12\x12\n\x04runs\x18\x01 \x01(\x05R\x04runs\x12\x42\n\x07metrics\x18\x02 \x03(\x0b\x32(.ai.stigmer.agentic.score.v1.MetricTallyR\x07metrics\"\x84\x02\n\x0bMetricTally\x12\x16\n\x06metric\x18\x01 \x01(\tR\x06metric\x12+\n\x11\x65valuator_version\x18\x02 \x01(\tR\x10\x65valuatorVersion\x12\x16\n\x06passed\x18\x03 \x01(\x05R\x06passed\x12\x16\n\x06\x66\x61iled\x18\x04 \x01(\x05R\x06\x66\x61iled\x12\x1d\n\nnot_graded\x18\x05 \x01(\x05R\tnotGraded\x12\x18\n\x07pending\x18\x06 \x01(\x05R\x07pending\x12G\n\x08\x63riteria\x18\x07 \x03(\x0b\x32+.ai.stigmer.agentic.score.v1.CriterionTallyR\x08\x63riteria\"{\n\x0e\x43riterionTally\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n\x06passed\x18\x02 \x01(\x05R\x06passed\x12\x16\n\x06\x66\x61iled\x18\x03 \x01(\x05R\x06\x66\x61iled\x12%\n\x0enot_applicable\x18\x04 \x01(\x05R\rnotApplicable\"g\n\nQualityDay\x12\x12\n\x04\x64\x61te\x18\x01 \x01(\tR\x04\x64\x61te\x12\x45\n\x07summary\x18\x02 \x01(\x0b\x32+.ai.stigmer.agentic.score.v1.QualitySummaryR\x07summary\"\xc1\x01\n\x0eQualityVersion\x12,\n\x12\x61gent_version_hash\x18\x01 \x01(\tR\x10\x61gentVersionHash\x12\x1d\n\nfirst_date\x18\x02 \x01(\tR\tfirstDate\x12\x1b\n\tlast_date\x18\x03 \x01(\tR\x08lastDate\x12\x45\n\x07summary\x18\x04 \x01(\x0b\x32+.ai.stigmer.agentic.score.v1.QualitySummaryR\x07summary\"\xc4\x01\n\x1fListFlaggedScoresByAgentRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n\x08\x61gent_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x61gentId\x12\x1d\n\x04\x64\x61ys\x18\x03 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04\x64\x61ys\x12$\n\tpage_size\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x08pageSize\x12\x1d\n\npage_token\x18\x05 \x01(\tR\tpageToken\"\xdf\x02\n\x10UpdateScoreInput\x12\x46\n\x08resource\x18\x01 \x01(\x0b\x32\".ai.stigmer.agentic.score.v1.ScoreB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n\x17update_names_its_target\x12\x45resource.metadata.id is required: an update names the score by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -54,32 +55,40 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTFLAGGEDSCORESBYAGENTREQUEST'].fields_by_name['days']._serialized_options = b'\272H\006\032\004\030Z(\000'
   _globals['_LISTFLAGGEDSCORESBYAGENTREQUEST'].fields_by_name['page_size']._loaded_options = None
   _globals['_LISTFLAGGEDSCORESBYAGENTREQUEST'].fields_by_name['page_size']._serialized_options = b'\272H\004\032\002(\000'
-  _globals['_SCOREID']._serialized_start=137
-  _globals['_SCOREID']._serialized_end=176
-  _globals['_LISTSCORESBYRUNREQUEST']._serialized_start=178
-  _globals['_LISTSCORESBYRUNREQUEST']._serialized_end=234
-  _globals['_LISTSCORESBYSESSIONREQUEST']._serialized_start=236
-  _globals['_LISTSCORESBYSESSIONREQUEST']._serialized_end=304
-  _globals['_SCORELIST']._serialized_start=307
-  _globals['_SCORELIST']._serialized_end=449
-  _globals['_GETAGENTQUALITYREPORTREQUEST']._serialized_start=451
-  _globals['_GETAGENTQUALITYREPORTREQUEST']._serialized_end=575
-  _globals['_AGENTQUALITYREPORT']._serialized_start=578
-  _globals['_AGENTQUALITYREPORT']._serialized_end=928
-  _globals['_JUDGEAGREEMENT']._serialized_start=931
-  _globals['_JUDGEAGREEMENT']._serialized_end=1133
-  _globals['_RULEAGREEMENT']._serialized_start=1136
-  _globals['_RULEAGREEMENT']._serialized_end=1347
-  _globals['_QUALITYSUMMARY']._serialized_start=1349
-  _globals['_QUALITYSUMMARY']._serialized_end=1453
-  _globals['_METRICTALLY']._serialized_start=1456
-  _globals['_METRICTALLY']._serialized_end=1716
-  _globals['_CRITERIONTALLY']._serialized_start=1718
-  _globals['_CRITERIONTALLY']._serialized_end=1841
-  _globals['_QUALITYDAY']._serialized_start=1843
-  _globals['_QUALITYDAY']._serialized_end=1946
-  _globals['_QUALITYVERSION']._serialized_start=1949
-  _globals['_QUALITYVERSION']._serialized_end=2142
-  _globals['_LISTFLAGGEDSCORESBYAGENTREQUEST']._serialized_start=2145
-  _globals['_LISTFLAGGEDSCORESBYAGENTREQUEST']._serialized_end=2341
+  _globals['_UPDATESCOREINPUT'].fields_by_name['resource']._loaded_options = None
+  _globals['_UPDATESCOREINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
+  _globals['_UPDATESCOREINPUT'].fields_by_name['update_mask']._loaded_options = None
+  _globals['_UPDATESCOREINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_UPDATESCOREINPUT']._loaded_options = None
+  _globals['_UPDATESCOREINPUT']._serialized_options = b'\272H\271\001\032\266\001\n\027update_names_its_target\022Eresource.metadata.id is required: an update names the score by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
+  _globals['_SCOREID']._serialized_start=171
+  _globals['_SCOREID']._serialized_end=210
+  _globals['_LISTSCORESBYRUNREQUEST']._serialized_start=212
+  _globals['_LISTSCORESBYRUNREQUEST']._serialized_end=268
+  _globals['_LISTSCORESBYSESSIONREQUEST']._serialized_start=270
+  _globals['_LISTSCORESBYSESSIONREQUEST']._serialized_end=338
+  _globals['_SCORELIST']._serialized_start=341
+  _globals['_SCORELIST']._serialized_end=483
+  _globals['_GETAGENTQUALITYREPORTREQUEST']._serialized_start=485
+  _globals['_GETAGENTQUALITYREPORTREQUEST']._serialized_end=609
+  _globals['_AGENTQUALITYREPORT']._serialized_start=612
+  _globals['_AGENTQUALITYREPORT']._serialized_end=962
+  _globals['_JUDGEAGREEMENT']._serialized_start=965
+  _globals['_JUDGEAGREEMENT']._serialized_end=1167
+  _globals['_RULEAGREEMENT']._serialized_start=1170
+  _globals['_RULEAGREEMENT']._serialized_end=1381
+  _globals['_QUALITYSUMMARY']._serialized_start=1383
+  _globals['_QUALITYSUMMARY']._serialized_end=1487
+  _globals['_METRICTALLY']._serialized_start=1490
+  _globals['_METRICTALLY']._serialized_end=1750
+  _globals['_CRITERIONTALLY']._serialized_start=1752
+  _globals['_CRITERIONTALLY']._serialized_end=1875
+  _globals['_QUALITYDAY']._serialized_start=1877
+  _globals['_QUALITYDAY']._serialized_end=1980
+  _globals['_QUALITYVERSION']._serialized_start=1983
+  _globals['_QUALITYVERSION']._serialized_end=2176
+  _globals['_LISTFLAGGEDSCORESBYAGENTREQUEST']._serialized_start=2179
+  _globals['_LISTFLAGGEDSCORESBYAGENTREQUEST']._serialized_end=2375
+  _globals['_UPDATESCOREINPUT']._serialized_start=2378
+  _globals['_UPDATESCOREINPUT']._serialized_end=2729
 # @@protoc_insertion_point(module_scope)

@@ -10,12 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { OAuthAppSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_oauthapp_v1_api } from "./api_pb.js";
+import type { UpdateOAuthAppInputSchema } from "./io_pb.js";
+import { file_ai_stigmer_iam_oauthapp_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/oauthapp/v1/command.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9jb21tYW5kLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MTLlBQoZT0F1dGhBcHBDb21tYW5kQ29udHJvbGxlchJTCgVhcHBseRIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwGiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHASowEKBmNyZWF0ZRIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwGiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHAiTcK4GEkIFxAeIgxtZXRhZGF0YS5vcmcqNXVuYXV0aG9yaXplZCB0byBjcmVhdGUgb2F1dGggYXBwIGluIHRoaXMgb3JnYW5pemF0aW9uEo0BCgZ1cGRhdGUSJC5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5PQXV0aEFwcBokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIjfCuBgzCAIQFiILbWV0YWRhdGEuaWQqIHVuYXV0aG9yaXplZCB0byB1cGRhdGUgb2F1dGggYXBwEpQBCgZyZW5hbWUSKy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuUmVuYW1lSW5wdXQaJC5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5PQXV0aEFwcCI3wrgYMwgDEBYiC3Jlc291cmNlX2lkKiB1bmF1dGhvcml6ZWQgdG8gcmVuYW1lIE9BdXRoIGFwcBKfAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaJC5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5PQXV0aEFwcCI3wrgYMwgDEBYiC3Jlc291cmNlX2lkKiB1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG9hdXRoIGFwcBoEoP8rFmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_oauthapp_v1_api]);
+  fileDesc("CihhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9jb21tYW5kLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MTL5BQoZT0F1dGhBcHBDb21tYW5kQ29udHJvbGxlchJTCgVhcHBseRIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwGiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHASowEKBmNyZWF0ZRIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwGiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHAiTcK4GEkIFxAeIgxtZXRhZGF0YS5vcmcqNXVuYXV0aG9yaXplZCB0byBjcmVhdGUgb2F1dGggYXBwIGluIHRoaXMgb3JnYW5pemF0aW9uEqEBCgZ1cGRhdGUSLy5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5VcGRhdGVPQXV0aEFwcElucHV0GiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHAiQMK4GDwIAhAWIhRyZXNvdXJjZS5tZXRhZGF0YS5pZCogdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBvYXV0aCBhcHASlAEKBnJlbmFtZRIrLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5SZW5hbWVJbnB1dBokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIjfCuBgzCAMQFiILcmVzb3VyY2VfaWQqIHVuYXV0aG9yaXplZCB0byByZW5hbWUgT0F1dGggYXBwEp8BCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIjfCuBgzCAMQFiILcmVzb3VyY2VfaWQqIHVuYXV0aG9yaXplZCB0byBkZWxldGUgb2F1dGggYXBwGgSg/ysWYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_oauthapp_v1_api, file_ai_stigmer_iam_oauthapp_v1_io]);
 
 /**
  * OAuthAppCommandController provides write operations for OAuth app resources.
@@ -69,18 +71,28 @@ export const OAuthAppCommandController: GenService<{
     output: typeof OAuthAppSchema;
   },
   /**
-   * Update an existing OAuth app.
+   * Update an OAuth app: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * The slug changes only through rename. An update authorizes the id it names,
-   * so wherever the server authorizes requests, an update without an id is
-   * refused before its slug is read; where it reads one, a slug the OAuth app
-   * was renamed away from is refused with SLUG_RENAMED (see apply).
+   * resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the OAuth app does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the OAuth app kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof OAuthAppSchema;
+    input: typeof UpdateOAuthAppInputSchema;
     output: typeof OAuthAppSchema;
   },
   /**

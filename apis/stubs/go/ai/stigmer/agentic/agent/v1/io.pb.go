@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -67,13 +68,78 @@ func (x *AgentId) GetValue() string {
 	return ""
 }
 
+// The changes an update makes to an agent: the fields update_mask names,
+// taken from resource.
+type UpdateAgentInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The agent carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *Agent `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAgentInput) Reset() {
+	*x = UpdateAgentInput{}
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAgentInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAgentInput) ProtoMessage() {}
+
+func (x *UpdateAgentInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAgentInput.ProtoReflect.Descriptor instead.
+func (*UpdateAgentInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *UpdateAgentInput) GetResource() *Agent {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateAgentInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_agent_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/agent/v1/io.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a\x1bbuf/validate/validate.proto\"'\n" +
+	"$ai/stigmer/agentic/agent/v1/io.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"'\n" +
 	"\aAgentId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\x89\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xdf\x02\n" +
+	"\x10UpdateAgentInput\x12F\n" +
+	"\bresource\x18\x01 \x01(\v2\".ai.stigmer.agentic.agent.v1.AgentB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n" +
+	"\x17update_names_its_target\x12Eresource.metadata.id is required: an update names the agent by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\x89\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -88,16 +154,21 @@ func file_ai_stigmer_agentic_agent_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_agent_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_agent_v1_io_proto_goTypes = []any{
-	(*AgentId)(nil), // 0: ai.stigmer.agentic.agent.v1.AgentId
+	(*AgentId)(nil),               // 0: ai.stigmer.agentic.agent.v1.AgentId
+	(*UpdateAgentInput)(nil),      // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput
+	(*Agent)(nil),                 // 2: ai.stigmer.agentic.agent.v1.Agent
+	(*fieldmaskpb.FieldMask)(nil), // 3: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_agent_v1_io_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.agent.v1.UpdateAgentInput.resource:type_name -> ai.stigmer.agentic.agent.v1.Agent
+	3, // 1: ai.stigmer.agentic.agent.v1.UpdateAgentInput.update_mask:type_name -> google.protobuf.FieldMask
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_io_proto_init() }
@@ -105,13 +176,14 @@ func file_ai_stigmer_agentic_agent_v1_io_proto_init() {
 	if File_ai_stigmer_agentic_agent_v1_io_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_agent_v1_api_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

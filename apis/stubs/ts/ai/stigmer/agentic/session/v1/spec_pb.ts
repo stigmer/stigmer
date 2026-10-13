@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKnBwoLU2Vzc2lvblNwZWMSTQoJYWdlbnRfcmVmGA4gASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwoEg8KB3N1YmplY3QYAiABKAkSGAoQaGFybmVzc19zdGF0ZV9pZBgDIAEoCRIgChhoYXJuZXNzX3N0YXRlX2lkX2hpc3RvcnkYDSADKAkSSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkSTgoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUSSAoQZXhlY3V0aW9uX3RhcmdldBgMIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBJSCgZ2YXVsdHMYDyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCDLpIBZIBAhAU4IUsOxIYChBpbmNsdWRlX215X3ZhdWx0GBIgASgIEksKB3BsdWdpbnMYEyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLDoSEwoLZmlsZV9yZXZpZXcYFCABKAgaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQIARACSgQIBxAISgQIEBARSgQIERASUhFhZ2VudF9pbnN0YW5jZV9pZFIRbWNwX3NlcnZlcl91c2FnZXNSB3NlY3JldHNSC2Nvbm5lY3Rpb25zYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKjBwoLU2Vzc2lvblNwZWMSTQoJYWdlbnRfcmVmGA4gASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwoEg8KB3N1YmplY3QYAiABKAkSSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkSTgoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUSSAoQZXhlY3V0aW9uX3RhcmdldBgMIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBJSCgZ2YXVsdHMYDyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCDLpIBZIBAhAU4IUsOxIYChBpbmNsdWRlX215X3ZhdWx0GBIgASgIEksKB3BsdWdpbnMYEyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLDoSEwoLZmlsZV9yZXZpZXcYFCABKAgaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQIARACSgQIAxAESgQIDRAOSgQIBxAISgQIEBARSgQIERASUhFhZ2VudF9pbnN0YW5jZV9pZFIQaGFybmVzc19zdGF0ZV9pZFIYaGFybmVzc19zdGF0ZV9pZF9oaXN0b3J5UhFtY3Bfc2VydmVyX3VzYWdlc1IHc2VjcmV0c1ILY29ubmVjdGlvbnNiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -59,35 +59,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: string subject = 2;
    */
   subject: string;
-
-  /**
-   * Harness-specific state identifier for conversation continuity.
-   *
-   * Populated after the first run completes; empty until then.
-   * Each harness uses this field differently:
-   *
-   * - NATIVE: LangGraph thread ID, derived deterministically as
-   *   "thread-{session_id}" by the EnsureThread activity. Stored here
-   *   so the immutability sentinel works uniformly across harnesses.
-   *
-   * - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-   *   returned by Agent.create(). Used for Agent.resume() on
-   *   subsequent runs.
-   *
-   * @generated from field: string harness_state_id = 3;
-   */
-  harnessStateId: string;
-
-  /**
-   * Prior harness state identifiers this session has owned, oldest first.
-   *
-   * A session can span multiple harness-side conversations: when the
-   * cursor-runner's resume fails, it creates a fresh Cursor agent and
-   * replaces harness_state_id, and the replaced id lands here.
-   *
-   * @generated from field: repeated string harness_state_id_history = 13;
-   */
-  harnessStateIdHistory: string[];
 
   /**
    * Custom key-value pairs for client-specific information.

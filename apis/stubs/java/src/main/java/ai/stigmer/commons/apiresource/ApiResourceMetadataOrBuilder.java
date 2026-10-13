@@ -392,4 +392,34 @@ java.lang.String defaultValue);
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadataVersion version = 9 [json_name = "version"];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceMetadataVersionOrBuilder getVersionOrBuilder();
+
+  /**
+   * <pre>
+   * A fingerprint of what a person edits on the resource: its spec, name,
+   * labels, tags and annotations, as stored.
+   *
+   * Send it back on update or apply to refuse the write with ABORTED
+   * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+   * empty and the last write wins. A status write never changes it.
+   * </pre>
+   *
+   * <code>string etag = 10 [json_name = "etag"];</code>
+   * @return The etag.
+   */
+  java.lang.String getEtag();
+  /**
+   * <pre>
+   * A fingerprint of what a person edits on the resource: its spec, name,
+   * labels, tags and annotations, as stored.
+   *
+   * Send it back on update or apply to refuse the write with ABORTED
+   * (ETAG_MISMATCH) when the resource changed since it was read; leave it
+   * empty and the last write wins. A status write never changes it.
+   * </pre>
+   *
+   * <code>string etag = 10 [json_name = "etag"];</code>
+   * @return The bytes for etag.
+   */
+  com.google.protobuf.ByteString
+      getEtagBytes();
 }

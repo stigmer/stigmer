@@ -28,7 +28,7 @@ class AgentChannelCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2.AgentChannel.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.UpdateAgentChannelInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2.AgentChannel.FromString,
                 _registered_method=True)
         self.initiateInstall = channel.unary_unary(
@@ -72,11 +72,25 @@ class AgentChannelCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing agent channel.
+        """Update an agent channel: the fields update_mask names change, every other
+        field keeps its stored value.
 
-        Replaces the spec wholesale. The slug, referenced agent, and provider
-        arm are immutable; status (install facts, credential reference) is
-        never touched by updates.
+        The referenced agent and the provider arm are immutable; status
+        (install facts, credential reference) is never touched by updates.
+
+        resource.metadata.id names the agent channel; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the agent channel does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the agent channel kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -159,7 +173,7 @@ def add_AgentChannelCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2.AgentChannel.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.UpdateAgentChannelInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2.AgentChannel.SerializeToString,
             ),
             'initiateInstall': grpc.unary_unary_rpc_method_handler(
@@ -258,7 +272,7 @@ class AgentChannelCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController/update',
-            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2.AgentChannel.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_io__pb2.UpdateAgentChannelInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2.AgentChannel.FromString,
             options,
             channel_credentials,

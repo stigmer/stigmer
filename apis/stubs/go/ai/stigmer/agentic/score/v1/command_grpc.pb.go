@@ -37,12 +37,26 @@ type ScoreCommandControllerClient interface {
 	// rating with update. The session and organization are taken from the
 	// run.
 	Create(ctx context.Context, in *Score, opts ...grpc.CallOption) (*Score, error)
-	// Update a person's rating: its value and comment.
+	// Update a score: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Only feedback is editable, and only by the person who gave it, and only
-	// its value and comment: every other field, the score's name and labels
-	// included, stays as created. A check's verdict never changes.
-	Update(ctx context.Context, in *Score, opts ...grpc.CallOption) (*Score, error)
+	// Only feedback is editable, only by the person who gave it, and only its
+	// value and comment; a check's verdict never changes.
+	//
+	// resource.metadata.id names the score; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the score does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the score kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateScoreInput, opts ...grpc.CallOption) (*Score, error)
 	// Delete a score.
 	//
 	// A person deletes their own rating; the run's owner may delete any
@@ -68,7 +82,7 @@ func (c *scoreCommandControllerClient) Create(ctx context.Context, in *Score, op
 	return out, nil
 }
 
-func (c *scoreCommandControllerClient) Update(ctx context.Context, in *Score, opts ...grpc.CallOption) (*Score, error) {
+func (c *scoreCommandControllerClient) Update(ctx context.Context, in *UpdateScoreInput, opts ...grpc.CallOption) (*Score, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Score)
 	err := c.cc.Invoke(ctx, ScoreCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -101,12 +115,26 @@ type ScoreCommandControllerServer interface {
 	// rating with update. The session and organization are taken from the
 	// run.
 	Create(context.Context, *Score) (*Score, error)
-	// Update a person's rating: its value and comment.
+	// Update a score: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Only feedback is editable, and only by the person who gave it, and only
-	// its value and comment: every other field, the score's name and labels
-	// included, stays as created. A check's verdict never changes.
-	Update(context.Context, *Score) (*Score, error)
+	// Only feedback is editable, only by the person who gave it, and only its
+	// value and comment; a check's verdict never changes.
+	//
+	// resource.metadata.id names the score; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the score does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the score kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateScoreInput) (*Score, error)
 	// Delete a score.
 	//
 	// A person deletes their own rating; the run's owner may delete any
@@ -124,7 +152,7 @@ type UnimplementedScoreCommandControllerServer struct{}
 func (UnimplementedScoreCommandControllerServer) Create(context.Context, *Score) (*Score, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedScoreCommandControllerServer) Update(context.Context, *Score) (*Score, error) {
+func (UnimplementedScoreCommandControllerServer) Update(context.Context, *UpdateScoreInput) (*Score, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedScoreCommandControllerServer) Delete(context.Context, *ScoreId) (*Score, error) {
@@ -169,7 +197,7 @@ func _ScoreCommandController_Create_Handler(srv interface{}, ctx context.Context
 }
 
 func _ScoreCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Score)
+	in := new(UpdateScoreInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -181,7 +209,7 @@ func _ScoreCommandController_Update_Handler(srv interface{}, ctx context.Context
 		FullMethod: ScoreCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ScoreCommandControllerServer).Update(ctx, req.(*Score))
+		return srv.(ScoreCommandControllerServer).Update(ctx, req.(*UpdateScoreInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

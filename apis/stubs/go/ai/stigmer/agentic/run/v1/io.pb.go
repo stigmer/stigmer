@@ -11,6 +11,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -3266,11 +3267,71 @@ func (x *AgentFailureRank) GetFailureCount() int32 {
 	return 0
 }
 
+// The changes an update makes to a run: the fields update_mask names,
+// taken from resource.
+type UpdateRunInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The run carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *Run `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateRunInput) Reset() {
+	*x = UpdateRunInput{}
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateRunInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateRunInput) ProtoMessage() {}
+
+func (x *UpdateRunInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateRunInput.ProtoReflect.Descriptor instead.
+func (*UpdateRunInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *UpdateRunInput) GetResource() *Run {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateRunInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_run_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\"ai/stigmer/agentic/run/v1/io.proto\x12\x19ai.stigmer.agentic.run.v1\x1a#ai/stigmer/agentic/run/v1/api.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\"%\n" +
+	"\"ai/stigmer/agentic/run/v1/io.proto\x12\x19ai.stigmer.agentic.run.v1\x1a#ai/stigmer/agentic/run/v1/api.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\"%\n" +
 	"\x05RunId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n" +
 	"\tSessionId\x12\x1c\n" +
@@ -3479,7 +3540,12 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"agent_slug\x18\x01 \x01(\tR\tagentSlug\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\x12#\n" +
-	"\rfailure_count\x18\x03 \x01(\x05R\ffailureCount*\xd6\x01\n" +
+	"\rfailure_count\x18\x03 \x01(\x05R\ffailureCount\"\xd7\x02\n" +
+	"\x0eUpdateRunInput\x12B\n" +
+	"\bresource\x18\x01 \x01(\v2\x1e.ai.stigmer.agentic.run.v1.RunB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xbb\x01\xbaH\xb7\x01\x1a\xb4\x01\n" +
+	"\x17update_names_its_target\x12Cresource.metadata.id is required: an update names the run by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''*\xd6\x01\n" +
 	"\x14RunSummaryTimeWindow\x12'\n" +
 	"#RUN_SUMMARY_TIME_WINDOW_UNSPECIFIED\x10\x00\x12$\n" +
 	" RUN_SUMMARY_TIME_WINDOW_LAST_24H\x10\x01\x12#\n" +
@@ -3501,7 +3567,7 @@ func file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_run_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_run_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_ai_stigmer_agentic_run_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_ai_stigmer_agentic_run_v1_io_proto_goTypes = []any{
 	(RunSummaryTimeWindow)(0),              // 0: ai.stigmer.agentic.run.v1.RunSummaryTimeWindow
 	(*RunId)(nil),                          // 1: ai.stigmer.agentic.run.v1.RunId
@@ -3541,50 +3607,54 @@ var file_ai_stigmer_agentic_run_v1_io_proto_goTypes = []any{
 	(*GetRunSummaryRequest)(nil),           // 35: ai.stigmer.agentic.run.v1.GetRunSummaryRequest
 	(*RunSummary)(nil),                     // 36: ai.stigmer.agentic.run.v1.RunSummary
 	(*AgentFailureRank)(nil),               // 37: ai.stigmer.agentic.run.v1.AgentFailureRank
-	nil,                                    // 38: ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
-	(*Run)(nil),                            // 39: ai.stigmer.agentic.run.v1.Run
-	(RunPhase)(0),                          // 40: ai.stigmer.agentic.run.v1.RunPhase
-	(*RunStatus)(nil),                      // 41: ai.stigmer.agentic.run.v1.RunStatus
-	(RunControlSignal)(0),                  // 42: ai.stigmer.agentic.run.v1.RunControlSignal
-	(ApprovalAction)(0),                    // 43: ai.stigmer.agentic.run.v1.ApprovalAction
-	(FileDecisionScope)(0),                 // 44: ai.stigmer.agentic.run.v1.FileDecisionScope
-	(FileDecisionAction)(0),                // 45: ai.stigmer.agentic.run.v1.FileDecisionAction
-	(*UsageReportAggregate)(nil),           // 46: ai.stigmer.agentic.run.v1.UsageReportAggregate
-	(*ModelUsage)(nil),                     // 47: ai.stigmer.agentic.run.v1.ModelUsage
-	(*durationpb.Duration)(nil),            // 48: google.protobuf.Duration
+	(*UpdateRunInput)(nil),                 // 38: ai.stigmer.agentic.run.v1.UpdateRunInput
+	nil,                                    // 39: ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
+	(*Run)(nil),                            // 40: ai.stigmer.agentic.run.v1.Run
+	(RunPhase)(0),                          // 41: ai.stigmer.agentic.run.v1.RunPhase
+	(*RunStatus)(nil),                      // 42: ai.stigmer.agentic.run.v1.RunStatus
+	(RunControlSignal)(0),                  // 43: ai.stigmer.agentic.run.v1.RunControlSignal
+	(ApprovalAction)(0),                    // 44: ai.stigmer.agentic.run.v1.ApprovalAction
+	(FileDecisionScope)(0),                 // 45: ai.stigmer.agentic.run.v1.FileDecisionScope
+	(FileDecisionAction)(0),                // 46: ai.stigmer.agentic.run.v1.FileDecisionAction
+	(*UsageReportAggregate)(nil),           // 47: ai.stigmer.agentic.run.v1.UsageReportAggregate
+	(*ModelUsage)(nil),                     // 48: ai.stigmer.agentic.run.v1.ModelUsage
+	(*durationpb.Duration)(nil),            // 49: google.protobuf.Duration
+	(*fieldmaskpb.FieldMask)(nil),          // 50: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_run_v1_io_proto_depIdxs = []int32{
-	39, // 0: ai.stigmer.agentic.run.v1.RunList.entries:type_name -> ai.stigmer.agentic.run.v1.Run
-	40, // 1: ai.stigmer.agentic.run.v1.ListRunsRequest.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
-	41, // 2: ai.stigmer.agentic.run.v1.RunUpdateStatusInput.status:type_name -> ai.stigmer.agentic.run.v1.RunStatus
-	42, // 3: ai.stigmer.agentic.run.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.run.v1.RunControlSignal
-	43, // 4: ai.stigmer.agentic.run.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.run.v1.ApprovalAction
+	40, // 0: ai.stigmer.agentic.run.v1.RunList.entries:type_name -> ai.stigmer.agentic.run.v1.Run
+	41, // 1: ai.stigmer.agentic.run.v1.ListRunsRequest.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
+	42, // 2: ai.stigmer.agentic.run.v1.RunUpdateStatusInput.status:type_name -> ai.stigmer.agentic.run.v1.RunStatus
+	43, // 3: ai.stigmer.agentic.run.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.run.v1.RunControlSignal
+	44, // 4: ai.stigmer.agentic.run.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.run.v1.ApprovalAction
 	8,  // 5: ai.stigmer.agentic.run.v1.ApprovalDecisionList.decisions:type_name -> ai.stigmer.agentic.run.v1.SubmitApprovalInput
-	44, // 6: ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.scope:type_name -> ai.stigmer.agentic.run.v1.FileDecisionScope
-	45, // 7: ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.action:type_name -> ai.stigmer.agentic.run.v1.FileDecisionAction
-	46, // 8: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
-	47, // 9: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
-	46, // 10: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	45, // 6: ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.scope:type_name -> ai.stigmer.agentic.run.v1.FileDecisionScope
+	46, // 7: ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.action:type_name -> ai.stigmer.agentic.run.v1.FileDecisionAction
+	47, // 8: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	48, // 9: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
+	47, // 10: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
 	30, // 11: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.runs:type_name -> ai.stigmer.agentic.run.v1.RunUsageSummary
-	47, // 12: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
-	46, // 13: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
-	47, // 14: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
+	48, // 12: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
+	47, // 13: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	48, // 14: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
 	31, // 15: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.run.v1.SessionUsageSummary
-	47, // 16: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
+	48, // 16: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
 	32, // 17: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.top_agents:type_name -> ai.stigmer.agentic.run.v1.AgentUsageSummary
 	33, // 18: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.daily_usage:type_name -> ai.stigmer.agentic.run.v1.DailyUsage
 	34, // 19: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.harness_usage:type_name -> ai.stigmer.agentic.run.v1.HarnessUsage
-	46, // 20: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
-	40, // 21: ai.stigmer.agentic.run.v1.RunUsageSummary.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
+	47, // 20: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	41, // 21: ai.stigmer.agentic.run.v1.RunUsageSummary.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
 	0,  // 22: ai.stigmer.agentic.run.v1.GetRunSummaryRequest.time_window:type_name -> ai.stigmer.agentic.run.v1.RunSummaryTimeWindow
-	38, // 23: ai.stigmer.agentic.run.v1.RunSummary.phase_counts:type_name -> ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
-	48, // 24: ai.stigmer.agentic.run.v1.RunSummary.avg_duration:type_name -> google.protobuf.Duration
+	39, // 23: ai.stigmer.agentic.run.v1.RunSummary.phase_counts:type_name -> ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
+	49, // 24: ai.stigmer.agentic.run.v1.RunSummary.avg_duration:type_name -> google.protobuf.Duration
 	37, // 25: ai.stigmer.agentic.run.v1.RunSummary.top_failing_agents:type_name -> ai.stigmer.agentic.run.v1.AgentFailureRank
-	26, // [26:26] is the sub-list for method output_type
-	26, // [26:26] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	40, // 26: ai.stigmer.agentic.run.v1.UpdateRunInput.resource:type_name -> ai.stigmer.agentic.run.v1.Run
+	50, // 27: ai.stigmer.agentic.run.v1.UpdateRunInput.update_mask:type_name -> google.protobuf.FieldMask
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_io_proto_init() }
@@ -3601,7 +3671,7 @@ func file_ai_stigmer_agentic_run_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_run_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_run_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   38,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

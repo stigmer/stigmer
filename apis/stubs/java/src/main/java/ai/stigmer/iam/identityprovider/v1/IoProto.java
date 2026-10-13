@@ -56,6 +56,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_identityprovider_v1_SsoProviderInfo_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_identityprovider_v1_UpdateIdentityProviderInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_identityprovider_v1_UpdateIdentityProviderInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -68,32 +73,44 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n+ai/stigmer/iam/identityprovider/v1/io." +
       "proto\022\"ai.stigmer.iam.identityprovider.v" +
       "1\032,ai/stigmer/iam/identityprovider/v1/ap" +
-      "i.proto\032\033buf/validate/validate.proto\"5\n\022" +
-      "IdentityProviderId\022\037\n\005value\030\001 \001(\tB\t\272H\006r\004" +
-      "\020\001\030@R\005value\"c\n\021IdentityProviders\022N\n\007entr" +
-      "ies\030\001 \003(\01324.ai.stigmer.iam.identityprovi" +
-      "der.v1.IdentityProviderR\007entries\"\207\001\n\024Ide" +
-      "ntityProviderList\022\037\n\013total_pages\030\001 \001(\005R\n" +
-      "totalPages\022N\n\007entries\030\002 \003(\01324.ai.stigmer" +
-      ".iam.identityprovider.v1.IdentityProvide" +
-      "rR\007entries\"<\n\037ListIdentityProvidersByOrg" +
-      "Input\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"2\n\025Orga" +
-      "nizationSsoLookup\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R" +
-      "\003org\"\237\001\n\017SsoProviderInfo\022!\n\014display_name" +
-      "\030\001 \001(\tR\013displayName\022$\n\016oidc_client_id\030\002 " +
-      "\001(\tR\014oidcClientId\022\026\n\006issuer\030\003 \001(\tR\006issue" +
-      "r\022+\n\021expected_audience\030\004 \001(\tR\020expectedAu" +
-      "dienceB\266\001B\007IoProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer" +
-      ".Iam.Identityprovider.V1\312\002\"Ai\\Stigmer\\Ia" +
-      "m\\Identityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\I" +
-      "dentityprovider\\V1\\GPBMetadata\352\002&Ai::Sti" +
-      "gmer::Iam::Identityprovider::V1b\006proto3"
+      "i.proto\032\033buf/validate/validate.proto\032 go" +
+      "ogle/protobuf/field_mask.proto\"5\n\022Identi" +
+      "tyProviderId\022\037\n\005value\030\001 \001(\tB\t\272H\006r\004\020\001\030@R\005" +
+      "value\"c\n\021IdentityProviders\022N\n\007entries\030\001 " +
+      "\003(\01324.ai.stigmer.iam.identityprovider.v1" +
+      ".IdentityProviderR\007entries\"\207\001\n\024IdentityP" +
+      "roviderList\022\037\n\013total_pages\030\001 \001(\005R\ntotalP" +
+      "ages\022N\n\007entries\030\002 \003(\01324.ai.stigmer.iam.i" +
+      "dentityprovider.v1.IdentityProviderR\007ent" +
+      "ries\"<\n\037ListIdentityProvidersByOrgInput\022" +
+      "\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"2\n\025Organizati" +
+      "onSsoLookup\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"\237" +
+      "\001\n\017SsoProviderInfo\022!\n\014display_name\030\001 \001(\t" +
+      "R\013displayName\022$\n\016oidc_client_id\030\002 \001(\tR\014o" +
+      "idcClientId\022\026\n\006issuer\030\003 \001(\tR\006issuer\022+\n\021e" +
+      "xpected_audience\030\004 \001(\tR\020expectedAudience" +
+      "\"\210\003\n\033UpdateIdentityProviderInput\022X\n\010reso" +
+      "urce\030\001 \001(\01324.ai.stigmer.iam.identityprov" +
+      "ider.v1.IdentityProviderB\006\272H\003\330\001\003R\010resour" +
+      "ce\022C\n\013update_mask\030\002 \001(\0132\032.google.protobu" +
+      "f.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\311\001\272H\305\001\032\302" +
+      "\001\n\027update_names_its_target\022Qresource.met" +
+      "adata.id is required: an update names th" +
+      "e identity provider by its id\032Thas(this." +
+      "resource) && has(this.resource.metadata)" +
+      " && this.resource.metadata.id != \'\'B\266\001B\007" +
+      "IoProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identi" +
+      "typrovider.V1\312\002\"Ai\\Stigmer\\Iam\\Identityp" +
+      "rovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprov" +
+      "ider\\V1\\GPBMetadata\352\002&Ai::Stigmer::Iam::" +
+      "Identityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.iam.identityprovider.v1.ApiProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_identityprovider_v1_IdentityProviderId_descriptor =
       getDescriptor().getMessageType(0);
@@ -131,12 +148,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityprovider_v1_SsoProviderInfo_descriptor,
         new java.lang.String[] { "DisplayName", "OidcClientId", "Issuer", "ExpectedAudience", });
+    internal_static_ai_stigmer_iam_identityprovider_v1_UpdateIdentityProviderInput_descriptor =
+      getDescriptor().getMessageType(6);
+    internal_static_ai_stigmer_iam_identityprovider_v1_UpdateIdentityProviderInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_identityprovider_v1_UpdateIdentityProviderInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.iam.identityprovider.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

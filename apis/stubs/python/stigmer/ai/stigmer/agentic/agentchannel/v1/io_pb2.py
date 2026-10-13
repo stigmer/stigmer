@@ -25,9 +25,10 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.agentic.agentchannel.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_api__pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/agentchannel/v1/io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\".\n\x0e\x41gentChannelId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x94\x01\n\x1eGetAgentChannelsByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\"{\n\x10\x41gentChannelList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x46\n\x05items\x18\x02 \x03(\x0b\x32\x30.ai.stigmer.agentic.agentchannel.v1.AgentChannelR\x05items\"\x91\x02\n\x18ListAgentChannelsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12`\n\x06labels\x18\x02 \x03(\x0b\x32H.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"F\n\x1bInitiateChannelInstallInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\"\x7f\n\x1cInitiateChannelInstallOutput\x12+\n\x11\x61uthorization_url\x18\x01 \x01(\tR\x10\x61uthorizationUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\x12\x1c\n\tcompleted\x18\x03 \x01(\x08R\tcompleted\"\x80\x01\n\x1b\x43ompleteChannelInstallInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x1c\n\x05state\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05state\x12\x1a\n\x04\x63ode\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04\x63odeB\xde\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/agentchannel/v1/io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\".\n\x0e\x41gentChannelId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x94\x01\n\x1eGetAgentChannelsByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\"{\n\x10\x41gentChannelList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x46\n\x05items\x18\x02 \x03(\x0b\x32\x30.ai.stigmer.agentic.agentchannel.v1.AgentChannelR\x05items\"\x91\x02\n\x18ListAgentChannelsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12`\n\x06labels\x18\x02 \x03(\x0b\x32H.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"F\n\x1bInitiateChannelInstallInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\"\x7f\n\x1cInitiateChannelInstallOutput\x12+\n\x11\x61uthorization_url\x18\x01 \x01(\tR\x10\x61uthorizationUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\x12\x1c\n\tcompleted\x18\x03 \x01(\x08R\tcompleted\"\x80\x01\n\x1b\x43ompleteChannelInstallInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x1c\n\x05state\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05state\x12\x1a\n\x04\x63ode\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04\x63ode\"\xfc\x02\n\x17UpdateAgentChannelInput\x12T\n\x08resource\x18\x01 \x01(\x0b\x32\x30.ai.stigmer.agentic.agentchannel.v1.AgentChannelB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc5\x01\xbaH\xc1\x01\x1a\xbe\x01\n\x17update_names_its_target\x12Mresource.metadata.id is required: an update names the agent channel by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xde\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -51,20 +52,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_COMPLETECHANNELINSTALLINPUT'].fields_by_name['state']._serialized_options = b'\272H\003\310\001\001'
   _globals['_COMPLETECHANNELINSTALLINPUT'].fields_by_name['code']._loaded_options = None
   _globals['_COMPLETECHANNELINSTALLINPUT'].fields_by_name['code']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_AGENTCHANNELID']._serialized_start=199
-  _globals['_AGENTCHANNELID']._serialized_end=245
-  _globals['_GETAGENTCHANNELSBYAGENTREQUEST']._serialized_start=248
-  _globals['_GETAGENTCHANNELSBYAGENTREQUEST']._serialized_end=396
-  _globals['_AGENTCHANNELLIST']._serialized_start=398
-  _globals['_AGENTCHANNELLIST']._serialized_end=521
-  _globals['_LISTAGENTCHANNELSREQUEST']._serialized_start=524
-  _globals['_LISTAGENTCHANNELSREQUEST']._serialized_end=797
-  _globals['_LISTAGENTCHANNELSREQUEST_LABELSENTRY']._serialized_start=740
-  _globals['_LISTAGENTCHANNELSREQUEST_LABELSENTRY']._serialized_end=797
-  _globals['_INITIATECHANNELINSTALLINPUT']._serialized_start=799
-  _globals['_INITIATECHANNELINSTALLINPUT']._serialized_end=869
-  _globals['_INITIATECHANNELINSTALLOUTPUT']._serialized_start=871
-  _globals['_INITIATECHANNELINSTALLOUTPUT']._serialized_end=998
-  _globals['_COMPLETECHANNELINSTALLINPUT']._serialized_start=1001
-  _globals['_COMPLETECHANNELINSTALLINPUT']._serialized_end=1129
+  _globals['_UPDATEAGENTCHANNELINPUT'].fields_by_name['resource']._loaded_options = None
+  _globals['_UPDATEAGENTCHANNELINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
+  _globals['_UPDATEAGENTCHANNELINPUT'].fields_by_name['update_mask']._loaded_options = None
+  _globals['_UPDATEAGENTCHANNELINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_UPDATEAGENTCHANNELINPUT']._loaded_options = None
+  _globals['_UPDATEAGENTCHANNELINPUT']._serialized_options = b'\272H\301\001\032\276\001\n\027update_names_its_target\022Mresource.metadata.id is required: an update names the agent channel by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
+  _globals['_AGENTCHANNELID']._serialized_start=233
+  _globals['_AGENTCHANNELID']._serialized_end=279
+  _globals['_GETAGENTCHANNELSBYAGENTREQUEST']._serialized_start=282
+  _globals['_GETAGENTCHANNELSBYAGENTREQUEST']._serialized_end=430
+  _globals['_AGENTCHANNELLIST']._serialized_start=432
+  _globals['_AGENTCHANNELLIST']._serialized_end=555
+  _globals['_LISTAGENTCHANNELSREQUEST']._serialized_start=558
+  _globals['_LISTAGENTCHANNELSREQUEST']._serialized_end=831
+  _globals['_LISTAGENTCHANNELSREQUEST_LABELSENTRY']._serialized_start=774
+  _globals['_LISTAGENTCHANNELSREQUEST_LABELSENTRY']._serialized_end=831
+  _globals['_INITIATECHANNELINSTALLINPUT']._serialized_start=833
+  _globals['_INITIATECHANNELINSTALLINPUT']._serialized_end=903
+  _globals['_INITIATECHANNELINSTALLOUTPUT']._serialized_start=905
+  _globals['_INITIATECHANNELINSTALLOUTPUT']._serialized_end=1032
+  _globals['_COMPLETECHANNELINSTALLINPUT']._serialized_start=1035
+  _globals['_COMPLETECHANNELINSTALLINPUT']._serialized_end=1163
+  _globals['_UPDATEAGENTCHANNELINPUT']._serialized_start=1166
+  _globals['_UPDATEAGENTCHANNELINPUT']._serialized_end=1546
 # @@protoc_insertion_point(module_scope)

@@ -10,14 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { OrganizationSchema } from "./api_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_api } from "./api_pb.js";
-import type { OrganizationIdSchema, UpdateOrganizationPoliciesInputSchema } from "./io_pb.js";
+import type { OrganizationIdSchema, UpdateOrganizationInputSchema, UpdateOrganizationPoliciesInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_tenancy_organization_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/tenancy/organization/v1/command.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEyyAcKHU9yZ2FuaXphdGlvbkNvbW1hbmRDb250cm9sbGVyEmsKBWFwcGx5EjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24aMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbhJyCgZjcmVhdGUSMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbhowLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIgTQuBgBEqgBCgZ1cGRhdGUSMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbhowLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIjrCuBg2CAIQHiILbWV0YWRhdGEuaWQqI3VuYXV0aG9yaXplZCB0byB1cGRhdGUgb3JnYW5pemF0aW9uEscBCg51cGRhdGVQb2xpY2llcxJDLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuVXBkYXRlT3JnYW5pemF0aW9uUG9saWNpZXNJbnB1dBowLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIj7CuBg6CAIQHiIGb3JnX2lkKix1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIG9yZ2FuaXphdGlvbiBwb2xpY2llcxKjAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iOsK4GDYIAxAeIgtyZXNvdXJjZV9pZCojdW5hdXRob3JpemVkIHRvIHJlbmFtZSBvcmdhbml6YXRpb24SpAEKBmRlbGV0ZRIyLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uSWQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiI0wrgYMAgDEB4iBXZhbHVlKiN1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG9yZ2FuaXphdGlvbhoEoP8rHmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io]);
+  fileDesc("CjBhaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEy3AcKHU9yZ2FuaXphdGlvbkNvbW1hbmRDb250cm9sbGVyEmsKBWFwcGx5EjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24aMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbhJyCgZjcmVhdGUSMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbhowLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIgTQuBgBErwBCgZ1cGRhdGUSOy5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLlVwZGF0ZU9yZ2FuaXphdGlvbklucHV0GjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iQ8K4GD8IAhAeIhRyZXNvdXJjZS5tZXRhZGF0YS5pZCojdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBvcmdhbml6YXRpb24SxwEKDnVwZGF0ZVBvbGljaWVzEkMuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5VcGRhdGVPcmdhbml6YXRpb25Qb2xpY2llc0lucHV0GjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iPsK4GDoIAhAeIgZvcmdfaWQqLHVuYXV0aG9yaXplZCB0byB1cGRhdGUgb3JnYW5pemF0aW9uIHBvbGljaWVzEqMBCgZyZW5hbWUSKy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuUmVuYW1lSW5wdXQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiI6wrgYNggDEB4iC3Jlc291cmNlX2lkKiN1bmF1dGhvcml6ZWQgdG8gcmVuYW1lIG9yZ2FuaXphdGlvbhKkAQoGZGVsZXRlEjIuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25JZBowLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIjTCuBgwCAMQHiIFdmFsdWUqI3VuYXV0aG9yaXplZCB0byBkZWxldGUgb3JnYW5pemF0aW9uGgSg/yseYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io]);
 
 /**
  * OrganizationCommandController handles write operations for organizations.
@@ -121,19 +121,28 @@ export const OrganizationCommandController: GenService<{
     output: typeof OrganizationSchema;
   },
   /**
-   * Update an existing organization.
+   * Update an organization: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * The slug is not changed by an update; rename changes it. An update
-   * authorizes the id it names, so wherever the server authorizes
-   * requests, an update without an id is refused before its slug is read;
-   * where it reads one, a slug the organization was renamed away from is
-   * refused with SLUG_RENAMED (see apply).
+   * resource.metadata.id names the organization; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the organization does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the organization changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the organization kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof OrganizationSchema;
+    input: typeof UpdateOrganizationInputSchema;
     output: typeof OrganizationSchema;
   },
   /**

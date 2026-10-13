@@ -27,29 +27,6 @@
       "required": false
     },
     {
-      "name": "HarnessStateId",
-      "jsonName": "harnessStateId",
-      "protoField": "harness_state_id",
-      "type": {
-        "kind": "string"
-      },
-      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first run completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent runs.",
-      "required": false
-    },
-    {
-      "name": "HarnessStateIdHistory",
-      "jsonName": "harnessStateIdHistory",
-      "protoField": "harness_state_id_history",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "string"
-        }
-      },
-      "description": "Prior harness state identifiers this session has owned, oldest first.\n\n A session can span multiple harness-side conversations: when the\n cursor-runner's resume fails, it creates a fresh Cursor agent and\n replaces harness_state_id, and the replaced id lands here.",
-      "required": false
-    },
-    {
       "name": "Metadata",
       "jsonName": "metadata",
       "protoField": "metadata",

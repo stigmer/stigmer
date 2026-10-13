@@ -7,15 +7,15 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiKey } from "./api_pb.js";
 import { file_ai_stigmer_iam_apikey_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/iam/apikey/v1/io.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSI8CgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5IiEKCEFwaUtleUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKQXBpS2V5SGFzaBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIigKD0FwaUtleUFjY291bnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIqQBChxDcmVhdGVTZXJ2aWNlQWNjb3VudEtleUlucHV0EiIKEnNlcnZpY2VfYWNjb3VudF9pZBgBIAEoCUIGukgDyAEBEhkKBG5hbWUYAiABKAlCC7pICMgBAXIDGIABEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBCABKAhiBnByb3RvMw", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiFhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvaW8ucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MSI8CgdBcGlLZXlzEjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5IiEKCEFwaUtleUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKQXBpS2V5SGFzaBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIigKD0FwaUtleUFjY291bnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIqQBChxDcmVhdGVTZXJ2aWNlQWNjb3VudEtleUlucHV0EiIKEnNlcnZpY2VfYWNjb3VudF9pZBgBIAEoCUIGukgDyAEBEhkKBG5hbWUYAiABKAlCC7pICMgBAXIDGIABEi4KCmV4cGlyZXNfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhUKDW5ldmVyX2V4cGlyZXMYBCABKAgiygIKEVVwZGF0ZUFwaUtleUlucHV0EjoKCHJlc291cmNlGAEgASgLMiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOr8Buki7ARq4AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSR3Jlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIEFQSSBrZXkgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_apikey_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask, file_google_protobuf_timestamp]);
 
 /**
  * ApiKeys contains a list of API key resources.
@@ -143,4 +143,37 @@ export type CreateServiceAccountKeyInput = Message<"ai.stigmer.iam.apikey.v1.Cre
  */
 export const CreateServiceAccountKeyInputSchema: GenMessage<CreateServiceAccountKeyInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_apikey_v1_io, 4);
+
+/**
+ * The changes an update makes to an API key: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.iam.apikey.v1.UpdateApiKeyInput
+ */
+export type UpdateApiKeyInput = Message<"ai.stigmer.iam.apikey.v1.UpdateApiKeyInput"> & {
+  /**
+   * The API key carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.iam.apikey.v1.ApiKey resource = 1;
+   */
+  resource?: ApiKey;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.
+ * Use `create(UpdateApiKeyInputSchema)` to create a new message.
+ */
+export const UpdateApiKeyInputSchema: GenMessage<UpdateApiKeyInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_apikey_v1_io, 5);
 
