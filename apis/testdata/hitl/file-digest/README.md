@@ -2,8 +2,9 @@
 
 This directory pins the **canonical digest** of a captured file change so the
 file-review enforcement gate ("what you approve is what gets applied") computes
-byte-identically in every edition. A `FileDecision.expected_digest` is matched
-against these digests by the runner's reconcile; a mismatch between
+byte-identically in every edition. A decision's `expected_digest` (the
+`stigmer.file_review.decided` event's) is matched against these digests by the
+runner's reconcile; a mismatch between
 implementations would silently let one approve content the other would reject.
 
 > Scope: the digest functions are **defined, computed, and locked** here. The
@@ -43,9 +44,8 @@ empty string.
 
 `file_digest(case)` must equal `case.file_digest`, and
 `aggregate_digest(named cases)` must equal `aggregate.aggregate_digest`, in
-every edition. The Go implementation lives at
-`backend/services/stigmer-server/pkg/domain/agentexecution/filereview/digest.go`;
-the Java implementation at
-`.../domain/agentic/filereview/FileDigest.java`. Expected values were computed
-independently (plain `sha256`), so a passing run in both editions proves
+every reader: the runner (`backend/services/runner/src/shared/filereview/digest.ts`)
+and the server (`backend/services/stigmer-server/src/domain/run/filereview/digest.ts`,
+proven by `__tests__/digest-corpus.test.ts` beside it). Expected values were
+computed independently (plain `sha256`), so a passing run in both proves
 parity, not self-consistency.
