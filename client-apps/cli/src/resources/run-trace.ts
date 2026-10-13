@@ -1,20 +1,23 @@
-// `runs trace` — tool-call structure and timing for a run.
+// `runs trace` — a run's tool-call structure.
 //
-// Mirrors Go's execution.Trace (trace.go + trace_agent.go): for table output
-// render a compact structure view, the agent's tool-call timeline. For
-// yaml/json, defer to the standard proto renderers so `trace -o json` and
-// `get -o json` produce the identical envelope.
+// The run's events (the session's log filtered to the run, every page) are
+// folded into its turn. The table names the run and its lifecycle (phase and
+// duration, from the run), then one row per tool use in the order the agent
+// made them, each with its state and the head of its output; a sub-agent's
+// tool uses are indented beneath the call that started it. yaml and json list
+// the run's events as Claude Managed Agents JSON, the lines `run --json`
+// writes for the same turn.
 
+import type { JsonObject } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Stigmer } from "@stigmer/sdk";
-import { renderProtoJson, renderProtoYaml } from "../output/index.js";
+import { foldSession, toManagedAgentsJson, turnOf, type Stigmer, type Turn, type TurnItem } from "@stigmer/sdk";
+import { stringify as toYaml } from "yaml";
 import { shouldColorize, styler } from "../output/style.js";
 import { calculateDuration, truncateWithEllipsis } from "./run-format.js";
 import { formatAgentPhase } from "./runs.js";
+import { listSessionEvents, sessionOfRun } from "./session.js";
 
-/** Output format for trace: a compact structure table, or the full proto envelope. */
+/** Output format for trace: a compact structure table, or the run's events. */
 export type TraceFormat = "table" | "yaml" | "json";
 
 export interface TraceStreams {
@@ -29,59 +32,65 @@ export async function traceRun(
   format: TraceFormat,
   streams: TraceStreams = defaultStreams(),
 ): Promise<void> {
-  const exec = await client.run.get(runId);
-  if (format === "yaml") {
-    streams.write(renderProtoYaml(RunSchema, exec));
+  const run = await client.run.get(runId);
+  const events = await listSessionEvents(client, sessionOfRun(run), runId);
+  if (format === "yaml" || format === "json") {
+    const list: JsonObject[] = events.map(toManagedAgentsJson);
+    streams.write(format === "yaml" ? toYaml(list) : `${JSON.stringify(list, null, 2)}\n`);
     return;
   }
-  if (format === "json") {
-    streams.write(renderProtoJson(RunSchema, exec));
-    return;
-  }
-  renderAgentTrace(exec, streams);
+  renderAgentTrace(run, turnOf(foldSession(events), runId), streams);
 }
 
-function renderAgentTrace(exec: Run, streams: TraceStreams): void {
-  const style = styler(streams.colorize);
-  const name = exec.metadata?.name || exec.metadata?.id || "";
-  const phase = formatAgentPhase(exec.status?.phase ?? 0);
-  const duration = calculateDuration(exec.status?.startedAt ?? "", exec.status?.completedAt ?? "");
+function renderAgentTrace(run: Run, turn: Turn | undefined, streams: TraceStreams): void {
+  const name = run.metadata?.name || run.metadata?.id || "";
+  const phase = formatAgentPhase(run.status?.phase ?? 0);
+  const duration = calculateDuration(run.status?.startedAt ?? "", run.status?.completedAt ?? "");
 
   streams.write(`\nAgent: ${name} (${phase}, ${duration})\n\n`);
 
-  const messages = exec.status?.messages ?? [];
-  if (messages.length === 0) {
-    streams.write("  (no messages recorded)\n\n");
+  if (turn === undefined) {
+    streams.write("  (no events recorded)\n\n");
     return;
   }
 
-  const toolCalls = extractToolCallSummaries(exec);
-  if (toolCalls.length === 0) {
-    streams.write(`  ${messages.length} message(s), no tool calls\n\n`);
+  const rows = toolRows(turn.items, "", styler(streams.colorize));
+  if (rows.length === 0) {
+    const messages = turn.items.filter((item) => item.kind === "message").length;
+    streams.write(`  ${messages} message(s), no tool calls\n\n`);
     return;
   }
-  for (const call of toolCalls) {
-    streams.write(`  ${style.green("[done]")} ${pad(truncateWithEllipsis(call.name, 25), 25)}  ${style.dim(truncateWithEllipsis(call.summary, 40))}\n`);
-  }
+  for (const row of rows) streams.write(`${row}\n`);
   streams.write("\n");
 }
 
-interface ToolCallSummary {
-  readonly name: string;
-  readonly summary: string;
+// One row per tool use, a sub-agent's beneath its call, indented.
+function toolRows(items: readonly TurnItem[], indent: string, style: ReturnType<typeof styler>): string[] {
+  const rows: string[] = [];
+  for (const item of items) {
+    if (item.kind !== "tool_use") continue;
+    const badge = tintOf(item.state, style)(`[${item.state}]`);
+    const name = pad(truncateWithEllipsis(item.name, 25), 25);
+    const output = style.dim(truncateWithEllipsis(item.result?.text ?? "", 40));
+    rows.push(`  ${indent}${badge} ${name}  ${output}`);
+    if (item.thread !== undefined) rows.push(...toolRows(item.thread.items, `${indent}  `, style));
+  }
+  return rows;
 }
 
-// Mirrors Go's extractToolCallSummary: tool calls on AI messages, with results
-// truncated to 40 chars.
-function extractToolCallSummaries(exec: Run): ToolCallSummary[] {
-  const calls: ToolCallSummary[] = [];
-  for (const message of exec.status?.messages ?? []) {
-    if (message.type !== MessageType.MESSAGE_AI) continue;
-    for (const tc of message.toolCalls) {
-      calls.push({ name: tc.name || "tool_call", summary: truncateWithEllipsis(tc.result, 40) });
-    }
+// Done green, failed red, refused or cut short yellow, still open cyan.
+function tintOf(state: string, style: ReturnType<typeof styler>): (text: string) => string {
+  switch (state) {
+    case "completed":
+      return style.green;
+    case "failed":
+      return style.red;
+    case "denied":
+    case "stopped":
+      return style.yellow;
+    default:
+      return style.cyan;
   }
-  return calls;
 }
 
 function pad(value: string, width: number): string {

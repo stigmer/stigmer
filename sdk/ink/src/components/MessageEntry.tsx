@@ -1,36 +1,35 @@
+// One message of the terminal conversation: a person's message, the agent's
+// message (markdown rendered to ANSI), or a platform note, from the session's
+// fold. Thinking is not rendered in the terminal.
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ThreadMessage } from "@stigmer/react";
 import { renderMarkdown } from "../markdown.js";
 
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {
-  /** The agent message to render. */
-  readonly message: AgentMessage;
+  /** The message to render. */
+  readonly message: ThreadMessage;
 }
 
 /**
  * Renders a single message in the terminal conversation thread.
  *
- * - `MESSAGE_HUMAN` — plain text prefixed with a "You" indicator
- * - `MESSAGE_AI` — markdown rendered to ANSI-styled terminal output,
- *   with a cursor indicator while streaming
- * - `MESSAGE_SYSTEM` — dimmed text
- * - `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results
- *   are handled by {@link ToolCallGroup})
+ * - `user` — plain text prefixed with a "You" indicator
+ * - `message` — the agent's markdown rendered to ANSI-styled terminal
+ *   output, with a "Thinking..." indicator while it is still empty and live
+ * - `note` — dimmed text
+ * - `thinking` — renders nothing
  */
 export function MessageEntry({ message }: MessageEntryProps) {
-  switch (message.type) {
-    case MessageType.MESSAGE_HUMAN:
-      return <HumanMessage content={message.content} />;
-    case MessageType.MESSAGE_AI:
-      return (
-        <AiMessage content={message.content} isStreaming={message.isStreaming} />
-      );
-    case MessageType.MESSAGE_SYSTEM:
-      return <SystemMessage content={message.content} />;
-    default:
+  switch (message.kind) {
+    case "user":
+      return <HumanMessage content={message.text} />;
+    case "message":
+      return <AiMessage content={message.text} isStreaming={message.live} />;
+    case "note":
+      return <SystemMessage content={message.text} />;
+    case "thinking":
       return null;
   }
 }

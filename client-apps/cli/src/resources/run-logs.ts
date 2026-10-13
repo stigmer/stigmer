@@ -1,20 +1,28 @@
-// `runs logs` — the message stream for a run.
+// `runs logs` — a run's events, one line each.
 //
-// Mirrors Go's execution.AgentLogs (logs_agent.go). A run has no event log,
-// only status snapshots (subscribe): follow diffs the message list across
-// snapshots (lastMsgCount) and stops on a terminal phase, exactly as Go does;
-// non-follow prints the message list from a single Get.
+// A run is one turn of its session, and the turn's events are the session's
+// log filtered to the run. Without --follow the run's stored events are
+// listed (every page) and printed. With --follow the same listing is printed,
+// then the session is followed from the last listed event: every new event is
+// folded, the run's own are printed, and the follow stops once the fold says
+// the turn has ended.
 //
-// Ctrl-C ends a follow cleanly: the SIGINT aborts the subscription and we treat
-// the abort as a normal exit (no stack trace).
+// A line is the event's Managed Agents type and its gist: the text of an
+// event that carries content (a message, a tool result), else its Managed
+// Agents JSON without the type, id and time (a tool use's name and input, an
+// ask with its tool_use_id, a status's phase). The tool_use_id on a
+// stigmer.permission.asked line is what `runs approve --tool-call` takes.
+//
+// Ctrl-C ends a follow cleanly: the SIGINT aborts the follow, which then
+// simply stops (no stack trace).
 
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { followSession, SessionLog, toManagedAgentsJson, turnOf, type Stigmer, type Turn } from "@stigmer/sdk";
 import { shouldColorize, styler } from "../output/style.js";
-import { formatAgentPhase, isTerminalAgentPhase } from "./runs.js";
+import { listSessionEvents, sessionOfRun } from "./session.js";
 
-const MAX_AGENT_MESSAGE_LEN = 200;
+const MAX_LINE_LEN = 200;
 
 export interface LogsOptions {
   readonly runId: string;
@@ -26,86 +34,91 @@ export interface LineSink {
   write(line: string): void;
 }
 
-/** A line sink + a signal that the caller can abort (SIGINT). */
+/** A line sink and whether to colour it. */
 export interface LogsStreams {
   readonly out: LineSink;
   readonly colorize: boolean;
 }
 
-/** Stream or print logs for a run. `signal` aborts a follow cleanly. */
+/** Print or follow a run's events. `signal` aborts a follow cleanly. */
 export async function streamRunLogs(
   client: Stigmer,
   opts: LogsOptions,
   signal: AbortSignal,
   streams: LogsStreams = defaultStreams(),
 ): Promise<void> {
-  await (opts.follow ? followAgentLogs(client, opts, signal, streams) : printAgentMessages(client, opts, streams));
-}
-
-async function printAgentMessages(client: Stigmer, opts: LogsOptions, streams: LogsStreams): Promise<void> {
-  const exec = await client.run.get(opts.runId);
-  const messages = exec.status?.messages ?? [];
-  if (messages.length === 0) {
-    streams.out.write("No messages recorded for this run.\n");
+  const sessionId = sessionOfRun(await client.run.get(opts.runId));
+  const events = await listSessionEvents(client, sessionId, opts.runId);
+  if (!opts.follow) {
+    if (events.length === 0) {
+      streams.out.write("No events recorded for this run.\n");
+      return;
+    }
+    for (const event of events) renderEvent(event, streams);
     return;
   }
-  for (const message of messages) renderAgentMessage(message, streams);
-}
 
-async function followAgentLogs(
-  client: Stigmer,
-  opts: LogsOptions,
-  signal: AbortSignal,
-  streams: LogsStreams,
-): Promise<void> {
-  let lastMsgCount = 0;
-  try {
-    for await (const exec of client.run.subscribe(opts.runId, signal)) {
-      const messages = exec.status?.messages ?? [];
-      for (let i = lastMsgCount; i < messages.length; i++) renderAgentMessage(messages[i], streams);
-      lastMsgCount = messages.length;
-
-      const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
-      if (isTerminalAgentPhase(phase)) {
-        const style = styler(streams.colorize);
-        streams.out.write(`\n${style.dim("[end]")} run ${formatAgentPhase(phase)}\n`);
-        return;
-      }
+  for (const event of events) renderEvent(event, streams);
+  const log = new SessionLog();
+  log.apply(events);
+  const listed = turnOf(log.snapshot(), opts.runId);
+  if (listed?.ended === true) {
+    renderEnd(listed, streams);
+    return;
+  }
+  for await (const frame of followSession(client, sessionId, { signal, afterSeq: log.snapshot().lastSeq })) {
+    if (frame.frame.case === "event" && frame.frame.value.runId === opts.runId) renderEvent(frame.frame.value, streams);
+    log.applyFrame(frame);
+    const turn = turnOf(log.snapshot(), opts.runId);
+    if (turn?.ended === true) {
+      renderEnd(turn, streams);
+      return;
     }
-    streams.out.write("\n--- stream ended ---\n");
-  } catch (error) {
-    if (signal.aborted) return;
-    throw error;
   }
 }
 
-// Port of Go's renderAgentMessage: a colored type label + truncated content.
-function renderAgentMessage(message: AgentMessage, streams: LogsStreams): void {
+// One event's log line: its type, tinted by who wrote it, and its gist.
+function renderEvent(event: SessionEvent, streams: LogsStreams): void {
   const style = styler(streams.colorize);
-  const { label, tint } = agentMessageLabel(message.type, style);
-  const content = truncate(message.content, MAX_AGENT_MESSAGE_LEN);
-  streams.out.write(`[${tint(label)}] ${content}\n`);
+  const json = toManagedAgentsJson(event);
+  const type = String(json.type);
+  streams.out.write(`[${tintOf(type, style)(type)}] ${truncate(gistOf(json), MAX_LINE_LEN)}\n`);
 }
 
-function agentMessageLabel(
-  type: MessageType,
-  style: ReturnType<typeof styler>,
-): { label: string; tint: (text: string) => string } {
-  switch (type) {
-    case MessageType.MESSAGE_HUMAN:
-      return { label: "human", tint: style.cyan };
-    case MessageType.MESSAGE_AI:
-      return { label: "ai", tint: style.green };
-    case MessageType.MESSAGE_TOOL:
-      return { label: "tool", tint: style.cyan };
-    case MessageType.MESSAGE_SYSTEM:
-      return { label: "system", tint: style.yellow };
-    default:
-      return { label: "unknown", tint: style.dim };
-  }
+function renderEnd(turn: Turn, streams: LogsStreams): void {
+  const style = styler(streams.colorize);
+  streams.out.write(`\n${style.dim("[end]")} run ${turn.status?.phase ?? "ended"}\n`);
 }
 
-// Mirrors Go's 200-char content cap (197 + "...").
+// A person's events cyan, the agent's green, the session's yellow, Stigmer's own dim.
+function tintOf(type: string, style: ReturnType<typeof styler>): (text: string) => string {
+  if (type.startsWith("user.")) return style.cyan;
+  if (type.startsWith("agent.")) return style.green;
+  if (type.startsWith("session.")) return style.yellow;
+  return style.dim;
+}
+
+// The text an event carries, else its JSON without what the line already says.
+function gistOf(json: JsonObject): string {
+  const { type: _type, id: _id, processed_at: _processedAt, ...rest } = json;
+  const text = textOf(rest.content);
+  if (text !== undefined) return text;
+  return Object.keys(rest).length === 0 ? "" : JSON.stringify(rest);
+}
+
+// The joined text blocks of a content list; undefined when there is no list.
+function textOf(content: JsonValue | undefined): string | undefined {
+  if (!Array.isArray(content)) return undefined;
+  return content
+    .map((block) => (isObject(block) && typeof block.text === "string" ? block.text : ""))
+    .join("");
+}
+
+function isObject(value: JsonValue): value is JsonObject {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+// Cap a line (197 + "...").
 function truncate(value: string, maxLen: number): string {
   return value.length > maxLen ? `${value.slice(0, maxLen - 3)}...` : value;
 }

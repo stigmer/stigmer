@@ -1,16 +1,14 @@
-// The retriever transparency card (stigmer/stigmer#293 Phase 3): an
-// honest "Recalled N of M memories" join of the status report
-// against the spec snapshot — and NOTHING for wholesale, the majority
-// case that must stay noise-free.
+// The retriever transparency card (stigmer/stigmer#293): an honest
+// "Recalled N of M memories" join of the turn's memory recall (the
+// `stigmer.memory.recalled` event, folded as `Turn.memory`) against the
+// run's snapshot — and NOTHING for wholesale, the majority case that must
+// stay noise-free.
 
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { create } from "@bufbuild/protobuf";
-import {
-  RecalledMemoriesReportSchema,
-  type RecalledMemoriesReport,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { MemoryRecall } from "@stigmer/sdk";
 import {
   RecalledMemoryFactSchema,
   type RecalledMemoryFact,
@@ -24,14 +22,13 @@ function makeFact(id: string, content: string): RecalledMemoryFact {
   return create(RecalledMemoryFactSchema, { memoryId: id, content });
 }
 
-function makeReport(
-  overrides: Partial<Pick<RecalledMemoriesReport, "selectionActive" | "injectedMemoryIds" | "embeddingModel">>,
-): RecalledMemoriesReport {
-  return create(RecalledMemoriesReportSchema, {
+function makeReport(overrides: Partial<MemoryRecall>): MemoryRecall {
+  return {
     selectionActive: true,
+    injectedMemoryIds: [],
     embeddingModel: "text-embedding-3-small",
     ...overrides,
-  });
+  };
 }
 
 const SNAPSHOT: RecalledMemoryFact[] = [
@@ -73,14 +70,14 @@ describe("RecalledMemoriesCard", () => {
       embeddingModel: "",
     });
     const { container } = render(
-      <RecalledMemoriesCard report={report} facts={SNAPSHOT} />,
+      <RecalledMemoriesCard recall={report} facts={SNAPSHOT} />,
     );
     expect(container.innerHTML).toBe("");
   });
 
   it("summarizes the selection with the wire count and the embedding model", () => {
     const report = makeReport({ injectedMemoryIds: ["mem_a", "mem_c"] });
-    render(<RecalledMemoriesCard report={report} facts={SNAPSHOT} />);
+    render(<RecalledMemoriesCard recall={report} facts={SNAPSHOT} />);
 
     expect(screen.getByRole("status", { name: "Recalled 2 of 4 memories" })).toBeTruthy();
     expect(screen.getByText("text-embedding-3-small")).toBeTruthy();
@@ -90,7 +87,7 @@ describe("RecalledMemoriesCard", () => {
 
   it("expands to exactly the injected facts, in snapshot order", async () => {
     const report = makeReport({ injectedMemoryIds: ["mem_c", "mem_a"] });
-    render(<RecalledMemoriesCard report={report} facts={SNAPSHOT} />);
+    render(<RecalledMemoriesCard recall={report} facts={SNAPSHOT} />);
     const user = userEvent.setup();
 
     const toggle = screen.getByRole("button", { expanded: false });
@@ -114,7 +111,7 @@ describe("RecalledMemoriesCard", () => {
     // never-invent pin) — but if it ever happens, the count stays the wire
     // truth and the list simply omits the unresolvable entry.
     const report = makeReport({ injectedMemoryIds: ["mem_b", "mem_ghost"] });
-    render(<RecalledMemoriesCard report={report} facts={SNAPSHOT} />);
+    render(<RecalledMemoriesCard recall={report} facts={SNAPSHOT} />);
 
     expect(screen.getByRole("status", { name: "Recalled 2 of 4 memories" })).toBeTruthy();
     await userEvent.setup().click(screen.getByRole("button"));

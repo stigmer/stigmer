@@ -142,12 +142,10 @@ export function newPopulateAgentVersionStep(): PipelineStep<AgentDesc> {
 export function newSaveAgentVersionStep(
   store: Store,
   logger: Logger,
-  persistOnRevert: boolean,
 ): PipelineStep<AgentDesc> {
   return newArchiveCurrentVersionStep<AgentDesc, AgentDesc>(store, logger, {
     stepName: "SaveVersionAudit",
     resourceKey: undefined,
-    persistOnRevert,
     schema: AgentSchema,
     noun: "agent",
     headHashOf,

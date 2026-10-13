@@ -37,6 +37,21 @@ driver runs at open derives every unproven row, so the unproven set is empty in
 steady state and reads stay one index range. Every read shape names or forces
 its index, because a freshly written table has no planner statistics.
 
+## Writes that build on a read
+
+No write stores a copy of a row it read earlier, because anything written in
+between (a status write, a rename, another person's edit) would be undone. A
+writer that names its fields writes them inside `updateResource`, whose
+`modify` is synchronous. A chain that rebuilds the row across awaited steps (an
+update: authorization, reference checks, a version hash) reads it with
+`readResourceForWrite`, which keeps the exact stored bytes, and stores it with
+`swapResource`, one compare-and-swap on those bytes over
+`replaceResourceDataIfUnchanged`. A lost swap reruns the chain from a fresh read
+(`pipeline/guarded-write.ts`). A kind kept outside this store offers the same
+pair on its port (`guarded-port.ts`, with the contract lines every driver
+runs). `saveResource`, the upsert, is for a row that is new;
+`__tests__/write-discipline.test.ts` holds every caller to that.
+
 ## The session event log
 
 Each session's ordered event log (`session-events.ts`) is its own table, `session_events`, numbered per session (`seq`) and stamped with the fixed-width UTC time the store accepted each event. Writers reach it two ways: `Store.sessionEvents.append`, a runner's events guarded by its run's row, and `Store.writeResourceAppendingEvents`, the one door for a resource write that must commit with events (a run's phase change and its session's status). The second reads the committed row and counts the session's other working rows from one list key (`working_session` on runs) without decoding a row, hands both to a synchronous writer, and commits the row and its events in one transaction. A writer that must know which run holds the session's newest event of a type (the run of the newest `user.message`, the conversation's newest turn) names that type in its scope, and only that writer pays the read. Each event's gates (the ask it opens or closes: a tool use that waits for a person, its answer or its result) are kept in columns beside its bytes, derived by the declaration the domain hands the store at open (`StoreOpenOptions.sessionEventGates`, `domain/session/events/gates.ts`) on every write and, for a row stamped with another revision, at open, as list keys are. A writer whose scope names the waiting key (`waiting_session` on runs) is also handed the session's other waiting rows and the open gates of those rows and of the written row, read from the columns without decoding an event.

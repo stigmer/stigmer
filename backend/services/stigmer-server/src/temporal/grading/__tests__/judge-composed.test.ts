@@ -17,8 +17,10 @@
  *     newer version removes an older version's pending score while every
  *     other version's grades stay;
  *   - evaluators: create, the one-per-agent rule, getByAgent, an update
- *     that keeps the month's spend written meanwhile, and the agent's
- *     delete removing its evaluator;
+ *     that keeps the month's spend written meanwhile, an update that
+ *     keeps a write landing between its read and its write (the lost swap
+ *     retried from a fresh read), and the agent's delete removing its
+ *     evaluator;
  *   - the activities: a sampled run is recorded pending and a cap set
  *     aside; the start creates one judge run, found again on a retry; a
  *     judge is shown the turns before the graded one in its session; a
@@ -65,6 +67,7 @@ import {
 import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 
@@ -105,6 +108,7 @@ import {
   silentLogger,
 } from "../../../extensions/__tests__/composed-support.js";
 import { GradingCallerRefusedError } from "../../../extensions/grading-caller.js";
+import { visibilityWrite, writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import { generateId } from "../../../pipeline/steps/defaults.js";
 import { createJudgeActivities } from "../judge-activities.js";
 import {
@@ -465,6 +469,27 @@ describe("evaluators", () => {
     await agents.delete({ value: agentId });
     expect((await failureOf(evaluatorQuery.get({ value: created.metadata!.id }))).code).toBe(Code.NotFound);
     expect((await failureOf(evaluatorQuery.getByAgent({ agentId }))).code).toBe(Code.NotFound);
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const created = await newEvaluator(await newAgent());
+    const id = created.metadata!.id;
+    expect(created.metadata?.visibility).not.toBe(ApiResourceVisibility.visibility_org);
+
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.evaluator,
+      id,
+      visibilityWrite(server.store, ApiResourceKind.evaluator, EvaluatorSchema, id, ApiResourceVisibility.visibility_org),
+      () => evaluators.update({ ...created, spec: { ...created.spec!, sampleRate: 0.25 } }),
+    );
+    expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
+    expect(updated.spec?.sampleRate).toBe(0.25);
+    expect(updated.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+
+    const stored = await server.store.getResource(ApiResourceKind.evaluator, id, EvaluatorSchema);
+    expect(stored.spec?.sampleRate).toBe(0.25);
+    expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
   });
 });
 

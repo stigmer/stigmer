@@ -105,7 +105,7 @@ import {
 // Shared fakes (the composition-shaped ones live in composed-support.ts)
 // ---------------------------------------------------------------------------
 
-/** The port's nine methods, delegating to the real adapter and recording each call by name. */
+/** The port's methods, delegating to the real adapter and recording each call by name. */
 function recordingStore(
   inner: IdentityAccountStore,
   calls: string[],
@@ -115,9 +115,13 @@ function recordingStore(
       calls.push("save");
       return inner.save(account);
     },
-    update: (account) => {
-      calls.push("update");
-      return inner.update(account);
+    readForWrite: (id) => {
+      calls.push("readForWrite");
+      return inner.readForWrite(id);
+    },
+    swap: (id, expectedBytes, next) => {
+      calls.push("swap");
+      return inner.swap(id, expectedBytes, next);
     },
     deleteById: (id) => {
       calls.push("deleteById");

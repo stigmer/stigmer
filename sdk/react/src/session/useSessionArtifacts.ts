@@ -89,11 +89,7 @@ export function artifactKey(artifact: RunArtifact): string {
  * @example
  * ```tsx
  * const conv = useSessionConversation(sessionId, org);
- * const allRuns = [
- *   ...conv.completedRuns,
- *   ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
- * ];
- * const { artifacts, hasArtifacts } = useSessionArtifacts(allRuns);
+ * const { artifacts, hasArtifacts } = useSessionArtifacts(conv.runs);
  * ```
  *
  * @see useRunArtifacts — single-execution artifact derivation

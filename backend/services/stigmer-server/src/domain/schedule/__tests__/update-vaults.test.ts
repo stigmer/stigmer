@@ -33,7 +33,10 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { newNormalizeReferencesStep, resolveReferences } from "../../../pipeline/steps/references.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { newBuildUpdateStateStep } from "../../../pipeline/steps/build-update-state.js";
-import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
+import {
+  EXISTING_RESOURCE_BYTES_KEY,
+  EXISTING_RESOURCE_KEY,
+} from "../../../pipeline/steps/load-existing.js";
 import { myVaultLockRefusal, newVaultAttachmentsStep } from "../../vault/attachments.js";
 import { SCHEDULE_ID_LABEL_KEY, newVaultResolver } from "../../vault/resolve.js";
 import type { VaultResolver } from "../../vault/resolve.js";
@@ -161,7 +164,13 @@ async function updateAs(writer: string, input: Schedule): Promise<Schedule> {
     testCallerIdentity({ identityId: writer }),
     ApiResourceKind.schedule,
   );
-  ctx.set(EXISTING_RESOURCE_KEY, await storedSchedule());
+  const read = await rig.store.readResourceForWrite(
+    ApiResourceKind.schedule,
+    SCHEDULE_ID,
+    ScheduleSchema,
+  );
+  ctx.set(EXISTING_RESOURCE_KEY, read.resource);
+  ctx.set(EXISTING_RESOURCE_BYTES_KEY, read.bytes);
   for (const step of [
     newBuildUpdateStateStep<typeof ScheduleSchema>(),
     newNormalizeReferencesStep<typeof ScheduleSchema>(rig.store),

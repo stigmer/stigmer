@@ -9,6 +9,8 @@
  * The load-bearing pins the conformance suite does NOT own:
  *   - status preservation across apply-as-update (the auto-pause can never
  *     be clobbered declaratively) and the update graft's status honesty;
+ *   - an update keeps the tick's pause that lands between its read and its
+ *     write, the lost swap retried from a fresh read;
  *   - resume's atomic latch+streak clear, its idempotent no-write no-op,
  *     and the pause→resume round trip;
  *   - the trigger's two-level contract with the REAL launch gates: with no
@@ -46,6 +48,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import { TRIGGER_DISABLED_MESSAGE } from "../trigger.js";
 import {
   organizationId,
@@ -325,6 +328,34 @@ describe("update — immutable identity and the status-honest graft", () => {
     expect(updated.spec?.cron).toBe("15 7 * * *");
     expect(updated.status?.consecutiveFailures).toBe(2);
     expect(updated.status?.pausedReason).toContain("Paused after 2");
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const created = await command.create(scheduleInput({ name: "Race", slug: "race" }));
+    const id = created.metadata?.id ?? "";
+    expect(created.status?.pausedReason).toBe("");
+
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.schedule,
+      id,
+      () => pauseDirectly(id),
+      () =>
+        command.update({
+          ...scheduleInput({ name: "Race", slug: "race", cron: "45 6 * * *" }),
+          metadata: created.metadata,
+        }),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    for (const schedule of [
+      updated,
+      await server.store.getResource(ApiResourceKind.schedule, id, ScheduleSchema),
+    ]) {
+      expect(schedule.spec?.cron).toBe("45 6 * * *");
+      expect(schedule.status?.pausedReason).toContain("Paused after 2");
+      expect(schedule.status?.consecutiveFailures).toBe(2);
+    }
   });
 });
 

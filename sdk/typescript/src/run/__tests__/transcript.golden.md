@@ -29,6 +29,10 @@ Let me look.
 }
 ```
 
+_Asked for approval: Run go test._
+
+_Allowed._
+
 ```
 FAIL: TestRetry
 ```
@@ -51,9 +55,21 @@ func Do() {}
 
 _Image output (image/png, 4096 bytes) — not inlined._
 
+**Tool — `github/create_issue`** (denied)
+
+```json
+{
+  "title": "flaky"
+}
+```
+
+_Denied: not yet._
+
 **System**
 
 > Approval received
+
+_Context compacted._
 
 ---
 
@@ -67,7 +83,7 @@ edited prompt
 
 Delegating.
 
-> **Sub-agent — Explore the repo** (5.0s)
+> **Sub-agent — explore** (5.0s)
 >
 > Input:
 >
@@ -79,6 +95,12 @@ Delegating.
 >
 > **Tool — `grep`** (completed)
 >
+> ```json
+> {
+>   "pattern": "Test"
+> }
+> ```
+>
 > ```
 > 3 matches in test/
 > ```
@@ -87,11 +109,19 @@ Delegating.
 >
 > found 3
 
+**Structured output**
+
+```json
+{
+  "flaky": 1
+}
+```
+
 ---
 
 ## Turn 3 · 2026-08-20T12:00:00Z
 
-_In progress at export time — content is the last persisted snapshot._
+_In progress at export time — content is what the log held then._
 
 _Build from plan._
 

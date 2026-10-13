@@ -159,6 +159,7 @@ import {
   revertServiceAccountRenameOnFailure,
 } from "./steps.js";
 import type { IdentityAccountStore } from "./store.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 
 /** What the create path needs — the subset every caller of it composes. */
 export interface CreateAccountPathDeps {
@@ -441,34 +442,36 @@ async function update(
   account: IdentityAccount,
   ctx: HandlerContext,
 ): Promise<IdentityAccount> {
-  const reqCtx = new RequestContext(
-    IdentityAccountSchema,
-    account,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof IdentityAccountSchema>(
-    "identityaccount-update",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(
-        IdentityAccountCommandController.method.update,
-        deps.authorizer,
-      ),
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      IdentityAccountSchema,
+      account,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof IdentityAccountSchema>(
+      "identityaccount-update",
+      deps.logger,
     )
-    .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT, deps.accounts))
-    .addStep(newValidateProtoStep())
-    .addStep(newLoadExistingAccountStep(deps.accounts))
-    .addStep(newGuardImmutableSubjectStep())
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newPreserveBackendFieldsStep())
-    .addStep(newRenameServiceAccountStep(deps.store, deps.accounts))
-    .addStep(newPersistUpdatedAccountStep(deps.accounts))
-    .build()
-    .execute(reqCtx)
-    .catch(revertServiceAccountRenameOnFailure(deps.store, deps.logger, reqCtx));
-  return reqCtx.newState;
+      .addStep(
+        newAuthorizeStep(
+          IdentityAccountCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT, deps.accounts))
+      .addStep(newValidateProtoStep())
+      .addStep(newLoadExistingAccountStep(deps.accounts))
+      .addStep(newGuardImmutableSubjectStep())
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newPreserveBackendFieldsStep())
+      .addStep(newRenameServiceAccountStep(deps.store, deps.accounts))
+      .addStep(newPersistUpdatedAccountStep(deps.accounts))
+      .build()
+      .execute(reqCtx)
+      .catch(revertServiceAccountRenameOnFailure(deps.store, deps.logger, reqCtx));
+    return reqCtx.newState;
+  });
 }
 
 /** Delete — answers the pre-delete account (the canonical delete chain over the port). */

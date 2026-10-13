@@ -1,32 +1,24 @@
+/**
+ * MessageThread slots: each slot renders in place of its built-in with the
+ * built-in's props (the person's and agent's messages and the failed-send
+ * bubble, the bottom approval card with its answer wiring, the to-dos card
+ * and rows, the set-up placeholder, the recalled-memories card, the
+ * liveness line, the plan cards, the error notice with its retry wiring),
+ * every built-in renders when slots are omitted, overrides apply under the
+ * virtualized path too, and a memoized slot is not re-rendered when the
+ * thread re-renders with the same turns.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import React, { memo } from "react";
 import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-  RecalledMemoriesReportSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  RunSpecSchema,
-  RecalledMemoriesSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import {
-  ApprovalAction,
-  RunArtifactKind,
-  RunPhase,
-  InteractionMode,
-  MessageType,
-  TodoStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { RunArtifactKind, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { Turn } from "@stigmer/sdk";
 
-import { MessageThread, type MessageThreadSlots } from "../MessageThread";
+import { MessageThread, type MessageThreadProps, type MessageThreadSlots } from "../MessageThread";
 import type { MessageEntryProps } from "../MessageEntry";
 import type { ApprovalCardProps } from "../ApprovalCard";
 import type { RunErrorNoticeProps } from "../RunErrorNotice";
@@ -38,6 +30,15 @@ import type { LivenessStatusLineProps } from "../LivenessStatusLine";
 import type { PlanCompletionCardProps } from "../PlanCompletionCard";
 import type { PlanArtifactCardProps } from "../PlanArtifactCard";
 import type { PlanStreamingCardProps } from "../PlanStreamingCard";
+import {
+  asked,
+  conversation,
+  recalled,
+  result,
+  status,
+  toolId,
+  use,
+} from "./__fixtures__/thread-events";
 
 // ---------------------------------------------------------------------------
 // Mock react-virtuoso (same pattern as virtualized-thread.test.tsx) so the
@@ -105,72 +106,18 @@ afterEach(() => {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-function makeExecution(opts: {
-  id: string;
-  specMessage?: string;
-  phase?: RunPhase;
-  interactionMode?: InteractionMode;
-  aiContent?: string;
-  todos?: Record<string, { content: string; status: TodoStatus }>;
-  pendingApprovalToolCallId?: string;
-  planArtifactName?: string;
-  error?: string;
-}): Run {
-  const exec = create(RunSchema);
+/** A to-do write in run `id` that returned: one in-progress (or pending) item. */
+function todoWrite(id: string, todoStatus = "in_progress") {
+  return [use(id, "todo", "write_todos", { todos: [{ content: "write tests", status: todoStatus }] }), result(id, "todo", "ok")];
+}
 
-  const meta = create(ApiResourceMetadataSchema);
-  meta.id = opts.id;
-  exec.metadata = meta;
+/** A run `id` waiting on a call with no row of its own (a to-do write that asks). */
+function waitingOnOrphan(id: string) {
+  return [use(id, "gate", "write_todos", {}, { ask: true }), asked(id, "gate"), status(id, "waiting")];
+}
 
-  const spec = create(RunSpecSchema);
-  spec.message = opts.specMessage ?? "Hello";
-  if (opts.interactionMode !== undefined) {
-    spec.interactionMode = opts.interactionMode;
-  }
-  exec.spec = spec;
-
-  const status = create(RunStatusSchema);
-  status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
-  if (opts.error) {
-    status.error = opts.error;
-  }
-
-  const aiMsg = create(AgentMessageSchema);
-  aiMsg.type = MessageType.MESSAGE_AI;
-  aiMsg.content = opts.aiContent ?? "Hi there!";
-  status.messages = [aiMsg];
-
-  if (opts.todos) {
-    for (const [id, todo] of Object.entries(opts.todos)) {
-      status.todos[id] = create(TodoItemSchema, {
-        id,
-        content: todo.content,
-        status: todo.status,
-      });
-    }
-  }
-
-  if (opts.pendingApprovalToolCallId) {
-    status.pendingApprovals = [
-      create(PendingApprovalSchema, {
-        toolCallId: opts.pendingApprovalToolCallId,
-        toolName: "shell_exec",
-        argsPreview: "{}",
-      }),
-    ];
-  }
-
-  if (opts.planArtifactName) {
-    status.artifacts = [
-      create(RunArtifactSchema, {
-        name: opts.planArtifactName,
-        kind: RunArtifactKind.FILE,
-      }),
-    ];
-  }
-
-  exec.status = status;
-  return exec;
+function renderThread(conv: { turns: readonly Turn[]; runs: Run[] }, props: Partial<MessageThreadProps> = {}) {
+  return render(<MessageThread turns={conv.turns} runs={conv.runs} {...props} />);
 }
 
 // ---------------------------------------------------------------------------
@@ -179,196 +126,100 @@ function makeExecution(opts: {
 
 describe("MessageThread slots", () => {
   it("renders the MessageEntry slot for every message, including the failed-send bubble", () => {
-    const CustomEntry = ({ message }: MessageEntryProps) => (
-      <div data-testid="custom-entry">{message.content}</div>
-    );
-    const slots: MessageThreadSlots = { MessageEntry: CustomEntry };
+    const CustomEntry = ({ message }: MessageEntryProps) => <div data-testid="custom-entry">{message.text}</div>;
 
-    render(
-      <MessageThread
-        runs={[makeExecution({ id: "e1", specMessage: "prompt text" })]}
-        pendingUserMessage="failed follow-up"
-        pendingMessageFailed
-        onRetrySend={vi.fn()}
-        slots={slots}
-      />,
-    );
+    renderThread(conversation({ id: "e1", message: "prompt text" }), {
+      pendingUserMessage: "failed follow-up",
+      pendingMessageFailed: true,
+      onRetrySend: vi.fn(),
+      slots: { MessageEntry: CustomEntry },
+    });
 
     const entries = screen.getAllByTestId("custom-entry");
-    // Synthesized human bubble + AI message + the failed pending bubble.
-    expect(entries.length).toBe(3);
-    expect(entries.map((e) => e.textContent)).toContain("failed follow-up");
-    // The built-in bubble chrome must not render.
+    expect(entries.map((e) => e.textContent)).toEqual(["prompt text", "Hi there!", "failed follow-up"]);
     expect(screen.queryByRole("article", { name: "User message" })).toBeNull();
-    // The failed-send Retry affordance stays built-in around the slot.
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 
-  it("renders the ApprovalCard slot with the row's stabilized onSubmit wiring intact", () => {
-    const onApprovalSubmit = vi.fn();
-    const CustomApproval = ({ pendingApproval, onSubmit }: ApprovalCardProps) => (
-      <button
-        type="button"
-        data-testid="custom-approval"
-        onClick={() => onSubmit(ApprovalAction.APPROVE)}
-      >
-        approve {pendingApproval.toolName}
+  it("renders the ApprovalCard slot with the row's stabilized answer wiring intact", () => {
+    const onAnswerToolUse = vi.fn();
+    const CustomApproval = ({ toolUse, onAnswer }: ApprovalCardProps) => (
+      <button type="button" data-testid="custom-approval" onClick={() => onAnswer("grant")}>
+        approve {toolUse.name}
       </button>
     );
 
-    render(
-      <MessageThread
-        runs={[
-          makeExecution({
-            id: "e1",
-            phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-            pendingApprovalToolCallId: "tc-1",
-          }),
-        ]}
-        onApprovalSubmit={onApprovalSubmit}
-        slots={{ ApprovalCard: CustomApproval }}
-      />,
-    );
+    renderThread(conversation({ id: "e1", phase: "running", extra: waitingOnOrphan("e1") }), {
+      onAnswerToolUse,
+      slots: { ApprovalCard: CustomApproval },
+    });
 
     fireEvent.click(screen.getByTestId("custom-approval"));
-    // The memoized ApprovalCardRow still injects the toolCallId — the slot's
-    // onSubmit contract is identical to the built-in's.
-    expect(onApprovalSubmit).toHaveBeenCalledWith(
-      "tc-1",
-      ApprovalAction.APPROVE,
-      undefined,
-    );
+    expect(onAnswerToolUse).toHaveBeenCalledWith(toolId("e1", "gate"), "grant", undefined);
   });
 
   it("renders the TodoCard slot with the TodoRow slot forwarded through its props", () => {
-    const forwarded: Array<TodoRowProps["item"]["content"]> = [];
+    const forwarded: string[] = [];
     const CustomRow = ({ item }: TodoRowProps) => {
       forwarded.push(item.content);
       return <li data-testid="custom-row">{item.content}</li>;
     };
     const CustomCard = ({ todos, TodoRow }: TodoCardProps) => (
       <div data-testid="custom-todo-card">
-        <ul>
-          {Object.values(todos).map((item) =>
-            TodoRow ? <TodoRow key={item.id} item={item} /> : null,
-          )}
-        </ul>
+        <ul>{todos.map((item) => (TodoRow ? <TodoRow key={item.id} item={item} /> : null))}</ul>
       </div>
     );
 
-    render(
-      <MessageThread
-        runs={[
-          makeExecution({
-            id: "e1",
-            todos: { t1: { content: "write tests", status: TodoStatus.TODO_IN_PROGRESS } },
-          }),
-        ]}
-        slots={{ TodoCard: CustomCard, TodoRow: CustomRow }}
-      />,
-    );
+    renderThread(conversation({ id: "e1", extra: todoWrite("e1") }), { slots: { TodoCard: CustomCard, TodoRow: CustomRow } });
 
     expect(screen.getByTestId("custom-todo-card")).toBeTruthy();
     expect(forwarded).toEqual(["write tests"]);
   });
 
   it("renders the TodoRow slot inside the built-in TodoCard when only TodoRow is overridden", () => {
-    const CustomRow = ({ item }: TodoRowProps) => (
-      <li data-testid="custom-row">ROW: {item.content}</li>
-    );
+    const CustomRow = ({ item }: TodoRowProps) => <li data-testid="custom-row">ROW: {item.content}</li>;
 
-    render(
-      <MessageThread
-        runs={[
-          makeExecution({
-            id: "e1",
-            todos: { t1: { content: "write tests", status: TodoStatus.TODO_IN_PROGRESS } },
-          }),
-        ]}
-        slots={{ TodoRow: CustomRow }}
-      />,
-    );
+    renderThread(conversation({ id: "e1", extra: todoWrite("e1") }), { slots: { TodoRow: CustomRow } });
 
-    // The built-in card chrome (region + disclosure) hosts the custom row —
-    // auto-disclosure opens the card because an item is in progress.
     expect(screen.getByRole("region", { name: "Agent to-dos" })).toBeTruthy();
     expect(screen.getByTestId("custom-row").textContent).toBe("ROW: write tests");
   });
 
-  it("renders the SetupProgress slot for the pre-first-token window", () => {
+  it("renders the SetupProgress slot for the pre-first-output window", () => {
     const CustomSetup = ({ isAwaitingResponse }: SetupProgressProps) => (
       <div data-testid="custom-setup">{isAwaitingResponse ? "waiting" : "setup"}</div>
     );
 
-    const exec = makeExecution({
-      id: "e-live",
-      phase: RunPhase.RUN_IN_PROGRESS,
-    });
-    // No renderable response yet: the setup-progress item is emitted.
-    exec.status!.messages = [];
-
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={exec}
-        slots={{ SetupProgress: CustomSetup }}
-      />,
-    );
+    renderThread(conversation({ id: "e-live", phase: "running", reply: "" }), { slots: { SetupProgress: CustomSetup } });
 
     expect(screen.getByTestId("custom-setup").textContent).toBe("waiting");
   });
 
-  it("renders the RecalledMemoriesCard slot for a selection-active execution", () => {
-    const CustomRecalled = ({ report, facts }: RecalledMemoriesCardProps) => (
+  it("renders the RecalledMemoriesCard slot for a selection-active turn", () => {
+    const CustomRecalled = ({ recall, facts }: RecalledMemoriesCardProps) => (
       <div data-testid="custom-recalled">
-        {report.injectedMemoryIds.length} of {facts.length}
+        {recall.injectedMemoryIds.length} of {facts.length}
       </div>
     );
-
-    const exec = makeExecution({ id: "e1" });
-    exec.status!.recalledMemories = create(RecalledMemoriesSchema, {
+    const conv = conversation({ id: "e1", extra: [recalled("e1", ["mem_a"])] });
+    conv.runs[0]!.status!.recalledMemories = create(RecalledMemoriesSchema, {
       enabled: true,
       facts: [
         { memoryId: "mem_a", content: "Prefers concise answers." },
         { memoryId: "mem_b", content: "Deploys with Bazel." },
       ],
     });
-    exec.status!.recalledMemoriesReport = create(RecalledMemoriesReportSchema, {
-      selectionActive: true,
-      injectedMemoryIds: ["mem_a"],
-      embeddingModel: "text-embedding-3-small",
-    });
 
-    render(
-      <MessageThread
-        runs={[exec]}
-        slots={{ RecalledMemoriesCard: CustomRecalled }}
-      />,
-    );
+    renderThread(conv, { slots: { RecalledMemoriesCard: CustomRecalled } });
 
     expect(screen.getByTestId("custom-recalled").textContent).toBe("1 of 2");
-    // The built-in card must not render alongside the override.
     expect(screen.queryByRole("status", { name: /Recalled/ })).toBeNull();
   });
 
-  it("renders the LivenessStatusLine slot while the execution is live between events", () => {
-    const CustomLiveness = ({ label }: LivenessStatusLineProps) => (
-      <div data-testid="custom-liveness">{label ?? "custom-live"}</div>
-    );
+  it("renders the LivenessStatusLine slot while the turn works between events", () => {
+    const CustomLiveness = ({ label }: LivenessStatusLineProps) => <div data-testid="custom-liveness">{label ?? "custom-live"}</div>;
 
-    const exec = makeExecution({
-      id: "e-live",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      aiContent: "thinking about it",
-    });
-
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={exec}
-        slots={{ LivenessStatusLine: CustomLiveness }}
-      />,
-    );
+    renderThread(conversation({ id: "e-live", phase: "running", reply: "thinking about it" }), { slots: { LivenessStatusLine: CustomLiveness } });
 
     expect(screen.getByTestId("custom-liveness").textContent).toBe("custom-live");
   });
@@ -381,19 +232,7 @@ describe("MessageThread slots", () => {
     );
     const onBuildFromPlan = vi.fn();
 
-    render(
-      <MessageThread
-        runs={[
-          makeExecution({
-            id: "e-plan",
-            phase: RunPhase.RUN_COMPLETED,
-            interactionMode: InteractionMode.PLAN,
-          }),
-        ]}
-        onBuildFromPlan={onBuildFromPlan}
-        slots={{ PlanCompletionCard: CustomCompletion }}
-      />,
-    );
+    renderThread(conversation({ id: "e-plan", mode: InteractionMode.PLAN }), { onBuildFromPlan, slots: { PlanCompletionCard: CustomCompletion } });
 
     fireEvent.click(screen.getByTestId("custom-completion"));
     expect(onBuildFromPlan).toHaveBeenCalledOnce();
@@ -405,50 +244,23 @@ describe("MessageThread slots", () => {
         {title ?? "Plan"}: {artifact.name}
       </div>
     );
+    const conv = conversation({ id: "e-plan", mode: InteractionMode.PLAN, reply: "# Rollout Plan\n\n1. First step" });
+    conv.runs[0]!.status!.artifacts = [create(RunArtifactSchema, { name: "rollout_abc123.plan.md", kind: RunArtifactKind.FILE })];
 
-    render(
-      <MessageThread
-        runs={[
-          makeExecution({
-            id: "e-plan",
-            phase: RunPhase.RUN_COMPLETED,
-            interactionMode: InteractionMode.PLAN,
-            aiContent: "# Rollout Plan\n\n1. First step",
-            planArtifactName: "rollout_abc123.plan.md",
-          }),
-        ]}
-        onBuildFromPlan={vi.fn()}
-        slots={{ PlanArtifactCard: CustomArtifact }}
-      />,
-    );
+    renderThread(conv, { onBuildFromPlan: vi.fn(), slots: { PlanArtifactCard: CustomArtifact } });
 
-    expect(screen.getByTestId("custom-artifact").textContent).toBe(
-      "Rollout Plan: rollout_abc123.plan.md",
-    );
+    expect(screen.getByTestId("custom-artifact").textContent).toBe("Rollout Plan: rollout_abc123.plan.md");
   });
 
   it("renders the PlanStreamingCard slot while a plan is being written", () => {
-    const CustomStreaming = ({ title }: PlanStreamingCardProps) => (
-      <div data-testid="custom-streaming">writing: {title}</div>
-    );
+    const CustomStreaming = ({ title }: PlanStreamingCardProps) => <div data-testid="custom-streaming">writing: {title}</div>;
 
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={makeExecution({
-          id: "e-live",
-          phase: RunPhase.RUN_IN_PROGRESS,
-          interactionMode: InteractionMode.PLAN,
-          aiContent: "# Rollout Plan\n\n1. First step",
-        })}
-        onOpenPlan={vi.fn()}
-        slots={{ PlanStreamingCard: CustomStreaming }}
-      />,
-    );
+    renderThread(conversation({ id: "e-live", phase: "running", mode: InteractionMode.PLAN, reply: "# Rollout Plan\n\n1. First step" }), {
+      onOpenPlan: vi.fn(),
+      slots: { PlanStreamingCard: CustomStreaming },
+    });
 
-    expect(screen.getByTestId("custom-streaming").textContent).toBe(
-      "writing: Rollout Plan",
-    );
+    expect(screen.getByTestId("custom-streaming").textContent).toBe("writing: Rollout Plan");
   });
 
   it("renders the RunErrorNotice slot with the retry wiring intact", () => {
@@ -464,28 +276,13 @@ describe("MessageThread slots", () => {
       </div>
     );
 
-    render(
-      <MessageThread
-        runs={[
-          makeExecution({
-            id: "e-failed",
-            specMessage: "prompt text",
-            phase: RunPhase.RUN_FAILED,
-            error: "model capacity exhausted",
-          }),
-        ]}
-        onRetryRun={onRetryRun}
-        slots={{ RunErrorNotice: CustomNotice }}
-      />,
-    );
+    renderThread(conversation({ id: "e-failed", message: "prompt text", phase: "failed", error: "model capacity exhausted" }), {
+      onRetryRun,
+      slots: { RunErrorNotice: CustomNotice },
+    });
 
-    const notice = screen.getByTestId("custom-error-notice");
-    expect(notice.textContent).toContain("model capacity exhausted");
-    // The built-in's clamp toggle must not render alongside the override.
+    expect(screen.getByTestId("custom-error-notice").textContent).toContain("model capacity exhausted");
     expect(screen.queryByRole("button", { name: "Show more" })).toBeNull();
-
-    // The slot's retry contract is identical to the built-in's: it resends
-    // the originating message.
     fireEvent.click(screen.getByRole("button", { name: "switch engine and retry" }));
     expect(onRetryRun).toHaveBeenCalledWith("prompt text");
   });
@@ -493,23 +290,9 @@ describe("MessageThread slots", () => {
   it("falls back to the built-in RunErrorNotice when the slot is omitted", () => {
     const onRetryRun = vi.fn();
 
-    render(
-      <MessageThread
-        runs={[
-          makeExecution({
-            id: "e-failed",
-            specMessage: "prompt text",
-            phase: RunPhase.RUN_FAILED,
-            error: "model capacity exhausted",
-          }),
-        ]}
-        onRetryRun={onRetryRun}
-      />,
-    );
+    renderThread(conversation({ id: "e-failed", message: "prompt text", phase: "failed", error: "model capacity exhausted" }), { onRetryRun });
 
-    // The built-in renders as a destructive alert with clamp + Retry.
-    const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain("model capacity exhausted");
+    expect(screen.getByRole("alert").textContent).toContain("model capacity exhausted");
     expect(screen.getByRole("button", { name: "Show more" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetryRun).toHaveBeenCalledWith("prompt text");
@@ -520,69 +303,37 @@ describe("MessageThread slots", () => {
   // -------------------------------------------------------------------------
 
   it("renders every built-in unchanged when slots is omitted", () => {
-    render(
-      <MessageThread
-        runs={[
-          makeExecution({
-            id: "e1",
-            phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-            todos: { t1: { content: "write tests", status: TodoStatus.TODO_IN_PROGRESS } },
-            pendingApprovalToolCallId: "tc-1",
-          }),
-        ]}
-        onApprovalSubmit={vi.fn()}
-      />,
-    );
+    renderThread(conversation({ id: "e1", phase: "running", extra: [...todoWrite("e1"), ...waitingOnOrphan("e1")] }), { onAnswerToolUse: vi.fn() });
 
     expect(screen.getByRole("article", { name: "User message" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "Agent to-dos" })).toBeTruthy();
-    expect(
-      screen.getByRole("alert", { name: "Approval required for shell_exec" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("alert", { name: "Approval required for write_todos" })).toBeTruthy();
   });
 
   it("renders slot overrides identically under the virtualized path", async () => {
-    const CustomEntry = ({ message }: MessageEntryProps) => (
-      <div data-testid="custom-entry">{message.content}</div>
-    );
+    const CustomEntry = ({ message }: MessageEntryProps) => <div data-testid="custom-entry">{message.text}</div>;
 
-    render(
-      <MessageThread
-        runs={[makeExecution({ id: "e1", specMessage: "prompt text" })]}
-        virtualized
-        slots={{ MessageEntry: CustomEntry }}
-      />,
-    );
+    renderThread(conversation({ id: "e1", message: "prompt text" }), { virtualized: true, slots: { MessageEntry: CustomEntry } });
 
-    // The lazy VirtualizedThread resolves asynchronously.
     await vi.waitFor(() => {
       expect(screen.getByTestId("virtuoso-scroller")).toBeTruthy();
     });
-    const entries = screen.getAllByTestId("custom-entry");
-    expect(entries.length).toBe(2); // synthesized human bubble + AI message
+    expect(screen.getAllByTestId("custom-entry")).toHaveLength(2);
     expect(screen.queryByRole("article", { name: "User message" })).toBeNull();
   });
 
-  it("does not re-render a memoized slot when the thread re-renders with identical data", () => {
+  it("does not re-render a memoized slot when the thread re-renders with the same turns", () => {
     const renderCount = vi.fn();
     const CustomCard = memo(function CustomCard({ todos }: TodoCardProps) {
       renderCount();
-      return <div data-testid="custom-todo-card">{Object.keys(todos).length} todos</div>;
+      return <div data-testid="custom-todo-card">{todos.length} todos</div>;
     });
     const slots: MessageThreadSlots = { TodoCard: CustomCard };
+    const conv = conversation({ id: "e1", extra: todoWrite("e1", "pending") });
 
-    const exec = makeExecution({
-      id: "e1",
-      todos: { t1: { content: "write tests", status: TodoStatus.TODO_PENDING } },
-    });
+    const { rerender } = renderThread(conv, { slots });
+    rerender(<MessageThread turns={conv.turns} runs={conv.runs} slots={slots} />);
 
-    const { rerender } = render(
-      <MessageThread runs={[exec]} slots={slots} />,
-    );
-    rerender(<MessageThread runs={[exec]} slots={slots} />);
-
-    // Same run reference, same slots object: the renderer must not
-    // manufacture fresh props that defeat the slot's React.memo.
     expect(renderCount).toHaveBeenCalledTimes(1);
   });
 });

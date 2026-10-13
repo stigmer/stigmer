@@ -1,19 +1,18 @@
+// Pins segmentToolCalls over the session fold's tool uses: maximal runs of
+// two or more consecutive same-category groupable calls fold into one run
+// (keeping the tool use references), lone and high-signal calls stay rows,
+// chronology is preserved, and a registered presenter's run-grouping
+// override is honoured.
 import { describe, it, expect } from "vitest";
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  ToolCallSchema,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { ToolUse } from "@stigmer/sdk";
 import { segmentToolCalls } from "../segment-tool-calls";
 import { registerToolPresenter } from "../tool-presenter";
 import { ToolKind } from "@stigmer/sdk";
+import { toolUse } from "./__fixtures__/fold-values";
 
-function tc(name: string, id: string, args?: Record<string, unknown>): ToolCall {
-  return create(ToolCallSchema, {
-    id,
-    name,
-    args: (args ?? { path: `/x/${id}`, pattern: "p", command: "ls" }) as JsonObject,
-  });
+function tc(name: string, id: string, input?: JsonObject): ToolUse {
+  return toolUse({ name, id, input: input ?? { path: `/x/${id}`, pattern: "p", command: "ls" } });
 }
 
 describe("segmentToolCalls", () => {
@@ -26,9 +25,9 @@ describe("segmentToolCalls", () => {
     expect(seg.kind).toBe("run");
     if (seg.kind === "run") {
       expect(seg.category).toBe("read");
-      expect(seg.toolCalls).toHaveLength(3);
-      // Slice preserves the original references (structural-sharing friendly).
-      expect(seg.toolCalls[0]).toBe(calls[0]);
+      expect(seg.toolUses).toHaveLength(3);
+      // Slice preserves the original references (the fold shares unchanged ones).
+      expect(seg.toolUses[0]).toBe(calls[0]);
     }
   });
 

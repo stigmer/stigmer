@@ -24,13 +24,13 @@ import {
 import { FileDecisionSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { eventTypeOf } from "@stigmer/session-log";
 import { createLogger } from "../../../../boot/logger.js";
 import { ResourceNotFoundError } from "../../../../store/interface.js";
 import type { Store } from "../../../../store/interface.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { SessionEventBroker } from "../broker.js";
-import { eventTypeOf } from "../catalog.js";
 import { eventOf } from "../codec.js";
 import {
   createRunAppendingEvents,
@@ -77,7 +77,12 @@ function setPhase(phase: RunPhase, error = ""): (r: Run) => void {
   };
 }
 
+/** The session's log as run:type, without each turn's own stigmer.run.status (pinned in its own block). */
 async function log(sessionId: string): Promise<string[]> {
+  return (await fullLog(sessionId)).filter((entry) => !entry.endsWith(":stigmer.run.status"));
+}
+
+async function fullLog(sessionId: string): Promise<string[]> {
   const records = await temp.store.sessionEvents.list(sessionId, { order: "asc", limit: 100 });
   return records.map((record) => `${record.runId}:${eventTypeOf(eventOf(record))}`);
 }
@@ -187,15 +192,34 @@ describe("an overwrite from a copy held in memory", () => {
   });
 });
 
+describe("each turn's own status", () => {
+  it("every phase change of a run commits its stigmer.run.status with the run, whatever the session does", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    await createRunAppendingEvents(deps, run("b", "s1"));
+    await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_IN_PROGRESS));
+    await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_IN_PROGRESS));
+    await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_COMPLETED));
+    const records = await temp.store.sessionEvents.list("s1", { order: "asc", limit: 100, types: ["stigmer.run.status"] });
+    expect(
+      records.map((record) => {
+        const event = eventOf(record).event;
+        return `${record.runId}:${event.case === "stigmerRunStatus" ? event.value.phase : ""}`;
+      }),
+    ).toEqual(["a:pending", "b:pending", "a:running", "a:completed"]);
+    expect(await fullLog("s1")).toContain("a:stigmer.run.status");
+  });
+});
+
 describe("delivery and edges", () => {
   it("each committed event reaches the session's live streams, in order", async () => {
     const stream = deps.sessionEventBroker.subscribe("s1", []);
     await createRunAppendingEvents(deps, run("a", "s1"));
     expect(stream.queue.map((f) => (f.frame.case === "event" ? eventTypeOf(f.frame.value) : ""))).toEqual([
       "user.message",
+      "stigmer.run.status",
       "session.status_running",
     ]);
-    expect(stream.queue.map((f) => (f.frame.case === "event" ? f.frame.value.seq : 0n))).toEqual([1n, 2n]);
+    expect(stream.queue.map((f) => (f.frame.case === "event" ? f.frame.value.seq : 0n))).toEqual([1n, 2n, 3n]);
   });
 
   it("a run in no session writes no events", async () => {

@@ -1,109 +1,236 @@
 // Run read path: the polling primitive behind get_run.
 //
-// Runs have no event-log RPC — the platform's contract is: poll get
-// and read status.phase, status.messages[], and status.pending_approvals[].
-// That makes the response shape critical for MCP: a long conversation's
-// full protojson (every message, the approval ledger, sub-agent transcripts)
-// can dwarf the model's context. The default
-// "compact" view therefore returns a bounded message tail and drops the bulky
-// server-side bookkeeping fields; "full" is the verbatim protojson for when
-// the model genuinely needs everything.
+// A run is one turn of a conversation. Its record holds the turn's
+// lifecycle (phase, timing, error, stop cause, setup, usage, the files it
+// wrote, the agent and versions it ran); what the agent did is the
+// session's event log (Claude Managed Agents events), read with
+// SessionQueryController.listEvents filtered to the run. So get_run reads
+// both: the run for its lifecycle, with every transcript field the record
+// still carries dropped, and the run's events.
+//
+// The events reach the model in one of two shapes:
+//   - compact (the default): the turn as the shared fold (`foldSession`
+//     from @stigmer/sdk) reads it, summarized: its phase, its answer, the
+//     tool uses that wait for an answer (with the `tool_use_id`
+//     submit_run_approval names), its to-do list, its changed files, and a
+//     bounded tail of its items. A model polling a run needs exactly that,
+//     and the fold has already paired each result, ask and answer with its
+//     tool use, so nothing is left to correlate by hand. The tail bound
+//     keeps a long turn from flooding the model's context; total_items
+//     says when the tail is a window.
+//   - full: every event of the run as Managed Agents JSON, for a model
+//     that genuinely needs the raw log.
+// Either way the fold reads the whole turn: which tool uses still wait is
+// only known from all of the turn's events.
 
+import type { CallOptions, Transport } from "@connectrpc/connect";
+import { createClient } from "@connectrpc/connect";
+import { toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import {
+  foldSession,
+  toManagedAgentsJson,
+  type FileReviewSet,
+  type ToolUse,
+  type Turn,
+  type TurnItem,
+} from "@stigmer/sdk";
 
-import { withClient } from "../client.js";
-import { toProtoJson } from "../marshal.js";
+import { withTransport } from "../client.js";
 import { rpcError } from "../rpcerr.js";
 
 export type RunView = "compact" | "full";
 
-/** Message-tail size when the caller doesn't specify one. */
-export const DEFAULT_MESSAGE_LIMIT = 5;
+/** Item-tail size when the caller doesn't specify one. */
+export const DEFAULT_ITEM_LIMIT = 5;
+
+/** The most events one listEvents page returns. */
+const EVENT_PAGE_SIZE = 1000;
 
 /**
- * Bulky status fields pruned from the compact view. These are server-side
- * bookkeeping (the append-only approval ledger) and sub-agent transcripts —
- * neither of which the poll loop (phase? messages? approvals?) needs.
+ * The run status fields a client no longer reads: the transcript the run
+ * record used to carry, which the session's events now hold (each one
+ * comes back as a turn of the fold, or as the raw events in view=full).
  */
-const COMPACT_PRUNED_STATUS_FIELDS = [
-  "approval_events",
+const TRANSCRIPT_STATUS_FIELDS = [
+  "messages",
   "sub_agent_runs",
+  "todos",
+  "pending_approvals",
+  "approval_event_stream",
+  "context_info",
+  "structured_output",
+  "recalled_memories_report",
+  "file_review_event_stream",
 ] as const;
 
-/** Fetch a single run by ID and shape it for the requested view. */
+/** Fetch a run and its events, shaped for the requested view. */
 export async function fetchRun(
   serverAddress: string,
   token: string,
   runId: string,
   view: RunView,
-  messageLimit: number,
+  itemLimit: number,
 ): Promise<string> {
   if (runId === "") {
     throw new Error("run_id is required");
   }
-  return withClient(
-    RunQueryController,
-    serverAddress,
-    token,
-    async (client, callOptions) => {
-      let run: Run;
-      try {
-        run = await client.get({ value: runId }, callOptions);
-      } catch (err) {
-        throw rpcError(err, `run "${runId}"`);
-      }
-      return view === "full"
-        ? toProtoJson(RunSchema, run)
-        : compactRunJson(run, messageLimit);
-    },
-  );
+  return withTransport(serverAddress, token, async (transport, callOptions) => {
+    const run = await getRun(transport, callOptions, runId);
+    const sessionId = sessionIdOf(run);
+    const events = await listRunEvents(transport, callOptions, sessionId, runId);
+    const body =
+      view === "full"
+        ? { view, run: runLifecycle(run), events: events.filter(holdsEvent).map(toManagedAgentsJson) }
+        : { view, run: runLifecycle(run), turn: turnView(foldSession(events).turns.find((t) => t.runId === runId), itemLimit) };
+    return JSON.stringify(body, null, 2);
+  });
 }
 
-/** The compact projection plus the pre-truncation message count. */
-export interface CompactRun {
-  readonly totalMessages: number;
-  readonly data: Record<string, unknown>;
+/** Read one run, its failure named after it. */
+export async function getRun(transport: Transport, callOptions: CallOptions, runId: string): Promise<Run> {
+  try {
+    return await createClient(RunQueryController, transport).get({ value: runId }, callOptions);
+  } catch (err) {
+    throw rpcError(err, `run "${runId}"`);
+  }
 }
 
-/**
- * Build the compact projection: full protojson minus the pruned status
- * fields, with status.messages sliced to the last `messageLimit` entries.
- * Exposed at the data level so wrappers (cancel_run's already_terminal
- * envelope) can compose it without double-nesting.
- *
- * Shared by the write tools that return a Run (approve, cancel):
- * their responses embed the same potentially-huge status.
- */
-export function compactRun(run: Run, messageLimit: number): CompactRun {
-  const data = JSON.parse(toProtoJson(RunSchema, run)) as Record<string, unknown>;
-  let totalMessages = 0;
+/** The session a stored run belongs to: the server records it on every run it persists. */
+export function sessionIdOf(run: Run): string {
+  const target = run.spec?.target;
+  if (target?.case === "sessionId" && target.value !== "") {
+    return target.value;
+  }
+  throw new Error(`run "${run.metadata?.id ?? ""}" names no session`);
+}
 
-  const status = data.status as Record<string, unknown> | undefined;
+/** The run's record as protojson, without the transcript fields (module header). */
+export function runLifecycle(run: Run): JsonObject {
+  const data = toJson(RunSchema, run, { useProtoFieldName: true }) as JsonObject;
+  const status = data["status"] as JsonObject | undefined;
   if (status !== undefined) {
-    const messages: unknown[] = Array.isArray(status.messages) ? status.messages : [];
-    totalMessages = messages.length;
-    if (messages.length > messageLimit) {
-      status.messages = messages.slice(-messageLimit);
-    }
-    for (const field of COMPACT_PRUNED_STATUS_FIELDS) {
+    for (const field of TRANSCRIPT_STATUS_FIELDS) {
       delete status[field];
     }
   }
-
-  return { totalMessages, data };
+  return data;
 }
 
-/**
- * The compact view as returned by tools: a wrapper carrying total_messages so
- * the model can tell when the message tail is a window (and re-request with a
- * larger message_limit or view=full).
- */
-export function compactRunJson(run: Run, messageLimit: number): string {
-  const { totalMessages, data } = compactRun(run, messageLimit);
-  return JSON.stringify(
-    { view: "compact", total_messages: totalMessages, run: data },
-    null,
-    2,
-  );
+/** Every event of one run, oldest first, walking every page. */
+async function listRunEvents(
+  transport: Transport,
+  callOptions: CallOptions,
+  sessionId: string,
+  runId: string,
+): Promise<SessionEvent[]> {
+  const client = createClient(SessionQueryController, transport);
+  const events: SessionEvent[] = [];
+  let pageToken = "";
+  try {
+    do {
+      const page = await client.listEvents({ sessionId, runId, pageSize: EVENT_PAGE_SIZE, pageToken }, callOptions);
+      events.push(...page.events);
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+  } catch (err) {
+    throw rpcError(err, `the events of run "${runId}"`);
+  }
+  return events;
+}
+
+/** Whether an event holds a member this build knows; a newer server's unknown event is left out of the JSON. */
+function holdsEvent(event: SessionEvent): boolean {
+  return event.event.case !== undefined;
+}
+
+/** The turn, summarized for a model; null before the run's first event. */
+function turnView(turn: Turn | undefined, itemLimit: number): JsonValue {
+  if (turn === undefined) {
+    return null;
+  }
+  return {
+    phase: turn.status?.phase ?? "",
+    ended: turn.ended,
+    stop_cause: turn.status?.stopCause ?? "",
+    error: turn.status?.error ?? "",
+    answer: turn.answer,
+    asks: turn.asks.map(askView),
+    todos: turn.todos.map((todo) => ({ content: todo.content, status: todo.status })),
+    structured_output: turn.structuredOutput ?? null,
+    file_review: turn.fileReview.map(fileReviewView),
+    errors: turn.errors.map((error) => ({ type: error.type, message: error.message })),
+    total_items: turn.items.length,
+    items: turn.items.slice(-itemLimit).map(itemView),
+  };
+}
+
+/** A tool use that waits for a person's answer, with the id the answer names. */
+function askView(tool: ToolUse): JsonObject {
+  return {
+    tool_use_id: tool.id,
+    name: tool.name,
+    mcp_server_name: tool.mcpServerName,
+    input: tool.input,
+    message: tool.ask?.message ?? "",
+    args_preview: tool.ask?.argsPreview ?? "",
+  };
+}
+
+function fileReviewView(set: FileReviewSet): JsonObject {
+  return {
+    change_set_id: set.changeSetId,
+    undecided: set.undecided,
+    files: set.files.map((file) => ({ path: file.path, change: file.change, state: file.state })),
+  };
+}
+
+function itemView(item: TurnItem): JsonObject {
+  switch (item.kind) {
+    case "message":
+    case "thinking":
+    case "note":
+      return { type: item.kind, text: item.text };
+    case "compacted":
+      return { type: item.kind };
+    case "tool_use":
+      return toolView(item);
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhaustive: never = item;
+      throw new Error(`unknown turn item ${String(exhaustive)}`);
+    }
+  }
+}
+
+function toolView(tool: ToolUse): JsonObject {
+  const view: JsonObject = {
+    type: "tool_use",
+    tool_use_id: tool.id,
+    name: tool.name,
+    mcp_server_name: tool.mcpServerName,
+    state: tool.state,
+    input: tool.input,
+    result: tool.result?.text ?? "",
+  };
+  if (tool.fullOutput !== undefined) {
+    // The result is the stored output's head; the whole output is the run's artifact.
+    view["full_output"] = {
+      storage_key: tool.fullOutput.storageKey,
+      size_bytes: tool.fullOutput.sizeBytes.toString(),
+      mime_type: tool.fullOutput.mimeType,
+    };
+  }
+  if (tool.thread !== undefined) {
+    view["sub_agent"] = {
+      agent_name: tool.thread.agentName,
+      state: tool.thread.state,
+      reply: tool.thread.reply,
+      total_items: tool.thread.items.length,
+    };
+  }
+  return view;
 }

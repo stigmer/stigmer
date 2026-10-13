@@ -15,7 +15,6 @@ import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
@@ -48,7 +47,7 @@ function makeAgent(): Agent {
 
 function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
   return {
-    defaultAction: ApprovalAction.UNSPECIFIED,
+    approveDefault: "",
     workspaceEntries: [],
     vaults: [],
     includeMyVault: true,

@@ -1,34 +1,31 @@
 "use client";
 
-import { memo, useContext, useMemo } from "react";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  MessageType,
-  SubAgentStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { memo, useMemo } from "react";
+import type { Thread, ToolUse, TurnItem } from "@stigmer/sdk";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
 import { cn } from "@stigmer/theme";
 import { formatHeaderDuration } from "./ToolCallDetail.js";
-import { MessageEntry } from "./MessageEntry.js";
+import { MessageEntry, type ThreadMessage } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
-import { ApprovalContext } from "./ApprovalContext.js";
 import { isInternalTool } from "./tool-categories.js";
-import {
-  TodoList,
-  TodoInProgressIcon,
-  findActiveTodo,
-  todoCompletionSummary,
-} from "./TodoList.js";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link SubAgentSection}. */
 export interface SubAgentSectionProps {
-  /** The sub-agent run to render. */
-  readonly subAgentRun: SubAgentRun;
+  /** The sub-agent's thread, from the session's fold (`ToolUse.thread`). */
+  readonly thread: Thread;
+  /**
+   * What the sub-agent was asked to do, in a few words (the `task` call's
+   * description, {@link subAgentSubjectOf}); the card's title beside the
+   * agent's name. Omitted, the agent's name titles it.
+   */
+  readonly subject?: string;
+  /** When the sub-agent started (its `task` call's time), for the duration. */
+  readonly startedAt?: string;
+  /** When it finished (its `task` call's result time), for the duration. */
+  readonly completedAt?: string;
   /**
    * Whether to render as a collapsible card with expand/collapse
    * toggle. Defaults to `true`.
@@ -42,13 +39,23 @@ export interface SubAgentSectionProps {
 }
 
 /**
- * Renders a sub-agent run as a nested mini-thread inside the
- * parent conversation.
+ * What a `task` call asked its sub-agent to do, in a few words: the call's
+ * `description` input, or "" when it carries none.
+ */
+export function subAgentSubjectOf(toolUse: Pick<ToolUse, "input">): string {
+  const description = toolUse.input["description"];
+  return typeof description === "string" ? description : "";
+}
+
+/**
+ * Renders a sub-agent's thread as a nested mini-thread inside the parent
+ * conversation: its messages and tool uses, in the order it produced them.
  *
  * When `collapsible` is `true` (default), the component renders as a
- * bordered card with a clickable summary row. Cards start collapsed
- * — the summary row shows status, subject, and duration at a glance.
- * Users click to expand and see the nested messages and tool calls.
+ * bordered card with a clickable summary row. The card is open while the
+ * sub-agent works or one of its calls waits for a person, and settles closed
+ * when it finishes — the summary row shows status, subject, and duration at
+ * a glance.
  *
  * Visually distinguished from {@link ToolCallGroup} via a left
  * accent border and bot icon, signaling delegated sub-agent work.
@@ -57,50 +64,53 @@ export interface SubAgentSectionProps {
  * without a toggle — suitable for embedding inside a parent that
  * already provides expand/collapse (e.g. {@link ToolCallItem}).
  *
- * Composes {@link MessageEntry} and {@link ToolCallGroup} to display
- * the sub-agent's internal messages and tool calls — the same
- * building blocks used by the top-level {@link MessageThread}.
+ * Composes {@link MessageEntry} and {@link ToolCallGroup} — the same
+ * building blocks the top-level {@link MessageThread} uses.
  *
- * Wrapped in `React.memo` — structural sharing preserves the
- * `SubAgentRun` reference when the sub-agent's state is
- * unchanged, so completed sub-agents skip re-renders entirely.
+ * Wrapped in `React.memo` — the session fold keeps an unchanged thread's
+ * reference, so a finished sub-agent skips re-renders entirely.
  *
  * @example
  * ```tsx
  * // Standalone collapsible card (default)
- * <SubAgentSection subAgentRun={sub} />
+ * <SubAgentSection thread={toolUse.thread} subject={subAgentSubjectOf(toolUse)} />
  *
  * // Flat layout inside a parent expand/collapse
- * <SubAgentSection subAgentRun={sub} collapsible={false} />
+ * <SubAgentSection thread={toolUse.thread} collapsible={false} />
  * ```
  */
 export const SubAgentSection = memo(function SubAgentSection({
-  subAgentRun: sub,
+  thread,
+  subject = "",
+  startedAt = "",
+  completedAt = "",
   collapsible = true,
   className,
 }: SubAgentSectionProps) {
-  useRenderTracer("SubAgentSection", { status: sub.status, name: sub.name });
+  useRenderTracer("SubAgentSection", { status: thread.state, name: thread.agentName });
 
   // Header chip threshold (>= 1s) shared with ToolCallItem — a sub-second
   // sub-agent is noise by the same rule, and the two row kinds must speak
   // one duration vocabulary.
-  const duration = formatHeaderDuration(sub.startedAt, sub.completedAt);
-  const statusInfo = SUB_AGENT_STATUS_MAP[sub.status];
+  const duration = formatHeaderDuration(startedAt, completedAt);
+  const statusInfo = SUB_AGENT_STATUS_MAP[thread.state];
   const StatusIcon = statusInfo.icon;
-  const isFailed = sub.status === SubAgentStatus.SUB_AGENT_FAILED;
-  const threadItems = buildSubAgentThreadItems(sub.id, sub.messages);
+  const threadItems = useMemo(() => buildSubAgentThreadItems(thread.items), [thread.items]);
+  // A failed sub-agent's reply is its error.
+  const error = thread.state === "failed" ? thread.reply : "";
 
-  const displayLabel = sub.subject || sub.name;
+  const displayLabel = subject || thread.agentName;
 
   if (!collapsible) {
     return (
       <FlatContent
-        sub={sub}
+        thread={thread}
+        subject={subject}
         statusInfo={statusInfo}
         StatusIcon={StatusIcon}
         duration={duration}
-        isFailed={isFailed}
         threadItems={threadItems}
+        error={error}
         className={className}
       />
     );
@@ -108,12 +118,13 @@ export const SubAgentSection = memo(function SubAgentSection({
 
   return (
     <CollapsibleCard
-      sub={sub}
+      thread={thread}
       statusInfo={statusInfo}
       displayLabel={displayLabel}
+      startedAt={startedAt}
       duration={duration}
-      isFailed={isFailed}
       threadItems={threadItems}
+      error={error}
       className={className}
     />
   );
@@ -124,63 +135,37 @@ export const SubAgentSection = memo(function SubAgentSection({
 // ---------------------------------------------------------------------------
 
 interface CollapsibleCardProps {
-  readonly sub: SubAgentRun;
+  readonly thread: Thread;
   readonly statusInfo: SubAgentStatusInfo;
   readonly displayLabel: string;
+  readonly startedAt: string;
   readonly duration: string | null;
-  readonly isFailed: boolean;
-  readonly threadItems: SubAgentThreadItem[];
+  readonly threadItems: readonly SubAgentThreadItem[];
+  readonly error: string;
   readonly className?: string;
 }
 
 function CollapsibleCard({
-  sub,
+  thread,
   statusInfo,
   displayLabel,
+  startedAt,
   duration,
-  isFailed,
   threadItems,
+  error,
   className,
 }: CollapsibleCardProps) {
-  const hasTodos =
-    sub.todos != null && Object.keys(sub.todos).length > 0;
-  const isRunning = sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS;
-  const isCompleted = sub.status === SubAgentStatus.SUB_AGENT_COMPLETED;
+  const isRunning = thread.state === "running";
 
-  // A gate raised inside this sub-agent must be reachable: a delegated tool
-  // can stop the run just like a top-level one. We detect one of this
-  // sub-agent's tool calls awaiting approval and auto-open so its inline
-  // approval (rendered by the nested ToolCallItem) is visible without a click.
-  const { approvalsByToolCallId } = useContext(ApprovalContext);
-  const hasPendingApprovalInside = useMemo(() => {
-    if (approvalsByToolCallId.size === 0) return false;
-    for (const msg of sub.messages) {
-      if (msg.type !== MessageType.MESSAGE_AI) continue;
-      for (const tc of msg.toolCalls) {
-        if (tc.id && approvalsByToolCallId.has(tc.id)) return true;
-      }
-    }
-    return false;
-  }, [sub.messages, approvalsByToolCallId]);
+  // A call inside this sub-agent that waits for a person must be reachable:
+  // a delegated tool can hold the turn just like a top-level one, so the
+  // card opens while one waits and its inline decision (rendered by the
+  // nested ToolCallItem) is visible without a click.
+  const waitsInside = useMemo(() => threadWaits(thread), [thread]);
 
-  // Open while running or while a nested gate waits; settle closed (keeping the
-  // todo/summary preview) when done — unless the user takes manual control.
-  const [expanded, handleToggle] = useAutoDisclosure(
-    isRunning || hasPendingApprovalInside,
-  );
-
-  const activeTodo = useMemo(() => findActiveTodo(sub.todos), [sub.todos]);
-  const completionLabel = useMemo(
-    () => (isCompleted && hasTodos ? todoCompletionSummary(sub.todos) : null),
-    [sub.todos, isCompleted, hasTodos],
-  );
-
-  const collapsedPreview =
-    isRunning && activeTodo
-      ? activeTodo.content
-      : isCompleted && completionLabel
-        ? completionLabel
-        : null;
+  // Open while running or while a nested call waits; settle closed when done
+  // — unless the user takes manual control.
+  const [expanded, handleToggle] = useAutoDisclosure(isRunning || waitsInside);
 
   const ariaLabel = `Sub-agent: ${displayLabel}, ${statusInfo.label}`;
 
@@ -222,7 +207,7 @@ function CollapsibleCard({
           {statusInfo.label}
         </span>
         {isRunning ? (
-          <RunningDuration startedAt={sub.startedAt} />
+          <RunningDuration startedAt={startedAt} />
         ) : (
           duration && (
             <span className="stg:shrink-0 stg:tabular-nums stg:text-muted-foreground">
@@ -232,20 +217,6 @@ function CollapsibleCard({
         )}
         <ChevronIcon expanded={expanded} />
       </button>
-
-      {/* Active todo preview — visible when collapsed */}
-      {collapsedPreview && !expanded && (
-        <div className="stg:flex stg:items-center stg:gap-1.5 stg:px-2.5 stg:pb-1.5 stg:text-xs stg:text-muted-foreground">
-          <span className="stg:ml-[20px] stg:shrink-0" aria-hidden="true">
-            {isRunning && activeTodo ? (
-              <TodoInProgressIcon />
-            ) : (
-              <TodoCompletedSmallIcon />
-            )}
-          </span>
-          <span className="stg:min-w-0 stg:truncate">{collapsedPreview}</span>
-        </div>
-      )}
 
       {/* Expanded content — CSS grid-rows animation */}
       <div
@@ -259,10 +230,8 @@ function CollapsibleCard({
             <div className="stg:border-t stg:border-border-muted stg:px-2.5 stg:pb-2 stg:pt-1.5">
               <SubAgentThreadContent
                 threadItems={threadItems}
-                todos={sub.todos}
-                input={sub.input}
-                isFailed={isFailed}
-                error={sub.error}
+                input={thread.input}
+                error={error}
               />
             </div>
           )}
@@ -273,17 +242,14 @@ function CollapsibleCard({
 }
 
 /**
- * Ticking elapsed time for an IN_PROGRESS sub-agent's header, where the
- * static duration (which needs `completedAt`) is still null.
+ * Ticking elapsed time for a running sub-agent's header, where the static
+ * duration (which needs the finish time) is still null.
  *
- * This is the honest live affordance for a running sub-agent: the Cursor
- * SDK returns sub-agent internals only as a blob when the task tool
- * completes (verified against SDK 1.0.13 and 1.0.22 — zero events reach the
- * parent stream while the sub-agent runs), so there are no nested tool calls
- * to stream here. A counter that visibly advances tells the user work is
- * progressing without fabricating intermediate state. The native harness
- * streams nested messages as they happen; this counter simply accompanies
- * them.
+ * The honest live affordance for a running sub-agent: an engine that
+ * reports a sub-agent's work only when its `task` call returns streams no
+ * nested items meanwhile, so a counter that visibly advances tells the user
+ * work is progressing without fabricating intermediate state. An engine that
+ * streams nested items as they happen shows them beside it.
  */
 function RunningDuration({ startedAt }: { readonly startedAt: string }) {
   const elapsed = useElapsedSince(startedAt);
@@ -301,22 +267,24 @@ function RunningDuration({ startedAt }: { readonly startedAt: string }) {
 // ---------------------------------------------------------------------------
 
 interface FlatContentProps {
-  readonly sub: SubAgentRun;
+  readonly thread: Thread;
+  readonly subject: string;
   readonly statusInfo: SubAgentStatusInfo;
   readonly StatusIcon: () => React.JSX.Element;
   readonly duration: string | null;
-  readonly isFailed: boolean;
-  readonly threadItems: SubAgentThreadItem[];
+  readonly threadItems: readonly SubAgentThreadItem[];
+  readonly error: string;
   readonly className?: string;
 }
 
 function FlatContent({
-  sub,
+  thread,
+  subject,
   statusInfo,
   StatusIcon,
   duration,
-  isFailed,
   threadItems,
+  error,
   className,
 }: FlatContentProps) {
   return (
@@ -335,11 +303,11 @@ function FlatContent({
           <StatusIcon />
         </span>
         <span className="stg:font-medium stg:text-foreground">
-          {sub.name}
+          {thread.agentName}
         </span>
-        {sub.subject && (
+        {subject && (
           <span className="stg:text-muted-foreground">
-            {sub.subject}
+            {subject}
           </span>
         )}
         {duration && (
@@ -351,10 +319,8 @@ function FlatContent({
 
       <SubAgentThreadContent
         threadItems={threadItems}
-        todos={sub.todos}
-        input={sub.input}
-        isFailed={isFailed}
-        error={sub.error}
+        input={thread.input}
+        error={error}
       />
     </div>
   );
@@ -365,26 +331,19 @@ function FlatContent({
 // ---------------------------------------------------------------------------
 
 interface SubAgentThreadContentProps {
-  readonly threadItems: SubAgentThreadItem[];
-  readonly todos?: { readonly [key: string]: TodoItem };
-  readonly input?: string;
-  readonly isFailed: boolean;
+  readonly threadItems: readonly SubAgentThreadItem[];
+  readonly input: string;
+  /** The failed sub-agent's error; "" otherwise. */
   readonly error: string;
 }
 
 function SubAgentThreadContent({
   threadItems,
-  todos,
   input,
-  isFailed,
   error,
 }: SubAgentThreadContentProps) {
-  const hasTodos = todos != null && Object.keys(todos).length > 0;
-
   return (
     <>
-      {hasTodos && <TodoList todos={todos!} className="stg:pb-1" />}
-
       {input && (
         <div
           className="stg:border-l-2 stg:border-muted-foreground/25 stg:pl-2.5 stg:text-xs stg:text-muted-foreground stg:whitespace-pre-wrap stg:mb-1"
@@ -405,7 +364,7 @@ function SubAgentThreadContent({
                 return (
                   <ToolCallGroup
                     key={item.key}
-                    toolCalls={item.toolCalls}
+                    toolUses={item.toolUses}
                   />
                 );
             }
@@ -413,7 +372,7 @@ function SubAgentThreadContent({
         </div>
       )}
 
-      {isFailed && error && (
+      {error && (
         <div className="stg:rounded-md stg:border stg:border-destructive/20 stg:bg-destructive-subtle stg:px-2 stg:py-1.5 stg:text-xs stg:text-destructive">
           {error}
         </div>
@@ -423,39 +382,52 @@ function SubAgentThreadContent({
 }
 
 // ---------------------------------------------------------------------------
-// Thread item builder for sub-agent messages
+// Thread item builder for a sub-agent's items
 // ---------------------------------------------------------------------------
 
 type SubAgentThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
-  | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly key: string };
+  | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string }
+  | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string };
 
-function buildSubAgentThreadItems(
-  subAgentId: string,
-  messages: readonly AgentMessage[],
-): SubAgentThreadItem[] {
-  const items: SubAgentThreadItem[] = [];
-
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
-
-    if (msg.type === MessageType.MESSAGE_TOOL) continue;
-
-    items.push({ kind: "message", message: msg, key: `${subAgentId}-m${i}` });
-
-    if (msg.type === MessageType.MESSAGE_AI && msg.toolCalls.length > 0) {
-      const visibleTools = msg.toolCalls.filter((tc) => !isInternalTool(tc.name));
-      if (visibleTools.length > 0) {
-        items.push({
-          kind: "tool-group",
-          toolCalls: visibleTools.length === msg.toolCalls.length ? msg.toolCalls : visibleTools,
-          key: `${subAgentId}-m${i}-tc`,
-        });
-      }
+/**
+ * A sub-agent's items as rows: each message, thinking or note on its own,
+ * each run of consecutive tool uses (internal to-do calls left out) as one
+ * group. A compaction marker is not shown inside a sub-agent.
+ */
+function buildSubAgentThreadItems(items: ReadonlyArray<TurnItem>): SubAgentThreadItem[] {
+  const rows: SubAgentThreadItem[] = [];
+  let group: ToolUse[] = [];
+  const flush = (): void => {
+    if (group.length === 0) return;
+    rows.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc` });
+    group = [];
+  };
+  for (const item of items) {
+    switch (item.kind) {
+      case "tool_use":
+        if (!isInternalTool(item.name)) group.push(item);
+        break;
+      case "message":
+      case "thinking":
+      case "note":
+        flush();
+        rows.push({ kind: "message", message: item, key: item.id });
+        break;
+      case "compacted":
+        break;
     }
   }
+  flush();
+  return rows;
+}
 
-  return items;
+/** Whether any call of a thread (or of a sub-agent it started) waits for a person. */
+function threadWaits(thread: Thread): boolean {
+  return thread.items.some(
+    (item) =>
+      item.kind === "tool_use" &&
+      (item.state === "waiting" || (item.thread !== undefined && threadWaits(item.thread))),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -469,40 +441,29 @@ interface SubAgentStatusInfo {
   icon: () => React.JSX.Element;
 }
 
-const SUB_AGENT_STATUS_MAP: Record<SubAgentStatus, SubAgentStatusInfo> = {
-  [SubAgentStatus.SUB_AGENT_STATUS_UNSPECIFIED]: {
-    label: "Unknown",
-    colorClass: "stg:text-muted-foreground",
-    badgeClass: "stg:bg-muted stg:text-muted-foreground",
-    icon: DotIcon,
-  },
-  [SubAgentStatus.SUB_AGENT_PENDING]: {
-    label: "Pending",
-    colorClass: "stg:text-muted-foreground",
-    badgeClass: "stg:bg-muted stg:text-muted-foreground",
-    icon: DotIcon,
-  },
-  [SubAgentStatus.SUB_AGENT_IN_PROGRESS]: {
+const SUB_AGENT_STATUS_MAP: Record<Thread["state"], SubAgentStatusInfo> = {
+  running: {
     label: "Running",
     colorClass: "stg:text-foreground",
     badgeClass: "stg:bg-muted stg:text-foreground",
     // Sized up to match this map's 12px siblings (the glyph defaults to 10).
     icon: () => <SpinnerIcon size={12} />,
   },
-  [SubAgentStatus.SUB_AGENT_COMPLETED]: {
+  completed: {
     label: "Completed",
     colorClass: "stg:text-success",
     badgeClass: "stg:bg-success/15 stg:text-success",
     icon: CheckCircleIcon,
   },
-  [SubAgentStatus.SUB_AGENT_FAILED]: {
+  failed: {
     label: "Failed",
     colorClass: "stg:text-destructive",
     badgeClass: "stg:bg-destructive/15 stg:text-destructive",
     icon: XCircleIcon,
   },
-  [SubAgentStatus.SUB_AGENT_CANCELLED]: {
-    label: "Cancelled",
+  // Its turn ended before the sub-agent finished.
+  stopped: {
+    label: "Stopped",
     colorClass: "stg:text-muted-foreground",
     badgeClass: "stg:bg-muted stg:text-muted-foreground",
     icon: XCircleIcon,
@@ -545,31 +506,6 @@ function XCircleIcon() {
     >
       <circle cx="6" cy="6" r="4.5" />
       <path d="M4.5 4.5L7.5 7.5M7.5 4.5L4.5 7.5" />
-    </svg>
-  );
-}
-
-function DotIcon() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-      <circle cx="4" cy="4" r="2.5" />
-    </svg>
-  );
-}
-
-function TodoCompletedSmallIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2.5 6L5 8.5L9.5 3.5" />
     </svg>
   );
 }

@@ -108,6 +108,13 @@ export const PACKAGES = [
   // and the server names recorded tool calls with it, and both pin the exact
   // release version at stamp time.
   "backend/libs/ts/tool-vocabulary",
+  // @stigmer/session-log depends on @stigmer/protos and
+  // @stigmer/tool-vocabulary, both above it. It MUST publish: the server and
+  // the runner link it (the server's renderer, the runner's to-do rule), the
+  // SDKs, the CLI and MCP fold a session's events with it, and the hosted
+  // edition reads replies with it; each pins the exact release version at
+  // stamp time.
+  "backend/libs/ts/session-log",
   "sdk/typescript",
   "sdk/theme",
   "sdk/react",

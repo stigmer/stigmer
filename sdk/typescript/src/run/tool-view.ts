@@ -1,22 +1,17 @@
 // Framework-agnostic tool-call view model for every Stigmer surface.
 //
 // Two pure functions normalize the two things clients keep re-deriving from
-// harness-specific data:
-//   - resolveToolKind: the harness-agnostic ToolKind (wire field, with a
-//     name-based fallback for legacy runs persisted before tool_kind).
+// harness-specific data, for a tool use as a session's events fold it
+// (`ToolUse`, @stigmer/session-log):
+//   - resolveToolKind: the harness-agnostic ToolKind, from the tool's name
+//     and its MCP server.
 //   - normalizeToolResult: the opaque result string -> a typed ToolResultView
-//     that presentation layers (React, Ink, the Go CLI's equivalent) render
-//     without re-parsing third-party engine formats.
+//     that presentation layers (React, Ink, the CLI) render without
+//     re-parsing third-party engine formats.
 //
-// For file edits, normalizeToolResult prefers the runner's authoritative
-// before/after capture (ToolCall.file_changes, #186) over reconstructing a diff
-// from args, surfacing the capture's fidelity via the diff view's captureLevel so
-// the renderer is honest about whole-file vs hunk-only. The capture is a clean,
-// structured proto, so it is consumed proto-first rather than re-modeled here;
-// the repeated/multi-file projection and offloaded-body fetching live in the
-// React layer. Counts and unified diffs for a whole-file capture stay derivable
-// by the presentation layer (the runner emits 0/"" sentinels for them), keeping
-// one diff implementation as the source of truth.
+// A file edit's inline diff is reconstructed from the tool's input; the
+// captured before/after of a turn's changes is the run's file record,
+// rendered by the file-review views, not here.
 //
 // This module has no React or framework dependency so it can be shared by
 // @stigmer/react and @stigmer/ink. The Go CLI mirrors it; the shared contract
@@ -24,9 +19,8 @@
 // every assumption here is fixture-backed and degrades gracefully to json/text.
 
 import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeCaptureLevel } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { ToolUse } from "@stigmer/session-log";
 
 export { ToolKind, FileChangeCaptureLevel };
 
@@ -57,9 +51,8 @@ export interface ToolContentBlock {
  * showing the raw result.
  */
 export type ToolResultView =
-  // File edit. oldText/newText are the two sides of the change: the authoritative
-  // whole-file before/after captured by the runner (ToolCall.file_changes) when
-  // available, otherwise the old_string/new_string fragments from args. The
+  // File edit. oldText/newText are the two sides of the change: the
+  // old_string/new_string fragments from the tool's input. The
   // presentation layer computes the visual diff (and its line counts) from
   // oldText/newText; linesAdded/linesRemoved/unifiedDiff are populated only when
   // the source provides them directly (e.g. the Cursor hunk-only envelope).
@@ -215,17 +208,12 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
 ]);
 
 /**
- * Resolves the harness-agnostic kind of a tool call.
- *
- * Prefers the wire `tool_kind` set by the runner; falls back to a name lookup
- * for legacy runs where it is UNSPECIFIED. An unknown name with a
- * non-empty mcpServerSlug is an MCP tool.
+ * Resolves the harness-agnostic kind of a tool use, from its name and MCP
+ * server ({@link resolveToolKindByName}). An unknown name with an MCP
+ * server is an MCP tool.
  */
-export function resolveToolKind(toolCall: Pick<ToolCall, "name" | "mcpServerSlug" | "toolKind">): ToolKind {
-  if (toolCall.toolKind !== undefined && toolCall.toolKind !== ToolKind.UNSPECIFIED) {
-    return toolCall.toolKind;
-  }
-  return resolveToolKindByName(toolCall.name, toolCall.mcpServerSlug);
+export function resolveToolKind(tool: Pick<ToolUse, "name" | "mcpServerName">): ToolKind {
+  return resolveToolKindByName(tool.name, tool.mcpServerName);
 }
 
 /**
@@ -235,7 +223,7 @@ export function resolveToolKind(toolCall: Pick<ToolCall, "name" | "mcpServerSlug
  */
 export const MEMORY_ATTACHMENT_SLUG = "stigmer-memory";
 
-/** Name-based classification used as the legacy fallback for resolveToolKind. */
+/** Name-based classification: what resolveToolKind reads. */
 export function resolveToolKindByName(name: string, mcpServerSlug?: string): ToolKind {
   // The first-party remember tool, slug-scoped on purpose: only
   // the synthesized memory attachment's reserved slug earns the MEMORY
@@ -280,7 +268,7 @@ export const SHELL_INTENT_ARG_FIELD = "description";
  * degrade to null — callers fall back to their category label.
  *
  * The seam for surfaces that hold a pre-resolved kind and raw args instead of
- * a full ToolCall: the CLI's headless snapshot projection and @stigmer/react's
+ * a full tool use: the CLI's headless snapshot projection and @stigmer/react's
  * approval argsPreview path. Everything else should prefer
  * {@link extractShellIntent}.
  */
@@ -301,9 +289,9 @@ export function shellIntentFromArgs(
  * every non-shell kind). See {@link SHELL_INTENT_ARG_FIELD}.
  */
 export function extractShellIntent(
-  toolCall: Pick<ToolCall, "name" | "mcpServerSlug" | "toolKind" | "args">,
+  tool: Pick<ToolUse, "name" | "mcpServerName" | "input">,
 ): string | null {
-  return shellIntentFromArgs(resolveToolKind(toolCall), toolCall.args as Args);
+  return shellIntentFromArgs(resolveToolKind(tool), tool.input as Args);
 }
 
 // ---------------------------------------------------------------------------
@@ -360,27 +348,49 @@ const OLD_TEXT_FIELDS = ["old_string", "old_text", "oldText"] as const;
 const NEW_TEXT_FIELDS = ["new_string", "new_text", "newText", "replacement"] as const;
 const WRITE_CONTENT_FIELDS = ["contents", "content", "file_content"] as const;
 
+/** What {@link normalizeToolResult} reads of a tool use. */
+export type ToolViewInput = Pick<ToolUse, "name" | "mcpServerName" | "input" | "result" | "fullOutput">;
+
 /**
- * Normalizes a tool call into a typed ToolResultView for rendering.
+ * The start of the marker the runner appends to an offloaded output's head
+ * (backend/services/runner/src/shared/status-offload.ts `collapsedResultFor`):
+ * `\n\n[output truncated — <size> total; view full output]`.
+ */
+const OFFLOAD_TAIL_START = "\n\n[output truncated — ";
+
+/**
+ * An offloaded output's head without the runner's marker: the text up to
+ * the last marker, when that marker closes the text with no other `]`
+ * inside it; the text unchanged otherwise. String scans only, so a head of
+ * any shape reads in linear time.
+ */
+export function withoutOffloadTail(text: string): string {
+  const at = text.lastIndexOf(OFFLOAD_TAIL_START);
+  if (at < 0 || !text.endsWith("]")) return text;
+  const inside = text.slice(at + OFFLOAD_TAIL_START.length, -1);
+  return inside.includes("]") ? text : text.slice(0, at);
+}
+
+/**
+ * Normalizes a tool use into a typed ToolResultView for rendering.
  *
- * A FAILED tool with an error always yields an `error` view. Otherwise the kind
+ * A result that is an error always yields an `error` view. Otherwise the kind
  * drives interpretation, and anything unrecognized degrades to `json`/`text`.
  */
-export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
-  const result = toolCall.result ?? "";
-  const args = toolCall.args as Args;
+export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
+  const result = tool.result?.text ?? "";
+  const args = tool.input as Args;
 
-  if (toolCall.status === ToolCallStatus.TOOL_CALL_FAILED && (toolCall.error || result)) {
-    return { type: "error", message: toolCall.error || result };
+  if (tool.result?.isError === true && result !== "") {
+    return { type: "error", message: result };
   }
 
-  // Output was offloaded to artifact storage (too large to inline): the real
-  // bytes are no longer in `result` (which holds only a short head/label), so
-  // render from the reference instead of re-parsing the placeholder. The view
-  // carries the stable `storageKey` so consumers resolve the bytes/URL on
-  // demand — the persisted URL was ephemeral and is no longer trusted.
-  if (toolCall.outputRef && toolCall.outputRef.storageKey) {
-    const ref = toolCall.outputRef;
+  // Output was offloaded to artifact storage (too large to inline): the
+  // result holds only a short head, so render from the reference instead of
+  // re-parsing the placeholder. The view carries the stable `storageKey` so
+  // consumers resolve the bytes or a URL on demand.
+  if (tool.fullOutput !== undefined && tool.fullOutput.storageKey !== "") {
+    const ref = tool.fullOutput;
     return {
       type: "outputRef",
       storageKey: ref.storageKey,
@@ -388,11 +398,11 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
       isImage: ref.isImage,
       mimeType: ref.mimeType,
       sizeBytes: Number(ref.sizeBytes),
-      preview: ref.truncatedPreview || result,
+      preview: ref.isImage ? "" : withoutOffloadTail(result),
     };
   }
 
-  const kind = resolveToolKind(toolCall);
+  const kind = resolveToolKind(tool);
 
   switch (kind) {
     case ToolKind.FILE_EDIT:
@@ -412,7 +422,7 @@ export function normalizeToolResult(toolCall: ToolCall): ToolResultView {
     case ToolKind.THINK:
       return normalizeThink(args, result);
     case ToolKind.MCP:
-      return normalizeMcp(result, toolCall.mcpServerSlug);
+      return normalizeMcp(result, tool.mcpServerName);
     case ToolKind.MEMORY:
       return normalizeMemory(result);
     default:

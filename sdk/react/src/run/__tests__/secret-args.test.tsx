@@ -1,45 +1,35 @@
 /**
  * A settled tool-call row never shows a secret-keyed argument (stigmer#1119).
  *
- * The runner redacts a row's `args` at creation, but rows persisted before it
- * did still carry the values, so every sink that renders `args` hides them
- * through `@stigmer/sdk`'s `redactSecretArgs` / `isSecretArgKey` — the reader
- * side of test/fixtures/tool-view/secret-args.json. Each case renders a row as
- * an older runner stored it, with the secret in clear.
+ * The runner redacts a call's arguments at creation, but calls recorded
+ * before it did still carry the values, so every sink that renders a tool
+ * use's input hides them through `@stigmer/sdk`'s `redactSecretArgs` /
+ * `isSecretArgKey` — the reader side of test/fixtures/tool-view/secret-args.json.
+ * Each case renders a tool use whose input holds the secret in clear.
  */
 
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  ToolCallSchema,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { ToolUse } from "@stigmer/sdk";
 import { McpToolDetail } from "../McpToolDetail";
 import { ToolArgsView } from "../ToolArgsView";
 import { ToolCallDetail } from "../ToolCallDetail";
 import { extractPrimaryArg } from "../tool-categories";
+import { toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
 
 const SECRET = "s3cret-value";
 
-function settledRow(name: string, mcpServerSlug: string, args: Record<string, unknown>): ToolCall {
-  return create(ToolCallSchema, {
-    id: "tc-1",
-    name,
-    mcpServerSlug,
-    args: args as JsonObject,
-    result: "ok",
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
-  });
+function settledRow(name: string, mcpServerName: string, input: JsonObject): ToolUse {
+  return toolUse({ id: "tc-1", name, mcpServerName, input, result: "ok" });
 }
 
 describe("the detail views hide a secret-keyed argument and keep the rest", () => {
   it("McpToolDetail's argument list", () => {
     const { container } = render(
-      <McpToolDetail toolCall={settledRow("push", "github", { token: SECRET, repo: "acme/x" })} />,
+      <McpToolDetail toolUse={settledRow("push", "github", { token: SECRET, repo: "acme/x" })} />,
     );
     expect(container.textContent).not.toContain(SECRET);
     expect(container.textContent).toContain("[REDACTED]");
@@ -61,7 +51,7 @@ describe("the detail views hide a secret-keyed argument and keep the rest", () =
     expect(view.container.textContent).toContain("eu-west-1");
     cleanup();
 
-    const detail = render(<ToolCallDetail toolCall={settledRow("mystery_tool", "", args)} />);
+    const detail = render(<ToolCallDetail toolUse={settledRow("mystery_tool", "", args)} />);
     expect(detail.container.textContent).not.toContain(SECRET);
   });
 });

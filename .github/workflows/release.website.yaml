@@ -26,6 +26,8 @@ on:
       - "sdk/embed/**"
       - "backend/libs/ts/plugin-package/**"
       - "backend/libs/ts/eval-runtime/**"
+      - "backend/libs/ts/session-log/**"
+      - "backend/libs/ts/tool-vocabulary/**"
       - ".github/workflows/release.website.yaml"
   workflow_dispatch:
 

@@ -144,6 +144,13 @@
         "$TURBO_ROOT$/test/fixtures/tool-view/**"
       ]
     },
+    // The fold's golden check reads every hermetic event and status golden
+    // of both harnesses, which live beside the runner's activities.
+    "@stigmer/session-log#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/backend/services/runner/src/activities/**"]
+    },
     "@stigmer/react#test": {
       "dependsOn": ["^build"],
       "outputs": [],
@@ -189,11 +196,12 @@
     // A root suite that imports a workspace package's build output declares
     // that package's build here, so every caller gets it first:
     // scripts/verify-docs-tour-parity.test.mjs imports the tour fixtures,
-    // which import @stigmer/protos from its dist. Never cached: the suites
+    // which import @stigmer/protos from its dist and, through the SDK's
+    // source, @stigmer/session-log from its dist. Never cached: the suites
     // read files across the whole repository (workflows, the Makefile, docs,
     // the chart), which no input list here would keep complete.
     "//#test:root": {
-      "dependsOn": ["@stigmer/protos#build"],
+      "dependsOn": ["@stigmer/protos#build", "@stigmer/session-log#build"],
       "cache": false
     }
   }

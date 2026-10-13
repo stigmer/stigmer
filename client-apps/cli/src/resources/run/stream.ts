@@ -1,23 +1,21 @@
-// Renderer dispatch for a created run (Go's streamAgentExecution in
-// run_stream.go). One of three paths is selected from the output mode and TTY:
+// Renderer dispatch for a created run. One of three paths is selected from
+// the output mode and TTY:
 //
-//   --json            → headless NDJSON differ (stdout), Go's run --json taxonomy
+//   --json            → headless NDJSON (stdout): each session event as Managed Agents JSON
 //   inline + TTY      → in-process Ink (SessionView), lazily imported
-//   inline + non-TTY  → headless plaintext differ (piped stdout)
+//   inline + non-TTY  → headless plaintext (piped stdout), drawn from the fold
 //
 // All three converge on the same epilogue (final Get + usage summary). The
 // headless paths share one driver (runHeadlessStream) over the SDK's
-// run.subscribe / submitApproval; the differ + renderers are the
-// CLI-local port of Go's streamToEvents + handleJSONEvent.
+// followSession, folded by SessionLog; asks are answered through the
+// session's confirmToolUse / grantPermission.
 
-import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { followSession, type Stigmer } from "@stigmer/sdk";
 import { runEpilogue } from "./epilogue.js";
 import { renderSessionHeader, type SessionHeaderInfo } from "./header.js";
 import type { RunMode } from "./prepare.js";
+import { submitAnswer, type ApproveDefault } from "../stream/answer.js";
 import { runHeadlessStream, type HeadlessRenderer, type HeadlessResult } from "../stream/headless.js";
 import { NdjsonRenderer } from "../stream/render-ndjson.js";
 import { PlaintextRenderer } from "../stream/render-plaintext.js";
@@ -33,44 +31,36 @@ export interface StreamDeps {
   /** Org slug, for follow-up runs created from the Ink composer. */
   readonly org: string;
   readonly mode: RunMode;
-  readonly defaultAction: ApprovalAction;
+  readonly approveDefault: ApproveDefault;
   readonly outputMode: RunOutputMode;
   readonly header: SessionHeaderInfo;
 }
 
 /**
- * Stream the run to a terminal phase, then run the epilogue. Returns the
+ * Stream the run to its end, then run the epilogue. Returns the
  * authoritative final run (for artifact download).
  */
 export async function streamAgentRun(deps: StreamDeps): Promise<Run> {
   if (deps.outputMode === "json") {
     renderSessionHeader(process.stderr, deps.header);
-    const result = await runHeadless(deps, jsonRenderer(deps));
+    const result = await runHeadless(deps, new NdjsonRenderer({ data: process.stdout, status: process.stderr }));
     return runEpilogue(deps.client, deps.sessionId, deps.runId, result);
   }
 
   if (isInkSupported(process.stdout)) {
     await runInk(deps);
     // Ink owns the live view; the epilogue still prints the exit summary.
-    return runEpilogue(deps.client, deps.sessionId, deps.runId, { phase: "", error: "" });
+    return runEpilogue(deps.client, deps.sessionId, deps.runId, { phase: "", error: "", turn: undefined });
   }
 
   renderSessionHeader(process.stderr, deps.header);
-  const result = await runHeadless(deps, plaintextRenderer());
+  const result = await runHeadless(deps, new PlaintextRenderer({ data: process.stdout, status: process.stderr }));
   return runEpilogue(deps.client, deps.sessionId, deps.runId, result);
 }
 
-function jsonRenderer(deps: StreamDeps): HeadlessRenderer {
-  return new NdjsonRenderer({ data: process.stdout, status: process.stderr, defaultAction: deps.defaultAction });
-}
-
-function plaintextRenderer(): HeadlessRenderer {
-  return new PlaintextRenderer({ data: process.stdout, status: process.stderr });
-}
-
-// Drive a headless renderer over the SDK stream, with Ctrl-C wired to abort the
-// subscription cleanly (Go cancels the stream context on signal; the driver
-// treats an aborted signal as a clean exit and the epilogue prints the phase).
+// Drive a headless renderer over the session's log, with Ctrl-C wired to stop
+// the follow cleanly (the driver treats an aborted signal as a clean exit and
+// the epilogue prints the phase).
 async function runHeadless(deps: StreamDeps, renderer: HeadlessRenderer): Promise<HeadlessResult> {
   const controller = new AbortController();
   const onSignal = (): void => controller.abort();
@@ -79,14 +69,12 @@ async function runHeadless(deps: StreamDeps, renderer: HeadlessRenderer): Promis
 
   try {
     return await runHeadlessStream({
-      subscribe: (signal) => deps.client.run.subscribe(deps.runId, signal),
-      submitApproval: async (toolCallId, action) => {
-        await deps.client.run.submitApproval(
-          create(SubmitApprovalInputSchema, { runId: deps.runId, toolCallId, action }),
-        );
-      },
+      follow: (signal) => followSession(deps.client, deps.sessionId, { signal }),
+      answer: (toolUseId, answer) => submitAnswer(deps.client, deps.sessionId, toolUseId, answer),
+      approveDefault: deps.approveDefault,
       renderer,
       sessionId: deps.sessionId,
+      runId: deps.runId,
       signal: controller.signal,
     });
   } finally {

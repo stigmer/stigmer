@@ -1,33 +1,28 @@
+// Pins ToolCallGroup over the session fold's tool uses: a turn's calls stay
+// visible as persistent rows, consecutive reads fold into one chip, a lone
+// read stays a row, each call is its own bordered card, an empty group
+// renders nothing, and a call that started a sub-agent is titled from its
+// `task` description beside its siblings.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  ToolCallSchema,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { ToolUse } from "@stigmer/sdk";
 import { ToolCallGroup } from "../ToolCallGroup";
+import { thread, toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
 
-function makeToolCall(name: string, id: string, args: Record<string, unknown>, result = ""): ToolCall {
-  return create(ToolCallSchema, {
-    id,
-    name,
-    args: args as JsonObject,
-    result,
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
-  });
+function call(name: string, id: string, input: JsonObject, result?: string): ToolUse {
+  return toolUse({ name, id, input, ...(result === undefined ? {} : { result }) });
 }
 
 describe("ToolCallGroup timeline", () => {
   it("keeps a completed turn's high-signal rows visible (no per-turn collapse)", () => {
     render(
       <ToolCallGroup
-        toolCalls={[
-          makeToolCall("Shell", "s1", { command: "echo hi" }, "hi"),
-          makeToolCall("StrReplace", "e1", { path: "/a.ts", old_string: "a", new_string: "b" }),
+        toolUses={[
+          call("Shell", "s1", { command: "echo hi" }, "hi"),
+          call("StrReplace", "e1", { path: "/a.ts", old_string: "a", new_string: "b" }),
         ]}
       />,
     );
@@ -44,11 +39,11 @@ describe("ToolCallGroup timeline", () => {
   it("folds a run of consecutive reads into one chip while leaving other rows", () => {
     render(
       <ToolCallGroup
-        toolCalls={[
-          makeToolCall("Shell", "s1", { command: "echo hi" }, "hi"),
-          makeToolCall("Read", "r1", { path: "/a.ts" }),
-          makeToolCall("Read", "r2", { path: "/b.ts" }),
-          makeToolCall("Read", "r3", { path: "/c.ts" }),
+        toolUses={[
+          call("Shell", "s1", { command: "echo hi" }, "hi"),
+          call("Read", "r1", { path: "/a.ts" }),
+          call("Read", "r2", { path: "/b.ts" }),
+          call("Read", "r3", { path: "/c.ts" }),
         ]}
       />,
     );
@@ -60,58 +55,34 @@ describe("ToolCallGroup timeline", () => {
     expect(screen.queryByText("/a.ts")).toBeNull();
   });
 
-  it("renders a lone read as its own row, not a chip", () => {
+  it("labels a folded chip with the host's formatter", () => {
     render(
-      <ToolCallGroup toolCalls={[makeToolCall("Read", "r1", { path: "/only.ts" })]} />,
+      <ToolCallGroup
+        toolUses={[call("Read", "r1", { path: "/a.ts" }), call("Read", "r2", { path: "/b.ts" })]}
+        formatSummary={(uses) => `Looked at ${uses.length} files`}
+      />,
     );
+    expect(screen.getByText("Looked at 2 files")).toBeTruthy();
+  });
+
+  it("renders a lone read as its own row, not a chip", () => {
+    render(<ToolCallGroup toolUses={[call("Read", "r1", { path: "/only.ts" })]} />);
 
     expect(screen.getByText("only.ts")).toBeTruthy();
     expect(screen.queryByText(/Read \d+ files/)).toBeNull();
   });
 
-  it("hides a runner-collapsed duplicate twin (blanked SKIPPED) so one resource renders one card", () => {
-    // The runner overlays the first same-resource denial as the gate and collapses
-    // the redundant twin in place to a content-less SKIPPED row (it cannot drop the
-    // committed id). That blanked twin must not render a second card.
-    const gate = makeToolCall("edit", "stream-1", { path: "/notes.md", old_string: "a", new_string: "b" });
-    gate.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL;
-    gate.requiresApproval = true;
-
-    const collapsedTwin = create(ToolCallSchema, {
-      id: "stream-2",
-      name: "edit",
-      // Blanked exactly as collapseDenialTwin leaves it: SKIPPED, no approval, no
-      // result/error/argsPreview/file_changes.
-      status: ToolCallStatus.TOOL_CALL_SKIPPED,
-      requiresApproval: false,
-    });
-
-    const { container } = render(<ToolCallGroup toolCalls={[gate, collapsedTwin]} />);
-
-    // Exactly one row — the gate; the collapsed twin is not drawn.
-    const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
-    expect(rows.length).toBe(1);
-    expect(container.querySelector('[data-cursor-target="tool-call-group"]')).toBeTruthy();
-  });
-
-  it("renders nothing when every tool call in the group is a collapsed twin", () => {
-    const collapsedTwin = create(ToolCallSchema, {
-      id: "stream-2",
-      name: "edit",
-      status: ToolCallStatus.TOOL_CALL_SKIPPED,
-      requiresApproval: false,
-    });
-
-    const { container } = render(<ToolCallGroup toolCalls={[collapsedTwin]} />);
+  it("renders nothing for an empty group", () => {
+    const { container } = render(<ToolCallGroup toolUses={[]} />);
     expect(container.querySelector('[data-cursor-target="tool-call-group"]')).toBeNull();
   });
 
   it("stacks each tool call as its own bordered card with gaps (no left rail)", () => {
     const { container } = render(
       <ToolCallGroup
-        toolCalls={[
-          makeToolCall("Shell", "s1", { command: "echo hi" }, "hi"),
-          makeToolCall("StrReplace", "e1", { path: "/a.ts", old_string: "a", new_string: "b" }),
+        toolUses={[
+          call("Shell", "s1", { command: "echo hi" }, "hi"),
+          call("StrReplace", "e1", { path: "/a.ts", old_string: "a", new_string: "b" }),
         ]}
       />,
     );
@@ -120,6 +91,7 @@ describe("ToolCallGroup timeline", () => {
     // Cards stacked with a gap — the old left rail is gone.
     expect(group.className).toContain("stg:gap-2");
     expect(group.className).not.toContain("stg:border-l-2");
+    expect(group.getAttribute("aria-label")).toBe("2 tool calls");
 
     const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
     expect(rows.length).toBe(2);
@@ -133,27 +105,24 @@ describe("ToolCallGroup timeline", () => {
 });
 
 describe("ToolCallGroup sub-agent rows", () => {
-  it("titles a tool call with the sub-agent run that carries its id, and leaves the others alone", () => {
+  it("titles a call that started a sub-agent from its task description, and leaves the others alone", () => {
     render(
       <ToolCallGroup
-        toolCalls={[
-          makeToolCall("task", "sa-1", { description: "look things up" }),
-          makeToolCall("Shell", "s1", { command: "echo hi" }, "hi"),
-        ]}
-        subAgentRuns={[
-          create(SubAgentRunSchema, {
+        toolUses={[
+          toolUse({
+            name: "task",
             id: "sa-1",
-            name: "researcher",
-            subject: "Research competitor pricing",
-            status: SubAgentStatus.SUB_AGENT_COMPLETED,
+            input: { description: "Research competitor pricing" },
+            thread: thread({ agentName: "researcher", state: "completed" }),
+            result: "done",
           }),
-          create(SubAgentRunSchema, { id: "sa-unmatched", name: "other", subject: "Never shown" }),
+          call("Shell", "s1", { command: "echo hi" }, "hi"),
         ]}
       />,
     );
 
     expect(screen.getByText("Research competitor pricing")).toBeTruthy();
-    expect(screen.queryByText("Never shown")).toBeNull();
     expect(screen.getByText("echo hi")).toBeTruthy();
+    expect(screen.getByRole("group").getAttribute("aria-label")).toBe("2 tool calls");
   });
 });

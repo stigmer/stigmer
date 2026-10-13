@@ -121,7 +121,7 @@ import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/ident
 import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { NO_SSO_PROVIDER_MESSAGE, newIdentityProviderRegistrations, type IdentityProviderLaneDeps } from "../handlers.js";
-import type { ProviderInsertOutcome, ProviderReplaceOutcome } from "../store.js";
+import type { ProviderInsertOutcome, ProviderSwapOutcome } from "../store.js";
 import { newLoadProviderByReferenceStep, PROVIDER_BEING_DELETED_MESSAGE } from "../steps.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
@@ -673,9 +673,9 @@ describe("update", () => {
 
   it("is NOT_FOUND when the provider is deleted between the load and the write", async () => {
     class VanishingStore extends InMemoryProviderStore {
-      override async replace(row: IdentityProvider): Promise<ProviderReplaceOutcome> {
-        await this.deleteById(row.metadata?.id ?? "");
-        return super.replace(row);
+      override async swap(id: string, expectedBytes: Uint8Array, row: IdentityProvider): Promise<ProviderSwapOutcome> {
+        await this.deleteById(id);
+        return super.swap(id, expectedBytes, row);
       }
     }
     const store = new VanishingStore();
@@ -690,9 +690,9 @@ describe("update", () => {
 
   it("answers the one-SSO copy when a racing write took the organization's SSO place between the check and the write", async () => {
     class RacingStore extends InMemoryProviderStore {
-      override async replace(row: IdentityProvider): Promise<ProviderReplaceOutcome> {
+      override async swap(id: string, expectedBytes: Uint8Array, row: IdentityProvider): Promise<ProviderSwapOutcome> {
         await super.insert(storedProvider({ id: "idp_winner", org: "acme", slug: "winner", isSso: true, issuers: [] }));
-        return super.replace(row);
+        return super.swap(id, expectedBytes, row);
       }
     }
     const store = new RacingStore();
@@ -744,14 +744,16 @@ describe("rename", () => {
     expect(byId.metadata?.slug).toBe("acme-sso");
   });
 
-  it("an update that loaded the provider before a rename keeps the new slug", async () => {
+  it("an update that loaded the provider before a rename loses its swap, runs again, and keeps the new slug", async () => {
     let renameMidWrite: (() => Promise<unknown>) | undefined;
+    let swaps = 0;
     class RacingStore extends InMemoryProviderStore {
-      override async replace(row: IdentityProvider): Promise<ProviderReplaceOutcome> {
+      override async swap(id: string, expectedBytes: Uint8Array, row: IdentityProvider): Promise<ProviderSwapOutcome> {
+        swaps += 1;
         const rename = renameMidWrite;
         renameMidWrite = undefined;
         await rename?.();
-        return super.replace(row);
+        return super.swap(id, expectedBytes, row);
       }
     }
     const store = new RacingStore();
@@ -763,6 +765,7 @@ describe("rename", () => {
     const updated = await r.commands.update(provider({}, { id, name: "Edited mid-rename", slug: "acme-platform" }));
 
     expect(renameMidWrite, "the rename landed mid-write").toBeUndefined();
+    expect(swaps, "the lost swap ran again from a fresh read").toBe(2);
     expect(updated.metadata?.slug).toBe("acme-sso");
     const row = await store.findById(id);
     expect(row?.metadata?.slug).toBe("acme-sso");

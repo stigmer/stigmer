@@ -53,6 +53,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { eventTypeOf } from "@stigmer/session-log";
 import type { Logger } from "../../../boot/logger.js";
 import {
   failedPreconditionError,
@@ -69,7 +70,7 @@ import { SessionEventConflictError } from "../../../store/session-events.js";
 import type { SessionEventAppend } from "../../../store/session-events.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
 import type { SessionEventBroker } from "./broker.js";
-import { RUNNER_EVENT_TYPES, SESSION_EVENT_ID_PREFIX, eventTypeOf } from "./catalog.js";
+import { RUNNER_EVENT_TYPES, SESSION_EVENT_ID_PREFIX } from "./catalog.js";
 import { draftOf, eventOf, identityOf } from "./codec.js";
 import { sessionIdOfRun } from "./transitions.js";
 

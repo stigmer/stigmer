@@ -1,809 +1,306 @@
+/**
+ * buildThreadItems keys, the set-up indicator, internal-tool filtering and
+ * the to-dos card. Keys come from the session's own event ids (a message's
+ * id, a group's first tool use, a sub-agent's `task` call, a turn's run), so
+ * an item keeps its key as its turn goes from live to ended and the fold
+ * grows; the pending bubble and the live turn's matching message share one
+ * key so the bubble updates in place; no key repeats. The set-up indicator
+ * shows only for a live turn that has not started responding (pending, then
+ * awaiting the first output, under one key); to-do calls never render as
+ * rows; and a turn's to-dos card anchors after its opening message or
+ * thinking, before its first work, or at its tail, once per turn, carrying
+ * the fold's list.
+ */
 import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { buildThreadItems, type ThreadItem } from "../MessageThread";
 import {
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import {
-  TodoItemSchema,
-  type TodoItem,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import {
-  RunPhase,
-  MessageType,
-  TodoStatus,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { buildThreadItems } from "../MessageThread";
+  compaction,
+  note,
+  result,
+  runOf,
+  said,
+  status,
+  subAgent,
+  thought,
+  toolId,
+  turnsOf,
+  use,
+  user,
+} from "./__fixtures__/thread-events";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const R = "run_a";
+const R2 = "run_b";
 
-function makeMessage(
-  type: MessageType,
-  content: string,
-  opts?: { toolCalls?: ReturnType<typeof makeToolCall>[]; isStreaming?: boolean },
-) {
-  const msg = create(AgentMessageSchema);
-  msg.type = type;
-  msg.content = content;
-  if (opts?.toolCalls) {
-    msg.toolCalls = opts.toolCalls;
-  }
-  if (opts?.isStreaming) {
-    msg.isStreaming = true;
-  }
-  return msg;
+const keys = (items: readonly ThreadItem[]) => items.map((i) => i.key);
+const m = (runId: string, index: number) => `${runId}.root.m${index}`;
+
+/** A completed call. */
+function call(runId: string, id: string, name: string, input: JsonObject = {}): SessionEvent[] {
+  return [use(runId, id, name, input), result(runId, id, "ok")];
 }
 
-function makeToolCall(name: string, id: string) {
-  const tc = create(ToolCallSchema);
-  tc.id = id;
-  tc.name = name;
-  tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-  return tc;
+/** A to-do write that returned. */
+function todos(runId: string, id: string, items: readonly { content: string; status: string }[]): SessionEvent[] {
+  return call(runId, id, "write_todos", { todos: items.map((t) => ({ ...t })) });
 }
-
-function makeSubAgent(id: string) {
-  const sa = create(SubAgentRunSchema);
-  sa.id = id;
-  sa.name = "test-agent";
-  return sa;
-}
-
-function makeTodo(id: string, content: string, status: TodoStatus): TodoItem {
-  return create(TodoItemSchema, { id, content, status });
-}
-
-/** Build the `status.todos` proto map from a list of items, keyed by id. */
-function todoMap(items: TodoItem[]): { [id: string]: TodoItem } {
-  const map: { [id: string]: TodoItem } = {};
-  for (const t of items) map[t.id] = t;
-  return map;
-}
-
-function makeExecution(opts: {
-  id: string;
-  specMessage?: string;
-  phase?: RunPhase;
-  messages?: ReturnType<typeof makeMessage>[];
-  subAgents?: ReturnType<typeof makeSubAgent>[];
-  todos?: { [id: string]: TodoItem };
-}): Run {
-  const exec = create(RunSchema);
-
-  const meta = create(ApiResourceMetadataSchema);
-  meta.id = opts.id;
-  exec.metadata = meta;
-
-  if (opts.specMessage) {
-    const spec = create(RunSpecSchema);
-    spec.message = opts.specMessage;
-    exec.spec = spec;
-  }
-
-  const status = create(RunStatusSchema);
-  status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
-  if (opts.messages) {
-    status.messages = opts.messages;
-  }
-  if (opts.subAgents) {
-    status.subAgentRuns = opts.subAgents;
-  }
-  if (opts.todos) {
-    status.todos = opts.todos;
-  }
-  exec.status = status;
-
-  return exec;
-}
-
-function extractKeys(items: { key: string }[]): string[] {
-  return items.map((i) => i.key);
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe("buildThreadItems key generation", () => {
-  it("uses execution ID in message keys, not array index", () => {
-    const exec = makeExecution({
-      id: "exec-abc",
-      specMessage: "Hello",
-      messages: [
-        makeMessage(MessageType.MESSAGE_HUMAN, "Hello"),
-        makeMessage(MessageType.MESSAGE_AI, "Hi there"),
-      ],
-    });
+  it("keys the person's message by run and each agent message by its event id", () => {
+    const items = buildThreadItems(turnsOf(user(R, "Hello"), said(R, 0, "Hi"), said(R, 1, "there"), status(R, "completed")), []);
 
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const keys = extractKeys(items);
-
-    expect(keys).toContain("exec-abc-spec");
-    expect(keys).toContain("exec-abc-m0");
-    expect(keys).toContain("exec-abc-m1");
-    for (const k of keys) {
-      expect(k).not.toMatch(/^e\d+-/);
-    }
+    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), m(R, 1)]);
   });
 
-  it("uses execution ID for tool group keys", () => {
-    const tc = makeToolCall("shell", "tc-001");
-    const aiMsg = makeMessage(MessageType.MESSAGE_AI, "Running tool", {
-      toolCalls: [tc],
-    });
-
-    const exec = makeExecution({
-      id: "exec-xyz",
-      messages: [aiMsg],
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const keys = extractKeys(items);
-
-    expect(keys).toContain("exec-xyz-m0");
-    expect(keys).toContain("exec-xyz-m0-tc");
-  });
-
-  it("uses SubAgentExecution.id for sub-agent keys", () => {
-    const taskTc = makeToolCall("task", "sa-id-42");
-    const aiMsg = makeMessage(MessageType.MESSAGE_AI, "Delegating", {
-      toolCalls: [taskTc],
-    });
-    const subAgent = makeSubAgent("sa-id-42");
-
-    const exec = makeExecution({
-      id: "exec-parent",
-      messages: [aiMsg],
-      subAgents: [subAgent],
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const keys = extractKeys(items);
-
-    expect(keys).toContain("sa-sa-id-42");
-  });
-
-  it("keys are stable when execution moves from active to completed", () => {
-    const messages = [
-      makeMessage(MessageType.MESSAGE_HUMAN, "Hello"),
-      makeMessage(MessageType.MESSAGE_AI, "Response"),
-    ];
-
-    const exec = makeExecution({
-      id: "exec-stable",
-      specMessage: "Hello",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages,
-    });
-
-    // Phase A: run is the active stream
-    const itemsActive = buildThreadItems([], exec, null, false, undefined);
-
-    // Phase B: same run is now completed (in the list, no active stream)
-    const completedExec = makeExecution({
-      id: "exec-stable",
-      specMessage: "Hello",
-      phase: RunPhase.RUN_COMPLETED,
-      messages,
-    });
-    const itemsCompleted = buildThreadItems(
-      [completedExec],
-      null,
-      null,
-      false,
-      undefined,
-    );
-
-    const keysActive = extractKeys(itemsActive);
-    const keysCompleted = extractKeys(itemsCompleted);
-
-    // Spec message key and all message keys should be identical
-    expect(keysActive).toContain("exec-stable-spec");
-    expect(keysCompleted).toContain("exec-stable-spec");
-    expect(keysActive).toContain("exec-stable-m0");
-    expect(keysCompleted).toContain("exec-stable-m0");
-    expect(keysActive).toContain("exec-stable-m1");
-    expect(keysCompleted).toContain("exec-stable-m1");
-  });
-
-  describe("pending → confirmed message bridging", () => {
-    it("pending message gets 'pending-user-turn' key", () => {
-      const items = buildThreadItems([], null, "Hello world", false, undefined);
-      const last = items[items.length - 1];
-
-      expect(last.key).toBe("pending-user-turn");
-      expect(last.kind).toBe("message");
-      if (last.kind === "message") {
-        expect(last.isPending).toBe(true);
-        expect(last.message.content).toBe("Hello world");
-        expect(last.message.type).toBe(MessageType.MESSAGE_HUMAN);
-      }
-    });
-
-    it("active stream spec message uses bridging key when matching pending", () => {
-      const activeExec = makeExecution({
-        id: "exec-new",
-        specMessage: "Hello world",
-        phase: RunPhase.RUN_IN_PROGRESS,
-      });
-
-      const items = buildThreadItems(
-        [],
-        activeExec,
-        "Hello world",
-        false,
-        undefined,
-      );
-      const keys = extractKeys(items);
-
-      expect(keys).toContain("pending-user-turn");
-      expect(keys).not.toContain("exec-new-spec");
-    });
-
-    it("spec message gets permanent key when no pending user message", () => {
-      const exec = makeExecution({
-        id: "exec-done",
-        specMessage: "Hello world",
-      });
-
-      const items = buildThreadItems([exec], null, null, false, undefined);
-      const keys = extractKeys(items);
-
-      expect(keys).toContain("exec-done-spec");
-      expect(keys).not.toContain("pending-user-turn");
-    });
-
-    it("spec message gets permanent key when pending does not match", () => {
-      const activeExec = makeExecution({
-        id: "exec-mismatch",
-        specMessage: "Original message",
-        phase: RunPhase.RUN_IN_PROGRESS,
-      });
-
-      const items = buildThreadItems(
-        [],
-        activeExec,
-        "Different message",
-        false,
-        undefined,
-      );
-      const keys = extractKeys(items);
-
-      expect(keys).toContain("exec-mismatch-spec");
-      // Pending message is also present because alreadySynthesized is false
-      expect(keys).toContain("pending-user-turn");
-    });
-
-    it("pending message is suppressed when alreadySynthesized", () => {
-      const activeExec = makeExecution({
-        id: "exec-synth",
-        specMessage: "Hello",
-        phase: RunPhase.RUN_IN_PROGRESS,
-      });
-
-      const items = buildThreadItems(
-        [],
-        activeExec,
-        "Hello",
-        false,
-        undefined,
-      );
-
-      const pendingItems = items.filter(
-        (i) => i.kind === "message" && "isPending" in i && i.isPending,
-      );
-      expect(pendingItems).toHaveLength(0);
-    });
-
-    it("completed execution spec message uses permanent key even with pending", () => {
-      const completedExec = makeExecution({
-        id: "exec-old",
-        specMessage: "Old message",
-      });
-      const activeExec = makeExecution({
-        id: "exec-current",
-        specMessage: "New message",
-        phase: RunPhase.RUN_IN_PROGRESS,
-      });
-
-      const items = buildThreadItems(
-        [completedExec],
-        activeExec,
-        "New message",
-        false,
-        undefined,
-      );
-      const keys = extractKeys(items);
-
-      expect(keys).toContain("exec-old-spec");
-      expect(keys).toContain("pending-user-turn");
-    });
-  });
-
-  it("produces no duplicate keys in a realistic multi-execution scenario", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const tc2 = makeToolCall("task", "tc-2");
-    const sa = makeSubAgent("tc-2");
-
-    const exec1 = makeExecution({
-      id: "exec-1",
-      specMessage: "First turn",
-      messages: [
-        makeMessage(MessageType.MESSAGE_HUMAN, "First turn"),
-        makeMessage(MessageType.MESSAGE_AI, "Working on it", {
-          toolCalls: [tc1, tc2],
-        }),
-        makeMessage(MessageType.MESSAGE_TOOL, "shell output"),
-        makeMessage(MessageType.MESSAGE_AI, "Done"),
-      ],
-      subAgents: [sa],
-    });
-
-    const exec2 = makeExecution({
-      id: "exec-2",
-      specMessage: "Second turn",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        makeMessage(MessageType.MESSAGE_THINKING, "Let me think..."),
-        makeMessage(MessageType.MESSAGE_AI, "Here's my answer", {
-          isStreaming: true,
-        }),
-      ],
-    });
-
+  it("keys a tool group by its first tool use and a sub-agent by its task call", () => {
     const items = buildThreadItems(
-      [exec1],
-      exec2,
-      "Second turn",
-      false,
-      undefined,
+      turnsOf(
+        user(R, "go"),
+        said(R, 0, "Running tools"),
+        call(R, "c1", "shell", { command: "ls" }),
+        call(R, "c2", "read_file", { path: "a" }),
+        use(R, "task1", "task", { description: "dig" }),
+        subAgent(R, "task1", { finished: "completed" }),
+        result(R, "task1", "found"),
+        status(R, "completed"),
+      ),
+      [],
     );
 
-    const keys = extractKeys(items);
-    const uniqueKeys = new Set(keys);
-
-    expect(keys.length).toBe(uniqueKeys.size);
-    expect(keys.length).toBeGreaterThan(0);
+    expect(keys(items)).toEqual([`${R}-spec`, m(R, 0), `${toolId(R, "c1")}-tc`, `sa-${toolId(R, "task1")}`]);
+    const group = items.find((i) => i.kind === "tool-group");
+    expect(group?.kind === "tool-group" && group.toolUses.map((tu) => tu.id)).toEqual([toolId(R, "c1"), toolId(R, "c2")]);
   });
 
-  it("skips MESSAGE_TOOL messages", () => {
-    const exec = makeExecution({
-      id: "exec-skip",
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "Using tool"),
-        makeMessage(MessageType.MESSAGE_TOOL, "tool output"),
-        makeMessage(MessageType.MESSAGE_AI, "Got result"),
-      ],
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const messageItems = items.filter((i) => i.kind === "message");
-
-    expect(messageItems).toHaveLength(2);
-    expect(messageItems[0].key).toBe("exec-skip-m0");
-    // m1 is the TOOL message (skipped), m2 is the next AI message
-    expect(messageItems[1].key).toBe("exec-skip-m2");
-  });
-
-  it("skips empty AI messages but still emits tool groups", () => {
-    const tc = makeToolCall("read_file", "tc-empty");
-    const exec = makeExecution({
-      id: "exec-empty-ai",
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "  ", { toolCalls: [tc] }),
-      ],
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const kinds = items.map((i) => i.kind);
-
-    expect(kinds).not.toContain("message");
-    expect(kinds).toContain("tool-group");
-    expect(items.find((i) => i.kind === "tool-group")!.key).toBe(
-      "exec-empty-ai-m0-tc",
+  it("splits a run of calls at a sub-agent, keeping their order", () => {
+    const items = buildThreadItems(
+      turnsOf(
+        user(R, "go"),
+        call(R, "c1", "shell"),
+        use(R, "task1", "task"),
+        subAgent(R, "task1"),
+        call(R, "c2", "shell"),
+        status(R, "running"),
+      ),
+      [],
     );
+
+    expect(keys(items).filter((k) => k !== `${R}-spec`)).toEqual([`${toolId(R, "c1")}-tc`, `sa-${toolId(R, "task1")}`, `${toolId(R, "c2")}-tc`]);
   });
 
-  it("falls back to index-based prefix when metadata.id is missing", () => {
-    const exec = create(RunSchema);
-    const status = create(RunStatusSchema);
-    status.phase = RunPhase.RUN_COMPLETED;
-    status.messages = [makeMessage(MessageType.MESSAGE_AI, "No metadata")];
-    exec.status = status;
+  it("keeps every key as the turn goes from live to ended", () => {
+    const live = [user(R, "Hello"), status(R, "running"), said(R, 0, "Response")];
+    // The live turn's tail carries the liveness line; every item of the
+    // turn itself keeps its key.
+    const before = keys(buildThreadItems(turnsOf(live), [])).filter((k) => k !== "liveness-status");
+    const after = keys(buildThreadItems(turnsOf(live, status(R, "completed")), []));
 
-    const items = buildThreadItems([exec], null, null, false, undefined);
-
-    expect(items[0].key).toBe("_e0-m0");
+    expect(after).toEqual(before);
   });
 
-  describe("setup-progress indicator lifecycle", () => {
-    it("shows setup-progress during PENDING with no AI messages", () => {
-      const exec = makeExecution({
-        id: "exec-pending",
-        specMessage: "Hello",
-        phase: RunPhase.RUN_PENDING,
-      });
+  describe("pending → arrived message bridging", () => {
+    it("gives the pending message the 'pending-user-turn' key", () => {
+      const items = buildThreadItems([], [], { pendingUserMessage: "Hello world" });
+      const last = items.at(-1);
 
-      const items = buildThreadItems([], exec, null, false, undefined);
-      const setupItem = items.find((i) => i.kind === "setup-progress");
-
-      expect(setupItem).toBeDefined();
-      expect(setupItem!.key).toBe("setup-progress");
-      if (setupItem?.kind === "setup-progress") {
-        expect(setupItem.isAwaitingResponse).toBeFalsy();
-      }
+      expect(last?.key).toBe("pending-user-turn");
+      expect(last?.kind === "message" && last.message).toEqual({ kind: "user", id: "pending-user-turn", text: "Hello world" });
+      expect(last?.kind === "message" && last.isPending).toBe(true);
     });
 
-    it("shows setup-progress with isAwaitingResponse during IN_PROGRESS with no AI messages", () => {
-      const exec = makeExecution({
-        id: "exec-in-progress",
-        specMessage: "Hello",
-        phase: RunPhase.RUN_IN_PROGRESS,
-      });
+    it("gives the live turn's matching message the bridging key, and suppresses the pending one", () => {
+      const items = buildThreadItems(turnsOf(user(R, "Hello world"), status(R, "pending")), [], { pendingUserMessage: "Hello world" });
 
-      const items = buildThreadItems([], exec, null, false, undefined);
-      const setupItem = items.find((i) => i.kind === "setup-progress");
-
-      expect(setupItem).toBeDefined();
-      expect(setupItem!.key).toBe("setup-progress");
-      if (setupItem?.kind === "setup-progress") {
-        expect(setupItem.isAwaitingResponse).toBe(true);
-      }
+      expect(keys(items).filter((k) => k === "pending-user-turn")).toHaveLength(1);
+      expect(keys(items)).not.toContain(`${R}-spec`);
+      expect(items.some((i) => i.kind === "message" && i.isPending === true)).toBe(false);
     });
 
-    it("hides setup-progress once AI messages arrive during IN_PROGRESS", () => {
-      const exec = makeExecution({
-        id: "exec-streaming",
-        specMessage: "Hello",
-        phase: RunPhase.RUN_IN_PROGRESS,
-        messages: [
-          makeMessage(MessageType.MESSAGE_AI, "Here's my response"),
-        ],
-      });
+    it("keeps the permanent key when the pending message does not match, showing both", () => {
+      const items = buildThreadItems(turnsOf(user(R, "Original"), status(R, "running")), [], { pendingUserMessage: "Different" });
 
-      const items = buildThreadItems([], exec, null, false, undefined);
-      const setupItem = items.find((i) => i.kind === "setup-progress");
-
-      expect(setupItem).toBeUndefined();
+      expect(keys(items)).toContain(`${R}-spec`);
+      expect(keys(items)).toContain("pending-user-turn");
     });
 
-    it("hides setup-progress for terminal phases even without AI messages", () => {
-      const exec = makeExecution({
-        id: "exec-failed",
-        specMessage: "Hello",
-        phase: RunPhase.RUN_FAILED,
-      });
+    it("keeps the permanent key for an ended turn even with a matching pending message", () => {
+      const items = buildThreadItems(
+        turnsOf(user(R, "Old"), status(R, "completed"), user(R2, "New"), status(R2, "running")),
+        [],
+        { pendingUserMessage: "New" },
+      );
 
-      const items = buildThreadItems([], exec, null, false, undefined);
-      const setupItem = items.find((i) => i.kind === "setup-progress");
+      expect(keys(items)).toContain(`${R}-spec`);
+      expect(keys(items)).toContain("pending-user-turn");
+      expect(keys(items)).not.toContain(`${R2}-spec`);
+    });
+  });
 
-      expect(setupItem).toBeUndefined();
+  it("produces no duplicate keys across a realistic multi-turn conversation", () => {
+    const items = buildThreadItems(
+      turnsOf(
+        user(R, "First turn"),
+        said(R, 0, "Working on it"),
+        call(R, "c1", "shell"),
+        use(R, "task1", "task"),
+        subAgent(R, "task1", { items: [said(R, 0, "nested", toolId(R, "task1"))], finished: "completed" }),
+        result(R, "task1", "done"),
+        said(R, 1, "Done"),
+        status(R, "completed"),
+        user(R2, "Second turn"),
+        status(R2, "running"),
+        thought(R2, 0, "Let me think..."),
+        said(R2, 0, "Here's my answer"),
+      ),
+      [runOf(R), runOf(R2)],
+      { pendingUserMessage: "Second turn" },
+    );
+
+    expect(new Set(keys(items)).size).toBe(items.length);
+    expect(items.length).toBeGreaterThan(0);
+  });
+
+  it("skips an empty agent message but still emits its tool group", () => {
+    const items = buildThreadItems(turnsOf(user(R, "go"), said(R, 0, "  "), call(R, "c1", "read_file", { path: "a" }), status(R, "completed")), []);
+
+    expect(items.map((i) => i.kind)).toEqual(["message", "tool-group"]);
+  });
+
+  it("renders a platform note and a compaction in their places, ending a run of calls", () => {
+    const items = buildThreadItems(
+      turnsOf(user(R, "go"), call(R, "c1", "shell"), note(R, 0, "tools are off"), call(R, "c2", "shell"), compaction(R, "cmp1"), said(R, 0, "a"), status(R, "completed")),
+      [],
+    );
+
+    expect(items.map((i) => [i.kind, i.key])).toEqual([
+      ["message", `${R}-spec`],
+      ["tool-group", `${toolId(R, "c1")}-tc`],
+      ["message", `${R}.root.n0`],
+      ["tool-group", `${toolId(R, "c2")}-tc`],
+      ["context-compacted", "cmp1"],
+      ["message", m(R, 0)],
+    ]);
+  });
+
+  describe("set-up indicator lifecycle", () => {
+    function setup(items: readonly ThreadItem[]) {
+      return items.find((i): i is Extract<ThreadItem, { kind: "setup-progress" }> => i.kind === "setup-progress");
+    }
+
+    it("shows while the live turn is pending, with the run's set-up phase and the workspace", () => {
+      const run = runOf(R, { status: { setupProgress: { currentPhase: "cloning" } } });
+      const item = setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "pending")), [run], { workspaceEntries: [] }));
+
+      expect(item?.key).toBe("setup-progress");
+      expect(item?.serverPhase).toBe("cloning");
+      expect(item?.isAwaitingResponse).toBeUndefined();
     });
 
-    it("does not show setup-progress for completed executions (not active stream)", () => {
-      const exec = makeExecution({
-        id: "exec-done",
-        specMessage: "Hello",
-        phase: RunPhase.RUN_PENDING,
-      });
+    it("shows for a live turn with no status yet, with no set-up phase", () => {
+      const item = setup(buildThreadItems(turnsOf(user(R, "Hello")), []));
 
-      const items = buildThreadItems([exec], null, null, false, undefined);
-      const setupItem = items.find((i) => i.kind === "setup-progress");
-
-      expect(setupItem).toBeUndefined();
+      expect(item?.serverPhase).toBeUndefined();
+      expect(item?.workspaceEntries).toEqual([]);
     });
 
-    it("preserves stable key across PENDING → IN_PROGRESS transition", () => {
-      const pendingExec = makeExecution({
-        id: "exec-transition",
-        specMessage: "Hello",
-        phase: RunPhase.RUN_PENDING,
-      });
-      const itemsPending = buildThreadItems([], pendingExec, null, false, undefined);
+    it("shows as awaiting the first output while the live turn runs with nothing yet", () => {
+      expect(setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "running")), []))?.isAwaitingResponse).toBe(true);
+    });
 
-      const inProgressExec = makeExecution({
-        id: "exec-transition",
-        specMessage: "Hello",
-        phase: RunPhase.RUN_IN_PROGRESS,
-      });
-      const itemsInProgress = buildThreadItems([], inProgressExec, null, false, undefined);
+    it("hides once the turn responds: a message, a thinking, or a tool call", () => {
+      expect(setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "running"), said(R, 0, "Here")), []))).toBeUndefined();
+      expect(setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "running"), thought(R, 0, "hm")), []))).toBeUndefined();
+      expect(setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "running"), use(R, "c1", "shell")), []))).toBeUndefined();
+    });
 
-      const pendingSetup = itemsPending.find((i) => i.kind === "setup-progress");
-      const inProgressSetup = itemsInProgress.find((i) => i.kind === "setup-progress");
+    it("stays while the turn has only a platform note: a note is not the agent responding", () => {
+      expect(
+        setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "running"), note(R, 0, "Tools are off.")), []))
+          ?.isAwaitingResponse,
+      ).toBe(true);
+    });
 
-      expect(pendingSetup).toBeDefined();
-      expect(inProgressSetup).toBeDefined();
-      expect(pendingSetup!.key).toBe(inProgressSetup!.key);
+    it("hides for an ended turn, and for a waiting or paused one", () => {
+      expect(setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "failed")), []))).toBeUndefined();
+      expect(setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "paused")), []))).toBeUndefined();
+    });
+
+    it("keeps one key from pending to running", () => {
+      const pending = setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "pending")), []));
+      const running = setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "running")), []));
+
+      expect(pending?.key).toBe(running?.key);
     });
   });
 
   describe("internal tool filtering", () => {
-    it("filters updateTodos tool calls from tool groups", () => {
-      const tc = makeToolCall("updateTodos", "tc-todo");
-      const exec = makeExecution({
-        id: "exec-todo",
-        messages: [
-          makeMessage(MessageType.MESSAGE_AI, "Planning...", { toolCalls: [tc] }),
-        ],
-      });
-
-      const items = buildThreadItems([exec], null, null, false, undefined);
-      const toolGroups = items.filter((i) => i.kind === "tool-group");
-      expect(toolGroups).toHaveLength(0);
+    it.each(["updateTodos", "TodoWrite", "write_todos"])("never renders a %s call as a row", (name) => {
+      const items = buildThreadItems(turnsOf(user(R, "go"), said(R, 0, "Planning..."), call(R, "c1", name), status(R, "completed")), []);
+      expect(items.filter((i) => i.kind === "tool-group")).toHaveLength(0);
     });
 
-    it("filters TodoWrite tool calls from tool groups", () => {
-      const tc = makeToolCall("TodoWrite", "tc-tw");
-      const exec = makeExecution({
-        id: "exec-tw",
-        messages: [
-          makeMessage(MessageType.MESSAGE_AI, "Planning...", { toolCalls: [tc] }),
-        ],
-      });
+    it("keeps other calls of the same run", () => {
+      const items = buildThreadItems(turnsOf(user(R, "go"), call(R, "c1", "Shell"), call(R, "c2", "updateTodos"), status(R, "completed")), []);
+      const groups = items.filter((i): i is Extract<ThreadItem, { kind: "tool-group" }> => i.kind === "tool-group");
 
-      const items = buildThreadItems([exec], null, null, false, undefined);
-      const toolGroups = items.filter((i) => i.kind === "tool-group");
-      expect(toolGroups).toHaveLength(0);
-    });
-
-    it("filters write_todos tool calls from tool groups", () => {
-      const tc = makeToolCall("write_todos", "tc-wt");
-      const exec = makeExecution({
-        id: "exec-wt",
-        messages: [
-          makeMessage(MessageType.MESSAGE_AI, "Planning...", { toolCalls: [tc] }),
-        ],
-      });
-
-      const items = buildThreadItems([exec], null, null, false, undefined);
-      const toolGroups = items.filter((i) => i.kind === "tool-group");
-      expect(toolGroups).toHaveLength(0);
-    });
-
-    it("preserves non-internal tools alongside filtered internal tools", () => {
-      const shellTc = makeToolCall("Shell", "tc-shell");
-      const todoTc = makeToolCall("updateTodos", "tc-todo");
-      const exec = makeExecution({
-        id: "exec-mixed",
-        messages: [
-          makeMessage(MessageType.MESSAGE_AI, "Working...", {
-            toolCalls: [shellTc, todoTc],
-          }),
-        ],
-      });
-
-      const items = buildThreadItems([exec], null, null, false, undefined);
-      const toolGroups = items.filter((i) => i.kind === "tool-group");
-      expect(toolGroups).toHaveLength(1);
-      expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls).toHaveLength(1);
-      expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls[0].name).toBe("Shell");
-    });
-
-    it("empty AI message with only internal tools produces no items", () => {
-      const todoTc = makeToolCall("updateTodos", "tc-todo");
-      const exec = makeExecution({
-        id: "exec-empty",
-        messages: [
-          makeMessage(MessageType.MESSAGE_AI, "  ", { toolCalls: [todoTc] }),
-        ],
-      });
-
-      const items = buildThreadItems([exec], null, null, false, undefined);
-      const messageItems = items.filter((i) => i.kind === "message");
-      const toolGroups = items.filter((i) => i.kind === "tool-group");
-      expect(messageItems).toHaveLength(0);
-      expect(toolGroups).toHaveLength(0);
-    });
-
-    it("filters internal tools alongside task tool splitting", () => {
-      const taskTc = makeToolCall("task", "tc-task");
-      const todoTc = makeToolCall("updateTodos", "tc-todo");
-      const shellTc = makeToolCall("Shell", "tc-shell");
-      const sa = makeSubAgent("tc-task");
-      const exec = makeExecution({
-        id: "exec-mixed-task",
-        messages: [
-          makeMessage(MessageType.MESSAGE_AI, "Delegating...", {
-            toolCalls: [taskTc, todoTc, shellTc],
-          }),
-        ],
-        subAgents: [sa],
-      });
-
-      const items = buildThreadItems([exec], null, null, false, undefined);
-      const toolGroups = items.filter((i) => i.kind === "tool-group");
-      const subAgentItems = items.filter((i) => i.kind === "sub-agent");
-
-      expect(subAgentItems).toHaveLength(1);
-      expect(toolGroups).toHaveLength(1);
-      expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls).toHaveLength(1);
-      expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls[0].name).toBe("Shell");
+      expect(groups.map((g) => g.toolUses.map((tu) => tu.name))).toEqual([["Shell"]]);
     });
   });
 });
 
-// ---------------------------------------------------------------------------
-// Inline todos card
-// ---------------------------------------------------------------------------
-
 describe("buildThreadItems todos card", () => {
-  it("emits no todos card when status.todos is empty", () => {
-    const exec = makeExecution({
-      id: "exec-no-todos",
-      messages: [makeMessage(MessageType.MESSAGE_AI, "Done")],
-    });
+  const TODOS = [{ content: "Step 1", status: "in_progress" }];
 
-    const items = buildThreadItems([exec], null, null, false, undefined);
+  it("emits no card when the turn kept no to-dos", () => {
+    const items = buildThreadItems(turnsOf(user(R, "go"), said(R, 0, "Done"), status(R, "completed")), []);
     expect(items.filter((i) => i.kind === "todos")).toHaveLength(0);
   });
 
-  it("anchors the card immediately after the opening AI message (anchor 1)", () => {
-    const exec = makeExecution({
-      id: "exec-a1",
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "Here is my plan"),
-        makeMessage(MessageType.MESSAGE_AI, "Working on it"),
-      ],
-      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_IN_PROGRESS)]),
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const keys = extractKeys(items);
-    // ...-m0 (opening AI) -> todos -> ...-m1
-    expect(keys).toEqual(["exec-a1-m0", "exec-a1-todos", "exec-a1-m1"]);
+  it("anchors the card right after the opening agent message (anchor 1)", () => {
+    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), said(R, 0, "Here is my plan"), said(R, 1, "Working"), status(R, "completed")), []);
+    expect(keys(items).slice(1)).toEqual([m(R, 0), `${R}-todos`, m(R, 1)]);
   });
 
-  it("anchors the card after the opening thinking message", () => {
-    const exec = makeExecution({
-      id: "exec-think",
-      messages: [
-        makeMessage(MessageType.MESSAGE_THINKING, "Let me think"),
-        makeMessage(MessageType.MESSAGE_AI, "Answer"),
-      ],
-      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_PENDING)]),
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const keys = extractKeys(items);
-    expect(keys).toEqual(["exec-think-m0", "exec-think-todos", "exec-think-m1"]);
+  it("anchors the card after the opening thinking", () => {
+    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), thought(R, 0, "Let me think"), said(R, 0, "Answer"), status(R, "completed")), []);
+    expect(keys(items).slice(1)).toEqual([`${R}.root.t0`, `${R}-todos`, m(R, 0)]);
   });
 
-  it("anchors before the first tool-group when work precedes any narration (anchor 2)", () => {
-    // An empty-content AI message that only carries a Shell tool call: no
-    // rendered narration, so the plan must lead the work.
-    const shellTc = makeToolCall("Shell", "tc-shell");
-    const exec = makeExecution({
-      id: "exec-a2",
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "  ", { toolCalls: [shellTc] }),
-      ],
-      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_IN_PROGRESS)]),
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const keys = extractKeys(items);
-    expect(keys).toEqual(["exec-a2-todos", "exec-a2-m0-tc"]);
+  it("anchors before the first work when it precedes any narration (anchor 2)", () => {
+    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), call(R, "c1", "Shell"), status(R, "completed")), []);
+    expect(keys(items).slice(1)).toEqual([`${R}-todos`, `${toolId(R, "c1")}-tc`]);
   });
 
-  it("falls back to the turn tail when there is no narration or work (anchor 3)", () => {
-    // Only a suppressed/internal todo tool call, empty content: nothing renders
-    // except the plan itself, which must still surface.
-    const todoTc = makeToolCall("updateTodos", "tc-todo");
-    const exec = makeExecution({
-      id: "exec-a3",
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "  ", { toolCalls: [todoTc] }),
-      ],
-      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_COMPLETED)]),
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const todoItems = items.filter((i) => i.kind === "todos");
-    expect(todoItems).toHaveLength(1);
-    expect(todoItems[0].key).toBe("exec-a3-todos");
+  it("anchors before a sub-agent when one is the first work", () => {
+    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", TODOS), use(R, "task1", "task"), subAgent(R, "task1"), status(R, "running")), []);
+    expect(keys(items).slice(1)).toEqual([`${R}-todos`, `sa-${toolId(R, "task1")}`]);
   });
 
-  it("emits exactly one card per execution even with multiple AI messages", () => {
-    const exec = makeExecution({
-      id: "exec-one",
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "First"),
-        makeMessage(MessageType.MESSAGE_AI, "Second"),
-        makeMessage(MessageType.MESSAGE_AI, "Third"),
-      ],
-      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_PENDING)]),
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    expect(items.filter((i) => i.kind === "todos")).toHaveLength(1);
+  it("falls back to the turn's tail when nothing else renders (anchor 3)", () => {
+    const items = buildThreadItems(turnsOf(user(R, "go"), todos(R, "t", [{ content: "Step 1", status: "completed" }]), status(R, "completed")), []);
+    expect(keys(items)).toEqual([`${R}-spec`, `${R}-todos`]);
   });
 
-  it("emits one card per turn across a multi-turn session", () => {
-    const turn1 = makeExecution({
-      id: "exec-1",
-      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan A")],
-      todos: todoMap([makeTodo("t1", "A", TodoStatus.TODO_COMPLETED)]),
-    });
-    // A follow-up turn that did not write todos shows no card.
-    const turn2 = makeExecution({
-      id: "exec-2",
-      messages: [makeMessage(MessageType.MESSAGE_AI, "No plan here")],
-    });
-    const turn3 = makeExecution({
-      id: "exec-3",
-      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan C")],
-      todos: todoMap([makeTodo("t1", "C", TodoStatus.TODO_IN_PROGRESS)]),
-    });
-
-    const items = buildThreadItems([turn1, turn2, turn3], null, null, false, undefined);
-    const todoKeys = items.filter((i) => i.kind === "todos").map((i) => i.key);
-    expect(todoKeys).toEqual(["exec-1-todos", "exec-3-todos"]);
+  it("emits one card per turn, and none for a turn without to-dos", () => {
+    const items = buildThreadItems(
+      turnsOf(
+        user(R, "a"), todos(R, "t", TODOS), said(R, 0, "First"), said(R, 1, "Second"), status(R, "completed"),
+        user(R2, "b"), said(R2, 0, "No plan here"), status(R2, "completed"),
+      ),
+      [],
+    );
+    expect(items.filter((i) => i.kind === "todos").map((i) => i.key)).toEqual([`${R}-todos`]);
   });
 
-  it("carries the live status.todos reference (no clone) for memoization", () => {
-    const todos = todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_PENDING)]);
-    const exec = makeExecution({
-      id: "exec-ref",
-      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan")],
-      todos,
-    });
+  it("carries the turn's own to-do list, under one key as it changes", () => {
+    const first = turnsOf(user(R, "go"), todos(R, "t1", TODOS), said(R, 0, "Plan"), status(R, "running"));
+    const later = turnsOf(user(R, "go"), todos(R, "t1", TODOS), said(R, 0, "Plan"), todos(R, "t2", [{ content: "Step 1", status: "completed" }, { content: "Step 2", status: "in_progress" }]), status(R, "running"));
 
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    const todoItem = items.find((i) => i.kind === "todos");
-    expect(todoItem?.kind === "todos" && todoItem.todos).toBe(exec.status!.todos);
-  });
-
-  it("native-harness shape: filters the write_todos tool call but still shows the card", () => {
-    // Native keeps write_todos as a (filtered) tool call AND populates status.todos.
-    const writeTodosTc = makeToolCall("write_todos", "tc-wt");
-    const exec = makeExecution({
-      id: "exec-native",
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "Planning", {
-          toolCalls: [writeTodosTc],
-        }),
-      ],
-      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_IN_PROGRESS)]),
-    });
-
-    const items = buildThreadItems([exec], null, null, false, undefined);
-    expect(items.filter((i) => i.kind === "tool-group")).toHaveLength(0);
-    expect(items.filter((i) => i.kind === "todos")).toHaveLength(1);
-  });
-
-  it("keeps a stable key as todos update (no remount)", () => {
-    const before = makeExecution({
-      id: "exec-stable",
-      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan")],
-      todos: todoMap([makeTodo("t1", "Step 1", TodoStatus.TODO_PENDING)]),
-    });
-    const after = makeExecution({
-      id: "exec-stable",
-      messages: [makeMessage(MessageType.MESSAGE_AI, "Plan")],
-      todos: todoMap([
-        makeTodo("t1", "Step 1", TodoStatus.TODO_COMPLETED),
-        makeTodo("t2", "Step 2", TodoStatus.TODO_IN_PROGRESS),
-      ]),
-    });
-
-    const k1 = buildThreadItems([before], null, null, false, undefined).find(
-      (i) => i.kind === "todos",
-    )?.key;
-    const k2 = buildThreadItems([after], null, null, false, undefined).find(
-      (i) => i.kind === "todos",
-    )?.key;
-    expect(k1).toBe("exec-stable-todos");
-    expect(k2).toBe("exec-stable-todos");
+    const card = buildThreadItems(first, []).find((i) => i.kind === "todos");
+    const laterCard = buildThreadItems(later, []).find((i) => i.kind === "todos");
+    expect(card?.kind === "todos" && card.todos).toBe(first[0]!.todos);
+    expect(card?.key).toBe(laterCard?.key);
+    expect(laterCard?.kind === "todos" && laterCard.todos.map((t) => t.status)).toEqual(["completed", "in_progress"]);
   });
 });

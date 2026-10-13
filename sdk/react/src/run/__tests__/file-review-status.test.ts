@@ -1,391 +1,178 @@
+/**
+ * Pins how a turn's file changes read in review (../file-review-status.ts):
+ * each file's reviewability from its `reviewable` word, the whole set's bulk
+ * affordance, a transcript row's file and badge state matched by path within
+ * a turn's review sets, the captured bytes a write row's diff renders (only
+ * a complete diff), and the change word as the shared badge's enum.
+ */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  FileContentSchema,
-  ToolCallOutputRefSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-  FileDecisionSchema,
-  type FileDecision,
+  type CapturedFileChange,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  DiffCompleteness,
-  FileChangeKind,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionScope,
-  FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewFile, FileReviewSet } from "@stigmer/sdk";
 import {
   changeForRowPath,
   changeSetReviewability,
-  deriveEffectiveVerdicts,
+  fileChangeKindOf,
+  fileForRowPath,
   fileReviewability,
   fileReviewRowChange,
   fileReviewRowState,
 } from "../file-review-status";
 
-/** Inline text side (the git substrate's shape). */
-function inline(value: string, isBinary = false): FileContent {
-  return create(FileContentSchema, { body: { case: "inline", value }, isBinary });
+function file(path: string, overrides: Partial<FileReviewFile> = {}): FileReviewFile {
+  return {
+    fileChangeId: `fc-${path}`,
+    path,
+    previousPath: "",
+    change: "modified",
+    digest: `d-${path}`,
+    linesAdded: 1,
+    linesRemoved: 0,
+    reviewable: "complete",
+    state: "undecided",
+    decidedBy: "",
+    ...overrides,
+  };
 }
 
-/** Offloaded blob-ref side (large/CAS bodies), carrying its own is_binary. */
-function ref(isBinary: boolean): FileContent {
-  return create(FileContentSchema, {
-    body: {
-      case: "ref",
-      value: create(ToolCallOutputRefSchema, {
-        storageKey: "artifacts/x/filereview/c.after.txt",
-        sizeBytes: 1_048_576n,
-        contentHash: "sha256:deadbeef",
-      }),
-    },
-    isBinary,
-  });
+function set(files: FileReviewFile[]): FileReviewSet {
+  return {
+    changeSetId: "cs1",
+    runId: "run_1",
+    aggregateDigest: "agg",
+    files,
+    decisions: [],
+    reconciles: [],
+    undecided: files.some((f) => f.state === "undecided"),
+    processedAt: "",
+  };
 }
 
-function change(opts: {
-  kind?: FileChangeKind;
-  diffComplete: boolean;
-  before?: FileContent;
-  after?: FileContent;
-  blockedReason?: FileReviewBlockReason;
-}) {
-  const fc = create(CapturedFileChangeSchema, {
-    id: "cs:0:p",
-    pathBefore: "p",
-    pathAfter: "p",
-    kind: opts.kind ?? FileChangeKind.MODIFY,
-    diffComplete: opts.diffComplete,
-    blockedReason: opts.blockedReason ?? FileReviewBlockReason.UNSPECIFIED,
-  });
-  if (opts.before) fc.before = opts.before;
-  if (opts.after) fc.after = opts.after;
-  return fc;
-}
-
-describe("fileReviewability", () => {
-  it("classifies a complete text diff as reviewable", () => {
-    expect(
-      fileReviewability(
-        change({ diffComplete: true, before: inline("old\n"), after: inline("new\n") }),
-      ),
-    ).toEqual({ kind: "reviewable" });
-  });
-
-  it("stays reviewable when complete even if a side is (incongruously) flagged binary — diff_complete wins", () => {
-    // diff_complete is the authoritative signal; a complete change is reviewable.
-    expect(
-      fileReviewability(
-        change({ diffComplete: true, before: inline("a", true), after: inline("b", true) }),
-      ),
-    ).toEqual({ kind: "reviewable" });
-  });
-
-  it("classifies an incomplete change with a binary before side as binary", () => {
-    expect(
-      fileReviewability(
-        change({ diffComplete: false, before: inline("\u0000\u0001", true), after: inline("\u0000", true) }),
-      ),
-    ).toEqual({ kind: "binary" });
-  });
-
-  it("classifies an incomplete change with only an after binary side as binary", () => {
-    expect(
-      fileReviewability(change({ diffComplete: false, after: inline("\u0000", true) })),
-    ).toEqual({ kind: "binary" });
-  });
-
-  it("classifies a binary side that was offloaded to a ref as binary (offload preserves is_binary)", () => {
-    expect(
-      fileReviewability(change({ diffComplete: false, after: ref(true) })),
-    ).toEqual({ kind: "binary" });
-  });
-
-  it("prefers binary over a stray blocked_reason (is_binary is the authoritative binary signal)", () => {
-    // Defensive: even if a reason were somehow set on a binary change, the wire
-    // proves binary via is_binary, which the classifier resolves first.
-    expect(
-      fileReviewability(
-        change({
-          diffComplete: false,
-          after: inline("\u0000", true),
-          blockedReason: FileReviewBlockReason.SIZE_ELIDED,
-        }),
-      ),
-    ).toEqual({ kind: "binary" });
-  });
-
-  it("classifies a secret-withheld change as unavailable with reason 'secret'", () => {
-    // The secret gate authors the change content-less, diff_complete=false, and
-    // records SECRET_WITHHELD so the UI can say *why*.
-    expect(
-      fileReviewability(
-        change({ diffComplete: false, blockedReason: FileReviewBlockReason.SECRET_WITHHELD }),
-      ),
-    ).toEqual({ kind: "unavailable", reason: "secret" });
-  });
-
-  it("classifies a size-elided change as unavailable with reason 'size' — distinct from secret", () => {
-    // The size backstop drops the inline bodies, sets diff_complete=false, and
-    // records SIZE_ELIDED. Once byte-identical to the secret case; now honestly
-    // distinguished by the recorded reason.
-    expect(
-      fileReviewability(
-        change({ diffComplete: false, blockedReason: FileReviewBlockReason.SIZE_ELIDED }),
-      ),
-    ).toEqual({ kind: "unavailable", reason: "size" });
-  });
-
-  it("classifies a content-less change with no recorded reason as unavailable/'unknown'", () => {
-    // Rows from before the runner recorded block reasons, and any
-    // future/unmapped cause fall back to the
-    // defensive generic bucket rather than fabricating a specific cause.
-    expect(fileReviewability(change({ diffComplete: false }))).toEqual({
-      kind: "unavailable",
-      reason: "unknown",
-    });
-  });
-
-  it("maps the generic UNREVIEWABLE reason to 'unknown'", () => {
-    expect(
-      fileReviewability(
-        change({ diffComplete: false, blockedReason: FileReviewBlockReason.UNREVIEWABLE }),
-      ),
-    ).toEqual({ kind: "unavailable", reason: "unknown" });
-  });
-
-  it("does not misread a one-sided binary ADD as unavailable", () => {
-    expect(
-      fileReviewability(
-        change({ kind: FileChangeKind.ADD, diffComplete: false, after: inline("\u0000", true) }),
-      ),
-    ).toEqual({ kind: "binary" });
-  });
-
-  it("does not misread a one-sided binary DELETE as unavailable", () => {
-    expect(
-      fileReviewability(
-        change({ kind: FileChangeKind.DELETE, diffComplete: false, before: inline("\u0000", true) }),
-      ),
-    ).toEqual({ kind: "binary" });
-  });
-});
-
-describe("changeSetReviewability", () => {
-  function set(completeness: DiffCompleteness) {
-    return create(FileChangeSetSchema, { id: "cs", diffCompleteness: completeness });
-  }
-
-  it("maps the server rollup to the set-level verdict", () => {
-    expect(changeSetReviewability(set(DiffCompleteness.COMPLETE))).toBe("complete");
-    expect(changeSetReviewability(set(DiffCompleteness.BINARY_SUMMARY_ONLY))).toBe("binary-only");
-    expect(changeSetReviewability(set(DiffCompleteness.PARTIAL_BLOCKED))).toBe("blocked");
-  });
-
-  it("treats UNSPECIFIED as blocked (fail-closed)", () => {
-    expect(changeSetReviewability(set(DiffCompleteness.UNSPECIFIED))).toBe("blocked");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Effective verdicts + the stamped row's badge state
-// ---------------------------------------------------------------------------
-
-function fileChange(id: string, path: string) {
+function captured(id: string, path: string, diffComplete = true): CapturedFileChange {
   return create(CapturedFileChangeSchema, {
     id,
     pathBefore: path,
     pathAfter: path,
     kind: FileChangeKind.MODIFY,
-    diffComplete: true,
+    diffComplete,
   });
 }
 
-function decision(opts: {
-  scope: FileDecisionScope;
-  action: FileDecisionAction;
-  fileChangeId?: string;
-}): FileDecision {
-  return create(FileDecisionSchema, {
-    changeSetId: "cs:0",
-    scope: opts.scope,
-    action: opts.action,
-    fileChangeId: opts.fileChangeId ?? "",
-  });
-}
-
-function reviewSet(opts: {
-  status: FileChangeSetStatus;
-  changes?: ReturnType<typeof fileChange>[];
-  decisions?: FileDecision[];
-}) {
-  return create(FileChangeSetSchema, {
-    id: "cs:0",
-    status: opts.status,
-    changes: opts.changes ?? [fileChange("cs:0:a.ts", "a.ts")],
-    decisions: opts.decisions ?? [],
-  });
-}
-
-describe("deriveEffectiveVerdicts", () => {
-  it("applies a CHANGE_SET decision to every file (a settled 'Keep all')", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [fileChange("f1", "a.ts"), fileChange("f2", "b.ts")],
-      decisions: [decision({ scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE })],
-    });
-    const verdicts = deriveEffectiveVerdicts(set);
-    expect(verdicts.get("f1")).toBe(FileDecisionAction.APPROVE);
-    expect(verdicts.get("f2")).toBe(FileDecisionAction.APPROVE);
+describe("fileReviewability", () => {
+  it("reads each reviewable word", () => {
+    expect(fileReviewability({ reviewable: "complete" })).toEqual({ kind: "reviewable" });
+    expect(fileReviewability({ reviewable: "binary" })).toEqual({ kind: "binary" });
+    expect(fileReviewability({ reviewable: "secret" })).toEqual({ kind: "unavailable", reason: "secret" });
+    expect(fileReviewability({ reviewable: "partial" })).toEqual({ kind: "unavailable", reason: "partial" });
   });
 
-  it("lets a FILE decision override the CHANGE_SET baseline (most-specific-wins)", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [fileChange("f1", "a.ts"), fileChange("f2", "b.ts")],
-      decisions: [
-        decision({ scope: FileDecisionScope.FILE, action: FileDecisionAction.REJECT, fileChangeId: "f2" }),
-        decision({ scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE }),
-      ],
-    });
-    const verdicts = deriveEffectiveVerdicts(set);
-    expect(verdicts.get("f1")).toBe(FileDecisionAction.APPROVE);
-    // FILE beats CHANGE_SET regardless of ledger order.
-    expect(verdicts.get("f2")).toBe(FileDecisionAction.REJECT);
-  });
-
-  it("leaves an undecided file absent (a set terminated mid-review)", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.DECIDED,
-      changes: [fileChange("f1", "a.ts"), fileChange("f2", "b.ts")],
-      decisions: [decision({ scope: FileDecisionScope.FILE, action: FileDecisionAction.APPROVE, fileChangeId: "f1" })],
-    });
-    const verdicts = deriveEffectiveVerdicts(set);
-    expect(verdicts.get("f1")).toBe(FileDecisionAction.APPROVE);
-    expect(verdicts.has("f2")).toBe(false);
+  it("treats an unknown word as an incomplete diff", () => {
+    expect(fileReviewability({ reviewable: "" })).toEqual({ kind: "unavailable", reason: "partial" });
   });
 });
 
-describe("changeForRowPath", () => {
-  const set = reviewSet({
-    status: FileChangeSetStatus.AWAITING_REVIEW,
-    changes: [fileChange("f1", "src/a.ts")],
+describe("changeSetReviewability", () => {
+  it("is complete when every file is reviewable", () => {
+    expect(changeSetReviewability(set([file("a"), file("b")]))).toBe("complete");
   });
 
-  it("matches an exact workspace-relative path", () => {
-    expect(changeForRowPath(set, "src/a.ts")?.id).toBe("f1");
+  it("is binary-only when binaries are the only blocker", () => {
+    expect(changeSetReviewability(set([file("a"), file("b", { reviewable: "binary" })]))).toBe("binary-only");
   });
 
-  it("matches an absolute row path by /-boundary suffix", () => {
-    expect(changeForRowPath(set, "/home/user/ws/src/a.ts")?.id).toBe("f1");
-    // A partial-segment overlap is NOT a match.
-    expect(changeForRowPath(set, "othersrc/a.ts")).toBeNull();
-  });
-
-  it("returns null for an unknown or empty path", () => {
-    expect(changeForRowPath(set, "src/b.ts")).toBeNull();
-    expect(changeForRowPath(set, "")).toBeNull();
+  it("is blocked by any unavailable file", () => {
+    expect(
+      changeSetReviewability(set([file("a", { reviewable: "binary" }), file("b", { reviewable: "secret" })])),
+    ).toBe("blocked");
   });
 });
 
-describe("fileReviewRowChange", () => {
-  it("returns null with no set or path", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [fileChange("f1", "a.ts")],
-    });
-    expect(fileReviewRowChange(undefined, "a.ts")).toBeNull();
-    expect(fileReviewRowChange(set, null)).toBeNull();
-    expect(fileReviewRowChange(set, "")).toBeNull();
+describe("fileForRowPath", () => {
+  const review = set([file("src/a.ts")]);
+
+  it("matches an exact path and an absolute path by /-boundary suffix", () => {
+    expect(fileForRowPath(review, "src/a.ts")?.fileChangeId).toBe("fc-src/a.ts");
+    expect(fileForRowPath(review, "/home/user/ws/src/a.ts")?.fileChangeId).toBe("fc-src/a.ts");
+    expect(fileForRowPath(review, "C:\\ws\\src\\a.ts")?.fileChangeId).toBe("fc-src/a.ts");
   });
 
-  it("resolves a reviewable change by row path (same matcher as the badge)", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [fileChange("f1", "src/a.ts")],
-    });
-    expect(fileReviewRowChange(set, "src/a.ts")?.id).toBe("f1");
-    expect(fileReviewRowChange(set, "/home/user/ws/src/a.ts")?.id).toBe("f1");
-  });
-
-  it("returns null for a path absent from the set", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [fileChange("f1", "a.ts")],
-    });
-    expect(fileReviewRowChange(set, "gone.ts")).toBeNull();
-  });
-
-  it("returns null for a non-reviewable change (honest degradation)", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [
-        create(CapturedFileChangeSchema, {
-          id: "f1",
-          pathBefore: "secret.env",
-          pathAfter: "secret.env",
-          kind: FileChangeKind.MODIFY,
-          diffComplete: false,
-          blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
-        }),
-      ],
-    });
-    expect(fileReviewRowChange(set, "secret.env")).toBeNull();
+  it("never matches a partial segment, an unknown or an empty path", () => {
+    expect(fileForRowPath(review, "othersrc/a.ts")).toBeNull();
+    expect(fileForRowPath(review, "src/b.ts")).toBeNull();
+    expect(fileForRowPath(review, "")).toBeNull();
   });
 });
 
 describe("fileReviewRowState", () => {
-  it("returns null with no set (not yet projected / unknown id)", () => {
-    expect(fileReviewRowState(undefined, "a.ts")).toBeNull();
+  it("reads each file state as a badge", () => {
+    const states: Array<[FileReviewFile["state"], string]> = [
+      ["undecided", "pending"],
+      ["kept", "kept"],
+      ["undoing", "discarded"],
+      ["undone", "discarded"],
+      ["undo_failed", "failed"],
+    ];
+    for (const [state, badge] of states) {
+      expect(fileReviewRowState([set([file("a.ts", { state })])], "a.ts")).toBe(badge);
+    }
   });
 
-  it("reads AWAITING_REVIEW as pending regardless of path", () => {
-    const set = reviewSet({ status: FileChangeSetStatus.AWAITING_REVIEW });
-    expect(fileReviewRowState(set, "a.ts")).toBe("pending");
-    expect(fileReviewRowState(set, null)).toBe("pending");
+  it("lets a later set of the turn win", () => {
+    const first = set([file("a.ts", { state: "kept" })]);
+    const second = set([file("a.ts", { state: "undone" })]);
+    expect(fileReviewRowState([first, second], "a.ts")).toBe("discarded");
+    expect(fileReviewRowState([second, set([file("b.ts")])], "a.ts")).toBe("discarded");
   });
 
-  it("reads FAILED as failed", () => {
-    expect(
-      fileReviewRowState(reviewSet({ status: FileChangeSetStatus.FAILED }), "a.ts"),
-    ).toBe("failed");
+  it("shows no badge with no path, no review, or a file the review does not hold", () => {
+    expect(fileReviewRowState([set([file("a.ts")])], null)).toBeNull();
+    expect(fileReviewRowState([], "a.ts")).toBeNull();
+    expect(fileReviewRowState([set([file("a.ts")])], "gone.ts")).toBeNull();
+  });
+});
+
+describe("changeForRowPath", () => {
+  const capture = create(FileChangeSetSchema, { id: "cs1", changes: [captured("f1", "src/a.ts")] });
+
+  it("matches an exact or absolute path", () => {
+    expect(changeForRowPath(capture, "src/a.ts")?.id).toBe("f1");
+    expect(changeForRowPath(capture, "/ws/src/a.ts")?.id).toBe("f1");
   });
 
-  it("resolves a decided file's verdict by row path (kept / discarded)", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [fileChange("f1", "a.ts"), fileChange("f2", "b.ts")],
-      decisions: [
-        decision({ scope: FileDecisionScope.FILE, action: FileDecisionAction.APPROVE, fileChangeId: "f1" }),
-        decision({ scope: FileDecisionScope.FILE, action: FileDecisionAction.REJECT, fileChangeId: "f2" }),
-      ],
+  it("returns null for an unknown or empty path", () => {
+    expect(changeForRowPath(capture, "src/b.ts")).toBeNull();
+    expect(changeForRowPath(capture, "")).toBeNull();
+  });
+});
+
+describe("fileReviewRowChange", () => {
+  it("resolves a complete captured change by row path", () => {
+    const capture = create(FileChangeSetSchema, { changes: [captured("f1", "a.ts")] });
+    expect(fileReviewRowChange(capture, "a.ts")?.id).toBe("f1");
+  });
+
+  it("returns null with no capture or path, a path miss, or an incomplete diff", () => {
+    const capture = create(FileChangeSetSchema, {
+      changes: [captured("f1", "a.ts"), captured("f2", "secret.env", false)],
     });
-    expect(fileReviewRowState(set, "a.ts")).toBe("kept");
-    expect(fileReviewRowState(set, "/abs/ws/b.ts")).toBe("discarded");
+    expect(fileReviewRowChange(undefined, "a.ts")).toBeNull();
+    expect(fileReviewRowChange(capture, null)).toBeNull();
+    expect(fileReviewRowChange(capture, "gone.ts")).toBeNull();
+    expect(fileReviewRowChange(capture, "secret.env")).toBeNull();
   });
+});
 
-  it("degrades to null — never a wrong badge — for a file absent from the set or with no verdict", () => {
-    const set = reviewSet({
-      status: FileChangeSetStatus.DECIDED,
-      changes: [fileChange("f1", "a.ts")],
-      decisions: [],
-    });
-    // Superseded/reverted within the turn: the row's file is not in the set.
-    expect(fileReviewRowState(set, "gone.ts")).toBeNull();
-    // In the set but never decided (terminated mid-review).
-    expect(fileReviewRowState(set, "a.ts")).toBeNull();
-    // No usable path on the row.
-    expect(fileReviewRowState(set, null)).toBeNull();
-  });
-
-  it("returns null for a CAPTURING set (no reviewable state yet)", () => {
-    expect(
-      fileReviewRowState(reviewSet({ status: FileChangeSetStatus.CAPTURING }), "a.ts"),
-    ).toBeNull();
+describe("fileChangeKindOf", () => {
+  it("reads each change word, and anything else as unspecified", () => {
+    expect(fileChangeKindOf("added")).toBe(FileChangeKind.ADD);
+    expect(fileChangeKindOf("modified")).toBe(FileChangeKind.MODIFY);
+    expect(fileChangeKindOf("deleted")).toBe(FileChangeKind.DELETE);
+    expect(fileChangeKindOf("renamed")).toBe(FileChangeKind.RENAME);
+    expect(fileChangeKindOf("copied")).toBe(FileChangeKind.UNSPECIFIED);
   });
 });

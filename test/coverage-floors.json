@@ -25,6 +25,11 @@
       "branches": 86,
       "cases": 54
     },
+    "backend/libs/ts/session-log": {
+      "lines": 100,
+      "branches": 94,
+      "cases": 262
+    },
     "backend/libs/ts/tool-vocabulary": {
       "lines": 100,
       "branches": 100,

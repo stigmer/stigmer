@@ -1,14 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-
-import { MessageEntry } from "../MessageEntry";
+import { MessageEntry, type ThreadMessage } from "../MessageEntry";
 
 // ---------------------------------------------------------------------------
-// Per-message copy affordance (stigmer/stigmer#278): every settled human and
-// AI message carries a quiet copy control that writes the message's text to
+// Per-message copy affordance (stigmer/stigmer#278): every settled message of
+// a person or the agent carries a quiet copy control that writes the message's text to
 // the clipboard, with transient "Copied" feedback. The affordance is
 // hover-revealed but always in the DOM (keyboard/screen-reader reachable).
 // ---------------------------------------------------------------------------
@@ -18,8 +14,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function message(type: MessageType, content: string, isStreaming = false) {
-  return create(AgentMessageSchema, { type, content, isStreaming });
+function message(kind: ThreadMessage["kind"], text: string, isStreaming = false): ThreadMessage {
+  switch (kind) {
+    case "user":
+      return { kind, id: "u1", text };
+    case "note":
+      return { kind, id: "n1", text, processedAt: "" };
+    case "message":
+    case "thinking":
+      return { kind, id: `${kind}-1`, text, live: isStreaming, processedAt: "" };
+  }
 }
 
 function stubClipboard() {
@@ -33,7 +37,7 @@ describe("MessageEntry copy affordance", () => {
     const writeText = stubClipboard();
     render(
       <MessageEntry
-        message={message(MessageType.MESSAGE_HUMAN, "run the deploy again")}
+        message={message("user", "run the deploy again")}
       />,
     );
 
@@ -49,7 +53,7 @@ describe("MessageEntry copy affordance", () => {
   it("copies an AI message's markdown — formatting characters included", () => {
     const writeText = stubClipboard();
     const md = "## Plan\n\n- step **one**\n- step `two`";
-    render(<MessageEntry message={message(MessageType.MESSAGE_AI, md)} />);
+    render(<MessageEntry message={message("message", md)} />);
 
     fireEvent.click(screen.getByLabelText("Copy message"));
     expect(writeText).toHaveBeenCalledExactlyOnceWith(md);
@@ -62,7 +66,7 @@ describe("MessageEntry copy affordance", () => {
     const writeText = stubClipboard();
     render(
       <MessageEntry
-        message={message(MessageType.MESSAGE_AI, "```markdown\n# Title\nbody\n```")}
+        message={message("message", "```markdown\n# Title\nbody\n```")}
       />,
     );
 
@@ -74,7 +78,7 @@ describe("MessageEntry copy affordance", () => {
     stubClipboard();
     render(
       <MessageEntry
-        message={message(MessageType.MESSAGE_AI, "partial answer…", true)}
+        message={message("message", "partial answer…", true)}
       />,
     );
     expect(screen.queryByLabelText("Copy message")).toBeNull();
@@ -84,7 +88,7 @@ describe("MessageEntry copy affordance", () => {
     stubClipboard();
     render(
       <MessageEntry
-        message={message(MessageType.MESSAGE_SYSTEM, "execution resumed")}
+        message={message("note", "execution resumed")}
       />,
     );
     expect(screen.queryByLabelText("Copy message")).toBeNull();
@@ -95,7 +99,7 @@ describe("MessageEntry copy affordance", () => {
     const onEdit = vi.fn();
     render(
       <MessageEntry
-        message={message(MessageType.MESSAGE_HUMAN, "tweak this")}
+        message={message("user", "tweak this")}
         onEdit={onEdit}
       />,
     );
@@ -112,7 +116,7 @@ describe("MessageEntry copy affordance", () => {
     const writeText = vi.fn(() => Promise.reject(new Error("denied")));
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     render(
-      <MessageEntry message={message(MessageType.MESSAGE_HUMAN, "hello")} />,
+      <MessageEntry message={message("user", "hello")} />,
     );
 
     fireEvent.click(screen.getByLabelText("Copy message"));

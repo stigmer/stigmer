@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ResourceRef } from "@stigmer/sdk";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { AgentResolution } from "../agent/index.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
@@ -197,8 +197,8 @@ export interface UseSessionPageFlowReturn {
    * explicit choice always winning:
    *
    * 1. the user's Config facet switch ({@link setAutoApproveAll});
-   * 2. "Approve & don't ask again" at an approval gate (see
-   *    {@link submitApproval});
+   * 2. "Approve all" of a class at an approval gate (see
+   *    {@link answerToolUse});
    * 3. the account's `default_auto_approve` preference
    *    (`UseSessionPageFlowOptions.accountDefaults`, guests excluded);
    * 4. the host's app-wide `StigmerProvider` `approvalDefaults` (#302,
@@ -208,8 +208,8 @@ export interface UseSessionPageFlowReturn {
    *    the state survives the launcher → session-page handoff.
    *
    * While `true`, follow-ups carry `auto_approve_all` ({@link handleSubmit})
-   * and gates appearing in the in-flight run are auto-released (never for
-   * guest/observer/channel-origin surfaces). The explicit per-session flip is
+   * and tool uses waiting in the live turn are granted as they appear (never
+   * for guest/observer/channel-origin surfaces). The explicit per-session flip is
    * held in memory only — reset on reload back to the seeds; the account
    * preference is the one persisted default, declared by the user in
    * Account Preferences.
@@ -219,22 +219,21 @@ export interface UseSessionPageFlowReturn {
    * Set the user's explicit session-scoped auto-approve choice. Wired to the
    * Config facet's switch; an explicit `false` wins over both seeds and over
    * an armed in-flight run for everything the client controls (follow-up
-   * carry, gate auto-release) — an already-armed run's server-side bypass
-   * cannot be revoked mid-run, exactly as with today's gate-time "Approve &
-   * don't ask again". Never written back to the account preference: the
-   * flip is scoped to THIS conversation.
+   * carry, granting waiting calls) — an already-armed run's server-side
+   * bypass cannot be revoked mid-run. Never written back to the account
+   * preference: the flip is scoped to THIS conversation.
    */
   readonly setAutoApproveAll: (value: boolean) => void;
 
   /**
-   * Submit an approval decision for a pending tool call.
+   * Answer a tool use that waits for a person.
    *
-   * Wraps {@link UseSessionConversationReturn.submitApproval}: when the action is
-   * `APPROVAL_ACTION_APPROVE_ALL`, it also flips the session-scoped
-   * {@link autoApproveAll} preference so future follow-ups skip the gate. The
-   * server independently auto-approves the rest of the current run.
+   * Wraps {@link UseSessionConversationReturn.answerToolUse}: a `"grant"`
+   * (approve all of the call's class) also flips the session-scoped
+   * {@link autoApproveAll} preference so future follow-ups skip asking. The
+   * grant itself allows the rest of the class for the current turn.
    */
-  readonly submitApproval: UseSessionConversationReturn["submitApproval"];
+  readonly answerToolUse: UseSessionConversationReturn["answerToolUse"];
 
   /**
    * Submit a follow-up message. Handles agent override resolution
@@ -250,15 +249,13 @@ export interface UseSessionPageFlowReturn {
 
 
   /**
-   * The most relevant run for sidebar display — the active
-   * streaming run, or the last completed one.
+   * The most relevant run for sidebar display — the live turn's run, or the
+   * conversation's newest one.
    */
-  readonly displayRun: UseSessionConversationReturn["activeStreamRun"];
+  readonly displayRun: Run | null;
 
-  /**
-   * All runs for widget display (completed + active stream).
-   */
-  readonly allRuns: UseSessionConversationReturn["completedRuns"];
+  /** The conversation's runs, for widget display (`conv.runs`). */
+  readonly allRuns: readonly Run[];
 
   /**
    * Sandbox workspace root for file path normalization, or `undefined`
@@ -289,8 +286,9 @@ export interface UseSessionPageFlowReturn {
  * return (
  *   <>
  *     <MessageThread
- *       runs={flow.conv.completedRuns}
- *       activeStreamRun={flow.conv.activeStreamRun}
+ *       turns={flow.conv.turns}
+ *       runs={flow.conv.runs}
+ *       onAnswerToolUse={flow.answerToolUse}
  *       sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
  *     />
  *     <SessionComposer
@@ -351,9 +349,9 @@ export function useSessionPageFlow(
   // what the visitor sent.
   const lastRequestedModelId = useMemo(() => {
     if (isGuest) return undefined;
-    const lastExec = conv.completedRuns.at(-1);
+    const lastExec = conv.runs.at(-1);
     return lastExec?.spec?.runConfig?.modelName || undefined;
-  }, [isGuest, conv.completedRuns]);
+  }, [isGuest, conv.runs]);
 
   // Interaction mode mirrors the model derivation: an explicit user override
   // wins; otherwise reflect the latest execution's mode so a completed Plan
@@ -362,9 +360,9 @@ export function useSessionPageFlow(
   const lastExecInteractionMode = useMemo(
     () =>
       fromProtoInteractionMode(
-        conv.completedRuns.at(-1)?.spec?.interactionMode,
+        conv.runs.at(-1)?.spec?.interactionMode,
       ),
-    [conv.completedRuns],
+    [conv.runs],
   );
   const [interactionModeOverride, setInteractionMode] =
     useState<InteractionModeOption | null>(null);
@@ -385,8 +383,8 @@ export function useSessionPageFlow(
   //
   //   effective = userChoice ?? (accountSeed || hostSeed || runArmed)
   //
-  // - `userChoice`: the Config facet's switch, or the gate-time "Approve &
-  //   don't ask again" (which has always escalated the session preference).
+  // - `userChoice`: the Config facet's switch, or the gate-time "Approve
+  //   all" of a class (which escalates the session preference too).
   // - `accountSeed`: the account's default_auto_approve preference — the
   //   user's own persisted walk-away default. Resolves async with whoAmI;
   //   being part of the derivation (not an initializer), a late arrival
@@ -408,33 +406,33 @@ export function useSessionPageFlow(
   const [autoApproveChoice, setAutoApproveChoice] = useState<boolean | null>(null);
   const accountSeed = !isGuest && (options.accountDefaults?.autoApprove ?? false);
   const hostSeed = !isGuest && (approvalDefaults?.autoApproveAll ?? false);
-  const runArmed = conv.activeStreamRun?.spec?.autoApproveAll === true;
+  const runArmed = conv.activeRun?.spec?.autoApproveAll === true;
   const autoApproveAll = autoApproveChoice ?? (accountSeed || hostSeed || runArmed);
   const setAutoApproveAll = useCallback((value: boolean) => {
     setAutoApproveChoice(value);
   }, []);
 
-  const submitApproval = useCallback<UseSessionConversationReturn["submitApproval"]>(
-    async (toolCallId, action, comment) => {
-      // "Approve & don't ask again": remember the choice for the rest of this
-      // live session so future follow-ups carry auto_approve_all. The control
-      // plane separately resolves the current run's remaining gates and
-      // the runner skips the gate for the rest of that run.
-      if (action === ApprovalAction.APPROVE_ALL) {
+  const answerToolUse = useCallback<UseSessionConversationReturn["answerToolUse"]>(
+    async (toolUseId, answer, denyMessage) => {
+      // "Approve all": remember the choice for the rest of this live session
+      // so future follow-ups carry auto_approve_all. The grant itself allows
+      // every call of the class for the rest of the current turn.
+      if (answer === "grant") {
         setAutoApproveChoice(true);
       }
-      await conv.submitApproval(toolCallId, action, comment);
+      await conv.answerToolUse(toolUseId, answer, denyMessage);
     },
-    [conv.submitApproval],
+    [conv.answerToolUse],
   );
 
   // Armed responder (#816, the walk-away scenario): while auto-approve is ON,
-  // answer each approval gate as it appears in the in-flight run. This must be
-  // a standing responder, not a flip-time one-shot: a gate-time APPROVE_ALL
-  // grants a lease scoped to ONE tool class (see APPROVAL_ACTION_APPROVE_ALL
-  // in agentexecution enum.proto), so a later gate of a different class would
-  // still park the run — the responder covers each class as it surfaces, and
-  // every released call keeps an honest audit decision.
+  // grant the live turn's waiting calls as they appear — one grantPermission
+  // at a time, on the first call not yet answered. A grant covers every
+  // waiting call of that class, so the asks it settles leave the list; a
+  // waiting call of another class gets its own grant when the list changes.
+  // A standing responder, not a flip-time one-shot: a class that first asks
+  // later in the turn would otherwise still park it, and every released
+  // call keeps an honest audit record.
   //
   // Read-only surfaces must never auto-submit approvals on a viewer's behalf:
   // the predicate mirrors SessionViewer's read-only derivation (guest audience,
@@ -446,22 +444,20 @@ export function useSessionPageFlow(
     !isGuest &&
     options.audience !== "observer" &&
     !isChannelOriginSession(conv.session);
-  const respondedToolCallIds = useRef<Set<string>>(new Set());
+  const respondedToolUseIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!autoApproveAll || !canRespondToGates) return;
-    for (const approval of conv.pendingApprovals) {
-      const toolCallId = approval.toolCallId;
-      // Marked before the submit resolves so a re-render mid-flight cannot
-      // double-submit. A failed submission is deliberately NOT retried — the
-      // approval card stays for a manual decision instead of a retry storm.
-      if (!toolCallId || respondedToolCallIds.current.has(toolCallId)) continue;
-      respondedToolCallIds.current.add(toolCallId);
-      void conv.submitApproval(toolCallId, ApprovalAction.APPROVE_ALL).catch(() => {
-        // Swallowed by design (see above); the card's own error surface
-        // reports the failure where the user can act on it.
-      });
-    }
-  }, [autoApproveAll, canRespondToGates, conv.pendingApprovals, conv.submitApproval]);
+    const ask = conv.asks.find((toolUse) => !respondedToolUseIds.current.has(toolUse.id));
+    if (ask === undefined) return;
+    // Marked before the grant resolves so a re-render mid-flight cannot
+    // double-submit. A failed grant is deliberately NOT retried — the
+    // approval card stays for a manual decision instead of a retry storm.
+    respondedToolUseIds.current.add(ask.id);
+    void conv.answerToolUse(ask.id, "grant").catch(() => {
+      // Swallowed by design (see above); the card's own error surface
+      // reports the failure where the user can act on it.
+    });
+  }, [autoApproveAll, canRespondToGates, conv.asks, conv.answerToolUse]);
 
   // -------------------------------------------------------------------------
   // Agent — derive from session, allow mid-session changes
@@ -675,19 +671,8 @@ export function useSessionPageFlow(
   // Derived display state
   // -------------------------------------------------------------------------
 
-  const displayRun = useMemo(() => {
-    if (conv.activeStreamRun) return conv.activeStreamRun;
-    const completed = conv.completedRuns;
-    return completed.length > 0 ? completed[completed.length - 1] : null;
-  }, [conv.activeStreamRun, conv.completedRuns]);
-
-  const allRuns = useMemo(
-    () => [
-      ...conv.completedRuns,
-      ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
-    ],
-    [conv.completedRuns, conv.activeStreamRun],
-  );
+  const displayRun = conv.activeRun ?? conv.runs.at(-1) ?? null;
+  const allRuns = conv.runs;
 
   const sandboxWorkspaceRoot = useMemo(() => {
     const entries = conv.workspaceEntries;
@@ -718,7 +703,7 @@ export function useSessionPageFlow(
     workspace,
     autoApproveAll,
     setAutoApproveAll,
-    submitApproval,
+    answerToolUse,
     handleSubmit,
 
     displayRun,

@@ -25,11 +25,10 @@
  * Whether the stage runs at all — only when no authentication posture is
  * on — is pinned where the posture is decided: boot/__tests__.
  */
-import { clone, create } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { IdentityAccountPreferencesSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
@@ -143,9 +142,10 @@ describe("ensureOperatorAccount", () => {
     const created = await ensureOperatorAccount(accounts, operator);
 
     // The console's writes: a renamed profile and a preference, through
-    // the port the update RPC persists with.
-    const edited = clone(IdentityAccountSchema, created);
-    if (edited.metadata === undefined || edited.spec === undefined) {
+    // the port's guarded write the update RPC persists with.
+    const read = await accounts.accounts.readForWrite(created.metadata?.id ?? "");
+    const edited = read?.row;
+    if (read === undefined || edited?.metadata === undefined || edited.spec === undefined) {
       throw new Error(
         "the create path answered an account without metadata or spec",
       );
@@ -154,7 +154,9 @@ describe("ensureOperatorAccount", () => {
     edited.spec.preferences = create(IdentityAccountPreferencesSchema, {
       defaultHarness: "cursor",
     });
-    await accounts.accounts.update(edited);
+    expect(
+      await accounts.accounts.swap(created.metadata?.id ?? "", read.bytes, edited),
+    ).toBe(true);
 
     const again = await ensureOperatorAccount(accounts, {
       ...operator,

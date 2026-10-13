@@ -1,33 +1,27 @@
+// Pins the terminal file-review surfaces on folded session events: the
+// decision prompt (bulk keep/undo bound to the set's digest, the per-file
+// mode bound to each file's digest, binary acknowledgement, blocked files,
+// in-flight and error states, the master-detail diff from the run's
+// captured bytes), the edit rows' badges and a group's cue from the turn's
+// review, the settled record, the shared line stats and block reasons, the
+// thread's records, and the whole-file diff body.
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "ink-testing-library";
 import { create } from "@bufbuild/protobuf";
 import { FileReviewContext } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
 import {
-  ToolCallSchema,
   FileContentSchema,
   ToolCallOutputRefSchema,
-  AgentMessageSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
-  FileChangeSetSchema,
   CapturedFileChangeSchema,
-  FileDecisionSchema,
+  FileChangeSetSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileChangeKind,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionScope,
-  FileReviewBlockReason,
-  DiffCompleteness,
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewSet, ToolUse } from "@stigmer/sdk";
 import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { FileReviewPrompt } from "../components/FileReviewPrompt.js";
@@ -35,176 +29,108 @@ import { FileReviewRecord } from "../components/FileReviewRecord.js";
 import { FileDiffBody } from "../components/FileDiffBody.js";
 import { MessageThread } from "../components/MessageThread.js";
 import { FileLineStats } from "../components/FileReviewAtoms.js";
-import { changeSetLineStats } from "../file-review.js";
+import { blockReasonNote, changeSetLineStats, editedPath, settledCounts } from "../file-review.js";
 import { fakeClient, renderWithClient } from "./test-support.js";
+import { RUN_ID, reviewEvents, reviewSet, turnOf, type ReviewFileInit } from "./session-events.js";
 
 // --- fixtures -------------------------------------------------------------
 
-interface ChangeOpts {
-  readonly id: string;
-  readonly path: string;
-  readonly kind?: FileChangeKind;
-  readonly diffComplete?: boolean;
-  readonly binary?: boolean;
-  readonly blockedReason?: FileReviewBlockReason;
-  readonly linesAdded?: number;
-  readonly linesRemoved?: number;
+/** An edit of `path` by the demo run, returned. */
+function editOf(path: string, name = "write_file"): ToolUse {
+  return samples.toolUse(name, "ok", { id: `${RUN_ID}.edit-${path}`, input: { path } });
 }
 
-function makeChange(opts: ChangeOpts) {
-  return create(CapturedFileChangeSchema, {
-    id: opts.id,
-    pathAfter: opts.kind === FileChangeKind.DELETE ? "" : opts.path,
-    pathBefore: opts.kind === FileChangeKind.DELETE ? opts.path : "",
-    kind: opts.kind ?? FileChangeKind.MODIFY,
-    diffComplete: opts.diffComplete ?? true,
-    fileDigest: `fd-${opts.id}`,
-    blockedReason: opts.blockedReason ?? FileReviewBlockReason.UNSPECIFIED,
-    linesAdded: opts.linesAdded ?? 0,
-    linesRemoved: opts.linesRemoved ?? 0,
-    before: opts.binary ? create(FileContentSchema, { isBinary: true }) : undefined,
-    after: opts.binary ? create(FileContentSchema, { isBinary: true }) : undefined,
-  });
-}
-
-interface SetOpts {
-  readonly id?: string;
-  readonly status: FileChangeSetStatus;
-  readonly changes: ReturnType<typeof makeChange>[];
-  readonly diffCompleteness?: DiffCompleteness;
-  readonly decisions?: {
-    readonly scope: FileDecisionScope;
-    readonly action: FileDecisionAction;
-    readonly fileChangeId?: string;
-  }[];
-}
-
-function makeSet(opts: SetOpts): FileChangeSet {
-  return create(FileChangeSetSchema, {
-    id: opts.id ?? "cs-1",
-    status: opts.status,
-    changes: opts.changes,
-    aggregateDigest: "agg-1",
-    diffCompleteness: opts.diffCompleteness ?? DiffCompleteness.COMPLETE,
-    decisions: (opts.decisions ?? []).map((d) =>
-      create(FileDecisionSchema, {
-        scope: d.scope,
-        action: d.action,
-        fileChangeId: d.fileChangeId ?? "",
-      }),
-    ),
-  });
-}
-
-function stampedTool(path: string, setId: string): ToolCall {
-  return create(ToolCallSchema, {
-    id: `tc-${path}`,
-    name: "write_file",
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
-    args: { path },
-    fileChangeSetId: setId,
-  });
-}
-
-function renderRow(toolCall: ToolCall, set: FileChangeSet | null) {
-  const changeSetsById = set ? new Map([[set.id, set]]) : new Map();
+function renderRow(toolUse: ToolUse, sets: readonly FileReviewSet[]) {
   return render(
-    <FileReviewContext.Provider value={{ changeSetsById }}>
-      <ToolCallItem toolCall={toolCall} />
+    <FileReviewContext.Provider
+      value={{ fileReviewByRunId: new Map([[RUN_ID, sets]]), changeSetsById: new Map() }}
+    >
+      <ToolCallItem toolUse={toolUse} />
     </FileReviewContext.Provider>,
   );
 }
 
+const TWO_FILES: readonly ReviewFileInit[] = [
+  { id: "a", path: "one.ts" },
+  { id: "b", path: "two.ts" },
+];
+
 // --- FileReviewPrompt: bulk ----------------------------------------------
 
 describe("FileReviewPrompt — bulk", () => {
-  const completeSet = makeSet({
-    status: FileChangeSetStatus.AWAITING_REVIEW,
-    diffCompleteness: DiffCompleteness.COMPLETE,
-    changes: [
-      makeChange({ id: "a", path: "one.ts" }),
-      makeChange({ id: "b", path: "two.ts" }),
-    ],
-  });
+  const completeSet = reviewSet(TWO_FILES);
 
   it("shows the summary and complete-set bulk actions", () => {
-    const { lastFrame } = render(
-      <FileReviewPrompt changeSet={completeSet} onSubmit={() => {}} />,
-    );
-    const out = lastFrame() ?? "";
+    const out = render(<FileReviewPrompt fileReviewSet={completeSet} onSubmit={() => {}} />).lastFrame() ?? "";
     expect(out).toContain("2 files awaiting review");
     expect(out).toContain("[a] Approve all");
     expect(out).toContain("[r] Reject all");
     expect(out).toContain("[f] Review files");
   });
 
-  it("approves the whole set with the aggregate digest (no acknowledge)", () => {
+  it("keeps the whole set with the aggregate digest (no acknowledge)", () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(
-      <FileReviewPrompt changeSet={completeSet} onSubmit={onSubmit} />,
-    );
+    const { stdin } = render(<FileReviewPrompt fileReviewSet={completeSet} onSubmit={onSubmit} />);
     stdin.write("a");
-    expect(onSubmit).toHaveBeenCalledWith("cs-1", FileDecisionAction.APPROVE, {
-      scope: FileDecisionScope.CHANGE_SET,
+    expect(onSubmit).toHaveBeenCalledWith("cs-1", "keep", {
+      scope: "change_set",
       expectedDigest: "agg-1",
       acknowledgeUnreviewable: false,
     });
   });
 
-  it("rejects the whole set", () => {
+  it("undoes the whole set", () => {
     const onSubmit = vi.fn();
-    const { stdin } = render(
-      <FileReviewPrompt changeSet={completeSet} onSubmit={onSubmit} />,
-    );
+    const { stdin } = render(<FileReviewPrompt fileReviewSet={completeSet} onSubmit={onSubmit} />);
     stdin.write("r");
-    expect(onSubmit).toHaveBeenCalledWith("cs-1", FileDecisionAction.REJECT, {
-      scope: FileDecisionScope.CHANGE_SET,
+    expect(onSubmit).toHaveBeenCalledWith("cs-1", "undo", {
+      scope: "change_set",
       expectedDigest: "agg-1",
       acknowledgeUnreviewable: false,
     });
   });
 
   it("labels a binary-only set 'Keep all' and acknowledges on keep", () => {
-    const binarySet = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
-      changes: [
-        makeChange({ id: "img", path: "logo.png", kind: FileChangeKind.BINARY_CHANGE, diffComplete: false, binary: true }),
-        makeChange({ id: "txt", path: "readme.md" }),
-      ],
-    });
+    const binarySet = reviewSet([
+      { id: "img", path: "logo.png", reviewable: "binary" },
+      { id: "txt", path: "readme.md" },
+    ]);
     const onSubmit = vi.fn();
-    const { stdin, lastFrame } = render(
-      <FileReviewPrompt changeSet={binarySet} onSubmit={onSubmit} />,
-    );
+    const { stdin, lastFrame } = render(<FileReviewPrompt fileReviewSet={binarySet} onSubmit={onSubmit} />);
     expect(lastFrame() ?? "").toContain("[a] Keep all");
     stdin.write("a");
-    expect(onSubmit).toHaveBeenCalledWith("cs-1", FileDecisionAction.APPROVE, {
-      scope: FileDecisionScope.CHANGE_SET,
+    expect(onSubmit).toHaveBeenCalledWith("cs-1", "keep", {
+      scope: "change_set",
       expectedDigest: "agg-1",
       acknowledgeUnreviewable: true,
     });
   });
 
   it("hides bulk keep for a blocked set (no [a]); reject + review only", () => {
-    const blockedSet = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-      changes: [
-        makeChange({ id: "s", path: ".env", diffComplete: false, blockedReason: FileReviewBlockReason.SECRET_WITHHELD }),
-        makeChange({ id: "ok", path: "app.ts" }),
-      ],
-    });
+    const blockedSet = reviewSet([
+      { id: "s", path: ".env", reviewable: "secret" },
+      { id: "ok", path: "app.ts" },
+    ]);
     const onSubmit = vi.fn();
-    const { stdin, lastFrame } = render(
-      <FileReviewPrompt changeSet={blockedSet} onSubmit={onSubmit} />,
-    );
+    const { stdin, lastFrame } = render(<FileReviewPrompt fileReviewSet={blockedSet} onSubmit={onSubmit} />);
     const out = lastFrame() ?? "";
     expect(out).not.toContain("[a]");
     expect(out).toContain("[r] Reject all");
     expect(out).toContain("[f] Review files");
-    stdin.write("a"); // no bulk-approve option → ignored
+    stdin.write("a"); // no bulk-keep option → ignored
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("reads 'remaining' once some files are decided, and a single file plainly", () => {
+    const partly = reviewSet(TWO_FILES, [{ id: "d1", action: "keep", fileChangeId: "a" }]);
+    expect(render(<FileReviewPrompt fileReviewSet={partly} onSubmit={() => {}} />).lastFrame()).toContain(
+      "[a] Approve remaining",
+    );
+    const single = reviewSet([{ id: "a", path: "one.ts" }]);
+    const out = render(<FileReviewPrompt fileReviewSet={single} onSubmit={() => {}} />).lastFrame() ?? "";
+    expect(out).toContain("1 file awaiting review");
+    expect(out).toContain("[a] Approve");
+    expect(out).toContain("[r] Reject");
   });
 });
 
@@ -214,118 +140,149 @@ describe("FileReviewPrompt — bulk", () => {
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 20));
 
 describe("FileReviewPrompt — per-file", () => {
-  const blockedSet = makeSet({
-    status: FileChangeSetStatus.AWAITING_REVIEW,
-    diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-    changes: [
-      makeChange({ id: "ok", path: "app.ts" }),
-      makeChange({ id: "s", path: ".env", diffComplete: false, blockedReason: FileReviewBlockReason.SECRET_WITHHELD }),
-    ],
-  });
+  const blockedSet = reviewSet([
+    { id: "ok", path: "app.ts" },
+    { id: "s", path: ".env", reviewable: "secret" },
+  ]);
 
   it("enters per-file mode and keeps a reviewable file with its file digest", async () => {
     const onSubmit = vi.fn();
-    // Per-file mode mounts FileDiffBody, whose useFileChangeContent reads the
-    // Stigmer client — so these tests render under a provider.
-    const { stdin, lastFrame } = renderWithClient(
-      <FileReviewPrompt changeSet={blockedSet} onSubmit={onSubmit} />,
-    );
+    const { stdin, lastFrame } = render(<FileReviewPrompt fileReviewSet={blockedSet} onSubmit={onSubmit} />);
     stdin.write("f");
     await tick();
     const out = lastFrame() ?? "";
     expect(out).toContain("app.ts");
     expect(out).toContain(".env");
+    expect(out).toContain("contents withheld");
     expect(out).toContain("keep"); // hint line
+    expect(out).toContain("No diff available."); // no captured bytes held
     stdin.write("k"); // keep the selected (first) file
-    expect(onSubmit).toHaveBeenCalledWith("cs-1", FileDecisionAction.APPROVE, {
-      scope: FileDecisionScope.FILE,
+    expect(onSubmit).toHaveBeenCalledWith("cs-1", "keep", {
+      scope: "file",
       fileChangeId: "ok",
       expectedDigest: "fd-ok",
       acknowledgeUnreviewable: false,
     });
   });
 
-  it("refuses to keep an unavailable file but allows discard", async () => {
+  it("refuses to keep an unavailable file but allows discard, and moves both ways", async () => {
     const onSubmit = vi.fn();
-    const { stdin } = renderWithClient(
-      <FileReviewPrompt changeSet={blockedSet} onSubmit={onSubmit} />,
-    );
+    const { stdin, lastFrame } = render(<FileReviewPrompt fileReviewSet={blockedSet} onSubmit={onSubmit} />);
     stdin.write("f");
     await tick();
-    stdin.write("\u001B[B"); // down → select the secret file
+    stdin.write("\u001B[A"); // up wraps → the secret file
+    await tick();
+    stdin.write("\u001B[B"); // down wraps → the first file
+    await tick();
+    stdin.write("\u001B[B"); // down → the secret file
     await tick();
     stdin.write("k"); // keep refused for unavailable
     expect(onSubmit).not.toHaveBeenCalled();
     stdin.write("d"); // discard allowed
-    expect(onSubmit).toHaveBeenCalledWith("cs-1", FileDecisionAction.REJECT, {
-      scope: FileDecisionScope.FILE,
+    expect(onSubmit).toHaveBeenCalledWith("cs-1", "undo", {
+      scope: "file",
       fileChangeId: "s",
       expectedDigest: "fd-s",
       acknowledgeUnreviewable: false,
     });
+    stdin.write("\u001B"); // esc → back to the bulk options
+    await tick();
+    expect(lastFrame() ?? "").toContain("[r] Reject all");
   });
 
-  it("keeps a binary file with an acknowledgement", async () => {
-    const binarySet = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
-      changes: [
-        makeChange({ id: "img", path: "logo.png", kind: FileChangeKind.BINARY_CHANGE, diffComplete: false, binary: true }),
-      ],
-    });
+  it("decides nothing in per-file mode for a set that holds no files", async () => {
     const onSubmit = vi.fn();
-    const { stdin } = renderWithClient(
-      <FileReviewPrompt changeSet={binarySet} onSubmit={onSubmit} />,
-    );
+    const { stdin } = render(<FileReviewPrompt fileReviewSet={reviewSet([])} onSubmit={onSubmit} />);
     stdin.write("f");
     await tick();
     stdin.write("k");
-    expect(onSubmit).toHaveBeenCalledWith("cs-1", FileDecisionAction.APPROVE, {
-      scope: FileDecisionScope.FILE,
+    stdin.write("d");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("keeps a binary file with an acknowledgement", async () => {
+    const binarySet = reviewSet([{ id: "img", path: "logo.png", reviewable: "binary" }]);
+    const onSubmit = vi.fn();
+    const { stdin } = render(<FileReviewPrompt fileReviewSet={binarySet} onSubmit={onSubmit} />);
+    stdin.write("f");
+    await tick();
+    stdin.write("k");
+    expect(onSubmit).toHaveBeenCalledWith("cs-1", "keep", {
+      scope: "file",
       fileChangeId: "img",
       expectedDigest: "fd-img",
       acknowledgeUnreviewable: true,
     });
+  });
+
+  it("labels each decided file and shows a rename's source", async () => {
+    const set = reviewSet(
+      [
+        { id: "a", path: "one.ts" },
+        { id: "b", path: "two.ts" },
+        { id: "c", path: "new.ts", previousPath: "old.ts", change: "renamed" },
+      ],
+      [
+        { id: "d1", action: "keep", fileChangeId: "a" },
+        { id: "d2", action: "undo", fileChangeId: "b", reconciled: false },
+      ],
+    );
+    const { stdin, lastFrame } = render(<FileReviewPrompt fileReviewSet={set} onSubmit={() => {}} />);
+    stdin.write("f");
+    await tick();
+    const out = lastFrame() ?? "";
+    expect(out).toContain("(kept)");
+    expect(out).toContain("(undo failed)");
+    expect(out).toContain("old.ts → new.ts");
   });
 });
 
 // --- FileReviewPrompt: state ---------------------------------------------
 
 describe("FileReviewPrompt — state", () => {
-  const set = makeSet({
-    status: FileChangeSetStatus.AWAITING_REVIEW,
-    changes: [makeChange({ id: "a", path: "one.ts" })],
-  });
+  const set = reviewSet([{ id: "a", path: "one.ts" }]);
 
   it("shows submitting and ignores input while a decision is in flight", () => {
     const onSubmit = vi.fn();
     const { stdin, lastFrame } = render(
-      <FileReviewPrompt
-        changeSet={set}
-        onSubmit={onSubmit}
-        submittingDecisionKeys={new Set(["cs-1"])}
-      />,
+      <FileReviewPrompt fileReviewSet={set} onSubmit={onSubmit} submittingDecisionKeys={new Set(["other", "cs-1"])} />,
     );
     expect(lastFrame() ?? "").toContain("Submitting");
     stdin.write("a");
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("renders a decision error", () => {
-    const { lastFrame } = render(
+  it("is not busy for another set's decision", () => {
+    const out = render(
+      <FileReviewPrompt fileReviewSet={set} onSubmit={() => {}} submittingDecisionKeys={new Set(["other"])} />,
+    ).lastFrame() ?? "";
+    expect(out).not.toContain("Submitting");
+  });
+
+  it("renders this set's decision error, not another's", () => {
+    const out = render(
       <FileReviewPrompt
-        changeSet={set}
+        fileReviewSet={set}
         onSubmit={() => {}}
-        decisionErrors={new Map([["cs-1", new Error("digest mismatch")]])}
+        decisionErrors={new Map([
+          ["other", new Error("not ours")],
+          ["cs-1:a", new Error("digest mismatch")],
+        ])}
       />,
-    );
-    expect(lastFrame() ?? "").toContain("digest mismatch");
+    ).lastFrame() ?? "";
+    expect(out).toContain("digest mismatch");
+    expect(out).not.toContain("not ours");
+    expect(
+      render(
+        <FileReviewPrompt fileReviewSet={set} onSubmit={() => {}} decisionErrors={new Map([["other", new Error("x")]])} />,
+      ).lastFrame(),
+    ).not.toContain("Decision failed");
   });
 
   it("is inert and hints when isActive is false", () => {
     const onSubmit = vi.fn();
     const { stdin, lastFrame } = render(
-      <FileReviewPrompt changeSet={set} onSubmit={onSubmit} isActive={false} />,
+      <FileReviewPrompt fileReviewSet={set} onSubmit={onSubmit} isActive={false} />,
     );
     stdin.write("a");
     expect(onSubmit).not.toHaveBeenCalled();
@@ -336,92 +293,79 @@ describe("FileReviewPrompt — state", () => {
 // --- Row badges -----------------------------------------------------------
 
 describe("ToolCallItem — file-review badge", () => {
-  it("badges a pending set as 'Pending review'", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [makeChange({ id: "a", path: "notes.md" })],
-    });
-    const { lastFrame } = renderRow(stampedTool("notes.md", "cs-1"), set);
-    expect(lastFrame() ?? "").toContain("Pending review");
+  it("badges an undecided file as 'Pending review'", () => {
+    const set = reviewSet([{ id: "a", path: "notes.md" }]);
+    expect(renderRow(editOf("notes.md"), [set]).lastFrame() ?? "").toContain("Pending review");
   });
 
-  it("badges a kept file as 'Kept' and a discarded one as 'Discarded'", () => {
-    const kept = makeSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [makeChange({ id: "a", path: "notes.md" })],
-      decisions: [{ scope: FileDecisionScope.FILE, action: FileDecisionAction.APPROVE, fileChangeId: "a" }],
-    });
-    expect(renderRow(stampedTool("notes.md", "cs-1"), kept).lastFrame() ?? "").toContain("Kept");
-
-    const discarded = makeSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [makeChange({ id: "a", path: "notes.md" })],
-      decisions: [{ scope: FileDecisionScope.FILE, action: FileDecisionAction.REJECT, fileChangeId: "a" }],
-    });
-    expect(renderRow(stampedTool("notes.md", "cs-1"), discarded).lastFrame() ?? "").toContain("Discarded");
+  it("badges a kept file as 'Kept', an undone one as 'Discarded', a failed undo as 'Review failed'", () => {
+    const files = [{ id: "a", path: "notes.md" }];
+    const kept = reviewSet(files, [{ id: "d", action: "keep", fileChangeId: "a" }]);
+    expect(renderRow(editOf("notes.md"), [kept]).lastFrame() ?? "").toContain("Kept");
+    const undone = reviewSet(files, [{ id: "d", action: "undo", fileChangeId: "a", reconciled: true }]);
+    expect(renderRow(editOf("notes.md"), [undone]).lastFrame() ?? "").toContain("Discarded");
+    const failed = reviewSet(files, [{ id: "d", action: "undo", reconciled: false }]);
+    expect(renderRow(editOf("notes.md"), [failed]).lastFrame() ?? "").toContain("Review failed");
   });
 
-  it("badges a failed set as 'Review failed'", () => {
-    const failed = makeSet({
-      status: FileChangeSetStatus.FAILED,
-      changes: [makeChange({ id: "a", path: "notes.md" })],
-    });
-    expect(renderRow(stampedTool("notes.md", "cs-1"), failed).lastFrame() ?? "").toContain("Review failed");
+  it("matches an absolute row path to its workspace-relative file", () => {
+    const set = reviewSet([{ id: "a", path: "src/notes.md" }]);
+    expect(renderRow(editOf("/home/daytona/workspace/src/notes.md"), [set]).lastFrame() ?? "").toContain(
+      "Pending review",
+    );
   });
 
-  it("shows no badge for an unstamped row", () => {
-    const tc = create(ToolCallSchema, {
-      id: "tc-1",
-      name: "write_file",
-      status: ToolCallStatus.TOOL_CALL_COMPLETED,
-      args: { path: "notes.md" },
-    });
-    const out = renderRow(tc, null).lastFrame() ?? "";
-    expect(out).not.toContain("Pending review");
-    expect(out).not.toContain("Kept");
+  it("shows no badge for a row that edits no file, or a turn with no review", () => {
+    const set = reviewSet([{ id: "a", path: "notes.md" }]);
+    const read = samples.toolUse("read_file", "x", { input: { path: "notes.md" } });
+    expect(renderRow(read, [set]).lastFrame() ?? "").not.toContain("Pending review");
+    expect(renderRow(editOf("notes.md"), []).lastFrame() ?? "").not.toContain("Pending review");
   });
 
-  it("shows no badge when the set is still CAPTURING", () => {
-    const capturing = makeSet({
-      status: FileChangeSetStatus.CAPTURING,
-      changes: [makeChange({ id: "a", path: "notes.md" })],
-    });
-    const out = renderRow(stampedTool("notes.md", "cs-1"), capturing).lastFrame() ?? "";
-    expect(out).not.toContain("Pending review");
-    expect(out).not.toContain("Kept");
+  it("shows no badge when the edited path is absent from the review", () => {
+    const decided = reviewSet([{ id: "a", path: "other.md" }], [{ id: "d", action: "keep" }]);
+    expect(renderRow(editOf("notes.md"), [decided]).lastFrame() ?? "").not.toContain("Kept");
   });
+});
 
-  it("shows no badge when the stamped path is absent from the set", () => {
-    const decided = makeSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [makeChange({ id: "a", path: "other.md" })],
-      decisions: [{ scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE }],
-    });
-    const out = renderRow(stampedTool("notes.md", "cs-1"), decided).lastFrame() ?? "";
-    expect(out).not.toContain("Kept");
+describe("editedPath", () => {
+  it("names the file a write, edit or delete changed, and nothing for another tool", () => {
+    expect(editedPath(editOf("a.ts", "write_file"))).toBe("a.ts");
+    expect(editedPath(editOf("b.ts", "edit_file"))).toBe("b.ts");
+    expect(editedPath(editOf("c.ts", "delete_file"))).toBe("c.ts");
+    expect(editedPath(samples.toolUse("read_file", "x", { input: { path: "d.ts" } }))).toBeNull();
   });
 });
 
 // --- Collapsed-group aggregate cue ---------------------------------------
 
 describe("ToolCallGroup — aggregate review cue", () => {
-  it("surfaces a pending edit on the collapsed summary", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [makeChange({ id: "a", path: "notes.md" })],
-    });
-    const { lastFrame } = render(
-      <FileReviewContext.Provider value={{ changeSetsById: new Map([[set.id, set]]) }}>
-        <ToolCallGroup toolCalls={[stampedTool("notes.md", "cs-1")]} />
+  function renderGroup(toolUses: readonly ToolUse[], sets: readonly FileReviewSet[]) {
+    return render(
+      <FileReviewContext.Provider value={{ fileReviewByRunId: new Map([[RUN_ID, sets]]), changeSetsById: new Map() }}>
+        <ToolCallGroup toolUses={toolUses} />
       </FileReviewContext.Provider>,
-    );
-    expect(lastFrame() ?? "").toContain("1 pending review");
+    ).lastFrame() ?? "";
+  }
+
+  it("surfaces a pending edit on the collapsed summary", () => {
+    const set = reviewSet([{ id: "a", path: "notes.md" }]);
+    expect(renderGroup([editOf("notes.md")], [set])).toContain("1 pending review");
   });
 
-  it("shows no cue when no row is stamped", () => {
-    const tc = create(ToolCallSchema, { id: "t", name: "read_file", status: ToolCallStatus.TOOL_CALL_COMPLETED });
-    const { lastFrame } = render(<ToolCallGroup toolCalls={[tc]} />);
-    const out = lastFrame() ?? "";
+  it("surfaces a failed undo, then a settled tally", () => {
+    const files = [{ id: "a", path: "a.md" }, { id: "b", path: "b.md" }];
+    const failed = reviewSet(files, [{ id: "d", action: "undo", reconciled: false }]);
+    expect(renderGroup([editOf("a.md")], [failed])).toContain("1 review failed");
+    const settled = reviewSet(files, [
+      { id: "d1", action: "keep", fileChangeId: "a" },
+      { id: "d2", action: "undo", fileChangeId: "b", reconciled: true },
+    ]);
+    expect(renderGroup([editOf("a.md"), editOf("b.md")], [settled])).toContain("1 kept · 1 discarded");
+  });
+
+  it("shows no cue when no row edited a reviewed file", () => {
+    const out = render(<ToolCallGroup toolUses={[samples.toolUse("read_file", "x")]} />).lastFrame() ?? "";
     expect(out).not.toContain("pending review");
   });
 });
@@ -430,80 +374,118 @@ describe("ToolCallGroup — aggregate review cue", () => {
 
 describe("FileReviewRecord", () => {
   it("summarizes kept/discarded and lists files", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [
-        makeChange({ id: "a", path: "one.ts" }),
-        makeChange({ id: "b", path: "two.ts" }),
-        makeChange({ id: "c", path: "three.ts" }),
+    const set = reviewSet(
+      [
+        { id: "a", path: "one.ts" },
+        { id: "b", path: "two.ts" },
+        { id: "c", path: "three.ts" },
       ],
-      decisions: [
-        { scope: FileDecisionScope.FILE, action: FileDecisionAction.APPROVE, fileChangeId: "a" },
-        { scope: FileDecisionScope.FILE, action: FileDecisionAction.APPROVE, fileChangeId: "b" },
-        { scope: FileDecisionScope.FILE, action: FileDecisionAction.REJECT, fileChangeId: "c" },
+      [
+        { id: "d1", action: "keep", fileChangeId: "a" },
+        { id: "d2", action: "keep", fileChangeId: "b" },
+        { id: "d3", action: "undo", fileChangeId: "c", reconciled: true },
       ],
-    });
-    const { lastFrame } = render(<FileReviewRecord fileChangeSet={set} />);
-    const out = lastFrame() ?? "";
+    );
+    const out = render(<FileReviewRecord fileReviewSet={set} />).lastFrame() ?? "";
     expect(out).toContain("2 kept · 1 discarded");
     expect(out).toContain("one.ts");
     expect(out).toContain("(discarded)");
   });
 
-  it("reports a failed reconcile", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.FAILED,
-      changes: [makeChange({ id: "a", path: "one.ts" })],
-    });
-    expect(render(<FileReviewRecord fileChangeSet={set} />).lastFrame() ?? "").toContain("review failed");
+  it("reports an undo that could not put the files back, and files never reviewed", () => {
+    const set = reviewSet(TWO_FILES, [{ id: "d", action: "undo", fileChangeId: "a", reconciled: false }]);
+    const out = render(<FileReviewRecord fileReviewSet={set} />).lastFrame() ?? "";
+    expect(out).toContain("1 could not be put back · 1 not reviewed");
+    expect(out).toContain("(undo failed)");
+    expect(out).toContain("(not reviewed)");
+  });
+
+  it("reads a set nobody decided as files changed", () => {
+    expect(render(<FileReviewRecord fileReviewSet={reviewSet(TWO_FILES)} />).lastFrame()).toContain(
+      "2 files changed",
+    );
+  });
+});
+
+describe("settledCounts and blockReasonNote", () => {
+  it("counts an undo still being put back as discarded", () => {
+    const set = reviewSet(TWO_FILES, [{ id: "d", action: "undo", fileChangeId: "a" }]);
+    expect(settledCounts(set)).toEqual({ kept: 0, discarded: 1, failed: 0, notReviewed: 1 });
+  });
+
+  it("explains each kind of file that cannot be kept as-is", () => {
+    expect(blockReasonNote({ reviewable: "complete" })).toBeNull();
+    expect(blockReasonNote({ reviewable: "binary" })).toContain("binary");
+    expect(blockReasonNote({ reviewable: "secret" })).toContain("contents withheld");
+    expect(blockReasonNote({ reviewable: "partial" })).toBe("diff unavailable — discard only");
   });
 });
 
 // --- MessageThread integration -------------------------------------------
 
 describe("MessageThread — file-review integration", () => {
-  function execWithStampedEdit(status: FileChangeSetStatus, decided: boolean) {
-    const set = makeSet({
-      id: "cs-1",
-      status,
-      changes: [makeChange({ id: "a", path: "notes.md" })],
-      decisions: decided
-        ? [{ scope: FileDecisionScope.FILE, action: FileDecisionAction.APPROVE, fileChangeId: "a" }]
-        : [],
-    });
-    const aiMsg = create(AgentMessageSchema, {
-      type: MessageType.MESSAGE_AI,
-      content: "Editing notes",
-      toolCalls: [stampedTool("notes.md", "cs-1")],
-    });
-    return create(RunSchema, {
-      metadata: { id: "aex-1" },
-      status: {
-        phase: undefined,
-        messages: [aiMsg],
-        fileChangeSets: [set],
-      },
-    });
+  function turnWithEdit(phase: "completed" | "running", decided: boolean) {
+    return turnOf([
+      ...samples.turnEvents({
+        message: "Edit the notes",
+        tools: [{ name: "write_file", input: { path: "notes.md" }, result: "ok" }],
+        reply: "Edited.",
+        phase,
+      }),
+      ...reviewEvents(
+        [{ id: "a", path: "notes.md" }],
+        decided ? [{ id: "d", action: "keep", fileChangeId: "a" }] : [],
+      ),
+    ]);
   }
 
-  it("badges a settled row and appends a settled record for a completed execution", () => {
-    const exec = execWithStampedEdit(FileChangeSetStatus.RECONCILED, true);
-    const { lastFrame } = render(
-      <MessageThread runs={[exec]} showFileReviewRecords expandToolCalls />,
-    );
-    const out = lastFrame() ?? "";
+  it("badges a settled row and appends a settled record for an ended turn", () => {
+    const out = render(
+      <MessageThread turns={[turnWithEdit("completed", true)]} showFileReviewRecords expandToolCalls />,
+    ).lastFrame() ?? "";
     expect(out).toContain("Kept"); // per-row badge
     expect(out).toContain("File review — 1 kept"); // settled record
   });
 
-  it("does not render a settled record for an AWAITING set (that is the prompt's job)", () => {
-    const exec = execWithStampedEdit(FileChangeSetStatus.AWAITING_REVIEW, false);
-    const { lastFrame } = render(
-      <MessageThread runs={[]} activeStreamRun={exec} showFileReviewRecords expandToolCalls />,
-    );
-    const out = lastFrame() ?? "";
+  it("does not record an undecided set on a live turn (that is the prompt's job)", () => {
+    const out = render(
+      <MessageThread turns={[turnWithEdit("running", false)]} showFileReviewRecords expandToolCalls />,
+    ).lastFrame() ?? "";
     expect(out).toContain("Pending review"); // the row still badges
     expect(out).not.toContain("File review —"); // but no settled record
+  });
+
+  it("renders the diff of a write from its run's captured bytes", async () => {
+    const turn = turnWithEdit("running", false);
+    const run = samples.run({ phase: undefined });
+    run.status!.fileChangeSets = [
+      create(FileChangeSetSchema, {
+        id: "cs-1",
+        changes: [
+          create(CapturedFileChangeSchema, {
+            id: "a",
+            pathAfter: "notes.md",
+            pathBefore: "notes.md",
+            kind: FileChangeKind.MODIFY,
+            diffComplete: true,
+            before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
+            after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
+          }),
+        ],
+      }),
+    ];
+    const prompt = renderWithClient(
+      <FileReviewPrompt
+        fileReviewSet={turn.fileReview[0]!}
+        capture={run.status!.fileChangeSets[0]!}
+        onSubmit={() => {}}
+      />,
+    );
+    prompt.stdin.write("f");
+    await tick();
+    expect(prompt.lastFrame() ?? "").toContain("+new");
+    // The thread's context carries the same bytes for its rows.
+    expect(render(<MessageThread turns={[turn]} runs={[run]} />).lastFrame()).toContain("Edited.");
   });
 });
 
@@ -516,15 +498,13 @@ describe("FileLineStats", () => {
   });
 
   it("renders +N -M when counts exist", () => {
-    const { lastFrame } = render(<FileLineStats linesAdded={7} linesRemoved={3} />);
-    const out = lastFrame() ?? "";
+    const out = render(<FileLineStats linesAdded={7} linesRemoved={3} />).lastFrame() ?? "";
     expect(out).toContain("+7");
     expect(out).toContain("-3");
   });
 
   it("renders a one-sided stat (added only) without hiding it", () => {
-    const { lastFrame } = render(<FileLineStats linesAdded={5} linesRemoved={0} />);
-    const out = lastFrame() ?? "";
+    const out = render(<FileLineStats linesAdded={5} linesRemoved={0} />).lastFrame() ?? "";
     expect(out).toContain("+5");
     expect(out).toContain("-0"); // both sides always shown once any count exists
   });
@@ -534,33 +514,15 @@ describe("FileLineStats", () => {
 
 describe("changeSetLineStats", () => {
   it("sums per-file counts across the set", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [
-        makeChange({ id: "a", path: "one.ts", linesAdded: 10, linesRemoved: 2 }),
-        makeChange({ id: "b", path: "two.ts", linesAdded: 5, linesRemoved: 3 }),
-      ],
-    });
+    const set = reviewSet([
+      { id: "a", path: "one.ts", linesAdded: 10, linesRemoved: 2 },
+      { id: "b", path: "two.ts", linesAdded: 5, linesRemoved: 3 },
+    ]);
     expect(changeSetLineStats(set)).toEqual({ linesAdded: 15, linesRemoved: 5 });
   });
 
-  it("treats an uncountable (binary/withheld) file as a zero contributor — honest understatement", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [
-        makeChange({ id: "txt", path: "app.ts", linesAdded: 8, linesRemoved: 1 }),
-        makeChange({ id: "img", path: "logo.png", kind: FileChangeKind.BINARY_CHANGE, binary: true }),
-      ],
-    });
-    expect(changeSetLineStats(set)).toEqual({ linesAdded: 8, linesRemoved: 1 });
-  });
-
   it("is zero for a set whose files carry no counts (stat then hidden by the atom)", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [makeChange({ id: "a", path: "one.ts" })],
-    });
-    expect(changeSetLineStats(set)).toEqual({ linesAdded: 0, linesRemoved: 0 });
+    expect(changeSetLineStats(reviewSet([{ id: "a", path: "one.ts" }]))).toEqual({ linesAdded: 0, linesRemoved: 0 });
   });
 });
 
@@ -568,39 +530,29 @@ describe("changeSetLineStats", () => {
 
 describe("FileReviewPrompt — line stats", () => {
   it("shows the set aggregate +N -M on the header", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [
-        makeChange({ id: "a", path: "one.ts", linesAdded: 12, linesRemoved: 3 }),
-        makeChange({ id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 1 }),
-      ],
-    });
-    const out = render(<FileReviewPrompt changeSet={set} onSubmit={() => {}} />).lastFrame() ?? "";
+    const set = reviewSet([
+      { id: "a", path: "one.ts", linesAdded: 12, linesRemoved: 3 },
+      { id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 1 },
+    ]);
+    const out = render(<FileReviewPrompt fileReviewSet={set} onSubmit={() => {}} />).lastFrame() ?? "";
     expect(out).toContain("2 files awaiting review");
     expect(out).toContain("+16");
     expect(out).toContain("-4");
   });
 
   it("hides the header aggregate when no file has counts (never +0 -0)", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [makeChange({ id: "a", path: "one.ts" })],
-    });
-    const out = render(<FileReviewPrompt changeSet={set} onSubmit={() => {}} />).lastFrame() ?? "";
+    const out = render(
+      <FileReviewPrompt fileReviewSet={reviewSet([{ id: "a", path: "one.ts" }])} onSubmit={() => {}} />,
+    ).lastFrame() ?? "";
     expect(out).not.toContain("+");
   });
 
   it("shows per-file +N -M in per-file mode", async () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      changes: [
-        makeChange({ id: "a", path: "one.ts", linesAdded: 10, linesRemoved: 2 }),
-        makeChange({ id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 0 }),
-      ],
-    });
-    const { stdin, lastFrame } = renderWithClient(
-      <FileReviewPrompt changeSet={set} onSubmit={() => {}} />,
-    );
+    const set = reviewSet([
+      { id: "a", path: "one.ts", linesAdded: 10, linesRemoved: 2 },
+      { id: "b", path: "two.ts", linesAdded: 4, linesRemoved: 0 },
+    ]);
+    const { stdin, lastFrame } = render(<FileReviewPrompt fileReviewSet={set} onSubmit={() => {}} />);
     stdin.write("f");
     await tick();
     const out = lastFrame() ?? "";
@@ -611,28 +563,23 @@ describe("FileReviewPrompt — line stats", () => {
 
 describe("FileReviewRecord — line stats", () => {
   it("shows the set aggregate and per-file +N -M", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [
-        makeChange({ id: "a", path: "one.ts", linesAdded: 9, linesRemoved: 2 }),
-        makeChange({ id: "b", path: "two.ts", linesAdded: 3, linesRemoved: 1 }),
+    const set = reviewSet(
+      [
+        { id: "a", path: "one.ts", linesAdded: 9, linesRemoved: 2 },
+        { id: "b", path: "two.ts", linesAdded: 3, linesRemoved: 1 },
       ],
-      decisions: [
-        { scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE },
-      ],
-    });
-    const out = render(<FileReviewRecord fileChangeSet={set} />).lastFrame() ?? "";
+      [{ id: "d", action: "keep" }],
+    );
+    const out = render(<FileReviewRecord fileReviewSet={set} />).lastFrame() ?? "";
     expect(out).toContain("+12"); // aggregate 9+3
     expect(out).toContain("+9"); // per-file
     expect(out).toContain("+3"); // per-file
   });
 
   it("renders no stat when the set carries no counts", () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.RECONCILED,
-      changes: [makeChange({ id: "a", path: "one.ts" })],
-    });
-    expect(render(<FileReviewRecord fileChangeSet={set} />).lastFrame() ?? "").not.toContain("+");
+    expect(
+      render(<FileReviewRecord fileReviewSet={reviewSet([{ id: "a", path: "one.ts" }])} />).lastFrame() ?? "",
+    ).not.toContain("+");
   });
 });
 
@@ -786,15 +733,19 @@ describe("FileDiffBody", () => {
 
 describe("FileReviewPrompt — inline diff (master-detail)", () => {
   it("shows only the selected file's diff and follows the selection", async () => {
-    const set = makeSet({
-      status: FileChangeSetStatus.AWAITING_REVIEW,
+    const set = reviewSet([
+      { id: "a", path: "file.ts" },
+      { id: "b", path: "file.ts" },
+    ]);
+    const capture = create(FileChangeSetSchema, {
+      id: "cs-1",
       changes: [
         changeWith({ id: "a", before: inlineSide("alpha\n"), after: inlineSide("ALPHA\n") }),
         changeWith({ id: "b", before: inlineSide("bravo\n"), after: inlineSide("BRAVO\n") }),
       ],
     });
     const { stdin, lastFrame } = renderWithClient(
-      <FileReviewPrompt changeSet={set} onSubmit={() => {}} />,
+      <FileReviewPrompt fileReviewSet={set} capture={capture} onSubmit={() => {}} />,
     );
     stdin.write("f");
     await tick();

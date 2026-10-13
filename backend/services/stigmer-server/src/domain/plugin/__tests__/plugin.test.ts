@@ -25,6 +25,11 @@
  * installed from is served back by key, inline and over the transfer lane,
  * and a key outside the plugin store is not found; refusals of the archive,
  * the package and a name whose slug breaks the slug rules write nothing.
+ * A re-push whose write loses once runs again, keeps the write that landed,
+ * and archives only the version that went live: an updateVisibility that
+ * lands between the re-push's read and its swap leaves its status_audit
+ * stamp on the stored plugin beside the new digest at the level the push
+ * declares, and the history holds the first push and the upgrade, each once.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -44,6 +49,8 @@ import {
 import type { PluginFixture } from "@stigmer/plugin-package/testing";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -60,6 +67,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import {
   organizationId,
   seedOrganizations,
@@ -618,6 +626,70 @@ describe("Plugin push — one row", () => {
         "plugin artifact not found",
       );
     }
+  });
+});
+
+describe("Plugin push — a write that lands mid-push", () => {
+  it("a re-push whose write loses once runs again, keeps the write that landed, and archives only the version that went live", async () => {
+    const name = uniqueName("raced");
+    const first = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name, { skill: "first" })),
+    });
+    const id = first.metadata!.id;
+    // A re-push keeps the stored status_audit slot (#540), so the stamp
+    // the landed updateVisibility made survives only a push that read
+    // again; the level is the push's own (it declares one, here the
+    // kind's default).
+    let landed: Plugin | undefined;
+    const { result, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.plugin,
+      id,
+      async () => {
+        landed = await plugins.updateVisibility({
+          resourceId: id,
+          visibility: ApiResourceVisibility.visibility_private,
+        });
+      },
+      () =>
+        plugins.push({
+          org: ORG,
+          artifact: archiveOf(thermosLike(name, { skill: "second" })),
+        }),
+    );
+    expect(writes).toBeGreaterThanOrEqual(2);
+    expect(landed?.status?.audit?.statusAudit).toBeDefined();
+    expect(landed?.status?.audit?.statusAudit).not.toEqual(
+      first.status?.audit?.statusAudit,
+    );
+
+    const stored = await server.store.getResource(
+      ApiResourceKind.plugin,
+      id,
+      PluginSchema,
+    );
+    const liveDigest = stored.status!.digest;
+    expect(liveDigest).not.toBe(first.status?.digest);
+    expect(result.status?.digest).toBe(liveDigest);
+    for (const plugin of [stored, result]) {
+      expect(plugin.status?.skills.map((s) => s.name)).toEqual(["second"]);
+      expect(plugin.status?.audit?.statusAudit).toEqual(
+        landed?.status?.audit?.statusAudit,
+      );
+      expect(plugin.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_org,
+      );
+    }
+
+    const archived = await server.store.listAuditRecords(
+      ApiResourceKind.plugin,
+      id,
+    );
+    expect(archived.map((record) => record.versionHash)).toEqual([
+      liveDigest,
+      first.status?.digest,
+    ]);
   });
 });
 

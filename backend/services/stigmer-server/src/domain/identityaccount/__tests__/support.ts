@@ -1,18 +1,30 @@
 /**
  * Test fixtures for the identity-account domain: an in-memory
  * IdentityAccountStore with the primary-key semantics the OSS adapter has
- * (a second save under a held id is DuplicateAccountError), so provisioning
+ * (a second save under a held id is DuplicateAccountError, and a swap lands
+ * only on the bytes it read), so provisioning
  * and verifier tests exercise the port's contract without a store driver.
  * Driver-backed fixtures live with the drivers (the sqlite and postgres
  * __tests__/support modules under src/store).
  */
+import { clone, toBinary } from "@bufbuild/protobuf";
+
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import { DuplicateAccountError } from "../store.js";
 import type { IdentityAccountStore } from "../store.js";
 
 export interface FakeIdentityAccountStore extends IdentityAccountStore {
   readonly rows: Map<string, IdentityAccount>;
+}
+
+/** Whether two stored forms are the same bytes, as a driver's swap compares them. */
+function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
+  return (
+    left.length === right.length &&
+    left.every((byte, index) => byte === right[index])
+  );
 }
 
 export function fakeIdentityAccountStore(): FakeIdentityAccountStore {
@@ -30,8 +42,22 @@ export function fakeIdentityAccountStore(): FakeIdentityAccountStore {
       }
       rows.set(id, account);
     },
-    async update(account) {
-      rows.set(account.metadata?.id ?? "", account);
+    async readForWrite(id) {
+      const row = rows.get(id);
+      return row === undefined
+        ? undefined
+        : {
+            row: clone(IdentityAccountSchema, row),
+            bytes: toBinary(IdentityAccountSchema, row),
+          };
+    },
+    async swap(id, expectedBytes, next) {
+      const row = rows.get(id);
+      if (row === undefined || !sameBytes(toBinary(IdentityAccountSchema, row), expectedBytes)) {
+        return false;
+      }
+      rows.set(id, next);
+      return true;
     },
     async deleteById(id) {
       rows.delete(id);

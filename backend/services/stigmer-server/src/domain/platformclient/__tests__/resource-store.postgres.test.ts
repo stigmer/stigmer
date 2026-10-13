@@ -38,8 +38,6 @@ const CONTRACT_CASE_NAMES = [
   "save under a held id raises DuplicatePlatformClientError",
   "save under a held client_id raises DuplicatePlatformClientError",
   "the same slug in another organization is a different client",
-  "update replaces the row in place",
-  "update of an unknown id writes nothing",
   "modifyById persists what modify did, answers the persisted row, and the lookups follow it",
   "modifyById of an unknown id answers undefined and writes nothing",
   "a modify that throws writes nothing and rejects with its error",
@@ -47,6 +45,12 @@ const CONTRACT_CASE_NAMES = [
   "deleteById frees the id, the client_id and the slug; deleting an unknown id resolves",
   "findByOrg answers every client of the organization and no other",
   "a disconnected store is an infrastructure fault, never 'not found'",
+  "readForWrite answers undefined for an unknown id",
+  "a swap on the bytes readForWrite answered lands, and the row reads back as written",
+  "a swap loses after a write lands between the read and the swap, and that write survives",
+  "a swap on bytes a landed swap replaced loses",
+  "a swap on a row deleted since the read loses and inserts nothing",
+  "readForWrite and swap propagate an outage rather than answer absent or lost",
 ] as const;
 
 interface OpenedStore {

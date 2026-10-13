@@ -63,6 +63,7 @@ import type {
   OrganizationDeletionStore,
   PendingOAuthStateStore,
   RawResourceDocument,
+  ResourceReadForWrite,
   ScheduleFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
@@ -317,6 +318,38 @@ export class PostgresStore implements Store {
       throw new ResourceNotFoundError(`${kindName}/${id}`);
     }
     return fromBinary(schema, row.data);
+  }
+
+  async readResourceForWrite<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+  ): Promise<ResourceReadForWrite<Desc>> {
+    const kindName = apiResourceKindName(kind);
+    const result = await this.open().query(
+      `SELECT data FROM resources WHERE kind = $1 AND id = $2`,
+      [kindName, id],
+    );
+    const row = result.rows[0] as { data: Uint8Array } | undefined;
+    if (row === undefined) {
+      throw new ResourceNotFoundError(`${kindName}/${id}`);
+    }
+    return { resource: fromBinary(schema, row.data), bytes: row.data };
+  }
+
+  async swapResource<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    expectedBytes: Uint8Array,
+    resource: MessageShape<Desc>,
+  ): Promise<boolean> {
+    return this.replaceResourceDataIfUnchanged(
+      kind,
+      id,
+      expectedBytes,
+      toBinary(schema, resource),
+    );
   }
 
   async updateResource<Desc extends DescMessage>(

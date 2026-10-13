@@ -1,15 +1,20 @@
 // Unit tests for the session read helpers resume is built on: a session is
 // read by its id, and its runs are listed in one call for that session,
-// returned in the server's order (newest first). The client is a double
-// recording what it was asked.
+// returned in the server's order (newest first). A session's events are
+// listed oldest first, every page followed, optionally only one run's; a run
+// names its session by its target, and a run that names none is refused. The
+// client is a double recording what it was asked.
 
 import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ListRunsBySessionRequest } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { ListSessionEventsRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
-import { getSessionById, listRunsBySession } from "../session.js";
+import { CliExitError } from "../../errors/index.js";
+import { phase, user } from "../__test-utils__/session-events.js";
+import { getSessionById, listRunsBySession, listSessionEvents, sessionOfRun } from "../session.js";
 
 describe("session reads", () => {
   it("reads a session by its id", async () => {
@@ -49,5 +54,36 @@ describe("session reads", () => {
 
     expect(requests.map((r) => r.sessionId)).toEqual(["ses_1"]);
     expect(runs.map((r) => r.metadata?.id)).toEqual(["aex_2", "aex_1"]);
+  });
+
+  it("lists a session's events oldest first, following every page", async () => {
+    const requests: ListSessionEventsRequest[] = [];
+    const first = user("run_1", "hi");
+    const second = phase("run_1", "completed");
+    const client = {
+      session: {
+        listEvents: async (req: ListSessionEventsRequest) => {
+          requests.push(req);
+          return req.pageToken === ""
+            ? { events: [first], nextPageToken: "page-2" }
+            : { events: [second], nextPageToken: "" };
+        },
+      },
+    } as unknown as Stigmer;
+
+    const events = await listSessionEvents(client, "ses_1", "run_1");
+
+    expect(events).toEqual([first, second]);
+    expect(requests.map((r) => [r.sessionId, r.runId, r.pageSize, r.pageToken])).toEqual([
+      ["ses_1", "run_1", 1000, ""],
+      ["ses_1", "run_1", 1000, "page-2"],
+    ]);
+  });
+
+  it("names a run's session, and refuses a run that names none", () => {
+    expect(sessionOfRun(create(RunSchema, { spec: { target: { case: "sessionId", value: "ses_1" } } }))).toBe("ses_1");
+    const orphan = create(RunSchema, { metadata: { id: "run_1" } });
+    expect(() => sessionOfRun(orphan)).toThrow(CliExitError);
+    expect(() => sessionOfRun(orphan)).toThrow("run run_1 names no session");
   });
 });

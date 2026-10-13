@@ -112,14 +112,15 @@ export function newInvitationStore(pool: Pool): InvitationStore {
       );
     },
 
-    async update(invitation): Promise<void> {
-      const params = writeParams(invitation);
-      await pool.query(
-        `UPDATE ee.iam_invitation
-            SET data = $2, org = $3, token = $4
-          WHERE id = $1`,
-        params.slice(0, 4),
-      );
+    revoke(invitationId): Promise<Invitation | undefined> {
+      return underRowLock<Invitation | undefined>(invitationId, (invitation) => {
+        const status = invitation?.status;
+        if (invitation === undefined || status === undefined || status.state === InvitationState.revoked) {
+          return { answer: invitation };
+        }
+        status.state = InvitationState.revoked;
+        return { write: invitation, answer: invitation };
+      });
     },
 
     async deleteById(id): Promise<void> {

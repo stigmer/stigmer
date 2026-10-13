@@ -94,7 +94,8 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
-import { newPersistOntoLiveRowStep, newPersistStep } from "../../pipeline/steps/persist.js";
+import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -213,37 +214,39 @@ async function update(
   app: OAuthApp,
   ctx: HandlerContext,
 ): Promise<OAuthApp> {
-  const reqCtx = new RequestContext(
-    OAuthAppSchema,
-    app,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof OAuthAppSchema>("oauthapp-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(
-        OAuthAppCommandController.method.update,
-        deps.authorizer,
-      ),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newCheckLoginEndpointsStep())
-    .addStep(newNormalizeAddressesStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(
-      newEncryptClientSecretForUpdateStep(deps.secretService, deps.logger),
-    )
-    .addStep(newClaimAddressesStep(deps.store, "update"))
-    .addStep(newPersistOntoLiveRowStep(deps.store))
-    .addStep(newReleaseDroppedAddressesStep(deps.store, deps.logger))
-    .build()
-    .execute(reqCtx);
-  const result = reqCtx.newState;
-  redactOAuthApp(result);
-  return result;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      OAuthAppSchema,
+      app,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof OAuthAppSchema>("oauthapp-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(
+          OAuthAppCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newCheckLoginEndpointsStep())
+      .addStep(newNormalizeAddressesStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(
+        newEncryptClientSecretForUpdateStep(deps.secretService, deps.logger),
+      )
+      .addStep(newClaimAddressesStep(deps.store, "update"))
+      .addStep(newPersistStep(deps.store))
+      .addStep(newReleaseDroppedAddressesStep(deps.store, deps.logger))
+      .build()
+      .execute(reqCtx);
+    const result = reqCtx.newState;
+    redactOAuthApp(result);
+    return result;
+  });
 }
 
 /**

@@ -18,10 +18,11 @@ const mockConv = {
     status: { agentId: "agt_1", agentVersionHash: "h2" },
   },
   isLoading: false,
-  completedRuns: [] as unknown[],
-  activeStreamRun: null,
+  runs: [] as unknown[],
+  activeRun: null,
+  asks: [] as unknown[],
   workspaceEntries: [] as unknown[],
-  submitApproval: vi.fn(),
+  answerToolUse: vi.fn(),
   sendFollowUp: mockSendFollowUp,
 };
 vi.mock("../useSessionConversation", () => ({
@@ -151,7 +152,7 @@ describe("useSessionPageFlow — guest audience", () => {
     // writes over whatever the visitor sent, so a guest never seeds a
     // follow-up from an earlier turn: even a turn that records a model
     // must not put one on the next message.
-    mockConv.completedRuns = [
+    mockConv.runs = [
       { spec: { runConfig: { modelName: "claude-sonnet-4.6", maxCostUsd: 0.5 } } },
     ];
     const { result } = renderHook(() =>
@@ -163,6 +164,6 @@ describe("useSessionPageFlow — guest audience", () => {
     });
 
     expect(mockSendFollowUp.mock.calls[0][1].modelName).toBeUndefined();
-    mockConv.completedRuns = [];
+    mockConv.runs = [];
   });
 });

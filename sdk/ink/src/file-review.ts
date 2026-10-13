@@ -1,19 +1,18 @@
-import type {
-  CapturedFileChange,
-  FileChangeProgressEntry,
-  FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  FileChangeKind,
-  FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { deriveEffectiveVerdicts, fileReviewability } from "@stigmer/react";
+// Pure helpers the terminal's file-review surfaces share: the change-kind
+// letter, the rename-aware path rule, a file's block reason, a set's line
+// stats and its settled outcome. A turn's review — its files and how each
+// was decided — is the session's fold (`FileReviewSet`); the mid-run
+// progress strip reads the run's slim progress entries.
+import type { FileChangeProgressEntry } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { extractPrimaryArg, fileReviewability } from "@stigmer/react";
+import { resolveToolKind, type FileReviewFile, type FileReviewSet, type ToolUse } from "@stigmer/sdk";
 
 /**
  * Single-letter badge for a file change's kind, matching the web review card:
  * `A` added, `M` modified, `D` deleted, `R` renamed. A binary change reads as
- * `M` — "binary" is a review-completeness property (from `FileContent.is_binary`
- * via `fileReviewability`), not a distinct edit kind.
+ * `M` — "binary" is a review-completeness property (`fileReviewability`), not
+ * a distinct edit kind.
  */
 export function kindLetter(kind: FileChangeKind): string {
   switch (kind) {
@@ -29,134 +28,131 @@ export function kindLetter(kind: FileChangeKind): string {
 }
 
 /**
- * The one rename-aware path-display rule for the terminal, over the raw
- * before/after/kind triple shared by every file-change shape (reviewable
- * `CapturedFileChange` and slim `FileChangeProgressEntry` alike). Kept private
- * and fed by the typed adapters below so the two surfaces can never grow
- * divergent rename formatting.
+ * The one rename-aware path-display rule for the terminal, fed by the typed
+ * adapters below so the review and progress surfaces can never grow divergent
+ * rename formatting.
  */
-function displayChangePath(
-  pathBefore: string,
-  pathAfter: string,
-  kind: FileChangeKind,
-): string {
-  if (kind === FileChangeKind.RENAME && pathBefore && pathAfter) {
-    return `${pathBefore} → ${pathAfter}`;
+function displayChangePath(previousPath: string, path: string, renamed: boolean): string {
+  if (renamed && previousPath && path) {
+    return `${previousPath} → ${path}`;
   }
-  return pathAfter || pathBefore;
+  return path || previousPath;
 }
 
 /**
- * The path to show for a reviewable change: the post-edit path, or the pre-edit
- * path for a deletion. A rename shows `before → after` so both sides are visible.
+ * The path to show for a file of a turn's review. A rename shows
+ * `before → after` so both sides are visible.
  */
-export function changeDisplayPath(change: CapturedFileChange): string {
-  return displayChangePath(change.pathBefore, change.pathAfter, change.kind);
+export function fileDisplayPath(file: Pick<FileReviewFile, "path" | "previousPath" | "change">): string {
+  return displayChangePath(file.previousPath, file.path, file.change === "renamed");
 }
 
 /**
- * The path to show for a mid-run progress entry, using the same
- * rename-aware rule as {@link changeDisplayPath}. The slim entry carries no
- * bodies or digests, only the same before/after/kind triple, so the terminal
- * renders its path identically to the reviewable surfaces.
+ * The path to show for a mid-run progress entry, using the same rename-aware
+ * rule as {@link fileDisplayPath}: the post-edit path, or the pre-edit path
+ * for a deletion.
  */
 export function progressEntryDisplayPath(entry: FileChangeProgressEntry): string {
-  return displayChangePath(entry.pathBefore, entry.pathAfter, entry.kind);
+  return displayChangePath(entry.pathBefore, entry.pathAfter, entry.kind === FileChangeKind.RENAME);
 }
 
 /**
- * The honest, one-line reason a change cannot be kept as-is, or `null` when it
- * is fully reviewable. Mirrors the web card's per-file block-reason copy so the
- * terminal reviewer sees the same explanation.
+ * The honest, one-line reason a file cannot be kept as-is, or `null` when it
+ * is fully reviewable. Mirrors the web card's per-file block-reason copy so
+ * the terminal reviewer sees the same explanation.
  */
-export function blockReasonNote(change: CapturedFileChange): string | null {
-  const reviewability = fileReviewability(change);
+export function blockReasonNote(file: Pick<FileReviewFile, "reviewable">): string | null {
+  const reviewability = fileReviewability(file);
   switch (reviewability.kind) {
     case "reviewable":
       return null;
     case "binary":
       return "binary — no text diff; keep as-is or discard";
     case "unavailable":
-      switch (reviewability.reason) {
-        case "secret":
-          return "contents withheld (looks like a secret) — discard only";
-        case "size":
-          return "diff too large to display — discard only";
-        default:
-          return "diff unavailable — discard only";
-      }
+      return reviewability.reason === "secret"
+        ? "contents withheld (looks like a secret) — discard only"
+        : "diff unavailable — discard only";
   }
 }
 
-/** The aggregate `+N −M` line counts for a change set. */
+/** The aggregate `+N −M` line counts for a set. */
 export interface LineStats {
-  /** Total lines added across the set's changes. */
+  /** Total lines added across the set's files. */
   readonly linesAdded: number;
-  /** Total lines removed across the set's changes. */
+  /** Total lines removed across the set's files. */
   readonly linesRemoved: number;
 }
 
 /**
- * Sums a change set's per-file `linesAdded`/`linesRemoved` into one aggregate,
- * for the set-level `+N −M` shown beside the prompt header and the settled
- * record summary (parity with the web card's collapsed-bar aggregate). Counts
- * every change regardless of verdict — it reports what changed, not what was
- * kept. A file with no counts (binary, secret-withheld, or a record predating
- * the fields) contributes zero, so the aggregate honestly understates rather
- * than guessing; when NO file has counts it is zero and the stat is hidden.
+ * Sums a set's per-file `linesAdded`/`linesRemoved` into one aggregate, for
+ * the set-level `+N −M` beside the prompt header and the settled record
+ * summary. Counts every file regardless of verdict — it reports what
+ * changed, not what was kept. A file with no counts (binary,
+ * secret-withheld) contributes zero, so the aggregate honestly understates
+ * rather than guessing.
  */
-export function changeSetLineStats(set: FileChangeSet): LineStats {
+export function changeSetLineStats(set: Pick<FileReviewSet, "files">): LineStats {
   let linesAdded = 0;
   let linesRemoved = 0;
-  for (const change of set.changes) {
-    linesAdded += change.linesAdded;
-    linesRemoved += change.linesRemoved;
+  for (const file of set.files) {
+    linesAdded += file.linesAdded;
+    linesRemoved += file.linesRemoved;
   }
   return { linesAdded, linesRemoved };
 }
 
-/** The effective per-file verdict counts for a settled change set. */
+/** The per-file outcome counts for a settled set. */
 export interface SettledCounts {
-  /** Files kept (effective verdict APPROVE). */
+  /** Files kept. */
   readonly kept: number;
-  /** Files discarded (effective verdict REJECT). */
+  /** Files undone (put back, or being put back). */
   readonly discarded: number;
-  /** Files with no effective verdict (neither kept nor discarded). */
+  /** Files whose undo failed. */
+  readonly failed: number;
+  /** Files never decided. */
   readonly notReviewed: number;
 }
 
-/**
- * Folds a settled change set's decisions into kept / discarded / not-reviewed
- * counts, using the same `deriveEffectiveVerdicts` fold the web uses so a
- * "Keep all" set correctly reads every file as kept.
- */
-export function settledCounts(set: FileChangeSet): SettledCounts {
-  const verdicts = deriveEffectiveVerdicts(set);
+/** Folds a set's file states into kept / discarded / failed / not-reviewed counts. */
+export function settledCounts(set: Pick<FileReviewSet, "files">): SettledCounts {
   let kept = 0;
   let discarded = 0;
-  for (const change of set.changes) {
-    const verdict = verdicts.get(change.id);
-    if (verdict === FileDecisionAction.APPROVE) kept++;
-    else if (verdict === FileDecisionAction.REJECT) discarded++;
+  let failed = 0;
+  for (const file of set.files) {
+    if (file.state === "kept") kept++;
+    else if (file.state === "undone" || file.state === "undoing") discarded++;
+    else if (file.state === "undo_failed") failed++;
   }
-  return {
-    kept,
-    discarded,
-    notReviewed: set.changes.length - kept - discarded,
-  };
+  return { kept, discarded, failed, notReviewed: set.files.length - kept - discarded - failed };
 }
 
 /**
- * A one-line summary of a settled change set's outcome, e.g. `2 kept · 1
- * discarded`, or `3 files changed` when nothing was individually decided.
+ * A one-line summary of a settled set's outcome, e.g. `2 kept · 1
+ * discarded`, or `3 files changed` when nothing was decided.
  */
-export function settledSummary(set: FileChangeSet): string {
-  const { kept, discarded, notReviewed } = settledCounts(set);
+export function settledSummary(set: Pick<FileReviewSet, "files">): string {
+  const { kept, discarded, failed, notReviewed } = settledCounts(set);
+  const n = set.files.length;
+  if (notReviewed === n) return `${n} file${n === 1 ? "" : "s"} changed`;
   const parts: string[] = [];
   if (kept) parts.push(`${kept} kept`);
   if (discarded) parts.push(`${discarded} discarded`);
+  if (failed) parts.push(`${failed} could not be put back`);
   if (notReviewed) parts.push(`${notReviewed} not reviewed`);
-  if (parts.length > 0) return parts.join(" · ");
-  const n = set.changes.length;
-  return `${n} file${n === 1 ? "" : "s"} changed`;
+  return parts.join(" · ");
+}
+
+/**
+ * The file a tool use edited, when it is a file write, edit or delete: the
+ * path its file-review badge is matched by. `null` for any other tool.
+ */
+export function editedPath(toolUse: ToolUse): string | null {
+  switch (resolveToolKind(toolUse)) {
+    case ToolKind.FILE_WRITE:
+    case ToolKind.FILE_EDIT:
+    case ToolKind.FILE_DELETE:
+      return extractPrimaryArg(toolUse);
+    default:
+      return null;
+  }
 }

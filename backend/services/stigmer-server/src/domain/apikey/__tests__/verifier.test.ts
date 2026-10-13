@@ -676,11 +676,12 @@ describe("a key that speaks for an organization's service account", () => {
       displayName: "nightly",
       boundOrg: SA_ORG,
     });
-    const row = await accounts.findById(accountId);
-    if (row?.metadata === undefined) throw new Error("fixture row missing");
+    const read = await accounts.readForWrite(accountId);
+    const row = read?.row;
+    if (read === undefined || row?.metadata === undefined) throw new Error("fixture row missing");
     row.metadata.name = "nightly-renamed";
     row.metadata.slug = "nightly-renamed";
-    await accounts.update(row);
+    expect(await accounts.swap(accountId, read.bytes, row)).toBe(true);
     expect((await verifier().verify(plaintext))?.displayName).toBe(
       "nightly-renamed",
     );

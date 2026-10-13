@@ -61,9 +61,14 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # The runner, the server, and the suites import the built proto stubs.
-      - name: Build proto stubs
-        run: npm run build -w @stigmer/protos
+      # The runner, the server, and the suites import the built proto stubs,
+      # and the session-log fold (dist) they read events with, which reads
+      # the tool vocabulary (dist).
+      - name: Build proto stubs and the session-log fold
+        run: |
+          npm run build -w @stigmer/protos
+          npm run build -w @stigmer/tool-vocabulary
+          npm run build -w @stigmer/session-log
 
       # The server is standalone with its own lockfile (runner-style, not a
       # workspace member) — the ci.stigmer-server.yaml precedent.
@@ -147,8 +152,11 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      - name: Build proto stubs
-        run: npm run build -w @stigmer/protos
+      - name: Build proto stubs and the session-log fold
+        run: |
+          npm run build -w @stigmer/protos
+          npm run build -w @stigmer/tool-vocabulary
+          npm run build -w @stigmer/session-log
 
       - name: Install server dependencies
         working-directory: backend/services/stigmer-server

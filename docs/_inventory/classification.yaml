@@ -875,8 +875,9 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Consume subscribe snapshot streams in production — terminal phases,
-      transport vs run failures, cancellation.
+      Follow a Session's event log in production — the events to read, the end
+      of a run, answering a waiting call, resuming a dropped stream, previews,
+      cancellation.
     medium: none
 
   sdk/typescript:

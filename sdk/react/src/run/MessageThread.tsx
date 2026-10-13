@@ -1,36 +1,38 @@
 "use client";
 
-import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { create } from "@bufbuild/protobuf";
-import type { Run, RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { lazy, memo, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
 import {
-  ApprovalAction,
-  RunPhase,
-  FileChangeSetStatus,
   InteractionMode,
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
+  RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { deletedReferenceLabel, displayFileChangeSets, isDeletedReference, syntheticUserPrompt } from "@stigmer/sdk";
+import {
+  deletedReferenceLabel,
+  displayFileChangeSets,
+  isDeletedReference,
+  syntheticUserPrompt,
+  type CompactedItem,
+  type FileReviewSet,
+  type MemoryRecall,
+  type Thread,
+  type Todo,
+  type ToolUse,
+  type Turn,
+  type TurnItem,
+} from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import { isTerminalPhase } from "./run-phases.js";
-import { MessageEntry, type MessageEntryProps } from "./MessageEntry.js";
+import { runPhaseOf } from "./run-phases.js";
+import { MessageEntry, type MessageEntryProps, type ThreadMessage } from "./MessageEntry.js";
 import { RunScores } from "../score/RunScores.js";
 import { RunScoresProvider, useRunScoresEnabled } from "../score/RunScoresContext.js";
 import type { MessageAttachmentView } from "./MessageAttachments.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
-import { SubAgentSection } from "./SubAgentSection.js";
+import { SubAgentSection, subAgentSubjectOf } from "./SubAgentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { SetupProgress, type SetupProgressProps } from "./SetupProgress.js";
 import { RecalledMemoriesCard, type RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
@@ -49,8 +51,9 @@ import { TodoCard, type TodoCardProps } from "./TodoCard.js";
 import type { TodoRowProps } from "./TodoList.js";
 import { findPlanArtifact } from "../library/detect-plan-artifact.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
-import type { SummarizationEventView } from "./useContextWindow.js";
-import { isInternalTool, isCollapsedToolCall } from "./tool-categories.js";
+import { extractPrimaryArg, isInternalTool, resolveToolCategoryFromCall } from "./tool-categories.js";
+import { fileForRowPath } from "./file-review-status.js";
+import type { ToolUseAnswer } from "./useAnswerToolUse.js";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext.js";
 import type { ResolvedPathAction } from "./file-path-resolver.js";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext.js";
@@ -72,10 +75,10 @@ const LazyVirtualizedThread = lazy(() =>
   })),
 );
 
-/** Stable empty collections so an approval-free thread keeps referential identity. */
-const EMPTY_APPROVALS: readonly PendingApproval[] = [];
+/** Stable empty collections so a thread without answers or runs keeps referential identity. */
 const EMPTY_SUBMITTING_IDS: ReadonlySet<string> = new Set();
-const EMPTY_APPROVAL_ERRORS: ReadonlyMap<string, Error> = new Map();
+const EMPTY_ANSWER_ERRORS: ReadonlyMap<string, Error> = new Map();
+const EMPTY_RUNS: readonly Run[] = [];
 
 /**
  * Component overrides for the chrome {@link MessageThread} renders — the
@@ -85,22 +88,22 @@ const EMPTY_APPROVAL_ERRORS: ReadonlyMap<string, Error> = new Map();
  * Each slot is keyed by the built-in component it replaces and receives
  * exactly that component's exported props interface, so an override can
  * always delegate to the built-in for the cases it does not customize
- * (e.g. a `MessageEntry` slot that restyles `MESSAGE_HUMAN` bubbles and
- * renders the default `MessageEntry` for everything else).
+ * (e.g. a `MessageEntry` slot that restyles a person's messages and renders
+ * the default `MessageEntry` for everything else).
  *
  * Define slot components at module level (or memoize them). The thread's
- * rows rely on `React.memo` + structural sharing to skip re-renders during
- * streaming; a slot component recreated on every host
+ * rows rely on `React.memo` and the session fold's shared references to skip
+ * re-renders during streaming; a slot component recreated on every host
  * render defeats that for its rows.
  */
 export interface MessageThreadSlots {
   /**
-   * All message bubbles — human, assistant, thinking, and system entries.
-   * Also wraps the failed-send bubble (the inline Retry chrome around it
-   * stays built-in).
+   * All message bubbles — a person's messages, the agent's messages,
+   * thinking, and platform notes. Also wraps the failed-send bubble (the
+   * inline Retry chrome around it stays built-in).
    */
   readonly MessageEntry?: ComponentType<MessageEntryProps>;
-  /** The HITL tool-approval gate card. */
+  /** The card for a tool use that waits for a person, when it has no row of its own. */
   readonly ApprovalCard?: ComponentType<ApprovalCardProps>;
   /** The collapsible in-thread to-dos card. */
   readonly TodoCard?: ComponentType<TodoCardProps>;
@@ -119,12 +122,12 @@ export interface MessageThreadSlots {
   /** Pre-first-token setup / "Thinking…" indicator. */
   readonly SetupProgress?: ComponentType<SetupProgressProps>;
   /**
-   * The retriever transparency card at a selection-active run's
+   * The retriever transparency card at a selection-active turn's
    * segment start — "Recalled N of M memories".
    */
   readonly RecalledMemoriesCard?: ComponentType<RecalledMemoriesCardProps>;
   /**
-   * The terminal execution-failure notice. Receives the raw server-reported
+   * The terminal turn-failure notice. Receives the raw server-reported
    * reason and the retry wiring, so a host can turn the failure into its own
    * recovery moment (classify the reason, offer an alternate engine, link
    * support) instead of the built-in Show more / Retry treatment.
@@ -132,7 +135,7 @@ export interface MessageThreadSlots {
   readonly RunErrorNotice?: ComponentType<RunErrorNoticeProps>;
   /**
    * The ambient-liveness status line at the thread's tail while the active
-   * run is live between visible events (stigmer#277). Override to
+   * turn is live between visible events (stigmer#277). Override to
    * supply a host-voiced label or richer treatment; the emission policy
    * (when the line appears at all) stays with the thread.
    */
@@ -141,25 +144,31 @@ export interface MessageThreadSlots {
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
-  /** Completed runs in chronological order. */
-  readonly runs: readonly Run[];
   /**
-   * The currently streaming run. Appended after `executions` to
-   * form a continuous thread. Pass `null` or `undefined` when no
-   * run is actively streaming.
+   * The conversation's turns, in order: the session's events folded
+   * (`useSessionConversation().turns`, or `useSessionEvents().fold.turns`).
+   * Each turn renders its person's message, the agent's items, its asks,
+   * to-dos and file reviews. A turn that has not ended is the live one.
    */
-  readonly activeStreamRun?: Run | null;
+  readonly turns: readonly Turn[];
+  /**
+   * The turns' runs, for what the run record holds and the events do not:
+   * the message's attachments and mode, the plan artifact, the agent and
+   * skill versions a turn ran, its setup progress, and the captured bytes
+   * of its file changes. Matched to turns by run id; a turn whose run is
+   * absent renders from its events alone.
+   */
+  readonly runs?: readonly Run[];
   /**
    * Optimistic user message shown at the end of the thread before the
-   * stream delivers the real message. Rendered as a human message with
-   * a sending indicator. Clear this prop once the stream delivers its
-   * first snapshot.
+   * session's events carry it. Rendered as a person's message with a
+   * sending indicator. Clear this prop once the turn appears.
    */
   readonly pendingUserMessage?: string | null;
   /**
    * Attachments submitted with the pending user message, rendered as chips
    * on the optimistic bubble so the files never vanish between submit and
-   * the stream's first snapshot (stigmer/stigmer#372). Supply
+   * the turn appearing (stigmer/stigmer#372). Supply
    * {@link useSessionConversation}'s `pendingAttachments`; clear together
    * with {@link pendingUserMessage}. Chips are inert on the pending bubble
    * (no run record yet); previews and downloads light up the moment
@@ -199,68 +208,60 @@ export interface MessageThreadProps {
    */
   readonly scrollOnSend?: boolean;
   /**
-   * When provided, the in-flight human turn (the active run's prompt)
-   * shows a hover "Edit" affordance. Clicking it invokes this callback with
-   * the message text — the session chat stops the running run and
-   * pre-fills the composer for an edit-and-resubmit.
+   * When provided, the live turn's message (the person's prompt) shows a
+   * hover "Edit" affordance. Clicking it invokes this callback with the
+   * message text — the session chat stops the turn and pre-fills the
+   * composer for an edit-and-resubmit.
    *
-   * Provide this only while the active run is stoppable; the SDK marks
-   * exactly the active-stream human turn editable. When omitted, no edit
-   * control is shown (backward compatible).
+   * Provide this only while the live turn is stoppable; the SDK marks
+   * exactly the live turn's message editable. When omitted, no edit
+   * control is shown.
    */
   readonly onEditMessage?: (text: string) => void;
   /**
-   * Retry handler for a terminal-failed run that exposed a server
-   * error reason. Receives the originating message; the consumer typically
-   * resends it as a new run. When omitted, no Retry control is shown
-   * beside the surfaced failure reason.
+   * Retry handler for a turn that failed with a server error reason.
+   * Receives the originating message; the consumer typically resends it as
+   * a new turn. When omitted, no Retry control is shown beside the surfaced
+   * failure reason.
    */
   readonly onRetryRun?: (message: string) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
-   * Custom formatter for tool call summary labels. Passed through to
-   * each {@link ToolCallGroup}.
+   * Custom formatter for a folded run of tool calls' label. Passed through
+   * to each {@link ToolCallGroup}.
    */
-  readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
+  readonly formatToolCallSummary?: (toolUses: readonly ToolUse[]) => string;
   /**
-   * Callback for approval actions. When provided and the active
-   * run has pending approvals, {@link ApprovalCard}s are
-   * rendered as thread items. When omitted, no approval UI is
-   * shown (backward compatible).
+   * Answers a tool use that waits for a person (allow, deny with an
+   * optional reason, or grant its class). When provided, a waiting tool use
+   * renders its decision inline on its own row (and as a bottom
+   * {@link ApprovalCard} when it has none). When omitted, no decision UI is
+   * shown.
    */
-  readonly onApprovalSubmit?: (
-    toolCallId: string,
-    action: ApprovalAction,
-    comment?: string,
-  ) => void;
+  readonly onAnswerToolUse?: (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void;
   /**
-   * Set of tool call IDs currently being submitted for approval.
-   * Drives per-card loading state. Only meaningful when
-   * `onApprovalSubmit` is provided.
+   * The tool uses whose answer is in flight, by id. Drives per-gate
+   * loading state. Only meaningful when `onAnswerToolUse` is provided.
    */
-  readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly answeringToolUseIds?: ReadonlySet<string>;
   /**
-   * Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card
-   * beside the gate that failed (an inline tool row or the bottom backstop
-   * card). Supply {@link useSubmitApproval}'s `errorsByToolCallId`. Only
-   * meaningful when `onApprovalSubmit` is provided.
+   * Each tool use's last failed answer, keyed by its id — surfaced in-card
+   * beside the gate that failed. Supply {@link useAnswerToolUse}'s
+   * `errorsByToolUseId`. Only meaningful when `onAnswerToolUse` is provided.
    */
-  readonly approvalErrors?: ReadonlyMap<string, Error>;
+  readonly answerErrors?: ReadonlyMap<string, Error>;
   /**
-   * Render each *settled* captured change set as a read-only record card at
-   * its anchor in the thread (after the set's last stamped edit row) — the
-   * durable history of what changed and how it was decided. This is the only
-   * in-thread trace for a set with no stamped rows (e.g. changes made by shell
-   * commands), so the surface that owns the session history should enable it.
+   * Render each *settled* file review as a read-only record card at its
+   * anchor in the thread (after the last row that edited one of its files)
+   * — the durable history of what changed and how it was decided. This is
+   * the only in-thread trace for changes made by shell commands, so the
+   * surface that owns the session history should enable it.
    *
-   * The thread never renders *decision* controls: a pending (AWAITING_REVIEW)
-   * set on a live run is deliberately NOT emitted here — its decision
-   * surface is the composer-docked {@link FileReviewDock}, which cannot scroll
-   * out of view. The stamped rows' badges carry the pending state in-thread.
-   *
-   * Opt-in with a backward-compatible default; `SessionViewer`
-   * enables it.
+   * The thread never renders *decision* controls: a set still undecided on
+   * a live turn is deliberately NOT emitted here — its decision surface is
+   * the composer-docked {@link FileReviewDock}, which cannot scroll out of
+   * view. The edit rows' badges carry the pending state in-thread.
    *
    * @default false
    */
@@ -293,14 +294,6 @@ export interface MessageThreadProps {
    */
   readonly sandboxWorkspaceRoot?: string;
   /**
-   * Summarization events from context window tracking. When provided,
-   * "Context compacted" cards are interleaved into the thread at the
-   * correct chronological position based on event timestamps.
-   *
-   * Obtain from {@link useContextWindow}.summarizationEvents.
-   */
-  readonly summarizationEvents?: readonly SummarizationEventView[];
-  /**
    * Marks the agent version each turn ran
    * (`RunStatus.agent_version_hash`): a quiet divider before
    * the first turn that recorded one and wherever the version changes, so
@@ -320,15 +313,14 @@ export interface MessageThreadProps {
   readonly virtualized?: boolean;
   /**
    * Called when the user clicks "Implement" on a completed Plan-mode
-   * run's {@link PlanCompletionCard}.
+   * turn's {@link PlanCompletionCard}.
    *
    * When provided, a CTA card is rendered at the end of the thread
-   * after a Plan-mode run completes successfully. The consumer
+   * after a Plan-mode turn completes successfully. The consumer
    * typically wires this to switch the interaction mode to Agent,
    * pre-fill the composer, and focus it.
    *
-   * When omitted, no plan completion card is rendered. Backward
-   * compatible — existing consumers see no change.
+   * When omitted, no plan completion card is rendered.
    */
   readonly onBuildFromPlan?: () => void;
   /**
@@ -339,7 +331,7 @@ export interface MessageThreadProps {
    * preview modal (hosts without a panel).
    *
    * Providing this also opts the thread into LIVE plan collapse: while a
-   * Plan-mode turn streams its plan (detected via `findStreamingPlan`), the
+   * Plan-mode turn writes its plan (detected via `findStreamingPlan`), the
    * plan message is suppressed behind a compact {@link PlanStreamingCard}
    * whose "Open plan" routes here — the host is expected to render the
    * streaming document in its plan surface. Hosts without one (this prop
@@ -355,7 +347,7 @@ export interface MessageThreadProps {
   /**
    * Disables the plan completion card's actions (Implement / Review).
    * Defense in depth for the brief windows where a follow-up cannot be
-   * sent (e.g. a run is streaming); the composer also no-ops a
+   * sent (e.g. a turn is working); the composer also no-ops a
    * disabled submit.
    */
   readonly planActionsDisabled?: boolean;
@@ -370,8 +362,7 @@ export interface MessageThreadProps {
    * - `"start"` — column anchored to the left edge, so the thread's left
    *   edge stays put when a sibling panel opens/closes beside it.
    *
-   * When omitted, content spans the full width. Opt-in —
-   * existing consumers see no layout change.
+   * When omitted, content spans the full width.
    */
   readonly contentColumn?: ThreadContentColumn;
   /**
@@ -381,9 +372,9 @@ export interface MessageThreadProps {
    */
   readonly slots?: MessageThreadSlots;
   /**
-   * Show run scores: thumbs up and down on each completed run's final
+   * Show run scores: thumbs up and down on each completed turn's final
    * answer and the run-health flags beside them. The thread then reads the
-   * session's scores once (and again shortly after a run completes, while
+   * session's scores once (and again shortly after a turn completes, while
    * it is graded). Off by default, and a thread with it off makes no score
    * request; `SessionViewer` sets it from its audience.
    *
@@ -418,23 +409,23 @@ export function threadContentColumnClass(
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly attachments?: readonly MessageAttachmentView[]; readonly executionId?: string; readonly scoresRunId?: string }
-  | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentRuns: readonly SubAgentRun[]; readonly key: string }
-  | { readonly kind: "sub-agent"; readonly subAgentRun: SubAgentRun; readonly key: string }
+  | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly attachments?: readonly MessageAttachmentView[]; readonly executionId?: string; readonly scoresRunId?: string }
+  | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
+  | { readonly kind: "sub-agent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
-  | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
-  | { readonly kind: "file-review-record"; readonly fileChangeSet: FileChangeSet; readonly key: string }
+  | { readonly kind: "approval-request"; readonly toolUse: ToolUse; readonly key: string }
+  | { readonly kind: "file-review-record"; readonly fileReviewSet: FileReviewSet; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
-  | { readonly kind: "recalled-memories"; readonly report: RecalledMemoriesReport; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
-  | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
+  | { readonly kind: "recalled-memories"; readonly recall: MemoryRecall; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
+  | { readonly kind: "context-compacted"; readonly compacted: CompactedItem; readonly key: string }
   | { readonly kind: "agent-version"; readonly versionHash: string; readonly label: string; readonly key: string }
   | { readonly kind: "loaded-versions"; readonly changes: readonly LoadedVersionChange[]; readonly key: string }
   | {
       readonly kind: "todos";
       readonly key: string;
       readonly executionId: string;
-      readonly todos: { readonly [id: string]: TodoItem };
+      readonly todos: readonly Todo[];
     }
   | {
       readonly kind: "plan-completion";
@@ -448,7 +439,7 @@ export type ThreadItem =
        */
       readonly planTitle?: string;
       /**
-       * True for the most recent completed Plan execution in the thread — the
+       * True for the most recent completed Plan turn in the thread — the
        * only plan whose card carries the primary "Build" action. Superseded
        * plans keep their review actions (open/download) but never a build
        * CTA, so a stale plan can't be implemented by accident.
@@ -457,107 +448,117 @@ export type ThreadItem =
     }
   | {
       /**
-       * A plan the active Plan-mode run is writing RIGHT NOW: the
-       * streaming plan message is suppressed and this compact card stands in
-       * while the document renders live in the panel's plan tab. On
-       * completion the item becomes `plan-completion` — a different kind
-       * under the SAME key, so the card holds one thread position and the
-       * swap reads as the card settling.
+       * A plan the live Plan-mode turn is writing RIGHT NOW: the plan
+       * message is suppressed and this compact card stands in while the
+       * document renders live in the panel's plan tab. On completion the
+       * item becomes `plan-completion` — a different kind under the SAME
+       * key, so the card holds one thread position and the swap reads as
+       * the card settling.
        */
       readonly kind: "plan-writing";
       readonly key: string;
       readonly executionId: string;
       /** Live title (the plan's leading `# H1`), growing as it streams. */
       readonly planTitle?: string;
-      /** Length of the plan text streamed so far (drives the live size). */
+      /** Length of the plan text written so far (drives the live size). */
       readonly planSize: number;
     }
   | {
       /**
        * The ambient-liveness status line at the thread's tail (stigmer#277):
-       * emitted while the active run is IN_PROGRESS with no running
-       * tool call, no live sub-agent, and no pending approval — the quiet
+       * emitted while the live turn is running with no running tool call,
+       * no live sub-agent, and no call waiting for a person — the quiet
        * stretches where the screen would otherwise be completely still.
        */
       readonly kind: "liveness";
       readonly key: string;
     };
 
+/** Options for {@link buildThreadItems}: everything beyond the turns and their runs. */
+export interface BuildThreadItemsOptions {
+  /** The optimistic message shown before the session's events carry it. */
+  readonly pendingUserMessage?: string | null;
+  /** Emit a bottom approval card for a waiting tool use that has no row of its own. */
+  readonly includeApprovals?: boolean;
+  readonly workspaceEntries?: readonly WorkspaceEntry[];
+  readonly pendingMessageFailed?: boolean;
+  /** Mark the live turn's message editable. */
+  readonly editableActiveTurn?: boolean;
+  readonly includeFileReviewRecords?: boolean;
+  /** Suppress a plan being written behind a live plan card. */
+  readonly collapseStreamingPlan?: boolean;
+  readonly pendingAttachments?: readonly MessageAttachmentView[] | null;
+  readonly agentVersionLabel?: (versionHash: string) => string;
+}
+
+/** The phases a turn ends with a badge for: everything but a completion. */
+const BADGED_END_PHASES: ReadonlySet<string> = new Set(["failed", "cancelled", "terminated"]);
+
 /**
- * True once the agent has produced any real, renderable response for this turn —
- * assistant text, a tool call (running or terminal), or streamed model thinking.
+ * True once the agent has produced any real, renderable response in a turn —
+ * a message with text, a thinking (live or with text), or a tool use.
  *
- * Gates the synthetic "Thinking…" setup placeholder (see usage below): the
- * placeholder is only for the genuine pre-first-content window and must yield the
- * moment any of these stream in, otherwise it would render *alongside* the real
+ * Gates the synthetic "Thinking…" setup placeholder: the placeholder is only
+ * for the genuine pre-first-content window and must yield the moment any of
+ * these appear, otherwise it would render *alongside* the real
  * ThinkingMessage / ToolCallGroup cards (the GitHub #179 duplicate-spinner).
  */
-function hasStartedResponding(execution: Run): boolean {
-  const messages = execution.status?.messages;
-  if (!messages || messages.length === 0) return false;
-  return messages.some((m) => {
-    // Any tool call — RUNNING or terminal — is visible activity, regardless of
-    // which message type hosts it.
-    if (m.toolCalls.length > 0) return true;
-    if (m.type === MessageType.MESSAGE_AI && m.content.trim().length > 0) return true;
-    // Streamed reasoning renders in its own collapsible ThinkingMessage card, so
-    // it counts as "responding" even before the first assistant token arrives.
-    if (m.type === MessageType.MESSAGE_THINKING && m.content.trim().length > 0) return true;
-    return false;
+function hasStartedResponding(turn: Turn): boolean {
+  return turn.items.some((item) => {
+    switch (item.kind) {
+      case "tool_use":
+        return true;
+      case "message":
+        return item.text.trim().length > 0;
+      case "thinking":
+        return item.live || item.text.trim().length > 0;
+      default:
+        return false;
+    }
   });
 }
 
 /**
- * True while the active run already shows a live signal of its own
- * somewhere in the thread — a RUNNING tool call (its row's label carries the
- * shimmer) or an in-flight sub-agent (its section carries a live indicator).
- * Suppresses the bottom liveness line: one ambient signal at a time, riding
- * the words closest to the actual activity.
+ * True while the live turn already shows a live signal of its own somewhere
+ * in the thread — a running tool call (its row's label carries the shimmer)
+ * or a working sub-agent (its section carries a live indicator), at any
+ * depth. Suppresses the bottom liveness line: one ambient signal at a time.
  */
-function hasVisiblyRunningActivity(execution: Run): boolean {
-  for (const sub of execution.status?.subAgentRuns ?? []) {
-    if (
-      sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS ||
-      sub.status === SubAgentStatus.SUB_AGENT_PENDING
-    ) {
-      return true;
-    }
-  }
-  for (const msg of execution.status?.messages ?? []) {
-    for (const tc of msg.toolCalls) {
-      if (tc.status === ToolCallStatus.TOOL_CALL_RUNNING) return true;
-    }
-  }
-  return false;
-}
-
-/**
- * True for a run that ran in Plan mode and completed — the only kind of
- * run that has a reviewable plan (streaming/failed/terminated Plan turns
- * have nothing final to review or build from).
- */
-function isCompletedPlanExecution(execution: Run): boolean {
-  return (
-    execution.status?.phase === RunPhase.RUN_COMPLETED &&
-    execution.spec?.interactionMode === InteractionMode.PLAN
+function hasVisiblyRunningActivity(items: ReadonlyArray<TurnItem>): boolean {
+  return items.some(
+    (item) =>
+      item.kind === "tool_use" &&
+      (item.state === "running" ||
+        (item.thread !== undefined &&
+          (item.thread.state === "running" || hasVisiblyRunningActivity(item.thread.items)))),
   );
 }
 
 /**
- * Index of the message that IS the plan in a completed Plan execution: the
- * last AI message with content — the SAME selection rule the runner's
- * `extractFinalPlanText` uses to publish `plan.md`, so the message promoted to
- * a document in the thread is byte-identical to the published artifact.
- * Returns -1 when no such message exists.
+ * True for a turn that ran in Plan mode and completed — the only kind of
+ * turn that has a reviewable plan (a live, failed or stopped Plan turn has
+ * nothing final to review or build from).
  */
-function findPlanMessageIndex(messages: readonly AgentMessage[]): number {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (msg.type === MessageType.MESSAGE_AI && msg.content.trim().length > 0) {
-      return i;
-    }
+function isCompletedPlanTurn(turn: Turn, run: Run | undefined): boolean {
+  return (
+    turn.status?.phase === "completed" &&
+    run?.spec?.interactionMode === InteractionMode.PLAN
+  );
+}
+
+/**
+ * The id of the message that IS a turn's plan, or of its final answer: the
+ * last agent message with content — the SAME selection rule the runner's
+ * `extractFinalPlanText` uses to publish `plan.md`, so the message promoted
+ * to a document in the thread is byte-identical to the published artifact.
+ * `undefined` when the turn wrote none.
+ */
+function lastMessageId(items: ReadonlyArray<TurnItem>): string | undefined {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i]!;
+    if (item.kind === "message" && item.text.trim().length > 0) return item.id;
   }
-  return -1;
+  return undefined;
 }
 
 /**
@@ -571,75 +572,73 @@ function extractPlanTitle(content: string): string | undefined {
 }
 
 /**
- * Adds the tool-call ids that a sub-agent renders as nested rows (the same
- * non-internal AI tool calls {@link SubAgentSection} surfaces) to `target`,
- * so their approvals are treated as inline and skip the bottom backstop.
+ * Adds the ids of the tool uses a sub-agent renders as nested rows (its
+ * non-internal calls, at any depth) to `target`, so their asks are treated
+ * as inline and skip the bottom backstop.
  */
-function collectSubAgentInlineToolCallIds(
-  sub: SubAgentRun,
-  target: Set<string>,
+function collectThreadToolUseIds(thread: Thread, target: Set<string>): void {
+  for (const item of thread.items) {
+    if (item.kind !== "tool_use" || isInternalTool(item.name)) continue;
+    target.add(item.id);
+    if (item.thread) collectThreadToolUseIds(item.thread, target);
+  }
+}
+
+/**
+ * Records, for each of a turn's file reviews, the index of the just-pushed
+ * tool-group item when one of its rows edited a file of the review — later
+ * groups overwrite, so the map converges on each set's LAST editing row. That
+ * index is where the set's record anchors: the record appears where the
+ * turn's editing activity ended, not at the thread tail.
+ */
+function recordFileReviewAnchors(
+  toolUses: readonly ToolUse[],
+  itemIndex: number,
+  sets: readonly FileReviewSet[],
+  anchorIndexBySetId: Map<string, number>,
 ): void {
-  for (const msg of sub.messages) {
-    if (msg.type !== MessageType.MESSAGE_AI) continue;
-    for (const tc of msg.toolCalls) {
-      if (tc.id && !isInternalTool(tc.name)) target.add(tc.id);
+  if (sets.length === 0) return;
+  for (const toolUse of toolUses) {
+    const category = resolveToolCategoryFromCall(toolUse).category;
+    if (category !== "write" && category !== "edit" && category !== "delete") continue;
+    const path = extractPrimaryArg(toolUse);
+    if (!path) continue;
+    for (const set of sets) {
+      if (fileForRowPath(set, path)) anchorIndexBySetId.set(set.changeSetId, itemIndex);
     }
   }
 }
 
 /**
- * Records, for each change set referenced by a just-pushed tool-group item, the
- * item's index — later groups overwrite, so the map converges on each set's
- * LAST stamped row. That index is where the set's decision bar anchors: the
- * review surface appears where the turn's editing activity ended, not at the
- * thread tail.
- */
-function recordFileReviewAnchors(
-  toolCalls: readonly ToolCall[],
-  itemIndex: number,
-  anchorIndexBySetId: Map<string, number>,
-): void {
-  for (const tc of toolCalls) {
-    if (tc.fileChangeSetId) anchorIndexBySetId.set(tc.fileChangeSetId, itemIndex);
-  }
-}
-
-/**
- * Inserts one run's settled file-review records into its own thread
- * segment: each change set's read-only `file-review-record` item is spliced
- * immediately after the set's last stamped tool row
- * ({@link recordFileReviewAnchors}); a set with no stamped row (its changes
- * were made by shell commands, or the rows predate stamping) falls back to the
- * segment's tail — this record is that set's ONLY in-thread trace, so it is
- * never dropped.
+ * Inserts one turn's settled file-review records into its own thread
+ * segment: each set's read-only `file-review-record` item is spliced
+ * immediately after the last row that edited one of its files
+ * ({@link recordFileReviewAnchors}); a set no row edited (its changes were
+ * made by shell commands) falls back to the segment's tail — this record is
+ * that set's ONLY in-thread trace, so it is never dropped.
  *
- * A *pending* set — AWAITING_REVIEW on a live (non-terminal) run — is
- * deliberately NOT emitted: its decision surface is the composer-docked
- * `FileReviewDock`, which cannot scroll out of view, and the stamped rows'
- * badges carry the pending state in place. The same set re-enters here as a
- * record the moment it settles (or its run terminates mid-review — an
- * honest "not reviewed" record). A CAPTURING set (baseline only, no diff yet)
- * has nothing to show and is skipped.
+ * A set still undecided on a live turn is deliberately NOT emitted: its
+ * decision surface is the composer-docked `FileReviewDock`, which cannot
+ * scroll out of view, and the edit rows' badges carry the pending state in
+ * place. The same set re-enters here as a record once its turn ends.
  */
 function insertFileReviewItems(
   items: ThreadItem[],
-  changeSets: readonly FileChangeSet[],
+  sets: readonly FileReviewSet[],
   anchorIndexBySetId: ReadonlyMap<string, number>,
-  execTerminal: boolean,
+  turnEnded: boolean,
 ): void {
   const anchored: { index: number; item: ThreadItem }[] = [];
   const tail: ThreadItem[] = [];
-  for (const changeSet of changeSets) {
-    if (changeSet.changes.length === 0) continue;
-    const pending =
-      !execTerminal && changeSet.status === FileChangeSetStatus.AWAITING_REVIEW;
-    if (pending) continue;
+  for (const set of sets) {
+    if (set.files.length === 0) continue;
+    if (!turnEnded && set.undecided) continue;
     const item: ThreadItem = {
       kind: "file-review-record",
-      fileChangeSet: changeSet,
-      key: `file-review-${changeSet.id}`,
+      fileReviewSet: set,
+      key: `file-review-${set.changeSetId}`,
     };
-    const index = anchorIndexBySetId.get(changeSet.id);
+    const index = anchorIndexBySetId.get(set.changeSetId);
     if (index !== undefined) anchored.push({ index, item });
     else tail.push(item);
   }
@@ -655,27 +654,36 @@ function insertFileReviewItems(
 }
 
 /**
- * Builds a flat list of renderable thread items from run data.
+ * Builds a flat list of renderable thread items from a session's folded
+ * turns and their runs.
  *
- * Keys use stable run IDs (not array indices) so React can
- * reconcile items across renders without unnecessary remounts.
+ * Keys use the events' own ids (each message, tool use and thread), so React
+ * reconciles items across renders without remounts as the fold grows.
  *
  * @internal Exported for testing — not part of the public API.
  */
 export function buildThreadItems(
-  executions: readonly Run[],
-  activeStreamRun: Run | null | undefined,
-  pendingUserMessage: string | null | undefined,
-  includeApprovals: boolean,
-  workspaceEntries: readonly WorkspaceEntry[] | undefined,
-  summarizationEvents?: readonly SummarizationEventView[],
-  pendingMessageFailed = false,
-  editableActiveTurn = false,
-  includeFileReviewRecords = false,
-  collapseStreamingPlan = false,
-  pendingAttachments?: readonly MessageAttachmentView[] | null,
-  agentVersionLabel?: (versionHash: string) => string,
+  turns: readonly Turn[],
+  runs: readonly Run[],
+  options: BuildThreadItemsOptions = {},
 ): ThreadItem[] {
+  const {
+    pendingUserMessage,
+    includeApprovals = false,
+    workspaceEntries,
+    pendingMessageFailed = false,
+    editableActiveTurn = false,
+    includeFileReviewRecords = false,
+    collapseStreamingPlan = false,
+    pendingAttachments,
+    agentVersionLabel,
+  } = options;
+  const runsById = new Map<string, Run>();
+  for (const run of runs) {
+    const id = run.metadata?.id;
+    if (id) runsById.set(id, run);
+  }
+
   const items: ThreadItem[] = [];
   // The version the previous turn ran, so a marker appears only where the
   // version a turn ran starts or changes.
@@ -683,160 +691,82 @@ export function buildThreadItems(
   // What the last turn that recorded a list loaded, so a marker appears only
   // where a skill or plugin it loaded moved to another version.
   let lastLoaded: ReadonlyMap<string, LoadedVersionChange> | undefined;
-  // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
-  // regular parent tool, or a sub-agent's nested tool). Their approvals show
-  // inline on the row, so they are excluded from the bottom backstop below —
-  // a task-spawn call (rendered as a SubAgentSection, not a tool row) is NOT
-  // collected, so its spawn-gate approval still surfaces at the bottom.
-  const inlineToolCallIds = new Set<string>();
-  // Dedupe by run id, with activeStreamRun authoritative for its own
-  // id. The hook passes `completedRuns` (filtered on activeRunId),
-  // but that filter and activeStreamRun (stream.execution ??
-  // fetchedActiveExecution) derive from different sources, so a transient skew
-  // can leave the active run in BOTH lists. Concatenating blindly then
-  // emits the same run twice → duplicate React keys → React silently drops
-  // one subtree, intermittently the one carrying a live ApprovalCard (the gate
-  // buttons vanish). Dropping any prior entry sharing the active id keeps the
-  // streamed copy as the single source of truth and the append-at-end invariant
-  // (activeStreamIndex === last) intact.
-  const allRuns = activeStreamRun
-    ? [
-        ...executions.filter(
-          (e) => e.metadata?.id !== activeStreamRun.metadata?.id,
-        ),
-        activeStreamRun,
-      ]
-    : executions;
-  const activeStreamIndex = activeStreamRun
-    ? allRuns.length - 1
-    : -1;
+  // Tool-use ids that render as an inline-decision-capable ToolCallItem (a
+  // row of the turn, or a sub-agent's nested row). Their asks show inline on
+  // the row, so they are excluded from the bottom backstop below.
+  const inlineToolUseIds = new Set<string>();
 
-  // The most recent completed Plan execution owns the primary "Build" action;
-  // every earlier plan renders as a review-only record. Resolved up front so
-  // each segment can stamp its own card with the right authority.
-  let latestPlanExecutionId: string | null = null;
-  for (let i = allRuns.length - 1; i >= 0; i--) {
-    if (isCompletedPlanExecution(allRuns[i])) {
-      latestPlanExecutionId = allRuns[i].metadata?.id ?? `_e${i}`;
+  // A reconcile turn (the message-less turn an Undo starts to put files
+  // back) is not a turn of the conversation and renders nothing.
+  const shown = turns.filter((turn) => runsById.get(turn.runId)?.spec?.reconcileFileReview !== true);
+  const lastTurn = shown.at(-1);
+  const activeTurn = lastTurn !== undefined && !lastTurn.ended ? lastTurn : undefined;
+
+  // The most recent completed Plan turn owns the primary "Build" action;
+  // every earlier plan renders as a review-only record.
+  let latestPlanRunId: string | null = null;
+  for (let i = shown.length - 1; i >= 0; i--) {
+    const turn = shown[i]!;
+    if (isCompletedPlanTurn(turn, runsById.get(turn.runId))) {
+      latestPlanRunId = turn.runId;
       break;
     }
   }
 
-  // Build a queue of summarization events to interleave by timestamp.
-  // Events are consumed as messages pass their timestamp.
-  const pendingEvents = summarizationEvents?.length
-    ? [...summarizationEvents]
-    : [];
-  let eventCursor = 0;
-
-  function flushEventsUntil(messageTimestamp: string | undefined): void {
-    if (!messageTimestamp || pendingEvents.length === 0) return;
-    while (
-      eventCursor < pendingEvents.length &&
-      pendingEvents[eventCursor].timestamp &&
-      pendingEvents[eventCursor].timestamp <= messageTimestamp
-    ) {
-      const evt = pendingEvents[eventCursor];
-      items.push({
-        kind: "context-compacted",
-        event: evt,
-        key: `compacted-${evt.timestamp}`,
-      });
-      eventCursor++;
-    }
-  }
-
-  for (let ei = 0; ei < allRuns.length; ei++) {
-    const exec = allRuns[ei];
-    const execId = exec.metadata?.id ?? `_e${ei}`;
-    const isActiveStreamExec = ei === activeStreamIndex;
-    const messages = exec.status?.messages ?? [];
-    const subAgents = exec.status?.subAgentRuns ?? [];
+  for (const turn of shown) {
+    const run = runsById.get(turn.runId);
+    const runId = turn.runId;
+    const isActiveTurn = turn === activeTurn;
 
     // A completed Plan turn collapses its plan message into the compact plan
     // card (the plan-completion item): the document lives in the panel's plan
-    // tab, not the thread. While the plan is still streaming, the same
+    // tab, not the thread. While the plan is being written, the same
     // treatment applies live when the host has a plan surface (streamingPlan
-    // below): the in-flight plan message is suppressed behind a plan-writing
-    // card while the panel's plan tab renders it as it streams — the content
-    // moves, it doesn't disappear. Completion swaps the live card for the
-    // settled one (same key), and the paired auto-open (useSessionPanel's
-    // planKey trigger) keeps the document side-by-side. Collapse of a
-    // COMPLETED plan is gated on the ARTIFACT existing: a plan that never
-    // published (older runs, failed upload) exists only in the message,
-    // so that path keeps the inline document promotion (isPlanDocument) —
-    // collapsing it would orphan the plan behind a card with nothing to open.
-    const isCompletedPlanExec = isCompletedPlanExecution(exec);
-    const planMessageIndex = isCompletedPlanExec
-      ? findPlanMessageIndex(messages)
-      : -1;
-    const planArtifact = isCompletedPlanExec
-      ? findPlanArtifact(exec)
-      : undefined;
-    const collapsePlanMessage =
-      planMessageIndex >= 0 && planArtifact !== undefined;
+    // below). Collapse of a COMPLETED plan is gated on the ARTIFACT existing:
+    // a plan that never published exists only in the message, so that path
+    // keeps the inline document promotion (isPlanDocument) — collapsing it
+    // would orphan the plan behind a card with nothing to open.
+    const isCompletedPlan = isCompletedPlanTurn(turn, run);
+    const planMessageId = isCompletedPlan ? lastMessageId(turn.items) : undefined;
+    const planArtifact = isCompletedPlan && run ? findPlanArtifact(run) : undefined;
+    const collapsePlanMessage = planMessageId !== undefined && planArtifact !== undefined;
 
-    // A completed run's final answer carries its scores (thumbs and the
-    // run-health flags): the last AI message with content, unless it is the
-    // run's plan, which renders as a document or a card instead. Stamped on
-    // every such run; the renderer shows the control only when the host
-    // asked for run scores.
-    const scoredMessageIndex =
-      exec.status?.phase === RunPhase.RUN_COMPLETED &&
-      exec.metadata?.id &&
-      planMessageIndex < 0
-        ? findPlanMessageIndex(messages)
-        : -1;
-
-    // The plan the active Plan-mode turn is writing RIGHT NOW (detected by
-    // the H1 convention — see findStreamingPlan). Its message is suppressed
-    // in favor of a live plan-writing card, mirroring the completed-turn
-    // collapse above, while the panel's plan tab renders the document live.
-    // Two gates: collapseStreamingPlan (the host wired onOpenPlan — without a
-    // document surface the plan must keep streaming inline) and
-    // isActiveStreamExec (a stale non-terminal run left in the
-    // completed list by the transient skew documented above must never
-    // sprout a live card). Mutually exclusive with collapsePlanMessage by
-    // construction: one requires a terminal phase, the other forbids it.
-    const streamingPlan =
-      collapseStreamingPlan && isActiveStreamExec
-        ? findStreamingPlan(exec)
+    // A completed turn's final answer carries its scores (thumbs and the
+    // run-health flags): the last agent message with content, unless it is
+    // the turn's plan, which renders as a document or a card instead.
+    const scoredMessageId =
+      turn.status?.phase === "completed" && planMessageId === undefined
+        ? lastMessageId(turn.items)
         : undefined;
 
-    // This run's settled change sets render as read-only records inside
-    // its own segment, anchored to the last stamped edit row of each set. The
-    // display seam reads the server's live projection when present and folds
-    // the durable ledger for a terminal run (whose projection is nil),
-    // so records surface for EVERY run, not just the last. Pending sets
-    // are excluded inside insertFileReviewItems — the composer dock owns them.
-    const execChangeSets = includeFileReviewRecords
-      ? displayFileChangeSets(exec.status)
-      : [];
+    // The plan the live Plan-mode turn is writing RIGHT NOW (the H1
+    // convention — see findStreamingPlan). Two gates: the host wired a plan
+    // surface (collapseStreamingPlan) and this is the live turn.
+    const streamingPlan =
+      collapseStreamingPlan && isActiveTurn ? findStreamingPlan(turn, run) : undefined;
+
     const fileReviewAnchors = new Map<string, number>();
+    const reviewSets = includeFileReviewRecords ? turn.fileReview : [];
 
     // The agent's plan renders as one inline card per turn, anchored to the
-    // first of: the opening AI/thinking message, the first unit of work
-    // (tool-group / sub-agent), or — as a backstop — the turn's tail. We carry
-    // the live `status.todos` reference (structural sharing keeps it stable),
-    // so the card updates in place and a settled card skips re-renders.
-    const execTodos = exec.status?.todos;
-    const hasTodos = execTodos != null && Object.keys(execTodos).length > 0;
+    // first of: the opening message or thinking, the first unit of work, or
+    // — as a backstop — the turn's tail.
     let todosEmitted = false;
     function emitTodos(): void {
-      if (todosEmitted || !hasTodos) return;
+      if (todosEmitted || turn.todos.length === 0) return;
       todosEmitted = true;
       items.push({
         kind: "todos",
-        executionId: execId,
-        todos: execTodos!,
-        key: `${execId}-todos`,
+        executionId: runId,
+        todos: turn.todos,
+        key: `${runId}-todos`,
       });
     }
 
     // The agent version this turn ran opens its segment when it differs
     // from the previous turn's. A turn that recorded none (the built-in
     // assistant) leaves the last marker standing.
-    const turnVersionHash = exec.status?.agentVersionHash ?? "";
+    const turnVersionHash = run?.status?.agentVersionHash ?? "";
     if (
       agentVersionLabel !== undefined &&
       turnVersionHash !== "" &&
@@ -847,16 +777,13 @@ export function buildThreadItems(
         kind: "agent-version",
         versionHash: turnVersionHash,
         label: agentVersionLabel(turnVersionHash),
-        key: `${execId}-agent-version`,
+        key: `${runId}-agent-version`,
       });
     }
 
     // A skill or plugin this turn loaded at another version than the turn
-    // before it opens the segment too. A resource the previous turn did not
-    // load is not "updated" (a new one arrives with a new agent version),
-    // and a turn that recorded no list (older runs, the built-in assistant)
-    // leaves the comparison where it stands.
-    const turnLoaded = lastLoadedVersions(exec);
+    // before it opens the segment too.
+    const turnLoaded = run ? lastLoadedVersions(run) : undefined;
     if (turnLoaded !== undefined) {
       const previous = lastLoaded;
       const changes =
@@ -867,263 +794,174 @@ export function buildThreadItems(
               return before !== undefined && before.version !== entry.version ? [entry] : [];
             });
       if (changes.length > 0) {
-        items.push({ kind: "loaded-versions", changes, key: `${execId}-loaded-versions` });
+        items.push({ kind: "loaded-versions", changes, key: `${runId}-loaded-versions` });
       }
       lastLoaded = turnLoaded;
     }
 
-    // The user-turn synthesis rule (empty / "execute" placeholder /
-    // Build-from-plan skips) is the shared conversation rule — see
-    // syntheticUserPrompt in @stigmer/sdk for the why of each skip.
-    const promptText = syntheticUserPrompt(exec);
+    // The person's message. With the run at hand the shared conversation
+    // rule decides what shows (see syntheticUserPrompt in @stigmer/sdk:
+    // the empty prompt, the "execute" placeholder and a Build-from-plan
+    // turn's label are skipped); before the run is listed, the message
+    // the session's events carry.
+    const promptText = run ? syntheticUserPrompt(run) : (turn.userMessage?.text ?? "");
     if (promptText) {
-      const syntheticHumanMsg = create(AgentMessageSchema);
-      syntheticHumanMsg.type = MessageType.MESSAGE_HUMAN;
-      syntheticHumanMsg.content = promptText;
-
-      // When the active stream run's spec message matches the
-      // pending user message, use a shared bridging key so React
-      // updates the pending bubble in place instead of remounting.
+      // When the live turn's message matches the pending one, a shared
+      // bridging key lets React update the pending bubble in place.
       const bridgePending =
-        isActiveStreamExec &&
-        pendingUserMessage != null &&
-        promptText === pendingUserMessage;
-
-      // The turn's submitted files (spec.attachments, by reference — the spec
-      // never mutates and structural sharing keeps the ref stable, so the
-      // memoized bubble skips re-renders). The run id rides along for
-      // the presigned-URL affordances; the `_e${ei}` synthetic fallback is
-      // display-only and must never be presigned against.
-      const specAttachments = exec.spec?.attachments;
+        isActiveTurn && pendingUserMessage != null && promptText === pendingUserMessage;
+      const specAttachments = run?.spec?.attachments;
       items.push({
         kind: "message",
-        message: syntheticHumanMsg,
-        key: bridgePending ? "pending-user-turn" : `${execId}-spec`,
-        // The active run's prompt is the one a user can edit-and-resubmit
-        // (stop + rephrase). Only mark it when the consumer enabled editing.
-        isEditable: isActiveStreamExec && editableActiveTurn,
-        // The turn's mode marks the prompt bubble (a "Plan" pill on Plan
-        // turns) so the transcript reads unambiguously after mode switches.
-        interactionMode: exec.spec?.interactionMode,
+        message: { kind: "user", id: turn.userMessage?.id ?? `${runId}.user`, text: promptText },
+        key: bridgePending ? "pending-user-turn" : `${runId}-spec`,
+        // The live turn's message is the one a person can edit and resubmit
+        // (stop + rephrase), when the consumer enabled editing.
+        isEditable: isActiveTurn && editableActiveTurn,
+        // The turn's mode marks the bubble (a "Plan" pill on Plan turns).
+        interactionMode: run?.spec?.interactionMode,
         attachments:
-          specAttachments && specAttachments.length > 0
-            ? specAttachments
-            : undefined,
-        executionId: exec.metadata?.id,
+          specAttachments && specAttachments.length > 0 ? specAttachments : undefined,
+        executionId: runId,
       });
     }
 
-    // The retriever transparency card (stigmer#293 Phase 3):
-    // this run ran semantic selection over its memory snapshot, so
-    // its segment discloses the subset right after the user's turn —
-    // spec.message is the query the retriever embedded. Absent report or
-    // selection_active=false means wholesale (unchanged Phase 2 behavior)
-    // and renders nothing. Gated on the REPORT, not the prompt bubble:
-    // syntheticUserPrompt deliberately skips some user turns (empty
-    // prompt, build-from-plan) that can still be selection-active.
-    const recalledReport = exec.status?.recalledMemoriesReport;
-    if (recalledReport?.selectionActive) {
+    // The retriever transparency card: this turn ran semantic selection over
+    // its memory snapshot, so its segment discloses the subset right after
+    // the person's message. A recall without selection (wholesale) renders
+    // nothing.
+    if (turn.memory?.selectionActive) {
       items.push({
         kind: "recalled-memories",
-        report: recalledReport,
-        facts: exec.status?.recalledMemories?.facts ?? [],
-        key: `${execId}-recalled-memories`,
+        recall: turn.memory,
+        facts: run?.status?.recalledMemories?.facts ?? [],
+        key: `${runId}-recalled-memories`,
       });
     }
 
-    for (let mi = 0; mi < messages.length; mi++) {
-      const msg = messages[mi];
+    // The turn's consecutive tool uses, waiting to be flushed as rows: one
+    // group per run of calls between messages, a sub-agent in its own card.
+    let group: ToolUse[] = [];
+    const flushGroup = (): void => {
+      if (group.length === 0) return;
+      // Anchor (2): if work begins before any rendered narration, the plan
+      // still leads it.
+      emitTodos();
+      items.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc` });
+      recordFileReviewAnchors(group, items.length - 1, reviewSets, fileReviewAnchors);
+      for (const toolUse of group) inlineToolUseIds.add(toolUse.id);
+      group = [];
+    };
 
-      // MESSAGE_TOOL messages are not rendered — tool calls are attached
-      // to their parent MESSAGE_AI and rendered via ToolCallGroup.
-      if (msg.type === MessageType.MESSAGE_TOOL) continue;
-
-      flushEventsUntil(msg.timestamp);
-
-      const isEmptyAi =
-        msg.type === MessageType.MESSAGE_AI && !msg.content.trim();
-
-      if (!isEmptyAi) {
-        // The collapsed plan message is not rendered — the plan-completion
-        // card at the segment's end is the turn's sole plan representation.
-        // Its tool calls (below) and the todo anchor still process normally.
-        // A STREAMING plan message is suppressed the same way: its stand-in
-        // is the plan-writing card at the segment's end, and the document
-        // renders live in the panel's plan tab.
-        const suppressAsPlan =
-          (collapsePlanMessage && mi === planMessageIndex) ||
-          mi === streamingPlan?.messageIndex;
-        if (!suppressAsPlan) {
-          items.push({
-            kind: "message",
-            message: msg,
-            key: `${execId}-m${mi}`,
-            isPlanDocument: !collapsePlanMessage && mi === planMessageIndex,
-            ...(mi === scoredMessageIndex ? { scoresRunId: execId } : {}),
-          });
-        }
-        // Anchor (1): the plan sits right under the agent's opening narration.
-        if (
-          msg.type === MessageType.MESSAGE_AI ||
-          msg.type === MessageType.MESSAGE_THINKING
-        ) {
+    for (const item of turn.items) {
+      switch (item.kind) {
+        case "tool_use":
+          // A to-do call renders through the to-dos card, never as a row.
+          if (isInternalTool(item.name)) break;
+          if (item.thread !== undefined) {
+            flushGroup();
+            emitTodos();
+            items.push({ kind: "sub-agent", toolUse: item, thread: item.thread, key: `sa-${item.id}` });
+            collectThreadToolUseIds(item.thread, inlineToolUseIds);
+          } else {
+            group.push(item);
+          }
+          break;
+        case "message": {
+          flushGroup();
+          if (item.text.trim().length === 0) break;
+          // The collapsed plan message is not rendered — the plan card at the
+          // segment's end is the turn's sole plan representation. A plan
+          // being written is suppressed the same way behind its live card.
+          const suppressAsPlan =
+            (collapsePlanMessage && item.id === planMessageId) ||
+            item.id === streamingPlan?.messageId;
+          if (!suppressAsPlan) {
+            items.push({
+              kind: "message",
+              message: item,
+              key: item.id,
+              isPlanDocument: !collapsePlanMessage && item.id === planMessageId,
+              ...(item.id === scoredMessageId ? { scoresRunId: runId } : {}),
+            });
+          }
+          // Anchor (1): the plan sits right under the agent's opening narration.
           emitTodos();
+          break;
         }
-      }
-
-      // Runner-collapsed duplicates (a superseded same-turn denial twin of an
-      // approval gate) are not rendered — they are kept in the transcript only to
-      // satisfy the backend's append-only guard. Filtering them here keeps a
-      // message whose tool calls are ALL collapsed from emitting an empty group.
-      // Preserve the original array reference when nothing is collapsed (the
-      // common case) so structural sharing / memoization is not defeated by
-      // a fresh array on every build.
-      const renderableToolCalls =
-        msg.type === MessageType.MESSAGE_AI && msg.toolCalls.some(isCollapsedToolCall)
-          ? msg.toolCalls.filter((tc) => !isCollapsedToolCall(tc))
-          : msg.toolCalls;
-
-      if (
-        msg.type === MessageType.MESSAGE_AI &&
-        renderableToolCalls.length > 0
-      ) {
-        // Anchor (2): if work begins before any rendered narration, the plan
-        // still leads it.
-        emitTodos();
-
-        const needsSplit = renderableToolCalls.some(
-          (tc) => tc.name === "task" || isInternalTool(tc.name),
-        );
-
-        if (needsSplit) {
-          const regularTools: ToolCall[] = [];
-          const matchedSubAgents: SubAgentRun[] = [];
-          for (const tc of renderableToolCalls) {
-            if (tc.name === "task") {
-              const matched = subAgents.find((sa) => sa.id === tc.id);
-              if (matched) matchedSubAgents.push(matched);
-            } else if (!isInternalTool(tc.name)) {
-              regularTools.push(tc);
-            }
-          }
-          if (regularTools.length > 0) {
-            items.push({
-              kind: "tool-group",
-              toolCalls: regularTools,
-              subAgentRuns: subAgents,
-              key: `${execId}-m${mi}-tc`,
-            });
-            recordFileReviewAnchors(regularTools, items.length - 1, fileReviewAnchors);
-            for (const tc of regularTools) {
-              if (tc.id) inlineToolCallIds.add(tc.id);
-            }
-          }
-          for (const sa of matchedSubAgents) {
-            items.push({
-              kind: "sub-agent",
-              subAgentRun: sa,
-              key: `sa-${sa.id}`,
-            });
-            collectSubAgentInlineToolCallIds(sa, inlineToolCallIds);
-          }
-        } else {
-          items.push({
-            kind: "tool-group",
-            toolCalls: renderableToolCalls,
-            subAgentRuns: subAgents,
-            key: `${execId}-m${mi}-tc`,
-          });
-          recordFileReviewAnchors(renderableToolCalls, items.length - 1, fileReviewAnchors);
-          for (const tc of renderableToolCalls) {
-            if (tc.id) inlineToolCallIds.add(tc.id);
-          }
-        }
+        case "thinking":
+          flushGroup();
+          items.push({ kind: "message", message: item, key: item.id });
+          emitTodos();
+          break;
+        case "note":
+          flushGroup();
+          items.push({ kind: "message", message: item, key: item.id });
+          break;
+        case "compacted":
+          flushGroup();
+          items.push({ kind: "context-compacted", compacted: item, key: item.id });
+          break;
       }
     }
+    flushGroup();
 
-    // A completed Plan turn closes its segment with the plan card — the
-    // compact stand-in for the collapsed plan message, carrying the title the
-    // message would have shown. Every plan stays reviewable forever; only the
-    // latest carries the build authority (isLatestPlan). A superseded plan
-    // that never published an artifact is skipped — with no artifact and no
-    // build CTA it would render an empty shell.
-    if (isCompletedPlanExec) {
-      const isLatestPlan = execId === latestPlanExecutionId;
+    // A completed Plan turn closes its segment with the plan card. Every
+    // plan stays reviewable; only the latest carries the build authority. A
+    // superseded plan that never published an artifact is skipped — with no
+    // artifact and no build CTA it would render an empty shell.
+    if (isCompletedPlan) {
+      const isLatestPlan = runId === latestPlanRunId;
       if (planArtifact || isLatestPlan) {
+        const planMessage = turn.items.find((item) => item.id === planMessageId);
         items.push({
           kind: "plan-completion",
-          key: `${execId}-plan-completion`,
-          executionId: exec.metadata?.id ?? "",
+          key: `${runId}-plan-completion`,
+          executionId: runId,
           planArtifact,
-          planTitle: collapsePlanMessage
-            ? extractPlanTitle(messages[planMessageIndex].content)
-            : undefined,
+          planTitle:
+            collapsePlanMessage && planMessage?.kind === "message"
+              ? extractPlanTitle(planMessage.text)
+              : undefined,
           isLatestPlan,
         });
       }
     } else if (streamingPlan) {
-      // The live stand-in for the suppressed streaming plan message. It
-      // deliberately SHARES the completion item's key: on completion this
-      // item becomes the plan-completion item above (a kind change under a
-      // stable key), so the card holds one thread position and the handoff
-      // reads as the card settling rather than a new element appearing.
+      // The live stand-in for the suppressed plan message. It SHARES the
+      // completion item's key: on completion this item becomes the
+      // plan-completion item above (a kind change under a stable key).
       items.push({
         kind: "plan-writing",
-        key: `${execId}-plan-completion`,
-        executionId: exec.metadata?.id ?? "",
-        planTitle:
-          extractLeadingH1(streamingPlan.displayText).title ?? undefined,
+        key: `${runId}-plan-completion`,
+        executionId: runId,
+        planTitle: extractLeadingH1(streamingPlan.displayText).title ?? undefined,
         planSize: streamingPlan.displayText.length,
       });
     }
 
-    // Anchor (3): a plan that produced no rendered narration or work item still
-    // surfaces — never silently dropped.
+    // Anchor (3): a plan that produced no rendered narration or work item
+    // still surfaces — never silently dropped.
     emitTodos();
 
-    // Settled records land inside this run's segment, at their anchors.
-    if (execChangeSets.length > 0) {
-      insertFileReviewItems(
-        items,
-        execChangeSets,
-        fileReviewAnchors,
-        isTerminalPhase(exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED),
-      );
+    // Settled records land inside this turn's segment, at their anchors.
+    if (reviewSets.length > 0) {
+      insertFileReviewItems(items, reviewSets, fileReviewAnchors, turn.ended);
     }
   }
 
-  // Flush any remaining summarization events that occurred after all messages
-  while (eventCursor < pendingEvents.length) {
-    const evt = pendingEvents[eventCursor];
-    items.push({
-      kind: "context-compacted",
-      event: evt,
-      key: `compacted-${evt.timestamp}`,
-    });
-    eventCursor++;
-  }
+  const lastRun = lastTurn ? runsById.get(lastTurn.runId) : undefined;
+  const lastPhase = lastTurn?.status?.phase;
 
-  const lastExec = allRuns[allRuns.length - 1];
-  const lastPhase =
-    lastExec?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
-
-  if (activeStreamRun && !hasStartedResponding(activeStreamRun)) {
-    const isPending =
-      lastPhase === RunPhase.RUN_PENDING ||
-      lastPhase === RunPhase.RUN_PHASE_UNSPECIFIED;
-    const isInProgressNoMessages =
-      lastPhase === RunPhase.RUN_IN_PROGRESS;
-
-    if (isPending) {
-      const serverPhase =
-        activeStreamRun.status?.setupProgress?.currentPhase || undefined;
+  if (activeTurn && !hasStartedResponding(activeTurn)) {
+    const phase = activeTurn.status?.phase;
+    if (phase === undefined || phase === "pending") {
       items.push({
         kind: "setup-progress",
         workspaceEntries: workspaceEntries ?? [],
-        serverPhase,
+        serverPhase: lastRun?.status?.setupProgress?.currentPhase || undefined,
         key: "setup-progress",
       });
-    } else if (isInProgressNoMessages) {
+    } else if (phase === "running") {
       items.push({
         kind: "setup-progress",
         workspaceEntries: workspaceEntries ?? [],
@@ -1133,121 +971,78 @@ export function buildThreadItems(
     }
   }
 
-  if (
-    isTerminalPhase(lastPhase) &&
-    lastPhase !== RunPhase.RUN_COMPLETED
-  ) {
+  if (lastTurn?.ended && lastPhase !== undefined && BADGED_END_PHASES.has(lastPhase)) {
     items.push({
       kind: "phase-badge",
-      phase: lastPhase,
+      phase: runPhaseOf(lastPhase),
       key: `phase-${lastPhase}`,
     });
 
-    // The server populates `status.error` on RUN_FAILED and
-    // RUN_TERMINATED — never on a user-initiated cancel. Surface it
-    // beside the badge so a failure that produced no messages still explains
-    // itself (the CLI shows this reason; the chat previously showed nothing).
-    // Kept as its own item so the badge component stays presentational.
-    //
-    // CANCELLED is carved out: cancel is a quiet terminal state, not a failure
-    // (stigmer#282). A CANCELLED run can still carry a non-empty error —
-    // cancel preserves a preexisting error by design (merge semantics), and an
-    // older server may have written a "Execution cancelled" sentinel — so the
-    // phase, not the error field, decides whether to render the loud banner.
-    // The muted Cancelled phase badge above remains the visible state.
-    const reason = lastExec?.status?.error;
-    if (reason && lastPhase !== RunPhase.RUN_CANCELLED) {
-      const specMessage = lastExec?.spec?.message;
+    // A failed or terminated turn carries its reason; surface it beside the
+    // badge so a failure that produced no messages still explains itself.
+    // A cancelled turn is a quiet end, not a failure (stigmer#282): the
+    // phase, not the error field, decides whether the loud notice renders.
+    const reason = lastTurn.status?.error;
+    if (reason && lastPhase !== "cancelled") {
+      const specMessage = lastRun?.spec?.message;
       // A failed build turn offers no inline Retry: resending its label as an
-      // ordinary message would drop the buildFromPlan flag (no runner
-      // directive, no plan attachment). The plan card above the error is the
-      // fully-wired retry — its Build button re-runs the whole pipeline.
-      const isBuildTurn = lastExec?.spec?.buildFromPlan === true;
+      // ordinary message would drop the buildFromPlan flag. The plan card
+      // above the error is the fully-wired retry.
+      const isBuildTurn = lastRun?.spec?.buildFromPlan === true;
       items.push({
         kind: "execution-error",
         error: reason,
         retryMessage:
-          specMessage && specMessage !== "execute" && !isBuildTurn
-            ? specMessage
-            : undefined,
-        key: `execution-error-${lastExec?.metadata?.id ?? lastPhase}`,
+          specMessage && specMessage !== "execute" && !isBuildTurn ? specMessage : undefined,
+        key: `execution-error-${lastTurn.runId}`,
       });
     }
   }
 
-  // Plan cards are emitted inside each run's segment (see the
-  // isCompletedPlanExec block in the loop above) — attached to their plan
-  // document, persistent across later turns, never appended at the tail.
-
-  if (includeApprovals) {
-    // Backstop only: an approval whose tool call renders inline shows its gate
-    // on that row (see ApprovalContext / ToolCallItem). We emit a bottom card
-    // ONLY for an approval with no inline home — a true orphan, or a task-spawn
-    // approval that precedes its SubAgentRun — so a pending gate is never
-    // invisible, and never duplicated.
-    const allApprovals = lastExec?.status?.pendingApprovals ?? [];
-    for (let ai = 0; ai < allApprovals.length; ai++) {
-      const approval = allApprovals[ai];
-      if (approval.toolCallId && inlineToolCallIds.has(approval.toolCallId)) {
-        continue;
-      }
-      items.push({
-        kind: "approval-request",
-        pendingApproval: approval,
-        key: `approval-${approval.toolCallId || ai}`,
-      });
+  if (includeApprovals && lastTurn) {
+    // Backstop only: a waiting tool use with a row shows its decision on that
+    // row (see ApprovalContext / ToolCallItem). A bottom card is emitted ONLY
+    // for one with no inline home, so a waiting call is never invisible, and
+    // never duplicated.
+    for (const ask of lastTurn.asks) {
+      if (inlineToolUseIds.has(ask.id)) continue;
+      items.push({ kind: "approval-request", toolUse: ask, key: `approval-${ask.id}` });
     }
   }
-
-  // File-review records are emitted inside each run's segment (see
-  // insertFileReviewItems in the loop above) — anchored to the last stamped
-  // edit row, never appended at the thread tail. Pending decision bars are
-  // not thread items at all: they live in the composer-docked FileReviewDock.
 
   // The ambient-liveness line (stigmer#277): the thread's tail is never a
-  // dead frame while the agent is alive. Emitted only when
-  //  - the run is IN_PROGRESS (phase-driven — WAITING/PAUSED
-  //    mean the agent is NOT working, and shimmering there would lie),
-  //  - it is past the pre-first-content window (setup-progress owns that),
-  //  - nothing else on screen carries its own live signal (a running tool
-  //    row or live sub-agent — one ambient signal at a time), and
-  //  - no approval is pending (the gate card is the louder, truthful state).
-  // Model-generation gaps between tool calls — the exact moments users doubt
-  // the agent — are precisely what remains.
+  // dead frame while the agent works. Emitted only when the live turn is
+  // running (waiting or paused means the agent is NOT working), past the
+  // pre-first-content window, nothing else on screen carries its own live
+  // signal, and no call waits for a person.
   if (
-    activeStreamRun &&
-    hasStartedResponding(activeStreamRun) &&
-    activeStreamRun.status?.phase === RunPhase.RUN_IN_PROGRESS &&
-    (activeStreamRun.status.pendingApprovals?.length ?? 0) === 0 &&
-    !hasVisiblyRunningActivity(activeStreamRun)
+    activeTurn &&
+    hasStartedResponding(activeTurn) &&
+    activeTurn.status?.phase === "running" &&
+    activeTurn.asks.length === 0 &&
+    !hasVisiblyRunningActivity(activeTurn.items)
   ) {
     items.push({ kind: "liveness", key: "liveness-status" });
   }
 
   if (pendingUserMessage) {
-    // A FAILED send never created a run, so an existing run with
-    // identical text (e.g. two build attempts of the same plan — both
-    // "Build from plan") must never swallow the failed bubble. Suppression
-    // only applies to the succeeded-send window where the stream has
-    // delivered the same turn but the pending state hasn't cleared yet.
+    // A FAILED send never started a turn, so an existing turn with identical
+    // text must never swallow the failed bubble. Suppression applies only to
+    // the succeeded-send window where the turn appeared but the pending
+    // state has not cleared yet.
     const alreadySynthesized =
-      !pendingMessageFailed && lastExec?.spec?.message === pendingUserMessage;
+      !pendingMessageFailed && lastTurn?.userMessage?.text === pendingUserMessage;
     if (!alreadySynthesized) {
-      const syntheticPending = create(AgentMessageSchema);
-      syntheticPending.type = MessageType.MESSAGE_HUMAN;
-      syntheticPending.content = pendingUserMessage;
       items.push({
         kind: "message",
-        message: syntheticPending,
+        message: { kind: "user", id: "pending-user-turn", text: pendingUserMessage },
         key: "pending-user-turn",
         // A failed turn shows the inline error instead of the dimmed
         // sending state — the two are mutually exclusive.
         isPending: !pendingMessageFailed,
         isFailed: pendingMessageFailed,
-        // The submit context's attachments: evidence the files rode with the
-        // turn, kept on failure so retry shows what will be re-sent. No
-        // executionId yet — chips render inert until the real turn (same
-        // bridge key) replaces this bubble and brings the presign seam.
+        // The submitted attachments: evidence the files rode with the turn,
+        // kept on failure so Retry shows what will be re-sent.
         attachments:
           pendingAttachments && pendingAttachments.length > 0
             ? pendingAttachments
@@ -1260,31 +1055,50 @@ export function buildThreadItems(
 }
 
 /**
- * Renders a continuous conversation thread from one or more
- * {@link Run} snapshots.
+ * Each turn's file reviews from the fold, keyed by run id, and the runs'
+ * captured change sets keyed by id: what the file-edit rows badge and the
+ * write rows' diffs read (see {@link FileReviewContext}).
+ */
+function fileReviewContextOf(turns: readonly Turn[], runs: readonly Run[]): FileReviewContextValue {
+  const fileReviewByRunId = new Map<string, readonly FileReviewSet[]>();
+  for (const turn of turns) {
+    if (turn.fileReview.length > 0) fileReviewByRunId.set(turn.runId, turn.fileReview);
+  }
+  const changeSetsById = new Map<string, FileChangeSet>();
+  for (const run of runs) {
+    for (const changeSet of displayFileChangeSets(run.status)) {
+      changeSetsById.set(changeSet.id, changeSet);
+    }
+  }
+  return { fileReviewByRunId, changeSetsById };
+}
+
+/**
+ * Renders a conversation from its session's folded turns: each turn's
+ * person's message, the agent's messages, thinking and tool calls in the
+ * order it produced them, its sub-agents, to-dos, plan, file reviews and
+ * how it ended.
  *
  * Composes {@link MessageEntry}, {@link ToolCallGroup}, and
  * {@link RunPhaseBadge} into a scrollable, auto-scrolling log
  * that follows new content when the user is near the bottom.
  *
- * Renders nothing when no runs are provided.
- *
  * All visual properties flow through `--stgm-*` tokens.
  *
  * @example
  * ```tsx
- * const { runs } = useSessionRuns(sessionId);
- * const stream = useRunStream(activeId);
+ * const conv = useSessionConversation(sessionId, org);
  *
  * <MessageThread
- *   runs={runs ?? []}
- *   activeStreamRun={stream.run}
+ *   turns={conv.turns}
+ *   runs={conv.runs}
+ *   onAnswerToolUse={conv.answerToolUse}
  * />
  * ```
  */
 export function MessageThread({
-  runs: executions,
-  activeStreamRun,
+  turns,
+  runs = EMPTY_RUNS,
   pendingUserMessage,
   pendingAttachments,
   pendingMessageFailed = false,
@@ -1294,14 +1108,13 @@ export function MessageThread({
   onEditMessage,
   className,
   formatToolCallSummary,
-  onApprovalSubmit,
-  submittingApprovalIds,
-  approvalErrors,
+  onAnswerToolUse,
+  answeringToolUseIds,
+  answerErrors,
   showFileReviewRecords = false,
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
-  summarizationEvents,
   agentVersionLabel,
   virtualized = false,
   onBuildFromPlan,
@@ -1313,17 +1126,28 @@ export function MessageThread({
   slots,
   runScores = false,
 }: MessageThreadProps) {
-  useRenderTracer("MessageThread", { executions, activeStreamRun });
+  useRenderTracer("MessageThread", { turns, runs });
 
-  const includeApprovals = onApprovalSubmit != null;
+  const includeApprovals = onAnswerToolUse != null;
   const editableActiveTurn = onEditMessage != null;
-  // A streaming plan is collapsed behind its live card only when the host can
-  // open the plan document surface — a panel-less host (no onOpenPlan) keeps
-  // the plan streaming inline, where it remains readable.
+  // A plan being written is collapsed behind its live card only when the host
+  // can open the plan document surface — a panel-less host (no onOpenPlan)
+  // keeps the plan streaming inline, where it remains readable.
   const collapseStreamingPlan = onOpenPlan != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamRun, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel),
-    [executions, activeStreamRun, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel],
+    () =>
+      buildThreadItems(turns, runs, {
+        pendingUserMessage,
+        includeApprovals,
+        workspaceEntries,
+        pendingMessageFailed,
+        editableActiveTurn,
+        includeFileReviewRecords: showFileReviewRecords,
+        collapseStreamingPlan,
+        pendingAttachments,
+        agentVersionLabel,
+      }),
+    [turns, runs, pendingUserMessage, includeApprovals, workspaceEntries, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel],
   );
 
   useKeyStability(items);
@@ -1357,64 +1181,35 @@ export function MessageThread({
     [sandboxWorkspaceRoot],
   );
 
-  // Pending approvals live on the latest run. We project them into a
-  // tool-call-id-keyed map so each gated tool row can render its own approval
-  // inline (see ApprovalContext); buildThreadItems still emits a bottom card
-  // for any approval with no matching inline row (orphan backstop).
-  const lastExec = activeStreamRun ?? executions[executions.length - 1];
-  const pendingApprovals = includeApprovals
-    ? lastExec?.status?.pendingApprovals ?? EMPTY_APPROVALS
-    : EMPTY_APPROVALS;
-
-  const approvalsByToolCallId = useMemo(() => {
-    const map = new Map<string, PendingApproval>();
-    for (const approval of pendingApprovals) {
-      if (approval.toolCallId) map.set(approval.toolCallId, approval);
-    }
-    return map;
-  }, [pendingApprovals]);
-
+  // The answer handler and its per-gate state, for the rows that wait (a
+  // row knows it waits from its own tool use; see ApprovalContext).
+  // buildThreadItems still emits a bottom card for a waiting call with no
+  // row of its own (the backstop).
   const approvalCtx = useMemo<ApprovalContextValue>(
     () => ({
-      approvalsByToolCallId,
-      onSubmit: onApprovalSubmit,
-      submittingIds: submittingApprovalIds ?? EMPTY_SUBMITTING_IDS,
-      errorsByToolCallId: approvalErrors ?? EMPTY_APPROVAL_ERRORS,
+      onAnswer: onAnswerToolUse,
+      submittingIds: answeringToolUseIds ?? EMPTY_SUBMITTING_IDS,
+      errorsByToolUseId: answerErrors ?? EMPTY_ANSWER_ERRORS,
     }),
-    [approvalsByToolCallId, onApprovalSubmit, submittingApprovalIds, approvalErrors],
+    [onAnswerToolUse, answeringToolUseIds, answerErrors],
   );
 
-  // Every displayable change set across the session, keyed by id, so a stamped
-  // edit row (ToolCall.file_change_set_id) can badge its set's live review
-  // state wherever it renders (parent thread or nested groups). The map is
-  // rebuilt only when the run list reference changes; structural sharing
-  // keeps each FileChangeSet reference stable across streaming frames, so
-  // subscribing rows re-render on review events, not every snapshot.
-  const fileReviewCtx = useMemo<FileReviewContextValue>(() => {
-    const map = new Map<string, FileChangeSet>();
-    const all = activeStreamRun
-      ? [...executions, activeStreamRun]
-      : executions;
-    for (const exec of all) {
-      for (const changeSet of displayFileChangeSets(exec.status)) {
-        // Later wins: the active stream's copy supersedes a stale fetched one.
-        map.set(changeSet.id, changeSet);
-      }
-    }
-    return { changeSetsById: map };
-  }, [executions, activeStreamRun]);
+  // Each turn's file reviews and the runs' captured bytes, so a file-edit row
+  // badges its file's live review state and a write row renders its diff
+  // wherever it renders (parent thread or nested groups). Rebuilt only when
+  // the turns or runs change.
+  const fileReviewCtx = useMemo<FileReviewContextValue>(
+    () => fileReviewContextOf(turns, runs),
+    [turns, runs],
+  );
 
   // Drives the global "approval needed" peek affordance — a count, not the
   // cards, so the bar reuses the existing scroll machine without a new observer.
-  const unresolvedApprovalCount = pendingApprovals.length;
+  const unresolvedApprovalCount = includeApprovals ? (turns.at(-1)?.asks.length ?? 0) : 0;
 
-  const scoredRuns = useMemo(
-    () => (activeStreamRun ? [...executions, activeStreamRun] : executions),
-    [executions, activeStreamRun],
-  );
   const withRunScores = (thread: ReactNode): ReactNode =>
     runScores ? (
-      <RunScoresProvider runs={scoredRuns}>{thread}</RunScoresProvider>
+      <RunScoresProvider runs={runs}>{thread}</RunScoresProvider>
     ) : (
       thread
     );
@@ -1426,9 +1221,9 @@ export function MessageThread({
           <LazyVirtualizedThread
             items={items}
             formatToolCallSummary={formatToolCallSummary}
-            onApprovalSubmit={onApprovalSubmit}
-            submittingApprovalIds={submittingApprovalIds}
-            approvalErrors={approvalErrors}
+            onAnswerToolUse={onAnswerToolUse}
+            answeringToolUseIds={answeringToolUseIds}
+            answerErrors={answerErrors}
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
             approvalCtx={approvalCtx}
@@ -1457,9 +1252,9 @@ export function MessageThread({
       className={className}
       contentColumn={contentColumn}
       formatToolCallSummary={formatToolCallSummary}
-      onApprovalSubmit={onApprovalSubmit}
-      submittingApprovalIds={submittingApprovalIds}
-      approvalErrors={approvalErrors}
+      onAnswerToolUse={onAnswerToolUse}
+      answeringToolUseIds={answeringToolUseIds}
+      answerErrors={answerErrors}
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
       approvalCtx={approvalCtx}
@@ -1487,14 +1282,10 @@ interface NonVirtualizedThreadProps {
   readonly items: readonly ThreadItem[];
   readonly className?: string;
   readonly contentColumn?: ThreadContentColumn;
-  readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
-  readonly onApprovalSubmit?: (
-    toolCallId: string,
-    action: ApprovalAction,
-    comment?: string,
-  ) => void;
-  readonly submittingApprovalIds?: ReadonlySet<string>;
-  readonly approvalErrors?: ReadonlyMap<string, Error>;
+  readonly formatToolCallSummary?: (toolUses: readonly ToolUse[]) => string;
+  readonly onAnswerToolUse?: (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void;
+  readonly answeringToolUseIds?: ReadonlySet<string>;
+  readonly answerErrors?: ReadonlyMap<string, Error>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
@@ -1519,9 +1310,9 @@ function NonVirtualizedThread({
   className,
   contentColumn,
   formatToolCallSummary,
-  onApprovalSubmit,
-  submittingApprovalIds,
-  approvalErrors,
+  onAnswerToolUse,
+  answeringToolUseIds,
+  answerErrors,
   filePathCtx,
   sandboxCtx,
   approvalCtx,
@@ -1570,9 +1361,9 @@ function NonVirtualizedThread({
                 <ThreadItemRenderer
                   item={item}
                   formatToolCallSummary={formatToolCallSummary}
-                  onApprovalSubmit={onApprovalSubmit}
-                  submittingApprovalIds={submittingApprovalIds}
-                  approvalErrors={approvalErrors}
+                  onAnswerToolUse={onAnswerToolUse}
+                  answeringToolUseIds={answeringToolUseIds}
+                  answerErrors={answerErrors}
                   onBuildFromPlan={onBuildFromPlan}
                   onOpenPlan={onOpenPlan}
                   org={org}
@@ -1620,14 +1411,10 @@ function NonVirtualizedThread({
  */
 export interface ThreadItemRendererProps {
   readonly item: ThreadItem;
-  readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
-  readonly onApprovalSubmit?: (
-    toolCallId: string,
-    action: ApprovalAction,
-    comment?: string,
-  ) => void;
-  readonly submittingApprovalIds?: ReadonlySet<string>;
-  readonly approvalErrors?: ReadonlyMap<string, Error>;
+  readonly formatToolCallSummary?: (toolUses: readonly ToolUse[]) => string;
+  readonly onAnswerToolUse?: (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void;
+  readonly answeringToolUseIds?: ReadonlySet<string>;
+  readonly answerErrors?: ReadonlyMap<string, Error>;
   readonly onBuildFromPlan?: () => void;
   readonly onOpenPlan?: (executionId: string) => void;
   readonly org?: string;
@@ -1659,9 +1446,9 @@ export interface ThreadItemRendererProps {
 export function ThreadItemRenderer({
   item,
   formatToolCallSummary,
-  onApprovalSubmit,
-  submittingApprovalIds,
-  approvalErrors,
+  onAnswerToolUse,
+  answeringToolUseIds,
+  answerErrors,
   onBuildFromPlan,
   onOpenPlan,
   org,
@@ -1696,7 +1483,7 @@ export function ThreadItemRenderer({
           runId={item.executionId}
           onEdit={
             item.isEditable && onEditMessage
-              ? () => onEditMessage(item.message.content)
+              ? () => onEditMessage(item.message.text)
               : undefined
           }
           actions={
@@ -1710,8 +1497,7 @@ export function ThreadItemRenderer({
     case "tool-group":
       return (
         <ToolCallGroup
-          toolCalls={item.toolCalls}
-          subAgentRuns={item.subAgentRuns}
+          toolUses={item.toolUses}
           formatSummary={formatToolCallSummary}
           className="stg:mx-4"
         />
@@ -1719,7 +1505,10 @@ export function ThreadItemRenderer({
     case "sub-agent":
       return (
         <SubAgentSection
-          subAgentRun={item.subAgentRun}
+          thread={item.thread}
+          subject={subAgentSubjectOf(item.toolUse)}
+          startedAt={item.toolUse.processedAt}
+          completedAt={item.toolUse.result?.processedAt}
           className="stg:mx-4"
         />
       );
@@ -1742,15 +1531,15 @@ export function ThreadItemRenderer({
     case "approval-request":
       return (
         <ApprovalCardRow
-          pendingApproval={item.pendingApproval}
-          onApprovalSubmit={onApprovalSubmit!}
-          isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
-          error={approvalErrors?.get(item.pendingApproval.toolCallId) ?? null}
+          toolUse={item.toolUse}
+          onAnswerToolUse={onAnswerToolUse!}
+          isSubmitting={answeringToolUseIds?.has(item.toolUse.id) ?? false}
+          error={answerErrors?.get(item.toolUse.id) ?? null}
           ApprovalCardComponent={slots?.ApprovalCard ?? ApprovalCard}
         />
       );
     case "file-review-record":
-      return <FileReviewRecordRow fileChangeSet={item.fileChangeSet} />;
+      return <FileReviewRecordRow fileReviewSet={item.fileReviewSet} />;
     case "setup-progress": {
       const Setup = slots?.SetupProgress ?? SetupProgress;
       return (
@@ -1763,10 +1552,10 @@ export function ThreadItemRenderer({
     }
     case "recalled-memories": {
       const Recalled = slots?.RecalledMemoriesCard ?? RecalledMemoriesCard;
-      return <Recalled report={item.report} facts={item.facts} />;
+      return <Recalled recall={item.recall} facts={item.facts} />;
     }
     case "context-compacted":
-      return <SummarizationCard event={item.event} />;
+      return <SummarizationCard compacted={item.compacted} />;
     case "agent-version":
       return <AgentVersionMarker label={item.label} />;
     case "loaded-versions":
@@ -1937,7 +1726,7 @@ function FailedUserMessage({
   onRetry,
   MessageEntryComponent,
 }: {
-  message: AgentMessage;
+  message: ThreadMessage;
   attachments?: readonly MessageAttachmentView[];
   onRetry?: () => void;
   MessageEntryComponent: ComponentType<MessageEntryProps>;
@@ -1968,19 +1757,15 @@ function FailedUserMessage({
 }
 
 // ---------------------------------------------------------------------------
-// ApprovalCardRow — stabilizes the onSubmit callback for React.memo
+// ApprovalCardRow — stabilizes the onAnswer callback for React.memo
 // ---------------------------------------------------------------------------
 
 interface ApprovalCardRowProps {
-  readonly pendingApproval: PendingApproval;
-  readonly onApprovalSubmit: (
-    toolCallId: string,
-    action: ApprovalAction,
-    comment?: string,
-  ) => void;
+  readonly toolUse: ToolUse;
+  readonly onAnswerToolUse: (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void;
   readonly isSubmitting: boolean;
-  // This gate's last failed decision, or null — a stable ref from the
-  // approvalErrors map, so the row re-renders only when its error appears/clears.
+  // This gate's last failed answer, or null — a stable ref from the
+  // answerErrors map, so the row re-renders only when its error appears/clears.
   readonly error?: Error | null;
   // The (possibly slotted) card component. The row's callback stabilization
   // wraps whichever card renders, so a slot override keeps the memo behavior.
@@ -1988,23 +1773,23 @@ interface ApprovalCardRowProps {
 }
 
 const ApprovalCardRow = memo(function ApprovalCardRow({
-  pendingApproval,
-  onApprovalSubmit,
+  toolUse,
+  onAnswerToolUse,
   isSubmitting,
   error = null,
   ApprovalCardComponent,
 }: ApprovalCardRowProps) {
-  const handleSubmit = useCallback(
-    (action: ApprovalAction, comment?: string) => {
-      onApprovalSubmit(pendingApproval.toolCallId, action, comment);
+  const handleAnswer = useCallback(
+    (answer: ToolUseAnswer, denyMessage?: string) => {
+      onAnswerToolUse(toolUse.id, answer, denyMessage);
     },
-    [onApprovalSubmit, pendingApproval.toolCallId],
+    [onAnswerToolUse, toolUse.id],
   );
 
   return (
     <ApprovalCardComponent
-      pendingApproval={pendingApproval}
-      onSubmit={handleSubmit}
+      toolUse={toolUse}
+      onAnswer={handleAnswer}
       isSubmitting={isSubmitting}
       error={error}
       className="stg:mx-4"
@@ -2013,23 +1798,25 @@ const ApprovalCardRow = memo(function ApprovalCardRow({
 });
 
 // ---------------------------------------------------------------------------
-// FileReviewRecordRow — a settled change set's read-only in-thread record
+// FileReviewRecordRow — a settled file review's read-only in-thread record
 // ---------------------------------------------------------------------------
 
 /**
- * Renders a settled change set as a read-only record at its position in the
+ * Renders a settled file review as a read-only record at its position in the
  * transcript — what changed and how it was decided ("2 kept · 1 discarded").
  * Never interactive: the pending decision surface is the composer-docked
  * `FileReviewDock`, not a thread item (see {@link insertFileReviewItems}).
  */
 const FileReviewRecordRow = memo(function FileReviewRecordRow({
-  fileChangeSet,
+  fileReviewSet,
 }: {
-  readonly fileChangeSet: FileChangeSet;
+  readonly fileReviewSet: FileReviewSet;
 }) {
+  const { changeSetsById } = useContext(FileReviewContext);
   return (
     <FileReviewCard
-      fileChangeSet={fileChangeSet}
+      fileReviewSet={fileReviewSet}
+      capture={changeSetsById.get(fileReviewSet.changeSetId) ?? null}
       interactive={false}
       // The thread's stamped edit rows already show every diff in place, so
       // the record renders its compact file-list body — the history never

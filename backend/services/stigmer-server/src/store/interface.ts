@@ -612,6 +612,16 @@ export interface RawResourceDocument {
 }
 
 /**
+ * A live row read for a write that will swap on it: the decoded resource
+ * and the EXACT stored bytes, which swapResource compares the row with
+ * when it writes (the guarded write, pipeline/guarded-write.ts).
+ */
+export interface ResourceReadForWrite<Desc extends DescMessage> {
+  readonly resource: MessageShape<Desc>;
+  readonly bytes: Uint8Array;
+}
+
+/**
  * What a driver opens with beyond its connection. `listIndexes` is the
  * composition root's one list of list-index declarations
  * (boot/list-indexes.ts); a store opened without it keeps no list index
@@ -654,6 +664,32 @@ export interface Store {
     id: string,
     schema: Desc,
   ): Promise<MessageShape<Desc>>;
+
+  /**
+   * A row read for a write that builds on it across awaited steps: the
+   * resource and its exact stored bytes, for swapResource to guard on.
+   * Throws ResourceNotFoundError if absent.
+   */
+  readResourceForWrite<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+  ): Promise<ResourceReadForWrite<Desc>>;
+
+  /**
+   * The guarded write: stores `resource` ONLY when the row's bytes still
+   * equal `expectedBytes`, the bytes readResourceForWrite answered. One
+   * statement over replaceResourceDataIfUnchanged, so the list-index facts
+   * ride it. False when the row changed or was deleted since the read: the
+   * caller reads again and re-applies its change; it never upserts.
+   */
+  swapResource<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    expectedBytes: Uint8Array,
+    resource: MessageShape<Desc>,
+  ): Promise<boolean>;
 
   /**
    * Atomic read-modify-write: reads the resource, applies `modify` (which

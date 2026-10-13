@@ -1,13 +1,10 @@
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { RecentActivityEntry, UserMenuProps } from "@stigmer/react";
 import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
 import { samples, sampleDate } from "@stigmer/react/test";
+import type { Turn } from "@stigmer/sdk";
 
 /**
  * Org slug used across real-component tour chrome. Shown in the shell's org
@@ -74,31 +71,37 @@ export const DEMO_RECENT_ACTIVITY: readonly RecentActivityEntry[] = [
 ];
 
 /**
- * Build a run snapshot where the first human message goes into
- * `spec.message` and the rest into `status.messages`. `MessageThread`
- * synthesizes the human bubble from `spec.message`, so this split avoids
- * rendering it twice.
- *
- * The default `RUN_IN_PROGRESS` phase suits mid-conversation frames
- * (`MessageThread`/`RunProgress` render it as a "working" indicator
- * without fetching anything — they are presentational); pass
- * `RUN_COMPLETED` for a finished conversation.
+ * A depicted conversation as the session surface reads it: its turns, the
+ * session's events folded, and the runs that carry each turn's lifecycle
+ * and spec. `MessageThread` renders the turns; the runs supply what the
+ * events do not (the message's mode and attachments, the phase the panel
+ * facets read).
  */
-export function snapshot(
-  msgs: AgentMessage[],
-  phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
-  artifacts?: RunArtifact[],
-): Run {
-  const firstHumanIdx = msgs.findIndex((m) => m.type === MessageType.MESSAGE_HUMAN);
-  const specMessage = firstHumanIdx >= 0 ? msgs[firstHumanIdx].content : "";
-  const statusMessages =
-    firstHumanIdx >= 0
-      ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
-      : msgs;
+export interface DemoConversation {
+  readonly turns: readonly Turn[];
+  readonly runs: readonly Run[];
+}
 
-  const exec = samples.run({ phase, messages: statusMessages, artifacts });
-  exec.spec!.message = specMessage;
-  return exec;
+/**
+ * Fold one turn's session events (built with the `samples.*Event`
+ * builders, all on the demo run) into a {@link DemoConversation}, beside
+ * the demo run at `phase` started with the turn's own message — the run's
+ * `spec.message` is what the thread shows as the person's bubble, so it
+ * must match the events' `user.message`.
+ *
+ * Pass the phase the events end on: `RUN_IN_PROGRESS` (the default) for a
+ * mid-conversation frame, `RUN_COMPLETED` for a finished one. Both are
+ * presentational — nothing is fetched.
+ */
+export function conversation(
+  events: readonly SessionEvent[],
+  phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
+): DemoConversation {
+  const fold = samples.fold(events);
+  return {
+    turns: fold.turns,
+    runs: [samples.run({ phase, message: fold.turns[0]?.userMessage?.text ?? "" })],
+  };
 }
 
 const noop = () => {};

@@ -16,6 +16,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useSessionConversation } from "../useSessionConversation";
+import { sessionEventStream } from "./session-event-stream";
 
 const MARKER = "***REDACTED***";
 
@@ -50,11 +51,12 @@ let runCreate: ReturnType<typeof vi.fn>;
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = {
-    session: { get: vi.fn(() => Promise.resolve(stored)), update: sessionUpdate },
+    session: { get: vi.fn(() => Promise.resolve(stored)), update: sessionUpdate, streamEvents: sessionEventStream().streamEvents },
     run: {
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+      // The sent turn's run, read while it is live; never answered here.
+      get: vi.fn(() => new Promise(() => {})),
       create: runCreate,
-      subscribe: vi.fn(),
     },
     identityAccount: { whoAmI: vi.fn().mockRejectedValue(new Error("none")) },
   } as unknown as Stigmer;

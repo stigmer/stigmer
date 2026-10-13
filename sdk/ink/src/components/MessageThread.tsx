@@ -1,27 +1,31 @@
+// The terminal conversation: a session's folded turns as a scrolling log —
+// each turn's message, the agent's messages, tool groups and sub-agents in
+// the order it produced them, its settled file reviews, how the last turn
+// ended, its waiting tool uses as approval prompts, and the optimistic
+// message just sent. Ended turns are written once through Ink's <Static>;
+// the live turn re-renders in place.
 import React, { useMemo } from "react";
 import { Box, Text, Static } from "ink";
-import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type {
-  AgentMessage,
-  ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  ApprovalAction,
-  RunPhase,
-  FileChangeSetStatus,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+  displayFileChangeSets,
+  isTodoTool,
+  syntheticUserPrompt,
+  type FileReviewSet,
+  type Thread,
+  type ToolUse,
+  type Turn,
+} from "@stigmer/sdk";
 import {
-  isTerminalPhase,
   FileReviewContext,
+  runPhaseOf,
+  subAgentSubjectOf,
   type FileReviewContextValue,
+  type ThreadMessage,
+  type ToolUseAnswer,
 } from "@stigmer/react";
-import { displayFileChangeSets } from "@stigmer/sdk";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubAgentBlock } from "./SubAgentBlock.js";
@@ -31,118 +35,114 @@ import { FileReviewRecord } from "./FileReviewRecord.js";
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
-  /** Completed runs in chronological order. */
-  readonly runs: readonly Run[];
-  /** The currently streaming run (appended after `executions`). */
-  readonly activeStreamRun?: Run | null;
-  /** Optimistic user message shown before the stream delivers it. */
+  /** The conversation's turns, in order: the session's events folded. */
+  readonly turns: readonly Turn[];
+  /**
+   * The turns' runs, for what the run record holds: the message a turn was
+   * started with (so a build turn's label or a placeholder is not shown) and
+   * the captured bytes of its file changes. A turn whose run is absent
+   * renders from its events alone.
+   */
+  readonly runs?: readonly Run[];
+  /** Optimistic user message shown before the session's events carry it. */
   readonly pendingUserMessage?: string | null;
-  /** Callback for approval actions. Shows approval UI when provided. */
-  readonly onApprovalSubmit?: (
-    toolCallId: string,
-    action: ApprovalAction,
-  ) => void;
-  /** Set of tool call IDs currently being submitted for approval. */
-  readonly submittingApprovalIds?: ReadonlySet<string>;
+  /**
+   * Answers a tool use that waits for a person. The last turn's waiting tool
+   * uses render as approval prompts when provided.
+   */
+  readonly onAnswerToolUse?: (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void;
+  /** Tool-use ids whose answer is in flight. */
+  readonly answeringToolUseIds?: ReadonlySet<string>;
   /** Whether tool call groups should be rendered in expanded mode. Toggled via Ctrl+O. */
   readonly expandToolCalls?: boolean;
   /**
-   * Whether to render a read-only settled record for each decided/reconciled/
-   * failed change set (the terminal analogue of the web's in-thread record).
-   * Off by default so bare consumers stay minimal; `SessionView`
-   * opts in. Pending (AWAITING_REVIEW) sets are never records here — their
-   * decision surface is the docked `FileReviewPrompt`.
+   * Whether to render a read-only record for each settled file review (every
+   * file decided, or its turn ended) — the terminal analogue of the web's
+   * in-thread record. Off by default so bare consumers stay minimal;
+   * `SessionView` opts in. A set still undecided on the live turn is never a
+   * record here — its decision surface is the docked `FileReviewPrompt`.
    */
   readonly showFileReviewRecords?: boolean;
 }
 
 type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
-  | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly key: string }
-  | { readonly kind: "sub-agent"; readonly subAgent: SubAgentRun; readonly key: string }
+  | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string }
+  | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
+  | { readonly kind: "sub-agent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
-  | { readonly kind: "file-review-record"; readonly set: FileChangeSet; readonly key: string }
-  | { readonly kind: "approval"; readonly pendingApproval: PendingApproval; readonly key: string };
+  | { readonly kind: "file-review-record"; readonly set: FileReviewSet; readonly key: string }
+  | { readonly kind: "approval"; readonly toolUse: ToolUse; readonly key: string };
 
-/** A change set is "settled" once a decision has been folded (or reconcile failed). */
-function isSettledSet(status: FileChangeSetStatus): boolean {
-  return (
-    status === FileChangeSetStatus.DECIDED ||
-    status === FileChangeSetStatus.RECONCILED ||
-    status === FileChangeSetStatus.FAILED
-  );
+const EMPTY_RUNS: readonly Run[] = [];
+
+/** The phases a turn ends with a badge for: everything but a completion. */
+const BADGED_END_PHASES: ReadonlySet<string> = new Set(["failed", "cancelled", "terminated"]);
+
+/**
+ * Whether a folded turn is a turn of the conversation: not a reconcile turn
+ * (the message-less run an Undo starts to put files back) — known by its run
+ * when present, and by having no message and no items otherwise.
+ */
+function isConversationTurn(turn: Turn, run: Run | undefined): boolean {
+  if (run?.spec?.reconcileFileReview === true) return false;
+  return turn.userMessage !== undefined || turn.items.length > 0;
 }
 
 /**
- * Builds the observational thread items for a single run: the spec
- * message, each AI/human message, tool-call groups, and sub-agent blocks —
- * plus (when `includeFileReviewRecords`) a read-only settled record appended at
- * the run's tail for each decided/reconciled/failed change set.
+ * Builds one turn's items: the person's message (the run's rule skips a
+ * placeholder or a build turn's label), each agent message and note, each
+ * run of consecutive tool uses as a group (to-do calls left out), each
+ * sub-agent as a block — plus (when `includeFileReviewRecords`) a read-only
+ * record at the turn's tail for each settled file review.
  */
-function buildExecutionSegment(
-  exec: Run,
-  ei: number,
+function buildTurnSegment(
+  turn: Turn,
+  run: Run | undefined,
   includeFileReviewRecords: boolean,
 ): ThreadItem[] {
   const seg: ThreadItem[] = [];
-  const messages = exec.status?.messages ?? [];
-  const subAgents = exec.status?.subAgentRuns ?? [];
+  const runId = turn.runId;
 
-  const specMessage = exec.spec?.message;
-  if (specMessage && specMessage !== "execute") {
-    const humanMsg = create(AgentMessageSchema);
-    humanMsg.type = MessageType.MESSAGE_HUMAN;
-    humanMsg.content = specMessage;
-    seg.push({ kind: "message", message: humanMsg, key: `e${ei}-spec` });
+  const prompt = run ? syntheticUserPrompt(run) : (turn.userMessage?.text ?? "");
+  if (prompt) {
+    seg.push({
+      kind: "message",
+      message: { kind: "user", id: turn.userMessage?.id ?? `${runId}.user`, text: prompt },
+      key: `${runId}-spec`,
+    });
   }
 
-  for (let mi = 0; mi < messages.length; mi++) {
-    const msg = messages[mi];
-    if (msg.type === MessageType.MESSAGE_TOOL) continue;
-
-    const isEmptyAi = msg.type === MessageType.MESSAGE_AI && !msg.content.trim();
-
-    if (!isEmptyAi) {
-      seg.push({ kind: "message", message: msg, key: `e${ei}-m${mi}` });
+  let group: ToolUse[] = [];
+  const flush = (): void => {
+    if (group.length === 0) return;
+    seg.push({ kind: "tool-group", toolUses: group, key: `${group[0]!.id}-tc` });
+    group = [];
+  };
+  for (const item of turn.items) {
+    if (item.kind === "tool_use") {
+      if (isTodoTool(item.name)) continue;
+      if (item.thread === undefined) {
+        group.push(item);
+        continue;
+      }
+      flush();
+      seg.push({ kind: "sub-agent", toolUse: item, thread: item.thread, key: `sa-${item.id}` });
+      continue;
     }
-
-    if (msg.type === MessageType.MESSAGE_AI && msg.toolCalls.length > 0) {
-      // Split tool calls: "task" tools become sub-agent blocks,
-      // everything else goes into a regular tool group.
-      const regularTools = msg.toolCalls.filter((tc) => tc.name !== "task");
-      const taskTools = msg.toolCalls.filter((tc) => tc.name === "task");
-
-      if (regularTools.length > 0) {
-        seg.push({
-          kind: "tool-group",
-          toolCalls: regularTools,
-          key: `e${ei}-m${mi}-tc`,
-        });
-      }
-
-      for (let ti = 0; ti < taskTools.length; ti++) {
-        const matchedSub = subAgents.find((sa) => sa.id === taskTools[ti].id);
-        if (matchedSub) {
-          seg.push({
-            kind: "sub-agent",
-            subAgent: matchedSub,
-            key: `e${ei}-m${mi}-sa-${ti}`,
-          });
-        }
-      }
+    flush();
+    if ((item.kind === "message" && item.text.trim()) || item.kind === "note") {
+      seg.push({ kind: "message", message: item, key: item.id });
     }
   }
+  flush();
 
   if (includeFileReviewRecords) {
-    // `displayFileChangeSets` returns the server projection for a live
-    // run and folds the durable ledger for a terminal one, so a settled
-    // record renders for both. Appended at the segment tail (the terminal
-    // analogue of the web's last-stamped-row anchor); this is the only trace a
-    // shell-made set — which stamps no rows — leaves behind.
-    for (const set of displayFileChangeSets(exec.status)) {
-      if (!isSettledSet(set.status) || set.changes.length === 0) continue;
-      seg.push({ kind: "file-review-record", set, key: `e${ei}-frr-${set.id}` });
+    // A set is settled once every file is decided, or its turn ended. This is
+    // the only trace a shell-made change — which has no edit row — leaves.
+    for (const set of turn.fileReview) {
+      if ((set.undecided && !turn.ended) || set.files.length === 0) continue;
+      seg.push({ kind: "file-review-record", set, key: `${runId}-frr-${set.changeSetId}` });
     }
   }
 
@@ -153,160 +153,120 @@ function buildExecutionSegment(
  * Builds the full thread item list and the index at which the live region
  * begins (`liveStart`).
  *
- * The split is by run identity, not a trailing count: every completed
- * run's items are immutable history (safe for ink's append-only
- * `<Static>`), while the active run's items — plus the trailing transient
- * items (phase, approvals, optimistic pending message) — stay live so their
- * review badges can transition and the optimistic message can be cleared
- * without shrinking the Static array.
+ * The split is by turn: every turn before the first one that has not ended
+ * is immutable history (safe for ink's append-only `<Static>`), while the
+ * live turn's items — plus the trailing transient items (phase, approvals,
+ * optimistic message) — stay live so their review badges can transition and
+ * the optimistic message can be cleared without shrinking the Static array.
  */
 function buildThreadItems(
-  executions: readonly Run[],
-  activeStreamRun: Run | null | undefined,
+  turns: readonly Turn[],
+  runs: readonly Run[],
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   includeFileReviewRecords: boolean,
 ): { items: ThreadItem[]; liveStart: number } {
+  const runsById = new Map<string, Run>();
+  for (const run of runs) {
+    const id = run.metadata?.id;
+    if (id) runsById.set(id, run);
+  }
+  const shown = turns.filter((turn) => isConversationTurn(turn, runsById.get(turn.runId)));
+
   const items: ThreadItem[] = [];
-  const allRuns = activeStreamRun
-    ? [...executions, activeStreamRun]
-    : executions;
-
-  // Boundary between immutable history and the live region. When there is an
-  // active run, it is the item count right before that run's
-  // segment; otherwise the transient tail (below) is the only live region.
-  let liveStart = 0;
-  let liveStartSet = false;
-
-  for (let ei = 0; ei < allRuns.length; ei++) {
-    if (activeStreamRun && ei === executions.length) {
-      liveStart = items.length;
-      liveStartSet = true;
-    }
-    items.push(...buildExecutionSegment(allRuns[ei], ei, includeFileReviewRecords));
+  let liveStart: number | undefined;
+  for (const turn of shown) {
+    if (liveStart === undefined && !turn.ended) liveStart = items.length;
+    items.push(...buildTurnSegment(turn, runsById.get(turn.runId), includeFileReviewRecords));
   }
-
-  if (!liveStartSet) {
-    // No active run: every run body is history; only the transient
-    // tail appended below (e.g. an optimistic pending message) stays live.
-    liveStart = items.length;
-  }
+  // No live turn: every turn is history; only the transient tail appended
+  // below (e.g. an optimistic pending message) stays live.
+  liveStart ??= items.length;
 
   // --- Transient tail (always live) ---
-  const lastExec = allRuns[allRuns.length - 1];
-  const lastPhase =
-    lastExec?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
-
-  if (
-    isTerminalPhase(lastPhase) &&
-    lastPhase !== RunPhase.RUN_COMPLETED
-  ) {
-    items.push({ kind: "phase", phase: lastPhase, key: `phase-${lastPhase}` });
+  const lastTurn = shown.at(-1);
+  const lastPhase = lastTurn?.status?.phase;
+  if (lastTurn?.ended && lastPhase !== undefined && BADGED_END_PHASES.has(lastPhase)) {
+    items.push({ kind: "phase", phase: runPhaseOf(lastPhase), key: `phase-${lastPhase}` });
   }
 
   if (includeApprovals) {
-    const approvals = lastExec?.status?.pendingApprovals ?? [];
-    for (let ai = 0; ai < approvals.length; ai++) {
-      items.push({
-        kind: "approval",
-        pendingApproval: approvals[ai],
-        key: `approval-${approvals[ai].toolCallId || ai}`,
-      });
+    for (const ask of lastTurn?.asks ?? []) {
+      items.push({ kind: "approval", toolUse: ask, key: `approval-${ask.id}` });
     }
   }
 
-  if (pendingUserMessage) {
-    const alreadySynthesized = lastExec?.spec?.message === pendingUserMessage;
-    if (!alreadySynthesized) {
-      items.push({
-        kind: "pending-message",
-        content: pendingUserMessage,
-        key: "pending-user-msg",
-      });
-    }
+  if (pendingUserMessage && lastTurn?.userMessage?.text !== pendingUserMessage) {
+    items.push({
+      kind: "pending-message",
+      content: pendingUserMessage,
+      key: "pending-user-msg",
+    });
   }
 
   return { items, liveStart };
 }
 
 /**
- * Builds the id→change-set map that backs the file-review row badges, folding
- * every run's change sets (via `displayFileChangeSets`, which reads the
- * live projection or the durable ledger). The active stream wins on an id
- * collision so a live decision is reflected before it is persisted.
+ * Each turn's file reviews from the fold, keyed by run id, and the runs'
+ * captured change sets keyed by id — what the file-edit rows badge from.
  */
-function buildChangeSetsById(
-  executions: readonly Run[],
-  activeStreamRun: Run | null | undefined,
-): FileReviewContextValue {
+function fileReviewContextOf(turns: readonly Turn[], runs: readonly Run[]): FileReviewContextValue {
+  const fileReviewByRunId = new Map<string, readonly FileReviewSet[]>();
+  for (const turn of turns) {
+    if (turn.fileReview.length > 0) fileReviewByRunId.set(turn.runId, turn.fileReview);
+  }
   const changeSetsById = new Map<string, FileChangeSet>();
-  for (const exec of executions) {
-    for (const set of displayFileChangeSets(exec.status)) {
-      changeSetsById.set(set.id, set);
-    }
+  for (const run of runs) {
+    for (const set of displayFileChangeSets(run.status)) changeSetsById.set(set.id, set);
   }
-  if (activeStreamRun) {
-    for (const set of displayFileChangeSets(activeStreamRun.status)) {
-      changeSetsById.set(set.id, set);
-    }
-  }
-  return { changeSetsById };
+  return { fileReviewByRunId, changeSetsById };
 }
 
 /**
- * Renders a continuous conversation thread from one or more
- * `Run` snapshots in the terminal.
+ * Renders a continuous conversation thread from a session's folded turns in
+ * the terminal.
  *
  * Composes {@link MessageEntry}, {@link ToolCallGroup}, {@link SubAgentBlock},
- * {@link RunProgress}, {@link ApprovalPrompt}, and (for settled change
- * sets) {@link FileReviewRecord} into a scrolling terminal log.
+ * {@link RunProgress}, {@link ApprovalPrompt}, and (for settled file reviews)
+ * {@link FileReviewRecord} into a scrolling terminal log.
  *
- * Completed runs are rendered via Ink's `<Static>` component so they are
- * written once and don't re-render, keeping terminal output efficient for long
- * conversations. The active run renders live so its file-review row
- * badges transition (Pending review → Kept/Discarded) in place, then freeze
- * into `<Static>` when the run reaches a terminal phase. The thread is
- * wrapped in a `FileReviewContext` provider so every {@link ToolCallItem}
- * can badge its stamped edit rows.
+ * Ended turns are rendered via Ink's `<Static>` component so they are written
+ * once and don't re-render, keeping terminal output efficient for long
+ * conversations. The live turn renders live so its file-review row badges
+ * transition (Pending review → Kept/Discarded) in place, then freeze into
+ * `<Static>` when it ends. The thread is wrapped in a `FileReviewContext`
+ * provider so every {@link ToolCallItem} can badge its file edits.
  */
 export function MessageThread({
-  runs: executions,
-  activeStreamRun,
+  turns,
+  runs = EMPTY_RUNS,
   pendingUserMessage,
-  onApprovalSubmit,
-  submittingApprovalIds,
+  onAnswerToolUse,
+  answeringToolUseIds,
   expandToolCalls = false,
   showFileReviewRecords = false,
 }: MessageThreadProps) {
-  const includeApprovals = onApprovalSubmit != null;
+  const includeApprovals = onAnswerToolUse != null;
   const { items, liveStart } = useMemo(
     () =>
       buildThreadItems(
-        executions,
-        activeStreamRun,
+        turns,
+        runs,
         pendingUserMessage,
         includeApprovals,
         showFileReviewRecords,
       ),
-    [
-      executions,
-      activeStreamRun,
-      pendingUserMessage,
-      includeApprovals,
-      showFileReviewRecords,
-    ],
+    [turns, runs, pendingUserMessage, includeApprovals, showFileReviewRecords],
   );
 
-  const fileReviewContext = useMemo(
-    () => buildChangeSetsById(executions, activeStreamRun),
-    [executions, activeStreamRun],
-  );
+  const fileReviewContext = useMemo(() => fileReviewContextOf(turns, runs), [turns, runs]);
 
   // The single active decision surface: stdin is delivered to every mounted
-  // `useInput`, so only the FIRST pending approval owns the keyboard — the rest
+  // `useInput`, so only the FIRST waiting tool use owns the keyboard — the rest
   // render inert. The file-review prompt (in `SessionView`) in turn yields while
-  // any approval is pending, so the terminal always has exactly one interactive
-  // decision surface: first approval → else the file-review prompt.
+  // any tool use waits, so the terminal always has exactly one interactive
+  // decision surface: first ask → else the file-review prompt.
   const firstApprovalKey = useMemo(
     () => items.find((it) => it.kind === "approval")?.key,
     [items],
@@ -314,6 +274,8 @@ export function MessageThread({
 
   const historyItems = items.slice(0, liveStart);
   const liveItems = items.slice(liveStart);
+  const render = (item: ThreadItem): React.ReactNode =>
+    renderItem(item, onAnswerToolUse, answeringToolUseIds, expandToolCalls, firstApprovalKey);
 
   return (
     <FileReviewContext.Provider value={fileReviewContext}>
@@ -321,14 +283,14 @@ export function MessageThread({
         <Static items={historyItems}>
           {(item) => (
             <Box key={item.key} flexDirection="column" marginBottom={1}>
-              {renderItem(item, onApprovalSubmit, submittingApprovalIds, expandToolCalls, firstApprovalKey)}
+              {render(item)}
             </Box>
           )}
         </Static>
 
         {liveItems.map((item) => (
           <Box key={item.key} flexDirection="column" marginBottom={1}>
-            {renderItem(item, onApprovalSubmit, submittingApprovalIds, expandToolCalls, firstApprovalKey)}
+            {render(item)}
           </Box>
         ))}
       </Box>
@@ -338,33 +300,37 @@ export function MessageThread({
 
 function renderItem(
   item: ThreadItem,
-  onApprovalSubmit?: (toolCallId: string, action: ApprovalAction) => void,
-  submittingApprovalIds?: ReadonlySet<string>,
-  expandToolCalls?: boolean,
-  activeApprovalKey?: string,
+  onAnswerToolUse: MessageThreadProps["onAnswerToolUse"],
+  answeringToolUseIds: ReadonlySet<string> | undefined,
+  expandToolCalls: boolean,
+  activeApprovalKey: string | undefined,
 ): React.ReactNode {
   switch (item.kind) {
     case "message":
       return <MessageEntry message={item.message} />;
     case "tool-group":
-      return <ToolCallGroup toolCalls={item.toolCalls} defaultExpanded={expandToolCalls} />;
+      return <ToolCallGroup toolUses={item.toolUses} defaultExpanded={expandToolCalls} />;
     case "sub-agent":
-      return <SubAgentBlock subAgent={item.subAgent} defaultExpanded={expandToolCalls} />;
+      return (
+        <SubAgentBlock
+          thread={item.thread}
+          subject={subAgentSubjectOf(item.toolUse)}
+          startedAt={item.toolUse.processedAt}
+          completedAt={item.toolUse.result?.processedAt ?? ""}
+          defaultExpanded={expandToolCalls}
+        />
+      );
     case "phase":
       return <RunProgress phase={item.phase} />;
     case "file-review-record":
-      return <FileReviewRecord fileChangeSet={item.set} />;
+      return <FileReviewRecord fileReviewSet={item.set} />;
     case "approval":
-      return onApprovalSubmit ? (
+      return onAnswerToolUse ? (
         <ApprovalPrompt
-          pendingApproval={item.pendingApproval}
-          onSubmit={(action) =>
-            onApprovalSubmit(item.pendingApproval.toolCallId, action)
-          }
-          isSubmitting={
-            submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false
-          }
-          // Only the first pending approval is interactive (see firstApprovalKey).
+          toolUse={item.toolUse}
+          onAnswer={(answer, denyMessage) => onAnswerToolUse(item.toolUse.id, answer, denyMessage)}
+          isSubmitting={answeringToolUseIds?.has(item.toolUse.id) ?? false}
+          // Only the first waiting tool use is interactive (see firstApprovalKey).
           isActive={item.key === activeApprovalKey}
         />
       ) : null;

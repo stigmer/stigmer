@@ -14,20 +14,21 @@
  *   - a slug the organization holds is `slug-taken`, while the same slug in
  *     another organization is admitted;
  *   - a route another provider holds is `route-taken`, on insert and on
- *     replace, the refused write leaving nothing behind; the same issuer
+ *     swap, the refused write leaving nothing behind; the same issuer
  *     with another audience is another route, and a provider with no
  *     audience claims none;
  *   - a provider's routes are a set: one naming an issuer twice claims its
- *     route once, and is admitted on insert and on replace;
+ *     route once, and is admitted on insert and on swap;
  *   - an organization holds one live SSO provider: a second is `sso-taken`
- *     on insert and on a replace that makes a provider SSO, the refused
+ *     on insert and on a swap that makes a provider SSO, the refused
  *     write leaving nothing behind, while another organization's, a
  *     rewrite of the SSO provider itself, and one beside a provider being
  *     deleted are admitted;
- *   - a replace of a row that is gone is `missing`, and writes nothing;
- *   - a replace keeps the stored slug, a slug it carries included, and
- *     writes it onto the provider it was handed (rename's door is
- *     modifyById);
+ *   - a swap of a row that is gone is `changed`, and writes nothing;
+ *   - the guarded write (`@stigmer/server`'s guarded-port kit): a swap on
+ *     the bytes readForWrite answered is `replaced`, and is `changed` after
+ *     any write in between (a rename through modifyById among them), on a
+ *     row deleted since, or on bytes a landed swap replaced;
  *   - modifyById changes the payload and the slug together, so the old
  *     slug is free in the table and the new one taken, keeps the routes,
  *     refuses a change of the SSO flag or a route as a programming error,
@@ -52,13 +53,14 @@ import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import {
+  guardedPortDeclarations,
   portContractCases,
   type PortContractCase,
   type PortContractDeclaration,
   type PortContractFixture,
 } from "@stigmer/server";
 
-import type { IdentityProviderStore } from "./store.js";
+import type { IdentityProviderStore, ProviderSwapOutcome } from "./store.js";
 
 /** The runner's fixture over this port. */
 export type IdentityProviderStoreContractFixture = PortContractFixture<IdentityProviderStore>;
@@ -91,19 +93,21 @@ function provider(fields: {
   });
 }
 
+/**
+ * A swap on the provider's current bytes: the update chain's write when
+ * nothing landed between its read and its write. A row that is gone swaps
+ * on no bytes.
+ */
+async function swapOnCurrent(
+  store: IdentityProviderStore,
+  next: IdentityProvider,
+): Promise<ProviderSwapOutcome> {
+  const id = next.metadata?.id ?? "";
+  const read = await store.readForWrite(id);
+  return store.swap(id, read?.bytes ?? new Uint8Array(), next);
+}
+
 const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
-  [
-    "a replace keeps the stored slug, and writes it onto the provider it was handed",
-    async ({ store }) => {
-      await store.insert(provider({ id: "idp_r1", org: "acme", slug: "kept", issuers: ["https://kept.contract.test"] }));
-      const stale = provider({ id: "idp_r1", org: "acme", slug: "stale", issuers: ["https://kept.contract.test"], displayName: "after" });
-      assert.deepEqual(await store.replace(stale), { kind: "replaced" });
-      const held = await store.findById("idp_r1");
-      assert.equal(held?.spec?.displayName, "after");
-      assert.equal(held?.metadata?.slug, "kept");
-      assert.equal(stale.metadata?.slug, "kept", "the handed provider answers the stored slug");
-    },
-  ],
   [
     "modifyById changes the payload and the slug together and keeps the routes; a claim change is refused, and an unknown id writes nothing",
     async ({ store }) => {
@@ -133,14 +137,14 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
             held.spec.allowedIssuers = ["https://elsewhere.contract.test"];
           }
         }),
-        "a route change is replace's",
+        "a route change is the swap's",
       );
       assert.equal(await store.findProviderIdByRoute("https://moved.contract.test", AUDIENCE), "idp_r2");
       assert.equal(await store.modifyById("idp_unknown", moveTo("anything")), undefined);
     },
   ],
   [
-    "a provider not fully shaped is refused on insert and replace, and nothing is written",
+    "a provider not fully shaped is refused on insert and swap, and nothing is written",
     async ({ store }) => {
       const unslugged = provider({ id: "idp_c0", org: "acme", slug: "", issuers: ["https://unshaped.contract.test"] });
       await assert.rejects(store.insert(unslugged), "an insert without a slug is refused");
@@ -152,7 +156,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       await store.insert(provider({ id: "idp_c0b", org: "acme", slug: "shaped", issuers: ["https://shaped.contract.test"] }));
       const reshaped = provider({ id: "idp_c0b", org: "acme", slug: "shaped", issuers: ["https://shaped.contract.test"] });
       reshaped.status = undefined;
-      await assert.rejects(store.replace(reshaped), "a replace without its audit is refused");
+      await assert.rejects(swapOnCurrent(store, reshaped), "a swap without its audit is refused");
     },
   ],
   [
@@ -229,7 +233,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       );
       assert.equal(await store.findProviderIdByRoute("https://twice.contract.test", AUDIENCE), "idp_c17");
       assert.deepEqual(
-        await store.replace(
+        await swapOnCurrent(store, 
           provider({ id: "idp_c17", org: "acme", slug: "twice", issuers: [...twice, "https://more.contract.test", "https://more.contract.test"] }),
         ),
         { kind: "replaced" },
@@ -238,22 +242,22 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
     },
   ],
   [
-    "a replace rewrites the payload and the routes; a route another provider holds is route-taken and writes nothing",
+    "a swap rewrites the payload and the routes; a route another provider holds is route-taken and writes nothing",
     async ({ store }) => {
       await store.insert(provider({ id: "idp_c10", org: "acme", slug: "held", issuers: ["https://held.contract.test"] }));
       await store.insert(provider({ id: "idp_c11", org: "beta", slug: "moving", issuers: ["https://before.contract.test"] }));
       assert.deepEqual(
-        await store.replace(provider({ id: "idp_c11", org: "beta", slug: "moving", issuers: ["https://after.contract.test"], displayName: "moved" })),
+        await swapOnCurrent(store, provider({ id: "idp_c11", org: "beta", slug: "moving", issuers: ["https://after.contract.test"], displayName: "moved" })),
         { kind: "replaced" },
       );
       assert.equal((await store.findById("idp_c11"))?.spec?.displayName, "moved");
       assert.equal(await store.findProviderIdByRoute("https://after.contract.test", AUDIENCE), "idp_c11");
       assert.equal(await store.findProviderIdByRoute("https://before.contract.test", AUDIENCE), undefined, "a replaced route is released");
       assert.deepEqual(
-        await store.replace(provider({ id: "idp_c11", org: "beta", slug: "moving", issuers: ["https://held.contract.test"], displayName: "grabbed" })),
+        await swapOnCurrent(store, provider({ id: "idp_c11", org: "beta", slug: "moving", issuers: ["https://held.contract.test"], displayName: "grabbed" })),
         { kind: "route-taken", route: { issuer: "https://held.contract.test", audience: AUDIENCE } },
       );
-      assert.equal((await store.findById("idp_c11"))?.spec?.displayName, "moved", "a refused replace writes nothing");
+      assert.equal((await store.findById("idp_c11"))?.spec?.displayName, "moved", "a refused swap writes nothing");
       assert.equal(await store.findProviderIdByRoute("https://after.contract.test", AUDIENCE), "idp_c11", "and keeps the routes it held");
     },
   ],
@@ -288,22 +292,22 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
     },
   ],
   [
-    "a replace that makes a provider SSO beside a live SSO provider is sso-taken and writes nothing; the SSO provider's own rewrite is admitted",
+    "a swap that makes a provider SSO beside a live SSO provider is sso-taken and writes nothing; the SSO provider's own rewrite is admitted",
     async ({ store }) => {
       await store.insert(provider({ id: "idp_c25", org: "acme", slug: "the-sso", issuers: ["https://the-sso.contract.test"], sso: true }));
       await store.insert(provider({ id: "idp_c26", org: "acme", slug: "plain", issuers: ["https://plain-before.contract.test"] }));
       assert.deepEqual(
-        await store.replace(
+        await swapOnCurrent(store, 
           provider({ id: "idp_c26", org: "acme", slug: "plain", issuers: ["https://plain-after.contract.test"], sso: true }),
         ),
         { kind: "sso-taken" },
       );
       const kept = await store.findById("idp_c26");
-      assert.equal(kept?.spec?.isSsoProvider, false, "a refused replace writes nothing");
+      assert.equal(kept?.spec?.isSsoProvider, false, "a refused swap writes nothing");
       assert.equal(await store.findProviderIdByRoute("https://plain-before.contract.test", AUDIENCE), "idp_c26");
       assert.equal(await store.findProviderIdByRoute("https://plain-after.contract.test", AUDIENCE), undefined);
       assert.deepEqual(
-        await store.replace(
+        await swapOnCurrent(store, 
           provider({ id: "idp_c25", org: "acme", slug: "the-sso", issuers: ["https://the-sso.contract.test"], sso: true, displayName: "renamed" }),
         ),
         { kind: "replaced" },
@@ -324,11 +328,11 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
     },
   ],
   [
-    "a replace of a row that is gone is missing, and writes nothing",
+    "a swap of a row that is gone is changed, and writes nothing",
     async ({ store }) => {
       assert.deepEqual(
-        await store.replace(provider({ id: "idp_c12", org: "acme", slug: "ghost", issuers: ["https://ghost.contract.test"] })),
-        { kind: "missing" },
+        await swapOnCurrent(store, provider({ id: "idp_c12", org: "acme", slug: "ghost", issuers: ["https://ghost.contract.test"] })),
+        { kind: "changed" },
       );
       assert.equal(await store.findById("idp_c12"), undefined);
       assert.equal(await store.findProviderIdByRoute("https://ghost.contract.test", AUDIENCE), undefined);
@@ -409,6 +413,30 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       await assert.rejects(store.isLive("idp_any"), "an outage never reads as 'not live'");
     },
   ],
+  ...guardedPortDeclarations<IdentityProviderStore, IdentityProvider, ProviderSwapOutcome>({
+    landed: (outcome) => outcome.kind === "replaced",
+    async seed(store) {
+      const seeded = provider({ id: "idp_cg", org: "acme", slug: "guarded", issuers: ["https://guarded.contract.test"] });
+      await store.insert(seeded);
+      return seeded;
+    },
+    idOf: (held) => held.metadata?.id ?? "",
+    change(held, value) {
+      if (held.spec !== undefined) {
+        held.spec.displayName = value;
+      }
+    },
+    changedValueOf: (held) => held.spec?.displayName ?? "",
+    async interleave(store, id, value) {
+      await store.modifyById(id, (held) => {
+        if (held.spec !== undefined) {
+          held.spec.displayName = value;
+        }
+      });
+    },
+    read: (store, id) => store.findById(id),
+    remove: (store, id) => store.deleteById(id),
+  }),
 ];
 
 /** The port's cases over `makeFixture`, one fresh fixture per case. */

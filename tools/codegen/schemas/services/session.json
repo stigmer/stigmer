@@ -744,6 +744,30 @@
           "description": "A person allowed every call of one class for the rest of the turn.",
           "required": false,
           "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerRunStatus",
+          "jsonName": "stigmerRunStatus",
+          "protoField": "stigmer_run_status",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerRunStatusEvent"
+          },
+          "description": "A turn (run) changed phase: it started, waits, paused, or ended and\n how.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerToolResultFullOutput",
+          "jsonName": "stigmerToolResultFullOutput",
+          "protoField": "stigmer_tool_result_full_output",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerToolResultFullOutputEvent"
+          },
+          "description": "Where the whole output of a tool result that was too large to keep\n inline is stored.",
+          "required": false,
+          "oneofGroup": "event"
         }
       ]
     },

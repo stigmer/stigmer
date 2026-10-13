@@ -1,4 +1,4 @@
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { ToolUse } from "@stigmer/sdk";
 import { resolveToolCategoryFromCall } from "./tool-categories.js";
 import type { ToolCategory } from "./tool-categories.js";
 import { resolveRunGroupable } from "./tool-presenter.js";
@@ -19,17 +19,17 @@ const MIN_RUN_LENGTH = 2;
  *   same-category calls (e.g. reads), folded into one collapsible chip.
  */
 export type ToolSegment =
-  | { readonly kind: "row"; readonly toolCall: ToolCall; readonly key: string }
+  | { readonly kind: "row"; readonly toolUse: ToolUse; readonly key: string }
   | {
       readonly kind: "run";
       readonly category: ToolCategory;
-      readonly toolCalls: readonly ToolCall[];
+      readonly toolUses: readonly ToolUse[];
       readonly key: string;
     };
 
-/** Stable key for a single tool-call row (mirrors the prior group keying). */
-function rowKey(toolCall: ToolCall): string {
-  return toolCall.id || toolCall.name;
+/** Stable key for a single tool-use row: the tool use's event id. */
+function rowKey(toolUse: ToolUse): string {
+  return toolUse.id;
 }
 
 /**
@@ -54,38 +54,38 @@ function rowKey(toolCall: ToolCall): string {
  * ```ts
  * // read, read, read, edit  ->  [run(read x3), row(edit)]
  * // read, search, read      ->  [row(read), row(search), row(read)]
- * const segments = segmentToolCalls(message.toolCalls);
+ * const segments = segmentToolCalls(toolUses);
  * ```
  */
 export function segmentToolCalls(
-  toolCalls: readonly ToolCall[],
+  toolUses: readonly ToolUse[],
 ): ToolSegment[] {
   const segments: ToolSegment[] = [];
 
   // Resolve category + groupability once per call so the scan below is a cheap
   // index walk rather than repeated kind resolution.
-  const categories = toolCalls.map(
-    (tc) => resolveToolCategoryFromCall(tc).category,
+  const categories = toolUses.map(
+    (tu) => resolveToolCategoryFromCall(tu).category,
   );
-  const groupable = toolCalls.map((tc) => resolveRunGroupable(tc));
+  const groupable = toolUses.map((tu) => resolveRunGroupable(tu));
 
   let i = 0;
-  while (i < toolCalls.length) {
+  while (i < toolUses.length) {
     const category = categories[i];
 
     if (groupable[i]) {
       // Extend the run while the next call is the same groupable category.
       let j = i + 1;
-      while (j < toolCalls.length && groupable[j] && categories[j] === category) {
+      while (j < toolUses.length && groupable[j] && categories[j] === category) {
         j++;
       }
 
       if (j - i >= MIN_RUN_LENGTH) {
-        const run = toolCalls.slice(i, j);
+        const run = toolUses.slice(i, j);
         segments.push({
           kind: "run",
           category,
-          toolCalls: run,
+          toolUses: run,
           key: `run-${category}-${rowKey(run[0])}`,
         });
         i = j;
@@ -93,7 +93,7 @@ export function segmentToolCalls(
       }
     }
 
-    segments.push({ kind: "row", toolCall: toolCalls[i], key: rowKey(toolCalls[i]) });
+    segments.push({ kind: "row", toolUse: toolUses[i], key: rowKey(toolUses[i]) });
     i++;
   }
 

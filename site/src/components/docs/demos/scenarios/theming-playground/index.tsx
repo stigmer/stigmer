@@ -1,16 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { create } from "@bufbuild/protobuf";
 import { MessageThread } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
 import { cn, THEME_PRESETS, resolvePresetClass, type ThemePresetId } from "@stigmer/theme";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { conversation } from "../../fixtures";
 import { DEMO_SHELL_HEIGHT } from "../../shared/tokens";
 import { useDocsColorMode, type StigmerColorMode } from "../../../useDocsColorMode";
 
@@ -22,40 +17,42 @@ import "@stigmer/theme/presets/monochrome.css";
 
 /**
  * One conversation rendered by the real `MessageThread` organism: a user
- * bubble, a thinking card, an assistant turn with a tool call, and a
- * pending approval gate — the exact chrome issue #187 is about. Built once
- * at module level; only the theme scope around it changes.
+ * bubble, a thinking card, a tool call and the assistant's reply, and a
+ * call waiting on its approval gate (inline on its own row) — the exact
+ * chrome issue #187 is about. Built once at module level from the turn's
+ * session events; only the theme scope around it changes.
  */
-const demoExecution = samples.run({
-  phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-  messages: [
-    create(AgentMessageSchema, {
-      type: MessageType.MESSAGE_THINKING,
-      content:
-        "Scanning the billing service for flag references, then checking which flags are past their expiry date before proposing removals.",
-    }),
-    samples.aiMessage(
-      "I found 3 stale flags. Two are safe to remove directly; deleting `legacy-invoice-path` needs your approval since it still has a fallback branch.",
-      [samples.toolCall("grep_search", "12 matches across 4 files")],
+const flagSearch = samples.toolUseEvent("grep_search", { pattern: "featureFlag(", path: "billing" });
+
+const flagDelete = samples.toolUseEvent(
+  "delete_file",
+  { path: "billing/flags/legacy-invoice-path.ts" },
+  { evaluatedPermission: "ask" },
+);
+
+const demoConversation = conversation(
+  [
+    samples.userMessageEvent("Can you clean up the stale feature flags in the billing service?"),
+    samples.runStatusEvent("running"),
+    ...samples.thinkingEvents(
+      "Scanning the billing service for flag references, then checking which flags are past their expiry date before proposing removals.",
     ),
+    flagSearch,
+    samples.toolResultEvent(flagSearch.event.value!.id, "12 matches across 4 files"),
+    samples.agentMessageEvent(
+      "I found 3 stale flags. Two are safe to remove directly; deleting `legacy-invoice-path` needs your approval since it still has a fallback branch.",
+    ),
+    flagDelete,
+    samples.permissionAskedEvent(flagDelete.event.value!.id, {
+      argsPreview: '{"path": "billing/flags/legacy-invoice-path.ts"}',
+    }),
+    samples.runStatusEvent("waiting"),
   ],
-});
-// The user's prompt lives in spec.message (MessageThread synthesizes the
-// bubble from it) — real runs never repeat it in status.messages.
-demoExecution.spec!.message =
-  "Can you clean up the stale feature flags in the billing service?";
+  RunPhase.RUN_WAITING_FOR_APPROVAL,
+);
 
-// The approval's toolCallId matches no rendered tool row, so MessageThread
-// emits its bottom backstop ApprovalCard — deterministic for a static demo.
-const demoApproval = create(PendingApprovalSchema, {
-  toolCallId: "tc-demo-approval",
-  toolName: "delete_file",
-  argsPreview: '{"path": "billing/flags/legacy-invoice-path.ts"}',
-});
-demoExecution.status!.pendingApprovals = [demoApproval];
-
-const noopApprovalSubmit = () => {
-  // Playground only — there is no run to approve.
+const noopAnswer = () => {
+  // Playground only — there is no run to answer.
 };
 
 const COLOR_MODES = ["light", "dark"] as const;
@@ -129,8 +126,9 @@ export function ThemingPlayground() {
         style={{ height: DEMO_SHELL_HEIGHT }}
       >
         <MessageThread
-          runs={[demoExecution]}
-          onApprovalSubmit={noopApprovalSubmit}
+          turns={demoConversation.turns}
+          runs={demoConversation.runs}
+          onAnswerToolUse={noopAnswer}
           className="h-full"
           contentColumn="center"
         />

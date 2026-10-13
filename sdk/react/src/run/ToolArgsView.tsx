@@ -24,13 +24,13 @@ import {
 /** Props for {@link ToolArgsView}. */
 export interface ToolArgsViewProps {
   /**
-   * Raw tool name as it appears on the ToolCall or PendingApproval.
+   * Raw tool name, as the tool use names it.
    * Used for category resolution and MCP metadata display.
    */
   readonly toolName: string;
   /**
-   * Parsed tool arguments — either from `ToolCall.args` or
-   * `JSON.parse(PendingApproval.argsPreview)`.
+   * Parsed tool arguments — either the tool use's `input`, or an ask's
+   * `JSON.parse(argsPreview)`.
    */
   readonly args: Record<string, unknown> | null;
   /** MCP server slug for MCP tool classification and metadata. */

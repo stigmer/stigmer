@@ -64,6 +64,8 @@ import {
   newAuthorizeResolvedTargetStep,
   newBuildNewStateStep,
   newBuildUpdateStateStep,
+  runGuardedWrite,
+  swapOntoLoadedPortRow,
   newClaimNameStep,
   newResolveSlugStep,
   portRenameRows,
@@ -136,21 +138,26 @@ export function teamCommands(deps: TeamLaneDeps): Commands {
           ],
         },
       ),
+    // The guarded write (`@stigmer/server`'s pipeline/guarded-write.ts): a
+    // rename or any other write between the load and the swap makes the
+    // chain run again from a fresh read.
     update: (input, ctx) =>
-      runUnaryChain(
-        { chain: "team-update", step: "UpdateTeam" },
-        method.update,
-        input,
-        ctx,
-        deps,
-        async (reqCtx) => {
-          await deps.teams.replace(reqCtx.newState);
-          return reqCtx.newState;
-        },
-        {
-          kind: ApiResourceKind.team,
-          steps: [newLoadExistingTeamStep(deps.teams), newBuildUpdateStateStep()],
-        },
+      runGuardedWrite(() =>
+        runUnaryChain(
+          { chain: "team-update", step: "UpdateTeam" },
+          method.update,
+          input,
+          ctx,
+          deps,
+          async (reqCtx) => {
+            await swapOntoLoadedPortRow(deps.teams, reqCtx);
+            return reqCtx.newState;
+          },
+          {
+            kind: ApiResourceKind.team,
+            steps: [newLoadExistingTeamStep(deps.teams), newBuildUpdateStateStep()],
+          },
+        ),
       ),
     rename: (input, ctx) =>
       renameResource(

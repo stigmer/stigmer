@@ -1,8 +1,8 @@
 /**
  * No usage view shows money. Usage is counted in tokens and calls and never
  * priced, so every view that renders usage — the organization panel, the
- * dashboard KPI cards, the session widget and Usage tab, the summarization
- * badge and card — is rendered here over fully populated data, including the
+ * dashboard KPI cards, the session widget and Usage tab, the context
+ * compaction card — is rendered here over fully populated data, including the
  * run status's `estimated_cost_usd` (which stays on the wire only as a cost
  * cap's working number), and none may print a "$" or the word "cost". The
  * data hooks are stubbed so each view renders its populated state; each
@@ -19,7 +19,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import type { UseSessionUsageReturn } from "../session/useSessionUsage.js";
-import type { SummarizationEventView } from "../run/useContextWindow.js";
 
 const stubs = vi.hoisted(() => ({
   orgReport: null as GetOrgUsageReportOutput | null,
@@ -39,7 +38,6 @@ import { OrgUsagePanel } from "../usage/OrgUsagePanel.js";
 import { DashboardKPICards } from "../dashboard/DashboardKPICards.js";
 import { UsageWidget } from "../run/UsageWidget.js";
 import { UsageTab } from "../session/facets/UsageTab.js";
-import { SummarizationBadge } from "../run/SummarizationBadge.js";
 import { SummarizationCard } from "../run/SummarizationCard.js";
 
 afterEach(cleanup);
@@ -94,16 +92,11 @@ const runs = [
   }),
 ];
 
-const summarization: SummarizationEventView = {
-  timestamp: "2026-10-13T10:30:00.000Z",
-  tokensBefore: 180_000,
-  tokensAfter: 80_000,
-  compressionRatio: 0.56,
-  durationMs: 2300,
-  model: "claude-haiku-4",
-  messagesBefore: 42,
-  messagesAfter: 12,
-};
+const compacted = {
+  kind: "compacted",
+  id: "run_1.compacted",
+  processedAt: "2026-10-13T10:30:00.000Z",
+} as const;
 
 function expectNoMoney(container: HTMLElement): void {
   const text = container.textContent ?? "";
@@ -135,11 +128,7 @@ describe("usage views show no money", () => {
     expectNoMoney(render(<UsageTab runs={runs} />).container);
   });
 
-  it("the summarization badge, expanded, and card", () => {
-    const badge = render(<SummarizationBadge events={[summarization]} />);
-    fireEvent.click(badge.getByRole("button"));
-    expectNoMoney(badge.container);
-    cleanup();
-    expectNoMoney(render(<SummarizationCard event={summarization} />).container);
+  it("the context compaction card", () => {
+    expectNoMoney(render(<SummarizationCard compacted={compacted} />).container);
   });
 });

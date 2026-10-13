@@ -1,608 +1,358 @@
+/**
+ * Pins the approval card (../ApprovalCard.tsx) over a tool use that waits
+ * for a person, as the session's events fold it: its neutral chrome with a
+ * warning (or, for a delete, destructive) accent; the shell gate's command
+ * shown once and its auto-keep note; classification from the tool's name and
+ * MCP server; the why-gated line from the ask's rule word, suppressed for the
+ * everyday default; a file tool's restating message suppressed; the three
+ * answers — Approve (`allow`), Deny with an optional reason (`deny`), and
+ * Approve all of the call's class (`grant`, labelled by class, MCP server or
+ * the hook that asked); the proposed content read from the tool's input over
+ * the ask's sanitized preview, never a redacted field; and a failed answer
+ * shown in-card.
+ */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import {
-  ApprovalAction,
-  ApprovalPolicySource,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ToolKind } from "@stigmer/sdk";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { ToolUse } from "@stigmer/sdk";
+import { samples } from "../../test/samples";
 import { ApprovalCard, ApprovalCardBody } from "../ApprovalCard";
-
-// Under apply-then-review the deny-gate carries no captured `file_changes`
-// (message.proto field 14 was removed); the gate renders the
-// proposed change from the tool args. Captured file review renders via
-// FileReviewCard, tested separately.
 
 afterEach(cleanup);
 
 const noop = () => {};
 
-// ---------------------------------------------------------------------------
-// Tool classification (ToolArgsView fallback path)
-// ---------------------------------------------------------------------------
+interface WaitingInit {
+  readonly input?: JsonObject;
+  readonly argsPreview?: string;
+  readonly message?: string;
+  readonly policySource?: string;
+  readonly policyHook?: string;
+  readonly mcpServerName?: string;
+}
+
+/** A tool use that waits for an answer: its use (permission ask) and the ask, folded. */
+function waiting(name: string, init: WaitingInit = {}): ToolUse {
+  const use = samples.toolUseEvent(name, init.input ?? {}, {
+    evaluatedPermission: "ask",
+    ...(init.mcpServerName === undefined ? {} : { mcpServerName: init.mcpServerName }),
+  });
+  const toolUseId = use.event.value!.id;
+  const ask = samples.permissionAskedEvent(toolUseId, {
+    argsPreview: init.argsPreview ?? "{}",
+    message: init.message ?? "",
+    policySource: init.policySource ?? "",
+    policyHook: init.policyHook ?? "",
+  });
+  const tool = samples
+    .fold([samples.userMessageEvent("go"), use, ask])
+    .turns[0]!.items.find((item): item is ToolUse => item.kind === "tool_use")!;
+  expect(tool.state).toBe("waiting");
+  return tool;
+}
 
 describe("ApprovalCard chrome", () => {
-  it("renders neutral Cursor-style chrome with a restrained warning accent (no amber fill)", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-chrome",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/x.ts","contents":"x"}',
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
+  it("renders neutral chrome with a restrained warning accent (no amber fill)", () => {
+    render(
+      <ApprovalCard
+        toolUse={waiting("edit_file", { argsPreview: '{"path":"src/x.ts","new_string":"x"}' })}
+        onAnswer={noop}
+      />,
+    );
     const card = screen.getByRole("alert");
-    // Visible neutral line + a restrained 2px warning left accent — never the
-    // old amber background fill. (Class presence only; that the line actually
-    // RENDERS is proven by the layer-invariant + e2e computed-style guards —
-    // happy-dom cannot resolve `@layer`.)
     expect(card.className).toContain("stg:border-border-prominent");
     expect(card.className).toContain("stg:border-l-warning");
     expect(card.className).not.toContain("stg:bg-warning");
+    expect(card.getAttribute("aria-label")).toBe("Approval required for edit_file");
   });
 
-  it("keeps a destructive red accent for a delete approval (hard safety signal)", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-chrome-del",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
-    const card = screen.getByRole("alert");
-    expect(card.className).toContain("stg:border-l-destructive");
-    expect(card.className).not.toContain("stg:bg-destructive-subtle");
+  it("keeps a destructive red accent for a delete approval", () => {
+    render(<ApprovalCard toolUse={waiting("delete_file", { argsPreview: '{"path":"/tmp/x"}' })} onAnswer={noop} />);
+    expect(screen.getByRole("alert").className).toContain("stg:border-l-destructive");
   });
 
-  it("shows a shell gate's command in the body terminal session, once, not in the header", () => {
-    // The command is decision-relevant, so it leads the body's terminal session
-    // (`$ npm test`) — but the header stays minimal and does not restate it, so
-    // the command appears exactly once on the card.
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-shell-gate",
-      toolName: "shell",
-      toolKind: ToolKind.SHELL,
-      argsPreview: '{"command":"npm test"}',
-    });
-
+  it("shows a shell gate's command once, in the body's terminal session", () => {
     const { container } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+      <ApprovalCard toolUse={waiting("shell", { argsPreview: '{"command":"npm test"}' })} onAnswer={noop} />,
     );
-
-    const session = container.querySelector(
-      '[data-cursor-target="terminal-session"]',
-    );
-    expect(session).toBeTruthy();
-    expect(session!.textContent).toContain("$ npm test");
-
-    const occurrences = (container.textContent!.match(/npm test/g) ?? []).length;
-    expect(occurrences).toBe(1);
+    const session = container.querySelector('[data-cursor-target="terminal-session"]');
+    expect(session?.textContent).toContain("$ npm test");
+    expect((container.textContent!.match(/npm test/g) ?? []).length).toBe(1);
+    expect(screen.getByText(/kept automatically/)).toBeTruthy();
   });
 
-  it("states on a shell gate that the command's files are covered by the approval", () => {
-    // Consent at grant time: approving the command covers its file effects
-    // (the approved-command auto-keep), so the card says so up front — the user
-    // never discovers a second gate they weren't told about, nor gets one.
-    const shellApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-shell-note",
-      toolName: "shell",
-      toolKind: ToolKind.SHELL,
-      argsPreview: '{"command":"seq 1 5000 > big.txt"}',
-    });
-    render(<ApprovalCard pendingApproval={shellApproval} onSubmit={noop} />);
-    expect(screen.getByText(/kept automatically, with no second review/)).toBeTruthy();
+  it("titles a shell gate with the call's intent phrase", () => {
+    render(
+      <ApprovalCard
+        toolUse={waiting("shell", { argsPreview: '{"command":"npm test","description":"Run the unit tests"}' })}
+        onAnswer={noop}
+      />,
+    );
+    expect(screen.getByText("Run the unit tests")).toBeTruthy();
   });
 
   it("never shows the auto-keep note on a non-shell gate", () => {
-    // A file edit's review model is the FileChangeSet, not the command consent —
-    // the note would be false there.
-    const editApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-edit-no-note",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/x.ts","contents":"x"}',
-    });
-    render(<ApprovalCard pendingApproval={editApproval} onSubmit={noop} />);
+    render(
+      <ApprovalCard toolUse={waiting("write_file", { argsPreview: '{"path":"src/x.ts","contents":"x"}' })} onAnswer={noop} />,
+    );
     expect(screen.queryByText(/kept automatically/)).toBeNull();
+  });
+
+  it("classifies a tool by its name, and an unknown MCP tool by its server", () => {
+    render(<ApprovalCard toolUse={waiting("delete_file", { argsPreview: '{"path":"/tmp/x"}' })} onAnswer={noop} />);
+    expect(screen.getByText("Delete")).toBeTruthy();
+    cleanup();
+    render(
+      <ApprovalCard
+        toolUse={waiting("create_issue", { mcpServerName: "github", argsPreview: '{"slug":"acme/repo"}' })}
+        onAnswer={noop}
+      />,
+    );
+    expect(screen.getAllByText("Create Issue").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("acme/repo").length).toBeGreaterThan(0);
   });
 });
 
 describe("ApprovalCard quiet decision buttons", () => {
-  // Class-contract assertions (happy-dom can't resolve `@layer`); the RENDERED
-  // quiet treatment is proven by the e2e computed-style guard in
-  // tool-card-ux.spec.ts. The shared treatment itself lives in DecisionButton.
   function renderGate() {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-quiet",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/x.ts","contents":"x"}',
-    });
-    return render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+    return render(
+      <ApprovalCard toolUse={waiting("write_file", { argsPreview: '{"path":"src/x.ts","contents":"x"}' })} onAnswer={noop} />,
+    );
   }
 
   it("Approve is the neutral chip, never the loud success green", () => {
     renderGate();
     const approve = screen.getByRole("button", { name: "Approve" });
     expect(approve.className).toContain("stg:bg-accent");
-    expect(approve.className).toContain("border");
     expect(approve.className).not.toContain("stg:bg-success");
   });
 
-  it("Skip and Reject are quiet ghosts with no resting fill", () => {
+  it("Deny is a quiet ghost that reveals its danger on hover", () => {
     renderGate();
-    const skip = screen.getByRole("button", { name: "Skip" });
-    const reject = screen.getByRole("button", { name: "Reject" });
-    expect(skip.className).toContain("stg:text-muted-foreground");
-    expect(skip.className).not.toMatch(/(?:^|\s)bg-/); // hover-only wash, no rest fill
-    // Reject reveals its danger affordance on hover/focus, not as a red fill.
-    expect(reject.className).toContain("stg:hover:text-destructive");
-    expect(reject.className).not.toMatch(/(?:^|\s)bg-/);
-    expect(reject.className).not.toContain("stg:bg-destructive stg:text-destructive-foreground");
+    const deny = screen.getByRole("button", { name: "Deny" });
+    expect(deny.className).toContain("stg:hover:text-destructive");
+    expect(deny.className).not.toMatch(/(?:^|\s)bg-/);
   });
 
-  it("demotes Approve-all to the far right (ml-auto) at the lowest weight", () => {
+  it("demotes Approve all to the far right at the lowest weight, with no opacity modifiers", () => {
     renderGate();
     const approveAll = screen.getByRole("button", { name: "Approve all file edits" });
     expect(approveAll.className).toContain("stg:ml-auto");
-    expect(approveAll.className).toContain("stg:text-muted-foreground");
-  });
-
-  it("uses no `bg-token/NN` opacity modifiers on any decision button", () => {
-    renderGate();
-    for (const name of ["Approve", "Skip", "Reject", "Approve all file edits"]) {
-      const btn = screen.getByRole("button", { name });
-      expect(btn.className).not.toMatch(/\/\d+(?:\s|$)/);
+    for (const name of ["Approve", "Deny", "Approve all file edits"]) {
+      expect(screen.getByRole("button", { name }).className).not.toMatch(/\/\d+(?:\s|$)/);
     }
   });
 });
 
-describe("ApprovalCard tool classification", () => {
-  it("honors the denormalized wire tool_kind for a name not in the fallback map", () => {
-    // A future/unknown tool name that the name-based resolver cannot classify —
-    // only the server-projected tool_kind can. This proves the backend
-    // denormalization (Go + Java PendingApproval projection) is consumed.
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc1",
-      toolName: "SomeFutureEditTool",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: "{}",
-    });
-
-    const { getByText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-    );
-
-    // FILE_EDIT presentation label, not a humanized tool name.
-    expect(getByText("Edit")).toBeTruthy();
-  });
-
-  it("falls back to name-based classification when tool_kind is unset (legacy)", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc2",
-      toolName: "delete_file",
-      // toolKind left UNSPECIFIED — legacy run.
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-
-    const { getByText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-    );
-
-    expect(getByText("Delete")).toBeTruthy();
-  });
-});
-
 describe("ApprovalCard why-gated provenance", () => {
-  it("renders the why-gated line from the projected approval_policy_source", () => {
-    // The server projects approval_policy_source onto PendingApproval so the card
-    // can explain the gate before any decision. An MCP tool its server marks
-    // destructive is the one default an MCP call can be held by.
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-why",
-      toolName: "delete_issue",
-      mcpServerSlug: "github",
-      argsPreview: '{"issue":42}',
-      approvalPolicySource: ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN,
-    });
-
-    const { getByText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+  it("renders the why-gated line from the ask's rule word", () => {
+    render(
+      <ApprovalCard
+        toolUse={waiting("delete_issue", { mcpServerName: "github", policySource: "annotation_destructive_tighten" })}
+        onAnswer={noop}
+      />,
     );
-
-    expect(getByText("required: marked destructive by the server")).toBeTruthy();
+    expect(screen.getByText("required: marked destructive by the server")).toBeTruthy();
   });
 
-  it("renders no why-gated line for a legacy approval (UNSPECIFIED source)", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-why-legacy",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-      // approvalPolicySource left UNSPECIFIED — legacy run.
-    });
-
-    const { queryByText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-    );
-
-    expect(queryByText(/required by/)).toBeNull();
+  it("names the plugin whose hook asked", () => {
+    render(<ApprovalCard toolUse={waiting("execute", { policySource: "hook", policyHook: "safety" })} onAnswer={noop} />);
+    expect(screen.getByText("decided by the safety plugin's hook")).toBeTruthy();
   });
 
-  it("smart-suppresses the everyday default gate reason (built-in tool policy)", () => {
-    // The boring default explains nothing the user does not already infer from
-    // the tool — it is noise, so the card hides it.
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-why-default",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-      approvalPolicySource: ApprovalPolicySource.BUILTIN_CATEGORY,
-    });
-
-    const { queryByText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-    );
-
-    expect(queryByText(/required by/)).toBeNull();
+  it("renders no line when no rule is recorded, and suppresses the everyday default", () => {
+    render(<ApprovalCard toolUse={waiting("delete_file")} onAnswer={noop} />);
+    expect(screen.queryByText(/required by/)).toBeNull();
+    cleanup();
+    render(<ApprovalCard toolUse={waiting("delete_file", { policySource: "builtin_category" })} onAnswer={noop} />);
+    expect(screen.queryByText(/required by/)).toBeNull();
   });
 });
 
 describe("ApprovalCard message redundancy", () => {
   it("suppresses a file tool's message that only restates the header", () => {
-    // "Write file: <path>" duplicates the header + diff — the card drops it.
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-msg-file",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      message: "Write file: src/x.ts",
-      argsPreview: '{"path":"src/x.ts","contents":"x"}',
-    });
-
-    const { queryByText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+    render(
+      <ApprovalCard
+        toolUse={waiting("write_file", { message: "Write file: src/x.ts", argsPreview: '{"path":"src/x.ts","contents":"x"}' })}
+        onAnswer={noop}
+      />,
     );
-
-    expect(queryByText("Write file: src/x.ts")).toBeNull();
+    expect(screen.queryByText("Write file: src/x.ts")).toBeNull();
   });
 
-  it("keeps a non-file tool's informative message (e.g. an MCP prompt)", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-msg-mcp",
-      toolName: "create_issue",
-      mcpServerSlug: "github",
-      message: "Create an issue in acme/repo titled 'Bug'",
-      argsPreview: "{}",
-    });
-
-    const { getByText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
+  it("keeps a non-file tool's informative message", () => {
+    render(
+      <ApprovalCard
+        toolUse={waiting("create_issue", { mcpServerName: "github", message: "Create an issue in acme/repo titled 'Bug'" })}
+        onAnswer={noop}
+      />,
     );
-
-    expect(getByText("Create an issue in acme/repo titled 'Bug'")).toBeTruthy();
+    expect(screen.getByText("Create an issue in acme/repo titled 'Bug'")).toBeTruthy();
   });
 });
 
-describe("ApprovalCard approve-all action", () => {
-  it("renders the subordinate scope-truthful approve-all action", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc3",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-
-    const { getByText, getByLabelText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-    );
-
-    expect(getByText("Approve")).toBeTruthy();
-    // The label names the leased class (delete), never an unbounded "all".
-    expect(getByLabelText("Approve all file deletions")).toBeTruthy();
-  });
-
-  it("labels the approve-all action by the clicked tool's lease scope", () => {
-    // delete -> "file deletions"; write/edit collapse to "file edits";
-    // shell -> "shell commands"; an MCP tool -> "<server> tools".
-    const cases: ReadonlyArray<{
-      toolName: string;
-      mcpServerSlug?: string;
-      expected: string;
-    }> = [
-      { toolName: "delete_file", expected: "Approve all file deletions" },
-      { toolName: "write_file", expected: "Approve all file edits" },
-      { toolName: "edit_file", expected: "Approve all file edits" },
-      { toolName: "shell", expected: "Approve all shell commands" },
-      {
-        toolName: "create_issue",
-        mcpServerSlug: "github",
-        expected: "Approve all github tools",
-      },
+describe("ApprovalCard answers", () => {
+  it("labels Approve all by the call's class", () => {
+    const cases: ReadonlyArray<{ name: string; mcpServerName?: string; expected: string }> = [
+      { name: "delete_file", expected: "Approve all file deletions" },
+      { name: "write_file", expected: "Approve all file edits" },
+      { name: "edit_file", expected: "Approve all file edits" },
+      { name: "shell", expected: "Approve all shell commands" },
+      { name: "web_fetch", expected: "Approve all of this kind" },
+      { name: "create_issue", mcpServerName: "github", expected: "Approve all github tools" },
     ];
-
-    for (const { toolName, mcpServerSlug, expected } of cases) {
-      const approval = create(PendingApprovalSchema, {
-        toolCallId: `tc-${toolName}`,
-        toolName,
-        mcpServerSlug: mcpServerSlug ?? "",
-        argsPreview: "{}",
-      });
-      const { getByLabelText, unmount } = render(
-        <ApprovalCard pendingApproval={approval} onSubmit={noop} />,
-      );
+    for (const { name, mcpServerName, expected } of cases) {
+      const init = mcpServerName === undefined ? {} : { mcpServerName };
+      const { getByLabelText, unmount } = render(<ApprovalCard toolUse={waiting(name, init)} onAnswer={noop} />);
       expect(getByLabelText(expected)).toBeTruthy();
       unmount();
     }
   });
 
-  it("labels the approve-all action of a call a hook asked about by that hook and that tool", () => {
-    const cases: ReadonlyArray<{ toolName: string; mcpServerSlug?: string; hook: string; expected: string }> = [
-      { toolName: "execute", hook: "safety", expected: "Approve all shell commands the safety plugin asks about" },
-      { toolName: "write_file", hook: "safety", expected: "Approve all file writes the safety plugin asks about" },
-      { toolName: "edit_file", hook: "", expected: "Approve all file edits the agent's hooks ask about" },
-      { toolName: "create_issue", mcpServerSlug: "github", hook: "safety", expected: "Approve all create_issue calls the safety plugin asks about" },
-      { toolName: "delete_file", hook: "safety", expected: "Approve all file deletions the safety plugin asks about" },
-      { toolName: "web_fetch", hook: "safety", expected: "Approve all web_fetch calls the safety plugin asks about" },
+  it("labels Approve all of a call a hook asked about by that hook and that tool", () => {
+    const cases: ReadonlyArray<{ name: string; mcpServerName?: string; hook: string; expected: string }> = [
+      { name: "execute", hook: "safety", expected: "Approve all shell commands the safety plugin asks about" },
+      { name: "write_file", hook: "safety", expected: "Approve all file writes the safety plugin asks about" },
+      { name: "edit_file", hook: "", expected: "Approve all file edits the agent's hooks ask about" },
+      { name: "create_issue", mcpServerName: "github", hook: "safety", expected: "Approve all create_issue calls the safety plugin asks about" },
+      { name: "delete_file", hook: "safety", expected: "Approve all file deletions the safety plugin asks about" },
+      { name: "web_fetch", hook: "safety", expected: "Approve all web_fetch calls the safety plugin asks about" },
     ];
-    for (const { toolName, mcpServerSlug, hook, expected } of cases) {
-      const approval = create(PendingApprovalSchema, {
-        toolCallId: `tc-hook-${toolName}`,
-        toolName,
-        mcpServerSlug: mcpServerSlug ?? "",
-        argsPreview: "{}",
-        approvalPolicySource: ApprovalPolicySource.HOOK,
-        approvalPolicyHook: hook,
-      });
-      const { getByLabelText, unmount } = render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
+    for (const { name, mcpServerName, hook, expected } of cases) {
+      const init = { policySource: "hook", policyHook: hook, ...(mcpServerName === undefined ? {} : { mcpServerName }) };
+      const { getByLabelText, unmount } = render(<ApprovalCard toolUse={waiting(name, init)} onAnswer={noop} />);
       expect(getByLabelText(expected)).toBeTruthy();
       unmount();
     }
   });
 
-  it("submits APPROVE_ALL when the subordinate action is clicked", () => {
-    const onSubmit = vi.fn();
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc4",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-
-    const { getByLabelText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={onSubmit} />,
-    );
-
-    fireEvent.click(getByLabelText("Approve all file deletions"));
-
-    expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(onSubmit).toHaveBeenCalledWith(ApprovalAction.APPROVE_ALL);
+  it("answers allow from Approve and grant from Approve all", () => {
+    const onAnswer = vi.fn();
+    render(<ApprovalCard toolUse={waiting("delete_file")} onAnswer={onAnswer} />);
+    fireEvent.click(screen.getByLabelText("Approve"));
+    fireEvent.click(screen.getByLabelText("Approve all file deletions"));
+    expect(onAnswer.mock.calls).toEqual([["allow", undefined], ["grant", undefined]]);
   });
 
-  it("submits a plain APPROVE when the primary action is clicked", () => {
-    const onSubmit = vi.fn();
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc5",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
+  it("denies with the reason typed, or with none", () => {
+    const onAnswer = vi.fn();
+    render(<ApprovalCard toolUse={waiting("delete_file")} onAnswer={onAnswer} />);
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    const reason = screen.getByLabelText("Reason for denying (optional)");
+    fireEvent.change(reason, { target: { value: "  use the staging bucket  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    expect(onAnswer).toHaveBeenLastCalledWith("deny", "use the staging bucket");
 
-    const { getByLabelText } = render(
-      <ApprovalCard pendingApproval={approval} onSubmit={onSubmit} />,
+    fireEvent.change(reason, { target: { value: "   " } });
+    fireEvent.submit(reason.closest("form")!);
+    expect(onAnswer).toHaveBeenLastCalledWith("deny", undefined);
+  });
+
+  it("cancels the deny row back to the three answers without answering", () => {
+    const onAnswer = vi.fn();
+    render(<ApprovalCard toolUse={waiting("delete_file")} onAnswer={onAnswer} />);
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    fireEvent.change(screen.getByLabelText("Reason for denying (optional)"), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("Reason for denying (optional)")).toBeNull();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeTruthy();
+    expect(onAnswer).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    expect((screen.getByLabelText("Reason for denying (optional)") as HTMLInputElement).value).toBe("");
+  });
+
+  it("spins the clicked answer while it is in flight, and settles when it lands", () => {
+    const { rerender, container } = render(
+      <ApprovalCard toolUse={waiting("delete_file")} onAnswer={noop} isSubmitting={false} />,
     );
-
-    fireEvent.click(getByLabelText("Approve"));
-
-    expect(onSubmit).toHaveBeenCalledWith(ApprovalAction.APPROVE);
+    fireEvent.click(screen.getByLabelText("Approve"));
+    rerender(<ApprovalCard toolUse={waiting("delete_file")} onAnswer={noop} isSubmitting />);
+    expect(screen.getByRole("button", { name: "Approve" }).hasAttribute("disabled")).toBe(true);
+    expect(container.querySelector("svg.stg\\:animate-spin")).toBeTruthy();
+    rerender(<ApprovalCard toolUse={waiting("delete_file")} onAnswer={noop} isSubmitting={false} />);
+    expect(screen.getByRole("button", { name: "Approve" }).hasAttribute("disabled")).toBe(false);
   });
 });
 
-// ---------------------------------------------------------------------------
-// Deny-gate preview from tool args (apply-then-review: no captured file_changes)
-// ---------------------------------------------------------------------------
-
-describe("ApprovalCard file-change preview", () => {
-  it("shows the proposed content (filename only in the header) when the args carry content", () => {
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-fallback",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"src/fallback.ts","contents":"x"}',
-      // fileChanges intentionally empty.
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
-    // The write content still shows via the "Content" collapsible...
+describe("ApprovalCard proposed change", () => {
+  it("shows the proposed content (filename only in the header)", () => {
+    render(
+      <ApprovalCard
+        toolUse={waiting("write_file", { argsPreview: '{"path":"src/fallback.ts","contents":"x"}' })}
+        onAnswer={noop}
+      />,
+    );
     expect(screen.getByText("Content")).toBeTruthy();
-    // ...but the filename is shown exactly once (the header) — the body no
-    // longer restates the path the header already shows.
     expect(screen.getAllByText("fallback.ts")).toHaveLength(1);
-    expect(screen.queryByText(/binary file changed/i)).toBeNull();
   });
 
-  it("shows a neutral 'no preview' notice for a path-only edit gate (the resume placeholder)", () => {
-    // The irreducible case: a ledger denial whose only known arg is the path
-    // (no streamed content, no capture). The body must not restate the bare
-    // filename nor misrepresent it as an empty file.
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-no-preview",
-      toolName: "edit_file",
-      toolKind: ToolKind.FILE_EDIT,
-      argsPreview: '{"path":"notes.md"}',
-      // fileChanges intentionally empty; no content in args.
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
+  it("shows a neutral notice for a path-only edit, and a new-file notice for a path-only write", () => {
+    render(<ApprovalCard toolUse={waiting("edit_file", { argsPreview: '{"path":"notes.md"}' })} onAnswer={noop} />);
     expect(screen.getByText("No preview available for this change")).toBeTruthy();
-    // Filename once — header only.
     expect(screen.getAllByText("notes.md")).toHaveLength(1);
-  });
-
-  it("shows a 'new file' notice (not 'no preview') for a content-less FILE_WRITE create gate", () => {
-    // The rare residual after the runner's correlation fix: a whole-file write
-    // gate that carries only its path (no captured content/diff — a no-stream
-    // synthesis). FILE_WRITE is modeled as a create throughout the runner, so the
-    // authoritative toolKind lets the gate say plainly that a new file is being
-    // written rather than the misleading non-committal "No preview available".
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-new-file",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_WRITE,
-      argsPreview: '{"path":"notes.md"}',
-      // fileChanges intentionally empty; no content in args.
-    });
-
-    render(<ApprovalCard pendingApproval={approval} onSubmit={noop} />);
-
+    cleanup();
+    render(<ApprovalCard toolUse={waiting("write_file", { argsPreview: '{"path":"notes.md"}' })} onAnswer={noop} />);
     expect(screen.getByText("New file — preview unavailable")).toBeTruthy();
-    expect(screen.queryByText("No preview available for this change")).toBeNull();
-    // Filename once — header only.
-    expect(screen.getAllByText("notes.md")).toHaveLength(1);
   });
-});
 
-// ---------------------------------------------------------------------------
-// The proposed content comes from the row's authoritative args (stigmer#1107)
-//
-// `argsPreview` is the runner's sanitized summary: a value over its per-field
-// cap is not carried whole (older runners wrote an in-band `[N chars]` marker;
-// current ones leave the field out). The body therefore reads the proposed
-// write/edit content from the row's `args` when the caller holds the row, and
-// only that — every other field still renders from the redacted preview.
-// ---------------------------------------------------------------------------
-
-describe("ApprovalCardBody proposed content from args", () => {
-  const BIG = Array.from({ length: 30 }, (_, i) => `gate line ${i + 1}`).join("\n") + "\n";
-
-  function bigWriteApproval(argsPreview: string) {
-    return create(PendingApprovalSchema, {
-      toolCallId: "tc-big",
-      toolName: "write_file",
-      toolKind: ToolKind.FILE_WRITE,
-      argsPreview,
-    });
-  }
-
-  it("renders the whole content from args when the preview carried an elision marker (older runner)", () => {
+  it("reads the whole content from the tool's input when the preview left it out", () => {
+    const big = Array.from({ length: 30 }, (_, i) => `gate line ${i + 1}`).join("\n") + "\n";
     render(
       <ApprovalCardBody
-        pendingApproval={bigWriteApproval('{"file_path":"/tmp/big.txt","content":"[381 chars]"}')}
-        args={{ file_path: "/tmp/big.txt", content: BIG }}
-        onSubmit={noop}
+        toolUse={waiting("write_file", {
+          argsPreview: '{"file_path":"/tmp/big.txt","content":"[381 chars]"}',
+          input: { file_path: "/tmp/big.txt", content: big },
+        })}
+        onAnswer={noop}
       />,
     );
-
     expect(screen.getByText("Content")).toBeTruthy();
-    // The head renders, bounded by lines, with the in-place reveal; the marker
-    // is never shown as if it were the file.
     expect(screen.getByText(/gate line 1\b/)).toBeTruthy();
-    expect(screen.queryByText(/gate line 30/)).toBeNull();
-    expect(screen.getByRole("button", { name: /Show all \d+ lines/ })).toBeTruthy();
     expect(screen.queryByText(/\[381 chars\]/)).toBeNull();
-    expect(screen.queryByText("New file — preview unavailable")).toBeNull();
   });
 
-  it("renders the whole content from args when the preview left the field out (current runner)", () => {
+  it("overlays the content only — a field the preview redacted stays redacted", () => {
     render(
       <ApprovalCardBody
-        pendingApproval={bigWriteApproval('{"file_path":"/tmp/big.txt"}')}
-        args={{ file_path: "/tmp/big.txt", content: BIG }}
-        onSubmit={noop}
+        toolUse={waiting("publish", {
+          mcpServerName: "notes",
+          argsPreview: '{"title":"hello","token":"[REDACTED]"}',
+          input: { title: "hello", token: "s3cr3t-raw" },
+        })}
+        onAnswer={noop}
       />,
     );
-
-    expect(screen.getByText("Content")).toBeTruthy();
-    expect(screen.getByText(/gate line 1\b/)).toBeTruthy();
-    expect(screen.queryByText("New file — preview unavailable")).toBeNull();
-  });
-
-  it("without the row, a write whose content the preview left out shows the honest notice", () => {
-    // The row-less surfaces (an embedded card):
-    // nothing is invented from a preview that carries no content.
-    render(
-      <ApprovalCardBody
-        pendingApproval={bigWriteApproval('{"file_path":"/tmp/big.txt"}')}
-        onSubmit={noop}
-      />,
-    );
-
-    expect(screen.getByText("New file — preview unavailable")).toBeTruthy();
-    expect(screen.queryByText("Content")).toBeNull();
-  });
-
-  it("overlays the content only — a field the preview redacted stays redacted when args carry it raw", () => {
-    // An MCP gate renders every scalar argument, so this is where a raw value
-    // crossing over from `args` would show. It must not.
-    const approval = create(PendingApprovalSchema, {
-      toolCallId: "tc-mcp-secret",
-      toolName: "publish",
-      toolKind: ToolKind.MCP,
-      mcpServerSlug: "notes",
-      argsPreview: '{"title":"hello","token":"[REDACTED]"}',
-    });
-
-    render(
-      <ApprovalCardBody
-        pendingApproval={approval}
-        args={{ title: "hello", token: "s3cr3t-raw" }}
-        onSubmit={noop}
-      />,
-    );
-
     expect(screen.getByText("[REDACTED]")).toBeTruthy();
     expect(screen.queryByText(/s3cr3t-raw/)).toBeNull();
   });
 
-  it("does not overlay onto a preview the card cannot parse (a record from an older runner's truncation)", () => {
-    // Pre-unification native previews truncated the whole JSON string at 500
-    // chars; such a record's preview does not parse. The body keeps today's
-    // honest notice rather than rendering a content block with no path row.
+  it("overlays nothing onto a preview the card cannot parse", () => {
     render(
       <ApprovalCardBody
-        pendingApproval={bigWriteApproval('{"file_path":"/tmp/big.txt","content":"gate li…')}
-        args={{ file_path: "/tmp/big.txt", content: BIG }}
-        onSubmit={noop}
+        toolUse={waiting("write_file", {
+          argsPreview: '{"file_path":"/tmp/big.txt","content":"gate li…',
+          input: { file_path: "/tmp/big.txt", content: "x" },
+        })}
+        onAnswer={noop}
       />,
     );
-
     expect(screen.getByText("New file — preview unavailable")).toBeTruthy();
     expect(screen.queryByText("Content")).toBeNull();
   });
 });
 
-describe("ApprovalCard in-card decision error", () => {
-  function makeApproval() {
-    return create(PendingApprovalSchema, {
-      toolCallId: "tc-err",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-  }
-
-  it("surfaces a failed decision in-card, beside the actions (not via a banner)", () => {
+describe("ApprovalCard in-card answer error", () => {
+  it("surfaces a failed answer in-card, beside the actions", () => {
     const { container } = render(
-      <ApprovalCard
-        pendingApproval={makeApproval()}
-        onSubmit={noop}
-        error={new Error("gate already resolved")}
-      />,
+      <ApprovalCard toolUse={waiting("delete_file")} onAnswer={noop} error={new Error("gate already resolved")} />,
     );
-
-    const alert = container.querySelector(
-      '[data-cursor-target="approval-error"]',
-    );
-    expect(alert).toBeTruthy();
-    expect(alert!.textContent).toContain("gate already resolved");
-    // The shared notice announces itself.
-    expect(alert!.getAttribute("role")).toBe("alert");
+    const alert = container.querySelector('[data-cursor-target="approval-error"]');
+    expect(alert?.textContent).toContain("gate already resolved");
+    expect(alert?.getAttribute("role")).toBe("alert");
   });
 
   it("shows no in-card error when healthy", () => {
-    const { container } = render(
-      <ApprovalCard pendingApproval={makeApproval()} onSubmit={noop} />,
-    );
-    expect(
-      container.querySelector('[data-cursor-target="approval-error"]'),
-    ).toBeNull();
+    const { container } = render(<ApprovalCard toolUse={waiting("delete_file")} onAnswer={noop} />);
+    expect(container.querySelector('[data-cursor-target="approval-error"]')).toBeNull();
   });
 });

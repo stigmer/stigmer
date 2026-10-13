@@ -3,7 +3,8 @@
 // Stands up a real Connect backend over h2c serving the query *and* command
 // controllers these verbs call, points an SDK node client at it, and drives the
 // resource layer (planDelete → perform, tagVersion for agents) end to end. Asserts the
-// rendered result shape, the special-case routing (run→cancel,
+// rendered result shape, the special-case routing (run→cancel, which
+// interrupts the run's session and names the turns it stopped;
 // already-terminal), and that backend errors map to the right CLI exit code.
 
 import { create } from "@bufbuild/protobuf";
@@ -13,9 +14,9 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
@@ -74,6 +75,7 @@ const knownPlugin = create(PluginSchema, {
 // Pending run (cancellable) vs. an already-terminal one.
 const pendingExecution = create(RunSchema, {
   metadata: { id: "aex_run" },
+  spec: { target: { case: "sessionId", value: "ses_run" } },
   status: { phase: RunPhase.RUN_PENDING },
 });
 const cancelledExecution = create(RunSchema, {
@@ -89,7 +91,7 @@ let backend: Http2Server;
 let client: Stigmer;
 const openSessions = new Set<ServerHttp2Session>();
 
-// Spies for the command-side calls, reset per test.
+// Spies for the command-side calls, reset per test: the sessions interrupted.
 let cancelCalls: string[] = [];
 let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
@@ -208,14 +210,16 @@ beforeAll(async () => {
     router.service(RunQueryController, {
       get: (req) => {
         if (req.value === "aex_done") return completedExecution;
-        if (req.value === "aex_run" || req.value === "run_current") return pendingExecution;
+        if (req.value === "aex_run" || req.value === "run_current") {
+          return cancelCalls.length > 0 ? cancelledExecution : pendingExecution;
+        }
         throw new ConnectError("execution not found", Code.NotFound);
       },
     });
-    router.service(RunCommandController, {
-      cancel: (req) => {
-        cancelCalls.push(req.id);
-        return cancelledExecution;
+    router.service(SessionCommandController, {
+      interrupt: (req) => {
+        cancelCalls.push(req.sessionId);
+        return { stoppedRunIds: ["aex_run", "aex_other"] };
       },
     });
   };
@@ -395,7 +399,8 @@ describe("delete run (cancel special case)", () => {
     expect(result.status).toBe("success");
     expect(result.message).toBe("Run cancelled successfully");
     expect(result.sections[0].fields).toContainEqual({ key: "Status", value: "cancelled" });
-    expect(cancelCalls).toEqual(["aex_run"]);
+    expect(result.sections[0].fields).toContainEqual({ key: "Stopped", value: "aex_run, aex_other" });
+    expect(cancelCalls).toEqual(["ses_run"]);
   });
 
   it("reports an already-terminal run without issuing a cancel", async () => {
@@ -410,7 +415,7 @@ describe("delete run (cancel special case)", () => {
   it("cancels a run by its current id prefix too", async () => {
     const plan = await planDelete(client, "run", "run_current", "");
     await plan.perform();
-    expect(cancelCalls).toEqual(["run_current"]);
+    expect(cancelCalls).toEqual(["ses_run"]);
   });
 
   it("rejects a non-run ID with a usage error", async () => {

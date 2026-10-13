@@ -27,9 +27,11 @@
  * while create refuses to make an account under it: before it writes, and
  * again after, when the delete began while it wrote; then it removes the
  * account it made, and a removal that fails is logged by the account's id.
+ * An update applies the profile to the stored account through the guarded
+ * write, and one whose account is deleted after the lookup is NOT_FOUND.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -97,6 +99,8 @@ interface Recorded {
 function harness(
   initial: {
     byNaturalKey?: IdentityAccount;
+    /** The account is deleted between the federated lookup and the update's write. */
+    goneBeforeUpdate?: boolean;
     createFailure?: Error;
     revokeFailure?: Error;
     /** The provider's external_id_claim; empty routes every sign-in to acme itself. */
@@ -171,7 +175,14 @@ function harness(
         }),
       );
     },
-    updateAccount: (account: IdentityAccount) => {
+    // The guarded write's shape: the change applied to the stored row.
+    updateAccount: (id: string, change: (account: IdentityAccount) => void) => {
+      const stored = recorded.byNaturalKey;
+      if (initial.goneBeforeUpdate === true || stored === undefined || stored.metadata?.id !== id) {
+        return Promise.resolve(undefined);
+      }
+      const account = clone(IdentityAccountSchema, stored);
+      change(account);
       recorded.updated.push(account);
       return Promise.resolve(account);
     },
@@ -396,6 +407,20 @@ describe("the IdentityFederation capability — updateFederatedAccount", () => {
     expect(updated.spec?.idpId).toBe("okta|u1");
     expect(updated.spec?.provisioningMode).toBe(IdentityAccountProvisioningMode.federated);
     expect(updated.spec?.identityProviderRef?.id).toBe("idp_acme_okta");
+  });
+
+  it("is NOT_FOUND with the byte-pinned copy when the account is deleted between the lookup and the write", async () => {
+    const { federation, recorded } = harness({
+      byNaturalKey: federatedRow({ id: "ida_u1", externalSub: "okta|u1" }),
+      goneBeforeUpdate: true,
+    });
+    await expect(federation.updateFederatedAccount(input, REF, CALLER)).rejects.toSatisfy(
+      (error: unknown) =>
+        connectCode(error) === Code.NotFound &&
+        (error as ConnectError).rawMessage ===
+          "No federated account found for IdP 'acme/acme-okta' with external_sub 'okta|u1'",
+    );
+    expect(recorded.updated).toEqual([]);
   });
 
   it("is NOT_FOUND with the byte-pinned copy when no federated account holds the key", async () => {

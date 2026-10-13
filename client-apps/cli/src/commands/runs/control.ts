@@ -1,6 +1,8 @@
 // `stigmer runs {cancel,terminate,pause,resume} <run-id>` — lifecycle
 // control verbs. Thin handlers: resolve the client, call the control resource,
 // render the resulting phase. Mirrors Go's execution_cancel.go / execution_pause.go.
+// cancel stops the run's whole conversation (resources/run-control.ts), takes
+// no reason, and names every turn it stopped.
 
 import type { Command } from "commander";
 import { ensureAuthenticated } from "../../config/index.js";
@@ -12,9 +14,8 @@ interface ReasonFlags {
 export function registerRunsControl(runs: Command): void {
   runs
     .command("cancel <run-id>")
-    .description("gracefully cancel a run in progress")
-    .option("--reason <reason>", "reason for cancellation")
-    .action((runId: string, options: ReasonFlags) => runControl("cancel", runId, options.reason ?? ""));
+    .description("cancel a run in progress: every unfinished turn of its conversation stops")
+    .action((runId: string) => runCancel(runId));
 
   runs
     .command("terminate <run-id>")
@@ -34,15 +35,33 @@ export function registerRunsControl(runs: Command): void {
     .action((runId: string) => runControl("resume", runId, ""));
 }
 
-type ControlVerb = "cancel" | "terminate" | "pause" | "resume";
+type ControlVerb = "terminate" | "pause" | "resume";
 
 // Past-tense success wording per verb, matching Go's climsg.Success lines.
 const PAST_TENSE: Record<ControlVerb, string> = {
-  cancel: "cancelled",
   terminate: "terminated",
   pause: "paused",
   resume: "resumed",
 };
+
+async function runCancel(runId: string): Promise<void> {
+  const [{ connectBackend }, control, { CommandResult, renderResult }] = await Promise.all([
+    import("../../backend.js"),
+    import("../../resources/run-control.js"),
+    import("../../output/command-result.js"),
+  ]);
+
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+
+  const result = await control.cancelRun(client.stigmer, runId);
+  if (result.wasAlreadyTerminal) {
+    renderResult(CommandResult.warning(`Run already ended: ${runId} (phase: ${result.phase})`), "human");
+    return;
+  }
+  const stopped = result.stoppedRunIds.length > 0 ? `; stopped: ${result.stoppedRunIds.join(", ")}` : "";
+  renderResult(CommandResult.success(`Run cancelled: ${runId} (phase: ${result.phase}${stopped})`), "human");
+}
 
 async function runControl(verb: ControlVerb, runId: string, reason: string): Promise<void> {
   const [{ connectBackend }, control, { CommandResult, renderResult }] = await Promise.all([
@@ -67,8 +86,6 @@ function dispatch(
   reason: string,
 ): Promise<import("../../resources/run-control.js").ControlResult> {
   switch (verb) {
-    case "cancel":
-      return control.cancelRun(client, runId, reason);
     case "terminate":
       return control.terminateRun(client, runId, reason);
     case "pause":

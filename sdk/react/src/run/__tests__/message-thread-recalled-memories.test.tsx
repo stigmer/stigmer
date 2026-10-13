@@ -1,17 +1,17 @@
 // Thread emission rules for the retriever transparency card
-// (stigmer/stigmer#293 Phase 3). The load-bearing pins:
+// (stigmer/stigmer#293 Phase 3), over the session's folded turns. The
+// load-bearing pins:
 //
-//   1. The card is a PER-SEGMENT item derived from each run's own
-//      spec+status — NOT a live-only tail indicator like setup-progress.
-//      A historical (non-active) run keeps its card forever; that
-//      is the audit property, and the regression this file exists to
-//      catch (a live-only mechanism would render correctly during
-//      streaming and silently lose the record afterwards).
-//   2. Absent report and selection_active=false both render NOTHING —
-//      wholesale is the unchanged majority behavior and earns no noise.
-//   3. The card is gated on the REPORT, not the prompt bubble:
+//   1. The card is a PER-SEGMENT item derived from each turn's own
+//      recall event (`stigmer.memory.recalled`, `Turn.memory`) and its
+//      run's recalled facts — NOT a live-only tail indicator like
+//      setup-progress. A finished turn keeps its card forever; that is the
+//      audit property, and the regression this file exists to catch.
+//   2. No recall event, and a recall without selection, both render
+//      NOTHING — wholesale is the unchanged majority behavior.
+//   3. The card is gated on the RECALL, not the prompt bubble:
 //      syntheticUserPrompt deliberately skips some user turns (empty
-//      prompt), and those runs can still be selection-active.
+//      prompt), and those turns can still be selection-active.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -19,7 +19,6 @@ import { create } from "@bufbuild/protobuf";
 import {
   RunSchema,
   RunStatusSchema,
-  RecalledMemoriesReportSchema,
   type Run,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
@@ -27,11 +26,10 @@ import {
   RecalledMemoriesSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { TurnPhase } from "@stigmer/sdk";
+import { samples } from "../../test/samples";
 
 import { MessageThread } from "../MessageThread";
 
@@ -60,39 +58,64 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function makeExecution(opts: {
-  id: string;
-  specMessage?: string;
-  facts?: ReadonlyArray<{ id: string; content: string }>;
-  report?: { selectionActive: boolean; injectedMemoryIds?: string[] };
-}): Run {
+interface TurnInit {
+  readonly id: string;
+  readonly specMessage?: string;
+  readonly facts?: ReadonlyArray<{ id: string; content: string }>;
+  readonly recall?: { selectionActive: boolean; injectedMemoryIds?: string[] };
+  readonly phase?: TurnPhase;
+}
+
+/** The turn's run: its message and the memory snapshot it recalled from. */
+function makeRun(opts: TurnInit): Run {
   const exec = create(RunSchema);
   exec.metadata = create(ApiResourceMetadataSchema, { id: opts.id });
-
-  const spec = create(RunSpecSchema);
-  spec.message = opts.specMessage ?? "Hello";
-  exec.spec = spec;
-
-  const status = create(RunStatusSchema);
+  exec.spec = create(RunSpecSchema, { message: opts.specMessage ?? "Hello" });
+  const status = create(RunStatusSchema, { phase: RunPhase.RUN_COMPLETED });
   if (opts.facts) {
     status.recalledMemories = create(RecalledMemoriesSchema, {
       enabled: true,
       facts: opts.facts.map((f) => ({ memoryId: f.id, content: f.content })),
     });
   }
-  status.phase = RunPhase.RUN_COMPLETED;
-  status.messages = [
-    create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
-  ];
-  if (opts.report) {
-    status.recalledMemoriesReport = create(RecalledMemoriesReportSchema, {
-      selectionActive: opts.report.selectionActive,
-      injectedMemoryIds: opts.report.injectedMemoryIds ?? [],
-      embeddingModel: opts.report.selectionActive ? "text-embedding-3-small" : "",
-    });
-  }
   exec.status = status;
   return exec;
+}
+
+/** The turn's events: its message, its recall (when given), a reply and its phase. */
+function makeEvents(opts: TurnInit): SessionEvent[] {
+  const events = samples.turnEvents({
+    runId: opts.id,
+    message: opts.specMessage ?? "Hello",
+    reply: "Done.",
+    phase: opts.phase ?? "completed",
+  });
+  if (opts.recall) {
+    events.splice(
+      1,
+      0,
+      create(SessionEventSchema, {
+        runId: opts.id,
+        event: {
+          case: "stigmerMemoryRecalled",
+          value: {
+            id: `${opts.id}.memory`,
+            selectionActive: opts.recall.selectionActive,
+            injectedMemoryIds: opts.recall.injectedMemoryIds ?? [],
+            embeddingModel: opts.recall.selectionActive ? "text-embedding-3-small" : "",
+          },
+        },
+      }),
+    );
+  }
+  return events;
+}
+
+function thread(...turns: TurnInit[]) {
+  return {
+    turns: samples.fold(turns.flatMap(makeEvents)).turns,
+    runs: turns.map(makeRun),
+  };
 }
 
 const FACTS = [
@@ -102,17 +125,15 @@ const FACTS = [
 ];
 
 describe("MessageThread recalled-memories item", () => {
-  it("emits the card inside a selection-active execution's segment, after the user turn", () => {
+  it("emits the card inside a selection-active turn's segment, after the person's message", () => {
     render(
       <MessageThread
-        runs={[
-          makeExecution({
-            id: "e1",
-            specMessage: "prompt text",
-            facts: FACTS,
-            report: { selectionActive: true, injectedMemoryIds: ["mem_a", "mem_c"] },
-          }),
-        ]}
+        {...thread({
+          id: "e1",
+          specMessage: "prompt text",
+          facts: FACTS,
+          recall: { selectionActive: true, injectedMemoryIds: ["mem_a", "mem_c"] },
+        })}
       />,
     );
 
@@ -124,45 +145,32 @@ describe("MessageThread recalled-memories item", () => {
     ).toBeTruthy();
   });
 
-  it("emits nothing for an absent report (pre-3a and no-injection executions read identically)", () => {
-    render(
-      <MessageThread
-        runs={[makeExecution({ id: "e1", facts: FACTS })]}
-      />,
-    );
+  it("emits nothing for a turn that recorded no recall", () => {
+    render(<MessageThread {...thread({ id: "e1", facts: FACTS })} />);
     expect(screen.queryByRole("status", { name: /Recalled/ })).toBeNull();
   });
 
-  it("emits nothing for a wholesale report (selection_active=false)", () => {
+  it("emits nothing for a wholesale recall (no selection)", () => {
+    render(<MessageThread {...thread({ id: "e1", facts: FACTS, recall: { selectionActive: false } })} />);
+    expect(screen.queryByRole("status", { name: /Recalled/ })).toBeNull();
+  });
+
+  it("keeps the card on a FINISHED turn while another turn works", () => {
+    // The audit pin: the card derives from the turn's own segment, so it
+    // must survive the turn no longer being the live one — a live-only
+    // mechanism (the setup-progress shape) would lose it here.
     render(
       <MessageThread
-        runs={[
-          makeExecution({
-            id: "e1",
+        {...thread(
+          {
+            id: "e-old",
+            specMessage: "earlier turn",
             facts: FACTS,
-            report: { selectionActive: false },
-          }),
-        ]}
+            recall: { selectionActive: true, injectedMemoryIds: ["mem_b"] },
+          },
+          { id: "e-live", specMessage: "current turn", phase: "running" },
+        )}
       />,
-    );
-    expect(screen.queryByRole("status", { name: /Recalled/ })).toBeNull();
-  });
-
-  it("keeps the card on a HISTORICAL execution while another execution streams", () => {
-    // The audit pin: the card derives from the run's own segment, so
-    // it must survive the run no longer being the active stream — a
-    // live-only mechanism (the setup-progress shape) would lose it here.
-    const historical = makeExecution({
-      id: "e-old",
-      specMessage: "earlier turn",
-      facts: FACTS,
-      report: { selectionActive: true, injectedMemoryIds: ["mem_b"] },
-    });
-    const live = makeExecution({ id: "e-live", specMessage: "current turn" });
-    live.status!.phase = RunPhase.RUN_IN_PROGRESS;
-
-    render(
-      <MessageThread runs={[historical]} activeStreamRun={live} />,
     );
 
     expect(
@@ -170,22 +178,14 @@ describe("MessageThread recalled-memories item", () => {
     ).toBeTruthy();
   });
 
-  it("emits one card per selection-active execution", () => {
+  it("emits one card per selection-active turn", () => {
     render(
       <MessageThread
-        runs={[
-          makeExecution({
-            id: "e1",
-            facts: FACTS,
-            report: { selectionActive: true, injectedMemoryIds: ["mem_a"] },
-          }),
-          makeExecution({ id: "e2", facts: FACTS }),
-          makeExecution({
-            id: "e3",
-            facts: FACTS,
-            report: { selectionActive: true, injectedMemoryIds: ["mem_a", "mem_b"] },
-          }),
-        ]}
+        {...thread(
+          { id: "e1", facts: FACTS, recall: { selectionActive: true, injectedMemoryIds: ["mem_a"] } },
+          { id: "e2", facts: FACTS },
+          { id: "e3", facts: FACTS, recall: { selectionActive: true, injectedMemoryIds: ["mem_a", "mem_b"] } },
+        )}
       />,
     );
 
@@ -197,14 +197,12 @@ describe("MessageThread recalled-memories item", () => {
   it("emits the card even when the user-turn bubble is skipped (empty prompt)", () => {
     render(
       <MessageThread
-        runs={[
-          makeExecution({
-            id: "e1",
-            specMessage: "",
-            facts: FACTS,
-            report: { selectionActive: true, injectedMemoryIds: ["mem_c"] },
-          }),
-        ]}
+        {...thread({
+          id: "e1",
+          specMessage: "",
+          facts: FACTS,
+          recall: { selectionActive: true, injectedMemoryIds: ["mem_c"] },
+        })}
       />,
     );
 

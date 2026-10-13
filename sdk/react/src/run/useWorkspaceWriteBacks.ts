@@ -20,7 +20,7 @@ export interface UseWorkspaceWriteBacksReturn {
  *
  * Follows the same `useMemo`-based derivation pattern as
  * {@link useRunArtifacts}: no side effects, no data fetching.
- * The run object (typically from {@link useRunStream}) is
+ * The run object (typically from {@link useLiveRun}) is
  * the single input.
  *
  * Returns an empty array when the run is `null` or has no
@@ -32,7 +32,7 @@ export interface UseWorkspaceWriteBacksReturn {
  *
  * @example
  * ```tsx
- * const { run } = useRunStream(executionId);
+ * const { run } = useLiveRun(executionId);
  * const { writeBacks, hasWriteBacks } = useWorkspaceWriteBacks(run);
  *
  * if (hasWriteBacks) {

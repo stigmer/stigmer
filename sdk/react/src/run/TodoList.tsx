@@ -1,18 +1,14 @@
 "use client";
 
 import { useMemo, type ComponentType } from "react";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Todo } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link TodoList}. */
 export interface TodoListProps {
-  /**
-   * Todo items keyed by ID. Accepts the proto map shape directly
-   * (`execution.status.todos` or `subAgentRun.todos`).
-   */
-  readonly todos: { readonly [key: string]: TodoItem };
+  /** The to-do items, as a turn's fold holds them (`Turn.todos`). */
+  readonly todos: readonly Todo[];
   /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
@@ -23,22 +19,18 @@ export interface TodoListProps {
   readonly TodoRow?: ComponentType<TodoRowProps>;
 }
 
-const STATUS_SORT_ORDER: ReadonlyMap<TodoStatus, number> = new Map([
-  [TodoStatus.TODO_IN_PROGRESS, 0],
-  [TodoStatus.TODO_PENDING, 1],
-  [TodoStatus.TODO_COMPLETED, 2],
-  [TodoStatus.TODO_CANCELLED, 3],
-]);
-
-function todoSortKey(item: TodoItem): number {
-  return STATUS_SORT_ORDER.get(item.status) ?? 4;
-}
+const STATUS_SORT_ORDER: Readonly<Record<Todo["status"], number>> = {
+  in_progress: 0,
+  pending: 1,
+  completed: 2,
+  cancelled: 3,
+};
 
 /**
- * Renders a sorted checklist of {@link TodoItem} entries.
+ * Renders a sorted checklist of `Todo` entries.
  *
  * Shared by {@link RunProgress} (main agent sidebar widget)
- * and {@link SubAgentSection} (sub-agent expanded content).
+ * and {@link TodoCard} (the in-thread card).
  *
  * Items are sorted by activity: in-progress first, then pending,
  * completed, and cancelled. Each row shows a status icon and the
@@ -48,10 +40,7 @@ function todoSortKey(item: TodoItem): number {
  *
  * @example
  * ```tsx
- * const run = stream.run;
- * const todos = run?.status?.todos ?? {};
- *
- * <TodoList todos={todos} />
+ * <TodoList todos={turn.todos} />
  * ```
  */
 export function TodoList({
@@ -59,11 +48,10 @@ export function TodoList({
   className,
   TodoRow: RowComponent = TodoRow,
 }: TodoListProps) {
-  const sortedTodos = useMemo(() => {
-    const items = Object.values(todos);
-    if (items.length === 0) return [];
-    return items.slice().sort((a, b) => todoSortKey(a) - todoSortKey(b));
-  }, [todos]);
+  const sortedTodos = useMemo(
+    () => todos.slice().sort((a, b) => STATUS_SORT_ORDER[a.status] - STATUS_SORT_ORDER[b.status]),
+    [todos],
+  );
 
   if (sortedTodos.length === 0) return null;
 
@@ -85,34 +73,21 @@ export function TodoList({
 // ---------------------------------------------------------------------------
 
 /**
- * Returns the first in-progress todo from a todos map, or `null`.
- * Used by {@link SubAgentSection} to show an active task preview
- * in the collapsed summary row.
+ * Returns the first in-progress to-do, or `null`. Used by {@link TodoCard} to
+ * decide whether the plan is being worked.
  */
-export function findActiveTodo(
-  todos: { readonly [key: string]: TodoItem } | undefined,
-): TodoItem | null {
-  if (!todos) return null;
-  for (const item of Object.values(todos)) {
-    if (item.status === TodoStatus.TODO_IN_PROGRESS) return item;
-  }
-  return null;
+export function findActiveTodo(todos: readonly Todo[]): Todo | null {
+  return todos.find((item) => item.status === "in_progress") ?? null;
 }
 
 /**
  * Builds a compact completion summary string (e.g. "3/5 completed").
- * Returns `null` when there are no todos.
+ * Returns `null` when there are no to-dos.
  */
-export function todoCompletionSummary(
-  todos: { readonly [key: string]: TodoItem } | undefined,
-): string | null {
-  if (!todos) return null;
-  const items = Object.values(todos);
-  if (items.length === 0) return null;
-  const completed = items.filter(
-    (t) => t.status === TodoStatus.TODO_COMPLETED,
-  ).length;
-  return `${completed}/${items.length} completed`;
+export function todoCompletionSummary(todos: readonly Todo[]): string | null {
+  if (todos.length === 0) return null;
+  const completed = todos.filter((t) => t.status === "completed").length;
+  return `${completed}/${todos.length} completed`;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,8 +96,8 @@ export function todoCompletionSummary(
 
 /** Props for {@link TodoRow}. */
 export interface TodoRowProps {
-  /** The todo item to render. */
-  readonly item: TodoItem;
+  /** The to-do item to render. */
+  readonly item: Todo;
 }
 
 /**
@@ -132,9 +107,9 @@ export interface TodoRowProps {
  * bring host iconography while keeping the built-in card chrome.
  */
 export function TodoRow({ item }: TodoRowProps) {
-  const Icon = TODO_ICONS[item.status] ?? TodoPendingIcon;
-  const colorClass = TODO_COLORS[item.status] ?? "stg:text-muted-foreground";
-  const cancelled = item.status === TodoStatus.TODO_CANCELLED;
+  const Icon = TODO_ICONS[item.status];
+  const colorClass = TODO_COLORS[item.status];
+  const cancelled = item.status === "cancelled";
 
   return (
     <li className="stg:flex stg:items-start stg:gap-1.5 stg:text-xs">
@@ -157,18 +132,18 @@ export function TodoRow({ item }: TodoRowProps) {
 // Status icon / color mapping
 // ---------------------------------------------------------------------------
 
-const TODO_ICONS: Partial<Record<TodoStatus, () => React.JSX.Element>> = {
-  [TodoStatus.TODO_PENDING]: TodoPendingIcon,
-  [TodoStatus.TODO_IN_PROGRESS]: TodoInProgressIcon,
-  [TodoStatus.TODO_COMPLETED]: TodoCompletedIcon,
-  [TodoStatus.TODO_CANCELLED]: TodoCancelledIcon,
+const TODO_ICONS: Readonly<Record<Todo["status"], () => React.JSX.Element>> = {
+  pending: TodoPendingIcon,
+  in_progress: TodoInProgressIcon,
+  completed: TodoCompletedIcon,
+  cancelled: TodoCancelledIcon,
 };
 
-const TODO_COLORS: Partial<Record<TodoStatus, string>> = {
-  [TodoStatus.TODO_PENDING]: "stg:text-muted-foreground",
-  [TodoStatus.TODO_IN_PROGRESS]: "stg:text-foreground",
-  [TodoStatus.TODO_COMPLETED]: "stg:text-success",
-  [TodoStatus.TODO_CANCELLED]: "stg:text-muted-foreground",
+const TODO_COLORS: Readonly<Record<Todo["status"], string>> = {
+  pending: "stg:text-muted-foreground",
+  in_progress: "stg:text-foreground",
+  completed: "stg:text-success",
+  cancelled: "stg:text-muted-foreground",
 };
 
 // ---------------------------------------------------------------------------
@@ -190,7 +165,7 @@ function TodoPendingIcon() {
   );
 }
 
-/** Exported for reuse in SubAgentSection collapsed preview. */
+/** The in-progress glyph, exported for hosts composing their own to-do rows. */
 export function TodoInProgressIcon() {
   return (
     <span className="stg:relative stg:flex stg:h-3 stg:w-3 stg:items-center stg:justify-center">

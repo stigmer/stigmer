@@ -47,6 +47,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -103,6 +104,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newResolveShareAudienceStep, shareAdmitsAnyone } from "./audience.js";
@@ -243,34 +245,36 @@ async function update(
   share: AgentShare,
   ctx: HandlerContext,
 ): Promise<AgentShare> {
-  const reqCtx = new RequestContext(
-    AgentShareSchema,
-    share,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof AgentShareSchema>("agent-share-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(
-        AgentShareCommandController.method.update,
-        deps.authorizer,
-      ),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    // After BuildUpdateState, which rebuilds the state from the request.
-    .addStep(newNormalizeReferencesStep(deps.store))
-    .addStep(newValidateShareUpdateStep(deps.store))
-    .addStep(newResolveShareAudienceStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
-    .addStep(newPersistStep(deps.store))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      AgentShareSchema,
+      share,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof AgentShareSchema>("agent-share-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(
+          AgentShareCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      // After BuildUpdateState, which rebuilds the state from the request.
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newValidateShareUpdateStep(deps.store))
+      .addStep(newResolveShareAudienceStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
+      .addStep(newPersistStep(deps.store))
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /**
@@ -419,7 +423,11 @@ function newRotateShareLinkTokenStep(): PipelineStep<RotateDesc> {
   };
 }
 
-/** Saves the rotated share. */
+/**
+ * Saves the rotated token and its status audit onto the live row inside
+ * the store's atomic write, so an update that landed since the load stays.
+ * The written row replaces the loaded one under the key.
+ */
 function newPersistShareForLinkRotationStep(
   store: Store,
 ): PipelineStep<RotateDesc> {
@@ -427,16 +435,27 @@ function newPersistShareForLinkRotationStep(
     name: "PersistShareForLinkRotation",
     async execute(ctx: RequestContext<RotateDesc>): Promise<void> {
       const share = ctx.get(ROTATE_SHARE_KEY) as AgentShare;
+      const id = share.metadata?.id ?? "";
+      let written: AgentShare;
       try {
-        await store.saveResource(
+        written = await store.updateResource(
           ctx.apiResourceKind,
-          share.metadata?.id ?? "",
+          id,
           AgentShareSchema,
-          share,
+          (row) => {
+            const status = (row.status ??= create(AgentShareStatusSchema));
+            status.shareLinkToken = share.status?.shareLinkToken ?? "";
+            const audit = (status.audit ??= create(ApiResourceAuditSchema));
+            audit.statusAudit = share.status?.audit?.statusAudit;
+          },
         );
       } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("AgentShare", id);
+        }
         throw internalError(error, "failed to save agent share");
       }
+      ctx.set(ROTATE_SHARE_KEY, written);
     },
   };
 }

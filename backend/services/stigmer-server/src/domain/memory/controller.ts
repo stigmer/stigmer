@@ -18,9 +18,10 @@
  * creates leave it empty; tool_call_id force-cleared in v1) and immutable
  * forever after — attribution that can be edited is not attribution;
  * status.lifecycle_state is written ONLY by create (initial proposed) and
- * the confirm/reject commands. Updates graft metadata+spec+status.audit
- * onto the live row and never touch the lifecycle — consent must not be
- * rewritable through a spec edit.
+ * the confirm/reject commands. Updates write metadata+spec+status.audit
+ * over the lifecycle of the row they read, by compare-and-swap on that
+ * row, and never touch the lifecycle — consent must not be rewritable
+ * through a spec edit.
  *
  * Consent posture: confirm/reject enforced at the control
  * plane is the ENTIRE consent mechanism. Client-side approval flows are
@@ -104,6 +105,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -260,25 +262,27 @@ async function update(
   memory: Memory,
   ctx: HandlerContext,
 ): Promise<Memory> {
-  const reqCtx = new RequestContext(
-    MemorySchema,
-    memory,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof MemorySchema>("memory-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(MemoryCommandController.method.update, deps.authorizer),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newValidateMemoryUpdateStep())
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newPersistMemoryUpdateStep(deps.store))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      MemorySchema,
+      memory,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof MemorySchema>("memory-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(MemoryCommandController.method.update, deps.authorizer),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newValidateMemoryUpdateStep())
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newPersistMemoryUpdateStep(deps.store))
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /**

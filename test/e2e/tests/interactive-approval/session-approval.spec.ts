@@ -1,7 +1,7 @@
 // HITL approval / live-disclosure end-to-end, made deterministic by the mock LLM
 // proxy wired into the runner (STIGMER_E2E_MOCK_LLM). What this layer proves that
 // the jsdom suite cannot: the web console's REAL wiring — SessionViewer ->
-// useSessionPageFlow.submitApproval -> the submitApproval RPC -> the run resumes
+// the session's answer (confirmToolUse, grantPermission) -> the run resumes
 // — plus genuine browser concerns (the orphan-vs-inline DOM split, scroll-driven
 // peek bar). Determinism is from the mock, not a live model.
 //
@@ -28,8 +28,9 @@ import {
   awaitMockRemaining,
   approveButton,
   approveAllButton,
-  skipButton,
-  rejectButton,
+  denyButton,
+  denyConfirmButton,
+  denyReasonField,
   bottomApprovalCard,
   approvalPeekBar,
   autoApproveIndicator,
@@ -80,19 +81,18 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // present and there is NO detached bottom approval card (a built-in tool's
     // approval has an inline home, so the orphan backstop must not duplicate it).
     await expect(approveButton(page)).toBeVisible({ timeout: 30_000 });
-    await expect(skipButton(page)).toBeVisible();
-    await expect(rejectButton(page)).toBeVisible();
+    await expect(denyButton(page)).toBeVisible();
     await expect(bottomApprovalCard(page)).toHaveCount(0);
 
     await approveButton(page).click();
 
-    // The real submitApproval RPC fired and the run resumed to completion.
+    // The real confirmToolUse fired and the run resumed to completion.
     const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
     expect(phase, "approved execution completes").toBe(RunPhase.RUN_COMPLETED);
     await assertComposerEnabled(page);
   });
 
-  test("Skip resolves the gate and the run completes", async ({ page, stigmerClient }) => {
+  test("Deny with no reason resolves the gate and the run completes", async ({ page, stigmerClient }) => {
     seeded = await seedGatedSession(stigmerClient, control);
     await awaitRunPhase(
       stigmerClient,
@@ -101,14 +101,17 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     );
 
     await page.goto(`/sessions/${seeded.sessionId}`);
-    await expect(skipButton(page)).toBeVisible({ timeout: 30_000 });
-    await skipButton(page).click();
+    await expect(denyButton(page)).toBeVisible({ timeout: 30_000 });
+    await denyButton(page).click();
+    await denyConfirmButton(page).click();
 
+    // A deny fails the tool, not the run: the agent is told and continues to
+    // completion.
     const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
-    expect(phase, "skipped execution completes").toBe(RunPhase.RUN_COMPLETED);
+    expect(phase, "denied execution completes").toBe(RunPhase.RUN_COMPLETED);
   });
 
-  test("Reject resolves the gate and the run completes", async ({ page, stigmerClient }) => {
+  test("Deny with a reason resolves the gate and the run completes", async ({ page, stigmerClient }) => {
     seeded = await seedGatedSession(stigmerClient, control);
     await awaitRunPhase(
       stigmerClient,
@@ -117,13 +120,13 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     );
 
     await page.goto(`/sessions/${seeded.sessionId}`);
-    await expect(rejectButton(page)).toBeVisible({ timeout: 30_000 });
-    await rejectButton(page).click();
+    await expect(denyButton(page)).toBeVisible({ timeout: 30_000 });
+    await denyButton(page).click();
+    await denyReasonField(page).fill("use make clean instead");
+    await denyConfirmButton(page).click();
 
-    // REJECT fails the tool, not the run: the agent is told and continues to
-    // completion (matches the conformance + Go HITL contract).
     const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
-    expect(phase, "rejected execution still completes").toBe(RunPhase.RUN_COMPLETED);
+    expect(phase, "denied execution still completes").toBe(RunPhase.RUN_COMPLETED);
   });
 
   test("Approve-all clears co-pending gates and arms the auto-approve indicator", async ({

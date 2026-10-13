@@ -129,7 +129,7 @@ Provide exactly one of `apiKey` or `getAccessToken`, not both.
 ```go
 import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
 
-client, err := stigmer.NewClient(os.Getenv("STIGMER_API_KEY"))
+client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 if err != nil {
     log.Fatal(err)
 }
@@ -244,7 +244,7 @@ own client with methods like `get`, `create`, `list`, `apply`, `update`, and
 ```typescript
 stigmer.agent.get(id)
 stigmer.session.create(input)
-stigmer.run.subscribe(id)
+stigmer.session.streamEvents(request)
 ```
 
 TypeScript uses singular camelCase accessors on the `Stigmer` instance.
@@ -253,7 +253,7 @@ TypeScript uses singular camelCase accessors on the `Stigmer` instance.
 ```go
 client.Agent.Get(ctx, id)
 client.Session.Create(ctx, &stigmer.SessionInput{...})
-client.Run.Subscribe(ctx, id)
+client.Session.StreamEvents(ctx, request)
 ```
 
 Go uses singular PascalCase fields. Every method takes a `context.Context` as
@@ -263,19 +263,19 @@ its first argument.
 ```python
 client.agents.get(id)
 client.sessions.create(SessionInput(...))
-client.runs.subscribe(id)
+client.sessions.stream_events(request)
 ```
 
 Python uses plural snake_case attributes.
 </Tab>
 <Tab value="Java">
 ```java
-client.agents().get(id);
-client.sessions().create(SessionInput.builder()...build());
-client.run.subscribe(id);
+client.agent.get(id);
+client.session.create(SessionInput.builder()...build());
+client.session.streamEvents(request);
 ```
 
-Java uses plural camelCase methods that return typed sub-clients.
+Java uses singular camelCase fields on the client.
 </Tab>
 </SDKTabs>
 
@@ -360,7 +360,7 @@ except StigmerError as err:
 import ai.stigmer.sdk.gen.StigmerException;
 
 try {
-    var agent = client.agents().get(id);
+    var agent = client.agent.get(id);
 } catch (StigmerException e) {
     if (e.isNotFound()) {
         System.out.println("Agent does not exist");
@@ -443,7 +443,7 @@ while True:
 ```java
 var pageToken = "";
 do {
-    var page = client.sessions().list(ListSessionsRequest.builder()
+    var page = client.session.list(ListSessionsRequest.builder()
         .org("acme")
         .pageSize(25)
         .pageToken(pageToken)
@@ -459,83 +459,132 @@ do {
 
 ## Streaming
 
-Runs support server-streaming via a `subscribe` method.
-You receive snapshots of the run state as it progresses — messages arriving, tool calls executing, and phases changing.
+A Session's output is one ordered log of events, in the Claude Managed Agents
+event format: the Agent's messages, its tool uses and their results, the calls
+waiting for an approval, and each run's `stigmer.run.status`. Every event
+carries the run (`run_id`) and the thread (`thread_id`, empty for the Agent's
+own) it belongs to.
+
+`streamEvents` follows the log. With `after_seq` set to 0 it first sends every
+event already stored, then each new one as it's appended. This example prints
+the Agent's messages for one run until the run ends.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-for await (const snapshot of stigmer.run.subscribe(runId)) {
-  const messages = snapshot.status?.messages ?? [];
-  const last = messages[messages.length - 1];
-  if (last?.content) {
-    console.log(last.content);
+import { followSession } from "@stigmer/sdk";
+
+const ended = ["completed", "failed", "cancelled", "terminated"];
+for await (const frame of followSession(stigmer, sessionId)) {
+  if (frame.frame.case !== "event") continue;
+  const { runId: eventRunId, threadId, event } = frame.frame.value;
+  if (eventRunId !== runId) continue;
+  if (event.case === "agentMessage" && threadId === "") {
+    console.log(event.value.content.map((block) => block.text).join(""));
+  }
+  if (event.case === "stigmerRunStatus" && ended.includes(event.value.phase)) {
     break;
   }
 }
 ```
+
+`followSession` wraps `streamEvents` and reconnects from the last event it
+delivered when the stream drops. To send a message and wait for the answer in
+one call, use `sendAndWait`.
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.Run.Subscribe(ctx, runID)
+stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
+    SessionId: sessionID,
+    AfterSeq:  proto.Int64(0),
+})
 if err != nil {
     log.Fatal(err)
 }
 for {
-    snapshot, err := stream.Recv()
-    if err == io.EOF {
-        break
-    }
+    frame, err := stream.Recv()
     if err != nil {
         log.Fatal(err)
     }
-    msgs := snapshot.GetStatus().GetMessages()
-    if len(msgs) > 0 {
-        last := msgs[len(msgs)-1]
-        if last.GetContent() != "" {
-            fmt.Println(last.GetContent())
-            break
+    event := frame.GetEvent()
+    if event.GetRunId() != runID {
+        continue
+    }
+    if msg := event.GetAgentMessage(); msg != nil && event.GetThreadId() == "" {
+        for _, block := range msg.GetContent() {
+            fmt.Print(block.GetText())
+        }
+        fmt.Println()
+    }
+    if status := event.GetStigmerRunStatus(); status != nil {
+        switch status.GetPhase() {
+        case "completed", "failed", "cancelled", "terminated":
+            return
         }
     }
 }
 ```
+
+`sessionv1` is
+`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`, and
+`proto` is `google.golang.org/protobuf/proto`.
 </Tab>
 <Tab value="Python">
 ```python
-for snapshot in client.runs.subscribe(run_id):
-    messages = snapshot.status.messages
-    if messages and messages[-1].content:
-        print(messages[-1].content)
+from ai.stigmer.agentic.session.v1 import io_pb2
+
+ENDED = {"completed", "failed", "cancelled", "terminated"}
+
+request = io_pb2.StreamSessionEventsRequest(session_id=session_id, after_seq=0)
+for frame in client.sessions.stream_events(request):
+    event = frame.event
+    if event.run_id != run_id:
+        continue
+    kind = event.WhichOneof("event")
+    if kind == "agent_message" and not event.thread_id:
+        print("".join(block.text for block in event.agent_message.content))
+    if kind == "stigmer_run_status" and event.stigmer_run_status.phase in ENDED:
         break
 ```
 </Tab>
 <Tab value="Java">
 ```java
-var stream = client.run.subscribe(runId);
+import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
+
+var ended = Set.of("completed", "failed", "cancelled", "terminated");
+var stream = client.session.streamEvents(StreamSessionEventsRequest.newBuilder()
+    .setSessionId(sessionId)
+    .setAfterSeq(0)
+    .build());
 while (stream.hasNext()) {
-    var snapshot = stream.next();
-    var messages = snapshot.getStatus().getMessagesList();
-    if (!messages.isEmpty()) {
-        var last = messages.get(messages.size() - 1);
-        if (!last.getContent().isEmpty()) {
-            System.out.println(last.getContent());
-            break;
+    var event = stream.next().getEvent();
+    if (!event.getRunId().equals(runId)) {
+        continue;
+    }
+    if (event.hasAgentMessage() && event.getThreadId().isEmpty()) {
+        for (var block : event.getAgentMessage().getContentList()) {
+            System.out.print(block.getText());
         }
+        System.out.println();
+    }
+    if (event.hasStigmerRunStatus()
+            && ended.contains(event.getStigmerRunStatus().getPhase())) {
+        break;
     }
 }
 ```
 </Tab>
 </SDKTabs>
 
-For a detailed guide on reading run snapshots and handling stream completion,
-see the [Streaming guide](/docs/sdk/streaming).
+For the events you read most, answering a call that waits for approval, and
+resuming a dropped stream, see the [Streaming guide](/docs/sdk/streaming).
 
 ## What's next
 
 <Cards>
   <Card
     title="Streaming"
-    description="Consume real-time run updates as they arrive."
+    description="Follow a Session's events as they arrive."
     href="/docs/sdk/streaming"
   />
   <Card

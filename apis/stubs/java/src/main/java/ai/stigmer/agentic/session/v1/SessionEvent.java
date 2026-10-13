@@ -93,6 +93,8 @@ private static final long serialVersionUID = 0L;
     STIGMER_FILE_REVIEW_DECIDED(106),
     STIGMER_FILE_REVIEW_RECONCILED(107),
     STIGMER_PERMISSION_GRANT(108),
+    STIGMER_RUN_STATUS(109),
+    STIGMER_TOOL_RESULT_FULL_OUTPUT(110),
     EVENT_NOT_SET(0);
     private final int value;
     private EventCase(int value) {
@@ -137,6 +139,8 @@ private static final long serialVersionUID = 0L;
         case 106: return STIGMER_FILE_REVIEW_DECIDED;
         case 107: return STIGMER_FILE_REVIEW_RECONCILED;
         case 108: return STIGMER_PERMISSION_GRANT;
+        case 109: return STIGMER_RUN_STATUS;
+        case 110: return STIGMER_TOOL_RESULT_FULL_OUTPUT;
         case 0: return EVENT_NOT_SET;
         default: return null;
       }
@@ -1475,6 +1479,98 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent.getDefaultInstance();
   }
 
+  public static final int STIGMER_RUN_STATUS_FIELD_NUMBER = 109;
+  /**
+   * <pre>
+   * A turn (run) changed phase: it started, waits, paused, or ended and
+   * how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+   * @return Whether the stigmerRunStatus field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerRunStatus() {
+    return eventCase_ == 109;
+  }
+  /**
+   * <pre>
+   * A turn (run) changed phase: it started, waits, paused, or ended and
+   * how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+   * @return The stigmerRunStatus.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerRunStatusEvent getStigmerRunStatus() {
+    if (eventCase_ == 109) {
+       return (ai.stigmer.agentic.session.v1.StigmerRunStatusEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A turn (run) changed phase: it started, waits, paused, or ended and
+   * how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerRunStatusEventOrBuilder getStigmerRunStatusOrBuilder() {
+    if (eventCase_ == 109) {
+       return (ai.stigmer.agentic.session.v1.StigmerRunStatusEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.getDefaultInstance();
+  }
+
+  public static final int STIGMER_TOOL_RESULT_FULL_OUTPUT_FIELD_NUMBER = 110;
+  /**
+   * <pre>
+   * Where the whole output of a tool result that was too large to keep
+   * inline is stored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+   * @return Whether the stigmerToolResultFullOutput field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerToolResultFullOutput() {
+    return eventCase_ == 110;
+  }
+  /**
+   * <pre>
+   * Where the whole output of a tool result that was too large to keep
+   * inline is stored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+   * @return The stigmerToolResultFullOutput.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent getStigmerToolResultFullOutput() {
+    if (eventCase_ == 110) {
+       return (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * Where the whole output of a tool result that was too large to keep
+   * inline is stored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEventOrBuilder getStigmerToolResultFullOutputOrBuilder() {
+    if (eventCase_ == 110) {
+       return (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1581,6 +1677,12 @@ private static final long serialVersionUID = 0L;
     }
     if (eventCase_ == 108) {
       output.writeMessage(108, (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_);
+    }
+    if (eventCase_ == 109) {
+      output.writeMessage(109, (ai.stigmer.agentic.session.v1.StigmerRunStatusEvent) event_);
+    }
+    if (eventCase_ == 110) {
+      output.writeMessage(110, (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1711,6 +1813,14 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 108) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(108, (ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent) event_);
+    }
+    if (eventCase_ == 109) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(109, (ai.stigmer.agentic.session.v1.StigmerRunStatusEvent) event_);
+    }
+    if (eventCase_ == 110) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(110, (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1845,6 +1955,14 @@ private static final long serialVersionUID = 0L;
         if (!getStigmerPermissionGrant()
             .equals(other.getStigmerPermissionGrant())) return false;
         break;
+      case 109:
+        if (!getStigmerRunStatus()
+            .equals(other.getStigmerRunStatus())) return false;
+        break;
+      case 110:
+        if (!getStigmerToolResultFullOutput()
+            .equals(other.getStigmerToolResultFullOutput())) return false;
+        break;
       case 0:
       default:
     }
@@ -1976,6 +2094,14 @@ private static final long serialVersionUID = 0L;
       case 108:
         hash = (37 * hash) + STIGMER_PERMISSION_GRANT_FIELD_NUMBER;
         hash = (53 * hash) + getStigmerPermissionGrant().hashCode();
+        break;
+      case 109:
+        hash = (37 * hash) + STIGMER_RUN_STATUS_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerRunStatus().hashCode();
+        break;
+      case 110:
+        hash = (37 * hash) + STIGMER_TOOL_RESULT_FULL_OUTPUT_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerToolResultFullOutput().hashCode();
         break;
       case 0:
       default:
@@ -2120,6 +2246,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
+      bitField1_ = 0;
       seq_ = 0L;
       sessionId_ = "";
       runId_ = "";
@@ -2205,6 +2332,12 @@ private static final long serialVersionUID = 0L;
       if (stigmerPermissionGrantBuilder_ != null) {
         stigmerPermissionGrantBuilder_.clear();
       }
+      if (stigmerRunStatusBuilder_ != null) {
+        stigmerRunStatusBuilder_.clear();
+      }
+      if (stigmerToolResultFullOutputBuilder_ != null) {
+        stigmerToolResultFullOutputBuilder_.clear();
+      }
       eventCase_ = 0;
       event_ = null;
       return this;
@@ -2234,6 +2367,7 @@ private static final long serialVersionUID = 0L;
     public ai.stigmer.agentic.session.v1.SessionEvent buildPartial() {
       ai.stigmer.agentic.session.v1.SessionEvent result = new ai.stigmer.agentic.session.v1.SessionEvent(this);
       if (bitField0_ != 0) { buildPartial0(result); }
+      if (bitField1_ != 0) { buildPartial1(result); }
       buildPartialOneofs(result);
       onBuilt();
       return result;
@@ -2253,6 +2387,10 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.threadId_ = threadId_;
       }
+    }
+
+    private void buildPartial1(ai.stigmer.agentic.session.v1.SessionEvent result) {
+      int from_bitField1_ = bitField1_;
     }
 
     private void buildPartialOneofs(ai.stigmer.agentic.session.v1.SessionEvent result) {
@@ -2365,6 +2503,14 @@ private static final long serialVersionUID = 0L;
       if (eventCase_ == 108 &&
           stigmerPermissionGrantBuilder_ != null) {
         result.event_ = stigmerPermissionGrantBuilder_.build();
+      }
+      if (eventCase_ == 109 &&
+          stigmerRunStatusBuilder_ != null) {
+        result.event_ = stigmerRunStatusBuilder_.build();
+      }
+      if (eventCase_ == 110 &&
+          stigmerToolResultFullOutputBuilder_ != null) {
+        result.event_ = stigmerToolResultFullOutputBuilder_.build();
       }
     }
 
@@ -2505,6 +2651,14 @@ private static final long serialVersionUID = 0L;
         }
         case STIGMER_PERMISSION_GRANT: {
           mergeStigmerPermissionGrant(other.getStigmerPermissionGrant());
+          break;
+        }
+        case STIGMER_RUN_STATUS: {
+          mergeStigmerRunStatus(other.getStigmerRunStatus());
+          break;
+        }
+        case STIGMER_TOOL_RESULT_FULL_OUTPUT: {
+          mergeStigmerToolResultFullOutput(other.getStigmerToolResultFullOutput());
           break;
         }
         case EVENT_NOT_SET: {
@@ -2746,6 +2900,20 @@ private static final long serialVersionUID = 0L;
               eventCase_ = 108;
               break;
             } // case 866
+            case 874: {
+              input.readMessage(
+                  internalGetStigmerRunStatusFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 109;
+              break;
+            } // case 874
+            case 882: {
+              input.readMessage(
+                  internalGetStigmerToolResultFullOutputFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 110;
+              break;
+            } // case 882
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2777,6 +2945,7 @@ private static final long serialVersionUID = 0L;
     }
 
     private int bitField0_;
+    private int bitField1_;
 
     private long seq_ ;
     /**
@@ -7919,6 +8088,380 @@ private static final long serialVersionUID = 0L;
       eventCase_ = 108;
       onChanged();
       return stigmerPermissionGrantBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerRunStatusEvent, ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.Builder, ai.stigmer.agentic.session.v1.StigmerRunStatusEventOrBuilder> stigmerRunStatusBuilder_;
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     * @return Whether the stigmerRunStatus field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerRunStatus() {
+      return eventCase_ == 109;
+    }
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     * @return The stigmerRunStatus.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerRunStatusEvent getStigmerRunStatus() {
+      if (stigmerRunStatusBuilder_ == null) {
+        if (eventCase_ == 109) {
+          return (ai.stigmer.agentic.session.v1.StigmerRunStatusEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 109) {
+          return stigmerRunStatusBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     */
+    public Builder setStigmerRunStatus(ai.stigmer.agentic.session.v1.StigmerRunStatusEvent value) {
+      if (stigmerRunStatusBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerRunStatusBuilder_.setMessage(value);
+      }
+      eventCase_ = 109;
+      return this;
+    }
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     */
+    public Builder setStigmerRunStatus(
+        ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.Builder builderForValue) {
+      if (stigmerRunStatusBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerRunStatusBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 109;
+      return this;
+    }
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     */
+    public Builder mergeStigmerRunStatus(ai.stigmer.agentic.session.v1.StigmerRunStatusEvent value) {
+      if (stigmerRunStatusBuilder_ == null) {
+        if (eventCase_ == 109 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerRunStatusEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 109) {
+          stigmerRunStatusBuilder_.mergeFrom(value);
+        } else {
+          stigmerRunStatusBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 109;
+      return this;
+    }
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     */
+    public Builder clearStigmerRunStatus() {
+      if (stigmerRunStatusBuilder_ == null) {
+        if (eventCase_ == 109) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 109) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerRunStatusBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.Builder getStigmerRunStatusBuilder() {
+      return internalGetStigmerRunStatusFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerRunStatusEventOrBuilder getStigmerRunStatusOrBuilder() {
+      if ((eventCase_ == 109) && (stigmerRunStatusBuilder_ != null)) {
+        return stigmerRunStatusBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 109) {
+          return (ai.stigmer.agentic.session.v1.StigmerRunStatusEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A turn (run) changed phase: it started, waits, paused, or ended and
+     * how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerRunStatusEvent, ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.Builder, ai.stigmer.agentic.session.v1.StigmerRunStatusEventOrBuilder> 
+        internalGetStigmerRunStatusFieldBuilder() {
+      if (stigmerRunStatusBuilder_ == null) {
+        if (!(eventCase_ == 109)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.getDefaultInstance();
+        }
+        stigmerRunStatusBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerRunStatusEvent, ai.stigmer.agentic.session.v1.StigmerRunStatusEvent.Builder, ai.stigmer.agentic.session.v1.StigmerRunStatusEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerRunStatusEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 109;
+      onChanged();
+      return stigmerRunStatusBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent, ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.Builder, ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEventOrBuilder> stigmerToolResultFullOutputBuilder_;
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     * @return Whether the stigmerToolResultFullOutput field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerToolResultFullOutput() {
+      return eventCase_ == 110;
+    }
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     * @return The stigmerToolResultFullOutput.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent getStigmerToolResultFullOutput() {
+      if (stigmerToolResultFullOutputBuilder_ == null) {
+        if (eventCase_ == 110) {
+          return (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 110) {
+          return stigmerToolResultFullOutputBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     */
+    public Builder setStigmerToolResultFullOutput(ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent value) {
+      if (stigmerToolResultFullOutputBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerToolResultFullOutputBuilder_.setMessage(value);
+      }
+      eventCase_ = 110;
+      return this;
+    }
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     */
+    public Builder setStigmerToolResultFullOutput(
+        ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.Builder builderForValue) {
+      if (stigmerToolResultFullOutputBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerToolResultFullOutputBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 110;
+      return this;
+    }
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     */
+    public Builder mergeStigmerToolResultFullOutput(ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent value) {
+      if (stigmerToolResultFullOutputBuilder_ == null) {
+        if (eventCase_ == 110 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 110) {
+          stigmerToolResultFullOutputBuilder_.mergeFrom(value);
+        } else {
+          stigmerToolResultFullOutputBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 110;
+      return this;
+    }
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     */
+    public Builder clearStigmerToolResultFullOutput() {
+      if (stigmerToolResultFullOutputBuilder_ == null) {
+        if (eventCase_ == 110) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 110) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerToolResultFullOutputBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.Builder getStigmerToolResultFullOutputBuilder() {
+      return internalGetStigmerToolResultFullOutputFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEventOrBuilder getStigmerToolResultFullOutputOrBuilder() {
+      if ((eventCase_ == 110) && (stigmerToolResultFullOutputBuilder_ != null)) {
+        return stigmerToolResultFullOutputBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 110) {
+          return (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Where the whole output of a tool result that was too large to keep
+     * inline is stored.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent, ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.Builder, ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEventOrBuilder> 
+        internalGetStigmerToolResultFullOutputFieldBuilder() {
+      if (stigmerToolResultFullOutputBuilder_ == null) {
+        if (!(eventCase_ == 110)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.getDefaultInstance();
+        }
+        stigmerToolResultFullOutputBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent, ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.Builder, ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 110;
+      onChanged();
+      return stigmerToolResultFullOutputBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionEvent)

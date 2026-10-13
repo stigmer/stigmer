@@ -1,8 +1,10 @@
 // Pins SessionView's terminal composition over a session conversation: the
-// loading and load-failure states, the subject line, the mid-run live
-// capture strip ("N files changing…") whose per-file list rides the same
-// Ctrl+O toggle that expands tool calls, and the Ctrl+T switch between agent
-// and plan mode that the follow-up line announces. The conversation hook is
+// loading and load-failure states, the subject line, the live turn's phase,
+// to-dos and answer error, the mid-run live capture strip ("N files
+// changing…") whose per-file list rides the same Ctrl+O toggle that expands
+// tool calls, the docked file-review prompt that yields to a waiting tool
+// use, and the Ctrl+T switch between agent and plan mode that the follow-up
+// line announces. The conversation hook is
 // replaced by a fixture so each state renders exactly as the hook would
 // report it, and the usage widget's hook reports no usage; every
 // component below the hooks is the real Ink tree.
@@ -17,7 +19,9 @@ import {
 import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { UseSessionConversationReturn } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
 import { SessionView } from "../app/SessionView.js";
+import { reviewSet, waitingToolUse } from "./session-events.js";
 
 let conversation: UseSessionConversationReturn;
 
@@ -37,9 +41,11 @@ function makeConversation(overrides: Partial<UseSessionConversationReturn> = {})
     session: create(SessionSchema, { spec: { subject: "Refactor the billing module" } }),
     isLoading: false,
     loadError: null,
-    completedRuns: [],
-    activeStreamRun: null,
-    activePhase: undefined,
+    turns: [],
+    runs: [],
+    activeTurn: null,
+    activeRun: null,
+    activePhase: null,
     isStreaming: false,
     isConnecting: false,
     isReconnecting: false,
@@ -49,13 +55,14 @@ function makeConversation(overrides: Partial<UseSessionConversationReturn> = {})
     isSending: false,
     sendError: null,
     pendingUserMessage: null,
-    pendingApprovals: [],
-    submitApproval: async () => {},
-    submittingApprovalIds: new Set<string>(),
-    approvalError: null,
-    fileChangeSets: [],
+    asks: [],
+    answerToolUse: async () => {},
+    answeringToolUseIds: new Set<string>(),
+    answerError: null,
+    fileReviewSets: [],
+    fileChangeCaptures: new Map(),
     fileChangeProgress: undefined,
-    submitFileDecision: async () => {},
+    reviewFileChanges: async () => {},
     submittingFileDecisionKeys: new Set<string>(),
     fileDecisionErrors: new Map<string, Error>(),
     fileReviewError: null,
@@ -125,6 +132,45 @@ describe("SessionView — a loaded conversation", () => {
     });
     const { lastFrame } = render(<SessionView sessionId="ses-1" org="acme" />);
     expect(lastFrame()).not.toContain("changing…");
+  });
+
+  it("shows the live turn's phase, its to-dos and an answer error", () => {
+    const activeTurn = samples.turn({ phase: "running" });
+    conversation = makeConversation({
+      activePhase: "running",
+      activeTurn: {
+        ...activeTurn,
+        todos: [{ id: "t1", content: "Read the ledger", status: "in_progress", createdAt: "", updatedAt: "" }],
+      },
+      answerError: new Error("gate already answered"),
+    });
+    const frame = render(<SessionView sessionId="ses-1" org="acme" />).lastFrame() ?? "";
+    expect(frame).toContain("Running");
+    expect(frame).toContain("Read the ledger");
+    expect(frame).toContain("Approval error: gate already answered");
+  });
+
+  it("docks the file-review prompt, counts the rest, and hides the phase while it waits", () => {
+    const set = reviewSet([{ id: "a", path: "src/billing/ledger.ts" }]);
+    conversation = makeConversation({
+      activePhase: "completed",
+      fileReviewSets: [set, set],
+      fileReviewError: new Error("digest mismatch"),
+    });
+    const frame = render(<SessionView sessionId="ses-1" org="acme" />).lastFrame() ?? "";
+    expect(frame).toContain("1 file awaiting review");
+    expect(frame).toContain("1 more awaiting review");
+    expect(frame).toContain("File review error: digest mismatch");
+    expect(frame).not.toContain("Completed");
+  });
+
+  it("makes the review prompt yield to a waiting tool use", () => {
+    conversation = makeConversation({
+      asks: [waitingToolUse("write_file")],
+      fileReviewSets: [reviewSet([{ id: "a", path: "one.ts" }])],
+    });
+    const frame = render(<SessionView sessionId="ses-1" org="acme" />).lastFrame() ?? "";
+    expect(frame).toContain("Resolve the pending approval first");
   });
 
   it("switches to plan mode on Ctrl+T", async () => {

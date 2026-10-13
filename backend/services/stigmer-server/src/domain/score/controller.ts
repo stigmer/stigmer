@@ -72,6 +72,7 @@ import {
 } from "../../pipeline/steps/load-target.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
@@ -197,25 +198,27 @@ async function updateScore(
   score: Score,
   ctx: HandlerContext,
 ): Promise<Score> {
-  const reqCtx = new RequestContext(
-    ScoreSchema,
-    score,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof ScoreSchema>("score-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(ScoreCommandController.method.update, deps.authorizer),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newValidateScoreUpdateStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newPersistStep(deps.store))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      ScoreSchema,
+      score,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof ScoreSchema>("score-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(ScoreCommandController.method.update, deps.authorizer),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateScoreUpdateStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newPersistStep(deps.store))
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /**

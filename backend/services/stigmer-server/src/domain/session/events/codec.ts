@@ -20,8 +20,8 @@ import {
   type SessionEvent,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
+import { eventIdOf, eventTypeOf } from "@stigmer/session-log";
 import type { SessionEventDraft, SessionEventRecord } from "../../../store/session-events.js";
-import { eventIdOf, eventTypeOf } from "./catalog.js";
 
 /** The store draft of an event: its identity, and its bytes without seq, session or accepted time. */
 export function draftOf(event: SessionEvent): SessionEventDraft {

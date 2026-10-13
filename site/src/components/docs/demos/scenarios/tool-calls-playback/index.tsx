@@ -8,7 +8,8 @@ import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { type ToolCallStep, toolCallsPlaybackSteps } from "./steps";
 
-function renderStep(step: ToolCallStep) {
+/** One step's frame. */
+export function renderStep(step: ToolCallStep) {
   switch (step.view) {
     case "composer-typing":
       return (
@@ -25,9 +26,9 @@ function renderStep(step: ToolCallStep) {
         <AppShell
           activeNav="new-session"
           contentKey="session"
-          aside={renderWidgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.conversation)}
         >
-          <ComposerView execution={step.execution} />
+          <ComposerView conversation={step.conversation} />
         </AppShell>
       );
   }

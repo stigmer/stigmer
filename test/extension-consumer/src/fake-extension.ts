@@ -22,7 +22,7 @@
  * server's own extension suite; execution here would need real
  * infrastructure for no additional proof.
  */
-import { clone, create } from "@bufbuild/protobuf";
+import { clone, create, toBinary } from "@bufbuild/protobuf";
 import type { DescMessage, DescMethod } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -263,7 +263,8 @@ const consumerIdentityAccountStore: IdentityAccountStore = {
         `identity account '${account.metadata?.id ?? ""}' already exists`,
       ),
     ),
-  update: () => Promise.resolve(),
+  readForWrite: () => Promise.resolve(undefined),
+  swap: () => Promise.resolve(false),
   deleteById: () => Promise.resolve(),
   findById: () => Promise.resolve(undefined),
   findByIdpId: () => Promise.resolve(undefined),
@@ -361,12 +362,28 @@ const consumerPlatformClientStore: PlatformClientStore = {
     consumerPlatformClients.set(id, client);
     return Promise.resolve();
   },
-  update: (client) => {
-    const id = client.metadata?.id ?? "";
-    if (consumerPlatformClients.has(id)) {
-      consumerPlatformClients.set(id, client);
+  // The guarded write: the stored form is compared as bytes, as a
+  // driver's swap compares its data column.
+  readForWrite: (id) => {
+    const stored = consumerPlatformClients.get(id);
+    return Promise.resolve(
+      stored === undefined
+        ? undefined
+        : { row: clone(PlatformClientSchema, stored), bytes: toBinary(PlatformClientSchema, stored) },
+    );
+  },
+  swap: (id, expectedBytes, next) => {
+    const stored = consumerPlatformClients.get(id);
+    const current = stored === undefined ? undefined : toBinary(PlatformClientSchema, stored);
+    if (
+      current === undefined ||
+      current.length !== expectedBytes.length ||
+      current.some((byte, index) => byte !== expectedBytes[index])
+    ) {
+      return Promise.resolve(false);
     }
-    return Promise.resolve();
+    consumerPlatformClients.set(id, clone(PlatformClientSchema, next));
+    return Promise.resolve(true);
   },
   modifyById: (id, modify) => {
     const stored = consumerPlatformClients.get(id);
