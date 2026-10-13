@@ -1,7 +1,7 @@
 // `stigmer run [agent]` — run an agent and stream it. Thin handler: parse
 // flags, resolve the reference (0/1-arg dispatch mirroring Go's run.go +
 // run_picker.go), then delegate to the shared run stack. Heavy modules
-// (backend client, Ink, the differ) load lazily inside the action so `--help`
+// (backend client, Ink, the session stream) load lazily inside the action so `--help`
 // stays fast.
 //
 // No reference at all is the built-in assistant: `stigmer run -m "..."` runs

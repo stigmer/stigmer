@@ -28,7 +28,7 @@ export interface InkStigmerProviderProps {
  * CSS scoping (which is not applicable in a terminal).
  *
  * All hooks from `@stigmer/react` (`useStigmer`, `useSessionConversation`,
- * `useRunStream`, etc.) work identically under this provider.
+ * `useSessionEvents`, etc.) work identically under this provider.
  *
  * @example
  * ```tsx

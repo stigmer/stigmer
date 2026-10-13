@@ -21,9 +21,12 @@
  *   - `save` is create-only in effect: a save under a held id raises
  *     DuplicateAccountError, never a silent overwrite; a direct account
  *     with an empty `idp_id` is refused, since no lookup could reach it;
- *   - `update` replaces, never creates: an unknown id writes nothing;
+ *   - `swap` stores a row only while its bytes are the ones
+ *     `readForWrite` answered, and never creates (store/guarded-port.ts):
+ *     the update chain's guarded write, so a write that lands between the
+ *     chain's read and its write is never undone;
  *   - an account carries an identity_provider_ref if and only if its mode
- *     is `federated`, and `save` and `update` refuse either mixed shape.
+ *     is `federated`, and `save` and `swap` refuse either mixed shape.
  *     It is what "federated" means to every lookup below: while it holds,
  *     a driver may classify a row by either field and agree with every
  *     other driver. A ref under another mode split a person's sign-in
@@ -60,6 +63,8 @@
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
+import type { GuardedWritePort } from "../../store/guarded-port.js";
+
 /**
  * Raised by `save` when the id is already held, so callers run their own
  * race arms (provisioning resolves the winner by subject; the create RPC
@@ -73,11 +78,9 @@ export class DuplicateAccountError extends Error {
   }
 }
 
-export interface IdentityAccountStore {
+export interface IdentityAccountStore extends GuardedWritePort<IdentityAccount> {
   /** Insert; a held id raises DuplicateAccountError; a direct account with no idp_id, or a mixed shape, is refused. */
   save(account: IdentityAccount): Promise<void>;
-  /** Full-row replace by id (profile updates, preference writes); an unknown id writes nothing; a mixed shape is refused. */
-  update(account: IdentityAccount): Promise<void>;
   /** Removes the row; no error when it does not exist. */
   deleteById(id: string): Promise<void>;
   findById(id: string): Promise<IdentityAccount | undefined>;

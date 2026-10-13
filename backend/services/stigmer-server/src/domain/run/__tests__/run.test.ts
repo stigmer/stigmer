@@ -23,6 +23,11 @@
  *     return, over the wire; update's reserved-label guard under an
  *     authorizer that enforces it (a run's schedule label is refused, an
  *     echo of a stored one passes);
+ *   - an update keeps a status write that lands between its read and its
+ *     write (stigmer#2115): the stored row and the answer carry both, the
+ *     lost swap retried from a fresh read; a row that moves before every
+ *     swap answers ABORTED with WRITE_CONFLICT after three attempts, and
+ *     every write that landed is kept;
  *   - the populated getRunSummary arm (phase counts, active count,
  *     avg duration, failure ranks) that the zero-record conformance arm
  *     cannot reach;
@@ -39,7 +44,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create, fromBinary } from "@bufbuild/protobuf";
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type {
+  DescMessage,
+  MessageInitShape,
+  MessageShape,
+} from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
@@ -75,6 +84,7 @@ import {
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -98,6 +108,11 @@ import {
 } from "../../organization/__tests__/support.js";
 import type { OrganizationIds } from "../../organization/__tests__/support.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import {
+  GUARDED_WRITE_ATTEMPTS,
+  WRITE_CONFLICT_REASON,
+} from "../../../pipeline/guarded-write.js";
+import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import { eventOf } from "../../session/events/codec.js";
 import { appendAsks } from "../../session/hitl/__tests__/asks.js";
 
@@ -601,6 +616,111 @@ describe("update / delete over the wire", () => {
     // persisted record reflects the update response.
     const got = await query.get({ value: id });
     expect(got.spec?.message).toBe("Say goodbye.");
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const init = seedInput({ phase: RunPhase.RUN_IN_PROGRESS });
+    const id = await seed(init);
+
+    // The runner's status write (stigmer#2115): the run finishes while a
+    // person's update is between its load and its persist.
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.run,
+      id,
+      () =>
+        server.store.updateResource(
+          ApiResourceKind.run,
+          id,
+          RunSchema,
+          (live) => {
+            if (live.status !== undefined) {
+              live.status.phase = RunPhase.RUN_COMPLETED;
+              live.status.completedAt = "2026-10-13T09:00:00Z";
+            }
+          },
+        ),
+      () =>
+        command.update({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: init.metadata,
+          spec: { target: init.spec?.target, message: "Say goodbye." },
+        }),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    for (const run of [
+      updated,
+      await server.store.getResource(ApiResourceKind.run, id, RunSchema),
+    ]) {
+      expect(run.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+      expect(run.status?.completedAt).toBe("2026-10-13T09:00:00Z");
+      expect(run.spec?.message).toBe("Say goodbye.");
+    }
+  });
+
+  it("an update of a row that moves before every swap answers WRITE_CONFLICT after three attempts, keeping every landed write", async () => {
+    const init = seedInput({ phase: RunPhase.RUN_IN_PROGRESS });
+    const id = await seed(init);
+
+    const store = server.store;
+    const swapResource = store.swapResource.bind(store);
+    let landings = 0;
+    const swap = vi.spyOn(store, "swapResource").mockImplementation((async <
+      Desc extends DescMessage,
+    >(
+      writtenKind: ApiResourceKind,
+      writtenId: string,
+      schema: Desc,
+      expectedBytes: Uint8Array,
+      resource: MessageShape<Desc>,
+    ) => {
+      if (writtenKind === ApiResourceKind.run && writtenId === id) {
+        landings += 1;
+        const landing = `landing-${landings}`;
+        await store.updateResource(ApiResourceKind.run, id, RunSchema, (live) => {
+          if (live.metadata !== undefined) {
+            live.metadata.labels[landing] = "landed";
+          }
+        });
+      }
+      return swapResource(writtenKind, writtenId, schema, expectedBytes, resource);
+    }) as typeof store.swapResource);
+    let refused: ConnectError;
+    try {
+      refused = await expectCode(
+        () =>
+          command.update({
+            apiVersion: API_VERSION,
+            kind: KIND,
+            metadata: init.metadata,
+            spec: { target: init.spec?.target, message: "Say goodbye." },
+          }),
+        Code.Aborted,
+      );
+    } finally {
+      swap.mockRestore();
+    }
+
+    expect(landings).toBe(GUARDED_WRITE_ATTEMPTS);
+    expect(refused.findDetails(ErrorInfoSchema)[0]?.reason).toBe(
+      WRITE_CONFLICT_REASON,
+    );
+    expect(refused.rawMessage).toBe(
+      `Run '${ORG_ID}/${init.metadata.slug}' kept changing while this update was being saved; try again`,
+    );
+    const stored = await server.store.getResource(
+      ApiResourceKind.run,
+      id,
+      RunSchema,
+    );
+    expect(stored.metadata?.labels).toEqual({
+      "landing-1": "landed",
+      "landing-2": "landed",
+      "landing-3": "landed",
+    });
+    expect(stored.spec?.message).toBe("Say hello.");
   });
 
   it("delete returns the deleted record (audit-trail convention) and removes it", async () => {

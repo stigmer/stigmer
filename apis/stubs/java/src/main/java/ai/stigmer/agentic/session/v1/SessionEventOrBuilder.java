@@ -815,5 +815,65 @@ public interface SessionEventOrBuilder extends
    */
   ai.stigmer.agentic.session.v1.StigmerPermissionGrantEventOrBuilder getStigmerPermissionGrantOrBuilder();
 
+  /**
+   * <pre>
+   * A turn (run) changed phase: it started, waits, paused, or ended and
+   * how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+   * @return Whether the stigmerRunStatus field is set.
+   */
+  boolean hasStigmerRunStatus();
+  /**
+   * <pre>
+   * A turn (run) changed phase: it started, waits, paused, or ended and
+   * how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+   * @return The stigmerRunStatus.
+   */
+  ai.stigmer.agentic.session.v1.StigmerRunStatusEvent getStigmerRunStatus();
+  /**
+   * <pre>
+   * A turn (run) changed phase: it started, waits, paused, or ended and
+   * how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerRunStatusEvent stigmer_run_status = 109 [json_name = "stigmerRunStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerRunStatusEventOrBuilder getStigmerRunStatusOrBuilder();
+
+  /**
+   * <pre>
+   * Where the whole output of a tool result that was too large to keep
+   * inline is stored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+   * @return Whether the stigmerToolResultFullOutput field is set.
+   */
+  boolean hasStigmerToolResultFullOutput();
+  /**
+   * <pre>
+   * Where the whole output of a tool result that was too large to keep
+   * inline is stored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+   * @return The stigmerToolResultFullOutput.
+   */
+  ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent getStigmerToolResultFullOutput();
+  /**
+   * <pre>
+   * Where the whole output of a tool result that was too large to keep
+   * inline is stored.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [json_name = "stigmerToolResultFullOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEventOrBuilder getStigmerToolResultFullOutputOrBuilder();
+
   ai.stigmer.agentic.session.v1.SessionEvent.EventCase getEventCase();
 }

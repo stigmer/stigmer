@@ -167,7 +167,7 @@ export function renderStep(data: EmbedAgentTourStep): ReactNode {
     case "host-reply":
       return hostPage(
         "reply",
-        <SessionView execution={data.execution} agentRef={SUPPORT_AGENT_REF} />,
+        <SessionView conversation={data.conversation} agentRef={SUPPORT_AGENT_REF} />,
       );
 
     case "host-code":

@@ -22,7 +22,7 @@ Authenticate with an API key from an environment variable. Always call
 ```go
 import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
 
-client, err := stigmer.NewClient(os.Getenv("STIGMER_API_KEY"))
+client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 if err != nil {
     log.Fatal(err)
 }

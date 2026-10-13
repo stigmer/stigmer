@@ -16,7 +16,12 @@
  *   - an app's addresses are normalized and each belongs to one app per
  *     organization: create and update claim theirs, an update lets go of
  *     the ones it drops, delete lets go of all, and an abandoned claim is
- *     freed once a minute old; a sign-in finds the app by its address.
+ *     freed once a minute old; a sign-in finds the app by its address;
+ *   - an update keeps a write that lands between its read and its write:
+ *     the lost swap is retried from a fresh read, so the row and the
+ *     redacted response carry both the landing write and the update;
+ *   - an address update whose write loses once ends with the app holding
+ *     exactly its new addresses, the one it dropped free for another app.
  *
  * Keys are injected via env (vi.stubEnv) so the ladder short-circuits
  * before its file steps — the real ~/.stigmer is never touched. Who may
@@ -34,6 +39,7 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
@@ -43,6 +49,7 @@ import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { ENCRYPTED_PREFIX } from "../../../encryption/encryption.js";
+import { visibilityWrite, writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import type { Store } from "../../../store/interface.js";
 import {
   CIPHERTEXT_SHAPED_SECRET_MESSAGE,
@@ -286,6 +293,32 @@ describe("oauthapp domain (encryption enabled)", () => {
     expect(err.code).toBe(Code.NotFound);
   });
 
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const created = await ts.command.create(appInput());
+    const id = created.metadata!.id;
+    expect(created.metadata?.visibility).not.toBe(ApiResourceVisibility.visibility_org);
+    const secretBefore = (await storedApp(ts.server.store, id)).spec!.clientSecret;
+
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      ts.server.store,
+      ApiResourceKind.oauth_app,
+      id,
+      visibilityWrite(ts.server.store, ApiResourceKind.oauth_app, OAuthAppSchema, id, ApiResourceVisibility.visibility_org),
+      () => ts.command.update({ ...created, spec: { ...created.spec!, clientId: "rotated-client-id" } }),
+    );
+    expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
+
+    expect(updated.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    expect(updated.spec?.clientId).toBe("rotated-client-id");
+    expect(updated.spec?.clientSecret).toBe(REDACTED_MARKER);
+
+    const stored = await storedApp(ts.server.store, id);
+    expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    expect(stored.spec?.clientId).toBe("rotated-client-id");
+    expect(stored.spec?.clientSecret, "the marker keeps the stored ciphertext").toBe(secretBefore);
+    await ts.command.delete({ resourceId: id });
+  });
+
   describe("addresses: one login app per address in an organization", () => {
     const orgId = () => organizationId(ts.orgIds, ORG);
 
@@ -336,6 +369,40 @@ describe("oauthapp domain (encryption enabled)", () => {
       const takesKept = await ts.command.create(appInput({ addresses: [kept] }));
       await ts.command.delete({ resourceId: takesDropped.metadata!.id });
       await ts.command.delete({ resourceId: takesKept.metadata!.id });
+    });
+
+    it("an OAuth app update whose write loses once ends holding exactly its addresses", async () => {
+      const kept = `https://kept-${++counter}.example/mcp`;
+      const dropped = `https://dropped-${counter}.example/mcp`;
+      const added = `https://added-${counter}.example/mcp`;
+      const app = await ts.command.create(appInput({ addresses: [kept, dropped] }));
+      const id = app.metadata!.id;
+
+      const { result: updated, writes } = await writeLandsMidUpdate(
+        ts.server.store,
+        ApiResourceKind.oauth_app,
+        id,
+        visibilityWrite(ts.server.store, ApiResourceKind.oauth_app, OAuthAppSchema, id, ApiResourceVisibility.visibility_org),
+        () => ts.command.update({ ...app, spec: { ...app.spec!, addresses: [kept, added] } }),
+      );
+      expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
+      expect(updated.spec?.addresses).toEqual([kept, added]);
+      const stored = await storedApp(ts.server.store, id);
+      expect(stored.spec?.addresses).toEqual([kept, added]);
+      expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+
+      const now = new Date().toISOString();
+      const holders = await Promise.all(
+        [kept, added, dropped].map(
+          async (address) => (await ts.server.store.resourceNames.resolve(oauthAppAddressKey(orgId(), address), now))?.id,
+        ),
+      );
+      expect(holders, "the app holds its two addresses and not the one it dropped").toEqual([id, id, undefined]);
+
+      const takesDropped = await ts.command.create(appInput({ addresses: [dropped] }));
+      expect((await findOrganizationApp(ts.server.store, orgId(), dropped))?.metadata?.id).toBe(takesDropped.metadata?.id);
+      await ts.command.delete({ resourceId: id });
+      await ts.command.delete({ resourceId: takesDropped.metadata!.id });
     });
 
     it("frees a claim whose holder never stored the address once it is a minute old, and not before", async () => {

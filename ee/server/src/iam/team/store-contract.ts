@@ -11,9 +11,9 @@
  *     the same slug in another organization is admitted;
  *   - an insert whose id is already held is never answered `slug-taken`:
  *     only the organization's slug is a claim another team can hold;
- *   - replace changes a held team's payload, and the team keeps its
- *     organization and slug, a slug the replace carries included (rename's
- *     door is modifyById); a replace of an unknown id writes nothing;
+ *   - the guarded write (`@stigmer/server`'s guarded-port kit): a swap on
+ *     the bytes readForWrite answered lands, and loses after any write in
+ *     between, on a row deleted since, or on bytes a landed swap replaced;
  *   - modifyById changes the payload and the slug together and answers the
  *     written team, so the old slug is free in the table and the new one
  *     taken; an unknown id answers undefined and writes nothing;
@@ -35,11 +35,12 @@
  */
 import assert from "node:assert/strict";
 
-import { clone, create } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import {
+  guardedPortDeclarations,
   portContractCases,
   type PortContractCase,
   type PortContractDeclaration,
@@ -99,37 +100,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
         outcome = "refused by the driver";
       }
       assert.notDeepEqual(outcome, { kind: "slug-taken" }, "a held id is not a held slug");
-    },
-  ],
-  [
-    "replace changes a held team's payload, and the team keeps its organization and slug",
-    async ({ store }) => {
-      const before = team({ id: "tm_c6", org: "acme", slug: "rp", name: "Before" });
-      await store.insert(before);
-      const renamed = clone(TeamSchema, before);
-      if (renamed.metadata !== undefined) {
-        renamed.metadata.name = "After";
-      }
-      await store.replace(renamed);
-      assert.equal((await store.findById("tm_c6"))?.metadata?.name, "After");
-      assert.deepEqual(
-        idsOf((await store.listByOrg("acme")).filter((held) => held.metadata?.slug === "rp")),
-        ["tm_c6"],
-      );
-    },
-  ],
-  [
-    "replace keeps the stored slug, and writes it onto the team it was handed",
-    async ({ store }) => {
-      await store.insert(team({ id: "tm_c6s", org: "acme", slug: "kept", name: "Before" }));
-      const stale = team({ id: "tm_c6s", org: "acme", slug: "stale", name: "After" });
-      await store.replace(stale);
-      const held = await store.findById("tm_c6s");
-      assert.equal(held?.metadata?.name, "After");
-      assert.equal(held?.metadata?.slug, "kept");
-      assert.equal(stale.metadata?.slug, "kept", "the handed team answers the stored slug");
-      await store.replace(team({ id: "tm_c6u", org: "acme", slug: "unknown" }));
-      assert.equal(await store.findById("tm_c6u"), undefined, "a replace of an unknown id writes nothing");
     },
   ],
   [
@@ -216,6 +186,29 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
       await assert.rejects(store.findAll());
     },
   ],
+  ...guardedPortDeclarations<TeamStore, Team>({
+    async seed(store) {
+      const seeded = team({ id: "tm_cg", org: "acme", slug: "guarded", name: "Before" });
+      await store.insert(seeded);
+      return seeded;
+    },
+    idOf: (held) => held.metadata?.id ?? "",
+    change(held, value) {
+      if (held.metadata !== undefined) {
+        held.metadata.name = value;
+      }
+    },
+    changedValueOf: (held) => held.metadata?.name ?? "",
+    async interleave(store, id, value) {
+      await store.modifyById(id, (held) => {
+        if (held.metadata !== undefined) {
+          held.metadata.name = value;
+        }
+      });
+    },
+    read: (store, id) => store.findById(id),
+    remove: (store, id) => store.deleteById(id),
+  }),
 ];
 
 /** The port's cases over `makeFixture`, one fresh fixture per case. */

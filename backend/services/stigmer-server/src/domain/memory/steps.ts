@@ -45,6 +45,7 @@ import {
   notFoundError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { swapOntoLoadedRow } from "../../pipeline/steps/persist.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
@@ -421,8 +422,9 @@ export function newInitializeMemoryLifecycleStep(): PipelineStep<
  * carry the loaded values — the generated toMemoryUpdateInput mapper does
  * this by construction. metadata.slug/org immutability needs no step
  * here: the generic BuildUpdateState preserves both. The lifecycle state
- * is protected by MECHANISM, not validation: PersistMemoryUpdate grafts
- * only metadata+spec+status.audit onto the live row.
+ * is protected by MECHANISM, not validation: PersistMemoryUpdate writes
+ * metadata+spec+status.audit over the lifecycle of the row the chain read,
+ * by compare-and-swap on that row.
  *
  * Runs after LoadExisting so the existing state is available.
  */
@@ -466,17 +468,15 @@ export function newValidateMemoryUpdateStep(): PipelineStep<
 
 /**
  * PersistMemoryUpdate — Go persistMemoryUpdateStep (update.go): persists
- * an update as a graft of exactly what the request path owns —
- * apiVersion/kind/metadata/spec plus the audit bump BuildUpdateState
- * stamped — onto the LIVE row, inside one store.updateResource closure.
- * NOT the generic Persist: memory status has other writers
- * (confirm/reject), and a full-row save of the load-time snapshot could
- * silently revert a consent decision made between this pipeline's load
- * and its persist. The schedule domain's persistScheduleUpdateStep is the
- * direct template.
+ * what the request path owns (apiVersion/kind/metadata/spec plus the
+ * audit bump BuildUpdateState stamped) over the status of the row the
+ * chain read, by compare-and-swap on that row. Memory status has other
+ * writers (confirm/reject): one that lands between this chain's read and
+ * its write makes the swap lose, and the chain runs again from a fresh
+ * read (pipeline/guarded-write.ts), so a consent decision is never undone.
  *
- * The graft never resurrects a concurrently deleted row: updateResource
- * answers not-found, relayed as NOT_FOUND — the delete won, honestly.
+ * A row deleted since the read loses the swap too, and the next attempt's
+ * read answers NOT_FOUND: the delete won, honestly.
  */
 export function newPersistMemoryUpdateStep(
   store: Store,
@@ -484,41 +484,7 @@ export function newPersistMemoryUpdateStep(
   return {
     name: "PersistMemoryUpdate",
     async execute(ctx: RequestContext<typeof MemorySchema>): Promise<void> {
-      const newState = ctx.newState;
-      const memoryId = newState.metadata?.id ?? "";
-
-      let live: Memory;
-      try {
-        live = await store.updateResource(
-          ApiResourceKind.memory,
-          memoryId,
-          MemorySchema,
-          (row) => {
-            row.apiVersion = newState.apiVersion;
-            row.kind = newState.kind;
-            row.metadata = newState.metadata;
-            row.spec = newState.spec;
-            // The one status subtree the request path owns: its own audit
-            // bump. The lifecycle leaves stay exactly as their owners
-            // (create/confirm/reject) last wrote them.
-            if (newState.status?.audit !== undefined) {
-              if (row.status === undefined) {
-                row.status = create(MemoryStatusSchema, {});
-              }
-              row.status.audit = newState.status.audit;
-            }
-          },
-        );
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          throw notFoundError("Memory", memoryId);
-        }
-        throw internalError(error, "failed to persist memory update");
-      }
-
-      // Answer with the persisted post-image: the new spec plus the LIVE
-      // status — honest about any consent decision that landed mid-request.
-      ctx.setNewState(live);
+      await swapOntoLoadedRow(store, ctx, "failed to persist memory update");
     },
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { ToolFullOutput } from "@stigmer/sdk";
 import { useArtifactContent } from "./useArtifactContent.js";
 import { runIdFromStorageKey } from "./useFileChangeContent.js";
 
@@ -24,14 +24,15 @@ export interface UseToolOutputContentReturn {
 }
 
 /**
- * Minimal shape this hook needs from an offloaded-output reference. Both a full
- * {@link ToolCallOutputRef} and the SDK's normalized `outputRef` view satisfy it.
+ * Minimal shape this hook needs from an offloaded-output reference. Both a
+ * tool use's `ToolFullOutput` and the SDK's normalized `outputRef` view
+ * satisfy it.
  */
-export type ToolOutputRefLike = Pick<ToolCallOutputRef, "storageKey" | "contentHash">;
+export type ToolOutputRefLike = Pick<ToolFullOutput, "storageKey" | "contentHash">;
 
 /**
  * Behavior hook that resolves the full text of a tool output that the runner
- * offloaded to artifact storage (a {@link ToolCallOutputRef}).
+ * offloaded to artifact storage (a tool use's `ToolFullOutput`).
  *
  * Mirrors {@link useFileChangeContent}: it ignores any URL baked into the ref
  * and fetches the bytes on demand through the CORS-safe `getArtifactContent`

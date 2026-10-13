@@ -106,6 +106,9 @@ import {
   newAuthorizeResolvedTargetStep,
   newBuildNewStateStep,
   newBuildUpdateStateStep,
+  runGuardedWrite,
+  writeConflictError,
+  EXISTING_RESOURCE_BYTES_KEY,
   newClaimNameStep,
   newResolveSlugStep,
   portRenameRows,
@@ -132,7 +135,6 @@ import {
   newLoadProviderByReferenceStep,
   newLoadProviderForApplyStep,
   newLoadProviderStep,
-  notFoundById,
   providerAt,
   providerForApply,
   withResolvedProviderId,
@@ -226,23 +228,28 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
           ],
         },
       ),
+    // The guarded write (`@stigmer/server`'s pipeline/guarded-write.ts): a
+    // rename or any other write between the load and the swap makes the
+    // chain run again from a fresh read.
     update: (input, ctx) =>
-      runUnaryChain(
-        { chain: "identity-provider-update", step: "UpdateIdentityProvider" },
-        method.update,
-        input,
-        ctx,
-        deps,
-        (reqCtx) => updateProvider(reqCtx, deps),
-        {
-          kind: KIND,
-          steps: [
-            refuseServiceAccount(),
-            newLoadExistingProviderStep(deps.store),
-            newBuildUpdateStateStep(),
-            ...growthGateOf(deps),
-          ],
-        },
+      runGuardedWrite(() =>
+        runUnaryChain(
+          { chain: "identity-provider-update", step: "UpdateIdentityProvider" },
+          method.update,
+          input,
+          ctx,
+          deps,
+          (reqCtx) => updateProvider(reqCtx, deps),
+          {
+            kind: KIND,
+            steps: [
+              refuseServiceAccount(),
+              newLoadExistingProviderStep(deps.store),
+              newBuildUpdateStateStep(),
+              ...growthGateOf(deps),
+            ],
+          },
+        ),
       ),
     apply: async (input, ctx) => {
       const existing = await runUnaryChain(
@@ -470,7 +477,12 @@ async function updateProvider(
   const provider = reqCtx.newState;
   normalizeIssuers(provider);
   await validateProvider(deps, provider, /* isUpdate */ true);
-  const outcome = await deps.store.replace(provider);
+  const outcome = await deps.store.swap(
+    provider.metadata?.id ?? "",
+    // LoadExisting runs first in this chain and keeps the bytes.
+    reqCtx.get(EXISTING_RESOURCE_BYTES_KEY) as Uint8Array,
+    provider,
+  );
   switch (outcome.kind) {
     case "replaced":
       break;
@@ -478,8 +490,8 @@ async function updateProvider(
       throw ssoTakenError(provider.metadata?.org ?? "");
     case "route-taken":
       throw routeTakenError(outcome.route);
-    case "missing":
-      throw notFoundById(provider.metadata?.id ?? "");
+    case "changed":
+      throw writeConflictError(KIND, provider.metadata?.org ?? "", provider.metadata?.slug ?? "");
     default: {
       const exhaustive: never = outcome;
       throw new Error(`unknown replace outcome: ${JSON.stringify(exhaustive)}`);

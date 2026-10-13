@@ -1,17 +1,15 @@
+// Pins ResultView's rendering of every normalized tool result view (diff,
+// file, terminal, search, list, MCP content blocks, offloaded output, memory
+// proposals, errors) and the one-line summaries the row headers show.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  ToolCallStatus,
-  ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { normalizeToolResult } from "@stigmer/sdk";
 import type { ToolResultView } from "@stigmer/sdk";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { ResultView, summarizeResultView } from "../ResultView";
+import { toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
 
@@ -248,20 +246,18 @@ describe("ResultView", () => {
   });
 
   // Integration lock through the full normalizeToolResult -> ResultView pipeline:
-  // a whole-file write's proposed content is reconstructed from the tool args
-  // (the ToolCall.file_changes capture was removed) and renders as
+  // a whole-file write's proposed content is reconstructed from the tool's
+  // input and renders as
   // the file body — never the "No preview available" notice.
   it("renders a whole-file write's proposed content from args, not 'No preview available'", () => {
     const CONTENT = "# Notes\n\n- first bullet\n- second bullet\n";
-    const toolCall = create(ToolCallSchema, {
+    const write = toolUse({
       id: "tool_create",
       name: "write_file",
-      toolKind: ToolKind.FILE_WRITE,
-      status: ToolCallStatus.TOOL_CALL_COMPLETED,
-      args: { path: "notes.md", contents: CONTENT } as JsonObject,
+      input: { path: "notes.md", contents: CONTENT },
     });
 
-    const { container } = render(<ResultView view={normalizeToolResult(toolCall)} />);
+    const { container } = render(<ResultView view={normalizeToolResult(write)} />);
     expect(container.textContent).toContain("first bullet");
     expect(container.textContent).not.toContain("No preview available");
   });

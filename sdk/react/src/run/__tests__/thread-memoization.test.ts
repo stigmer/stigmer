@@ -1,320 +1,131 @@
+/**
+ * Reference stability across a growing conversation, the property every
+ * memoized row relies on: `toolCallGroupPropsEqual` compares a group's tool
+ * uses element by element (the array is rebuilt per build), and the session
+ * fold, folded incrementally as a live turn streams, keeps every message,
+ * tool use, group member and sub-agent thread no event touched as the same
+ * object, so buildThreadItems hands the rows the same references and only the
+ * changing row re-renders.
+ */
 import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import {
-  RunPhase,
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionLog, type ToolUse } from "@stigmer/sdk";
 import { toolCallGroupPropsEqual, type ToolCallGroupProps } from "../ToolCallGroup";
-import { buildThreadItems } from "../MessageThread";
-import { structuralShare } from "../../internal/store";
+import { buildThreadItems, type ThreadItem } from "../MessageThread";
+import { samples } from "../../test/samples";
+import {
+  previewDelta,
+  previewStart,
+  result,
+  said,
+  status,
+  subAgent,
+  toolId,
+  use,
+  user,
+} from "./__fixtures__/thread-events";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function makeMessage(
-  type: MessageType,
-  content: string,
-  opts?: { toolCalls?: ToolCall[]; isStreaming?: boolean },
-) {
-  const msg = create(AgentMessageSchema);
-  msg.type = type;
-  msg.content = content;
-  if (opts?.toolCalls) msg.toolCalls = opts.toolCalls;
-  if (opts?.isStreaming) msg.isStreaming = true;
-  return msg;
-}
-
-function makeToolCall(name: string, id: string) {
-  const tc = create(ToolCallSchema);
-  tc.id = id;
-  tc.name = name;
-  tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-  return tc;
-}
-
-function makeSubAgent(id: string) {
-  const sa = create(SubAgentRunSchema);
-  sa.id = id;
-  sa.name = "test-agent";
-  return sa;
-}
-
-function makeExecution(opts: {
-  id: string;
-  specMessage?: string;
-  phase?: RunPhase;
-  messages?: ReturnType<typeof makeMessage>[];
-  subAgents?: ReturnType<typeof makeSubAgent>[];
-}): Run {
-  const exec = create(RunSchema);
-  const meta = create(ApiResourceMetadataSchema);
-  meta.id = opts.id;
-  exec.metadata = meta;
-  if (opts.specMessage) {
-    const spec = create(RunSpecSchema);
-    spec.message = opts.specMessage;
-    exec.spec = spec;
-  }
-  const status = create(RunStatusSchema);
-  status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
-  if (opts.messages) status.messages = opts.messages;
-  if (opts.subAgents) status.subAgentRuns = opts.subAgents;
-  exec.status = status;
-  return exec;
-}
-
-// ---------------------------------------------------------------------------
-// toolCallGroupPropsEqual
-// ---------------------------------------------------------------------------
+const R = "run_a";
 
 describe("toolCallGroupPropsEqual", () => {
-  it("returns true when both arrays share the same ToolCall references", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const tc2 = makeToolCall("read_file", "tc-2");
-    const prev: ToolCallGroupProps = { toolCalls: [tc1, tc2] };
-    const next: ToolCallGroupProps = { toolCalls: [tc1, tc2] };
-    expect(toolCallGroupPropsEqual(prev, next)).toBe(true);
+  const a = samples.toolUse("shell", "ok", { id: "a" });
+  const b = samples.toolUse("read_file", "ok", { id: "b" });
+
+  it("is true when both arrays hold the same tool uses", () => {
+    expect(toolCallGroupPropsEqual({ toolUses: [a, b] }, { toolUses: [a, b] })).toBe(true);
+    expect(toolCallGroupPropsEqual({ toolUses: [] }, { toolUses: [] })).toBe(true);
   });
 
-  it("returns false when array lengths differ", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const prev: ToolCallGroupProps = { toolCalls: [tc1] };
-    const next: ToolCallGroupProps = { toolCalls: [tc1, makeToolCall("read_file", "tc-2")] };
-    expect(toolCallGroupPropsEqual(prev, next)).toBe(false);
+  it("is false when the lengths differ or a tool use is another object", () => {
+    expect(toolCallGroupPropsEqual({ toolUses: [a] }, { toolUses: [a, b] })).toBe(false);
+    const copy: ToolUse = { ...a };
+    expect(toolCallGroupPropsEqual({ toolUses: [a] }, { toolUses: [copy] })).toBe(false);
   });
 
-  it("returns false when a ToolCall reference changes", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const tc1Copy = makeToolCall("shell", "tc-1");
-    const prev: ToolCallGroupProps = { toolCalls: [tc1] };
-    const next: ToolCallGroupProps = { toolCalls: [tc1Copy] };
-    expect(toolCallGroupPropsEqual(prev, next)).toBe(false);
-  });
-
-  it("returns false when className changes", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const prev: ToolCallGroupProps = { toolCalls: [tc1], className: "stg:mx-4" };
-    const next: ToolCallGroupProps = { toolCalls: [tc1], className: "stg:mx-6" };
-    expect(toolCallGroupPropsEqual(prev, next)).toBe(false);
-  });
-
-  it("returns false when subAgentRuns reference changes", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const subs1 = [makeSubAgent("sa-1")];
-    const subs2 = [makeSubAgent("sa-1")];
-    const prev: ToolCallGroupProps = { toolCalls: [tc1], subAgentRuns: subs1 };
-    const next: ToolCallGroupProps = { toolCalls: [tc1], subAgentRuns: subs2 };
-    expect(toolCallGroupPropsEqual(prev, next)).toBe(false);
-  });
-
-  it("returns true when subAgentRuns is the same reference", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const subs = [makeSubAgent("sa-1")];
-    const prev: ToolCallGroupProps = { toolCalls: [tc1], subAgentRuns: subs };
-    const next: ToolCallGroupProps = { toolCalls: [tc1], subAgentRuns: subs };
-    expect(toolCallGroupPropsEqual(prev, next)).toBe(true);
-  });
-
-  it("returns false when formatSummary reference changes", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const fn1 = () => "summary";
-    const fn2 = () => "summary";
-    const prev: ToolCallGroupProps = { toolCalls: [tc1], formatSummary: fn1 };
-    const next: ToolCallGroupProps = { toolCalls: [tc1], formatSummary: fn2 };
-    expect(toolCallGroupPropsEqual(prev, next)).toBe(false);
-  });
-
-  it("handles empty arrays", () => {
-    const prev: ToolCallGroupProps = { toolCalls: [] };
-    const next: ToolCallGroupProps = { toolCalls: [] };
-    expect(toolCallGroupPropsEqual(prev, next)).toBe(true);
+  it("is false when the class name or the summary formatter changes", () => {
+    const base: ToolCallGroupProps = { toolUses: [a], className: "stg:mx-4", formatSummary: () => "s" };
+    expect(toolCallGroupPropsEqual(base, { ...base, className: "stg:mx-6" })).toBe(false);
+    expect(toolCallGroupPropsEqual(base, { ...base, formatSummary: () => "s" })).toBe(false);
   });
 });
 
-// ---------------------------------------------------------------------------
-// buildThreadItems — toolCalls array reuse
-// ---------------------------------------------------------------------------
+describe("the fold keeps unchanged items as the same objects across builds", () => {
+  function itemsOf(log: SessionLog): ThreadItem[] {
+    return buildThreadItems(log.snapshot().turns, []);
+  }
 
-describe("buildThreadItems toolCalls array reuse", () => {
-  it("reuses msg.toolCalls reference when no task tools are present", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const tc2 = makeToolCall("read_file", "tc-2");
-    const aiMsg = makeMessage(MessageType.MESSAGE_AI, "using tools", {
-      toolCalls: [tc1, tc2],
-    });
+  function byKey(items: readonly ThreadItem[], key: string): ThreadItem | undefined {
+    return items.find((i) => i.key === key);
+  }
 
-    const exec = makeExecution({ id: "exec-1", messages: [aiMsg] });
-    const items = buildThreadItems([exec], null, null, false, undefined);
+  it("keeps a settled message and tool group while a later message streams", () => {
+    const log = new SessionLog();
+    log.apply(samples.sessionEventList([
+      user(R, "Hello"),
+      status(R, "running"),
+      said(R, 0, "Full response"),
+      use(R, "c1", "shell", { command: "ls" }),
+      result(R, "c1", "a.txt"),
+    ]).events);
+    log.applyFrame(previewStart(`${R}.root.m1`));
+    log.applyFrame(previewDelta(`${R}.root.m1`, "streaming par"));
+    const before = itemsOf(log);
 
-    const toolGroup = items.find((i) => i.kind === "tool-group");
-    expect(toolGroup).toBeDefined();
-    if (toolGroup?.kind === "tool-group") {
-      expect(toolGroup.toolCalls).toBe(aiMsg.toolCalls);
-    }
+    log.applyFrame(previewDelta(`${R}.root.m1`, "tial text"));
+    const after = itemsOf(log);
+
+    const settled = `${R}.root.m0`;
+    const group = `${toolId(R, "c1")}-tc`;
+    const live = `${R}.root.m1`;
+    const settledBefore = byKey(before, settled);
+    const settledAfter = byKey(after, settled);
+    expect(settledBefore?.kind === "message" && settledAfter?.kind === "message" && settledAfter.message === settledBefore.message).toBe(true);
+
+    const groupBefore = byKey(before, group);
+    const groupAfter = byKey(after, group);
+    expect(
+      groupBefore?.kind === "tool-group" &&
+        groupAfter?.kind === "tool-group" &&
+        toolCallGroupPropsEqual({ toolUses: groupBefore.toolUses }, { toolUses: groupAfter.toolUses }),
+    ).toBe(true);
+
+    const liveBefore = byKey(before, live);
+    const liveAfter = byKey(after, live);
+    expect(liveBefore?.kind === "message" && liveBefore.message).toMatchObject({ kind: "message", text: "streaming par", live: true });
+    expect(liveAfter?.kind === "message" && liveAfter.message).toMatchObject({ text: "streaming partial text", live: true });
+    expect(liveAfter?.kind === "message" && liveBefore?.kind === "message" && liveAfter.message !== liveBefore.message).toBe(true);
   });
 
-  it("creates a new array when task tools are present", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const tc2 = makeToolCall("task", "sa-1");
-    const sa = makeSubAgent("sa-1");
-    const aiMsg = makeMessage(MessageType.MESSAGE_AI, "delegating", {
-      toolCalls: [tc1, tc2],
-    });
+  it("replaces the live message in place, under the same key, when its stored event arrives", () => {
+    const log = new SessionLog();
+    log.apply(samples.sessionEventList([user(R, "Hello"), status(R, "running")]).events);
+    log.applyFrame(previewStart(`${R}.root.m0`));
+    log.applyFrame(previewDelta(`${R}.root.m0`, "Hi"));
+    const live = itemsOf(log);
 
-    const exec = makeExecution({
-      id: "exec-1",
-      messages: [aiMsg],
-      subAgents: [sa],
-    });
-    const items = buildThreadItems([exec], null, null, false, undefined);
+    log.applyFrame(samples.eventFrame(said(R, 0, "Hi there")));
+    const stored = itemsOf(log);
 
-    const toolGroup = items.find((i) => i.kind === "tool-group");
-    expect(toolGroup).toBeDefined();
-    if (toolGroup?.kind === "tool-group") {
-      expect(toolGroup.toolCalls).not.toBe(aiMsg.toolCalls);
-      expect(toolGroup.toolCalls).toHaveLength(1);
-      expect(toolGroup.toolCalls[0]).toBe(tc1);
-    }
-
-    const subAgentItem = items.find((i) => i.kind === "sub-agent");
-    expect(subAgentItem).toBeDefined();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Structural sharing + memoization integration
-// ---------------------------------------------------------------------------
-
-describe("structural sharing preserves references for memo boundaries", () => {
-  it("completed messages keep the same reference across stream updates", () => {
-    const humanMsg = makeMessage(MessageType.MESSAGE_HUMAN, "Hello");
-    const completedAi = makeMessage(MessageType.MESSAGE_AI, "Full response");
-
-    const prev = makeExecution({
-      id: "exec-1",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        humanMsg,
-        completedAi,
-        makeMessage(MessageType.MESSAGE_AI, "streaming par", { isStreaming: true }),
-      ],
-    });
-
-    const next = makeExecution({
-      id: "exec-1",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        makeMessage(MessageType.MESSAGE_HUMAN, "Hello"),
-        makeMessage(MessageType.MESSAGE_AI, "Full response"),
-        makeMessage(MessageType.MESSAGE_AI, "streaming partial text grow", {
-          isStreaming: true,
-        }),
-      ],
-    });
-
-    const shared = structuralShare(prev, next);
-
-    expect(shared.status!.messages[0]).toBe(humanMsg);
-    expect(shared.status!.messages[1]).toBe(completedAi);
-    expect(shared.status!.messages[2]).not.toBe(prev.status!.messages[2]);
+    expect(live.map((i) => i.key)).toEqual(stored.map((i) => i.key).filter((k) => live.some((i) => i.key === k)));
+    const message = byKey(stored, `${R}.root.m0`);
+    expect(message?.kind === "message" && message.message).toMatchObject({ text: "Hi there", live: false });
   });
 
-  it("toolCalls within completed messages keep their references", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const tc2 = makeToolCall("read_file", "tc-2");
-    const aiMsg = makeMessage(MessageType.MESSAGE_AI, "tools done", {
-      toolCalls: [tc1, tc2],
-    });
+  it("keeps a finished sub-agent's thread while the parent turn goes on", () => {
+    const threadId = toolId(R, "task1");
+    const log = new SessionLog();
+    log.apply(samples.sessionEventList([
+      user(R, "go"),
+      status(R, "running"),
+      use(R, "task1", "task"),
+      subAgent(R, "task1", { items: [said(R, 0, "nested", threadId)], finished: "completed", reply: "done" }),
+      result(R, "task1", "done"),
+    ].flat()).events);
+    const before = byKey(itemsOf(log), `sa-${threadId}`);
 
-    const prev = makeExecution({
-      id: "exec-1",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        aiMsg,
-        makeMessage(MessageType.MESSAGE_AI, "now streaming", { isStreaming: true }),
-      ],
-    });
+    log.applyFrame(samples.eventFrame(said(R, 0, "Next step")));
+    const after = byKey(itemsOf(log), `sa-${threadId}`);
 
-    const next = makeExecution({
-      id: "exec-1",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "tools done", {
-          toolCalls: [
-            makeToolCall("shell", "tc-1"),
-            makeToolCall("read_file", "tc-2"),
-          ],
-        }),
-        makeMessage(MessageType.MESSAGE_AI, "now streaming more", {
-          isStreaming: true,
-        }),
-      ],
-    });
-
-    const shared = structuralShare(prev, next);
-
-    expect(shared.status!.messages[0]).toBe(aiMsg);
-    expect(shared.status!.messages[0].toolCalls[0]).toBe(tc1);
-    expect(shared.status!.messages[0].toolCalls[1]).toBe(tc2);
-  });
-
-  it("buildThreadItems with shared execution preserves tool group stability", () => {
-    const tc1 = makeToolCall("shell", "tc-1");
-    const completedMsg = makeMessage(MessageType.MESSAGE_AI, "used tools", {
-      toolCalls: [tc1],
-    });
-
-    const prev = makeExecution({
-      id: "exec-1",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        completedMsg,
-        makeMessage(MessageType.MESSAGE_AI, "stream", { isStreaming: true }),
-      ],
-    });
-
-    const next = makeExecution({
-      id: "exec-1",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        makeMessage(MessageType.MESSAGE_AI, "used tools", {
-          toolCalls: [makeToolCall("shell", "tc-1")],
-        }),
-        makeMessage(MessageType.MESSAGE_AI, "stream grows", {
-          isStreaming: true,
-        }),
-      ],
-    });
-
-    const shared = structuralShare(prev, next);
-
-    const itemsPrev = buildThreadItems([], prev, null, false, undefined);
-    const itemsNext = buildThreadItems([], shared, null, false, undefined);
-
-    const prevToolGroup = itemsPrev.find((i) => i.kind === "tool-group");
-    const nextToolGroup = itemsNext.find((i) => i.kind === "tool-group");
-
-    expect(prevToolGroup).toBeDefined();
-    expect(nextToolGroup).toBeDefined();
-
-    if (prevToolGroup?.kind === "tool-group" && nextToolGroup?.kind === "tool-group") {
-      expect(nextToolGroup.toolCalls).toBe(shared.status!.messages[0].toolCalls);
-      expect(nextToolGroup.toolCalls[0]).toBe(tc1);
-    }
+    expect(before?.kind === "sub-agent" && after?.kind === "sub-agent" && after.thread === before.thread).toBe(true);
+    expect(before?.kind === "sub-agent" && after?.kind === "sub-agent" && after.toolUse === before.toolUse).toBe(true);
   });
 });

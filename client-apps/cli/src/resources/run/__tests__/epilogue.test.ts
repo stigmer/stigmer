@@ -3,20 +3,28 @@
 // otherwise the final run and its usage report are read (the run by the id
 // the stream followed) and a compact summary goes to stderr. In a session the
 // summary names the outcome (completed with duration and tokens, never a
-// price; failed with the best error the run holds, cancelled, stopped, or
-// exited mid-phase) and the matching copy-paste `stigmer resume` line;
-// without one it is a single completion line. Tokens with no metered calls
-// were counted from the runner's own report and carry a "~". A usage report
-// the server will not give, or one that counted no tokens, drops the token
-// part and fails nothing. The client is a double recording what it was asked.
+// price; failed with the best error the run and its turn hold, cancelled,
+// stopped, or exited mid-phase) and the matching copy-paste `stigmer resume`
+// line; without one it is a single completion line. The best error is the
+// run's own, else the folded turn's status error, its last error event, the
+// platform's last note, the first failed tool use's output (a sub-agent's
+// included); a turn the stream did not hand over is read from the run's
+// events, only when the summary needs it. Tokens with no metered calls were
+// counted from the runner's own report and carry a "~". A usage report the
+// server will not give, or one that counted no tokens, drops the token part
+// and fails nothing. The client is a double recording what it was asked.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { GetRunUsageReportInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { ListSessionEventsRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { foldSession, type Stigmer, type Turn } from "@stigmer/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError, ExitCode } from "../../../errors/index.js";
+import { failure, note, phase, result, said, threadRunning, use, user } from "../../__test-utils__/session-events.js";
+import type { HeadlessResult } from "../../stream/headless.js";
 import { runEpilogue } from "../epilogue.js";
 
 const STARTED = "2026-06-12T10:00:00Z";
@@ -29,6 +37,7 @@ interface Double {
   readonly client: Stigmer;
   readonly gets: string[];
   readonly usageRequests: GetRunUsageReportInput[];
+  readonly eventRequests: ListSessionEventsRequest[];
 }
 
 interface Usage {
@@ -38,11 +47,21 @@ interface Usage {
 
 const NO_USAGE: Usage = { totalTokens: 0n, llmCallCount: 0 };
 
-/** A client whose final Get answers `run` and whose usage report holds `usage` (or fails). */
-function double(run: Run, usage: Usage | "fails" = NO_USAGE): Double {
+/**
+ * A client whose final Get answers `run`, whose usage report holds `usage`
+ * (or fails), and whose session lists `events`.
+ */
+function double(run: Run, usage: Usage | "fails" = NO_USAGE, events: SessionEvent[] = []): Double {
   const gets: string[] = [];
   const usageRequests: GetRunUsageReportInput[] = [];
+  const eventRequests: ListSessionEventsRequest[] = [];
   const client = {
+    session: {
+      listEvents: async (req: ListSessionEventsRequest) => {
+        eventRequests.push(req);
+        return { events, nextPageToken: "" };
+      },
+    },
     run: {
       get: async (id: string) => {
         gets.push(id);
@@ -55,7 +74,13 @@ function double(run: Run, usage: Usage | "fails" = NO_USAGE): Double {
       },
     },
   } as unknown as Stigmer;
-  return { client, gets, usageRequests };
+  return { client, gets, usageRequests, eventRequests };
+}
+
+/** The turn of `events`, folded, as the headless stream hands it over. */
+function folded(events: SessionEvent[]): HeadlessResult {
+  const turn = foldSession(events).turns[0] as Turn;
+  return { phase: turn.status?.phase ?? "", error: "", turn };
 }
 
 let stderr: string[];
@@ -74,14 +99,14 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const ok = { phase: "completed", error: "" };
+const ok: HeadlessResult = { phase: "completed", error: "", turn: undefined };
 
 describe("runEpilogue", () => {
   it("re-raises a stream that failed before any phase, reading nothing", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED }));
-    const failure = runEpilogue(d.client, "ses_1", "aex_1", { phase: "", error: "stream reset" });
-    await expect(failure).rejects.toBeInstanceOf(CliExitError);
-    await expect(failure).rejects.toMatchObject({ message: "stream reset", exitCode: ExitCode.General });
+    const raised = runEpilogue(d.client, "ses_1", "aex_1", { phase: "", error: "stream reset", turn: undefined });
+    await expect(raised).rejects.toBeInstanceOf(CliExitError);
+    await expect(raised).rejects.toMatchObject({ message: "stream reset", exitCode: ExitCode.General });
     expect(d.gets).toEqual([]);
   });
 
@@ -94,6 +119,7 @@ describe("runEpilogue", () => {
     expect(d.gets).toEqual(["aex_1"]);
     expect(d.usageRequests.map((r) => r.runId)).toEqual(["aex_1"]);
     expect(stderr).toEqual(["\n", "✓ Completed (1m30s · 18.4k tokens)\n", "\n", "  To continue:  stigmer resume ses_1\n"]);
+    expect(d.eventRequests).toEqual([]);
   });
 
   it("marks tokens counted from the runner's own report, with no metered calls, as estimated", async () => {
@@ -128,6 +154,35 @@ describe("runEpilogue", () => {
     await runEpilogue(d.client, "ses_1", "aex_1", ok);
     expect(stderr).toContain("✗ Failed: model refused\n");
     expect(stderr).toContain("  To retry:     stigmer resume ses_1\n");
+    expect(d.eventRequests).toEqual([]);
+  });
+
+  it("names the turn's status error when the run holds none", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
+    await runEpilogue(d.client, "ses_1", "aex_1", folded([user("aex_1", "go"), phase("aex_1", "failed", "budget exceeded")]));
+    expect(stderr).toContain("✗ Failed: budget exceeded\n");
+  });
+
+  it("names the turn's last error event", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
+    await runEpilogue(
+      d.client,
+      "ses_1",
+      "aex_1",
+      folded([user("aex_1", "go"), failure("aex_1", "e1", "first"), failure("aex_1", "e2", "model overloaded"), phase("aex_1", "failed")]),
+    );
+    expect(stderr).toContain("✗ Failed: model overloaded\n");
+  });
+
+  it("reads the turn from the run's events when the stream handed none over", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_FAILED }), NO_USAGE, [
+      user("aex_1", "go"),
+      failure("aex_1", "e1", "model overloaded"),
+      phase("aex_1", "failed"),
+    ]);
+    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    expect(stderr).toContain("✗ Failed: model overloaded\n");
+    expect(d.eventRequests.map((r) => [r.sessionId, r.runId])).toEqual([["ses_1", "aex_1"]]);
   });
 
   it("reports a cancelled session turn and offers to resume it", async () => {
@@ -137,24 +192,21 @@ describe("runEpilogue", () => {
     expect(stderr).toContain("  To resume:    stigmer resume ses_1\n");
   });
 
-  it("reports a terminated session turn with its last system message", async () => {
-    const d = double(
-      finalRun({
-        phase: RunPhase.RUN_TERMINATED,
-        messages: [
-          { type: MessageType.MESSAGE_SYSTEM, content: "first notice" },
-          { type: MessageType.MESSAGE_SYSTEM, content: "cost cap reached" },
-        ],
-      }),
+  it("reports a terminated session turn with the platform's last note", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_TERMINATED }));
+    await runEpilogue(
+      d.client,
+      "ses_1",
+      "aex_1",
+      folded([user("aex_1", "go"), note("aex_1", "n0", "first notice"), note("aex_1", "n1", "cost cap reached"), phase("aex_1", "terminated")]),
     );
-    await runEpilogue(d.client, "ses_1", "aex_1", ok);
     expect(stderr).toContain("Stopped: cost cap reached\n");
   });
 
   it("reports a session turn that exited mid-phase", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_WAITING_FOR_APPROVAL }));
     await runEpilogue(d.client, "ses_1", "aex_1", ok);
-    expect(stderr).toContain("Exited (waiting_for_approval)\n");
+    expect(stderr).toContain("Exited (awaiting-approval)\n");
     expect(stderr).toContain("  To resume:    stigmer resume ses_1\n");
   });
 
@@ -164,28 +216,56 @@ describe("runEpilogue", () => {
     expect(stderr).toEqual(["\n", "✓ Run completed\n"]);
   });
 
-  it("names the first failed tool call's error for a failed run outside a session", async () => {
-    const d = double(
-      finalRun({
-        phase: RunPhase.RUN_FAILED,
-        messages: [
-          {
-            type: MessageType.MESSAGE_AI,
-            toolCalls: [
-              { name: "Shell", status: ToolCallStatus.TOOL_CALL_COMPLETED },
-              { name: "Fetch", status: ToolCallStatus.TOOL_CALL_FAILED, error: "connection refused" },
-            ],
-          },
-        ],
-      }),
+  it("names the first failed tool use's output for a failed run outside a session", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
+    await runEpilogue(
+      d.client,
+      "",
+      "aex_1",
+      folded([
+        user("aex_1", "go"),
+        said("aex_1", 0, "Fetching."),
+        use("aex_1", "c1", "Shell"),
+        result("aex_1", "c1", "ok"),
+        use("aex_1", "c2", "Fetch"),
+        result("aex_1", "c2", "", true),
+        use("aex_1", "c3", "Fetch"),
+        result("aex_1", "c3", "connection refused", true),
+        phase("aex_1", "failed"),
+      ]),
     );
-    await runEpilogue(d.client, "", "aex_1", ok);
     expect(stderr).toEqual(["\n", "✗ Run failed: connection refused\n"]);
   });
 
-  it("falls back to the generic pointer when a failed run holds no error", async () => {
+  it("finds a failed tool use inside a sub-agent", async () => {
+    const thread = "aex_1.t1";
+    const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
+    await runEpilogue(
+      d.client,
+      "",
+      "aex_1",
+      folded([
+        user("aex_1", "go"),
+        use("aex_1", "t1", "task"),
+        threadRunning("aex_1", thread, "researcher"),
+        use("aex_1", "s1", "read", { threadId: thread }),
+        result("aex_1", "s1", "no such file", true, thread),
+        phase("aex_1", "failed"),
+      ]),
+    );
+    expect(stderr).toEqual(["\n", "✗ Run failed: no such file\n"]);
+  });
+
+  it("falls back to the generic pointer when a failed run and its turn hold no error", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
+    await runEpilogue(d.client, "", "aex_1", folded([user("aex_1", "go"), phase("aex_1", "failed")]));
+    expect(stderr).toContain("✗ Run failed: Run failed (error details unavailable — check run logs)\n");
+  });
+
+  it("falls back to the generic pointer outside a session with no turn, reading no events", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
     await runEpilogue(d.client, "", "aex_1", ok);
     expect(stderr).toContain("✗ Run failed: Run failed (error details unavailable — check run logs)\n");
+    expect(d.eventRequests).toEqual([]);
   });
 });

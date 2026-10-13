@@ -1,17 +1,19 @@
 // Re-opening an existing session (Go's openSession / resumeSession in
 // resume_session.go). Fetch the session + its runs, then either:
-//   - re-attach to the live stream when the latest run is still active, or
-//   - replay the full history (snapshotToEvents) when everything has finished.
+//   - re-attach when the latest run is still active: the headless driver
+//     follows the session's log from its start, so the history is replayed
+//     and the latest turn followed to its end, or
+//   - replay the session's stored events when everything has finished.
 // The TTY path defers to Ink's SessionView, which loads history and offers a
 // follow-up composer for free.
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { BackendClient } from "../../client/index.js";
-import { getSessionById, listRunsBySession } from "../session.js";
+import { getSessionById, listRunsBySession, listSessionEvents } from "../session.js";
+import { renderReplay } from "../stream/headless.js";
 import { NdjsonRenderer } from "../stream/render-ndjson.js";
 import { PlaintextRenderer } from "../stream/render-plaintext.js";
-import { snapshotToEvents } from "../stream/snapshot.js";
 import { isInkSupported } from "../stream/tty.js";
 import { renderSessionHeader, type SessionHeaderInfo, workspaceNames } from "./header.js";
 import type { RunMode } from "./prepare.js";
@@ -70,22 +72,21 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
       runId: latest.metadata?.id ?? "",
       org,
       mode: effectiveMode,
-      defaultAction: ApprovalAction.UNSPECIFIED,
+      approveDefault: "",
       outputMode: deps.outputMode,
       header,
     });
     return;
   }
 
-  await replaySession(deps, org, entries, header);
+  await replaySession(deps, org, header);
 }
 
 // Completed session: render the stored history. TTY → Ink (history + composer);
-// headless → snapshot events through the matching renderer.
+// headless → the session's stored events through the matching renderer.
 async function replaySession(
   deps: OpenSessionDeps,
   org: string,
-  entries: readonly Run[],
   header: SessionHeaderInfo,
 ): Promise<void> {
   if (deps.outputMode === "inline" && isInkSupported(process.stdout)) {
@@ -100,13 +101,12 @@ async function replaySession(
   }
 
   renderSessionHeader(process.stderr, header);
-  const chronological = [...entries].reverse();
-  const events = snapshotToEvents(chronological);
+  const events = await listSessionEvents(deps.client.stigmer, deps.sessionId);
   const renderer =
     deps.outputMode === "json"
-      ? new NdjsonRenderer({ data: process.stdout, status: process.stderr, defaultAction: ApprovalAction.UNSPECIFIED })
+      ? new NdjsonRenderer({ data: process.stdout, status: process.stderr })
       : new PlaintextRenderer({ data: process.stdout, status: process.stderr });
-  for (const event of events) renderer.render(event);
+  renderReplay(events, renderer);
 }
 
 // Mirrors Go's resolveResumeMode: --mode wins; else infer "plan" from the last

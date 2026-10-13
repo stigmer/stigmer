@@ -61,6 +61,8 @@ import type {
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { SkillStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
+import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
@@ -143,6 +145,8 @@ import {
   newLoadSkillByReferenceStep,
   newResolveSkillBySlugStep,
 } from "./version-resolution.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
 
 /**
  * Go's PushFromExecutionArtifact download deadline: bounds the artifact
@@ -222,49 +226,59 @@ async function push(
   ctx: HandlerContext,
   method: DescMethod,
 ): Promise<Skill> {
-  const reqCtx = new RequestContext(
-    PushSkillRequestSchema,
-    req,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof PushSkillRequestSchema>("skill-push", deps.logger)
-    .addStep(newAuthorizeStep(method, deps.authorizer))
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveArtifactSourceStep(deps.staging))
-    .addStep(newBuildInitialSkillStep())
-    .addStep(newExtractAndHashArtifactStep())
-    .addStep(newResolveSlugForPushStep())
-    .addStep(newFindExistingBySlugStep(deps.store))
-    .addStep(newGenerateIdIfNeededStep())
-    .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
-    .addStep(newPopulateSkillFieldsStep())
-    // The reserved-namespace guard every write boundary runs, positioned
-    // after the populate step because the skill rides SKILL_KEY (not
-    // newState) and its stored labels ride EXISTING_SKILL_KEY.
-    .addStep(
-      newGuardReservedLabelsStep<typeof PushSkillRequestSchema>(
-        deps.authorizer,
-        {
-          stateOf: (stepCtx) => stepCtx.get(SKILL_KEY) as Skill | undefined,
-          existingKey: EXISTING_SKILL_KEY,
-        },
-      ),
-    )
-    .addStep(newArchiveCurrentSkillStep(deps.store, deps.logger))
-    .addStep(newClaimSkillNameStep(deps.store))
-    .addStep(newStoreSkillStep(deps.store))
-    .addStep(
-      newSkillPushAuthorizationTuplesStep(
-        deps.authorizationLifecycle,
-        deps.logger,
-      ),
-    )
-    .addStep(newIndexSkillSearchStep(deps.store, deps.logger))
-    .build()
-    .execute(reqCtx)
-    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
-  return reqCtx.get(SKILL_KEY) as Skill;
+  // A retried attempt keeps the artifact bytes the first one consumed: an
+  // upload reference is single-use (ResolveArtifactSource).
+  let previous: RequestContext<typeof PushSkillRequestSchema> | undefined;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      PushSkillRequestSchema,
+      req,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    const consumed = previous?.get(ARTIFACT_BYTES_KEY);
+    if (consumed !== undefined) {
+      reqCtx.set(ARTIFACT_BYTES_KEY, consumed);
+    }
+    previous = reqCtx;
+    await newPipeline<typeof PushSkillRequestSchema>("skill-push", deps.logger)
+      .addStep(newAuthorizeStep(method, deps.authorizer))
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveArtifactSourceStep(deps.staging))
+      .addStep(newBuildInitialSkillStep())
+      .addStep(newExtractAndHashArtifactStep())
+      .addStep(newResolveSlugForPushStep())
+      .addStep(newFindExistingBySlugStep(deps.store))
+      .addStep(newGenerateIdIfNeededStep())
+      .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
+      .addStep(newPopulateSkillFieldsStep())
+      // The reserved-namespace guard every write boundary runs, positioned
+      // after the populate step because the skill rides SKILL_KEY (not
+      // newState) and its stored labels ride EXISTING_SKILL_KEY.
+      .addStep(
+        newGuardReservedLabelsStep<typeof PushSkillRequestSchema>(
+          deps.authorizer,
+          {
+            stateOf: (stepCtx) => stepCtx.get(SKILL_KEY) as Skill | undefined,
+            existingKey: EXISTING_SKILL_KEY,
+          },
+        ),
+      )
+      .addStep(newClaimSkillNameStep(deps.store))
+      .addStep(newStoreSkillStep(deps.store))
+      .addStep(newArchiveCurrentSkillStep(deps.store, deps.logger))
+      .addStep(
+        newSkillPushAuthorizationTuplesStep(
+          deps.authorizationLifecycle,
+          deps.logger,
+        ),
+      )
+      .addStep(newIndexSkillSearchStep(deps.store, deps.logger))
+      .build()
+      .execute(reqCtx)
+      .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
+    return reqCtx.get(SKILL_KEY) as Skill;
+  });
 }
 
 /**
@@ -508,7 +522,13 @@ function newSetVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
   };
 }
 
-/** Persists the visibility change. */
+/**
+ * Persists the visibility change: the visibility and status audit the
+ * chain set on the loaded skill, applied to the live row inside the
+ * store's atomic read-modify-write, so a push that landed since the load
+ * stays (the agent's PersistAgentForVisibilityUpdate). The written row
+ * replaces the loaded one under the key.
+ */
 function newPersistSkillForVisibilityUpdateStep(
   store: Store,
 ): PipelineStep<UpdateVisibilityDesc> {
@@ -516,16 +536,30 @@ function newPersistSkillForVisibilityUpdateStep(
     name: "PersistSkillForVisibilityUpdate",
     async execute(ctx: RequestContext<UpdateVisibilityDesc>): Promise<void> {
       const skill = ctx.get(UPDATE_VISIBILITY_SKILL_KEY) as Skill;
+      const id = skill.metadata?.id ?? "";
+      let written: Skill;
       try {
-        await store.saveResource(
+        written = await store.updateResource(
           ctx.apiResourceKind,
-          skill.metadata?.id ?? "",
+          id,
           SkillSchema,
-          skill,
+          (row) => {
+            if (row.metadata !== undefined) {
+              row.metadata.visibility =
+                skill.metadata?.visibility ?? row.metadata.visibility;
+            }
+            const audit = ((row.status ??= create(SkillStatusSchema)).audit ??=
+              create(ApiResourceAuditSchema));
+            audit.statusAudit = skill.status?.audit?.statusAudit;
+          },
         );
       } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("skill", id);
+        }
         throw internalError(error, "failed to save skill");
       }
+      ctx.set(UPDATE_VISIBILITY_SKILL_KEY, written);
     },
   };
 }

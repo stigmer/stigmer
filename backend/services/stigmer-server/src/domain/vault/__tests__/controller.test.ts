@@ -10,6 +10,9 @@
  *     prefix, and a caller without can_create_shared_vault;
  *   - update keeps the stored owner and entries and refuses an owner
  *     change; My vault takes no external id;
+ *   - an update keeps a write that lands between its read and its write,
+ *     a visibility change or an entry saved through setSecrets: the lost
+ *     swap runs the chain again, so the row and the answer carry both;
  *   - external ids are claimed (ALREADY_EXISTS when taken), moved on
  *     change, freed on clear and on delete, and found by getByExternalId,
  *     which asks the organization first and answers NOT_FOUND for a vault
@@ -69,6 +72,10 @@ import {
 } from "../../../extensions/__tests__/composed-support.js";
 import type { ServerExtension } from "../../../extensions/registry.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 
 import {
   MY_VAULT_SLUG_REFUSAL,
@@ -317,6 +324,67 @@ describe("update", () => {
     );
     expect(moved.code).toBe(Code.InvalidArgument);
     expect(moved.rawMessage).toBe(OWNER_IMMUTABLE_REFUSAL);
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const created = await commands(ADMIN).create(sharedInput());
+    const id = created.metadata!.id;
+    expect(created.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
+
+    const { result, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.vault,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.vault,
+        VaultSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () =>
+        commands(ADMIN).update({
+          ...created,
+          spec: { ...created.spec!, description: "new words" },
+        }),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    expect(result.spec?.description).toBe("new words");
+    expect(result.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    const stored = await server.store.getResource(ApiResourceKind.vault, id, VaultSchema);
+    expect(stored.spec?.description).toBe("new words");
+    expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+  });
+
+  it("an update keeps an entry saved through setSecrets between its read and its write", async () => {
+    const created = await commands(ADMIN).create(sharedInput());
+    const id = created.metadata!.id;
+
+    const { result, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.vault,
+      id,
+      () =>
+        commands(ADMIN).setSecrets({
+          vault: { org: ORG, vault: { case: "id", value: id } },
+          secrets: { API_KEY: { value: "sk-landed", description: "" } },
+        }),
+      () =>
+        commands(ADMIN).update({
+          ...created,
+          spec: { ...created.spec!, description: "new words" },
+        }),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    expect(result.spec?.description).toBe("new words");
+    expect(Object.keys(result.spec?.secrets ?? {})).toEqual(["API_KEY"]);
+    expectNoValues(result);
+    const stored = await server.store.getResource(ApiResourceKind.vault, id, VaultSchema);
+    expect(stored.spec?.description).toBe("new words");
+    expect(Object.keys(stored.spec?.secrets ?? {})).toEqual(["API_KEY"]);
+    expect(stored.spec?.secrets.API_KEY?.value ?? "").not.toBe("");
   });
 });
 

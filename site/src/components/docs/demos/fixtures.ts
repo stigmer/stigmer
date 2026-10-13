@@ -2,22 +2,19 @@
  * Fixtures the inline docs demos share: the demo organization, the My
  * vault answers the sign-in demos give (nothing saved, a key by name, a
  * login at an address; every value blanked as a real read blanks it), an
- * empty workspace, and a run snapshot builder. All of it is data; nothing
- * here renders.
+ * empty workspace, and a conversation builder that folds a turn's session
+ * events. All of it is data; nothing here renders.
  */
 import { create } from "@bufbuild/protobuf";
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
+import type { Turn } from "@stigmer/sdk";
 
 export const DEMO_ORG = "demo-org";
 
@@ -71,32 +68,33 @@ export const MOCK_WORKSPACE: UseWorkspaceEntriesReturn = {
 };
 
 /**
- * Build a run snapshot where the first human message goes into
- * `spec.message` and the remaining messages go into `status.messages`.
- *
- * `MessageThread` synthesizes a human bubble from `spec.message`
- * automatically, so this split avoids rendering it twice.
+ * A depicted conversation as the session surface reads it: its turns (the
+ * session's events folded) and the runs beside them. `MessageThread`
+ * renders the turns; the run carries what the events do not (the phase the
+ * widget sidebar's badge reads).
  */
-export function snapshot(
-  msgs: AgentMessage[],
-  phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
-  artifacts?: RunArtifact[],
-): Run {
-  const firstHumanIdx = msgs.findIndex(
-    (m) => m.type === MessageType.MESSAGE_HUMAN,
-  );
-  const specMessage =
-    firstHumanIdx >= 0 ? msgs[firstHumanIdx].content : "";
-  const statusMessages =
-    firstHumanIdx >= 0
-      ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
-      : msgs;
+export interface DemoConversation {
+  readonly turns: readonly Turn[];
+  readonly runs: readonly Run[];
+}
 
-  const exec = samples.run({
-    phase,
-    messages: statusMessages,
-    artifacts,
-  });
-  exec.spec!.message = specMessage;
-  return exec;
+/**
+ * Fold one turn's session events (built with the `samples.*Event`
+ * builders, all on the demo run) into a {@link DemoConversation}, beside
+ * the demo run at `phase` started with the turn's own message, so the run
+ * and the events never disagree on what the person asked.
+ *
+ * Pass the phase the events end on: `RUN_IN_PROGRESS` (the default) for a
+ * mid-conversation frame, `RUN_COMPLETED` for a finished one. Nothing is
+ * fetched; the phase is presentational.
+ */
+export function conversation(
+  events: readonly SessionEvent[],
+  phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
+): DemoConversation {
+  const fold = samples.fold(events);
+  return {
+    turns: fold.turns,
+    runs: [samples.run({ phase, message: fold.turns[0]?.userMessage?.text ?? "" })],
+  };
 }

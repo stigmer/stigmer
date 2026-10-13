@@ -128,7 +128,7 @@ authenticate with Stigmer Cloud.
 Create `ask-agent.ts`:
 
 ```typescript
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer, followSession } from "@stigmer/sdk";
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -153,10 +153,12 @@ import (
 	"time"
 
 	stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
-	client, err := stigmer.NewClient(os.Getenv("STIGMER_API_KEY"))
+	client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -172,6 +174,7 @@ Create `ask_agent.py`:
 import os
 import time
 
+from ai.stigmer.agentic.session.v1 import io_pb2
 from stigmer import StigmerClient, SessionInput, RunInput
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
@@ -183,9 +186,11 @@ client = StigmerClient(os.environ["STIGMER_API_KEY"])
 Create `src/main/java/AskAgent.java`:
 
 ```java
+import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
 import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.SessionInput;
 import ai.stigmer.sdk.gen.RunInput;
+import java.util.Set;
 
 public class AskAgent {
     public static void main(String[] args) {
@@ -286,7 +291,7 @@ Add to `src/main/java/AskAgent.java`:
 ```java
         var ts = String.valueOf(System.currentTimeMillis());
 
-        var session = client.sessions().create(
+        var session = client.session.create(
             SessionInput.builder()
                 .name("session-" + ts)
                 .org("my-org")
@@ -313,7 +318,11 @@ Replace `my-org` with your Organization slug from the Stigmer dashboard.
 
 ## Stream the response
 
-Subscribe to the run to receive the Agent's response as it arrives.
+Follow the Session's events to receive the Agent's response as it arrives. A
+Session's output is one ordered log of events. Streaming it from the start
+(`after_seq` 0) sends every event already stored, then each new one as the Agent
+works. Print the Agent's messages for your run, and stop when the run's
+`stigmer.run.status` event says it ended.
 
 Add the following to the same file, right after the code from the previous step.
 
@@ -323,13 +332,15 @@ Add the following to the same file, right after the code from the previous step.
 Add to `ask-agent.ts`:
 
 ```typescript
-  for await (const snapshot of stigmer.run.subscribe(
-    run.metadata!.id,
-  )) {
-    const messages = snapshot.status?.messages ?? [];
-    const last = messages[messages.length - 1];
-    if (last?.content) {
-      console.log(last.content);
+  const ended = ["completed", "failed", "cancelled", "terminated"];
+  for await (const frame of followSession(stigmer, session.metadata!.id)) {
+    if (frame.frame.case !== "event") continue;
+    const { runId, threadId, event } = frame.frame.value;
+    if (runId !== run.metadata!.id) continue;
+    if (event.case === "agentMessage" && threadId === "") {
+      console.log(event.value.content.map((block) => block.text).join(""));
+    }
+    if (event.case === "stigmerRunStatus" && ended.includes(event.value.phase)) {
       break;
     }
   }
@@ -344,25 +355,36 @@ main();
 Add to `main.go`:
 
 ```go
-	stream, err := client.Run.Subscribe(ctx, run.GetMetadata().GetId())
+	stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
+		SessionId: session.GetMetadata().GetId(),
+		AfterSeq:  proto.Int64(0),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for {
-		snapshot, err := stream.Recv()
+		frame, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			log.Fatal(err)
 		}
-		msgs := snapshot.GetStatus().GetMessages()
-		if len(msgs) > 0 {
-			last := msgs[len(msgs)-1]
-			if last.GetContent() != "" {
-				fmt.Println(last.GetContent())
-				break
+		event := frame.GetEvent()
+		if event.GetRunId() != run.GetMetadata().GetId() {
+			continue
+		}
+		if msg := event.GetAgentMessage(); msg != nil && event.GetThreadId() == "" {
+			for _, block := range msg.GetContent() {
+				fmt.Print(block.GetText())
+			}
+			fmt.Println()
+		}
+		if status := event.GetStigmerRunStatus(); status != nil {
+			switch status.GetPhase() {
+			case "completed", "failed", "cancelled", "terminated":
+				return
 			}
 		}
 	}
@@ -375,10 +397,20 @@ Add to `main.go`:
 Add to `ask_agent.py`:
 
 ```python
-for snapshot in client.runs.subscribe(run.metadata.id):
-    messages = snapshot.status.messages
-    if messages and messages[-1].content:
-        print(messages[-1].content)
+ENDED = {"completed", "failed", "cancelled", "terminated"}
+
+request = io_pb2.StreamSessionEventsRequest(
+    session_id=session.metadata.id,
+    after_seq=0,
+)
+for frame in client.sessions.stream_events(request):
+    event = frame.event
+    if event.run_id != run.metadata.id:
+        continue
+    kind = event.WhichOneof("event")
+    if kind == "agent_message" and not event.thread_id:
+        print("".join(block.text for block in event.agent_message.content))
+    if kind == "stigmer_run_status" and event.stigmer_run_status.phase in ENDED:
         break
 ```
 
@@ -388,19 +420,27 @@ for snapshot in client.runs.subscribe(run.metadata.id):
 Add to `src/main/java/AskAgent.java`:
 
 ```java
-        var stream = client.run.subscribe(
-            run.getMetadata().getId()
-        );
+        var request = StreamSessionEventsRequest.newBuilder()
+            .setSessionId(session.getMetadata().getId())
+            .setAfterSeq(0)
+            .build();
+        var ended = Set.of("completed", "failed", "cancelled", "terminated");
 
+        var stream = client.session.streamEvents(request);
         while (stream.hasNext()) {
-            var snapshot = stream.next();
-            var messages = snapshot.getStatus().getMessagesList();
-            if (!messages.isEmpty()) {
-                var last = messages.get(messages.size() - 1);
-                if (!last.getContent().isEmpty()) {
-                    System.out.println(last.getContent());
-                    break;
+            var event = stream.next().getEvent();
+            if (!event.getRunId().equals(run.getMetadata().getId())) {
+                continue;
+            }
+            if (event.hasAgentMessage() && event.getThreadId().isEmpty()) {
+                for (var block : event.getAgentMessage().getContentList()) {
+                    System.out.print(block.getText());
                 }
+                System.out.println();
+            }
+            if (event.hasStigmerRunStatus()
+                    && ended.contains(event.getStigmerRunStatus().getPhase())) {
+                break;
             }
         }
     }
@@ -421,7 +461,7 @@ Add to `src/main/java/AskAgent.java`:
 `ask-agent.ts`
 
 ```typescript
-import { Stigmer } from "@stigmer/sdk";
+import { Stigmer, followSession } from "@stigmer/sdk";
 
 const stigmer = new Stigmer({
   baseUrl: "https://api.stigmer.ai",
@@ -441,11 +481,18 @@ async function main() {
     message: "What are some best practices for handling customer complaints?",
   });
 
-  for await (const snapshot of stigmer.run.subscribe(run.metadata!.id)) {
-    const messages = snapshot.status?.messages ?? [];
-    const last = messages[messages.length - 1];
-    if (last?.content) {
-      console.log(last.content);
+  const ended = ["completed", "failed", "cancelled", "terminated"];
+  for await (const frame of followSession(stigmer, session.metadata!.id)) {
+    if (frame.frame.case !== "event") continue;
+    const { runId, threadId, event } = frame.frame.value;
+    if (runId !== run.metadata!.id) continue;
+    if (event.case === "agentMessage" && threadId === "") {
+      console.log(event.value.content.map((block) => block.text).join(""));
+    }
+    if (
+      event.case === "stigmerRunStatus" &&
+      ended.includes(event.value.phase)
+    ) {
       break;
     }
   }
@@ -471,10 +518,12 @@ import (
 	"time"
 
 	stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
-	client, err := stigmer.NewClient(os.Getenv("STIGMER_API_KEY"))
+	client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -501,25 +550,36 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stream, err := client.Run.Subscribe(ctx, run.GetMetadata().GetId())
+	stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
+		SessionId: session.GetMetadata().GetId(),
+		AfterSeq:  proto.Int64(0),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for {
-		snapshot, err := stream.Recv()
+		frame, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			log.Fatal(err)
 		}
-		msgs := snapshot.GetStatus().GetMessages()
-		if len(msgs) > 0 {
-			last := msgs[len(msgs)-1]
-			if last.GetContent() != "" {
-				fmt.Println(last.GetContent())
-				break
+		event := frame.GetEvent()
+		if event.GetRunId() != run.GetMetadata().GetId() {
+			continue
+		}
+		if msg := event.GetAgentMessage(); msg != nil && event.GetThreadId() == "" {
+			for _, block := range msg.GetContent() {
+				fmt.Print(block.GetText())
+			}
+			fmt.Println()
+		}
+		if status := event.GetStigmerRunStatus(); status != nil {
+			switch status.GetPhase() {
+			case "completed", "failed", "cancelled", "terminated":
+				return
 			}
 		}
 	}
@@ -535,6 +595,7 @@ func main() {
 import os
 import time
 
+from ai.stigmer.agentic.session.v1 import io_pb2
 from stigmer import StigmerClient, SessionInput, RunInput
 
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
@@ -553,10 +614,20 @@ run = client.runs.create(RunInput(
     message="What are some best practices for handling customer complaints?",
 ))
 
-for snapshot in client.runs.subscribe(run.metadata.id):
-    messages = snapshot.status.messages
-    if messages and messages[-1].content:
-        print(messages[-1].content)
+ENDED = {"completed", "failed", "cancelled", "terminated"}
+
+request = io_pb2.StreamSessionEventsRequest(
+    session_id=session.metadata.id,
+    after_seq=0,
+)
+for frame in client.sessions.stream_events(request):
+    event = frame.event
+    if event.run_id != run.metadata.id:
+        continue
+    kind = event.WhichOneof("event")
+    if kind == "agent_message" and not event.thread_id:
+        print("".join(block.text for block in event.agent_message.content))
+    if kind == "stigmer_run_status" and event.stigmer_run_status.phase in ENDED:
         break
 ```
 
@@ -566,9 +637,11 @@ for snapshot in client.runs.subscribe(run.metadata.id):
 `src/main/java/AskAgent.java`
 
 ```java
+import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
 import ai.stigmer.sdk.StigmerClient;
 import ai.stigmer.sdk.gen.SessionInput;
 import ai.stigmer.sdk.gen.RunInput;
+import java.util.Set;
 
 public class AskAgent {
     public static void main(String[] args) {
@@ -578,7 +651,7 @@ public class AskAgent {
 
         var ts = String.valueOf(System.currentTimeMillis());
 
-        var session = client.sessions().create(
+        var session = client.session.create(
             SessionInput.builder()
                 .name("session-" + ts)
                 .org("my-org")
@@ -594,19 +667,27 @@ public class AskAgent {
                 .build()
         );
 
-        var stream = client.run.subscribe(
-            run.getMetadata().getId()
-        );
+        var request = StreamSessionEventsRequest.newBuilder()
+            .setSessionId(session.getMetadata().getId())
+            .setAfterSeq(0)
+            .build();
+        var ended = Set.of("completed", "failed", "cancelled", "terminated");
 
+        var stream = client.session.streamEvents(request);
         while (stream.hasNext()) {
-            var snapshot = stream.next();
-            var messages = snapshot.getStatus().getMessagesList();
-            if (!messages.isEmpty()) {
-                var last = messages.get(messages.size() - 1);
-                if (!last.getContent().isEmpty()) {
-                    System.out.println(last.getContent());
-                    break;
+            var event = stream.next().getEvent();
+            if (!event.getRunId().equals(run.getMetadata().getId())) {
+                continue;
+            }
+            if (event.hasAgentMessage() && event.getThreadId().isEmpty()) {
+                for (var block : event.getAgentMessage().getContentList()) {
+                    System.out.print(block.getText());
                 }
+                System.out.println();
+            }
+            if (event.hasStigmerRunStatus()
+                    && ended.contains(event.getStigmerRunStatus().getPhase())) {
+                break;
             }
         }
     }

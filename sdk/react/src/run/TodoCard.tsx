@@ -1,8 +1,7 @@
 "use client";
 
 import { memo, useMemo, type ComponentType } from "react";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Todo } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
@@ -16,11 +15,10 @@ import {
 /** Props for {@link TodoCard}. */
 export interface TodoCardProps {
   /**
-   * The agent's todo map for one run — the proto map shape
-   * (`execution.status.todos`) passed through by reference so a settled
-   * card skips re-renders while siblings stream.
+   * The agent's to-do list for one turn (`Turn.todos`), passed through by
+   * reference so a settled card skips re-renders while siblings stream.
    */
-  readonly todos: { readonly [key: string]: TodoItem };
+  readonly todos: readonly Todo[];
   /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
@@ -49,15 +47,15 @@ export interface TodoCardProps {
  * keeps an in-flight plan visible and a finished one tidy, mirroring
  * `ToolRunGroup`/{@link SubAgentSection}.
  *
- * `React.memo`'d on the by-reference `todos` map: structural sharing
- * (`shareTodos`) keeps the reference stable across stream frames, so the card
- * re-renders only when the plan actually changes — never per frame.
+ * `React.memo`'d on the by-reference `todos` list: the session fold rebuilds
+ * a turn's list only when the turn changes, so the card re-renders on turn
+ * updates, never per preview frame of another turn.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
  * @example
  * ```tsx
- * <TodoCard todos={run.status?.todos ?? {}} />
+ * <TodoCard todos={turn.todos} />
  * ```
  */
 export const TodoCard = memo(function TodoCard({
@@ -67,17 +65,13 @@ export const TodoCard = memo(function TodoCard({
 }: TodoCardProps) {
   useRenderTracer("TodoCard", { todos });
 
-  const count = Object.keys(todos).length;
+  const count = todos.length;
   const isActive = findActiveTodo(todos) != null;
   const summary = todoCompletionSummary(todos);
   const allDone = useMemo(
     () =>
       count > 0 &&
-      Object.values(todos).every(
-        (t) =>
-          t.status === TodoStatus.TODO_COMPLETED ||
-          t.status === TodoStatus.TODO_CANCELLED,
-      ),
+      todos.every((t) => t.status === "completed" || t.status === "cancelled"),
     [todos, count],
   );
 
@@ -141,9 +135,9 @@ export const TodoCard = memo(function TodoCard({
 }, todoCardPropsEqual);
 
 /**
- * Shallow comparator for {@link TodoCardProps}. The `todos` map is kept
- * referentially stable by `shareTodos`, so an identity check is exactly the
- * right (and cheapest) "did the plan change?" test.
+ * Shallow comparator for {@link TodoCardProps}. The `todos` list keeps its
+ * reference while its turn is unchanged, so an identity check is the
+ * cheapest "did the plan change?" test.
  *
  * @internal Exported for testing — not part of the public API.
  */

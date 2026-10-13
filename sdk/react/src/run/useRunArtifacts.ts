@@ -20,7 +20,7 @@ export interface UseRunArtifactsReturn {
  *
  * Follows the same pattern as {@link useSessionUsage}: a `useMemo`-based
  * derivation with no side effects and no data fetching. The run
- * object (typically from {@link useRunStream}) is the single input.
+ * object (typically from {@link useLiveRun}) is the single input.
  *
  * Returns an empty array when the run is `null` or has no artifacts,
  * eliminating null-checking at every consumer call site.
@@ -32,7 +32,7 @@ export interface UseRunArtifactsReturn {
  *
  * @example
  * ```tsx
- * const { run } = useRunStream(executionId);
+ * const { run } = useLiveRun(executionId);
  * const { artifacts, hasArtifacts } = useRunArtifacts(run);
  *
  * if (hasArtifacts) {

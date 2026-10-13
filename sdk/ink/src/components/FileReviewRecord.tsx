@@ -1,14 +1,12 @@
+// A settled file review's read-only terminal record: what a turn changed and
+// how each file was decided, read from the session's fold (`FileReviewSet`).
 import React from "react";
 import { Box, Text } from "ink";
-import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileReviewFile, FileReviewSet } from "@stigmer/sdk";
+import { fileChangeKindOf } from "@stigmer/react";
 import {
-  FileChangeSetStatus,
-  FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { deriveEffectiveVerdicts } from "@stigmer/react";
-import {
-  changeDisplayPath,
   changeSetLineStats,
+  fileDisplayPath,
   kindLetter,
   settledSummary,
 } from "../file-review.js";
@@ -16,25 +14,32 @@ import { FileLineStats } from "./FileReviewAtoms.js";
 
 /** Props for {@link FileReviewRecord}. */
 export interface FileReviewRecordProps {
-  /** A settled (decided / reconciled / failed) change set to record. */
-  readonly fileChangeSet: FileChangeSet;
+  /** A settled set (every file decided, or its turn ended) to record. */
+  readonly fileReviewSet: FileReviewSet;
 }
 
+/** Each file's outcome, as the record labels it. */
+const OUTCOME_LABEL: Readonly<Record<FileReviewFile["state"], string>> = {
+  undecided: "not reviewed",
+  kept: "kept",
+  undoing: "discarded",
+  undone: "discarded",
+  undo_failed: "undo failed",
+};
+
 /**
- * A read-only, append-only record of a SETTLED file-review change set — the
- * terminal analogue of the web's in-thread `FileReviewRecordRow`.
+ * A read-only, append-only record of a SETTLED file review — the terminal
+ * analogue of the web's in-thread `FileReviewRecordRow`.
  *
- * Its primary job is the no-stamped-row case: a set changed only via shell
- * commands stamps no edit rows, so the per-row badges leave no trace and this
- * record is the only evidence of what was reviewed and decided. Sets with
- * stamped rows already carry their outcome on the (frozen) row badges; this
- * record complements them with a one-line summary and file list.
+ * Its primary job is the shell-made case: changes made by shell commands
+ * have no edit row, so the per-row badges leave no trace and this record is
+ * the only evidence of what was reviewed and decided. Changes with edit rows
+ * already carry their outcome on the (frozen) row badges; this record
+ * complements them with a one-line summary and file list.
  */
-export function FileReviewRecord({ fileChangeSet }: FileReviewRecordProps) {
-  const failed = fileChangeSet.status === FileChangeSetStatus.FAILED;
-  const verdicts = deriveEffectiveVerdicts(fileChangeSet);
-  const summary = failed ? "review failed" : settledSummary(fileChangeSet);
-  const lineStats = changeSetLineStats(fileChangeSet);
+export function FileReviewRecord({ fileReviewSet }: FileReviewRecordProps) {
+  const summary = settledSummary(fileReviewSet);
+  const lineStats = changeSetLineStats(fileReviewSet);
 
   return (
     <Box flexDirection="column" paddingLeft={2}>
@@ -46,29 +51,19 @@ export function FileReviewRecord({ fileChangeSet }: FileReviewRecordProps) {
           linesRemoved={lineStats.linesRemoved}
         />
       </Box>
-      {fileChangeSet.changes.map((change) => {
-        const verdict = verdicts.get(change.id);
-        const label = failed
-          ? null
-          : verdict === FileDecisionAction.APPROVE
-            ? "kept"
-            : verdict === FileDecisionAction.REJECT
-              ? "discarded"
-              : "not reviewed";
-        return (
-          <Box key={change.id} paddingLeft={2} gap={1}>
-            <Text dimColor>{kindLetter(change.kind)}</Text>
-            <Text dimColor wrap="truncate-end">
-              {changeDisplayPath(change)}
-            </Text>
-            <FileLineStats
-              linesAdded={change.linesAdded}
-              linesRemoved={change.linesRemoved}
-            />
-            {label && <Text dimColor>({label})</Text>}
-          </Box>
-        );
-      })}
+      {fileReviewSet.files.map((file) => (
+        <Box key={file.fileChangeId} paddingLeft={2} gap={1}>
+          <Text dimColor>{kindLetter(fileChangeKindOf(file.change))}</Text>
+          <Text dimColor wrap="truncate-end">
+            {fileDisplayPath(file)}
+          </Text>
+          <FileLineStats
+            linesAdded={file.linesAdded}
+            linesRemoved={file.linesRemoved}
+          />
+          <Text dimColor>({OUTCOME_LABEL[file.state]})</Text>
+        </Box>
+      ))}
     </Box>
   );
 }

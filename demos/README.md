@@ -274,15 +274,16 @@ hours against a 24-hour day); the anchor's docs in
 locks the window property. Everything downstream — `_shared/` depicted
 resources, tour-local fixtures — derives from that one instant.
 
-When you need a value the factory's overrides do not cover — a message a few
+When you need a value the factory's defaults do not cover — a message a few
 seconds later, a specific tool-call duration — **derive it from the anchor**
 rather than writing a literal:
 
 ```ts
 import { samples, sampleInstant } from "@stigmer/react/test";
 
-const later = samples.humanMessage("and one more thing");
-later.timestamp = sampleInstant(5_000); // 5s after the anchor
+const later = samples.agentMessageEvent("and one more thing", {
+  processedAt: sampleInstant(5_000), // 5s after the anchor
+});
 ```
 
 `scripts/verify-scenar-tours.mjs` enforces both halves under `tours/**`. A

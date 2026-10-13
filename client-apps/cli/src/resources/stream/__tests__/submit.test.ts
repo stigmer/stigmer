@@ -1,9 +1,10 @@
-// Tests for approval-submit resilience: retry classification, backoff loop,
-// and stream-error message parity with Go.
+// Tests for answer-submit resilience: retry classification, the settled
+// refusal (a call that no longer waits), the backoff loop, and the
+// stream-error message with its resume hint.
 
 import { describe, expect, it } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { classifyStreamError, isRetryableSubmitError, retryWithBackoff } from "../submit.js";
+import { classifyStreamError, isRetryableSubmitError, isSettledAnswerError, retryWithBackoff } from "../submit.js";
 
 const never = new AbortController().signal;
 
@@ -14,15 +15,24 @@ describe("isRetryableSubmitError", () => {
     }
   });
 
-  it("retries FailedPrecondition only for 'no pending approvals'", () => {
-    expect(isRetryableSubmitError(new ConnectError("no pending approvals yet", Code.FailedPrecondition))).toBe(true);
-    expect(isRetryableSubmitError(new ConnectError("something else", Code.FailedPrecondition))).toBe(false);
+  it("never retries FailedPrecondition: the call no longer waits", () => {
+    expect(isRetryableSubmitError(new ConnectError("tool use run_1.c1 no longer waits", Code.FailedPrecondition))).toBe(false);
   });
 
   it("does not retry permanent codes, but retries non-RPC errors", () => {
     expect(isRetryableSubmitError(new ConnectError("nope", Code.NotFound))).toBe(false);
     expect(isRetryableSubmitError(new ConnectError("nope", Code.InvalidArgument))).toBe(false);
     expect(isRetryableSubmitError(new Error("socket hang up"))).toBe(true);
+  });
+});
+
+describe("isSettledAnswerError", () => {
+  it("is true only for FailedPrecondition, found through the cause chain", () => {
+    const refused = new ConnectError("tool use run_1.c1 was already answered otherwise", Code.FailedPrecondition);
+    expect(isSettledAnswerError(refused)).toBe(true);
+    expect(isSettledAnswerError(new Error("wrapped", { cause: refused }))).toBe(true);
+    expect(isSettledAnswerError(new ConnectError("gone", Code.NotFound))).toBe(false);
+    expect(isSettledAnswerError(new Error("socket hang up"))).toBe(false);
   });
 });
 

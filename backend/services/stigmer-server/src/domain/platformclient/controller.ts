@@ -128,6 +128,7 @@ import { RESERVED_PLATFORM_CLIENT_SLUGS, reservedSlugMessage } from "./constants
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import { PlatformClientStatusSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 
 export interface PlatformClientControllerDeps {
   /** The composed store — a driver's, or the OSS adapter over the generic Store. */
@@ -261,43 +262,45 @@ async function updateClient(
   client: PlatformClient,
   ctx: HandlerContext,
 ): Promise<PlatformClient> {
-  const reqCtx = new RequestContext(
-    PlatformClientSchema,
-    client,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof PlatformClientSchema>(
-    "platformclient-update",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(
-        PlatformClientCommandController.method.update,
-        deps.authorizer,
-      ),
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      PlatformClientSchema,
+      client,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof PlatformClientSchema>(
+      "platformclient-update",
+      deps.logger,
     )
-    .addStep(newRefuseServiceAccountCallerStep(PLATFORM_CLIENT_ACT, deps.accounts))
-    .addStep(newValidateProtoStep())
-    .addStep(newValidateSignInRoleStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingClientStep(deps.store, deps.clients))
-    .addStep(
-      newRefuseSystemManagedStep<typeof PlatformClientSchema>(
-        "updated",
-        EXISTING_RESOURCE_KEY,
-      ),
-    )
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newNormalizeReferencesStep(deps.store))
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, PLATFORM_CLIENT_VAULT_ATTACHMENTS))
-    .addStep(newPreserveClientCredentialsStep())
-    .addStep(newPersistUpdatedClientStep(deps.clients))
-    .build()
-    .execute(reqCtx);
-  return redactPlatformClient(reqCtx.newState);
+      .addStep(
+        newAuthorizeStep(
+          PlatformClientCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newRefuseServiceAccountCallerStep(PLATFORM_CLIENT_ACT, deps.accounts))
+      .addStep(newValidateProtoStep())
+      .addStep(newValidateSignInRoleStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingClientStep(deps.store, deps.clients))
+      .addStep(
+        newRefuseSystemManagedStep<typeof PlatformClientSchema>(
+          "updated",
+          EXISTING_RESOURCE_KEY,
+        ),
+      )
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, PLATFORM_CLIENT_VAULT_ATTACHMENTS))
+      .addStep(newPreserveClientCredentialsStep())
+      .addStep(newPersistUpdatedClientStep(deps.clients))
+      .build()
+      .execute(reqCtx);
+    return redactPlatformClient(reqCtx.newState);
+  });
 }
 
 /**

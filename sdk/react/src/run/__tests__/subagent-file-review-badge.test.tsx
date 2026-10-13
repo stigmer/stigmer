@@ -1,140 +1,61 @@
 /**
  * Sub-agent file-review badges.
  *
- * A sub-agent's flowed file-edit row is stamped by the runner with the PARENT
- * turn's change set id (sub-agent writes fold into the parent set). These tests
- * lock the React side: a stamped row rendered inside a `SubAgentSection`
- * resolves its review-state badge against the session-wide `FileReviewContext`
- * map, and — end to end through `MessageThread` — that map is built from the
- * parent run's `status.fileChangeSets` and reaches the nested row.
+ * A sub-agent's file-edit row is a tool use of the PARENT turn (its run is
+ * the turn's run; sub-agent writes fold into the turn's file review). These
+ * tests lock the React side: an edit row rendered inside a `SubAgentSection`
+ * resolves its review-state badge against the `FileReviewContext` entry for
+ * its turn, by path, and — end to end through `MessageThread` — that entry is
+ * built from the turn's own `fileReview` and reaches the nested row.
  *
- * The per-row badge resolution itself (pending/kept/discarded/none) is covered
- * exhaustively in `ToolCallItem.test.tsx`; here the emphasis is the SUB-AGENT
- * wiring — the novel path this change enables.
+ * The per-row badge resolution itself (pending/kept/discarded/none) is
+ * covered exhaustively in `ToolCallItem.test.tsx`; here the emphasis is the
+ * SUB-AGENT wiring.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  FileContentSchema,
-  type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  SubAgentRunSchema,
-  type SubAgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import {
-  CapturedFileChangeSchema,
-  FileChangeSetSchema,
-  FileDecisionSchema,
-  type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  DiffCompleteness,
-  RunPhase,
-  FileChangeKind,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionScope,
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { render, cleanup } from "@testing-library/react";
+import type { FileReviewFile, FileReviewSet, Thread, Turn } from "@stigmer/sdk";
 import { SubAgentSection } from "../SubAgentSection";
-import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { FileReviewContext } from "../FileReviewContext";
 import { MessageThread } from "../MessageThread";
+import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
 
-const SET_ID = "exec-1:0";
 const ROW_PATH = "src/a.ts";
-
-const emptyApprovalCtx: ApprovalContextValue = {
-  approvalsByToolCallId: new Map(),
-  submittingIds: new Set(),
-  errorsByToolCallId: new Map(),
-};
 
 afterEach(cleanup);
 
-/** A sub-agent whose message carries one stamped, flowed file-edit row. */
-function subAgentWithStampedEdit(
-  status: SubAgentStatus,
-  fileChangeSetId: string,
-  rowPath = ROW_PATH,
-): SubAgentRun {
-  return create(SubAgentRunSchema, {
+/** A sub-agent whose thread carries one file-edit row of the parent turn. */
+function subAgentWithEdit(state: Thread["state"], rowPath = ROW_PATH): Thread {
+  return thread({
     id: "sa-1",
-    name: "code_editor",
-    status,
-    messages: [
-      create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_AI,
-        toolCalls: [
-          create(ToolCallSchema, {
-            id: "sa-tc-edit",
-            name: "edit",
-            status: ToolCallStatus.TOOL_CALL_COMPLETED,
-            args: { path: rowPath, old_string: "a", new_string: "b" },
-            fileChangeSetId,
-          }),
-        ],
+    agentName: "code_editor",
+    state,
+    items: [
+      toolUse({
+        id: "sa-tc-edit",
+        name: "edit",
+        threadId: "sa-1",
+        input: { path: rowPath, old_string: "a", new_string: "b" },
+        result: "ok",
       }),
     ],
   });
 }
 
-/** A change set carrying one change for {@link ROW_PATH}, with optional verdict. */
-function reviewSet(
-  status: FileChangeSetStatus,
-  decisions: FileDecisionAction[] = [],
-): FileChangeSet {
-  return create(FileChangeSetSchema, {
-    id: SET_ID,
-    status,
-    aggregateDigest: "agg-1",
-    diffCompleteness: DiffCompleteness.COMPLETE,
-    changes: [
-      create(CapturedFileChangeSchema, {
-        id: `${SET_ID}:${ROW_PATH}`,
-        pathBefore: ROW_PATH,
-        pathAfter: ROW_PATH,
-        kind: FileChangeKind.MODIFY,
-        before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
-        after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
-        fileDigest: "d-a",
-        diffComplete: true,
-      }),
-    ],
-    decisions: decisions.map((action) =>
-      create(FileDecisionSchema, {
-        changeSetId: SET_ID,
-        scope: FileDecisionScope.CHANGE_SET,
-        action,
-      }),
-    ),
-  });
+/** The turn's review: one file at {@link ROW_PATH} in `state`. */
+function turnReview(state: FileReviewFile["state"]): FileReviewSet {
+  return reviewSet({ files: [reviewFile({ path: ROW_PATH, state })] });
 }
 
-function renderSubAgentRow(sub: SubAgentRun, set: FileChangeSet | null) {
-  const map = set ? new Map([[set.id, set]]) : new Map<string, FileChangeSet>();
+function renderSubAgentRow(sub: Thread, set: FileReviewSet | null) {
+  const fileReviewByRunId = new Map(set ? [["run_1", [set]] as const] : []);
   return render(
-    <ApprovalContext.Provider value={emptyApprovalCtx}>
-      <FileReviewContext.Provider value={{ changeSetsById: map }}>
-        {/* collapsible=false renders the nested rows flat — deterministic, no
-            dependence on the card's auto-disclosure state. */}
-        <SubAgentSection subAgentRun={sub} collapsible={false} />
-      </FileReviewContext.Provider>
-    </ApprovalContext.Provider>,
+    <FileReviewContext.Provider value={{ fileReviewByRunId, changeSetsById: new Map() }}>
+      {/* collapsible=false renders the nested rows flat — deterministic, no
+          dependence on the card's auto-disclosure state. */}
+      <SubAgentSection thread={sub} collapsible={false} />
+    </FileReviewContext.Provider>,
   );
 }
 
@@ -143,54 +64,34 @@ function badge(container: HTMLElement): Element | null {
 }
 
 describe("sub-agent row badges (SubAgentSection)", () => {
-  it("badges a stamped sub-agent edit row 'Pending review' while its set awaits review", () => {
-    const { container } = renderSubAgentRow(
-      subAgentWithStampedEdit(SubAgentStatus.SUB_AGENT_COMPLETED, SET_ID),
-      reviewSet(FileChangeSetStatus.AWAITING_REVIEW),
-    );
+  it("badges a sub-agent edit row 'Pending review' while its file is undecided", () => {
+    const { container } = renderSubAgentRow(subAgentWithEdit("completed"), turnReview("undecided"));
     expect(badge(container)?.textContent).toBe("Pending review");
   });
 
-  it("flips a sub-agent row to the file's verdict once the set is decided", () => {
-    const kept = renderSubAgentRow(
-      subAgentWithStampedEdit(SubAgentStatus.SUB_AGENT_COMPLETED, SET_ID),
-      reviewSet(FileChangeSetStatus.RECONCILED, [FileDecisionAction.APPROVE]),
-    );
+  it("flips a sub-agent row to the file's verdict once it is decided", () => {
+    const kept = renderSubAgentRow(subAgentWithEdit("completed"), turnReview("kept"));
     expect(badge(kept.container)?.textContent).toBe("Kept");
     cleanup();
 
-    const discarded = renderSubAgentRow(
-      subAgentWithStampedEdit(SubAgentStatus.SUB_AGENT_COMPLETED, SET_ID),
-      reviewSet(FileChangeSetStatus.RECONCILED, [FileDecisionAction.REJECT]),
-    );
+    const discarded = renderSubAgentRow(subAgentWithEdit("completed"), turnReview("undone"));
     expect(badge(discarded.container)?.textContent).toBe("Discarded");
   });
 
-  it("shows no badge when the stamped set cannot be resolved (graceful degrade)", () => {
-    // Row stamped with a set id absent from the session map.
-    const orphan = renderSubAgentRow(
-      subAgentWithStampedEdit(SubAgentStatus.SUB_AGENT_COMPLETED, "exec-1:missing"),
-      reviewSet(FileChangeSetStatus.AWAITING_REVIEW),
-    );
-    expect(badge(orphan.container)).toBeNull();
+  it("shows no badge when the turn has no review, or the row's file is not in it", () => {
+    const noReview = renderSubAgentRow(subAgentWithEdit("completed"), null);
+    expect(badge(noReview.container)).toBeNull();
     cleanup();
 
-    // Row stamped with the right (settled) set, but its path is not in the set's
-    // changes: the per-file verdict cannot be resolved, so no badge. (An
-    // AWAITING_REVIEW set badges every stamped row 'pending' regardless of path —
-    // path resolution only decides the verdict of a SETTLED set.)
-    const pathMiss = renderSubAgentRow(
-      subAgentWithStampedEdit(SubAgentStatus.SUB_AGENT_COMPLETED, SET_ID, "src/other.ts"),
-      reviewSet(FileChangeSetStatus.RECONCILED, [FileDecisionAction.APPROVE]),
-    );
+    const pathMiss = renderSubAgentRow(subAgentWithEdit("completed", "src/other.ts"), turnReview("kept"));
     expect(badge(pathMiss.container)).toBeNull();
   });
 });
 
 // ---------------------------------------------------------------------------
-// End-to-end through MessageThread: proves the session-wide FileReviewContext
-// map is built from the PARENT run's status.fileChangeSets and reaches a
-// stamped row nested inside a sub-agent (the map + provider + nested-render path).
+// End-to-end through MessageThread: proves the FileReviewContext entry is
+// built from the turn's own file review and reaches an edit row nested
+// inside a sub-agent (the map + provider + nested-render path).
 // ---------------------------------------------------------------------------
 
 describe("sub-agent row badges (MessageThread integration)", () => {
@@ -227,46 +128,30 @@ describe("sub-agent row badges (MessageThread integration)", () => {
   });
 
   /**
-   * A live run that delegated to a sub-agent which edited a file this
-   * turn. The parent carries the `task` tool call (matched to the sub-agent by
-   * id) and the change set on `status.fileChangeSets`; the sub-agent (running,
-   * so its card auto-opens) carries the stamped edit row.
+   * A live turn that delegated to a sub-agent which edited a file: the
+   * turn's `task` call carries the sub-agent's thread (running, so its card
+   * auto-opens), and the turn's review holds the file.
    */
-  function makeExecWithSubAgentEdit(): Run {
-    const exec = create(RunSchema);
-    exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-1" });
-    exec.spec = create(RunSpecSchema, { message: "Delegate an edit" });
-
-    const status = create(RunStatusSchema);
-    status.phase = RunPhase.RUN_IN_PROGRESS;
-    const aiMsg: AgentMessage = create(AgentMessageSchema, {
-      type: MessageType.MESSAGE_AI,
-      content: "Delegating.",
-      toolCalls: [
-        create(ToolCallSchema, {
-          id: "sa-1", // matches the SubAgentRun id
-          name: "task",
-          status: ToolCallStatus.TOOL_CALL_COMPLETED,
-        }),
-      ],
-    });
-    status.messages = [aiMsg];
-    status.subAgentRuns = [
-      subAgentWithStampedEdit(SubAgentStatus.SUB_AGENT_IN_PROGRESS, SET_ID),
-    ];
-    status.fileChangeSets = [reviewSet(FileChangeSetStatus.AWAITING_REVIEW)];
-    exec.status = status;
-    return exec;
+  function turnWithSubAgentEdit(): Turn {
+    const task = toolUse({ id: "sa-1", name: "task", state: "running", thread: subAgentWithEdit("running") });
+    return {
+      runId: "run_1",
+      userMessage: { id: "run_1.user", text: "Delegate an edit", processedAt: "" },
+      items: [{ kind: "message", id: "run_1.root.m0", text: "Delegating.", live: false, processedAt: "" }, task],
+      status: { phase: "running", stopCause: "", error: "", processedAt: "" },
+      ended: false,
+      asks: [],
+      todos: [],
+      structuredOutput: undefined,
+      memory: undefined,
+      fileReview: [turnReview("undecided")],
+      errors: [],
+      answer: "Delegating.",
+    };
   }
 
-  it("badges a stamped sub-agent row from a set on the parent execution's fileChangeSets", () => {
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={makeExecWithSubAgentEdit()}
-        showFileReviewRecords
-      />,
-    );
+  it("badges a sub-agent row from its turn's file review", () => {
+    render(<MessageThread turns={[turnWithSubAgentEdit()]} showFileReviewRecords />);
     const el = document.querySelector('[data-cursor-target="file-review-row-badge"]');
     expect(el?.textContent).toBe("Pending review");
   });

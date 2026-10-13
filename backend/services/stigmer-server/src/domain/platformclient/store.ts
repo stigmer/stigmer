@@ -16,21 +16,23 @@
  * not the port's: an implementation may keep its own unique index as a
  * backstop.
  *
- * One write is atomic: `modifyById`, the port's rendering of
- * `Store.updateResource`, for the status the platform writes on its own
- * (the mint's last-use stamp, identity/credential-use.ts). `update` stays
- * a whole-row replace for the chains that load, edit and persist; a stamp
- * written that way would race them and could restore a rotated secret. The
- * driver supplies only the atomicity; what `modify` does stays the
- * domain's, written once for every edition.
+ * Two writes build on a stored row. `modifyById`, the port's rendering of
+ * `Store.updateResource`, is for a writer that names its fields (the
+ * mint's last-use stamp, identity/credential-use.ts; a secret rotation; a
+ * rename). `readForWrite` and `swap` are the guarded write
+ * (store/guarded-port.ts) for the update chain, which rebuilds the row
+ * across awaited steps: the swap lands only while the row is as the chain
+ * read it, so a stamp or a rotation in between is never undone. The driver
+ * supplies only the atomicity; what `modify` does stays the domain's,
+ * written once for every edition.
  *
  * Contract every implementation must satisfy — proven by the port-contract
  * kit (store-contract.ts, exported), which the OSS adapter's test iterates
  * on both drivers and a composition's driver test iterates too:
  *   - `save` is create-only in effect: a held id or a held client_id
  *     raises DuplicatePlatformClientError, never a silent overwrite;
- *   - `update` replaces by id and never creates: an unknown id writes
- *     nothing;
+ *   - `swap` stores a row only while its bytes are the ones
+ *     `readForWrite` answered, and never creates (store/guarded-port.ts);
  *   - `modifyById` reads the row, applies `modify` and persists the result
  *     in one atomic step, so no concurrent write is lost; it answers the
  *     persisted row, an unknown id answers `undefined` and writes nothing,
@@ -44,6 +46,8 @@
  *     on the verifier's path would revoke every live token).
  */
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+
+import type { GuardedWritePort } from "../../store/guarded-port.js";
 
 /**
  * Raised by `save` when the id or the client_id is already held (or when
@@ -59,11 +63,9 @@ export class DuplicatePlatformClientError extends Error {
   }
 }
 
-export interface PlatformClientStore {
+export interface PlatformClientStore extends GuardedWritePort<PlatformClient> {
   /** Insert; a held id or client_id raises DuplicatePlatformClientError. */
   save(client: PlatformClient): Promise<void>;
-  /** Full-row replace by id; an unknown id writes nothing. */
-  update(client: PlatformClient): Promise<void>;
   /**
    * Atomic read-modify-write by id: `modify` mutates the stored client in
    * place and the result is persisted, or nothing is. `modify` MUST be

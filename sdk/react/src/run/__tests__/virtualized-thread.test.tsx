@@ -1,18 +1,17 @@
+/**
+ * Pins MessageThread's two render paths over the session's folded turns:
+ * the thread item renderer for a person's message (pending dimmed), a phase
+ * badge and setup progress; the default scroll container with its log
+ * semantics; and the opt-in virtualized path (Virtuoso mocked): bottom
+ * alignment, follow-output, semantic keys, the 80px threshold, the
+ * scroller's log semantics, real item content, overscan, the same items as
+ * the plain path, and entry animation only on the tail items.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import React from "react";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { samples } from "../../test/samples";
 import {
   buildThreadItems,
   ThreadItemRenderer,
@@ -111,29 +110,14 @@ afterEach(() => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeExecution(id: string, specMessage: string, aiContent: string) {
-  const exec = create(RunSchema);
-
-  const meta = create(ApiResourceMetadataSchema);
-  meta.id = id;
-  exec.metadata = meta;
-
-  const spec = create(RunSpecSchema);
-  spec.message = specMessage;
-  exec.spec = spec;
-
-  const status = create(RunStatusSchema);
-  status.phase = RunPhase.RUN_COMPLETED;
-  const humanMsg = create(AgentMessageSchema);
-  humanMsg.type = MessageType.MESSAGE_HUMAN;
-  humanMsg.content = specMessage;
-  const aiMsg = create(AgentMessageSchema);
-  aiMsg.type = MessageType.MESSAGE_AI;
-  aiMsg.content = aiContent;
-  status.messages = [humanMsg, aiMsg];
-  exec.status = status;
-
-  return exec;
+/** A conversation of finished turns, each `[runId, message, reply]`: the runs and their folded events. */
+function makeConversation(...turns: Array<[string, string, string]>) {
+  return {
+    turns: samples.fold(
+      turns.flatMap(([runId, message, reply]) => samples.turnEvents({ runId, message, reply })),
+    ).turns,
+    runs: turns.map(([id, message]) => samples.run({ id, message })),
+  };
 }
 
 // Lazy import — must import after mocks are set up
@@ -148,24 +132,20 @@ async function importMessageThread() {
 
 describe("ThreadItemRenderer", () => {
   it("renders a message item", () => {
-    const msg = create(AgentMessageSchema);
-    msg.type = MessageType.MESSAGE_HUMAN;
-    msg.content = "Hello world";
-
-    const item: ThreadItem = { kind: "message", message: msg, key: "test-1" };
+    const item: ThreadItem = {
+      kind: "message",
+      message: { kind: "user", id: "u1", text: "Hello world" },
+      key: "test-1",
+    };
 
     render(<ThreadItemRenderer item={item} />);
     expect(screen.getByText("Hello world")).toBeTruthy();
   });
 
   it("renders a pending message with opacity", () => {
-    const msg = create(AgentMessageSchema);
-    msg.type = MessageType.MESSAGE_HUMAN;
-    msg.content = "Sending...";
-
     const item: ThreadItem = {
       kind: "message",
-      message: msg,
+      message: { kind: "user", id: "pending", text: "Sending..." },
       key: "pending",
       isPending: true,
     };
@@ -205,9 +185,9 @@ describe("ThreadItemRenderer", () => {
 describe("MessageThread (non-virtualized)", () => {
   it("renders items in a role=log container by default", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello", "Hi there");
+    const exec = makeConversation(["e1", "Hello", "Hi there"]);
 
-    render(<MessageThread runs={[exec]} />);
+    render(<MessageThread {...exec} />);
 
     const log = screen.getByRole("log");
     expect(log).toBeTruthy();
@@ -217,9 +197,9 @@ describe("MessageThread (non-virtualized)", () => {
 
   it("does not render Virtuoso when virtualized is false", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello", "Hi");
+    const exec = makeConversation(["e1", "Hello", "Hi"]);
 
-    render(<MessageThread runs={[exec]} />);
+    render(<MessageThread {...exec} />);
     expect(capturedVirtuosoProps.data).toBeUndefined();
   });
 });
@@ -231,9 +211,9 @@ describe("MessageThread (non-virtualized)", () => {
 describe("MessageThread (virtualized)", () => {
   it("renders via Virtuoso when virtualized=true", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello", "Hi there");
+    const exec = makeConversation(["e1", "Hello", "Hi there"]);
 
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     // Wait for lazy import to resolve
     await vi.waitFor(() => {
@@ -246,9 +226,9 @@ describe("MessageThread (virtualized)", () => {
 
   it("passes alignToBottom=true to Virtuoso", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello", "Hi");
+    const exec = makeConversation(["e1", "Hello", "Hi"]);
 
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     await vi.waitFor(() => {
       expect(capturedVirtuosoProps.alignToBottom).toBe(true);
@@ -257,9 +237,9 @@ describe("MessageThread (virtualized)", () => {
 
   it("passes followOutput callback to Virtuoso", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello", "Hi");
+    const exec = makeConversation(["e1", "Hello", "Hi"]);
 
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     await vi.waitFor(() => {
       expect(typeof capturedVirtuosoProps.followOutput).toBe("function");
@@ -274,9 +254,9 @@ describe("MessageThread (virtualized)", () => {
 
   it("uses stable semantic keys via computeItemKey", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("exec-42", "Hello", "Hi");
+    const exec = makeConversation(["exec-42", "Hello", "Hi"]);
 
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     await vi.waitFor(() => {
       expect(capturedVirtuosoProps.computeItemKey).toBeDefined();
@@ -295,9 +275,9 @@ describe("MessageThread (virtualized)", () => {
 
   it("sets atBottomThreshold matching the non-virtualized 80px margin", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello", "Hi");
+    const exec = makeConversation(["e1", "Hello", "Hi"]);
 
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     await vi.waitFor(() => {
       expect(capturedVirtuosoProps.atBottomThreshold).toBe(80);
@@ -306,9 +286,9 @@ describe("MessageThread (virtualized)", () => {
 
   it("applies a11y attributes to the scroller", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello", "Hi");
+    const exec = makeConversation(["e1", "Hello", "Hi"]);
 
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     await vi.waitFor(() => {
       const scroller = screen.getByTestId("virtuoso-scroller");
@@ -320,9 +300,9 @@ describe("MessageThread (virtualized)", () => {
 
   it("renders actual thread item content through Virtuoso", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello from user", "Hello from AI");
+    const exec = makeConversation(["e1", "Hello from user", "Hello from AI"]);
 
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     await vi.waitFor(() => {
       expect(screen.getAllByText("Hello from user").length).toBeGreaterThan(0);
@@ -332,9 +312,9 @@ describe("MessageThread (virtualized)", () => {
 
   it("sets increaseViewportBy for overscan", async () => {
     const MessageThread = await importMessageThread();
-    const exec = makeExecution("e1", "Hello", "Hi");
+    const exec = makeConversation(["e1", "Hello", "Hi"]);
 
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     await vi.waitFor(() => {
       expect(capturedVirtuosoProps.increaseViewportBy).toEqual({
@@ -345,11 +325,11 @@ describe("MessageThread (virtualized)", () => {
   });
 
   it("builds the same items for both paths", async () => {
-    const exec = makeExecution("e1", "Hello", "Hi there");
-    const items = buildThreadItems([exec], null, null, false, undefined);
+    const exec = makeConversation(["e1", "Hello", "Hi there"]);
+    const items = buildThreadItems(exec.turns, exec.runs);
 
     const MessageThread = await importMessageThread();
-    render(<MessageThread runs={[exec]} virtualized />);
+    render(<MessageThread {...exec} virtualized />);
 
     await vi.waitFor(() => {
       const data = capturedVirtuosoProps.data as ThreadItem[];
@@ -358,14 +338,14 @@ describe("MessageThread (virtualized)", () => {
   });
 
   it("applies entry animation only to tail items (last 2)", async () => {
-    const execs = [
-      makeExecution("e1", "First", "Response 1"),
-      makeExecution("e2", "Second", "Response 2"),
-      makeExecution("e3", "Third", "Response 3"),
-    ];
+    const execs = makeConversation(
+      ["e1", "First", "Response 1"],
+      ["e2", "Second", "Response 2"],
+      ["e3", "Third", "Response 3"],
+    );
 
     const MessageThread = await importMessageThread();
-    render(<MessageThread runs={execs} virtualized />);
+    render(<MessageThread {...execs} virtualized />);
 
     await vi.waitFor(() => {
       const data = capturedVirtuosoProps.data as ThreadItem[];

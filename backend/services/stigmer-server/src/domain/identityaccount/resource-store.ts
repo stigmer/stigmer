@@ -28,20 +28,16 @@
  * answer that row and then filter it away, hiding the person by scan
  * order.
  *
- * `save` and `update` are both read-then-write because the generic
- * Store's saveResource is an upsert with neither a create-only nor an
- * update-only form. `save` refuses when the read finds a row (the port:
- * a held id is DuplicateAccountError, never a silent overwrite); `update`
- * returns when the read finds none (the port: replace, never
- * create — a driver whose UPDATE matches no row writes nothing, and this
- * adapter must not differ). The residual window between the read and
- * the write admits a same-content overwrite of the first writer's audit
- * stamp, or a row recreated under a concurrent delete, by milliseconds —
- * the posture every chain on the platform has today (CheckDuplicate then
- * upsert); conditional store writes are a platform-wide follow-up, not
- * this adapter's to invent. The primary key still guarantees ONE row per
- * subject, which is the invariant that matters. Before either reads, both
- * refuse an account whose provider ref and federated mode disagree (the
+ * `save` is read-then-write because the generic Store's saveResource is
+ * an upsert with no create-only form: it refuses when the read finds a row
+ * (the port: a held id is DuplicateAccountError, never a silent
+ * overwrite). The residual window between the read and the write admits a
+ * same-content overwrite of the first writer's audit stamp by
+ * milliseconds; the primary key still guarantees ONE row per subject,
+ * which is the invariant that matters. `readForWrite` and `swap` ARE
+ * Store.readResourceForWrite and Store.swapResource, the guarded write.
+ * Before either writes, both `save` and `swap` refuse an account whose
+ * provider ref and federated mode disagree (the
  * port's shape line), so a refused write costs no store round trip.
  *
  * Store faults follow the store-fault mapping (domain/apikey/lookup.ts): a
@@ -60,6 +56,7 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import { ResourceNotFoundError } from "../../store/interface.js";
+import type { GuardedRead } from "../../store/guarded-port.js";
 import type { Store } from "../../store/interface.js";
 import { accountIdFor, federatedAccountIdFor } from "./constants.js";
 import { DuplicateAccountError } from "./store.js";
@@ -112,13 +109,31 @@ export function newResourceIdentityAccountStore(
       await store.saveResource(KIND, id, IdentityAccountSchema, account);
     },
 
-    async update(account): Promise<void> {
-      refuseMixedShape(account);
-      const id = account.metadata?.id ?? "";
-      if ((await readById(id)) === undefined) {
-        return;
+    async readForWrite(id): Promise<GuardedRead<IdentityAccount> | undefined> {
+      try {
+        const read = await store.readResourceForWrite(
+          KIND,
+          id,
+          IdentityAccountSchema,
+        );
+        return { row: read.resource, bytes: read.bytes };
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          return undefined;
+        }
+        throw error;
       }
-      await store.saveResource(KIND, id, IdentityAccountSchema, account);
+    },
+
+    async swap(id, expectedBytes, next): Promise<boolean> {
+      refuseMixedShape(next);
+      return store.swapResource(
+        KIND,
+        id,
+        IdentityAccountSchema,
+        expectedBytes,
+        next,
+      );
     },
 
     async deleteById(id): Promise<void> {
@@ -221,7 +236,7 @@ export function newResourceIdentityAccountStore(
 /**
  * The port's shape line (store.ts): an account carries an
  * identity_provider_ref if and only if its mode is `federated`. Both mixed
- * shapes are refused before any read, on `save` and on `update` alike. A ref
+ * shapes are refused before any write, on `save` and on `swap` alike. A ref
  * under another mode is the row that split a person's sign-in (stigmer#1190):
  * every direct lookup skipped it, so the subject looked new. Mode `federated`
  * with no ref is a provider's subject that a driver which classifies by the

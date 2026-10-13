@@ -1,53 +1,45 @@
+// The agent's to-do list in the terminal: a turn's to-dos from the session's
+// fold (`Turn.todos`), sorted by activity, with a completed count.
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Todo } from "@stigmer/sdk";
 
 /** Props for {@link TodoList}. */
 export interface TodoListProps {
-  /** Map of todo item IDs to their current state, as provided by the run status. */
-  readonly todos: { readonly [key: string]: TodoItem };
+  /** The turn's to-do items, as its fold holds them (`Turn.todos`). */
+  readonly todos: readonly Todo[];
 }
 
-const STATUS_SORT_ORDER: ReadonlyMap<TodoStatus, number> = new Map([
-  [TodoStatus.TODO_IN_PROGRESS, 0],
-  [TodoStatus.TODO_PENDING, 1],
-  [TodoStatus.TODO_COMPLETED, 2],
-  [TodoStatus.TODO_CANCELLED, 3],
-]);
+const STATUS_SORT_ORDER: Readonly<Record<Todo["status"], number>> = {
+  in_progress: 0,
+  pending: 1,
+  completed: 2,
+  cancelled: 3,
+};
 
-const STATUS_DISPLAY: Record<number, { glyph: string; color: string }> = {
-  [TodoStatus.TODO_PENDING]: { glyph: "○", color: "gray" },
-  [TodoStatus.TODO_IN_PROGRESS]: { glyph: "●", color: "cyan" },
-  [TodoStatus.TODO_COMPLETED]: { glyph: "✓", color: "green" },
-  [TodoStatus.TODO_CANCELLED]: { glyph: "⊘", color: "gray" },
+const STATUS_DISPLAY: Readonly<Record<Todo["status"], { glyph: string; color: string }>> = {
+  pending: { glyph: "○", color: "gray" },
+  in_progress: { glyph: "●", color: "cyan" },
+  completed: { glyph: "✓", color: "green" },
+  cancelled: { glyph: "⊘", color: "gray" },
 };
 
 /**
- * Renders a sorted checklist of todo items in the terminal.
+ * Renders a sorted checklist of to-do items in the terminal.
  *
  * Items are sorted by activity: in-progress first, then pending,
  * completed, and cancelled. Terminal equivalent of the web SDK's
  * TodoList component.
  */
 export function TodoList({ todos }: TodoListProps) {
-  const sortedTodos = useMemo(() => {
-    const items = Object.values(todos);
-    if (items.length === 0) return [];
-    return items
-      .slice()
-      .sort(
-        (a, b) =>
-          (STATUS_SORT_ORDER.get(a.status) ?? 4) -
-          (STATUS_SORT_ORDER.get(b.status) ?? 4),
-      );
-  }, [todos]);
+  const sortedTodos = useMemo(
+    () => todos.slice().sort((a, b) => STATUS_SORT_ORDER[a.status] - STATUS_SORT_ORDER[b.status]),
+    [todos],
+  );
 
   if (sortedTodos.length === 0) return null;
 
-  const completed = sortedTodos.filter(
-    (t) => t.status === TodoStatus.TODO_COMPLETED,
-  ).length;
+  const completed = sortedTodos.filter((t) => t.status === "completed").length;
 
   return (
     <Box flexDirection="column">
@@ -56,8 +48,8 @@ export function TodoList({ todos }: TodoListProps) {
         <Text dimColor>({completed}/{sortedTodos.length})</Text>
       </Box>
       {sortedTodos.map((item) => {
-        const display = STATUS_DISPLAY[item.status] ?? { glyph: "·", color: "gray" };
-        const isCancelled = item.status === TodoStatus.TODO_CANCELLED;
+        const display = STATUS_DISPLAY[item.status];
+        const isCancelled = item.status === "cancelled";
         return (
           <Box key={item.id} gap={1} paddingLeft={1}>
             <Text color={display.color}>{display.glyph}</Text>

@@ -1,24 +1,23 @@
+// The terminal's decision surface for a turn's file changes: keep or undo
+// the whole set, or each file, against the digests the reviewer saw. What is
+// decided comes from the session's fold (`FileReviewSet`); the selected
+// file's diff renders from the run's captured bytes when the caller holds
+// them.
 import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type {
-  CapturedFileChange,
-  FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  FileDecisionAction,
-  FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileReviewFile, FileReviewSet } from "@stigmer/sdk";
 import {
   changeSetReviewability,
+  fileChangeKindOf,
   fileReviewability,
-  deriveEffectiveVerdicts,
-  fileDecisionKey,
-  type FileDecisionOptions,
+  type FileReviewAction,
+  type ReviewFileChangesOptions,
 } from "@stigmer/react";
 import {
   blockReasonNote,
-  changeDisplayPath,
   changeSetLineStats,
+  fileDisplayPath,
   kindLetter,
 } from "../file-review.js";
 import { FileLineStats } from "./FileReviewAtoms.js";
@@ -26,17 +25,22 @@ import { FileDiffBody } from "./FileDiffBody.js";
 
 /** Props for {@link FileReviewPrompt}. */
 export interface FileReviewPromptProps {
-  /** The AWAITING_REVIEW change set this prompt decides. */
-  readonly changeSet: FileChangeSet;
+  /** The set with files still undecided this prompt decides (`Turn.fileReview`). */
+  readonly fileReviewSet: FileReviewSet;
   /**
-   * Submit a decision for this set (or one file within it). Bound to the active
-   * run by the caller; the terminal analogue of the web dock's
-   * `submitFileDecision`.
+   * The set's captured bytes (its run's change set), when the caller holds
+   * them (`useSessionConversation().fileChangeCaptures`): the per-file mode
+   * renders the selected file's diff from them.
+   */
+  readonly capture?: FileChangeSet | null;
+  /**
+   * Submit a decision for this set (or one file within it), bound to the
+   * session by the caller (`useSessionConversation().reviewFileChanges`).
    */
   readonly onSubmit: (
     changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
+    action: FileReviewAction,
+    options: ReviewFileChangesOptions,
   ) => void;
   /** Keys (via `fileDecisionKey`) currently being submitted — drives busy state. */
   readonly submittingDecisionKeys?: ReadonlySet<string>;
@@ -80,20 +84,21 @@ interface BulkOption {
  * web's composer-docked `FileReviewDock`/`FileReviewCard`.
  *
  * Renders `N files awaiting review` and, gated by `changeSetReviewability`:
- * bulk Approve/Keep all + Reject all (a complete set is approvable as-is; a
+ * bulk Approve/Keep all + Reject all (a complete set is keepable as-is; a
  * binary-only set is kept with an acknowledgement; a blocked set can only be
- * rejected in bulk), plus a per-file mode (`f`) for keeping/discarding each file
+ * undone in bulk), plus a per-file mode (`f`) for keeping/discarding each file
  * — the only way to resolve a blocked or mixed set, since the server refuses a
- * whole-set approve unless every file is complete. Decisions carry the same
- * digests (`aggregate_digest` / `file_digest`) and `acknowledge_unreviewable`
- * semantics as the web; no decision-model change.
+ * whole-set keep unless every file is complete. Decisions carry the same
+ * digests (the set's aggregate digest / the file's digest) and the
+ * acknowledgement semantics as the web.
  *
  * Keyboard: `a` approve/keep all · `r` reject all · `f` per-file mode; in
  * per-file mode ↑/↓ move, `k` keep, `d` discard, `esc` back. Input is gated by
  * `isActive` so only one decision surface owns the keyboard at a time.
  */
 export function FileReviewPrompt({
-  changeSet,
+  fileReviewSet,
+  capture = null,
   onSubmit,
   submittingDecisionKeys,
   decisionErrors,
@@ -102,25 +107,21 @@ export function FileReviewPrompt({
   const [perFile, setPerFile] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const changes = changeSet.changes;
-  const total = changes.length;
-  const reviewability = changeSetReviewability(changeSet);
+  const files = fileReviewSet.files;
+  const total = files.length;
+  const setId = fileReviewSet.changeSetId;
+  const reviewability = changeSetReviewability(fileReviewSet);
   const binaryOnly = reviewability === "binary-only";
   const canBulkApprove = reviewability !== "blocked";
 
-  const verdicts = useMemo(
-    () => deriveEffectiveVerdicts(changeSet),
-    [changeSet],
+  const decidedCount = useMemo(
+    () => files.filter((file) => file.state !== "undecided").length,
+    [files],
   );
-  const decidedCount = useMemo(() => {
-    let n = 0;
-    for (const c of changes) if (verdicts.has(c.id)) n++;
-    return n;
-  }, [changes, verdicts]);
 
   // The set's aggregate +N −M, shown beside the header so the bar carries the
   // magnitude of what is being decided, not just the file count (web parity).
-  const lineStats = useMemo(() => changeSetLineStats(changeSet), [changeSet]);
+  const lineStats = useMemo(() => changeSetLineStats(fileReviewSet), [fileReviewSet]);
 
   const labels = bulkLabels(total, decidedCount, binaryOnly);
 
@@ -129,57 +130,55 @@ export function FileReviewPrompt({
   const busy = useMemo(() => {
     if (!submittingDecisionKeys) return false;
     for (const key of submittingDecisionKeys) {
-      if (key === changeSet.id || key.startsWith(`${changeSet.id}:`)) return true;
+      if (key === setId || key.startsWith(`${setId}:`)) return true;
     }
     return false;
-  }, [submittingDecisionKeys, changeSet.id]);
+  }, [submittingDecisionKeys, setId]);
 
   const errorText = useMemo(() => {
     if (!decisionErrors) return null;
     for (const [key, err] of decisionErrors) {
-      if (key === changeSet.id || key.startsWith(`${changeSet.id}:`)) {
+      if (key === setId || key.startsWith(`${setId}:`)) {
         return err.message;
       }
     }
     return null;
-  }, [decisionErrors, changeSet.id]);
+  }, [decisionErrors, setId]);
 
-  const submitBulk = (action: FileDecisionAction) => {
-    onSubmit(changeSet.id, action, {
-      scope: FileDecisionScope.CHANGE_SET,
-      expectedDigest: changeSet.aggregateDigest,
-      acknowledgeUnreviewable: action === FileDecisionAction.APPROVE && binaryOnly,
+  const submitBulk = (action: FileReviewAction) => {
+    onSubmit(setId, action, {
+      scope: "change_set",
+      expectedDigest: fileReviewSet.aggregateDigest,
+      acknowledgeUnreviewable: action === "keep" && binaryOnly,
     });
   };
 
-  const submitFile = (change: CapturedFileChange, action: FileDecisionAction) => {
-    onSubmit(changeSet.id, action, {
-      scope: FileDecisionScope.FILE,
-      fileChangeId: change.id,
-      expectedDigest: change.fileDigest,
-      acknowledgeUnreviewable:
-        action === FileDecisionAction.APPROVE &&
-        fileReviewability(change).kind === "binary",
+  const submitFile = (file: FileReviewFile, action: FileReviewAction) => {
+    onSubmit(setId, action, {
+      scope: "file",
+      fileChangeId: file.fileChangeId,
+      expectedDigest: file.digest,
+      acknowledgeUnreviewable: action === "keep" && fileReviewability(file).kind === "binary",
     });
   };
 
   // Rebuilt each render (cheap; 2-3 options) so the `run` closures always bind
-  // the current `changeSet`/`onSubmit` — a memo keyed on the labels would hold
-  // a stale submit closure when the set updates without changing its labels.
+  // the current set and `onSubmit` — a memo keyed on the labels would hold a
+  // stale submit closure when the set updates without changing its labels.
   const bulkOptions: BulkOption[] = [];
   if (canBulkApprove) {
     bulkOptions.push({
       label: labels.approve,
       shortcut: "a",
       color: "green",
-      run: () => submitBulk(FileDecisionAction.APPROVE),
+      run: () => submitBulk("keep"),
     });
   }
   bulkOptions.push({
     label: labels.reject,
     shortcut: "r",
     color: "red",
-    run: () => submitBulk(FileDecisionAction.REJECT),
+    run: () => submitBulk("undo"),
   });
   bulkOptions.push({
     label: "Review files",
@@ -208,15 +207,15 @@ export function FileReviewPrompt({
           setSelectedIndex((i) => (i < total - 1 ? i + 1 : 0));
           return;
         }
-        const change = changes[selectedIndex];
-        if (!change) return;
+        const file = files[selectedIndex];
+        if (!file) return;
         if (input === "k") {
           // Keep is refused for a file with no reviewable/keepable bytes.
-          if (fileReviewability(change).kind !== "unavailable") {
-            submitFile(change, FileDecisionAction.APPROVE);
+          if (fileReviewability(file).kind !== "unavailable") {
+            submitFile(file, "keep");
           }
         } else if (input === "d") {
-          submitFile(change, FileDecisionAction.REJECT);
+          submitFile(file, "undo");
         }
         return;
       }
@@ -249,8 +248,8 @@ export function FileReviewPrompt({
 
       {perFile ? (
         <PerFileList
-          changes={changes}
-          verdicts={verdicts}
+          files={files}
+          capture={capture}
           selectedIndex={selectedIndex}
           interactive={isActive && !busy}
         />
@@ -288,11 +287,20 @@ export function FileReviewPrompt({
 }
 
 interface PerFileListProps {
-  readonly changes: readonly CapturedFileChange[];
-  readonly verdicts: ReadonlyMap<string, FileDecisionAction>;
+  readonly files: readonly FileReviewFile[];
+  readonly capture: FileChangeSet | null;
   readonly selectedIndex: number;
   readonly interactive: boolean;
 }
+
+/** A file's decided state, as the per-file list reads it; `null` while undecided. */
+const DECIDED_LABEL: Readonly<Record<FileReviewFile["state"], string | null>> = {
+  undecided: null,
+  kept: "kept",
+  undoing: "discarded",
+  undone: "discarded",
+  undo_failed: "undo failed",
+};
 
 /**
  * The per-file review list: kind letter, path, verdict/keepability, and a hint,
@@ -301,40 +309,37 @@ interface PerFileListProps {
  * not inline between rows), so navigating never reflows the rows above.
  */
 function PerFileList({
-  changes,
-  verdicts,
+  files,
+  capture,
   selectedIndex,
   interactive,
 }: PerFileListProps) {
-  const selectedChange = changes[selectedIndex];
+  const selectedFile = files[selectedIndex];
+  const selectedChange = selectedFile
+    ? capture?.changes.find((change) => change.id === selectedFile.fileChangeId)
+    : undefined;
   return (
     <Box flexDirection="column" marginTop={1} paddingLeft={2}>
-      {changes.map((change, idx) => {
+      {files.map((file, idx) => {
         const selected = idx === selectedIndex;
-        const verdict = verdicts.get(change.id);
-        const note = blockReasonNote(change);
-        const decided =
-          verdict === FileDecisionAction.APPROVE
-            ? "kept"
-            : verdict === FileDecisionAction.REJECT
-              ? "discarded"
-              : null;
+        const note = blockReasonNote(file);
+        const decided = DECIDED_LABEL[file.state];
         return (
-          <Box key={change.id} gap={1}>
+          <Box key={file.fileChangeId} gap={1}>
             <Text color={selected ? "cyan" : undefined}>
               {selected ? "▸" : " "}
             </Text>
-            <Text dimColor>{kindLetter(change.kind)}</Text>
+            <Text dimColor>{kindLetter(fileChangeKindOf(file.change))}</Text>
             <Text
               color={selected ? "cyan" : undefined}
               bold={selected}
               wrap="truncate-end"
             >
-              {changeDisplayPath(change)}
+              {fileDisplayPath(file)}
             </Text>
             <FileLineStats
-              linesAdded={change.linesAdded}
-              linesRemoved={change.linesRemoved}
+              linesAdded={file.linesAdded}
+              linesRemoved={file.linesRemoved}
             />
             {decided && <Text dimColor>({decided})</Text>}
             {!decided && note && <Text color="yellow">— {note}</Text>}
@@ -351,9 +356,16 @@ function PerFileList({
 
       {/* Master-detail: the selected file's diff renders here (keyed by id so it
           remounts — and lazily re-resolves any offloaded body — as the selection
-          moves), below the list so the controls above never shift. */}
-      {selectedChange && (
+          moves), below the list so the controls above never shift. Without the
+          run's captured bytes there is no diff to show. */}
+      {selectedChange ? (
         <FileDiffBody key={selectedChange.id} change={selectedChange} />
+      ) : (
+        selectedFile && (
+          <Box marginTop={1}>
+            <Text dimColor>No diff available.</Text>
+          </Box>
+        )
       )}
     </Box>
   );

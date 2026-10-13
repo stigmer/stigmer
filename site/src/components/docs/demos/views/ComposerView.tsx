@@ -9,17 +9,15 @@
  */
 
 import { useEffect, useRef } from "react";
-import { MessageThread, SessionComposer } from "@stigmer/react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { DEMO_ORG, MOCK_WORKSPACE } from "../fixtures";
+import { MessageThread, SessionComposer, type MessageThreadProps } from "@stigmer/react";
+import { DEMO_ORG, MOCK_WORKSPACE, type DemoConversation } from "../fixtures";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 const noop = () => {};
 
 interface ComposerViewProps {
-  /** When provided, renders the conversation via MessageThread. */
-  execution?: Run;
+  /** When provided, renders the conversation's turns via MessageThread. */
+  conversation?: DemoConversation;
   /**
    * When provided, programmatically fills the SessionComposer textarea
    * with this text (simulating user typing).
@@ -30,15 +28,12 @@ interface ComposerViewProps {
   /** Agent reference chip shown in the composer. */
   agentRef?: { org: string; slug: string };
   /**
-   * When provided, `MessageThread` renders `ApprovalCard` items for
-   * pending approvals on the active run. The callback receives
-   * the tool call ID, the chosen action, and an optional comment.
+   * When provided, `MessageThread` renders the decision (Approve, Approve
+   * all, Deny) of each tool use that waits for a person, inline on its row.
+   * The callback receives the tool use's id, the answer, and a deny reason
+   * when one was typed.
    */
-  onApprovalSubmit?: (
-    toolCallId: string,
-    action: ApprovalAction,
-    comment?: string,
-  ) => void;
+  onAnswerToolUse?: MessageThreadProps["onAnswerToolUse"];
 }
 
 /**
@@ -47,24 +42,25 @@ interface ComposerViewProps {
  * Handles three visual states driven by props:
  * 1. **Empty** — `SessionComposer` in its "ready" state
  * 2. **Typing** — `SessionComposer` with pre-filled text
- * 3. **Conversation** — `MessageThread` showing run messages
+ * 3. **Conversation** — `MessageThread` showing the conversation's turns
  */
 export function ComposerView({
-  execution,
+  conversation,
   typingMessage,
   placeholder = "Describe your skill...",
   agentRef,
-  onApprovalSubmit,
+  onAnswerToolUse,
 }: ComposerViewProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-hidden">
-        {execution ? (
+        {conversation ? (
           <div className="flex h-full flex-col" style={{ zoom: DEMO_CONTENT_ZOOM }}>
             <MessageThread
-              runs={[execution]}
+              turns={conversation.turns}
+              runs={conversation.runs}
               className="max-h-[390px] px-3 py-2"
-              onApprovalSubmit={onApprovalSubmit}
+              onAnswerToolUse={onAnswerToolUse}
             />
           </div>
         ) : (

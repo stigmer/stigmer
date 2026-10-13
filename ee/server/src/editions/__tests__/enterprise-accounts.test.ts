@@ -34,7 +34,8 @@ function recordingStore(called: string[]): IdentityAccountStore {
   const account = create(IdentityAccountSchema, { metadata: { id: "ida_found" } });
   return {
     save: () => (called.push("save"), Promise.resolve()),
-    update: () => (called.push("update"), Promise.resolve()),
+    readForWrite: () => (called.push("readForWrite"), Promise.resolve(undefined)),
+    swap: () => (called.push("swap"), Promise.resolve(false)),
     deleteById: () => (called.push("deleteById"), Promise.resolve()),
     findById: () => (called.push("findById"), Promise.resolve(account)),
     findByIdpId: () => (called.push("findByIdpId"), Promise.resolve(account)),
@@ -94,7 +95,8 @@ describe("the server-ee account service's store", () => {
     const { accounts, called } = filled();
     const store = accounts.service.store;
     await store.save(ACCOUNT);
-    await store.update(ACCOUNT);
+    await store.readForWrite("ida_x");
+    await store.swap("ida_x", new Uint8Array(), ACCOUNT);
     await store.deleteById("ida_x");
     await store.findById("ida_x");
     await store.findByIdpId("okta|x");
@@ -106,7 +108,8 @@ describe("the server-ee account service's store", () => {
     await store.findByOrg("org_acme");
     expect(called).toEqual([
       "save",
-      "update",
+      "readForWrite",
+      "swap",
       "deleteById",
       "findById",
       "findByIdpId",

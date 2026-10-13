@@ -4,7 +4,6 @@ import { useCallback, useRef, useState } from "react";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import {
-  CancelRunInputSchema,
   TerminateRunInputSchema,
   PauseRunInputSchema,
   ResumeRunInputSchema,
@@ -15,7 +14,7 @@ import { toError } from "../internal/toError.js";
 /** Options for {@link useRunActions}. */
 export interface UseRunActionsOptions {
   /**
-   * Called after any lifecycle action (cancel, terminate, pause, resume)
+   * Called after any lifecycle action (terminate, pause, resume)
    * succeeds. Receives the updated run returned by the server.
    * Useful for triggering a refetch so the UI reflects the new phase.
    */
@@ -24,26 +23,12 @@ export interface UseRunActionsOptions {
 
 /** Return value of {@link useRunActions}. */
 export interface UseRunActionsReturn {
-  /** Cancel a running run gracefully (PENDING or IN_PROGRESS only). */
-  readonly cancel: (reason?: string) => Promise<Run | null>;
   /** Terminate a running run immediately (PENDING or IN_PROGRESS only). */
   readonly terminate: (reason?: string) => Promise<Run | null>;
   /** Pause a running run (PENDING or IN_PROGRESS only). */
   readonly pause: (reason?: string) => Promise<Run | null>;
   /** Resume a paused run. */
   readonly resume: () => Promise<Run | null>;
-  /**
-   * Stop a running run with progressive escalation.
-   *
-   * The first call gracefully {@link cancel}s — the agent gets a chance to
-   * checkpoint and clean up. If the user presses Stop again because the run
-   * is still winding down, this escalates to a forceful {@link terminate}.
-   * The escalation state is keyed to the run id, so a fresh run
-   * always starts from a graceful cancel.
-   *
-   * @param reason - Optional audit message recorded with the cancel/terminate.
-   */
-  readonly stop: (reason?: string) => Promise<Run | null>;
   /** `true` while any action is in flight. */
   readonly isSubmitting: boolean;
   /** Error from the last failed action, or `null`. */
@@ -53,7 +38,8 @@ export interface UseRunActionsReturn {
 }
 
 /**
- * Behavior hook that encapsulates run lifecycle actions.
+ * Behavior hook that encapsulates one run's lifecycle actions: terminate,
+ * pause and resume.
  *
  * Each action calls the corresponding RPC and returns the updated run, or
  * `null` on failure (with `error` populated).
@@ -61,9 +47,9 @@ export interface UseRunActionsReturn {
  * Pass `null` for `executionId` to disable all actions (they become no-ops
  * that return `null`).
  *
- * Headless by design — embedders can wire a custom Stop/Cancel control
- * directly to this hook. The session chat uses it via
- * {@link useSessionConversation}'s `stop` / `isStoppable`.
+ * Stopping a conversation's turn is the session's interrupt, not a run
+ * action: {@link useSessionConversation}'s `stop` interrupts the session
+ * and escalates to {@link UseRunActionsReturn.terminate} on a repeat press.
  *
  * @example
  * ```tsx
@@ -71,9 +57,8 @@ export interface UseRunActionsReturn {
  *   onSuccess: () => refetch(),
  * });
  *
- * // A single Stop button that escalates on repeat press.
- * <button onClick={() => actions.stop()} disabled={actions.isSubmitting}>
- *   Stop
+ * <button onClick={() => actions.pause()} disabled={actions.isSubmitting}>
+ *   Pause
  * </button>
  * ```
  */
@@ -115,19 +100,6 @@ export function useRunActions(
     [],
   );
 
-  const cancel = useCallback(
-    (reason?: string) =>
-      wrap(() =>
-        stigmerRef.current.run.cancel(
-          create(CancelRunInputSchema, {
-            id: executionIdRef.current!,
-            reason: reason ?? "",
-          }),
-        ),
-      ),
-    [wrap],
-  );
-
   const terminate = useCallback(
     (reason?: string) =>
       wrap(() =>
@@ -166,37 +138,10 @@ export function useRunActions(
     [wrap],
   );
 
-  // Escalation state: remembers whether a graceful cancel has already been
-  // issued for the current run id. Keyed by id so a new run
-  // always begins with cancel rather than inheriting a stale "escalate" flag.
-  const stopStateRef = useRef<{ id: string; cancelIssued: boolean } | null>(
-    null,
-  );
-
-  const stop = useCallback(
-    (reason?: string): Promise<Run | null> => {
-      const id = executionIdRef.current;
-      if (!id) return Promise.resolve(null);
-
-      if (stopStateRef.current?.id !== id) {
-        stopStateRef.current = { id, cancelIssued: false };
-      }
-
-      if (!stopStateRef.current.cancelIssued) {
-        stopStateRef.current.cancelIssued = true;
-        return cancel(reason);
-      }
-      return terminate(reason);
-    },
-    [cancel, terminate],
-  );
-
   return {
-    cancel,
     terminate,
     pause,
     resume,
-    stop,
     isSubmitting,
     error,
     clearError,

@@ -1,15 +1,10 @@
 "use client";
 
-import { memo, useContext, useMemo } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  ApprovalAction,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { memo } from "react";
+import type { ToolUse } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
-import { ApprovalContext } from "./ApprovalContext.js";
 import { ToolCallItem, CATEGORY_ICON } from "./ToolCallItem.js";
 import type { ToolCategory } from "./tool-categories.js";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
@@ -18,14 +13,14 @@ import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 export interface ToolRunGroupProps {
   /** Shared category of every call in the run (e.g. `"read"`). */
   readonly category: ToolCategory;
-  /** The consecutive same-category calls folded into this chip (length >= 2). */
-  readonly toolCalls: readonly ToolCall[];
+  /** The consecutive same-category tool uses folded into this chip (length >= 2). */
+  readonly toolUses: readonly ToolUse[];
   /**
    * Custom label formatter for the collapsed chip. When omitted, a
-   * category-aware default is used ("Read 5 files"). Receives the run's calls so
-   * a platform builder can phrase the summary however they like.
+   * category-aware default is used ("Read 5 files"). Receives the run's tool
+   * uses so a platform builder can phrase the summary however they like.
    */
-  readonly formatLabel?: (toolCalls: readonly ToolCall[]) => string;
+  readonly formatLabel?: (toolUses: readonly ToolUse[]) => string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -37,50 +32,40 @@ export interface ToolRunGroupProps {
  * files"); expanded, it reveals the individual {@link ToolCallItem} rows.
  *
  * Unlike the old per-turn group, this folds *only* genuine repetition, and it
- * auto-opens (and stays open) if any folded call is awaiting approval — a gate
- * raised inside a run must never be buried. It otherwise settles closed when
- * the run finishes, unless the user has taken manual control (see
+ * auto-opens (and stays open) while a folded call runs or waits for a person —
+ * a gate raised inside a run must never be buried. It otherwise settles closed
+ * when the run finishes, unless the user has taken manual control (see
  * {@link useAutoDisclosure}).
  *
- * `React.memo` with a by-reference comparator: structural sharing keeps each
- * folded `ToolCall` stable, so a settled chip skips re-renders while siblings
- * stream.
+ * `React.memo` with a by-reference comparator: the session fold keeps each
+ * unchanged `ToolUse` stable, so a settled chip skips re-renders while
+ * siblings stream.
  *
  * @example
  * ```tsx
- * <ToolRunGroup category="read" toolCalls={reads} />
+ * <ToolRunGroup category="read" toolUses={reads} />
  * ```
  */
 export const ToolRunGroup = memo(function ToolRunGroup({
   category,
-  toolCalls,
+  toolUses,
   formatLabel,
   className,
 }: ToolRunGroupProps) {
-  useRenderTracer("ToolRunGroup", { category, count: toolCalls.length });
+  useRenderTracer("ToolRunGroup", { category, count: toolUses.length });
 
-  const status = deriveAggregateStatus(toolCalls);
+  const status = deriveAggregateStatus(toolUses);
   const isShimmering = status === "running";
-  const isActive =
-    isShimmering || status === "waiting" || status === "pending";
-
-  // A gate raised inside a folded run must be reachable without a click. Reads
-  // are ungated by default, but a presenter override (or future policy) could
-  // gate one — so we honour the same inline-approval reachability the rest of
-  // the thread guarantees, mirroring SubAgentSection.
-  const { approvalsByToolCallId } = useContext(ApprovalContext);
-  const hasPendingApprovalInside = useMemo(() => {
-    if (approvalsByToolCallId.size === 0) return false;
-    return toolCalls.some((tc) => tc.id && approvalsByToolCallId.has(tc.id));
-  }, [toolCalls, approvalsByToolCallId]);
-
+  // Reads are not asked about by default, but a hook can ask about any
+  // call: a waiting one inside the fold keeps the chip open, mirroring
+  // SubAgentSection.
   const [expanded, handleToggle] = useAutoDisclosure(
-    isActive || hasPendingApprovalInside,
+    isShimmering || status === "waiting",
   );
 
   const label = formatLabel
-    ? formatLabel(toolCalls)
-    : defaultRunLabel(category, toolCalls.length);
+    ? formatLabel(toolUses)
+    : defaultRunLabel(category, toolUses.length);
   const Icon = CATEGORY_ICON[category];
   const StatusIcon = STATUS_ICON[status];
 
@@ -132,8 +117,8 @@ export const ToolRunGroup = memo(function ToolRunGroup({
         // (the quiet-tier body containment, mirroring ThreadCardBody's rail)
         // as divider-separated rows — their container owns the frame.
         <div className="stg:ml-1.5 stg:border-l-2 stg:border-border-muted stg:pl-2">
-          {toolCalls.map((tc) => (
-            <ToolCallItem key={tc.id || tc.name} toolCall={tc} bordered={false} />
+          {toolUses.map((tu) => (
+            <ToolCallItem key={tu.id} toolUse={tu} bordered={false} />
           ))}
         </div>
       )}
@@ -142,8 +127,8 @@ export const ToolRunGroup = memo(function ToolRunGroup({
 }, toolRunGroupPropsEqual);
 
 /**
- * Shallow comparison for {@link ToolRunGroupProps}. Structural sharing keeps the
- * folded `ToolCall` objects stable, so we compare the array element-wise by
+ * Shallow comparison for {@link ToolRunGroupProps}. The session fold keeps the
+ * folded `ToolUse` objects stable, so we compare the array element-wise by
  * reference rather than by identity of the (freshly sliced) array.
  *
  * @internal Exported for testing — not part of the public API.
@@ -153,9 +138,9 @@ export function toolRunGroupPropsEqual(
   next: Readonly<ToolRunGroupProps>,
 ): boolean {
   if (prev.category !== next.category) return false;
-  if (prev.toolCalls.length !== next.toolCalls.length) return false;
-  for (let i = 0; i < prev.toolCalls.length; i++) {
-    if (prev.toolCalls[i] !== next.toolCalls[i]) return false;
+  if (prev.toolUses.length !== next.toolUses.length) return false;
+  for (let i = 0; i < prev.toolUses.length; i++) {
+    if (prev.toolUses[i] !== next.toolUses[i]) return false;
   }
   return prev.formatLabel === next.formatLabel && prev.className === next.className;
 }
@@ -182,55 +167,19 @@ function defaultRunLabel(category: ToolCategory, count: number): string {
 // Aggregate status
 // ---------------------------------------------------------------------------
 
-type AggregateStatus = "running" | "waiting" | "failed" | "completed" | "pending";
+type AggregateStatus = "running" | "waiting" | "failed" | "completed";
 
-function isResolvedApproval(tc: ToolCall): boolean {
-  return (
-    tc.approvalAction === ApprovalAction.APPROVE ||
-    tc.approvalAction === ApprovalAction.SKIP ||
-    tc.approvalAction === ApprovalAction.REJECT
-  );
-}
-
-/** Collapses a run's per-call statuses into a single chip status. */
-function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus {
-  let hasRunning = false;
-  let hasWaiting = false;
-  let hasFailed = false;
-  let allTerminal = true;
-
-  for (const tc of toolCalls) {
-    switch (tc.status) {
-      case ToolCallStatus.TOOL_CALL_RUNNING:
-        hasRunning = true;
-        allTerminal = false;
-        break;
-      case ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
-        if (isResolvedApproval(tc)) break;
-        hasWaiting = true;
-        allTerminal = false;
-        break;
-      case ToolCallStatus.TOOL_CALL_FAILED:
-        hasFailed = true;
-        break;
-      case ToolCallStatus.TOOL_CALL_COMPLETED:
-      case ToolCallStatus.TOOL_CALL_SKIPPED:
-      // INTERRUPTED is terminal (platform-settled when the run
-      // terminalized mid-call, issue #207): the chip must settle, not pin to
-      // "pending" forever.
-      case ToolCallStatus.TOOL_CALL_INTERRUPTED:
-        break;
-      default:
-        allTerminal = false;
-        break;
-    }
-  }
-
-  if (hasRunning) return "running";
-  if (hasWaiting) return "waiting";
-  if (hasFailed) return "failed";
-  if (allTerminal) return "completed";
-  return "pending";
+/**
+ * Collapses a run's per-call states into a single chip status: running
+ * wins, then waiting, then failed. Every other state is settled — a call its
+ * turn stopped (issue #207) or a denied one included — so the chip never
+ * pins to a pending state.
+ */
+function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
+  if (toolUses.some((tu) => tu.state === "running")) return "running";
+  if (toolUses.some((tu) => tu.state === "waiting")) return "waiting";
+  if (toolUses.some((tu) => tu.state === "failed")) return "failed";
+  return "completed";
 }
 
 const STATUS_COLOR: Record<AggregateStatus, string> = {
@@ -238,7 +187,6 @@ const STATUS_COLOR: Record<AggregateStatus, string> = {
   waiting: "stg:text-warning",
   failed: "stg:text-destructive",
   completed: "stg:text-success",
-  pending: "stg:text-muted-foreground",
 };
 
 // `completed` is deliberately iconless — success is the silent default,
@@ -248,7 +196,6 @@ const STATUS_ICON: Record<AggregateStatus, (() => React.JSX.Element) | null> = {
   waiting: ClockIcon,
   failed: XCircleIcon,
   completed: null,
-  pending: DotIcon,
 };
 
 // ---------------------------------------------------------------------------
@@ -269,14 +216,6 @@ function XCircleIcon() {
     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="6" cy="6" r="4.5" />
       <path d="M4.5 4.5L7.5 7.5M7.5 4.5L4.5 7.5" />
-    </svg>
-  );
-}
-
-function DotIcon() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-      <circle cx="4" cy="4" r="2.5" />
     </svg>
   );
 }

@@ -11,7 +11,7 @@
  * their own audience, and nobody holds an issuer for everyone. A provider
  * with no audience claims no route. An organization holds at most one live
  * SSO provider. A write never upserts: `insert` cannot overwrite a row, and
- * `replace` cannot bring back a row a concurrent delete removed.
+ * `swap` cannot bring back a row a concurrent delete removed.
  *
  * A provider being deleted keeps its row until its delete finishes
  * (removal.ts says why the row goes last): `markDeleting` sets the mark,
@@ -25,9 +25,11 @@
  * no other provider claims them before the row is gone.
  *
  * A provider's slug is rename's alone (`@stigmer/server`'s rename chain
- * over `modifyById`): `replace` keeps the stored slug under the row's lock,
- * so an update that loaded the provider before a rename never writes the
- * old slug back.
+ * over `modifyById`). The update chain writes through the guarded write
+ * (`readForWrite` and `swap`, `@stigmer/server`'s store/guarded-port.ts):
+ * the swap lands only while the row is as the chain read it, so a rename
+ * or any other write in between answers `changed`, and the update runs
+ * again from a fresh read rather than undo it.
  *
  * `findAll` and `findLive` are deliberate full-table reads: the boot
  * reconcile wants every provider, the verifier's issuer-cache rebuild
@@ -37,6 +39,7 @@
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 
 import type { ProviderRoute } from "./routes.js";
+import type { GuardedWritePort } from "@stigmer/server";
 
 /** A new provider's outcomes: written, or a claim another provider already holds. */
 export type ProviderInsertOutcome =
@@ -46,30 +49,39 @@ export type ProviderInsertOutcome =
   | { readonly kind: "route-taken"; readonly route: ProviderRoute };
 
 /**
- * A held provider's outcomes: rewritten, the organization's SSO place held
- * by another provider, a claimed route, or gone since it was read.
+ * A guarded rewrite's outcomes: rewritten, the organization's SSO place
+ * held by another provider, a claimed route, or the row changed or gone
+ * since it was read (the guarded write's loss).
  */
-export type ProviderReplaceOutcome =
+export type ProviderSwapOutcome =
   | { readonly kind: "replaced" }
   | { readonly kind: "sso-taken" }
   | { readonly kind: "route-taken"; readonly route: ProviderRoute }
-  | { readonly kind: "missing" };
+  | { readonly kind: "changed" };
 
-export interface IdentityProviderStore {
+export interface IdentityProviderStore
+  extends GuardedWritePort<IdentityProvider, ProviderSwapOutcome> {
   /** Adds a provider and claims its routes, all or nothing. */
   insert(provider: IdentityProvider): Promise<ProviderInsertOutcome>;
   /**
-   * Rewrites a held provider's payload, SSO flag and route claims, all
-   * or nothing, under the row's lock. The stored slug is kept, and written
-   * onto `provider` too; the org and slug columns do not change.
+   * The guarded rewrite of a held provider's payload, SSO flag and route
+   * claims, all or nothing, under the row's lock, and only while its
+   * payload is still the bytes `readForWrite` answered (else `changed`).
+   * The org and slug columns do not change: `provider` carries the slug
+   * it was read with, and one naming another slug is refused as the
+   * programming error it is (rename moves a slug, through `modifyById`).
    */
-  replace(provider: IdentityProvider): Promise<ProviderReplaceOutcome>;
+  swap(
+    id: string,
+    expectedBytes: Uint8Array,
+    provider: IdentityProvider,
+  ): Promise<ProviderSwapOutcome>;
   /**
    * Atomic read-modify-write by id under the row's lock, for a change of
    * the payload and the slug alone (a rename): `modify` mutates the stored
    * provider in place (synchronously), and the payload and the slug column
    * are written together. A change of the SSO flag or the routes is
-   * `replace`'s and is refused as a programming error. Answers the written
+   * `swap`'s and is refused as a programming error. Answers the written
    * provider; an unknown id answers undefined and writes nothing.
    */
   modifyById(

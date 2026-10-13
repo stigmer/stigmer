@@ -3,13 +3,17 @@
 // view to Ink, and an inline run off a terminal drives the headless driver
 // with the plaintext renderer; every path ends in the epilogue for the run it
 // followed and returns the epilogue's final run. The headless driver is wired
-// to the run: it subscribes to the run's id and submits approvals naming it.
-// The driver, Ink, the terminal probe and the epilogue are doubles.
+// to the run: it follows the run's session from the start of its log, follows
+// the run's turn, carries the run's --approve-default, and answers through the
+// session's confirmToolUse. The driver, Ink, the terminal probe and the
+// epilogue are doubles.
 
 import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type {
+  ConfirmToolUseInput,
+  StreamSessionEventsRequest,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HeadlessStreamDeps } from "../../stream/headless.js";
@@ -31,18 +35,17 @@ import { streamAgentRun } from "../stream.js";
 
 const FINAL = create(RunSchema, { metadata: { id: "aex_1" } });
 
-let subscribed: string[];
-let approvals: SubmitApprovalInput[];
+let followed: StreamSessionEventsRequest[];
+let confirms: ConfirmToolUseInput[];
 
 const client = {
-  run: {
-    subscribe: (runId: string) => {
-      subscribed.push(runId);
+  session: {
+    streamEvents: (input: StreamSessionEventsRequest) => {
+      followed.push(input);
       return (async function* () {})();
     },
-    submitApproval: async (input: SubmitApprovalInput) => {
-      approvals.push(input);
-      return FINAL;
+    confirmToolUse: async (input: ConfirmToolUseInput) => {
+      confirms.push(input);
     },
   },
 } as unknown as Stigmer;
@@ -54,7 +57,7 @@ function deps(overrides: Partial<StreamDeps> = {}): StreamDeps {
     runId: "aex_1",
     org: "acme",
     mode: "plan",
-    defaultAction: ApprovalAction.UNSPECIFIED,
+    approveDefault: "approve",
     outputMode: "inline",
     header: { agentName: "Helper", sessionId: "ses_1", model: "", mode: "plan", workspaces: [] },
     ...overrides,
@@ -68,18 +71,23 @@ function driverDeps(): HeadlessStreamDeps {
   return call[0] as HeadlessStreamDeps;
 }
 
+const DONE = { phase: "completed", error: "", turn: undefined };
+
 beforeEach(() => {
-  subscribed = [];
-  approvals = [];
+  followed = [];
+  confirms = [];
   tty.supported = false;
   vi.spyOn(process.stderr, "write").mockReturnValue(true);
   headless.runHeadlessStream.mockImplementation(async (d: HeadlessStreamDeps) => {
-    // Exercise the run-bound callbacks the way the driver does.
-    for await (const _snapshot of d.subscribe(d.signal)) {
-      // The double's stream is empty.
-    }
-    await d.submitApproval("tc_1", ApprovalAction.APPROVE);
-    return { phase: "completed", error: "" };
+    // Exercise the session-bound callbacks the way the driver does: open the
+    // follow (the double's stream ends at once), then stop it before it
+    // reconnects, and answer one ask.
+    const controller = new AbortController();
+    const opened = d.follow(controller.signal)[Symbol.asyncIterator]().next();
+    controller.abort();
+    await opened;
+    await d.answer("aex_1.c1", { kind: "allow" });
+    return DONE;
   });
   ink.runInkSession.mockResolvedValue(undefined);
   epilogue.runEpilogue.mockResolvedValue(FINAL);
@@ -96,19 +104,18 @@ describe("streamAgentRun", () => {
 
     expect(driverDeps().renderer).toBeInstanceOf(NdjsonRenderer);
     expect(driverDeps().sessionId).toBe("ses_1");
-    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", { phase: "completed", error: "" });
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", DONE);
     expect(result).toBe(FINAL);
     expect(ink.runInkSession).not.toHaveBeenCalled();
   });
 
-  it("binds the driver's subscription and approvals to the run", async () => {
+  it("binds the driver to the run's session, its turn and its --approve-default", async () => {
     await streamAgentRun(deps({ outputMode: "json" }));
 
-    expect(subscribed).toEqual(["aex_1"]);
-    expect(approvals).toHaveLength(1);
-    expect(approvals[0]?.runId).toBe("aex_1");
-    expect(approvals[0]?.toolCallId).toBe("tc_1");
-    expect(approvals[0]?.action).toBe(ApprovalAction.APPROVE);
+    expect(driverDeps().runId).toBe("aex_1");
+    expect(driverDeps().approveDefault).toBe("approve");
+    expect(followed.map((r) => [r.sessionId, r.afterSeq])).toEqual([["ses_1", 0n]]);
+    expect(confirms.map((c) => [c.sessionId, c.toolUseId, c.result])).toEqual([["ses_1", "aex_1.c1", "allow"]]);
   });
 
   it("hands an inline run on a terminal to Ink, then prints the epilogue", async () => {
@@ -117,7 +124,7 @@ describe("streamAgentRun", () => {
 
     expect(ink.runInkSession).toHaveBeenCalledWith({ client, sessionId: "ses_1", org: "acme", mode: "plan" });
     expect(headless.runHeadlessStream).not.toHaveBeenCalled();
-    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", { phase: "", error: "" });
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", { phase: "", error: "", turn: undefined });
     expect(result).toBe(FINAL);
   });
 
@@ -131,7 +138,7 @@ describe("streamAgentRun", () => {
     const result = await streamAgentRun(deps());
 
     expect(driverDeps().renderer).toBeInstanceOf(PlaintextRenderer);
-    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", { phase: "completed", error: "" });
+    expect(epilogue.runEpilogue).toHaveBeenCalledWith(client, "ses_1", "aex_1", DONE);
     expect(result).toBe(FINAL);
     expect(ink.runInkSession).not.toHaveBeenCalled();
   });

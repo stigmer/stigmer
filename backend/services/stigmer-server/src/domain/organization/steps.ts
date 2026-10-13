@@ -33,7 +33,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 import { boundOrgOf } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
-import type { Store } from "../../store/interface.js";
+import type { ResourceReadForWrite, Store } from "../../store/interface.js";
 import {
   internalError,
   invalidArgumentError,
@@ -41,7 +41,10 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
-import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  EXISTING_RESOURCE_BYTES_KEY,
+  EXISTING_RESOURCE_KEY,
+} from "../../pipeline/steps/load-existing.js";
 import {
   EXISTS_IN_DATABASE_KEY,
   SHOULD_CREATE_KEY,
@@ -181,7 +184,7 @@ async function findOrganization(
   store: Store,
   id: string,
   slug: string,
-): Promise<Organization | undefined> {
+): Promise<ResourceReadForWrite<typeof OrganizationSchema> | undefined> {
   let byId = id;
   if (byId === "") {
     const entry = await liveOrganizationName(store, slug, new Date());
@@ -194,7 +197,7 @@ async function findOrganization(
     return undefined;
   }
   try {
-    return await store.getResource(
+    return await store.readResourceForWrite(
       ApiResourceKind.organization,
       byId,
       OrganizationSchema,
@@ -225,7 +228,8 @@ export function newLoadOrganizationForApplyStep(
       const existing =
         metadata === undefined
           ? undefined
-          : await findOrganization(store, metadata.id, metadata.slug);
+          : (await findOrganization(store, metadata.id, metadata.slug))
+              ?.resource;
       if (existing === undefined) {
         ctx.set(EXISTS_IN_DATABASE_KEY, false);
         ctx.set(SHOULD_CREATE_KEY, true);
@@ -242,9 +246,10 @@ export function newLoadOrganizationForApplyStep(
 }
 
 /**
- * Update's loader for an organization (the shared LoadExisting's name and
- * failure): by id, else by slug through the name table. NotFound fails the
- * update.
+ * Update's loader for an organization (the shared LoadExisting's name,
+ * failure and context keys): by id, else by slug through the name table.
+ * NotFound fails the update. The row's stored bytes are kept for Persist's
+ * compare-and-swap (pipeline/guarded-write.ts).
  */
 export function newLoadExistingOrganizationStep(
   store: Store,
@@ -259,15 +264,16 @@ export function newLoadExistingOrganizationStep(
       if (metadata.id === "" && metadata.slug === "") {
         throw invalidArgumentError("resource id or slug is required for update");
       }
-      const existing = await findOrganization(store, metadata.id, metadata.slug);
-      if (existing === undefined) {
+      const read = await findOrganization(store, metadata.id, metadata.slug);
+      if (read === undefined) {
         throw notFoundError(
           "Organization",
           metadata.id !== "" ? metadata.id : metadata.slug,
         );
       }
-      metadata.id = existing.metadata?.id ?? "";
-      ctx.set(EXISTING_RESOURCE_KEY, existing);
+      metadata.id = read.resource.metadata?.id ?? "";
+      ctx.set(EXISTING_RESOURCE_KEY, read.resource);
+      ctx.set(EXISTING_RESOURCE_BYTES_KEY, read.bytes);
     },
   };
 }

@@ -2,14 +2,20 @@
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Todo } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
 import { TodoList } from "./TodoList.js";
 
 /** Props for {@link RunProgress}. */
 export interface RunProgressProps {
-  /** The run to display progress for. Renders nothing when null. */
+  /** The run to display progress for: its phase and error. Renders nothing when null. */
   readonly run: Run | null;
+  /**
+   * The turn's to-do list, from the session's fold (`Turn.todos`); omitted
+   * or empty shows none.
+   */
+  readonly todos?: readonly Todo[];
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -19,8 +25,8 @@ export interface RunProgressProps {
  * todo checklist showing multi-step task progress.
  *
  * The phase badge is always visible so the user knows the run
- * state at a glance. When the agent creates todo items (via the
- * `write_todos` tool), they appear as a compact checklist sorted by
+ * state at a glance. When the agent keeps a to-do list (`todos`, from
+ * the turn's fold), it appears as a compact checklist sorted by
  * activity: in-progress items first, then pending, completed, and
  * cancelled.
  *
@@ -31,15 +37,14 @@ export interface RunProgressProps {
  *
  * @example
  * ```tsx
- * const stream = useRunStream(executionId);
- *
  * <div className="rounded-lg border border-border bg-card p-3">
- *   <RunProgress run={stream.run} />
+ *   <RunProgress run={run} todos={turn.todos} />
  * </div>
  * ```
  */
 export function RunProgress({
   run: execution,
+  todos,
   className,
 }: RunProgressProps) {
   if (!execution) return null;
@@ -47,7 +52,6 @@ export function RunProgress({
   const phase = execution.status?.phase;
   if (phase === undefined) return null;
 
-  const todos = execution.status?.todos;
   // Populated by the server on RUN_FAILED and RUN_TERMINATED —
   // surface it next to the badge so this widget explains a failure rather
   // than showing a bare phase (consistent with the message thread).

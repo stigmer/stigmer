@@ -35,8 +35,14 @@
  *     cloud-default config flips which transitions count as changes;
  *   - harness_state_id_history is server-owned: appended on replace, never
  *     duplicated, client-sent values discarded;
+ *   - an update keeps a write that lands between its read and its write:
+ *     the lost swap runs the chain again from a fresh read, so the stored
+ *     row and the answer carry both the landed visibility and the update;
  *   - updateSubject is a field-level RMW that stamps ONLY the spec_audit
- *     slot (#540) and leaves the status slot untouched;
+ *     slot (#540) and leaves the status slot untouched, and keeps a write
+ *     that lands between its read and its write; a session deleted between
+ *     its read and its write answers NotFound rather than being written
+ *     back;
  *   - delete is refused while any of the four active execution phases
  *     exists (exact count copy), terminal phases don't block, and the
  *     cascade removes exactly the session's own executions.
@@ -47,10 +53,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -94,6 +101,10 @@ import {
   type OrganizationIds,
 } from "../../organization/__tests__/support.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -812,6 +823,45 @@ describe("session update — server-owned harness_state_id_history", () => {
   });
 });
 
+describe("session update — a write that lands mid-update", () => {
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const session = await createSession({ subject: "before" });
+    const id = session.metadata!.id;
+    expect(session.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const { result, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.session,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.session,
+        SessionSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => command.update(updateInput(session, { subject: "after" })),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    expect(result.spec?.subject).toBe("after");
+    expect(result.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const stored = await server.store.getResource(
+      ApiResourceKind.session,
+      id,
+      SessionSchema,
+    );
+    expect(stored.spec?.subject).toBe("after");
+    expect(stored.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+  });
+});
+
 describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () => {
   it("updates only the subject, stamps spec_audit, and leaves status_audit untouched", async () => {
     const agent = await createAgent("Subject agent");
@@ -844,6 +894,79 @@ describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () 
     expect(statusAuditAfter?.updatedAt?.nanos).toBe(
       statusAuditBefore.updatedAt?.nanos,
     );
+  });
+
+  it("keeps a write that lands between its read and its write, and the subject lands", async () => {
+    const session = await createSession({ subject: "original" });
+    const id = session.metadata!.id;
+    expect(session.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const { result } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.session,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.session,
+        SessionSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => command.updateSubject({ id, subject: "renamed thread" }),
+    );
+
+    expect(result.spec?.subject).toBe("renamed thread");
+    expect(result.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const stored = await server.store.getResource(
+      ApiResourceKind.session,
+      id,
+      SessionSchema,
+    );
+    expect(stored.spec?.subject).toBe("renamed thread");
+    expect(stored.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+  });
+
+  it("a subject change of a session deleted between its read and its write answers NotFound", async () => {
+    const session = await createSession({ subject: "original" });
+    const id = session.metadata!.id;
+
+    // The first atomic write to the session deletes the row first, so the
+    // subject's write finds no row: the delete landed after its read.
+    const store = server.store;
+    const updateResource = store.updateResource.bind(store);
+    let armed = true;
+    const spy = vi.spyOn(store, "updateResource").mockImplementation((async <
+      Desc extends DescMessage,
+    >(
+      writtenKind: ApiResourceKind,
+      writtenId: string,
+      schema: Desc,
+      modify: (msg: MessageShape<Desc>) => void,
+    ) => {
+      if (armed && writtenKind === ApiResourceKind.session && writtenId === id) {
+        armed = false;
+        await store.deleteResource(writtenKind, writtenId);
+      }
+      return updateResource(writtenKind, writtenId, schema, modify);
+    }) as typeof store.updateResource);
+    let error: ConnectError;
+    try {
+      error = await grpcError(() =>
+        command.updateSubject({ id, subject: "renamed thread" }),
+      );
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(armed).toBe(false);
+    expect(error.code).toBe(Code.NotFound);
+    expect(error.rawMessage).toBe(`session not found: ${id}`);
   });
 
   it("returns NotFound for an unknown session id", async () => {

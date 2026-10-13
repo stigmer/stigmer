@@ -1,318 +1,155 @@
+/**
+ * Proves the ConversationStore (../conversation-store.ts): frames fold into
+ * the session log without notifying, a publish exposes the log's fold and
+ * notifies only when it changed, the fold keeps unchanged objects by
+ * reference, `lastSeq` follows the newest event, the follow's stage and its
+ * watchdog signals notify only on a real change, and a reset empties
+ * everything (silently when already clean).
+ */
 import { describe, it, expect, vi } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { samples } from "../../../test/samples";
 import { ConversationStore, type StreamState } from "../conversation-store";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function makeExec(
-  phase: RunPhase,
-  messages?: Array<{ type: MessageType; content: string }>,
-): Run {
-  const exec = create(RunSchema);
-  const status = create(RunStatusSchema);
-  status.phase = phase;
-  if (messages) {
-    status.messages = messages.map((m) => {
-      const msg = create(AgentMessageSchema);
-      msg.type = m.type;
-      msg.content = m.content;
-      return msg;
-    });
-  }
-  exec.status = status;
-  return exec;
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+const frames = (events: ReturnType<typeof samples.turnEvents>) =>
+  events.map((event, index) => samples.eventFrame({ ...event, seq: BigInt(index + 1) }));
 
 describe("ConversationStore", () => {
-  describe("initial state", () => {
-    it("starts with null execution and idle stream state", () => {
-      const store = new ConversationStore();
-      expect(store.getExecution()).toBeNull();
-      expect(store.getStreamState()).toEqual({ stage: "idle" });
-    });
+  it("starts with no fold and an idle follow", () => {
+    const store = new ConversationStore();
+    expect(store.getFold()).toBeNull();
+    expect(store.getStreamState()).toEqual({ stage: "idle" });
+    expect(store.getConnectTimedOut()).toBe(false);
+    expect(store.getSlow()).toBe(false);
+    expect(store.lastSeq).toBe(0n);
   });
 
-  describe("subscribe / unsubscribe", () => {
-    it("notifies listeners on state changes", () => {
-      const store = new ConversationStore();
-      const listener = vi.fn();
-      store.subscribe(listener);
+  it("folds frames without notifying, and publishes the fold once", () => {
+    const store = new ConversationStore();
+    const listener = vi.fn();
+    store.subscribe(listener);
 
-      store.setStreamState({ stage: "connecting", executionId: "e1" });
-      expect(listener).toHaveBeenCalledTimes(1);
-    });
+    const changed = frames(samples.turnEvents()).map((frame) => store.applyFrame(frame));
+    expect(changed.every(Boolean)).toBe(true);
+    expect(listener).not.toHaveBeenCalled();
+    expect(store.getFold()).toBeNull();
+    expect(store.lastSeq).toBe(4n);
 
-    it("stops notifying after unsubscribe", () => {
-      const store = new ConversationStore();
-      const listener = vi.fn();
-      const unsub = store.subscribe(listener);
-
-      store.setStreamState({ stage: "connecting", executionId: "e1" });
-      expect(listener).toHaveBeenCalledTimes(1);
-
-      unsub();
-      store.setStreamState({ stage: "streaming", executionId: "e1" });
-      expect(listener).toHaveBeenCalledTimes(1);
-    });
-
-    it("supports multiple listeners", () => {
-      const store = new ConversationStore();
-      const l1 = vi.fn();
-      const l2 = vi.fn();
-      store.subscribe(l1);
-      store.subscribe(l2);
-
-      store.setStreamState({ stage: "connecting", executionId: "e1" });
-      expect(l1).toHaveBeenCalledTimes(1);
-      expect(l2).toHaveBeenCalledTimes(1);
-    });
+    store.publish();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(store.getFold()?.turns.map((turn) => turn.answer)).toEqual([
+      "Of course! I'd be happy to help you get started. What would you like to work on?",
+    ]);
   });
 
-  describe("ingestSnapshot", () => {
-    it("stores execution and notifies listeners", () => {
-      const store = new ConversationStore();
-      const listener = vi.fn();
-      store.subscribe(listener);
+  it("does not notify when a publish finds nothing new", () => {
+    const store = new ConversationStore();
+    for (const frame of frames(samples.turnEvents())) store.applyFrame(frame);
+    store.publish();
+    const listener = vi.fn();
+    store.subscribe(listener);
+    const first = store.getFold();
 
-      const snapshot = makeExec(RunPhase.RUN_IN_PROGRESS, [
-        { type: MessageType.MESSAGE_AI, content: "hello" },
-      ]);
-      store.ingestSnapshot(snapshot);
-
-      expect(store.getExecution()).toBe(snapshot);
-      expect(listener).toHaveBeenCalledTimes(1);
-    });
-
-    it("does not notify when structural sharing produces the same reference", () => {
-      const store = new ConversationStore();
-      const snapshot = makeExec(RunPhase.RUN_IN_PROGRESS, [
-        { type: MessageType.MESSAGE_AI, content: "hello" },
-      ]);
-      store.ingestSnapshot(snapshot);
-
-      const listener = vi.fn();
-      store.subscribe(listener);
-
-      const identical = makeExec(RunPhase.RUN_IN_PROGRESS, [
-        { type: MessageType.MESSAGE_AI, content: "hello" },
-      ]);
-      store.ingestSnapshot(identical);
-
-      expect(listener).not.toHaveBeenCalled();
-      expect(store.getExecution()).toBe(snapshot);
-    });
-
-    it("applies structural sharing: preserves unchanged message refs", () => {
-      const store = new ConversationStore();
-      const snap1 = makeExec(RunPhase.RUN_IN_PROGRESS, [
-        { type: MessageType.MESSAGE_HUMAN, content: "question" },
-        { type: MessageType.MESSAGE_AI, content: "partial" },
-      ]);
-      store.ingestSnapshot(snap1);
-
-      const prevMsgs = store.getExecution()!.status!.messages;
-      const humanMsg = prevMsgs[0];
-
-      const snap2 = makeExec(RunPhase.RUN_IN_PROGRESS, [
-        { type: MessageType.MESSAGE_HUMAN, content: "question" },
-        { type: MessageType.MESSAGE_AI, content: "partial answer growing" },
-      ]);
-      store.ingestSnapshot(snap2);
-
-      const result = store.getExecution()!;
-      expect(result.status!.messages[0]).toBe(humanMsg);
-      expect(result.status!.messages[1].content).toBe(
-        "partial answer growing",
-      );
-    });
+    // An event already folded changes nothing.
+    expect(store.applyFrame(samples.eventFrame({ ...samples.userMessageEvent("again"), seq: 1n }))).toBe(false);
+    store.publish();
+    expect(listener).not.toHaveBeenCalled();
+    expect(store.getFold()).toBe(first);
   });
 
-  describe("setStreamState", () => {
-    it("transitions between stages and notifies", () => {
-      const store = new ConversationStore();
-      const listener = vi.fn();
-      store.subscribe(listener);
+  it("keeps an unchanged turn's object across publishes", () => {
+    const store = new ConversationStore();
+    for (const frame of frames(samples.turnEvents())) store.applyFrame(frame);
+    store.publish();
+    const firstTurn = store.getFold()!.turns[0];
 
-      const states: StreamState[] = [
-        { stage: "connecting", executionId: "e1" },
-        { stage: "streaming", executionId: "e1" },
-        { stage: "complete", executionId: "e1" },
-      ];
+    const second = samples.turnEvents({ runId: "run_2", message: "next" });
+    second.forEach((event, index) => store.applyFrame(samples.eventFrame({ ...event, seq: BigInt(10 + index) })));
+    store.publish();
 
-      for (const state of states) {
-        store.setStreamState(state);
-      }
-
-      expect(listener).toHaveBeenCalledTimes(3);
-      expect(store.getStreamState()).toEqual({
-        stage: "complete",
-        executionId: "e1",
-      });
-    });
-
-    it("does not notify when set to the same state", () => {
-      const store = new ConversationStore();
-      store.setStreamState({ stage: "connecting", executionId: "e1" });
-
-      const listener = vi.fn();
-      store.subscribe(listener);
-
-      store.setStreamState({ stage: "connecting", executionId: "e1" });
-      expect(listener).not.toHaveBeenCalled();
-    });
-
-    it("handles error state", () => {
-      const store = new ConversationStore();
-      const err = new Error("network failure");
-      store.setStreamState({ stage: "error", executionId: "e1", error: err });
-
-      const state = store.getStreamState();
-      expect(state.stage).toBe("error");
-      if (state.stage === "error") {
-        expect(state.error).toBe(err);
-      }
-    });
+    const fold = store.getFold()!;
+    expect(fold.turns).toHaveLength(2);
+    expect(fold.turns[0]).toBe(firstTurn);
+    expect(fold.lastSeq).toBe(13n);
   });
 
-  describe("watchdog signals", () => {
-    it("connectTimedOut: defaults false, notifies only on change", () => {
-      const store = new ConversationStore();
-      expect(store.getConnectTimedOut()).toBe(false);
+  it("notifies on a stage change only", () => {
+    const store = new ConversationStore();
+    const listener = vi.fn();
+    store.subscribe(listener);
+    const connecting: StreamState = { stage: "connecting", sessionId: "s1" };
 
-      const listener = vi.fn();
-      store.subscribe(listener);
+    store.setStreamState(connecting);
+    store.setStreamState({ stage: "connecting", sessionId: "s1" });
+    expect(listener).toHaveBeenCalledTimes(1);
 
-      store.setConnectTimedOut(true);
-      expect(store.getConnectTimedOut()).toBe(true);
-      expect(listener).toHaveBeenCalledTimes(1);
-
-      store.setConnectTimedOut(true);
-      expect(listener).toHaveBeenCalledTimes(1); // no-op on same value
-
-      store.setConnectTimedOut(false);
-      expect(store.getConnectTimedOut()).toBe(false);
-      expect(listener).toHaveBeenCalledTimes(2);
-    });
-
-    it("isSlow: defaults false, notifies only on change", () => {
-      const store = new ConversationStore();
-      expect(store.getSlow()).toBe(false);
-
-      const listener = vi.fn();
-      store.subscribe(listener);
-
-      store.setSlow(true);
-      expect(store.getSlow()).toBe(true);
-      expect(listener).toHaveBeenCalledTimes(1);
-
-      store.setSlow(true);
-      expect(listener).toHaveBeenCalledTimes(1);
-    });
-
-    it("reset clears both watchdog signals", () => {
-      const store = new ConversationStore();
-      store.setConnectTimedOut(true);
-      store.setSlow(true);
-
-      const listener = vi.fn();
-      store.subscribe(listener);
-
-      store.reset();
-      expect(store.getConnectTimedOut()).toBe(false);
-      expect(store.getSlow()).toBe(false);
-      expect(listener).toHaveBeenCalledTimes(1);
-    });
-
-    it("reset notifies when only a watchdog signal was set", () => {
-      const store = new ConversationStore();
-      store.setSlow(true);
-
-      const listener = vi.fn();
-      store.subscribe(listener);
-
-      store.reset();
-      expect(listener).toHaveBeenCalledTimes(1);
-    });
+    store.setStreamState({ stage: "connecting", sessionId: "s2" });
+    expect(listener).toHaveBeenCalledTimes(2);
+    store.setStreamState({ stage: "streaming", sessionId: "s2" });
+    store.setStreamState({ stage: "streaming", sessionId: "s2" });
+    expect(listener).toHaveBeenCalledTimes(3);
+    expect(store.getStreamState()).toEqual({ stage: "streaming", sessionId: "s2" });
   });
 
-  describe("reset", () => {
-    it("clears execution and stream state", () => {
-      const store = new ConversationStore();
-      store.ingestSnapshot(
-        makeExec(RunPhase.RUN_IN_PROGRESS, [
-          { type: MessageType.MESSAGE_AI, content: "hi" },
-        ]),
-      );
-      store.setStreamState({ stage: "streaming", executionId: "e1" });
+  it("re-notifies each reconnect attempt and each new error", () => {
+    const store = new ConversationStore();
+    const listener = vi.fn();
+    store.subscribe(listener);
 
-      const listener = vi.fn();
-      store.subscribe(listener);
+    store.setStreamState({ stage: "reconnecting", sessionId: "s", attempt: 1 });
+    store.setStreamState({ stage: "reconnecting", sessionId: "s", attempt: 1 });
+    store.setStreamState({ stage: "reconnecting", sessionId: "s", attempt: 2 });
+    expect(listener).toHaveBeenCalledTimes(2);
 
-      store.reset();
+    const error = new Error("gone");
+    store.setStreamState({ stage: "error", sessionId: "s", error });
+    store.setStreamState({ stage: "error", sessionId: "s", error });
+    store.setStreamState({ stage: "error", sessionId: "s", error: new Error("again") });
+    expect(listener).toHaveBeenCalledTimes(4);
 
-      expect(store.getExecution()).toBeNull();
-      expect(store.getStreamState()).toEqual({ stage: "idle" });
-      expect(listener).toHaveBeenCalledTimes(1);
-    });
-
-    it("does not notify when already in initial state", () => {
-      const store = new ConversationStore();
-      const listener = vi.fn();
-      store.subscribe(listener);
-
-      store.reset();
-      expect(listener).not.toHaveBeenCalled();
-    });
+    store.setStreamState({ stage: "idle" });
+    store.setStreamState({ stage: "idle" });
+    expect(listener).toHaveBeenCalledTimes(5);
   });
 
-  describe("getExecution / getStreamState referential stability", () => {
-    it("getExecution returns the same reference across calls when unchanged", () => {
-      const store = new ConversationStore();
-      const snap = makeExec(RunPhase.RUN_IN_PROGRESS);
-      store.ingestSnapshot(snap);
+  it("notifies the watchdog signals only on a change", () => {
+    const store = new ConversationStore();
+    const listener = vi.fn();
+    store.subscribe(listener);
 
-      const ref1 = store.getExecution();
-      const ref2 = store.getExecution();
-      expect(ref1).toBe(ref2);
-    });
+    store.setConnectTimedOut(true);
+    store.setConnectTimedOut(true);
+    store.setSlow(true);
+    store.setSlow(true);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(store.getConnectTimedOut()).toBe(true);
+    expect(store.getSlow()).toBe(true);
+  });
 
-    it("getStreamState returns the same reference across calls when unchanged", () => {
-      const store = new ConversationStore();
-      store.setStreamState({ stage: "connecting", executionId: "e1" });
+  it("resets to empty, notifying only when it held something", () => {
+    const store = new ConversationStore();
+    const listener = vi.fn();
+    const unsubscribe = store.subscribe(listener);
 
-      const ref1 = store.getStreamState();
-      const ref2 = store.getStreamState();
-      expect(ref1).toBe(ref2);
-    });
+    store.reset();
+    expect(listener).not.toHaveBeenCalled();
 
-    it("subscribe and getters are bound methods (safe to destructure)", () => {
-      const store = new ConversationStore();
-      const { subscribe, getExecution, getStreamState } = store;
+    for (const frame of frames(samples.turnEvents())) store.applyFrame(frame);
+    store.publish();
+    store.setStreamState({ stage: "streaming", sessionId: "s" });
+    store.setConnectTimedOut(true);
+    store.setSlow(true);
+    listener.mockClear();
 
-      expect(getExecution()).toBeNull();
-      expect(getStreamState()).toEqual({ stage: "idle" });
+    store.reset();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(store.getFold()).toBeNull();
+    expect(store.getStreamState()).toEqual({ stage: "idle" });
+    expect(store.getConnectTimedOut()).toBe(false);
+    expect(store.getSlow()).toBe(false);
+    expect(store.lastSeq).toBe(0n);
 
-      const listener = vi.fn();
-      const unsub = subscribe(listener);
-      store.setStreamState({ stage: "connecting", executionId: "e1" });
-      expect(listener).toHaveBeenCalledTimes(1);
-      unsub();
-    });
+    unsubscribe();
+    store.setSlow(true);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

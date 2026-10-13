@@ -57,7 +57,6 @@ const CONTRACT_CASE_NAMES = [
   "findDirectByIdpId answers a direct account by its subject and undefined for an unknown one",
   "findByIdpId (any mode) answers the same direct account",
   "findDirectByEmail is an exact, case-sensitive match on direct accounts",
-  "update replaces the row in place and keeps the id",
   "deleteById removes the row; the subject is free to be provisioned again",
   "findByIds answers the present ones in request order and skips the unknown",
   "a disconnected store is an infrastructure fault, never 'not found'",
@@ -72,10 +71,15 @@ const CONTRACT_CASE_NAMES = [
   "findDirectByIdpId and findDirectByEmail never answer a service account, while findByIdpId (any mode) and findByOrg do",
   "findByOrg answers the accounts whose row names the organization, and never a person's own",
   "findByIds answers one row per distinct id, in first-occurrence order; an empty request answers an empty list",
-  "update of an unknown id is a no-op: no row appears",
   "deleteById of an unknown id resolves",
   "save refuses a direct account with an empty idp_id",
-  "save and update refuse an account whose provider ref and federated mode disagree; a row with neither saves",
+  "save and swap refuse an account whose provider ref and federated mode disagree; a row with neither saves",
+  "readForWrite answers undefined for an unknown id",
+  "a swap on the bytes readForWrite answered lands, and the row reads back as written",
+  "a swap loses after a write lands between the read and the swap, and that write survives",
+  "a swap on bytes a landed swap replaced loses",
+  "a swap on a row deleted since the read loses and inserts nothing",
+  "readForWrite and swap propagate an outage rather than answer absent or lost",
 ] as const;
 
 /** A direct account as the domain writes it: id derived, mode direct. */

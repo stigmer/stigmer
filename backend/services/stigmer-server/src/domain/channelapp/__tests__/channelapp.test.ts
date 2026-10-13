@@ -14,7 +14,10 @@
  *     request rotates one secret while keeping the others);
  *   - the delete block fires for every stored app_ref that holds the app's
  *     id, whatever organization it names, reading seeded store rows
- *     directly.
+ *     directly;
+ *   - an update keeps a write that lands between its read and its write:
+ *     the lost swap is retried from a fresh read, so the row and the
+ *     redacted response carry both the landing write and the update.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,6 +36,7 @@ import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { ChannelAppSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
@@ -43,6 +47,10 @@ import {
   SecretService,
   isCiphertextShaped,
 } from "../../../encryption/encryption.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import {
   PROVIDER_IMMUTABLE_MESSAGE,
   REDACTED_MARKER,
@@ -597,6 +605,70 @@ describe("provider arm is immutable on update", () => {
     (update.metadata as Record<string, string>).slug = created.metadata!.slug;
     const updated = await command.update(update);
     expect(updated.metadata?.id).toBe(created.metadata!.id);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A write landing mid-update (pipeline/guarded-write.ts).
+// ---------------------------------------------------------------------------
+
+describe("update races a write to the same app", () => {
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const name = uniqueName("Acme Support App");
+    const created = await command.create(newSlackApp(name));
+    const id = created.metadata!.id;
+    expect(created.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const update = newSlackApp(name);
+    (update.metadata as Record<string, string>).id = id;
+    (update.metadata as Record<string, string>).slug = created.metadata!.slug;
+    update.spec.providerConfig.value.clientId = "4321.8765";
+    update.spec.providerConfig.value.clientSecret = REDACTED_MARKER;
+    update.spec.providerConfig.value.signingSecret = REDACTED_MARKER;
+
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.channel_app,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.channel_app,
+        ChannelAppSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => command.update(update),
+    );
+    expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
+
+    expect(updated.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const answered =
+      updated.spec?.providerConfig.case === "slack"
+        ? updated.spec.providerConfig.value
+        : undefined;
+    expect(answered?.clientId).toBe("4321.8765");
+    expect(answered?.clientSecret).toBe(REDACTED_MARKER);
+    expect(answered?.signingSecret).toBe(REDACTED_MARKER);
+
+    const stored = await readStored(id);
+    expect(stored.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const slack =
+      stored.spec?.providerConfig.case === "slack"
+        ? stored.spec.providerConfig.value
+        : undefined;
+    expect(slack?.clientId).toBe("4321.8765");
+    expect(await secrets.decrypt(slack!.clientSecret)).toBe(
+      "shh-client-secret",
+    );
+    expect(await secrets.decrypt(slack!.signingSecret)).toBe(
+      "shh-signing-secret",
+    );
   });
 });
 

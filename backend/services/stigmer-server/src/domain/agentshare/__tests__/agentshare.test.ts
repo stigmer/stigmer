@@ -13,7 +13,13 @@
  *     share (the rebind guard);
  *   - the #478 store-failure sanitization, pinned at the seam
  *     (loadLinkedShare) with an injected failing store — the composed
- *     server cannot fault-inject storage.
+ *     server cannot fault-inject storage;
+ *   - an update keeps a write that lands between its read and its write
+ *     (pipeline/guarded-write.ts): the lost swap reruns from a fresh read,
+ *     so the stored share and the answer carry both the landed visibility
+ *     and the update's spec;
+ *   - a share-link rotation of a share deleted between its read and its
+ *     write answers NotFound rather than writing the share back.
  *
  * Go tests run one store per test function; this file shares ONE server,
  * so count-sensitive assertions use dedicated orgs and every agent name is
@@ -25,6 +31,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -48,6 +55,10 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import type { Store } from "../../../store/interface.js";
 import { sameOrgInvariantMessage } from "../constants.js";
 import { loadLinkedShare, sharingLinkTokenAllowed } from "../steps.js";
@@ -543,6 +554,43 @@ describe("agentshare update", () => {
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toContain("spec.agent_ref is immutable");
   });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const agent = await createTestAgent(uniqueName("Race Agent"), ORG);
+    const created = await shares.create(shareFor(agent, true));
+    const id = created.metadata!.id;
+    expect(created.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+
+    created.spec!.enabled = false;
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.agent_share,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.agent_share,
+        AgentShareSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => shares.update(created),
+    );
+
+    const stored = await server.store.getResource(
+      ApiResourceKind.agent_share,
+      id,
+      AgentShareSchema,
+    );
+    for (const share of [updated, stored]) {
+      expect(share.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_org,
+      );
+      expect(share.spec?.enabled).toBe(false);
+    }
+    expect(writes).toBeGreaterThanOrEqual(2);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1031,6 +1079,42 @@ describe("rotateShareLink", () => {
     );
     expect(err.code).toBe(Code.NotFound);
     expect(err.rawMessage).toBe("AgentShare not found: ash-does-not-exist");
+  });
+
+  it("a share-link rotation of a share deleted between its read and its write answers NotFound", async () => {
+    const agent = await createTestAgent(uniqueName("Vanish Rotate Agent"), ORG);
+    const share = await shares.create(shareFor(agent, true));
+    const id = share.metadata!.id;
+
+    // The first atomic write to the share deletes the row first, so the
+    // rotation's write finds no row: the delete landed after its read.
+    const store = server.store;
+    const updateResource = store.updateResource.bind(store);
+    let armed = true;
+    const spy = vi.spyOn(store, "updateResource").mockImplementation((async <
+      Desc extends DescMessage,
+    >(
+      writtenKind: ApiResourceKind,
+      writtenId: string,
+      schema: Desc,
+      modify: (msg: MessageShape<Desc>) => void,
+    ) => {
+      if (armed && writtenKind === ApiResourceKind.agent_share && writtenId === id) {
+        armed = false;
+        await store.deleteResource(writtenKind, writtenId);
+      }
+      return updateResource(writtenKind, writtenId, schema, modify);
+    }) as typeof store.updateResource);
+    let err: ConnectError;
+    try {
+      err = await grpcError(() => shares.rotateShareLink({ resourceId: id }));
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(armed).toBe(false);
+    expect(err.code).toBe(Code.NotFound);
+    expect(err.rawMessage).toBe(`AgentShare not found: ${id}`);
   });
 
   it("member path stays open for org-audience shares even when a token exists", async () => {

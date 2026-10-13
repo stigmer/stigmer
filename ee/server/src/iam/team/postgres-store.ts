@@ -14,7 +14,9 @@
  *
  * A slug changes only through `modifyById` (the rename chain's write),
  * which writes the payload and the slug column together under the row's
- * lock; `replace` takes the same lock and keeps the stored slug.
+ * lock. The update's `swap` is one UPDATE compared on the payload bytes
+ * `readForWrite` answered, writing the payload and the slug column
+ * together, so a rename in between makes it lose.
  *
  * A slug collision is `uq_iam_team_org_slug` refusing the insert. The
  * insert names the refusing constraint: a unique violation on any other
@@ -29,6 +31,8 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+
+import type { GuardedRead } from "@stigmer/server";
 
 import type { TeamInsertOutcome, TeamStore } from "./store.js";
 
@@ -80,27 +84,28 @@ export function newTeamStore(pool: Pool): TeamStore {
       }
     },
 
-    replace(team): Promise<void> {
-      const id = columnsOf(team).id;
-      return inTransaction(pool, async (client) => {
-        const locked = await client.query<TeamRow>(
-          `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
-          [id],
-        );
-        const row = locked.rows[0];
-        if (row === undefined) {
-          return { commit: false, value: undefined };
-        }
-        const storedSlug = rowToTeam(row).metadata?.slug;
-        if (team.metadata !== undefined && storedSlug !== undefined) {
-          team.metadata.slug = storedSlug;
-        }
-        await client.query(`UPDATE ${TABLE} SET data = $2 WHERE id = $1`, [
+    async readForWrite(id): Promise<GuardedRead<Team> | undefined> {
+      const result = await pool.query<TeamRow>(
+        `SELECT data FROM ${TABLE} WHERE id = $1`,
+        [id],
+      );
+      const row = result.rows[0];
+      return row === undefined
+        ? undefined
+        : { row: rowToTeam(row), bytes: row.data };
+    },
+
+    async swap(id, expectedBytes, next): Promise<boolean> {
+      const result = await pool.query(
+        `UPDATE ${TABLE} SET data = $3, slug = $4 WHERE id = $1 AND data = $2`,
+        [
           id,
-          Buffer.from(toBinary(TeamSchema, team)),
-        ]);
-        return { commit: true, value: undefined };
-      });
+          Buffer.from(expectedBytes),
+          Buffer.from(toBinary(TeamSchema, next)),
+          columnsOf(next).slug,
+        ],
+      );
+      return result.rowCount === 1;
     },
 
     modifyById(id, modify): Promise<Team | undefined> {

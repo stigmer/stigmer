@@ -29,6 +29,7 @@ import {
 import type { FileReviewEventSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { eventTypeOf } from "@stigmer/session-log";
 import { createLogger } from "../../../../boot/logger.js";
 import type { CallerIdentity } from "../../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
@@ -39,7 +40,6 @@ import type { FileReviewSeed } from "../../../run/__tests__/file-review-seed.js"
 import { fileDigest } from "../../../run/filereview/digest.js";
 import { StreamBroker } from "../../../run/stream-broker.js";
 import { SessionEventBroker } from "../../events/broker.js";
-import { eventTypeOf } from "../../events/catalog.js";
 import { eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents } from "../../events/run-writes.js";
 import {

@@ -89,6 +89,7 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newRefuseBoundElsewhereStep } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { newRunTargetReachableStep } from "../../pipeline/steps/run-target-reachable.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";
@@ -544,43 +545,45 @@ async function update(
   execution: Run,
   ctx: HandlerContext,
 ): Promise<Run> {
-  const reqCtx = new RequestContext(
-    RunSchema,
-    execution,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof RunSchema>(
-    "agent-execution-update",
-    deps.logger,
-  )
-    .addStep(
-      newAuthorizeStep(
-        RunCommandController.method.update,
-        deps.authorizer,
-      ),
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      RunSchema,
+      execution,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof RunSchema>(
+      "agent-execution-update",
+      deps.logger,
     )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newNormalizeReferencesStep(deps.store))
-    .addStep(newKeepPluginEvalCaseStep())
-    .addStep(newKeepReconcileFileReviewStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateSessionImmutabilityStep())
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newPersistStep(deps.store))
-    .addStep(
-      newIndexSearchStep(
-        deps.store,
-        agentExecutionSearchExtractor,
-        deps.logger,
-      ),
-    )
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+      .addStep(
+        newAuthorizeStep(
+          RunCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newKeepPluginEvalCaseStep())
+      .addStep(newKeepReconcileFileReviewStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newValidateSessionImmutabilityStep())
+      .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+      .addStep(newPersistStep(deps.store))
+      .addStep(
+        newIndexSearchStep(
+          deps.store,
+          agentExecutionSearchExtractor,
+          deps.logger,
+        ),
+      )
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /**

@@ -42,12 +42,14 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 
+import type { GuardedRead } from "@stigmer/server";
+
 import { inTransaction } from "../../postgres/transaction.js";
 import { routesOf, type ProviderRoute } from "./routes.js";
 import type {
   IdentityProviderStore,
   ProviderInsertOutcome,
-  ProviderReplaceOutcome,
+  ProviderSwapOutcome,
 } from "./store.js";
 
 const TABLE = "ee.iam_identity_provider";
@@ -129,40 +131,44 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
       });
     },
 
-    async replace(provider): Promise<ProviderReplaceOutcome> {
+    async readForWrite(id): Promise<GuardedRead<IdentityProvider> | undefined> {
+      const result = await pool.query<ProviderRow>(
+        `SELECT data FROM ${TABLE} WHERE id = $1`,
+        [id],
+      );
+      const row = result.rows[0];
+      return row === undefined
+        ? undefined
+        : { row: rowToProvider(row), bytes: new Uint8Array(row.data) };
+    },
+
+    async swap(id, expectedBytes, provider): Promise<ProviderSwapOutcome> {
       const columns = columnsOf(provider);
-      return inTransaction<ProviderReplaceOutcome>(pool, async (client) => {
+      return inTransaction<ProviderSwapOutcome>(pool, async (client) => {
         const locked = await client.query<ProviderRow>(
           `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
-          [columns.id],
+          [id],
         );
         const held = locked.rows[0];
-        if (held === undefined) {
-          return { commit: false, value: { kind: "missing" } };
+        if (held === undefined || !held.data.equals(Buffer.from(expectedBytes))) {
+          return { commit: false, value: { kind: "changed" } };
         }
-        const storedSlug = rowToProvider(held).metadata?.slug;
-        if (provider.metadata !== undefined && storedSlug !== undefined) {
-          provider.metadata.slug = storedSlug;
-        }
-        let rowCount = 0;
+        refuseSlugChange(rowToProvider(held), provider);
+        // The row is locked and held, so the UPDATE writes it.
         const refused = await claiming(async () => {
-          const updated = await client.query(
+          await client.query(
             `UPDATE ${TABLE} SET data = $2, is_sso = $3 WHERE id = $1`,
-            [columns.id, payloadOf(provider), columns.isSso],
+            [id, payloadOf(provider), columns.isSso],
           );
-          rowCount = updated.rowCount ?? 0;
         });
         if (refused === "sso") {
           return { commit: false, value: { kind: "sso-taken" } };
         }
-        if (rowCount === 0) {
-          return { commit: false, value: { kind: "missing" } };
-        }
         await client.query(
           `DELETE FROM ${ROUTE_TABLE} WHERE identity_provider_id = $1`,
-          [columns.id],
+          [id],
         );
-        const taken = await claimRoutes(client, columns.id, columns.routes);
+        const taken = await claimRoutes(client, id, columns.routes);
         return taken === undefined
           ? { commit: true, value: { kind: "replaced" } }
           : { commit: false, value: { kind: "route-taken", route: taken } };
@@ -315,7 +321,18 @@ function claimOf(error: unknown): Claim | undefined {
 }
 
 /**
- * Refuses a `modifyById` that moved what only `replace` may: the
+ * Refuses a swap that moves the slug: the slug column is rename's
+ * (`modifyById`), and a swap writes the payload only, so a payload naming
+ * another slug would disagree with the column every name read trusts.
+ */
+function refuseSlugChange(held: IdentityProvider, next: IdentityProvider): void {
+  if ((held.metadata?.slug ?? "") !== (next.metadata?.slug ?? "")) {
+    throw new Error("a swap keeps a provider's slug; a rename changes it");
+  }
+}
+
+/**
+ * Refuses a `modifyById` that moved what only `swap` may: the
  * organization, the SSO flag or a route claim.
  */
 function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): void {
@@ -327,7 +344,7 @@ function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): voi
     routeKey(before.routes) !== routeKey(after.routes)
   ) {
     throw new Error(
-      "modifyById changes a provider's payload and slug alone; its organization, SSO flag and routes change through replace",
+      "modifyById changes a provider's payload and slug alone; its organization, SSO flag and routes change through an update",
     );
   }
 }

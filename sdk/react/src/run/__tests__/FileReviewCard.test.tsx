@@ -1,36 +1,50 @@
+/**
+ * Pins the file-review card (../FileReviewCard.tsx) over a turn's review as
+ * the session's events fold it (`FileReviewSet`): the bar's summary and its
+ * whole-set Keep/Discard bound to the aggregate digest; per-file Keep/Discard
+ * bound to each file's digest, with each file's state as the selected option
+ * and review progress; in-flight and failed decisions per control; binary
+ * files kept consciously ("Keep anyway", "Keep all"), unavailable files
+ * discard-only with honest copy wired by aria-describedby; the settled
+ * record's verdicts (kept, discarded, undo failed, not reviewed) and policy
+ * keeps; the compact list mode (counts, kind letters, renames); and the diff
+ * bytes: from the caller's capture (with its provenance badge), or read from
+ * the run on demand, saying so while loading, on failure, or when absent.
+ */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import type { ReactElement, ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-  FileDecisionSchema,
+  type FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
-  DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionOrigin,
-  FileDecisionScope,
-  FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewDecision, FileReviewFile, FileReviewSet } from "@stigmer/sdk";
+import { StigmerContext } from "../../context";
+import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import type { UseFileChangeContentReturn } from "../useFileChangeContent";
 
 // FileReviewCard renders FileChangeDiff (per file), which pulls in the
-// offload-resolving content hook transitively. Mock it so the diff path renders
-// without artifact-fetch context, then import the component after the mock.
+// offload-resolving content hook transitively. Mock it so the diff path
+// renders without artifact-fetch context, then import the component.
 let mockReturn: UseFileChangeContentReturn;
 vi.mock("../useFileChangeContent", () => ({
   useFileChangeContent: () => mockReturn,
 }));
 
 const { FileReviewCard } = await import("../FileReviewCard");
-const { fileDecisionKey } = await import("../useFileReview");
+const { fileDecisionKey } = await import("../useReviewFileChanges");
 
-function setContent(overrides?: Partial<UseFileChangeContentReturn>) {
+const runGet = vi.fn();
+
+beforeEach(() => {
   mockReturn = {
     beforeText: "old\n",
     afterText: "new\n",
@@ -39,1081 +53,473 @@ function setContent(overrides?: Partial<UseFileChangeContentReturn>) {
     error: null,
     isTruncated: false,
     downloadUrl: null,
-    ...overrides,
   };
-}
-
-beforeEach(() => setContent());
+  runGet.mockReset();
+});
 afterEach(cleanup);
 
 const noop = () => {};
 
-/**
- * Open the bar's diff expander. A COMPLETE undecided set and a settled record
- * start collapsed (the bar carries the verdict; the transcript's stamped rows
- * carry the previews), so tests that assert on per-file content expand first —
- * exactly the user's own path to the authoritative diffs.
- */
-function expandCard() {
-  fireEvent.click(
-    screen.getByRole("button", { name: /^(Review|Show)$/ }),
+function Providers({ children }: { children: ReactNode }) {
+  return (
+    <FetchCacheContext.Provider value={null}>
+      <StigmerContext.Provider value={{ run: { get: runGet } } as never}>{children}</StigmerContext.Provider>
+    </FetchCacheContext.Provider>
   );
 }
 
-function inline(value: string, isBinary = false) {
-  return create(FileContentSchema, { body: { case: "inline", value }, isBinary });
+function show(card: ReactElement) {
+  return render(card, { wrapper: Providers });
 }
 
-function capturedChange(opts: {
-  id: string;
-  path: string;
-  fileDigest: string;
-  diffComplete?: boolean;
-  captureClass?: FileCaptureClass;
-}) {
-  return create(CapturedFileChangeSchema, {
-    id: opts.id,
-    pathBefore: opts.path,
-    pathAfter: opts.path,
-    kind: FileChangeKind.MODIFY,
-    captureClass: opts.captureClass ?? FileCaptureClass.GIT_TRACKED,
-    before: inline("old\n"),
-    after: inline("new\n"),
-    fileDigest: opts.fileDigest,
-    diffComplete: opts.diffComplete ?? true,
-  });
+/** Open the bar's expander ("Review" for live diffs, "Show" for a record). */
+function expandCard() {
+  fireEvent.click(screen.getByRole("button", { name: /^(Review|Show)$/ }));
 }
 
-/** A binary change (real wire shape): both sides present + flagged, incomplete. */
-function capturedBinaryChange(opts: {
-  id: string;
-  path: string;
-  fileDigest: string;
-  captureClass?: FileCaptureClass;
-}) {
-  return create(CapturedFileChangeSchema, {
-    id: opts.id,
-    pathBefore: opts.path,
-    pathAfter: opts.path,
-    kind: FileChangeKind.MODIFY,
-    captureClass: opts.captureClass ?? FileCaptureClass.GIT_TRACKED,
-    before: inline("\u0000old", true),
-    after: inline("\u0000new", true),
-    fileDigest: opts.fileDigest,
-    diffComplete: false,
-  });
+function file(id: string, path: string, overrides: Partial<FileReviewFile> = {}): FileReviewFile {
+  return {
+    fileChangeId: id,
+    path,
+    previousPath: "",
+    change: "modified",
+    digest: `d-${id}`,
+    linesAdded: 0,
+    linesRemoved: 0,
+    reviewable: "complete",
+    state: "undecided",
+    decidedBy: "",
+    ...overrides,
+  };
 }
 
-/**
- * A diff-unavailable change (real wire shape): content-less + incomplete — the
- * shape both the secret gate and the size backstop produce. `blockedReason`
- * carries the honest cause; omit it to model an unknown row or one recorded
- * before the runner recorded block reasons.
- */
-function capturedUnavailableChange(opts: {
-  id: string;
-  path: string;
-  fileDigest: string;
-  captureClass?: FileCaptureClass;
-  blockedReason?: FileReviewBlockReason;
-}) {
-  return create(CapturedFileChangeSchema, {
-    id: opts.id,
-    pathBefore: opts.path,
-    pathAfter: opts.path,
-    kind: FileChangeKind.MODIFY,
-    captureClass: opts.captureClass ?? FileCaptureClass.GIT_IGNORED_CAPTURED,
-    fileDigest: opts.fileDigest,
-    diffComplete: false,
-    blockedReason: opts.blockedReason ?? FileReviewBlockReason.UNSPECIFIED,
-  });
+function decision(origin: string): FileReviewDecision {
+  return {
+    id: `dec-${origin}`,
+    scope: "change_set",
+    fileChangeId: "",
+    action: "keep",
+    expectedDigest: "agg-1",
+    origin,
+    reason: "",
+    processedAt: "",
+  };
 }
 
-function fileDecision(fileChangeId: string, action: FileDecisionAction) {
-  return create(FileDecisionSchema, {
-    changeSetId: "aex-1:0",
-    fileChangeId,
-    scope: FileDecisionScope.FILE,
-    action,
-  });
-}
-
-/** Single-file change set (the whole set IS the file — no per-file controls). */
-function changeSet(opts?: {
-  diffCompleteness?: DiffCompleteness;
-  change?: ReturnType<typeof capturedChange>;
-}) {
-  return create(FileChangeSetSchema, {
-    id: "aex-1:0",
-    status: FileChangeSetStatus.AWAITING_REVIEW,
+function review(files: FileReviewFile[], decisions: FileReviewDecision[] = []): FileReviewSet {
+  return {
+    changeSetId: "cs-1",
+    runId: "run_1",
     aggregateDigest: "agg-1",
-    diffCompleteness: opts?.diffCompleteness ?? DiffCompleteness.COMPLETE,
-    changes: [
-      opts?.change ??
-        capturedChange({ id: "aex-1:0:src/a.ts", path: "src/a.ts", fileDigest: "d-a" }),
-    ],
+    files,
+    decisions,
+    reconciles: [],
+    undecided: files.some((f) => f.state === "undecided"),
+    processedAt: "",
+  };
+}
+
+/** One complete file: the whole set IS the file, so no per-file controls. */
+const single = (overrides: Partial<FileReviewFile> = {}) => review([file("fc1", "src/a.ts", overrides)]);
+
+/** Two files, each with its own Keep/Discard control. */
+const pair = (a: Partial<FileReviewFile> = {}, b: Partial<FileReviewFile> = {}) =>
+  review([file("fc1", "src/a.ts", a), file("fc2", "src/b.ts", b)]);
+
+function capture(changes: Array<{ id: string; path: string; captureClass?: FileCaptureClass }>): FileChangeSet {
+  return create(FileChangeSetSchema, {
+    id: "cs-1",
+    changes: changes.map((c) =>
+      create(CapturedFileChangeSchema, {
+        id: c.id,
+        pathBefore: c.path,
+        pathAfter: c.path,
+        kind: FileChangeKind.MODIFY,
+        captureClass: c.captureClass ?? FileCaptureClass.GIT_TRACKED,
+        before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
+        after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
+        diffComplete: true,
+      }),
+    ),
   });
 }
 
-/** Two-file change set with per-file Keep/Discard controls. */
-function multiChangeSet(opts?: {
-  diffCompleteness?: DiffCompleteness;
-  fc1?: ReturnType<typeof capturedChange>;
-  fc2?: ReturnType<typeof capturedChange>;
-  decisions?: ReturnType<typeof fileDecision>[];
-}) {
-  return create(FileChangeSetSchema, {
-    id: "aex-1:0",
-    status: FileChangeSetStatus.AWAITING_REVIEW,
-    aggregateDigest: "agg-1",
-    diffCompleteness: opts?.diffCompleteness ?? DiffCompleteness.COMPLETE,
-    changes: [
-      opts?.fc1 ?? capturedChange({ id: "fc1", path: "src/a.ts", fileDigest: "d-fc1" }),
-      opts?.fc2 ?? capturedChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
-    ],
-    decisions: opts?.decisions ?? [],
-  });
-}
+const radio = (name: string | RegExp) => screen.getByRole("radio", { name }) as HTMLButtonElement;
 
 describe("FileReviewCard", () => {
   describe("single-file set (bulk only)", () => {
-    it("renders the change set summary and file diff", () => {
-      render(<FileReviewCard fileChangeSet={changeSet()} onSubmit={noop} />);
+    it("renders the summary and the singular bulk controls, no per-file radios", () => {
+      show(<FileReviewCard fileReviewSet={single()} capture={null} onSubmit={noop} />);
       expect(screen.getByText(/awaiting review/i)).toBeTruthy();
-      expect(
-        screen.getByRole("alert", { name: /review 1 file change/i }),
-      ).toBeTruthy();
-    });
-
-    it("shows no per-file Keep/Discard radios for a single file", () => {
-      render(<FileReviewCard fileChangeSet={changeSet()} onSubmit={noop} />);
+      expect(screen.getByRole("alert", { name: /review 1 file change/i })).toBeTruthy();
       expect(screen.queryByRole("radio")).toBeNull();
-      // The bulk label is singular (no misleading "all" for one file).
       expect(screen.getByRole("button", { name: "Approve" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "Reject" })).toBeTruthy();
     });
 
-    it("submits a CHANGE_SET APPROVE bound to the aggregate digest on Approve", () => {
+    it("keeps or undoes the whole set bound to the aggregate digest", () => {
       const onSubmit = vi.fn();
-      render(<FileReviewCard fileChangeSet={changeSet()} onSubmit={onSubmit} />);
-
+      show(<FileReviewCard fileReviewSet={single()} capture={null} onSubmit={onSubmit} />);
       fireEvent.click(screen.getByRole("button", { name: "Approve" }));
-
-      expect(onSubmit).toHaveBeenCalledTimes(1);
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.CHANGE_SET,
-        expectedDigest: "agg-1",
-        // A COMPLETE set carries no acknowledgment (nothing unreviewable).
-        acknowledgeUnreviewable: false,
-      });
-    });
-
-    it("submits a CHANGE_SET REJECT on Reject", () => {
-      const onSubmit = vi.fn();
-      render(<FileReviewCard fileChangeSet={changeSet()} onSubmit={onSubmit} />);
-
       fireEvent.click(screen.getByRole("button", { name: "Reject" }));
-
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.REJECT, {
-        scope: FileDecisionScope.CHANGE_SET,
-        expectedDigest: "agg-1",
-        acknowledgeUnreviewable: false,
-      });
+      expect(onSubmit.mock.calls).toEqual([
+        ["keep", { scope: "change_set", expectedDigest: "agg-1", acknowledgeUnreviewable: false }],
+        ["undo", { scope: "change_set", expectedDigest: "agg-1", acknowledgeUnreviewable: false }],
+      ]);
     });
 
-    it("switches a single INCOMPLETE file to the per-file control (no CHANGE_SET footer)", () => {
-      // A lone binary set is BINARY_SUMMARY_ONLY, but "Keep all" is a multi-file
-      // affordance: with a single file the bulk footer is dropped and the per-file
-      // "Keep anyway" / Discard control is the only decision surface.
-      render(
+    it("decides a single binary file per file: an acknowledged Keep anyway, and Discard", () => {
+      const onSubmit = vi.fn();
+      show(
         <FileReviewCard
-          fileChangeSet={changeSet({
-            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
-            change: capturedBinaryChange({ id: "aex-1:0:img.png", path: "img.png", fileDigest: "d" }),
-          })}
-          onSubmit={noop}
+          fileReviewSet={review([file("fc-img", "img.png", { reviewable: "binary" })])}
+          capture={null}
+          onSubmit={onSubmit}
         />,
       );
-
-      // No bulk footer for a single incomplete file.
       expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
-      expect(screen.queryByRole("button", { name: "Reject" })).toBeNull();
-      // The per-file control is present, with an enabled binary "Keep anyway".
-      expect(
-        (screen.getByRole("radio", { name: /Keep img.png anyway/i }) as HTMLButtonElement).disabled,
-      ).toBe(false);
-      expect(
-        (screen.getByRole("radio", { name: "Discard img.png" }) as HTMLButtonElement).disabled,
-      ).toBe(false);
+      fireEvent.click(radio(/Keep img.png anyway/i));
+      fireEvent.click(radio("Discard img.png"));
+      expect(onSubmit.mock.calls).toEqual([
+        ["keep", { scope: "file", fileChangeId: "fc-img", expectedDigest: "d-fc-img", acknowledgeUnreviewable: true }],
+        ["undo", { scope: "file", fileChangeId: "fc-img", expectedDigest: "d-fc-img", acknowledgeUnreviewable: false }],
+      ]);
     });
   });
 
   describe("multi-file set (per-file controls)", () => {
-    it("starts a complete multi-file set collapsed in diff mode — auto-expansion is list-mode only", () => {
-      // Diff mode's expanded body is every full diff with NO height cap (a
-      // standalone embed); auto-expanding a multi-file set there
-      // would dump every diff open on mount. Only the compact list mode
-      // (showDiffs=false, the dock) starts multi-file sets expanded.
-      render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={noop} />);
+    it("starts a complete multi-file set collapsed in diff mode", () => {
+      show(<FileReviewCard fileReviewSet={pair()} capture={null} onSubmit={noop} />);
       expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
       expect(screen.getByRole("button", { name: "Review" })).toBeTruthy();
     });
 
-    it("renders a Keep/Discard radio per file plus whole-set controls", () => {
-      render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={noop} />);
+    it("renders a Keep/Discard radio per file plus the whole-set controls, and decides each file by its digest", () => {
+      const onSubmit = vi.fn();
+      show(<FileReviewCard fileReviewSet={pair()} capture={null} onSubmit={onSubmit} />);
       expandCard();
-
-      expect(screen.getByRole("radio", { name: "Keep src/a.ts" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: "Discard src/a.ts" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: "Keep src/b.ts" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: "Discard src/b.ts" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "Approve all" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "Reject all" })).toBeTruthy();
+      fireEvent.click(radio("Keep src/a.ts"));
+      fireEvent.click(radio("Discard src/b.ts"));
+      expect(onSubmit.mock.calls).toEqual([
+        ["keep", { scope: "file", fileChangeId: "fc1", expectedDigest: "d-fc1", acknowledgeUnreviewable: false }],
+        ["undo", { scope: "file", fileChangeId: "fc2", expectedDigest: "d-fc2", acknowledgeUnreviewable: false }],
+      ]);
     });
 
-    it("submits a FILE APPROVE bound to the file digest on Keep", () => {
+    it("reads each file's state as its selected option, with progress and 'remaining' labels", () => {
       const onSubmit = vi.fn();
-      render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={onSubmit} />);
-      expandCard();
-
-      fireEvent.click(screen.getByRole("radio", { name: "Keep src/a.ts" }));
-
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: "fc1",
-        expectedDigest: "d-fc1",
-        acknowledgeUnreviewable: false,
-      });
-    });
-
-    it("submits a FILE REJECT bound to the file digest on Discard", () => {
-      const onSubmit = vi.fn();
-      render(<FileReviewCard fileChangeSet={multiChangeSet()} onSubmit={onSubmit} />);
-      expandCard();
-
-      fireEvent.click(screen.getByRole("radio", { name: "Discard src/b.ts" }));
-
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.REJECT, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: "fc2",
-        expectedDigest: "d-fc2",
-        acknowledgeUnreviewable: false,
-      });
-    });
-
-    it("disables Keep (but not Discard) for an incomplete file, leaving complete files keepable", () => {
-      const onSubmit = vi.fn();
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-            fc2: capturedUnavailableChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
-          })}
-          onSubmit={onSubmit}
-        />,
-      );
-
-      // The unavailable file can only be discarded.
-      expect(
-        (screen.getByRole("radio", { name: "Keep src/b.ts" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
-      expect(
-        (screen.getByRole("radio", { name: "Discard src/b.ts" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(false);
-      // The complete file is still keepable individually.
-      expect(
-        (screen.getByRole("radio", { name: "Keep src/a.ts" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(false);
-      // The whole-set Approve is blocked while the set is not COMPLETE.
-      expect(
-        (screen.getByRole("button", { name: "Approve all" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
-    });
-
-    it("shows a committed verdict as checked and flips it on the other option", () => {
-      const onSubmit = vi.fn();
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            decisions: [fileDecision("fc1", FileDecisionAction.APPROVE)],
-          })}
-          onSubmit={onSubmit}
-        />,
-      );
-
-      expect(
-        screen.getByRole("radio", { name: "Keep src/a.ts" }).getAttribute("aria-checked"),
-      ).toBe("true");
-
-      // Flipping is allowed: clicking Discard records a new (last-wins) decision.
-      fireEvent.click(screen.getByRole("radio", { name: "Discard src/a.ts" }));
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.REJECT, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: "fc1",
-        expectedDigest: "d-fc1",
-        acknowledgeUnreviewable: false,
-      });
-    });
-
-    it("reflects last-write-wins: a later REJECT supersedes an earlier APPROVE", () => {
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            decisions: [
-              fileDecision("fc1", FileDecisionAction.APPROVE),
-              fileDecision("fc1", FileDecisionAction.REJECT),
-            ],
-          })}
-          onSubmit={noop}
-        />,
-      );
-
-      expect(
-        screen.getByRole("radio", { name: "Discard src/a.ts" }).getAttribute("aria-checked"),
-      ).toBe("true");
-      expect(
-        screen.getByRole("radio", { name: "Keep src/a.ts" }).getAttribute("aria-checked"),
-      ).toBe("false");
-    });
-
-    it("shows review progress for a partially-decided set", () => {
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            decisions: [fileDecision("fc1", FileDecisionAction.APPROVE)],
-          })}
-          onSubmit={noop}
-        />,
-      );
+      show(<FileReviewCard fileReviewSet={pair({ state: "kept" })} capture={null} onSubmit={onSubmit} />);
+      expect(radio("Keep src/a.ts").getAttribute("aria-checked")).toBe("true");
       expect(screen.getByText(/1 of 2 files reviewed/i)).toBeTruthy();
-    });
-
-    it("relabels the bulk action to 'remaining' once some files are decided", () => {
-      const onSubmit = vi.fn();
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            decisions: [fileDecision("fc1", FileDecisionAction.APPROVE)],
-          })}
-          onSubmit={onSubmit}
-        />,
-      );
-
-      const approveRemaining = screen.getByRole("button", { name: "Approve remaining" });
-      expect(approveRemaining).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Approve remaining" }));
       expect(screen.getByRole("button", { name: "Reject remaining" })).toBeTruthy();
-
-      fireEvent.click(approveRemaining);
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.CHANGE_SET,
+      expect(onSubmit).toHaveBeenCalledWith("keep", {
+        scope: "change_set",
         expectedDigest: "agg-1",
         acknowledgeUnreviewable: false,
       });
     });
 
-    it("disables a file's options while that file's decision is in flight", () => {
-      const submitting = new Set([fileDecisionKey("aex-1:0", "fc1")]);
-      render(
+    it("reads an undone (or undoing) file as Discard", () => {
+      show(<FileReviewCard fileReviewSet={pair({ state: "undoing" }, { state: "undone" })} capture={null} onSubmit={noop} />);
+      expect(radio("Discard src/a.ts").getAttribute("aria-checked")).toBe("true");
+      expect(radio("Discard src/b.ts").getAttribute("aria-checked")).toBe("true");
+      expect(radio("Keep src/a.ts").getAttribute("aria-checked")).toBe("false");
+    });
+
+    it("disables a file's options while its decision is in flight, and the bulk while the set's is", () => {
+      show(
         <FileReviewCard
-          fileChangeSet={multiChangeSet()}
+          fileReviewSet={pair()}
+          capture={null}
           onSubmit={noop}
-          submittingDecisionKeys={submitting}
+          submittingDecisionKeys={new Set([fileDecisionKey("cs-1", "fc1")])}
         />,
       );
       expandCard();
-
-      expect(
-        (screen.getByRole("radio", { name: "Keep src/a.ts" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
-      expect(
-        (screen.getByRole("radio", { name: "Discard src/a.ts" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
-      // A different file is unaffected.
-      expect(
-        (screen.getByRole("radio", { name: "Keep src/b.ts" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(false);
-    });
-
-    it("disables the bulk action while a whole-set decision is in flight", () => {
-      const submitting = new Set(["aex-1:0"]);
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet()}
-          onSubmit={noop}
-          submittingDecisionKeys={submitting}
-        />,
+      expect(radio("Keep src/a.ts").disabled).toBe(true);
+      expect(radio("Discard src/a.ts").disabled).toBe(true);
+      expect(radio("Keep src/b.ts").disabled).toBe(false);
+      cleanup();
+      show(
+        <FileReviewCard fileReviewSet={pair()} capture={null} onSubmit={noop} submittingDecisionKeys={new Set(["cs-1"])} />,
       );
-
-      expect(
-        (screen.getByRole("button", { name: "Approve all" }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
+      expect((screen.getByRole("button", { name: "Approve all" }) as HTMLButtonElement).disabled).toBe(true);
     });
   });
 
   describe("decision errors (in-card surfacing)", () => {
-    it("renders no error element when the map is empty (default path)", () => {
-      const { container } = render(
-        <FileReviewCard fileChangeSet={changeSet()} onSubmit={noop} />,
-      );
+    it("renders no error element by default", () => {
+      const { container } = show(<FileReviewCard fileReviewSet={single()} capture={null} onSubmit={noop} />);
       expect(container.querySelector('[data-cursor-target="file-review-error"]')).toBeNull();
-      expect(
-        container.querySelector('[data-cursor-target="file-review-file-error"]'),
-      ).toBeNull();
+      expect(container.querySelector('[data-cursor-target="file-review-file-error"]')).toBeNull();
     });
 
     it("surfaces a whole-set failure beside the bulk buttons", () => {
-      const decisionErrors = new Map([["aex-1:0", new Error("digest mismatch")]]);
-      render(
+      show(
         <FileReviewCard
-          fileChangeSet={changeSet()}
+          fileReviewSet={single()}
+          capture={null}
           onSubmit={noop}
-          decisionErrors={decisionErrors}
+          decisionErrors={new Map([["cs-1", new Error("digest mismatch")]])}
         />,
       );
-      const err = screen.getByText(/Couldn.t submit decision — digest mismatch/);
-      expect(err.getAttribute("data-cursor-target")).toBe("file-review-error");
+      expect(
+        screen.getByText(/Couldn.t submit decision — digest mismatch/).getAttribute("data-cursor-target"),
+      ).toBe("file-review-error");
     });
 
     it("surfaces a per-file failure under the right file row only", () => {
-      const decisionErrors = new Map([
-        [fileDecisionKey("aex-1:0", "fc1"), new Error("network down")],
-      ]);
-      render(
+      show(
         <FileReviewCard
-          fileChangeSet={multiChangeSet()}
+          fileReviewSet={pair()}
+          capture={null}
           onSubmit={noop}
-          decisionErrors={decisionErrors}
+          decisionErrors={new Map([[fileDecisionKey("cs-1", "fc1"), new Error("network down")]])}
         />,
       );
       expandCard();
-      // Exactly one per-file error, and it carries fc1's message.
-      const fileErrors = screen.getAllByText(/Couldn.t save/);
-      expect(fileErrors).toHaveLength(1);
-      expect(fileErrors[0].textContent).toMatch(/network down/);
-      // The whole-set error is NOT shown (the failure was per-file).
+      const errors = screen.getAllByText(/Couldn.t save/);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]!.textContent).toMatch(/network down/);
       expect(screen.queryByText(/Couldn.t submit decision/)).toBeNull();
     });
   });
 
   describe("blocked / partial states", () => {
-    it("labels a binary file and offers an enabled 'Keep anyway'", () => {
+    it("offers 'Keep all' and per-file 'Keep anyway' in a binary-only set, acknowledging the binaries", () => {
       const onSubmit = vi.fn();
-      render(
+      show(
         <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
-            fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
-          })}
+          fileReviewSet={review([file("fc1", "src/a.ts"), file("fc2", "img.png", { reviewable: "binary" })])}
+          capture={null}
           onSubmit={onSubmit}
         />,
       );
-
-      // Target the per-file note specifically ("...to review"), not the bulk
-      // keep-all notice which also mentions "no text diff".
       expect(screen.getByText(/Binary file.*no text diff to review/i)).toBeTruthy();
-      // A binary is keepable via an explicit, enabled "Keep anyway".
-      const keepAnyway = screen.getByRole("radio", {
-        name: /Keep img.png anyway/i,
-      }) as HTMLButtonElement;
-      expect(keepAnyway.disabled).toBe(false);
-      expect(
-        (screen.getByRole("radio", { name: "Discard img.png" }) as HTMLButtonElement).disabled,
-      ).toBe(false);
-      // The reviewable sibling keeps its plain "Keep".
-      expect(
-        (screen.getByRole("radio", { name: "Keep src/a.ts" }) as HTMLButtonElement).disabled,
-      ).toBe(false);
-
-      // Clicking "Keep anyway" submits an acknowledged FILE approve.
-      fireEvent.click(keepAnyway);
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: "fc2",
-        expectedDigest: "d-fc2",
-        acknowledgeUnreviewable: true,
-      });
+      expect(screen.getByText(/Keep all keeps every file as-is/i)).toBeTruthy();
+      expect(radio("Keep src/a.ts").disabled).toBe(false);
+      fireEvent.click(radio(/Keep img.png anyway/i));
+      fireEvent.click(screen.getByRole("button", { name: "Keep all" }));
+      expect(onSubmit.mock.calls).toEqual([
+        ["keep", { scope: "file", fileChangeId: "fc2", expectedDigest: "d-fc2", acknowledgeUnreviewable: true }],
+        ["keep", { scope: "change_set", expectedDigest: "agg-1", acknowledgeUnreviewable: true }],
+      ]);
     });
 
-    it("labels a diff-unavailable file and associates the reason via aria-describedby", () => {
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-            fc2: capturedUnavailableChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
-          })}
-          onSubmit={noop}
-        />,
-      );
-
+    it("leaves an unavailable file discard-only, its reason wired by aria-describedby, and blocks the whole-set keep", () => {
+      show(<FileReviewCard fileReviewSet={pair({}, { reviewable: "partial" })} capture={null} onSubmit={noop} />);
+      expect(radio("Keep src/b.ts").disabled).toBe(true);
+      expect(radio("Discard src/b.ts").disabled).toBe(false);
+      expect(radio("Keep src/a.ts").disabled).toBe(false);
+      expect((screen.getByRole("button", { name: "Approve all" }) as HTMLButtonElement).disabled).toBe(true);
       const note = screen.getByText(/full diff isn.t available to review/i);
-      expect(note).toBeTruthy();
-      // The blocked file's radiogroup points at exactly that note (a11y).
       const group = screen.getByRole("radiogroup", { name: "Decision for src/b.ts" });
-      const describedBy = group.getAttribute("aria-describedby");
-      expect(describedBy).toBeTruthy();
-      expect(note.getAttribute("id")).toBe(describedBy);
-      // The reviewable sibling's group carries no such description.
-      const okGroup = screen.getByRole("radiogroup", { name: "Decision for src/a.ts" });
-      expect(okGroup.getAttribute("aria-describedby")).toBeFalsy();
-    });
-
-    it("gives a secret-withheld file its own honest copy", () => {
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-            fc2: capturedUnavailableChange({
-              id: "fc2",
-              path: ".env",
-              fileDigest: "d-fc2",
-              blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
-            }),
-          })}
-          onSubmit={noop}
-        />,
-      );
-      expect(screen.getByText(/looks like a secret/i)).toBeTruthy();
-      // It is NOT the generic copy — the cause is now honest, not agnostic.
-      expect(screen.queryByText(/full diff isn.t available to review/i)).toBeNull();
-    });
-
-    it("gives a size-elided file its own honest copy, distinct from secret", () => {
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-            fc2: capturedUnavailableChange({
-              id: "fc2",
-              path: "src/huge.ts",
-              fileDigest: "d-fc2",
-              blockedReason: FileReviewBlockReason.SIZE_ELIDED,
-            }),
-          })}
-          onSubmit={noop}
-        />,
-      );
-      expect(screen.getByText(/too large to display/i)).toBeTruthy();
-      expect(screen.queryByText(/looks like a secret/i)).toBeNull();
-    });
-
-    it("shows a provenance badge for a gitignored capture", () => {
-      render(
-        <FileReviewCard
-          fileChangeSet={changeSet({
-            change: capturedChange({
-              id: "x",
-              path: ".env.local",
-              fileDigest: "d",
-              captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
-            }),
-          })}
-          onSubmit={noop}
-        />,
-      );
-      expandCard();
-      const badge = screen.getByText("gitignored");
-      expect(badge).toBeTruthy();
-      expect(badge.getAttribute("aria-label")).toMatch(/ignored by git/i);
-    });
-
-    it("shows no provenance badge for an ordinary git-tracked change", () => {
-      render(<FileReviewCard fileChangeSet={changeSet()} onSubmit={noop} />);
-      expect(screen.queryByText("gitignored")).toBeNull();
-      expect(screen.queryByText("outside git")).toBeNull();
-    });
-
-    it("uses unavailable-specific set copy when a diff-unavailable file is present", () => {
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-            fc2: capturedUnavailableChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
-          })}
-          onSubmit={noop}
-        />,
-      );
+      expect(note.getAttribute("id")).toBe(group.getAttribute("aria-describedby"));
+      expect(screen.getByRole("radiogroup", { name: "Decision for src/a.ts" }).getAttribute("aria-describedby")).toBeFalsy();
       expect(screen.getByText(/isn.t available to review, so the whole set/i)).toBeTruthy();
     });
 
-    it("offers per-file granular control alongside 'Keep all' in a binary-only set", () => {
-      // A binary-only set is keepable in one shot, but the per-file escape hatch
-      // stays: keep the reviewable text file on its own, keep-anyway or discard
-      // the binary. Bulk "Keep all" and the granular rows coexist.
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
-            fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
-          })}
-          onSubmit={noop}
-        />,
-      );
-      expect(screen.getByRole("button", { name: "Keep all" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: "Keep src/a.ts" })).toBeTruthy();
-      expect(screen.getByRole("radio", { name: /Keep img.png anyway/i })).toBeTruthy();
+    it("gives a secret-withheld file its own honest copy", () => {
+      show(<FileReviewCard fileReviewSet={pair({}, { path: ".env", reviewable: "secret" })} capture={null} onSubmit={noop} />);
+      expect(screen.getByText(/looks like a secret/i)).toBeTruthy();
+      expect(screen.queryByText(/full diff isn.t available to review/i)).toBeNull();
     });
 
-    it("keeps a single-file binary via an acknowledged FILE approve; discard still works", () => {
-      const onSubmit = vi.fn();
-      render(
-        <FileReviewCard
-          fileChangeSet={changeSet({
-            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
-            change: capturedBinaryChange({ id: "aex-1:0:img.png", path: "img.png", fileDigest: "d" }),
-          })}
-          onSubmit={onSubmit}
-        />,
-      );
-
-      // No CHANGE_SET footer for a single incomplete file ("Keep all" is a
-      // multi-file affordance); the per-file control carries an enabled "Keep anyway".
-      expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
-      fireEvent.click(screen.getByRole("radio", { name: /Keep img.png anyway/i }));
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: "aex-1:0:img.png",
-        expectedDigest: "d",
-        acknowledgeUnreviewable: true,
-      });
-
-      fireEvent.click(screen.getByRole("radio", { name: "Discard img.png" }));
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.REJECT, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: "aex-1:0:img.png",
-        expectedDigest: "d",
-        acknowledgeUnreviewable: false,
-      });
-    });
-
-    it("offers an enabled 'Keep all' for a BINARY_SUMMARY_ONLY set that acknowledges the whole set", () => {
-      // A set whose only blocker is binary files is keepable in one action: the
-      // bulk approve is enabled, relabeled "Keep all", and carries the whole-set
-      // acknowledgment bound to the aggregate digest.
-      const onSubmit = vi.fn();
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
-            fc2: capturedBinaryChange({ id: "fc2", path: "img.png", fileDigest: "d-fc2" }),
-          })}
-          onSubmit={onSubmit}
-        />,
-      );
-
-      const keepAll = screen.getByRole("button", { name: "Keep all" }) as HTMLButtonElement;
-      expect(keepAll.disabled).toBe(false);
-      // The notice explains the enabled keep-all rather than blocking it.
-      expect(screen.getByText(/Keep all keeps every file as-is/i)).toBeTruthy();
-
-      fireEvent.click(keepAll);
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.CHANGE_SET,
-        expectedDigest: "agg-1",
-        acknowledgeUnreviewable: true,
-      });
-    });
-
-    it("still disables the whole-set Approve when a file is truly unavailable (not binary-only)", () => {
-      // A PARTIAL_BLOCKED set (a secret/elided file with no keepable bytes) can
-      // never be kept in one shot — the bulk Approve stays disabled.
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-            fc2: capturedUnavailableChange({ id: "fc2", path: "src/b.ts", fileDigest: "d-fc2" }),
-          })}
-          onSubmit={noop}
-        />,
-      );
-      expect(
-        (screen.getByRole("button", { name: "Approve all" }) as HTMLButtonElement).disabled,
-      ).toBe(true);
+    it("explains a lone unavailable or binary file in the bar's copy", () => {
+      show(<FileReviewCard fileReviewSet={single({ reviewable: "secret" })} capture={null} onSubmit={noop} />);
+      expect(screen.getByText(/contents withheld/i)).toBeTruthy();
+      expect(radio(/keep src\/a\.ts/i).disabled).toBe(true);
     });
   });
 
   describe("read-only settled card (interactive=false)", () => {
-    it("shows a passive record with no decision controls", () => {
-      render(<FileReviewCard fileChangeSet={changeSet()} interactive={false} />);
-      // A neutral group + settled header, never the actionable "Review" alert.
+    it("shows a passive record with no decision controls, and needs no callback", () => {
+      show(<FileReviewCard fileReviewSet={single()} capture={null} interactive={false} />);
       expect(screen.getByRole("group", { name: /1 file change/i })).toBeTruthy();
       expect(screen.getByText("File changes")).toBeTruthy();
-      expect(screen.queryByText("Review file changes")).toBeNull();
-      // No decision affordances at all.
-      expect(
-        screen.queryByRole("button", { name: /approve|reject|keep/i }),
-      ).toBeNull();
+      expect(screen.queryByRole("button", { name: /approve|reject|keep/i })).toBeNull();
       expect(screen.queryByRole("radio")).toBeNull();
+      expect(screen.getByText("1 file changed")).toBeTruthy();
     });
 
-    it("renders without an onSubmit callback", () => {
-      expect(() =>
-        render(<FileReviewCard fileChangeSet={changeSet()} interactive={false} />),
-      ).not.toThrow();
-    });
-
-    it("renders each file's committed verdict (Kept / Discarded)", () => {
-      render(
+    it("renders each file's verdict and the one-line history", () => {
+      show(
         <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            decisions: [
-              fileDecision("fc1", FileDecisionAction.APPROVE),
-              fileDecision("fc2", FileDecisionAction.REJECT),
-            ],
-          })}
+          fileReviewSet={review([
+            file("fc1", "src/a.ts", { state: "kept" }),
+            file("fc2", "src/b.ts", { state: "undone" }),
+            file("fc3", "src/c.ts", { state: "undo_failed" }),
+            file("fc4", "src/d.ts"),
+          ])}
+          capture={null}
           interactive={false}
         />,
       );
-      // The collapsed bar already tells the verdict story in one line…
-      expect(screen.getByText("1 kept · 1 discarded")).toBeTruthy();
-      // …and expanding shows each file's committed verdict beside its diff.
+      expect(screen.getByText("1 kept · 1 discarded · 1 could not be put back · 1 not reviewed")).toBeTruthy();
       expandCard();
       expect(screen.getByText("Kept")).toBeTruthy();
       expect(screen.getByText("Discarded")).toBeTruthy();
-      expect(screen.queryByRole("radio")).toBeNull();
-    });
-
-    it("labels an undecided file 'Not reviewed'", () => {
-      render(<FileReviewCard fileChangeSet={changeSet()} interactive={false} />);
-      expandCard();
+      expect(screen.getByText("Undo failed")).toBeTruthy();
       expect(screen.getByText("Not reviewed")).toBeTruthy();
     });
 
-    it("reads every file as kept when the set was decided via a whole-set approve", () => {
-      // A "Keep all" set carries only a CHANGE_SET decision; the settled record
-      // folds it onto every file (the reconcile's own precedence) rather than
-      // showing "Not reviewed" for files without their own FILE decision.
-      const bulkApprove = create(FileDecisionSchema, {
-        changeSetId: "aex-1:0",
-        scope: FileDecisionScope.CHANGE_SET,
-        action: FileDecisionAction.APPROVE,
-      });
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({ decisions: [bulkApprove] })}
-          interactive={false}
-        />,
-      );
-      expect(screen.getByText("2 kept")).toBeTruthy();
-      expandCard();
-      expect(screen.getAllByText("Kept")).toHaveLength(2);
-      expect(screen.queryByText("Not reviewed")).toBeNull();
-    });
-
-    it("labels a policy auto-kept set 'Kept automatically' — never as a human review", () => {
-      // The approved-command auto-keep authors a CHANGE_SET approve with origin
-      // POLICY_APPROVED_COMMAND. The record must say the platform kept it
-      // because the user approved the command — not read like a human decided
-      // it here ("2 kept").
-      const policyKeep = create(FileDecisionSchema, {
-        changeSetId: "aex-1:0",
-        scope: FileDecisionScope.CHANGE_SET,
-        action: FileDecisionAction.APPROVE,
-        origin: FileDecisionOrigin.POLICY_APPROVED_COMMAND,
-      });
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({ decisions: [policyKeep] })}
-          interactive={false}
-        />,
-      );
-      expect(
-        screen.getByText("Kept automatically — produced by a command you approved"),
-      ).toBeTruthy();
-      expect(screen.queryByText("2 kept")).toBeNull();
-      // The per-file verdicts still fold as kept (the decision is a real
-      // CHANGE_SET approve), so the expanded record stays consistent.
-      expandCard();
-      expect(screen.getAllByText("Kept")).toHaveLength(2);
-    });
-
-    it("labels a plugin eval's try keep as automatic too, naming the eval", () => {
-      const evalKeep = create(FileDecisionSchema, {
-        changeSetId: "aex-1:0",
-        scope: FileDecisionScope.CHANGE_SET,
-        action: FileDecisionAction.APPROVE,
-        origin: FileDecisionOrigin.POLICY_EVAL_TRY,
-      });
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({ decisions: [evalKeep] })}
-          interactive={false}
-        />,
-      );
+    it("labels a policy keep as automatic — never as a person's review", () => {
+      const kept = [file("fc1", "src/a.ts", { state: "kept" }), file("fc2", "src/b.ts", { state: "kept" })];
+      show(<FileReviewCard fileReviewSet={review(kept, [decision("approved_command")])} capture={null} interactive={false} />);
+      expect(screen.getByText("Kept automatically — produced by a command you approved")).toBeTruthy();
+      cleanup();
+      show(<FileReviewCard fileReviewSet={review(kept, [decision("eval_try")])} capture={null} interactive={false} />);
       expect(screen.getByText("Kept automatically — an eval's try keeps its edits")).toBeTruthy();
-      expect(screen.queryByText("2 kept")).toBeNull();
-    });
-
-    it("a human whole-set approve keeps the plain verdict summary (origin USER)", () => {
-      const humanKeep = create(FileDecisionSchema, {
-        changeSetId: "aex-1:0",
-        scope: FileDecisionScope.CHANGE_SET,
-        action: FileDecisionAction.APPROVE,
-        origin: FileDecisionOrigin.USER,
-      });
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet({ decisions: [humanKeep] })}
-          interactive={false}
-        />,
-      );
+      cleanup();
+      show(<FileReviewCard fileReviewSet={review(kept, [decision("person")])} capture={null} interactive={false} />);
       expect(screen.getByText("2 kept")).toBeTruthy();
-      expect(screen.queryByText(/Kept automatically/)).toBeNull();
     });
   });
 
-  // The session thread passes showDiffs={false}: its stamped edit rows already
-  // show every diff in place, so the expanded body is a compact file list and
-  // the card is purely the decision surface. Decision semantics (scopes,
-  // digests, acknowledgments) must be byte-identical to diff mode — these
-  // cases mirror the decision cases above without the diff DOM. The default
-  // (showDiffs unset) stays covered by every other suite in this file.
-  describe("list mode (showDiffs=false)", () => {
-    /** Open a still-collapsed card's file inventory (single complete file). */
-    function expandFiles() {
-      fireEvent.click(screen.getByRole("button", { name: "Files" }));
-    }
-
-    it("starts a multi-file set expanded — the per-file controls are the honest decision surface", () => {
-      render(
+  describe("diff bytes", () => {
+    it("renders each file's diff and its capture provenance from the caller's capture", () => {
+      show(
         <FileReviewCard
-          fileChangeSet={multiChangeSet()}
+          fileReviewSet={single({ path: ".env.local" })}
+          capture={capture([{ id: "fc1", path: ".env.local", captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED }])}
           onSubmit={noop}
-          showDiffs={false}
         />,
       );
-      // No expander click: the list rows and per-file controls are immediately
-      // visible, with no diff DOM (the transcript's stamped rows own the diffs).
+      expandCard();
+      expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeTruthy();
+      expect(screen.getByText("gitignored").getAttribute("aria-label")).toMatch(/ignored by git/i);
+      expect(runGet).not.toHaveBeenCalled();
+    });
+
+    it("says the diff is unavailable when the capture holds no such file", () => {
+      show(<FileReviewCard fileReviewSet={single()} capture={null} onSubmit={noop} />);
+      expandCard();
+      expect(screen.getByText("The diff isn't available.")).toBeTruthy();
+    });
+
+    it("reads the run on demand when no capture is given, saying so while it loads", async () => {
+      let resolve!: (value: unknown) => void;
+      runGet.mockReturnValue(new Promise((r) => (resolve = r)));
+      show(<FileReviewCard fileReviewSet={single()} onSubmit={noop} />);
+      expect(runGet).not.toHaveBeenCalled();
+      expandCard();
+      expect(runGet).toHaveBeenCalledWith("run_1");
+      expect(screen.getByText("Loading the diff…")).toBeTruthy();
+      resolve(create(RunSchema, { status: { fileChangeSets: [capture([{ id: "fc1", path: "src/a.ts" }])] } }));
+      await waitFor(() => expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeTruthy());
+    });
+
+    it("says so when the run cannot be read", async () => {
+      runGet.mockRejectedValue(new Error("down"));
+      show(<FileReviewCard fileReviewSet={single()} onSubmit={noop} />);
+      expandCard();
+      expect(await screen.findByText("Couldn't load the diff.")).toBeTruthy();
+    });
+
+    it("shows a settled record's diffs and verdicts in diff mode", () => {
+      show(
+        <FileReviewCard
+          fileReviewSet={single({ state: "kept" })}
+          capture={capture([{ id: "fc1", path: "src/a.ts" }])}
+          interactive={false}
+        />,
+      );
+      expandCard();
+      expect(screen.getByText("Kept")).toBeTruthy();
+      expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeTruthy();
+    });
+  });
+
+  // The session's dock and records pass showDiffs={false}: the transcript's
+  // edit rows already show every diff, so the body is a compact file list
+  // and the card is purely the decision surface.
+  describe("list mode (showDiffs=false)", () => {
+    it("starts a multi-file set expanded, with linked filename-first paths", () => {
+      show(<FileReviewCard fileReviewSet={pair()} capture={null} onSubmit={noop} showDiffs={false} />);
       expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
-      expect(
-        document.querySelectorAll('[data-cursor-target="file-review-list-row"]'),
-      ).toHaveLength(2);
+      expect(document.querySelectorAll('[data-cursor-target="file-review-list-row"]')).toHaveLength(2);
       expect(screen.getByRole("button", { name: "Hide" })).toBeTruthy();
-      // Filename-first linked path (FilePathLink: copy fallback without a
-      // provider — an accessible button, never a bare span), full path on hover.
       expect(screen.getByText("a.ts")).toBeTruthy();
-      expect(screen.getByText("b.ts")).toBeTruthy();
       expect(screen.getByRole("button", { name: /Copy path: src\/a\.ts/ })).toBeTruthy();
-      // Full path on hover rides the house tooltip; no native title remains.
       expect(document.querySelector("[title]")).toBeNull();
     });
 
     it("keeps a single complete file collapsed behind the 'Files' expander", () => {
-      render(
-        <FileReviewCard fileChangeSet={changeSet()} onSubmit={noop} showDiffs={false} />,
-      );
-      expect(
-        document.querySelector('[data-cursor-target="file-review-list-row"]'),
-      ).toBeNull();
+      show(<FileReviewCard fileReviewSet={single()} capture={null} onSubmit={noop} showDiffs={false} />);
+      expect(document.querySelector('[data-cursor-target="file-review-list-row"]')).toBeNull();
       fireEvent.click(screen.getByRole("button", { name: "Files" }));
-      expect(
-        document.querySelector('[data-cursor-target="file-review-list-row"]'),
-      ).toBeTruthy();
+      expect(document.querySelector('[data-cursor-target="file-review-list-row"]')).toBeTruthy();
     });
 
-    it("shows per-file +N −M from the capture-time counts, hiding the stat when no count exists", () => {
-      const counted = create(CapturedFileChangeSchema, {
-        id: "fc1",
-        pathBefore: "src/a.ts",
-        pathAfter: "src/a.ts",
-        kind: FileChangeKind.MODIFY,
-        captureClass: FileCaptureClass.GIT_TRACKED,
-        before: inline("old\n"),
-        after: inline("new\n"),
-        fileDigest: "d-fc1",
-        diffComplete: true,
-        linesAdded: 37,
-        linesRemoved: 2,
-      });
-      render(
+    it("shows per-file and aggregate +N −M, hiding a file's stat when it has no count", () => {
+      show(
         <FileReviewCard
-          fileChangeSet={multiChangeSet({ fc1: counted })}
+          fileReviewSet={pair({ linesAdded: 37, linesRemoved: 2 })}
+          capture={null}
           onSubmit={noop}
           showDiffs={false}
         />,
       );
-      const rows = document.querySelectorAll('[data-cursor-target="file-review-list-row"]');
-      // fc1 carries counts; fc2 (legacy fixture, zero counts) shows no stat —
-      // never a misleading "+0 -0". The bar also aggregates the set's counts,
-      // so exactly two stats render: the bar's and fc1's row.
       const stats = document.querySelectorAll('[data-cursor-target="file-review-line-stats"]');
-      expect(rows).toHaveLength(2);
       expect(stats).toHaveLength(2);
-      expect(stats[0].textContent).toBe("+37 -2");
-      expect(stats[1].textContent).toBe("+37 -2");
       expect(screen.getAllByLabelText("37 added, 2 removed")).toHaveLength(2);
     });
 
-    it("marks each file with its change-kind letter (A/M/D)", () => {
-      const added = create(CapturedFileChangeSchema, {
-        id: "fc-add",
-        pathAfter: "src/new.ts",
-        kind: FileChangeKind.ADD,
-        captureClass: FileCaptureClass.GIT_TRACKED,
-        after: inline("new\n"),
-        fileDigest: "d-add",
-        diffComplete: true,
-      });
-      const deleted = create(CapturedFileChangeSchema, {
-        id: "fc-del",
-        pathBefore: "src/old.ts",
-        kind: FileChangeKind.DELETE,
-        captureClass: FileCaptureClass.GIT_TRACKED,
-        before: inline("old\n"),
-        fileDigest: "d-del",
-        diffComplete: true,
-      });
-      render(
+    it("marks each file with its change-kind letter and shows a rename's source", () => {
+      show(
         <FileReviewCard
-          fileChangeSet={multiChangeSet({ fc1: added, fc2: deleted })}
+          fileReviewSet={review([
+            file("fc-add", "src/new.ts", { change: "added" }),
+            file("fc-del", "src/old.ts", { change: "deleted" }),
+            file("fc-ren", "src/new-name.ts", { change: "renamed", previousPath: "src/old-name.ts" }),
+          ])}
+          capture={capture([{ id: "fc-add", path: "src/new.ts", captureClass: FileCaptureClass.NON_GIT_CAS }])}
           onSubmit={noop}
           showDiffs={false}
         />,
       );
-      // A multi-file list-mode set starts expanded — the letters are visible.
       expect(screen.getByLabelText("added").textContent).toBe("A");
       expect(screen.getByLabelText("deleted").textContent).toBe("D");
-    });
-
-    it("shows a rename's source path in the row", () => {
-      const renamed = create(CapturedFileChangeSchema, {
-        id: "fc-ren",
-        pathBefore: "src/old-name.ts",
-        pathAfter: "src/new-name.ts",
-        kind: FileChangeKind.RENAME,
-        captureClass: FileCaptureClass.GIT_TRACKED,
-        before: inline("x\n"),
-        after: inline("x\n"),
-        fileDigest: "d-ren",
-        diffComplete: true,
-      });
-      render(
-        <FileReviewCard
-          fileChangeSet={changeSet({ change: renamed })}
-          onSubmit={noop}
-          showDiffs={false}
-        />,
-      );
-      expandFiles();
       expect(screen.getByText(/src\/old-name\.ts/)).toBeTruthy();
-      expect(screen.getByText("new-name.ts")).toBeTruthy();
+      expect(screen.getByText("outside git")).toBeTruthy();
     });
 
-    it("submits a FILE APPROVE bound to the file digest from a list row", () => {
+    it("decides from a list row and from the bar", () => {
       const onSubmit = vi.fn();
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet()}
-          onSubmit={onSubmit}
-          showDiffs={false}
-        />,
-      );
-      // Starts expanded (multi-file list mode) — the row control is live.
-      fireEvent.click(screen.getByRole("radio", { name: "Keep src/a.ts" }));
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: "fc1",
-        expectedDigest: "d-fc1",
-        acknowledgeUnreviewable: false,
-      });
-    });
-
-    it("submits a CHANGE_SET APPROVE bound to the aggregate digest from the bar", () => {
-      const onSubmit = vi.fn();
-      render(
-        <FileReviewCard
-          fileChangeSet={multiChangeSet()}
-          onSubmit={onSubmit}
-          showDiffs={false}
-        />,
-      );
+      show(<FileReviewCard fileReviewSet={pair()} capture={null} onSubmit={onSubmit} showDiffs={false} />);
+      fireEvent.click(radio("Keep src/a.ts"));
       fireEvent.click(screen.getByRole("button", { name: "Approve all" }));
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.CHANGE_SET,
-        expectedDigest: "agg-1",
-        acknowledgeUnreviewable: false,
-      });
+      expect(onSubmit.mock.calls.map(([action, options]) => [action, options.scope])).toEqual([
+        ["keep", "file"],
+        ["keep", "change_set"],
+      ]);
     });
 
-    it("keeps the acknowledged binary 'Keep anyway' flow, reason note intact", () => {
-      const binary = capturedBinaryChange({
-        id: "fc-bin",
-        path: "logo.png",
-        fileDigest: "d-bin",
-      });
-      const onSubmit = vi.fn();
-      render(
+    it("keeps the binary reason note as the per-file context", () => {
+      show(
         <FileReviewCard
-          fileChangeSet={changeSet({
-            change: binary,
-            diffCompleteness: DiffCompleteness.BINARY_SUMMARY_ONLY,
-          })}
-          onSubmit={onSubmit}
-          showDiffs={false}
-        />,
-      );
-      // An incomplete set starts expanded in list mode too — with no diff to
-      // lean on, the reason note IS the per-file context for the decision.
-      expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
-      const note = document.querySelector(
-        '[data-cursor-target="file-review-block-reason"]',
-      );
-      expect(note?.textContent).toMatch(/binary file/i);
-      fireEvent.click(screen.getByRole("radio", { name: /keep logo\.png anyway/i }));
-      expect(onSubmit).toHaveBeenCalledWith(FileDecisionAction.APPROVE, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: "fc-bin",
-        expectedDigest: "d-bin",
-        acknowledgeUnreviewable: true,
-      });
-    });
-
-    it("keeps the secret-withheld discard-only flow, honest copy intact", () => {
-      const secret = capturedUnavailableChange({
-        id: "fc-sec",
-        path: ".env",
-        fileDigest: "d-sec",
-        blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
-      });
-      render(
-        <FileReviewCard
-          fileChangeSet={changeSet({
-            change: secret,
-            diffCompleteness: DiffCompleteness.PARTIAL_BLOCKED,
-          })}
+          fileReviewSet={review([file("fc-bin", "logo.png", { reviewable: "binary" })])}
+          capture={null}
           onSubmit={noop}
           showDiffs={false}
         />,
       );
-      expect(
-        (screen.getByRole("radio", { name: /keep \.env/i }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
-      expect(screen.getByText(/contents withheld/i)).toBeTruthy();
+      expect(document.querySelector('[data-cursor-target="file-review-block-reason"]')?.textContent).toMatch(/binary file/i);
     });
 
-    it("renders the settled record as verdict-badged list rows, no diffs", () => {
-      render(
+    it("renders the settled record as verdict-badged list rows", () => {
+      show(
         <FileReviewCard
-          fileChangeSet={multiChangeSet({
-            decisions: [
-              fileDecision("fc1", FileDecisionAction.APPROVE),
-              fileDecision("fc2", FileDecisionAction.REJECT),
-            ],
-          })}
+          fileReviewSet={pair({ state: "kept" }, { state: "undone" })}
+          capture={null}
           interactive={false}
           showDiffs={false}
         />,
       );
       fireEvent.click(screen.getByRole("button", { name: "Show" }));
-      expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
       expect(screen.getByText("Kept")).toBeTruthy();
       expect(screen.getByText("Discarded")).toBeTruthy();
       expect(screen.queryByRole("radio")).toBeNull();

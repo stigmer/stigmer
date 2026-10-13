@@ -48,6 +48,7 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
+import { guardedPortDeclarations } from "../../store/guarded-port.js";
 import { portContractCases } from "../../store/port-contract.js";
 import type {
   PortContractCase,
@@ -341,30 +342,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
         await store.findDirectByEmail("nobody@example.com"),
         undefined,
         "an unknown email must read as undefined",
-      );
-    },
-  ],
-  [
-    "update replaces the row in place and keeps the id",
-    async ({ store }) => {
-      const account = directAccount({
-        idpId: "auth0|frank",
-        firstName: "Frank",
-      });
-      await store.save(account);
-      await store.update(
-        directAccount({ idpId: "auth0|frank", firstName: "Francis" }),
-      );
-      const updated = await store.findById(idOf(account));
-      assert.equal(
-        updated?.spec?.firstName,
-        "Francis",
-        "update must replace the stored row with the given one",
-      );
-      assert.equal(
-        updated?.metadata?.id,
-        idOf(account),
-        "update must not move the row to another id",
       );
     },
   ],
@@ -693,23 +670,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "update of an unknown id is a no-op: no row appears",
-    async ({ store }) => {
-      const ghost = directAccount({ idpId: "auth0|ghost" });
-      await store.update(ghost);
-      assert.equal(
-        await store.findById(idOf(ghost)),
-        undefined,
-        "update must replace, never create: an unknown id must leave no row by id",
-      );
-      assert.equal(
-        await store.findDirectByIdpId("auth0|ghost"),
-        undefined,
-        "update must replace, never create: an unknown id must leave no row by subject",
-      );
-    },
-  ],
-  [
     "deleteById of an unknown id resolves",
     async ({ store }) => {
       await assert.doesNotReject(
@@ -728,7 +688,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     },
   ],
   [
-    "save and update refuse an account whose provider ref and federated mode disagree; a row with neither saves",
+    "save and swap refuse an account whose provider ref and federated mode disagree; a row with neither saves",
     async ({ store }) => {
       for (const { shape, account } of mixedShapeAccounts("auth0|mixed")) {
         await assert.rejects(
@@ -745,21 +705,23 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       const standing = directAccount({ idpId: "auth0|mixed" });
       await store.save(standing);
       for (const { shape, account } of mixedShapeAccounts("auth0|mixed")) {
+        const read = await store.readForWrite(idOf(standing));
+        assert.ok(read !== undefined, "the standing account reads for a write");
         await assert.rejects(
-          store.update(account),
-          `update must refuse turning a stored account into ${shape}`,
+          store.swap(idOf(standing), read.bytes, account),
+          `swap must refuse turning a stored account into ${shape}`,
         );
       }
       const after = await store.findById(idOf(standing));
       assert.equal(
         after?.spec?.provisioningMode,
         IdentityAccountProvisioningMode.direct,
-        "a refused update must leave the stored row's mode as it was",
+        "a refused swap must leave the stored row's mode as it was",
       );
       assert.equal(
         after?.spec?.identityProviderRef,
         undefined,
-        "a refused update must leave the stored row with no provider ref",
+        "a refused swap must leave the stored row with no provider ref",
       );
 
       const unmarked = create(IdentityAccountSchema, {
@@ -776,6 +738,27 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       );
     },
   ],
+  ...guardedPortDeclarations<IdentityAccountStore, IdentityAccount>({
+    async seed(store) {
+      const account = directAccount({ idpId: "auth0|guarded", firstName: "Gia" });
+      await store.save(account);
+      return account;
+    },
+    idOf,
+    change(account, value) {
+      assert.ok(account.spec, "the saved account carries a spec");
+      account.spec.firstName = value;
+    },
+    changedValueOf: (account) => account.spec?.firstName ?? "",
+    async interleave(store, id, value) {
+      const read = await store.readForWrite(id);
+      assert.ok(read?.row.spec !== undefined, "the interleaving write reads the account");
+      read.row.spec.firstName = value;
+      assert.equal(await store.swap(id, read.bytes, read.row), true);
+    },
+    read: (store, id) => store.findById(id),
+    remove: (store, id) => store.deleteById(id),
+  }),
 ];
 
 /** The port's cases over `makeFixture`, one fresh fixture per case. */

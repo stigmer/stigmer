@@ -1,35 +1,42 @@
+// One tool use as a terminal row: its status glyph, the harness-agnostic
+// label (or a shell call's model-authored intent), its live file-review
+// badge when it edited a file, and, expanded, its result described from the
+// shared `@stigmer/sdk` view model.
 import React from "react";
 import { Box, Text } from "ink";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   ToolKind,
   resolveToolKind,
   normalizeToolResult,
   extractShellIntent,
 } from "@stigmer/sdk";
-import type { ToolResultView } from "@stigmer/sdk";
+import type { ToolResultView, ToolUse } from "@stigmer/sdk";
 import {
   extractPrimaryArg,
   useFileReviewRowState,
   type FileReviewRowState,
 } from "@stigmer/react";
+import { editedPath } from "../file-review.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
-  /** The tool call to render. */
-  readonly toolCall: ToolCall;
+  /** The tool use to render, from the session's fold. */
+  readonly toolUse: ToolUse;
   /** Whether to show the full args/result (expanded view). */
   readonly expanded?: boolean;
 }
 
-const STATUS_INDICATOR: Record<number, { symbol: string; color?: string }> = {
-  [ToolCallStatus.TOOL_CALL_RUNNING]: { symbol: "⠋", color: "yellow" },
-  [ToolCallStatus.TOOL_CALL_COMPLETED]: { symbol: "✓", color: "green" },
-  [ToolCallStatus.TOOL_CALL_FAILED]: { symbol: "✗", color: "red" },
-  // Platform-settled when the run terminalized mid-call (issue #207):
-  // a neutral "cut short" glyph, distinct from the pending fallback "○".
-  [ToolCallStatus.TOOL_CALL_INTERRUPTED]: { symbol: "⊘", color: "gray" },
+const STATUS_INDICATOR: Record<ToolUse["state"], { symbol: string; color?: string }> = {
+  running: { symbol: "⠋", color: "yellow" },
+  completed: { symbol: "✓", color: "green" },
+  failed: { symbol: "✗", color: "red" },
+  // Waiting for a person's answer: the approval prompt carries the action.
+  waiting: { symbol: "○" },
+  // A person (or a rule) refused it.
+  denied: { symbol: "⊘", color: "yellow" },
+  // Its turn ended before it returned (issue #207): a neutral "cut short"
+  // glyph, distinct from the waiting "○".
+  stopped: { symbol: "⊘", color: "gray" },
 };
 
 // Harness-agnostic labels per kind. Classification is shared with the runner,
@@ -65,33 +72,31 @@ const REVIEW_BADGE: Record<FileReviewRowState, { label: string; color: string }>
 };
 
 /**
- * Renders a single tool call with a status indicator, label, and an optional
+ * Renders a single tool use with a status indicator, label, and an optional
  * expanded result. Labels and results come from the shared `@stigmer/sdk` view
  * model, so a terminal session shows the same semantics (diffs, exit codes,
  * match counts) as the web console.
  */
-export function ToolCallItem({ toolCall, expanded = false }: ToolCallItemProps) {
-  const indicator = STATUS_INDICATOR[toolCall.status] ?? { symbol: "○" };
+export function ToolCallItem({ toolUse, expanded = false }: ToolCallItemProps) {
+  const indicator = STATUS_INDICATOR[toolUse.state];
 
-  const kind = resolveToolKind(toolCall);
-  const label = toolLabel(toolCall, kind);
+  const kind = resolveToolKind(toolUse);
+  const label = toolLabel(toolUse, kind);
   // Model-authored intent titles the row when present (stigmer#276), with
   // the command demoted to dim secondary text — same convention as the web
   // console, extraction shared via @stigmer/sdk.
-  const intent = extractShellIntent(toolCall);
+  const intent = extractShellIntent(toolUse);
   const title = intent ?? label;
-  const commandSubtitle = intent ? extractPrimaryArg(toolCall) : undefined;
-  const view = normalizeToolResult(toolCall);
+  const commandSubtitle = intent ? extractPrimaryArg(toolUse) : undefined;
+  const view = normalizeToolResult(toolUse);
   const resultText = expanded ? describeResultView(view) : null;
 
-  // A flowed file edit stamped with its change set id badges the set's live
-  // review state right on the row (the observational record stays in place; the
-  // decision surface is the docked FileReviewPrompt). Null for unstamped rows
-  // and honest-degradation cases (missing/capturing set, superseded edit).
-  const reviewState = useFileReviewRowState(
-    toolCall.fileChangeSetId,
-    extractPrimaryArg(toolCall),
-  );
+  // A file edit badges the live review state of the file it changed, from its
+  // turn's file review matched by path (the observational record stays in
+  // place; the decision surface is the docked FileReviewPrompt). Null for any
+  // other row and for honest-degradation cases (no review yet, a superseded
+  // edit).
+  const reviewState = useFileReviewRowState(toolUse.runId, editedPath(toolUse));
   const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
 
   return (
@@ -104,9 +109,7 @@ export function ToolCallItem({ toolCall, expanded = false }: ToolCallItemProps) 
             {commandSubtitle}
           </Text>
         )}
-        {toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING && (
-          <Text dimColor>running</Text>
-        )}
+        {toolUse.state === "running" && <Text dimColor>running</Text>}
         {reviewBadge && <Text color={reviewBadge.color}>{reviewBadge.label}</Text>}
       </Box>
       {view.type === "error" ? (
@@ -130,11 +133,11 @@ export function ToolCallItem({ toolCall, expanded = false }: ToolCallItemProps) 
   );
 }
 
-function toolLabel(toolCall: ToolCall, kind: ToolKind): string {
-  if (toolCall.mcpServerSlug) {
-    return `${toolCall.mcpServerSlug}/${toolCall.name}`;
+function toolLabel(toolUse: ToolUse, kind: ToolKind): string {
+  if (toolUse.mcpServerName) {
+    return `${toolUse.mcpServerName}/${toolUse.name}`;
   }
-  return KIND_LABEL[kind] ?? toolCall.name;
+  return KIND_LABEL[kind] ?? toolUse.name;
 }
 
 // Renders a concise, terminal-friendly description of a normalized result view.

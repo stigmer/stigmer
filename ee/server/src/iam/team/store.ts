@@ -9,30 +9,27 @@
  * describes the team.
  *
  * A team's slug is rename's alone (`@stigmer/server`'s rename chain over
- * `modifyById`): `replace` keeps the stored slug, under the row's lock, so
- * an update that loaded the team before a rename never writes the old slug
- * back.
+ * `modifyById`). The update chain writes through the guarded write
+ * (`readForWrite` and `swap`, `@stigmer/server`'s store/guarded-port.ts):
+ * the swap lands only while the row is as the chain read it, so a rename
+ * or any other write in between makes the update run again from a fresh
+ * read rather than be undone.
  *
  * `findAll` is a deliberate full-table read for the boot's
  * organization-link reconcile, which must see every row an organization's
  * admins manage; teams are few per organization and die with it.
  */
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { GuardedWritePort } from "@stigmer/server";
 
 /** The insert's two outcomes; nothing else about a new row can be in question. */
 export type TeamInsertOutcome =
   | { readonly kind: "inserted" }
   | { readonly kind: "slug-taken" };
 
-export interface TeamStore {
+export interface TeamStore extends GuardedWritePort<Team> {
   /** Adds a team; `slug-taken` when the organization already holds the slug. */
   insert(team: Team): Promise<TeamInsertOutcome>;
-  /**
-   * Replaces a held team's payload, keeping the stored slug, which it
-   * writes onto `team` too, all under the row's lock; an unknown id writes
-   * nothing. The lookup columns do not change.
-   */
-  replace(team: Team): Promise<void>;
   /**
    * Atomic read-modify-write by id under the row's lock: `modify` mutates
    * the stored team in place (synchronously), and the payload and the slug

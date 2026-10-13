@@ -49,11 +49,7 @@ export interface UseSessionWriteBacksReturn {
  * @example
  * ```tsx
  * const conv = useSessionConversation(sessionId, org);
- * const allRuns = [
- *   ...conv.completedRuns,
- *   ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
- * ];
- * const { writeBacks, hasWriteBacks } = useSessionWriteBacks(allRuns);
+ * const { writeBacks, hasWriteBacks } = useSessionWriteBacks(conv.runs);
  * ```
  *
  * @see useWorkspaceWriteBacks — single-execution write-back derivation

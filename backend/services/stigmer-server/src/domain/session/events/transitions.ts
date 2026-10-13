@@ -34,6 +34,14 @@
  * phase an older binary wrote during a roll, are put right by the next
  * write in their session.
  *
+ * The turn's own phase. Every phase change of a run, its creation
+ * included, also appends `stigmer.run.status` for that run, with the
+ * phase as a word (`runPhaseWordOf`) and, once the turn has ended, its
+ * stop cause and error. The session's status cannot say that one turn
+ * ended while another works or waits in the queue; this event does, and
+ * it is the end of the turn `sendAndWait` and the consoles read. A
+ * removed run writes none: its own events go with it.
+ *
  * The open asks are the session's gates (domain/session/events/gates.ts):
  * an ask opens one, its answer or its result closes it. The events the
  * write itself appends count: an answer it records has closed its ask
@@ -42,11 +50,15 @@
  *
  *   created .................. user.message (none for a reconcile turn,
  *                              `spec.reconcile_file_review`, which has no
- *                              message); then the status
+ *                              message); stigmer.run.status; then the
+ *                              session's status
  *   this run just FAILED ..... session.error (terminal) first, whether or
  *   (from working or waiting)  not others still work: model_request_failed_
  *                              error when the model provider failed the
  *                              turn, unknown_error otherwise
+ *   phase changed ............ stigmer.run.status, after any
+ *                              session.error and before the session's
+ *                              status
  *   removed .................. as stopping
  *
  * The cause is the run's `stop_cause`, written with its terminal status
@@ -72,7 +84,7 @@ import {
 
 import { generateId } from "../../../pipeline/steps/defaults.js";
 import type { OpenSessionEventGate } from "../../../store/session-events.js";
-import { isWaitingPhase, isWorkingPhase } from "../../run/phases.js";
+import { isTerminalExecutionPhase, isWaitingPhase, isWorkingPhase } from "../../run/phases.js";
 import { SESSION_EVENT_ID_PREFIX } from "./catalog.js";
 
 /** What happened to the run. */
@@ -101,6 +113,33 @@ export interface SessionNow {
   readonly gates: ReadonlyArray<OpenSessionEventGate>;
   /** The newest status event; undefined when there is none. */
   readonly status: SessionStatusNow | undefined;
+}
+
+/**
+ * A run phase as `stigmer.run.status` says it; undefined for
+ * RUN_PHASE_UNSPECIFIED and for a value this binary does not know.
+ */
+export function runPhaseWordOf(phase: RunPhase): string | undefined {
+  switch (phase) {
+    case RunPhase.RUN_PENDING:
+      return "pending";
+    case RunPhase.RUN_IN_PROGRESS:
+      return "running";
+    case RunPhase.RUN_WAITING_FOR_APPROVAL:
+      return "waiting";
+    case RunPhase.RUN_PAUSED:
+      return "paused";
+    case RunPhase.RUN_COMPLETED:
+      return "completed";
+    case RunPhase.RUN_FAILED:
+      return "failed";
+    case RunPhase.RUN_CANCELLED:
+      return "cancelled";
+    case RunPhase.RUN_TERMINATED:
+      return "terminated";
+    default:
+      return undefined;
+  }
 }
 
 /** The status a session event states; undefined for any other event. */
@@ -172,6 +211,24 @@ export function sessionEventsForTransition(
       }),
     );
   }
+  const previousPhase =
+    transition.kind === "update" ? transition.previousPhase : RunPhase.RUN_PHASE_UNSPECIFIED;
+  const phaseWord = runPhaseWordOf(nextPhase);
+  if (transition.kind !== "remove" && phaseWord !== undefined && nextPhase !== previousPhase) {
+    const ended = isTerminalExecutionPhase(nextPhase);
+    events.push(
+      event({
+        case: "stigmerRunStatus",
+        value: {
+          id: id(),
+          phase: phaseWord,
+          stopCause: ended ? stopCause : "",
+          error: ended ? (transition.run.status?.error ?? "") : "",
+        },
+      }),
+    );
+  }
+
   const stopped = wasActive && !isWorking && !isWaiting;
   const idleReason = failed
     ? "retries_exhausted"

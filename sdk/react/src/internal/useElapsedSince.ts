@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState } from "react";
  * cards costs zero timers.
  *
  * @param startedAt ISO 8601 timestamp the clock counts from (e.g.
- *   `ToolCall.approval_requested_at`, `SubAgentRun.started_at`).
+ *   an ask's `processedAt`, a sub-agent's start).
  */
 export function useElapsedSince(startedAt: string): number | null {
   const startMs = useMemo(() => {

@@ -85,7 +85,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     runId: run.metadata?.id ?? "",
     org,
     mode: prepared.mode,
-    defaultAction: prepared.defaultAction,
+    approveDefault: prepared.approveDefault,
     outputMode: input.outputMode,
     header,
   });

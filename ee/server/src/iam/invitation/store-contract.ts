@@ -8,8 +8,9 @@
  * The lines, in the port's words:
  *   - a saved invitation is read back by id and by token, and an unknown
  *     id or token answers undefined;
- *   - update replaces a held invitation's payload and keeps the creation
- *     time the list orders by;
+ *   - revoke writes a held invitation's state under its row lock and keeps
+ *     the creation time the list orders by; it answers undefined for a row
+ *     that is gone, and an already-revoked row as it is;
  *   - the list (`pageByOrg`) is the organization's invitations, newest
  *     first, ties broken by id in byte order, continuing strictly after a
  *     cursor it rendered and at most a limit; the cursor is the row's
@@ -39,7 +40,7 @@
  */
 import assert from "node:assert/strict";
 
-import { clone, create } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { InvitationSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
@@ -96,15 +97,10 @@ function recordedOf(outcome: RedemptionOutcome): Invitation {
   return outcome.invitation;
 }
 
-/** Writes the invitation back revoked. */
+/** Revokes the invitation through the port. */
 async function revoke(store: InvitationStore, id: string): Promise<void> {
-  const held = await store.findById(id);
-  assert.ok(held?.status !== undefined, `invitation ${id} is held`);
-  const revoked = clone(InvitationSchema, held);
-  if (revoked.status !== undefined) {
-    revoked.status.state = InvitationState.revoked;
-  }
-  await store.update(revoked);
+  const revoked = await store.revoke(id);
+  assert.equal(revoked?.status?.state, InvitationState.revoked, `invitation ${id} is held and revoked`);
 }
 
 const CASES: ReadonlyArray<PortContractDeclaration<InvitationStore>> = [
@@ -120,13 +116,24 @@ const CASES: ReadonlyArray<PortContractDeclaration<InvitationStore>> = [
     },
   ],
   [
-    "update replaces a held invitation's payload and keeps the creation time the list orders by",
+    "revoke writes a held invitation's state and keeps the creation time the list orders by",
     async ({ store }) => {
       await store.save(invitation({ id: "inv_u1", org: "updated", token: "Tokenu1", createdAt: new Date("2026-09-20T09:00:00Z") }));
       await store.save(invitation({ id: "inv_u2", org: "updated", token: "Tokenu2", createdAt: new Date("2026-09-20T11:00:00Z") }));
       await revoke(store, "inv_u1");
       assert.equal((await store.findById("inv_u1"))?.status?.state, InvitationState.revoked);
       assert.deepEqual(await listed(store, "updated"), ["inv_u2", "inv_u1"]);
+    },
+  ],
+  [
+    "revoke answers undefined for a row that is gone, and an already-revoked row as it is",
+    async ({ store }) => {
+      assert.equal(await store.revoke("inv_gone"), undefined);
+      await store.save(invitation({ id: "inv_r1", org: "revoked", token: "Tokenr1" }));
+      await revoke(store, "inv_r1");
+      const again = await store.revoke("inv_r1");
+      assert.equal(again?.status?.state, InvitationState.revoked);
+      assert.deepEqual(again, await store.findById("inv_r1"));
     },
   ],
   [

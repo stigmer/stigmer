@@ -1,19 +1,21 @@
+// A turn's consecutive tool uses as one collapsible terminal group: an
+// aggregate status, a one-line summary with the group's file-review cue, and,
+// expanded, each tool use's row.
 import React, { useContext, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolUse } from "@stigmer/sdk";
 import {
   FileReviewContext,
   fileReviewRowState,
-  extractPrimaryArg,
   type FileReviewRowState,
 } from "@stigmer/react";
+import { editedPath } from "../file-review.js";
 import { ToolCallItem } from "./ToolCallItem.js";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
-  /** Tool calls in this group, ordered by invocation time. */
-  readonly toolCalls: readonly ToolCall[];
+  /** Tool uses in this group, in the order the agent made them. */
+  readonly toolUses: readonly ToolUse[];
   /** Whether this group is currently focused for keyboard interaction. */
   readonly isFocused?: boolean;
   /** Whether to start in expanded mode (driven by Ctrl+O global toggle). */
@@ -22,28 +24,16 @@ export interface ToolCallGroupProps {
 
 type AggregateStatus = "running" | "failed" | "completed" | "pending";
 
-function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus {
-  let hasRunning = false;
-  let hasFailed = false;
-
-  for (const tc of toolCalls) {
-    if (tc.status === ToolCallStatus.TOOL_CALL_RUNNING) hasRunning = true;
-    if (tc.status === ToolCallStatus.TOOL_CALL_FAILED) hasFailed = true;
-  }
-
-  if (hasRunning) return "running";
-  if (hasFailed) return "failed";
-  // Every terminal status counts as done — SKIPPED (user decision) and
-  // INTERRUPTED (platform-settled at terminalization, issue #207) included —
-  // so a settled group never pins to a live-looking "pending".
-  const allDone = toolCalls.every(
-    (tc) =>
-      tc.status === ToolCallStatus.TOOL_CALL_COMPLETED ||
-      tc.status === ToolCallStatus.TOOL_CALL_FAILED ||
-      tc.status === ToolCallStatus.TOOL_CALL_SKIPPED ||
-      tc.status === ToolCallStatus.TOOL_CALL_INTERRUPTED,
-  );
-  return allDone ? "completed" : "pending";
+/**
+ * The group's status: running wins, then failed; a group whose every call
+ * settled (returned, failed, denied, or stopped when its turn ended — issue
+ * #207) is completed, so a settled group never pins to a live-looking
+ * "pending". A call waiting for a person leaves it pending.
+ */
+function deriveAggregateStatus(toolUses: readonly ToolUse[]): AggregateStatus {
+  if (toolUses.some((tu) => tu.state === "running")) return "running";
+  if (toolUses.some((tu) => tu.state === "failed")) return "failed";
+  return toolUses.some((tu) => tu.state === "waiting") ? "pending" : "completed";
 }
 
 const STATUS_STYLE: Record<AggregateStatus, { symbol: string; color?: string }> = {
@@ -55,28 +45,24 @@ const STATUS_STYLE: Record<AggregateStatus, { symbol: string; color?: string }> 
 
 /**
  * A compact file-review cue for the collapsed summary line, so a pending edit is
- * visible without expanding the group. Folds the group's stamped edit rows via
- * the same pure {@link fileReviewRowState} the per-row badges use, reading the
- * change sets from {@link FileReviewContext}. Pending takes precedence (it is
- * the actionable state); otherwise a settled group shows its kept/discarded
- * tally. Returns `null` when no row in the group is stamped.
+ * visible without expanding the group. Folds the group's file-edit rows via
+ * the same pure {@link fileReviewRowState} the per-row badges use, reading
+ * each row's turn's review from {@link FileReviewContext}. Pending takes
+ * precedence (it is the actionable state); otherwise a settled group shows its
+ * kept/discarded tally. Returns `null` when no row edited a reviewed file.
  */
 function useReviewCue(
-  toolCalls: readonly ToolCall[],
+  toolUses: readonly ToolUse[],
 ): { readonly label: string; readonly color: string } | null {
-  const { changeSetsById } = useContext(FileReviewContext);
+  const { fileReviewByRunId } = useContext(FileReviewContext);
   const counts: Record<FileReviewRowState, number> = {
     pending: 0,
     kept: 0,
     discarded: 0,
     failed: 0,
   };
-  for (const tc of toolCalls) {
-    if (!tc.fileChangeSetId) continue;
-    const state = fileReviewRowState(
-      changeSetsById.get(tc.fileChangeSetId),
-      extractPrimaryArg(tc),
-    );
+  for (const tu of toolUses) {
+    const state = fileReviewRowState(fileReviewByRunId.get(tu.runId) ?? [], editedPath(tu));
     if (state) counts[state]++;
   }
   if (counts.pending > 0) {
@@ -93,7 +79,7 @@ function useReviewCue(
 }
 
 /**
- * Renders a collapsible group of tool calls with an aggregate status.
+ * Renders a collapsible group of tool uses with an aggregate status.
  *
  * When collapsed, shows a summary line with tool count and status.
  * When expanded, renders each tool call via {@link ToolCallItem}.
@@ -101,14 +87,14 @@ function useReviewCue(
  * Press Enter or Space to toggle expansion when `isFocused` is true.
  */
 export function ToolCallGroup({
-  toolCalls,
+  toolUses,
   isFocused = false,
   defaultExpanded = false,
 }: ToolCallGroupProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const status = deriveAggregateStatus(toolCalls);
+  const status = deriveAggregateStatus(toolUses);
   const style = STATUS_STYLE[status];
-  const reviewCue = useReviewCue(toolCalls);
+  const reviewCue = useReviewCue(toolUses);
 
   useInput(
     (_input, key) => {
@@ -120,9 +106,9 @@ export function ToolCallGroup({
   );
 
   const summary =
-    toolCalls.length === 1
-      ? toolCalls[0].name
-      : `${toolCalls.length} tool calls`;
+    toolUses.length === 1
+      ? toolUses[0]!.name
+      : `${toolUses.length} tool calls`;
 
   return (
     <Box flexDirection="column" paddingLeft={2}>
@@ -136,8 +122,8 @@ export function ToolCallGroup({
       </Box>
       {expanded && (
         <Box flexDirection="column" paddingLeft={2} marginTop={1}>
-          {toolCalls.map((tc) => (
-            <ToolCallItem key={tc.id} toolCall={tc} expanded />
+          {toolUses.map((tu) => (
+            <ToolCallItem key={tu.id} toolUse={tu} expanded />
           ))}
         </Box>
       )}

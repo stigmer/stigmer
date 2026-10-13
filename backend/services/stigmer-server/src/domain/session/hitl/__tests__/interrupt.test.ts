@@ -22,6 +22,7 @@ import { InterruptSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+import { eventTypeOf } from "@stigmer/session-log";
 import { createLogger } from "../../../../boot/logger.js";
 import type { Authorizer, AuthzCheck } from "../../../../extensions/authorizer.js";
 import type { RunStatusTransition } from "../../../../extensions/status-hooks.js";
@@ -34,7 +35,6 @@ import type { ConnectedExecutionEngine } from "../../../run/engine.js";
 import { ENGINE_DISCONNECTED } from "../../../run/engine.js";
 import { StreamBroker } from "../../../run/stream-broker.js";
 import { SessionEventBroker } from "../../events/broker.js";
-import { eventTypeOf } from "../../events/catalog.js";
 import { eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../events/run-writes.js";
 import { interrupt } from "../interrupt.js";

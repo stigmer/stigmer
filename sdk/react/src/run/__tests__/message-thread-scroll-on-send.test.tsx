@@ -9,13 +9,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { samples } from "../../test/samples";
 
 const jumpToLatestSpy = vi.fn();
 
@@ -44,85 +38,77 @@ afterEach(() => {
   jumpToLatestSpy.mockClear();
 });
 
-function makeExecution(id: string, message: string): Run {
-  const exec = create(RunSchema);
-  const meta = create(ApiResourceMetadataSchema);
-  meta.id = id;
-  exec.metadata = meta;
-  const spec = create(RunSpecSchema);
-  spec.message = message;
-  exec.spec = spec;
-  return exec;
-}
+/** One finished turn of the conversation, folded from its events. */
+const earlierTurns = () => [samples.turn({ runId: "run_1", message: "earlier turn" })];
 
 describe("MessageThread — scroll-on-send", () => {
   it("pins the thread exactly once when the optimistic message appears (default-on)", () => {
-    const executions = [makeExecution("aex_1", "earlier turn")];
+    const turns = earlierTurns();
     const { rerender } = render(
-      <MessageThread runs={executions} pendingUserMessage={null} />,
+      <MessageThread turns={turns} pendingUserMessage={null} />,
     );
     expect(jumpToLatestSpy).not.toHaveBeenCalled();
 
     // The send: the composer sets the optimistic message.
     rerender(
-      <MessageThread runs={executions} pendingUserMessage="do the thing" />,
+      <MessageThread turns={turns} pendingUserMessage="do the thing" />,
     );
     expect(jumpToLatestSpy).toHaveBeenCalledTimes(1);
 
     // Re-renders while the message stays pending must not re-pin — the
     // reader may have scrolled up again to read history mid-turn.
     rerender(
-      <MessageThread runs={executions} pendingUserMessage="do the thing" />,
+      <MessageThread turns={turns} pendingUserMessage="do the thing" />,
     );
     expect(jumpToLatestSpy).toHaveBeenCalledTimes(1);
   });
 
   it("pins again on the NEXT send after the pending message clears", () => {
-    const executions = [makeExecution("aex_1", "earlier turn")];
+    const turns = earlierTurns();
     const { rerender } = render(
-      <MessageThread runs={executions} pendingUserMessage={null} />,
+      <MessageThread turns={turns} pendingUserMessage={null} />,
     );
 
     rerender(
-      <MessageThread runs={executions} pendingUserMessage="first send" />,
+      <MessageThread turns={turns} pendingUserMessage="first send" />,
     );
-    rerender(<MessageThread runs={executions} pendingUserMessage={null} />);
+    rerender(<MessageThread turns={turns} pendingUserMessage={null} />);
     rerender(
-      <MessageThread runs={executions} pendingUserMessage="second send" />,
+      <MessageThread turns={turns} pendingUserMessage="second send" />,
     );
 
     expect(jumpToLatestSpy).toHaveBeenCalledTimes(2);
   });
 
   it("does not re-pin on a failed send's retry — pending stays present throughout, and the reader was already brought to it", () => {
-    const executions = [makeExecution("aex_1", "earlier turn")];
+    const turns = earlierTurns();
     const { rerender } = render(
-      <MessageThread runs={executions} pendingUserMessage={null} />,
+      <MessageThread turns={turns} pendingUserMessage={null} />,
     );
 
     rerender(
-      <MessageThread runs={executions} pendingUserMessage="flaky send" />,
+      <MessageThread turns={turns} pendingUserMessage="flaky send" />,
     );
     rerender(
       <MessageThread
-        runs={executions}
+        turns={turns}
         pendingUserMessage="flaky send"
         pendingMessageFailed
         onRetrySend={() => {}}
       />,
     );
     rerender(
-      <MessageThread runs={executions} pendingUserMessage="flaky send" />,
+      <MessageThread turns={turns} pendingUserMessage="flaky send" />,
     );
 
     expect(jumpToLatestSpy).toHaveBeenCalledTimes(1);
   });
 
   it("never pins with scrollOnSend={false} — the opt-out preserves today's leave-the-reader-alone behavior", () => {
-    const executions = [makeExecution("aex_1", "earlier turn")];
+    const turns = earlierTurns();
     const { rerender } = render(
       <MessageThread
-        runs={executions}
+        turns={turns}
         pendingUserMessage={null}
         scrollOnSend={false}
       />,
@@ -130,7 +116,7 @@ describe("MessageThread — scroll-on-send", () => {
 
     rerender(
       <MessageThread
-        runs={executions}
+        turns={turns}
         pendingUserMessage="do the thing"
         scrollOnSend={false}
       />,

@@ -10,6 +10,7 @@
  *
  *   tool use ........... <run>.<call id>           (the provider's call id)
  *   tool result ........ <tool use>.r
+ *   its full output .... <tool use>.full    (an offloaded result's storage key)
  *   permission asked ... <tool use>.ask
  *   message ............ <run>.<scope>.m<index>
  *   thinking ........... <run>.<scope>.t<index>, its text <...>.text
@@ -76,6 +77,11 @@ export function toolUseEventId(runId: string, callId: string): string {
 /** The result of a tool use. */
 export function toolResultEventId(toolUseId: string): string {
   return `${toolUseId}.r`;
+}
+
+/** The `stigmer.tool_result.full_output` beside a result whose output was offloaded. */
+export function toolResultFullOutputEventId(toolUseId: string): string {
+  return `${toolUseId}.full`;
 }
 
 /** The `stigmer.permission.asked` beside a tool use that waits. */

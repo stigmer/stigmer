@@ -16,10 +16,11 @@ const mockSendFollowUp = vi.fn();
 const mockConv = {
   session: { spec: {} },
   isLoading: false,
-  completedRuns: [] as unknown[],
-  activeStreamRun: null,
+  runs: [] as unknown[],
+  activeRun: null,
+  asks: [] as unknown[],
   workspaceEntries: [] as unknown[],
-  submitApproval: vi.fn(),
+  answerToolUse: vi.fn(),
   sendFollowUp: mockSendFollowUp,
 };
 vi.mock("../useSessionConversation", () => ({

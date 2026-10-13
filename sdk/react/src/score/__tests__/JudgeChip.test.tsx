@@ -11,8 +11,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreSchema, type Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import {
   CriterionResult,
@@ -23,6 +22,8 @@ import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { MessageThread } from "../../run/MessageThread";
+import type { Turn } from "@stigmer/sdk";
+import { samples } from "../../test/samples";
 import {
   PENDING_POLL_CAP_MS,
   PENDING_POLL_FIRST_MS,
@@ -35,15 +36,15 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function completedRun(): Run {
-  return create(RunSchema, {
+/** The completed turn the judge grades: its run's record and its events, folded. */
+function completedTurn(): { turns: readonly Turn[]; runs: Run[] } {
+  const message = "assign the ticket";
+  const run = create(RunSchema, {
     metadata: { id: "run_1", org: "org_acme" },
-    spec: { message: "assign the ticket", target: { case: "sessionId", value: "ses_1" } },
-    status: {
-      phase: RunPhase.RUN_COMPLETED,
-      messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Assigned." })],
-    },
+    spec: { message, target: { case: "sessionId", value: "ses_1" } },
+    status: { phase: RunPhase.RUN_COMPLETED },
   });
+  return { turns: samples.fold(samples.turnEvents({ runId: "run_1", message, reply: "Assigned." })).turns, runs: [run] };
 }
 
 function judge(state: ScoreState, opts: { passed?: boolean; reason?: string } = {}): Score {
@@ -105,7 +106,7 @@ function wrap(mock: unknown) {
 
 describe("the judge chip", () => {
   it("opens a failed verdict to each rubric's reason and the model that graded it", async () => {
-    render(<MessageThread runs={[completedRun()]} runScores />, {
+    render(<MessageThread {...completedTurn()} runScores />, {
       wrapper: wrap(client([[judge(ScoreState.graded, { passed: false })]])),
     });
     fireEvent.click(await screen.findByRole("button", { name: "Judge: 2 of 4 failed" }));
@@ -121,14 +122,14 @@ describe("the judge chip", () => {
   });
 
   it("says passed when no rubric failed", async () => {
-    render(<MessageThread runs={[completedRun()]} runScores />, {
+    render(<MessageThread {...completedTurn()} runScores />, {
       wrapper: wrap(client([[judge(ScoreState.graded, { passed: true })]])),
     });
     expect(await screen.findByRole("button", { name: "Judge: passed" })).toBeDefined();
   });
 
   it("says a run was not graded, with the reason, and never as a failure", async () => {
-    render(<MessageThread runs={[completedRun()]} runScores />, {
+    render(<MessageThread {...completedTurn()} runScores />, {
       wrapper: wrap(client([[judge(ScoreState.not_graded, { reason: "spending limit reached" })]])),
     });
     expect(await screen.findByText("Judge: not graded: spending limit reached")).toBeDefined();
@@ -138,7 +139,7 @@ describe("the judge chip", () => {
   it("shows grading while the grade is pending, asks again, and shows the verdict once it lands", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const mock = client([[judge(ScoreState.pending)], [judge(ScoreState.graded, { passed: true })]]);
-    render(<MessageThread runs={[completedRun()]} runScores />, { wrapper: wrap(mock) });
+    render(<MessageThread {...completedTurn()} runScores />, { wrapper: wrap(mock) });
     expect(await screen.findByText("Judge: grading…")).toBeDefined();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(PENDING_POLL_FIRST_MS + 10);
@@ -154,7 +155,7 @@ describe("the judge chip", () => {
   it("stops asking once a grade has stayed pending past the poll's limit", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const mock = client([[judge(ScoreState.pending)]]);
-    render(<MessageThread runs={[completedRun()]} runScores />, { wrapper: wrap(mock) });
+    render(<MessageThread {...completedTurn()} runScores />, { wrapper: wrap(mock) });
     expect(await screen.findByText("Judge: grading…")).toBeDefined();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(PENDING_POLL_LIMIT_MS + PENDING_POLL_CAP_MS * 2);
@@ -167,7 +168,7 @@ describe("the judge chip", () => {
   });
 
   it("shows no chip for a run with no judge score", async () => {
-    render(<MessageThread runs={[completedRun()]} runScores />, { wrapper: wrap(client([[]])) });
+    render(<MessageThread {...completedTurn()} runScores />, { wrapper: wrap(client([[]])) });
     await screen.findByText("Assigned.");
     expect(screen.queryByText(/Judge:/)).toBeNull();
   });

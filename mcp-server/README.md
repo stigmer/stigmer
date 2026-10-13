@@ -73,9 +73,9 @@ the assistant polls the observation tools.
 | Tool | Description |
 | --- | --- |
 | `run_agent` | Start a run of an agent (new session or `session_id` follow-up); a new session uses the caller's My vault unless `include_my_vault` is false, then the shared `vaults` it names, and the installed `plugins` it names beside its agent's. |
-| `get_run` | Poll a run: phase, message tail (compact view) or full record, pending approvals. |
-| `submit_run_approval` | Approve / skip / reject a tool call a run is waiting on. |
-| `cancel_run` | Gracefully cancel a run (`run_*`) by ID. |
+| `get_run` | Poll a run: its lifecycle and its events from the session's event log, as a turn summary (phase, answer, the tool uses waiting for an answer by `tool_use_id`, a bounded item tail) or every event as Managed Agents JSON. |
+| `submit_run_approval` | Answer a tool use the run waits on, by `tool_use_id`: allow, deny (with a reason for the agent) or allow_all (the call's class for the rest of the turn). |
+| `cancel_run` | Cancel a run (`run_*`) by interrupting its conversation: every unfinished turn stops. |
 
 ## Resources (3)
 

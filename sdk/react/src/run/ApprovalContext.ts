@@ -1,109 +1,95 @@
 import { createContext, useCallback, useContext } from "react";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUseAnswer } from "./useAnswerToolUse.js";
 
 /**
- * Context value that carries the run's pending approvals to the tool rows
- * that own them, so an approval gate can render *inline* on the exact tool
- * call it blocks (parent thread and nested sub-agents alike) instead of as a
- * detached card at the bottom of the thread.
+ * Context value that carries the answer handler and its per-gate state to the
+ * tool rows, so a tool use that waits for a person renders its decision
+ * *inline* on its own row (parent thread and nested sub-agents alike) instead
+ * of as a detached card at the bottom of the thread.
+ *
+ * Whether a row waits is the row's own fact (`ToolUse.state === "waiting"`,
+ * from the session's events); the context supplies only what the row cannot
+ * know: how to answer, and which answers are in flight or failed.
  *
  * Provided by {@link MessageThread} (or a platform builder's custom wrapper),
- * beside {@link FilePathContext} / `SandboxContext`. When no provider is
- * present — or the consumer did not supply an `onApprovalSubmit` handler — the
- * map is empty and {@link useApproval} returns `null`, so the inline UI is a
- * no-op (backward compatible).
- *
- * The map is keyed by `tool_call_id` and rebuilt only when the underlying
- * `pendingApprovals` list changes (not per streaming frame), so subscribing
- * tool rows re-render on approval events, not on every snapshot — preserving
- * the thread's streaming re-render isolation.
+ * beside {@link FilePathContext} / `SandboxContext`. Without a provider, or
+ * without an `onAnswer` handler, {@link useApproval} returns `null` and no
+ * decision UI is shown (a read-only transcript).
  */
 export interface ApprovalContextValue {
-  /** Unresolved approvals, keyed by the `tool_call_id` they gate. */
-  readonly approvalsByToolCallId: ReadonlyMap<string, PendingApproval>;
   /**
-   * Submits a decision for a gated tool call. Wired to the same handler the
-   * bottom {@link ApprovalCard} backstop uses; when absent, no inline approval
-   * UI is shown.
+   * Answers a waiting tool use. Wired to the same handler the bottom
+   * {@link ApprovalCard} backstop uses; when absent, no inline decision UI
+   * is shown.
    */
-  readonly onSubmit?: (
-    toolCallId: string,
-    action: ApprovalAction,
-    comment?: string,
-  ) => void;
-  /** Tool-call ids whose decision RPC is in flight, for per-card spinners. */
+  readonly onAnswer?: (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void;
+  /** Tool-use ids whose answer is in flight, for per-gate spinners. */
   readonly submittingIds: ReadonlySet<string>;
   /**
-   * Per-tool-call failures, keyed by `tool_call_id` (the parallel of
-   * {@link submittingIds}). A failed decision is surfaced in-card, beside the
-   * exact gate that failed, so the inline row can name *which* action did not
-   * take and why. Empty when no provider supplies it.
+   * Each tool use's last failed answer, keyed by its id (the parallel of
+   * {@link submittingIds}), surfaced in-card beside the gate that failed.
    */
-  readonly errorsByToolCallId: ReadonlyMap<string, Error>;
+  readonly errorsByToolUseId: ReadonlyMap<string, Error>;
 }
 
 const DEFAULT_VALUE: ApprovalContextValue = {
-  approvalsByToolCallId: new Map(),
   submittingIds: new Set(),
-  errorsByToolCallId: new Map(),
+  errorsByToolUseId: new Map(),
 };
 
-/** Context that supplies a run's pending approvals to the tool rows they gate. */
+/** Context that supplies the answer handler to the tool rows that wait. */
 export const ApprovalContext =
   createContext<ApprovalContextValue>(DEFAULT_VALUE);
 
 /**
- * Resolved inline-approval state for a single tool call. Its shape is a superset
- * of the props {@link ApprovalCardBody} reads, so a consumer can spread it
- * directly: `<ApprovalCardBody {...approval} />`.
+ * Resolved inline-approval state for one waiting tool use. Its shape is a
+ * superset of the props {@link ApprovalCardBody} reads, so a consumer can
+ * spread it: `<ApprovalCardBody {...approval} />`.
  */
 export interface UseApprovalResult {
-  /** The pending approval gating this tool call. */
-  readonly pendingApproval: PendingApproval;
-  /** Submits a decision for this tool call (id already bound). */
-  readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
-  /** True while this tool call's decision RPC is in flight. */
+  /** The tool use that waits. */
+  readonly toolUse: ToolUse;
+  /** Answers this tool use (its id already bound). */
+  readonly onAnswer: (answer: ToolUseAnswer, denyMessage?: string) => void;
+  /** True while this tool use's answer is in flight. */
   readonly isSubmitting: boolean;
-  /** This gate's last failed decision, or `null` — surfaced in-card beside it. */
+  /** This gate's last failed answer, or `null`, surfaced in-card beside it. */
   readonly error: Error | null;
 }
 
 /**
- * Returns the inline-approval state for a tool call, or `null` when the call
- * is not currently gated (no matching approval, or no submit handler wired).
+ * Returns the inline-approval state for a tool use, or `null` when it does
+ * not wait for a person (or no answer handler is wired).
  *
- * The returned `onSubmit` is pre-bound to `toolCallId` and stable across
+ * The returned `onAnswer` is bound to the tool use's id and stable across
  * renders, so it can flow straight into a memoized approval body.
  *
  * @example
  * ```tsx
- * const approval = useApproval(toolCall.id);
+ * const approval = useApproval(toolUse);
  * if (approval) {
  *   return <ApprovalCardBody {...approval} />;
  * }
  * ```
  */
-export function useApproval(toolCallId: string): UseApprovalResult | null {
-  const { approvalsByToolCallId, onSubmit, submittingIds, errorsByToolCallId } =
-    useContext(ApprovalContext);
+export function useApproval(toolUse: ToolUse): UseApprovalResult | null {
+  const { onAnswer, submittingIds, errorsByToolUseId } = useContext(ApprovalContext);
+  const toolUseId = toolUse.id;
 
-  const handleSubmit = useCallback(
-    (action: ApprovalAction, comment?: string) => {
-      onSubmit?.(toolCallId, action, comment);
+  const handleAnswer = useCallback(
+    (answer: ToolUseAnswer, denyMessage?: string) => {
+      onAnswer?.(toolUseId, answer, denyMessage);
     },
-    [onSubmit, toolCallId],
+    [onAnswer, toolUseId],
   );
 
-  const pendingApproval = toolCallId
-    ? approvalsByToolCallId.get(toolCallId)
-    : undefined;
-  if (!pendingApproval || !onSubmit) return null;
+  if (toolUse.state !== "waiting" || !onAnswer) return null;
 
   return {
-    pendingApproval,
-    onSubmit: handleSubmit,
-    isSubmitting: submittingIds.has(toolCallId),
-    error: errorsByToolCallId.get(toolCallId) ?? null,
+    toolUse,
+    onAnswer: handleAnswer,
+    isSubmitting: submittingIds.has(toolUseId),
+    error: errorsByToolUseId.get(toolUseId) ?? null,
   };
 }

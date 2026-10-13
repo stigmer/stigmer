@@ -48,8 +48,12 @@ export class InMemoryInvitationStore implements InvitationStore {
     return Promise.resolve();
   }
 
-  update(invitation: Invitation): Promise<void> {
-    return this.save(invitation);
+  revoke(invitationId: string): Promise<Invitation | undefined> {
+    const row = this.rows.get(invitationId);
+    if (row?.status !== undefined && row.status.state !== InvitationState.revoked) {
+      row.status.state = InvitationState.revoked;
+    }
+    return Promise.resolve(row === undefined ? undefined : clone(InvitationSchema, row));
   }
 
   deleteById(id: string): Promise<void> {

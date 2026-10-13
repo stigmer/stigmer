@@ -27,7 +27,7 @@ import {
   writeFileBlock,
   toolCallRow,
   approveButton,
-  rejectButton,
+  denyButton,
   type SeededGatedRun,
 } from "../../helpers/approval";
 import { isFileGateStack } from "../../helpers/mock-llm-control";
@@ -201,14 +201,14 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
 
   // --- Quiet decision buttons: computed-style guard (not a screenshot) ------
   // The buttons share the quiet, Cursor-grade `DecisionButton`: Approve is a
-  // filled NEUTRAL chip (a low-chroma grey, never the success green), and Reject
+  // filled NEUTRAL chip (a low-chroma grey, never the success green), and Deny
   // is a ghost with NO resting fill. A screenshot's 2% threshold can miss a hue
   // swap on a small button, so assert the real computed colors — the same
   // "rendered, not class-string" philosophy as the border guard above.
-  // Reject is read first: its transparent resting fill is reachable only on the
+  // Deny is read first: its transparent resting fill is reachable only on the
   // live, styled button, while a read on a replaced button (opaque black, see
   // resolvedBackgroundRgba) would pass Approve's checks by accident.
-  test("decision buttons are quiet: Approve is a neutral chip, Reject has no resting fill", async ({
+  test("decision buttons are quiet: Approve is a neutral chip, Deny has no resting fill", async ({
     page,
     stigmerClient,
   }) => {
@@ -220,10 +220,10 @@ test.describe("tool-card & approval-diff UX (deterministic mock LLM)", () => {
     const gateRow = toolCallRow(page).filter({ has: approveButton(page) }).first();
     await expect(gateRow).toBeVisible({ timeout: 30_000 });
 
-    // Reject: a quiet ghost — transparent at rest (no fill).
+    // Deny: a quiet ghost — transparent at rest (no fill).
     await expect
-      .poll(async () => (await resolvedBackgroundRgba(rejectButton(gateRow))).a, {
-        message: "Reject has no resting background fill",
+      .poll(async () => (await resolvedBackgroundRgba(denyButton(gateRow))).a, {
+        message: "Deny has no resting background fill",
       })
       .toBe(0);
 

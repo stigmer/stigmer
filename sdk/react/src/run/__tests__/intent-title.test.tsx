@@ -1,5 +1,6 @@
 /**
- * Model-authored intent titles for shell tool calls (stigmer#276).
+ * Model-authored intent titles for shell tool calls (stigmer#276), read from
+ * a tool use's input or, for a waiting call's card, its ask's preview.
  *
  * The extraction contract is pinned by the cross-surface fixture
  * test/fixtures/tool-view/intent-title.json — the same file the runner's
@@ -13,14 +14,11 @@ import { fileURLToPath } from "node:url";
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type { ToolUse } from "@stigmer/sdk";
+import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  ToolCallSchema,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
+  extractIntent,
   extractShellIntent,
   extractShellIntentFromPreview,
   SHELL_INTENT_ARG_FIELD,
@@ -28,6 +26,7 @@ import {
 import { useToolPresentation, registerToolPresenter } from "../tool-presenter";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalCardHeader } from "../ApprovalCard";
+import { toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
 
@@ -46,18 +45,15 @@ interface IntentFixture {
 
 const fixture = JSON.parse(readFileSync(fixturePath, "utf8")) as IntentFixture;
 
-function makeToolCall(opts: {
+function makeToolUse(opts: {
   name: string;
   args?: Record<string, unknown>;
   mcpServerSlug?: string;
-  status?: ToolCallStatus;
-}): ToolCall {
-  return create(ToolCallSchema, {
-    id: opts.name,
+}): ToolUse {
+  return toolUse({
     name: opts.name,
-    args: (opts.args ?? {}) as JsonObject,
-    mcpServerSlug: opts.mcpServerSlug ?? "",
-    status: opts.status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
+    input: (opts.args ?? {}) as JsonObject,
+    mcpServerName: opts.mcpServerSlug ?? "",
   });
 }
 
@@ -69,7 +65,7 @@ describe("intent-title fixture contract", () => {
   it.each(fixture.cases.map((c, i) => [i, c] as const))(
     "case %#: %j",
     (_i, c) => {
-      const tc = makeToolCall({
+      const tc = makeToolUse({
         name: c.name,
         args: c.args,
         mcpServerSlug: c.mcpServerSlug,
@@ -79,8 +75,20 @@ describe("intent-title fixture contract", () => {
   );
 });
 
+describe("extractIntent", () => {
+  it("reads a shell call's intent from its input, and nothing for another kind or a blank value", () => {
+    expect(
+      extractIntent({ name: "execute", mcpServerName: "", input: { command: "ls", [SHELL_INTENT_ARG_FIELD]: "List files" } }),
+    ).toBe("List files");
+    expect(extractIntent({ name: "execute", mcpServerName: "", input: { command: "ls", [SHELL_INTENT_ARG_FIELD]: "" } })).toBeNull();
+    expect(
+      extractIntent({ name: "task", mcpServerName: "", input: { [SHELL_INTENT_ARG_FIELD]: "a sub-agent's subject" } }),
+    ).toBeNull();
+  });
+});
+
 describe("extractShellIntentFromPreview", () => {
-  it("mirrors the ToolCall extraction on a JSON args preview", () => {
+  it("mirrors the tool use extraction on a JSON args preview", () => {
     expect(
       extractShellIntentFromPreview(
         "execute",
@@ -89,9 +97,9 @@ describe("extractShellIntentFromPreview", () => {
     ).toBe("Verify the build");
   });
 
-  it("prefers the denormalized wire kind over the name", () => {
+  it("prefers a kind the caller holds over the name", () => {
     // A shell tool whose NAME the classifier does not recognize still
-    // resolves via the wire kind — matching extractPrimaryArgFromPreview.
+    // resolves via the given kind — matching extractPrimaryArgFromPreview.
     expect(
       extractShellIntentFromPreview(
         "custom_runner",
@@ -116,7 +124,7 @@ describe("extractShellIntentFromPreview", () => {
 
 describe("useToolPresentation title precedence", () => {
   it("titles a shell row with the model-authored intent", () => {
-    const tc = makeToolCall({
+    const tc = makeToolUse({
       name: "Shell",
       args: { command: "npm test", [SHELL_INTENT_ARG_FIELD]: "Run the test suite" },
     });
@@ -129,7 +137,7 @@ describe("useToolPresentation title precedence", () => {
   });
 
   it("falls back to the category label when no intent is present", () => {
-    const tc = makeToolCall({ name: "Shell", args: { command: "ls" } });
+    const tc = makeToolUse({ name: "Shell", args: { command: "ls" } });
     const { result } = renderHook(() => useToolPresentation(tc));
 
     expect(result.current.intent).toBeNull();
@@ -141,7 +149,7 @@ describe("useToolPresentation title precedence", () => {
       label: () => "Run command",
     });
     try {
-      const tc = makeToolCall({
+      const tc = makeToolUse({
         name: "Shell",
         args: { command: "ls", [SHELL_INTENT_ARG_FIELD]: "List files" },
       });
@@ -162,14 +170,14 @@ describe("ToolCallItem shell header", () => {
   }
 
   it("renders the intent as the title and the command as the subtitle", () => {
-    const tc = makeToolCall({
+    const tc = makeToolUse({
       name: "Shell",
       args: {
         command: "npx vitest run src/parser",
         [SHELL_INTENT_ARG_FIELD]: "Run unit tests for the parser",
       },
     });
-    const { container } = render(<ToolCallItem toolCall={tc} />);
+    const { container } = render(<ToolCallItem toolUse={tc} />);
 
     const header = headerOf(container);
     expect(header.textContent).toContain("Run unit tests for the parser");
@@ -178,11 +186,11 @@ describe("ToolCallItem shell header", () => {
   });
 
   it("renders an intent-less shell row exactly as before: bare label, no subtitle", () => {
-    const tc = makeToolCall({
+    const tc = makeToolUse({
       name: "Shell",
       args: { command: "ls -la" },
     });
-    const { container } = render(<ToolCallItem toolCall={tc} />);
+    const { container } = render(<ToolCallItem toolUse={tc} />);
 
     const header = headerOf(container);
     expect(header.textContent).toContain("Shell");
@@ -192,29 +200,29 @@ describe("ToolCallItem shell header", () => {
 });
 
 describe("ApprovalCardHeader shell title", () => {
-  it("titles a gated shell call with the intent phrase", () => {
-    const pending = create(PendingApprovalSchema, {
-      toolCallId: "tc-1",
-      toolName: "execute",
-      toolKind: ToolKind.SHELL,
-      argsPreview: JSON.stringify({
-        command: "rm -rf build",
-        [SHELL_INTENT_ARG_FIELD]: "Clean the build directory",
-      }),
+  it("titles a waiting shell call with the intent phrase from its ask's preview", () => {
+    const pending = toolUse({
+      id: "tc-1",
+      name: "execute",
+      ask: {
+        argsPreview: JSON.stringify({
+          command: "rm -rf build",
+          [SHELL_INTENT_ARG_FIELD]: "Clean the build directory",
+        }),
+      },
     });
-    render(<ApprovalCardHeader pendingApproval={pending} />);
+    render(<ApprovalCardHeader toolUse={pending} />);
 
     expect(screen.getByText("Clean the build directory")).toBeDefined();
   });
 
   it("keeps the bare category label when no intent is present", () => {
-    const pending = create(PendingApprovalSchema, {
-      toolCallId: "tc-2",
-      toolName: "execute",
-      toolKind: ToolKind.SHELL,
-      argsPreview: JSON.stringify({ command: "rm -rf build" }),
+    const pending = toolUse({
+      id: "tc-2",
+      name: "execute",
+      ask: { argsPreview: JSON.stringify({ command: "rm -rf build" }) },
     });
-    render(<ApprovalCardHeader pendingApproval={pending} />);
+    render(<ApprovalCardHeader toolUse={pending} />);
 
     expect(screen.getByText("Shell")).toBeDefined();
   });

@@ -2,30 +2,39 @@
 
 import { memo, useCallback } from "react";
 import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewSet } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { FileReviewCard } from "./FileReviewCard.js";
-import type { FileDecisionOptions } from "./useFileReview.js";
+import type { FileReviewAction, ReviewFileChangesOptions } from "./useReviewFileChanges.js";
+
+/** A stable empty map so a dock without captures keeps a constant default. */
+const NO_CAPTURES: ReadonlyMap<string, FileChangeSet> = new Map();
 
 /** Props for {@link FileReviewDock}. */
 export interface FileReviewDockProps {
   /**
-   * The change sets awaiting review. Renders nothing when empty. Feed this from
-   * `useSessionConversation().fileChangeSets` — the AWAITING_REVIEW sets of the
-   * conversation's newest turn, finished or not, the same seam whose
-   * `submitFileDecision` routes decisions to that turn, so what the dock
-   * shows and what it can decide are consistent by construction.
+   * The sets with files still undecided. Renders nothing when empty. Feed
+   * this from `useSessionConversation().fileReviewSets` — the newest turn's
+   * undecided sets, finished or not, the same seam whose `reviewFileChanges`
+   * decides them, so what the dock shows and what it can decide are
+   * consistent by construction.
    */
-  readonly changeSets: readonly FileChangeSet[];
+  readonly fileReviewSets: readonly FileReviewSet[];
   /**
-   * Called when the user makes a decision on one of the docked sets. Wire to
-   * `useSessionConversation().submitFileDecision` (or an equivalent
-   * {@link useFileReview}-backed handler bound to the owning run).
+   * The captured bytes of the sets, by change set id, when the caller holds
+   * the runs (`useSessionConversation().fileChangeCaptures`): each file's
+   * capture provenance renders from them.
+   */
+  readonly captures?: ReadonlyMap<string, FileChangeSet>;
+  /**
+   * Called when the person decides on one of the docked sets. Wire to
+   * `useSessionConversation().reviewFileChanges` (or an equivalent
+   * {@link useReviewFileChanges}-backed handler bound to the session).
    */
   readonly onSubmit: (
     changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
+    action: FileReviewAction,
+    options: ReviewFileChangesOptions,
   ) => void;
   /**
    * Decision keys ({@link fileDecisionKey}) currently being submitted. Drives
@@ -43,7 +52,7 @@ export interface FileReviewDockProps {
 
 /**
  * The composer-docked decision surface for pending file reviews: renders each
- * AWAITING_REVIEW {@link FileChangeSet} as an interactive {@link FileReviewCard}
+ * undecided `FileReviewSet` as an interactive {@link FileReviewCard}
  * decision bar, pinned in the fixed strip above the composer.
  *
  * WHY DOCKED, NOT IN-THREAD. The transcript's stamped edit rows are
@@ -73,23 +82,25 @@ export interface FileReviewDockProps {
  *
  * @example
  * ```tsx
- * const conv = useSessionConversation(sessionId);
+ * const conv = useSessionConversation(sessionId, org);
  * <FileReviewDock
- *   changeSets={conv.fileChangeSets}
- *   onSubmit={conv.submitFileDecision}
+ *   fileReviewSets={conv.fileReviewSets}
+ *   captures={conv.fileChangeCaptures}
+ *   onSubmit={conv.reviewFileChanges}
  *   submittingDecisionKeys={conv.submittingFileDecisionKeys}
  *   decisionErrors={conv.fileDecisionErrors}
  * />
  * ```
  */
 export function FileReviewDock({
-  changeSets,
+  fileReviewSets,
+  captures = NO_CAPTURES,
   onSubmit,
   submittingDecisionKeys,
   decisionErrors,
   className,
 }: FileReviewDockProps) {
-  if (changeSets.length === 0) return null;
+  if (fileReviewSets.length === 0) return null;
 
   return (
     <div
@@ -101,10 +112,11 @@ export function FileReviewDock({
       {/* The cap bounds the dock, not each card: with the (defensive) multi-set
           case the whole surface stays within reach of the composer. */}
       <div className="stg:max-h-[40vh] stg:space-y-2 stg:overflow-y-auto stg:px-4 stg:py-2">
-        {changeSets.map((changeSet) => (
+        {fileReviewSets.map((set) => (
           <DockedChangeSet
-            key={changeSet.id}
-            changeSet={changeSet}
+            key={set.changeSetId}
+            set={set}
+            capture={captures.get(set.changeSetId) ?? null}
             onSubmit={onSubmit}
             submittingDecisionKeys={submittingDecisionKeys}
             decisionErrors={decisionErrors}
@@ -116,11 +128,12 @@ export function FileReviewDock({
 }
 
 interface DockedChangeSetProps {
-  readonly changeSet: FileChangeSet;
+  readonly set: FileReviewSet;
+  readonly capture: FileChangeSet | null;
   readonly onSubmit: (
     changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
+    action: FileReviewAction,
+    options: ReviewFileChangesOptions,
   ) => void;
   readonly submittingDecisionKeys?: ReadonlySet<string>;
   readonly decisionErrors?: ReadonlyMap<string, Error>;
@@ -132,21 +145,23 @@ interface DockedChangeSetProps {
  * across unrelated stream frames.
  */
 const DockedChangeSet = memo(function DockedChangeSet({
-  changeSet,
+  set,
+  capture,
   onSubmit,
   submittingDecisionKeys,
   decisionErrors,
 }: DockedChangeSetProps) {
   const handleSubmit = useCallback(
-    (action: FileDecisionAction, options?: FileDecisionOptions) => {
-      onSubmit(changeSet.id, action, options);
+    (action: FileReviewAction, options: ReviewFileChangesOptions) => {
+      onSubmit(set.changeSetId, action, options);
     },
-    [onSubmit, changeSet.id],
+    [onSubmit, set.changeSetId],
   );
 
   return (
     <FileReviewCard
-      fileChangeSet={changeSet}
+      fileReviewSet={set}
+      capture={capture}
       onSubmit={handleSubmit}
       submittingDecisionKeys={submittingDecisionKeys}
       decisionErrors={decisionErrors}

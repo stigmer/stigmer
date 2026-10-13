@@ -6,7 +6,9 @@
  * stops ends the turn only when no other run of the session works; a turn
  * that waits for answers states requires_action with every open ask of
  * every waiting run, re-stated with the remainder as answers come in, and
- * a waiting run whose asks are all answered reads running.
+ * a waiting run whose asks are all answered reads running. Every phase
+ * change of the run also writes its own stigmer.run.status, pinned in its
+ * own block; the other blocks read the session's events without it.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -15,8 +17,8 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
-import { eventTypeOf } from "../catalog.js";
-import { sessionEventsForTransition, sessionIdOfRun, sessionStatusOf } from "../transitions.js";
+import { eventTypeOf } from "@stigmer/session-log";
+import { runPhaseWordOf, sessionEventsForTransition, sessionIdOfRun, sessionStatusOf } from "../transitions.js";
 import type { RunTransition, SessionNow, SessionStatusNow } from "../transitions.js";
 
 const P = RunPhase;
@@ -54,8 +56,19 @@ function session(
 /** An open ask of a run, at a place in the log. */
 const ask = (runId: string, toolUseId: string, seq: number) => ({ runId, toolUseId, seq });
 
-function eventsFor(transition: RunTransition, others = 0) {
+/** Every event the transition appends. */
+function allEventsFor(transition: RunTransition, others = 0) {
   return sessionEventsForTransition(transition, before(transition, others));
+}
+
+/** sessionEventsForTransition less the run's own stigmer.run.status. */
+function sessionEventsOnly(transition: RunTransition, now: SessionNow) {
+  return sessionEventsForTransition(transition, now).filter((event) => event.event.case !== "stigmerRunStatus");
+}
+
+/** The transition's events less the run's own stigmer.run.status. */
+function eventsFor(transition: RunTransition, others = 0) {
+  return allEventsFor(transition, others).filter((event) => event.event.case !== "stigmerRunStatus");
 }
 
 function types(transition: RunTransition, others = 0): string[] {
@@ -166,6 +179,66 @@ describe("a run that stops working", () => {
   });
 });
 
+describe("the turn's own status", () => {
+  function runStatus(transition: RunTransition, others = 0) {
+    return allEventsFor(transition, others).flatMap((event) =>
+      event.event.case === "stigmerRunStatus" ? [event.event.value] : [],
+    );
+  }
+
+  it("creation states the turn's phase after its message and before the session's status", () => {
+    const events = allEventsFor({ kind: "create", run: run(P.RUN_PENDING) });
+    expect(events.map(eventTypeOf)).toEqual(["user.message", "stigmer.run.status", "session.status_running"]);
+    expect(runStatus({ kind: "create", run: run(P.RUN_PENDING) }, 1).map((s) => s.phase)).toEqual(["pending"]);
+  });
+
+  it("every phase change is stated, whatever the session does; a write that keeps the phase states nothing", () => {
+    expect(runStatus(update(P.RUN_PENDING, P.RUN_IN_PROGRESS)).map((s) => s.phase)).toEqual(["running"]);
+    expect(runStatus(update(P.RUN_IN_PROGRESS, P.RUN_COMPLETED), 1).map((s) => s.phase)).toEqual(["completed"]);
+    expect(runStatus(update(P.RUN_IN_PROGRESS, P.RUN_WAITING_FOR_APPROVAL)).map((s) => s.phase)).toEqual(["waiting"]);
+    expect(runStatus(update(P.RUN_IN_PROGRESS, P.RUN_PAUSED)).map((s) => s.phase)).toEqual(["paused"]);
+    expect(runStatus(update(P.RUN_IN_PROGRESS, P.RUN_IN_PROGRESS))).toEqual([]);
+  });
+
+  it("an ended turn carries its stop cause and error; a working one carries neither", () => {
+    const [ended] = runStatus({
+      kind: "update",
+      previousPhase: P.RUN_IN_PROGRESS,
+      run: run(P.RUN_TERMINATED, { error: "Cost limit exceeded", stopCause: "budget_reached" }),
+    });
+    expect([ended?.phase, ended?.stopCause, ended?.error]).toEqual(["terminated", "budget_reached", "Cost limit exceeded"]);
+    const [resumed] = runStatus({
+      kind: "update",
+      previousPhase: P.RUN_FAILED,
+      run: run(P.RUN_PENDING, { error: "stale", stopCause: "failed" }),
+    });
+    expect([resumed?.phase, resumed?.stopCause, resumed?.error]).toEqual(["pending", "", ""]);
+  });
+
+  it("a failed turn's status follows its session.error and precedes the session's idle", () => {
+    expect(allEventsFor(update(P.RUN_IN_PROGRESS, P.RUN_FAILED, "x")).map(eventTypeOf)).toEqual([
+      "session.error",
+      "stigmer.run.status",
+      "session.status_idle",
+    ]);
+  });
+
+  it("a removed run states nothing of its own: its events go with it", () => {
+    expect(runStatus({ kind: "remove", previousPhase: P.RUN_IN_PROGRESS, runId: "run_1" })).toEqual([]);
+  });
+
+  it("names every phase in one word, and none for a phase it does not know", () => {
+    expect(
+      [P.RUN_PENDING, P.RUN_IN_PROGRESS, P.RUN_WAITING_FOR_APPROVAL, P.RUN_PAUSED, P.RUN_COMPLETED, P.RUN_FAILED, P.RUN_CANCELLED, P.RUN_TERMINATED].map(
+        runPhaseWordOf,
+      ),
+    ).toEqual(["pending", "running", "waiting", "paused", "completed", "failed", "cancelled", "terminated"]);
+    expect(runPhaseWordOf(P.RUN_PHASE_UNSPECIFIED)).toBeUndefined();
+    expect(runPhaseWordOf(99 as RunPhase)).toBeUndefined();
+    expect(runStatus({ kind: "create", run: run(P.RUN_PHASE_UNSPECIFIED) })).toEqual([]);
+  });
+});
+
 describe("a run that starts working again, and changes that stay working", () => {
   it("resume and recover write running when nothing else works, and nothing when something does", () => {
     expect(types(update(P.RUN_PAUSED, P.RUN_IN_PROGRESS), 0)).toEqual(["session.status_running"]);
@@ -196,7 +269,7 @@ describe("a turn that waits for answers", () => {
   };
 
   it("goes idle with requires_action naming its open asks, in log order", () => {
-    const events = sessionEventsForTransition(
+    const events = sessionEventsOnly(
       update(P.RUN_IN_PROGRESS, W),
       session(0, RUNNING, { gates: [ask("run_1", "run_1.b", 7), ask("run_1", "run_1.a", 9)] }),
     );
@@ -205,25 +278,25 @@ describe("a turn that waits for answers", () => {
   });
 
   it("re-states the idle with the remainder when some of several asks are answered, and nothing when unchanged", () => {
-    const remainder = sessionEventsForTransition(
+    const remainder = sessionEventsOnly(
       update(W, W),
       session(0, waitingOn("run_1.b", "run_1.a"), { gates: [ask("run_1", "run_1.a", 9)] }),
     );
     expect(idleOf(remainder)).toEqual(["requires_action", ["run_1.a"]]);
     expect(
-      sessionEventsForTransition(update(W, W), session(0, waitingOn("run_1.a"), { gates: [ask("run_1", "run_1.a", 9)] })),
+      sessionEventsOnly(update(W, W), session(0, waitingOn("run_1.a"), { gates: [ask("run_1", "run_1.a", 9)] })),
     ).toEqual([]);
   });
 
   it("reads running once every ask of the waiting run is answered: it is about to resume", () => {
-    expect(sessionEventsForTransition(update(W, W), session(0, waitingOn("run_1.a"))).map(eventTypeOf)).toEqual([
+    expect(sessionEventsOnly(update(W, W), session(0, waitingOn("run_1.a"))).map(eventTypeOf)).toEqual([
       "session.status_running",
     ]);
-    expect(sessionEventsForTransition(update(W, P.RUN_IN_PROGRESS), session(0, RUNNING))).toEqual([]);
+    expect(sessionEventsOnly(update(W, P.RUN_IN_PROGRESS), session(0, RUNNING))).toEqual([]);
   });
 
   it("names every waiting run's asks, and ignores the asks of a run that no longer waits", () => {
-    const events = sessionEventsForTransition(
+    const events = sessionEventsOnly(
       update(P.RUN_IN_PROGRESS, W),
       session(0, RUNNING, {
         othersWaiting: ["run_0"],
@@ -234,7 +307,7 @@ describe("a turn that waits for answers", () => {
   });
 
   it("a queued turn reads running while an earlier one waits", () => {
-    const events = sessionEventsForTransition(
+    const events = sessionEventsOnly(
       { kind: "create", run: run(P.RUN_PENDING) },
       session(0, waitingOn("run_0.x"), { othersWaiting: ["run_0"], gates: [ask("run_0", "run_0.x", 3)] }),
     );
@@ -242,18 +315,18 @@ describe("a turn that waits for answers", () => {
   });
 
   it("a waiting turn that is stopped ends the session as end_turn; one that fails reports its error first", () => {
-    expect(idleOf(sessionEventsForTransition(update(W, P.RUN_CANCELLED), session(0, waitingOn("run_1.a"))))).toEqual([
+    expect(idleOf(sessionEventsOnly(update(W, P.RUN_CANCELLED), session(0, waitingOn("run_1.a"))))).toEqual([
       "end_turn",
       [],
     ]);
-    const failed = sessionEventsForTransition(update(W, P.RUN_FAILED, "gave up"), session(0, waitingOn("run_1.a")));
+    const failed = sessionEventsOnly(update(W, P.RUN_FAILED, "gave up"), session(0, waitingOn("run_1.a")));
     expect(failed.map(eventTypeOf)).toEqual(["session.error", "session.status_idle"]);
     expect(idleOf(failed)).toEqual(["retries_exhausted", []]);
   });
 
   it("another turn's end keeps the session waiting on the asks still open", () => {
     expect(
-      sessionEventsForTransition(
+      sessionEventsOnly(
         update(P.RUN_IN_PROGRESS, P.RUN_COMPLETED),
         session(0, waitingOn("run_0.x"), { othersWaiting: ["run_0"], gates: [ask("run_0", "run_0.x", 3)] }),
       ),
@@ -264,23 +337,23 @@ describe("a turn that waits for answers", () => {
 describe("a log that drifted is put right by the next write in its session", () => {
   it("a session that reads idle while a run works reads running after any write of a working run", () => {
     expect(
-      sessionEventsForTransition(update(P.RUN_IN_PROGRESS, P.RUN_IN_PROGRESS), session(0, IDLE)).map(eventTypeOf),
+      sessionEventsOnly(update(P.RUN_IN_PROGRESS, P.RUN_IN_PROGRESS), session(0, IDLE)).map(eventTypeOf),
     ).toEqual(["session.status_running"]);
     expect(
-      sessionEventsForTransition({ kind: "create", run: run(P.RUN_PENDING) }, session(1, IDLE)).map(eventTypeOf),
+      sessionEventsOnly({ kind: "create", run: run(P.RUN_PENDING) }, session(1, IDLE)).map(eventTypeOf),
     ).toEqual(["user.message", "session.status_running"]);
   });
 
   it("a session that reads running while nothing works reads idle after the next write", () => {
     expect(
-      sessionEventsForTransition(update(P.RUN_COMPLETED, P.RUN_COMPLETED), session(0, RUNNING)).map(eventTypeOf),
+      sessionEventsOnly(update(P.RUN_COMPLETED, P.RUN_COMPLETED), session(0, RUNNING)).map(eventTypeOf),
     ).toEqual(["session.status_idle"]);
   });
 
   it("a state already stated is not stated again, and an idle is never re-stated over another idle", () => {
-    expect(sessionEventsForTransition(update(P.RUN_PENDING, P.RUN_IN_PROGRESS), session(0, RUNNING))).toEqual([]);
+    expect(sessionEventsOnly(update(P.RUN_PENDING, P.RUN_IN_PROGRESS), session(0, RUNNING))).toEqual([]);
     expect(
-      sessionEventsForTransition(
+      sessionEventsOnly(
         update(P.RUN_COMPLETED, P.RUN_COMPLETED),
         session(0, { type: "idle", reason: "retries_exhausted", eventIds: [] }),
       ),

@@ -1,6 +1,15 @@
+/**
+ * Proves the `@stigmer/react/test` factories (../samples.ts): each resource
+ * factory's defaults and overrides; the session-event builders (ids derived
+ * from the run and arguments, the events of a whole turn, a folded turn and
+ * tool use, list and stream responses numbered in order); that no factory
+ * reads the live clock (identical output a day apart, the frozen instant on
+ * every timestamp, a stable 1.2s tool duration); and the reader offset
+ * window that fixes the anchor at 11:00 UTC.
+ */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { RunPhase, MessageType, ToolCallStatus, RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase, RunArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDuration } from "../../run/ToolCallDetail";
 import { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "../samples";
@@ -39,25 +48,27 @@ describe("samples", () => {
   });
 
   describe("run", () => {
-    it("creates a completed execution with default messages", () => {
+    it("creates a completed run started with a greeting", () => {
       const ex = samples.run();
       expect(ex.kind).toBe("Run");
       expect(ex.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-      expect(ex.status?.messages.length).toBeGreaterThanOrEqual(2);
+      expect(ex.spec?.message).toBe("Hello! Can you help me get started?");
+      expect(ex.spec?.target).toEqual({ case: "sessionId", value: "ses-00000000-0000-0000-0000-000000000001" });
     });
 
-    it("uses provided phase and messages", () => {
-      const msgs = [
-        samples.humanMessage("test input"),
-        samples.aiMessage("test response"),
-      ];
+    it("uses the provided id, phase, message and artifacts", () => {
       const ex = samples.run({
+        id: "run_x",
+        sessionId: "ses-x",
         phase: RunPhase.RUN_IN_PROGRESS,
-        messages: msgs,
+        message: "test input",
+        artifacts: [samples.artifact("a.md")],
       });
+      expect(ex.metadata?.id).toBe("run_x");
+      expect(ex.spec?.target.value).toBe("ses-x");
       expect(ex.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
-      expect(ex.status?.messages).toHaveLength(2);
-      expect(ex.status?.messages[0].content).toBe("test input");
+      expect(ex.spec?.message).toBe("test input");
+      expect(ex.status?.artifacts).toHaveLength(1);
     });
   });
 
@@ -93,29 +104,123 @@ describe("samples", () => {
     });
   });
 
-  describe("message primitives", () => {
-    it("humanMessage has correct type", () => {
-      const msg = samples.humanMessage("Hello");
-      expect(msg.type).toBe(MessageType.MESSAGE_HUMAN);
-      expect(msg.content).toBe("Hello");
-      expect(msg.timestamp).toBeTruthy();
+  describe("session events", () => {
+    it("files each event under the demo run, with an id derived from it", () => {
+      const user = samples.userMessageEvent("Hello");
+      expect(user.runId).toBe("run_00000000000000000000000001");
+      expect(user.threadId).toBe("");
+      expect(user.event.case).toBe("userMessage");
+      expect(user.event.value?.id).toBe("run_00000000000000000000000001.user");
+
+      const reply = samples.agentMessageEvent("Hi", { runId: "r2", id: "r2.root.m3", threadId: "r2.sub" });
+      expect(reply.runId).toBe("r2");
+      expect(reply.threadId).toBe("r2.sub");
+      expect(reply.event.value?.id).toBe("r2.root.m3");
     });
 
-    it("aiMessage has correct type and optional tool calls", () => {
-      const tc = samples.toolCall("web-search", "results here");
-      const msg = samples.aiMessage("Here are the results", [tc]);
-      expect(msg.type).toBe(MessageType.MESSAGE_AI);
-      expect(msg.toolCalls).toHaveLength(1);
-      expect(msg.toolCalls[0].name).toBe("web-search");
+    it("writes a thinking as its event and the text that follows it", () => {
+      const [thinking, text] = samples.thinkingEvents("weigh it", { runId: "r" });
+      expect(thinking!.event).toMatchObject({ case: "agentThinking", value: { id: "r.root.t0" } });
+      expect(text!.event).toMatchObject({
+        case: "stigmerAgentThinking",
+        value: { id: "r.root.t0.text", thinkingId: "r.root.t0", text: "weigh it" },
+      });
     });
 
-    it("toolCall is completed with a result", () => {
-      const tc = samples.toolCall("lookup-order", '{"orderId": "123"}');
-      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-      expect(tc.name).toBe("lookup-order");
-      expect(tc.result).toBe('{"orderId": "123"}');
+    it("writes built-in and MCP tool uses and results", () => {
+      const builtIn = samples.toolUseEvent("read", { path: "a.md" }, { evaluatedPermission: "ask" });
+      expect(builtIn.event).toMatchObject({
+        case: "agentToolUse",
+        value: { id: "run_00000000000000000000000001.tc-read", evaluatedPermission: "ask", input: { path: "a.md" } },
+      });
+      const mcp = samples.toolUseEvent("create_issue", undefined, { mcpServerName: "github" });
+      expect(mcp.event).toMatchObject({ case: "agentMcpToolUse", value: { mcpServerName: "github", input: {} } });
+
+      const result = samples.toolResultEvent("tu-1", "done", { isError: true });
+      expect(result.event).toMatchObject({ case: "agentToolResult", value: { id: "tu-1.r", toolUseId: "tu-1", isError: true } });
+      const mcpResult = samples.toolResultEvent("tu-2", "", { mcp: true });
+      expect(mcpResult.event).toMatchObject({ case: "agentMcpToolResult", value: { mcpToolUseId: "tu-2", content: [] } });
     });
 
+    it("writes an ask and a run status", () => {
+      expect(samples.permissionAskedEvent("tu-1").event).toMatchObject({
+        case: "stigmerPermissionAsked",
+        value: { id: "tu-1.ask", toolUseId: "tu-1", policySource: "builtin_category", message: "" },
+      });
+      expect(
+        samples.permissionAskedEvent("tu-1", { message: "Run it?", argsPreview: "{}", policySource: "hook", policyHook: "safety" }).event,
+      ).toMatchObject({ value: { message: "Run it?", argsPreview: "{}", policySource: "hook", policyHook: "safety" } });
+      expect(samples.runStatusEvent("failed", { error: "boom", stopCause: "failed" }).event).toMatchObject({
+        case: "stigmerRunStatus",
+        value: { id: "run_00000000000000000000000001.status.failed", phase: "failed", error: "boom", stopCause: "failed" },
+      });
+    });
+
+    it("writes a whole turn in log order, and folds it", () => {
+      const events = samples.turnEvents({
+        runId: "r",
+        message: "check",
+        tools: [
+          { name: "read", input: { path: "a" }, result: "contents" },
+          { name: "create_issue", mcpServerName: "github", result: "nope", isError: true },
+          { name: "shell" },
+        ],
+        reply: "Done.",
+      });
+      expect(events.map((e) => e.event.case)).toEqual([
+        "userMessage",
+        "stigmerRunStatus",
+        "agentToolUse",
+        "agentToolResult",
+        "agentMcpToolUse",
+        "agentMcpToolResult",
+        "agentToolUse",
+        "agentMessage",
+        "stigmerRunStatus",
+      ]);
+
+      const turn = samples.fold(events).turns[0]!;
+      expect(turn.userMessage?.text).toBe("check");
+      expect(turn.answer).toBe("Done.");
+      expect(turn.status?.phase).toBe("completed");
+      expect(turn.items.filter((i) => i.kind === "tool_use").map((i) => i.kind === "tool_use" && i.state)).toEqual([
+        "completed",
+        "failed",
+        "stopped",
+      ]);
+    });
+
+    it("leaves a running turn open and a turn with no reply without one", () => {
+      const events = samples.turnEvents({ phase: "running", reply: "" });
+      expect(events.map((e) => e.event.case)).toEqual(["userMessage", "stigmerRunStatus"]);
+      const turn = samples.turn({ phase: "running", reply: "" });
+      expect(turn.ended).toBe(false);
+      expect(turn.answer).toBe("");
+    });
+
+    it("folds a default turn: the greeting and its answer", () => {
+      const turn = samples.turn();
+      expect(turn.userMessage?.text).toBe("Hello! Can you help me get started?");
+      expect(turn.ended).toBe(true);
+    });
+
+    it("folds a single tool use, returned or still running", () => {
+      const done = samples.toolUse("read", "contents", { input: { path: "a.md" } });
+      expect(done).toMatchObject({ name: "read", state: "completed", input: { path: "a.md" }, result: { text: "contents" } });
+      const failed = samples.toolUse("create_issue", "nope", { mcpServerName: "github", isError: true });
+      expect(failed).toMatchObject({ mcpServerName: "github", state: "failed" });
+      expect(samples.toolUse("shell").state).toBe("running");
+    });
+
+    it("numbers list and stream responses in order", () => {
+      const list = samples.sessionEventList([samples.userMessageEvent("a"), samples.agentMessageEvent("b")]);
+      expect(list.events.map((e) => e.seq)).toEqual([1n, 2n]);
+      const frame = samples.eventFrame(samples.userMessageEvent("a"));
+      expect(frame.frame.case).toBe("event");
+    });
+  });
+
+  describe("artifact primitive", () => {
     it("artifact defaults to FILE kind", () => {
       const a = samples.artifact("report.md");
       expect(a.name).toBe("report.md");
@@ -194,9 +299,19 @@ describe("samples determinism", () => {
     apiKey: () => samples.apiKey(),
     organization: () => samples.organization(),
     organizationList: () => samples.organizationList(),
-    humanMessage: () => samples.humanMessage("hello"),
-    aiMessage: () => samples.aiMessage("hi"),
-    toolCall: () => samples.toolCall("lookup_order", '{"orderId":"123"}'),
+    userMessageEvent: () => samples.userMessageEvent("hello"),
+    agentMessageEvent: () => samples.agentMessageEvent("hi"),
+    thinkingEvents: () => samples.thinkingEvents("hm"),
+    toolUseEvent: () => samples.toolUseEvent("lookup_order", { orderId: "123" }),
+    toolResultEvent: () => samples.toolResultEvent("tu", "{}"),
+    permissionAskedEvent: () => samples.permissionAskedEvent("tu"),
+    runStatusEvent: () => samples.runStatusEvent("completed"),
+    turnEvents: () => samples.turnEvents({ tools: [{ name: "read", result: "x" }] }),
+    fold: () => samples.fold(samples.turnEvents()),
+    turn: () => samples.turn(),
+    toolUse: () => samples.toolUse("lookup_order", "{}"),
+    sessionEventList: () => samples.sessionEventList(samples.turnEvents()),
+    eventFrame: () => samples.eventFrame(samples.userMessageEvent("x")),
     artifact: () => samples.artifact("report.md"),
     sessionList: () => samples.sessionList(),
     runList: () => samples.runList(),
@@ -212,7 +327,7 @@ describe("samples determinism", () => {
   // Two calls under system clocks a full calendar day apart must produce
   // identical objects. The day boundary is deliberate: it is what reproduces
   // the `apiKey` bug (a `createdAt` date that changed daily) and the message
-  // and tool-call timestamp drift, none of which a same-millisecond back-to-
+  // and tool-use timestamp drift, none of which a same-millisecond back-to-
   // back call would expose.
   it.each(Object.keys(invoke) as (keyof typeof samples)[])(
     "%s is identical across a day boundary",
@@ -230,10 +345,13 @@ describe("samples determinism", () => {
   );
 
   it("stamps the frozen instant on every timestamped primitive", () => {
-    expect(samples.humanMessage("x").timestamp).toBe(SAMPLE_INSTANT);
-    expect(samples.aiMessage("x").timestamp).toBe(SAMPLE_INSTANT);
+    expect(samples.userMessageEvent("x").event.value?.processedAt).toBe(SAMPLE_INSTANT);
+    expect(samples.agentMessageEvent("x").event.value?.processedAt).toBe(SAMPLE_INSTANT);
     expect(samples.artifact("x").createdAt).toBe(SAMPLE_INSTANT);
-    expect(samples.toolCall("x", "y").startedAt).toBe(SAMPLE_INSTANT);
+    expect(samples.toolUse("x", "y").processedAt).toBe(SAMPLE_INSTANT);
+    expect(samples.agentMessageEvent("x", { processedAt: sampleInstant(5_000) }).event.value?.processedAt).toBe(
+      sampleInstant(5_000),
+    );
 
     const createdAt = samples.apiKey().status?.audit?.specAudit?.createdAt;
     expect(createdAt).toBeDefined();
@@ -241,12 +359,12 @@ describe("samples determinism", () => {
   });
 
   it("renders a stable duration chip rather than the old 0ms flake", () => {
-    const tc = samples.toolCall("lookup_order", "{}");
-    expect(formatDuration(tc.startedAt, tc.completedAt)).toBe("1.2s");
+    const tu = samples.toolUse("lookup_order", "{}");
+    expect(formatDuration(tu.processedAt, tu.result!.processedAt)).toBe("1.2s");
   });
 
-  it("derives a clock-free tool-call id from the name", () => {
-    expect(samples.toolCall("process_return", "{}").id).toBe("tc-process_return");
+  it("derives a clock-free tool-use id from the run and the name", () => {
+    expect(samples.toolUse("process_return", "{}").id).toBe("run_00000000000000000000000001.tc-process_return");
   });
 
   it("honors an ApiKeyOverrides.createdAt override", () => {
@@ -316,9 +434,9 @@ describe("sampleInstant / sampleDate derivation", () => {
     }
   });
 
-  it("the default toolCall span derives from the anchor", () => {
-    const tc = samples.toolCall("lookup_order", "{}");
-    expect(tc.startedAt).toBe(sampleInstant());
-    expect(tc.completedAt).toBe(sampleInstant(1_200));
+  it("the default tool-use span derives from the anchor", () => {
+    const tu = samples.toolUse("lookup_order", "{}");
+    expect(tu.processedAt).toBe(sampleInstant());
+    expect(tu.result?.processedAt).toBe(sampleInstant(1_200));
   });
 });

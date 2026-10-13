@@ -43,10 +43,7 @@ export interface WriteBacksWidgetProps {
  * const conv = useSessionConversation(sessionId, org);
  *
  * <WriteBacksWidget
- *   runs={[
- *     ...conv.completedRuns,
- *     ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
- *   ]}
+ *   runs={conv.runs}
  * />
  * ```
  *

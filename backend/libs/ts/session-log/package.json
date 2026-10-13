@@ -1,0 +1,65 @@
+{
+  "name": "@stigmer/session-log",
+  "version": "0.0.0-dev",
+  "description": "A Stigmer session's event log as every client reads it: the fold of its Claude Managed Agents events into turns, threads, tool uses and asks, the live previews, and each event's Managed Agents JSON",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": "^22.13.0 || >=23.4.0"
+  },
+  "keywords": [
+    "stigmer",
+    "sessions",
+    "events",
+    "managed-agents"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "backend/libs/ts/session-log"
+  },
+  "dependencies": {
+    "@stigmer/tool-vocabulary": "*"
+  },
+  "peerDependencies": {
+    "@bufbuild/protobuf": "^2.8.0",
+    "@stigmer/protos": "*"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
+    "@bufbuild/protobuf": "2.12.0",
+    "@stigmer/protos": "*",
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
+  }
+}

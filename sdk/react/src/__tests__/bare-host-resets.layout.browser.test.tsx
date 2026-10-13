@@ -29,8 +29,6 @@ import { render, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import Markdown from "react-markdown";
 import type { Stigmer } from "@stigmer/sdk";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerProvider } from "../provider";
 import { TodoList } from "../run/TodoList.js";
 import { UNSTYLED_FIELDSET, UNSTYLED_LIST } from "../internal/element-resets.js";
@@ -110,13 +108,15 @@ describe("bare-host per-element resets (#695)", () => {
     it("a real swept organism (TodoList) renders without UA list styling", () => {
       const probe = renderScoped(
         <TodoList
-          todos={{
-            t1: create(TodoItemSchema, {
+          todos={[
+            {
               id: "t1",
               content: "Scaffold the component",
-              status: TodoStatus.TODO_IN_PROGRESS,
-            }),
-          }}
+              status: "in_progress",
+              createdAt: "",
+              updatedAt: "",
+            },
+          ]}
         />,
       );
       const style = computed(probe.querySelector('ul[aria-label="Tasks"]')!);

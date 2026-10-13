@@ -23,11 +23,7 @@ import {
   RunSchema,
   type Run,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  MessageType,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   ScoreSchema,
   type Score,
@@ -43,29 +39,23 @@ import { buildScoreProto, type ScoreInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { MessageThread } from "../../run/MessageThread";
+import type { Turn } from "@stigmer/sdk";
+import { samples } from "../../test/samples";
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
 
-function completedRun(id: string, answer: string): Run {
-  return create(RunSchema, {
+/** A one-turn thread: the completed run's record and its turn's events, folded. */
+function completedTurn(id: string, answer: string): { turns: readonly Turn[]; runs: Run[] } {
+  const message = "triage last night's tickets";
+  const run = create(RunSchema, {
     metadata: { id, org: "org_acme" },
-    spec: {
-      message: "triage last night's tickets",
-      target: { case: "sessionId", value: "ses_1" },
-    },
-    status: {
-      phase: RunPhase.RUN_COMPLETED,
-      messages: [
-        create(AgentMessageSchema, {
-          type: MessageType.MESSAGE_AI,
-          content: answer,
-        }),
-      ],
-    },
+    spec: { message, target: { case: "sessionId", value: "ses_1" } },
+    status: { phase: RunPhase.RUN_COMPLETED },
   });
+  return { turns: samples.fold(samples.turnEvents({ runId: id, message, reply: answer })).turns, runs: [run] };
 }
 
 function flaggedHealth(runId: string): Score {
@@ -130,7 +120,7 @@ describe("run scores in a thread", () => {
   it("makes no score request and renders no control when run scores are off", async () => {
     const mock = client([flaggedHealth("run_1")]);
     render(
-      <MessageThread runs={[completedRun("run_1", "Labelled 12 tickets.")]} />,
+      <MessageThread {...completedTurn("run_1", "Labelled 12 tickets.")} />,
       {
         wrapper: wrap(mock),
       },
@@ -144,7 +134,7 @@ describe("run scores in a thread", () => {
     const mock = client([flaggedHealth("run_1")]);
     render(
       <MessageThread
-        runs={[completedRun("run_1", "Labelled 12 tickets.")]}
+        {...completedTurn("run_1", "Labelled 12 tickets.")}
         runScores
       />,
       { wrapper: wrap(mock) },
@@ -173,7 +163,7 @@ describe("run scores in a thread", () => {
       },
     });
     render(
-      <MessageThread runs={[completedRun("run_1", "Done.")]} runScores />,
+      <MessageThread {...completedTurn("run_1", "Done.")} runScores />,
       { wrapper: wrap(client([notGraded])) },
     );
     expect(
@@ -184,7 +174,7 @@ describe("run scores in a thread", () => {
   it("records a thumbs-down as a rating of false on the run's organization", async () => {
     const mock = client([]);
     render(
-      <MessageThread runs={[completedRun("run_1", "Done.")]} runScores />,
+      <MessageThread {...completedTurn("run_1", "Done.")} runScores />,
       {
         wrapper: wrap(mock),
       },
@@ -233,7 +223,7 @@ describe("run scores in a thread", () => {
     );
     mock.score.get.mockResolvedValue(existing);
     render(
-      <MessageThread runs={[completedRun("run_1", "Done.")]} runScores />,
+      <MessageThread {...completedTurn("run_1", "Done.")} runScores />,
       {
         wrapper: wrap(mock),
       },

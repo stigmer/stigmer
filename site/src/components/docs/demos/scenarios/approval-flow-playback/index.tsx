@@ -1,44 +1,62 @@
 "use client";
 
+/**
+ * The approval-flow demo: a return request, the agent's call waiting on the
+ * real inline gate, and the turn completing once the cursor presses Approve.
+ * The press is the real button calling the demo's answer handler, which
+ * swaps the waiting frame for the completed one; a step change resets it.
+ */
+
 import { useCallback, useRef, useState } from "react";
 import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor } from "@scenar/react";
+import type { MessageThreadProps } from "@stigmer/react";
 import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   type ApprovalFlowStep,
   approvalFlowSteps,
-  completedExecution,
+  completedConversation,
 } from "./steps";
 
-type ApprovalSubmitHandler = (
-  toolCallId: string,
-  action: ApprovalAction,
-  comment?: string,
-) => void;
+/** The gate's answer handler, as `MessageThread` calls it. */
+type AnswerHandler = NonNullable<MessageThreadProps["onAnswerToolUse"]>;
+
+/**
+ * The demo's answer state. An approval (Approve, or Approve all) lands the
+ * completed frame; a Deny leaves the gate waiting, as the demo has no denied
+ * ending. `reset` returns to the waiting frame on a step change.
+ */
+export function useApprovalAnswer(): {
+  readonly approved: boolean;
+  readonly onAnswer: AnswerHandler;
+  readonly reset: () => void;
+} {
+  const [approved, setApproved] = useState(false);
+  const onAnswer: AnswerHandler = useCallback((_toolUseId, answer) => {
+    if (answer !== "deny") setApproved(true);
+  }, []);
+  const reset = useCallback(() => setApproved(false), []);
+  return { approved, onAnswer, reset };
+}
 
 export function ApprovalFlowPlayback() {
   const narrationManifest = useNarrationManifest("approval-flow-playback");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
-  const [approved, setApproved] = useState(false);
+  const { approved, onAnswer, reset } = useApprovalAnswer();
 
   const handleStepChange = useCallback(
     (_step: ApprovalFlowStep, index: number) => {
       setCursorTarget(undefined);
       setStepIndex(index);
-      setApproved(false);
+      reset();
     },
-    [],
+    [reset],
   );
-
-  const handleApprovalSubmit: ApprovalSubmitHandler = useCallback(() => {
-    setApproved(true);
-  }, []);
 
   useStepInteractions({
     stepIndex,
@@ -56,7 +74,7 @@ export function ApprovalFlowPlayback() {
           narrationManifest={narrationManifest}
           onStepChange={handleStepChange}
         >
-          {(step) => renderStep(step, approved, handleApprovalSubmit)}
+          {(step) => renderStep(step, approved, onAnswer)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
@@ -64,10 +82,11 @@ export function ApprovalFlowPlayback() {
   );
 }
 
-function renderStep(
+/** One step's frame: the waiting gate, or the completed turn once approved. */
+export function renderStep(
   step: ApprovalFlowStep,
   approved: boolean,
-  onApprovalSubmit: ApprovalSubmitHandler,
+  onAnswer: AnswerHandler,
 ) {
   switch (step.view) {
     case "composer-typing":
@@ -86,9 +105,9 @@ function renderStep(
           <AppShell
             activeNav="new-session"
             contentKey="session"
-            aside={renderWidgetsSidebar(completedExecution)}
+            aside={renderWidgetsSidebar(completedConversation)}
           >
-            <ComposerView execution={completedExecution} />
+            <ComposerView conversation={completedConversation} />
           </AppShell>
         );
       }
@@ -96,11 +115,11 @@ function renderStep(
         <AppShell
           activeNav="new-session"
           contentKey="session"
-          aside={renderWidgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.conversation)}
         >
           <ComposerView
-            execution={step.execution}
-            onApprovalSubmit={onApprovalSubmit}
+            conversation={step.conversation}
+            onAnswerToolUse={onAnswer}
           />
         </AppShell>
       );
@@ -111,9 +130,9 @@ function renderStep(
         <AppShell
           activeNav="new-session"
           contentKey="session"
-          aside={renderWidgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.conversation)}
         >
-          <ComposerView execution={step.execution} />
+          <ComposerView conversation={step.conversation} />
         </AppShell>
       );
   }

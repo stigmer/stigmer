@@ -1,5 +1,6 @@
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { foldSession, type SessionFold, type ToolUse, type Turn, type TurnPhase } from "@stigmer/sdk";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
@@ -14,19 +15,11 @@ import {
 import {
   RunArtifactKind,
   RunPhase,
-  MessageType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   RunListSchema,
   type RunList,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  type AgentMessage,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   VaultSchema,
@@ -58,9 +51,17 @@ import {
   type Session,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
+  SessionEventListSchema,
   SessionListSchema,
+  StreamSessionEventsResponseSchema,
+  type SessionEventList,
   type SessionList,
+  type StreamSessionEventsResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import {
+  SessionEventSchema,
+  type SessionEvent,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { SkillSchema, type Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
@@ -146,12 +147,18 @@ export function sampleDate(deltaMs = 0): Date {
 }
 
 /**
- * When a default {@link samples.toolCall} completes: {@link SAMPLE_INSTANT}
- * plus 1.2s, so the rendered duration chip reads a stable "1.2s" — long
- * enough to never collapse to the "0ms" that two adjacent live clock reads
- * used to produce.
+ * When a default tool use returns ({@link samples.toolResultEvent}):
+ * {@link SAMPLE_INSTANT} plus 1.2s, so the rendered duration chip reads a
+ * stable "1.2s" — long enough to never collapse to the "0ms" that two
+ * adjacent live clock reads used to produce.
  */
-const SAMPLE_TOOL_CALL_COMPLETED_AT = sampleInstant(1_200);
+const SAMPLE_TOOL_RESULT_AT = sampleInstant(1_200);
+
+/** The demo run every event builder files its event under by default. */
+const SAMPLE_RUN_ID = "run_00000000000000000000000001";
+
+/** The demo session the demo run belongs to. */
+const SAMPLE_SESSION_ID = "ses-00000000-0000-0000-0000-000000000001";
 
 // ---------------------------------------------------------------------------
 // Override interfaces — flat projections of commonly-customized fields
@@ -181,8 +188,79 @@ export interface RunOverrides {
   readonly sessionId?: string;
   readonly agentId?: string;
   readonly phase?: RunPhase;
-  readonly messages?: AgentMessage[];
+  /** The message the run (turn) was started with (`spec.message`). */
+  readonly message?: string;
   readonly artifacts?: RunArtifact[];
+}
+
+/** Where a session event is filed, shared by every event builder. */
+export interface SessionEventOverrides {
+  /** The run (turn) the event belongs to. Defaults to the demo run. */
+  readonly runId?: string;
+  /** The sub-agent thread that produced it; "" (the default) is the primary thread. */
+  readonly threadId?: string;
+  /**
+   * The event's id, unique in its session. Each builder derives a stable
+   * default from the run and its arguments; pass one for a second event of
+   * the same shape in one run.
+   */
+  readonly id?: string;
+  /** When it was appended. Defaults to {@link SAMPLE_INSTANT}. */
+  readonly processedAt?: string;
+}
+
+/** A tool use's event: its MCP server and permission, beside the common overrides. */
+export interface ToolUseEventOverrides extends SessionEventOverrides {
+  /** The MCP server the tool belongs to; "" (the default) for a built-in tool. */
+  readonly mcpServerName?: string;
+  /** `ask` when the call waits for a person; "" (the default) when it runs. */
+  readonly evaluatedPermission?: string;
+}
+
+/** A tool result's event: whether the result is an error. */
+export interface ToolResultEventOverrides extends SessionEventOverrides {
+  readonly isError?: boolean;
+  /** Pair it with an MCP tool use (`agent.mcp_tool_result`). */
+  readonly mcp?: boolean;
+}
+
+/** Why a call waits: the ask's message, preview and the rule that asked. */
+export interface PermissionAskedOverrides extends SessionEventOverrides {
+  readonly message?: string;
+  /** The sanitized JSON preview of the call's input. */
+  readonly argsPreview?: string;
+  /** The rule that asked, as one word (`builtin_category`, `hook`, ...). */
+  readonly policySource?: string;
+  readonly policyHook?: string;
+}
+
+/** A turn's `stigmer.run.status`: its stop cause and error. */
+export interface RunStatusEventOverrides extends SessionEventOverrides {
+  readonly stopCause?: string;
+  readonly error?: string;
+}
+
+/** One tool call of a {@link samples.turnEvents} turn: its use and, when it returned, its result. */
+export interface TurnToolOverrides {
+  readonly name: string;
+  readonly input?: JsonObject;
+  /** The result's text; omit for a call that has not returned. */
+  readonly result?: string;
+  readonly isError?: boolean;
+  readonly mcpServerName?: string;
+}
+
+/** A whole turn for {@link samples.turnEvents}: its message, tools, reply and phase. */
+export interface TurnOverrides {
+  readonly runId?: string;
+  /** The person's message. Defaults to a short greeting. */
+  readonly message?: string;
+  /** The tool calls the agent made, in order, before its reply. */
+  readonly tools?: readonly TurnToolOverrides[];
+  /** The agent's reply; omit or "" for none. Defaults to a short answer. */
+  readonly reply?: string;
+  /** The turn's phase (`stigmer.run.status`). Defaults to `completed`. */
+  readonly phase?: TurnPhase;
 }
 
 export interface SkillOverrides {
@@ -239,6 +317,42 @@ export interface SearchResultOverrides {
 }
 
 // ---------------------------------------------------------------------------
+// Session-event helpers
+// ---------------------------------------------------------------------------
+
+/** The demo turn's message and the agent's answer to it. */
+const SAMPLE_USER_MESSAGE = "Hello! Can you help me get started?";
+const SAMPLE_REPLY =
+  "Of course! I'd be happy to help you get started. What would you like to work on?";
+
+type SessionEventInit = MessageInitShape<typeof SessionEventSchema>["event"];
+
+/** A stored event of the demo session, filed under its run and thread. */
+function sessionEvent(o: SessionEventOverrides | undefined, event: SessionEventInit): SessionEvent {
+  return create(SessionEventSchema, {
+    sessionId: SAMPLE_SESSION_ID,
+    runId: o?.runId ?? SAMPLE_RUN_ID,
+    threadId: o?.threadId ?? "",
+    event,
+  });
+}
+
+/** A text content block list, as messages carry text. */
+function textContent(text: string): { type: string; text: string }[] {
+  return text === "" ? [] : [{ type: "text", text }];
+}
+
+/** An event's append time: the override, or the frozen instant. */
+function at(o: SessionEventOverrides | undefined): string {
+  return o?.processedAt ?? SAMPLE_INSTANT;
+}
+
+/** The events with their log places (`seq`) numbered 1.. in order. */
+function numbered(events: readonly SessionEvent[]): SessionEvent[] {
+  return events.map((event, index) => ({ ...event, seq: BigInt(index + 1) }));
+}
+
+// ---------------------------------------------------------------------------
 // Resource factories
 // ---------------------------------------------------------------------------
 
@@ -253,10 +367,9 @@ export interface SearchResultOverrides {
  * replay and every video-export frame. Do not reintroduce `Date.now()` or
  * `new Date()` here.
  *
- * For a value the overrides do not cover — a different timestamp, a distinct
- * tool-call id — modify the returned object directly rather than growing the
- * override surface: protobuf messages from `create()` are mutable plain
- * objects. Timestamps derive from the anchor via {@link sampleInstant} rather
+ * For a value the overrides do not cover, modify the returned object
+ * directly rather than growing the override surface: protobuf messages from
+ * `create()` are mutable plain objects. Timestamps derive from the anchor via {@link sampleInstant} rather
  * than a hand-written literal, so the fixture world keeps a single clock.
  *
  * @example
@@ -269,8 +382,7 @@ export interface SearchResultOverrides {
  * );
  *
  * // Deeper customization — derive "5 seconds later" from the anchor:
- * const later = samples.humanMessage("later");
- * later.timestamp = sampleInstant(5_000);
+ * const later = samples.agentMessageEvent("later", { processedAt: sampleInstant(5_000) });
  * ```
  */
 export const samples = {
@@ -323,23 +435,17 @@ export const samples = {
   },
 
   /**
-   * A run with status, messages, and optional artifacts.
-   * Default: completed run with a short human/AI exchange.
+   * A run: one turn's lifecycle record (its spec, phase and artifacts).
+   * What the agent did in the turn is the session's events — see
+   * {@link samples.turnEvents}.
+   * Default: a completed run started with a short greeting.
    */
   run(o?: RunOverrides): Run {
-    const msgs =
-      o?.messages ?? [
-        samples.humanMessage("Hello! Can you help me get started?"),
-        samples.aiMessage(
-          "Of course! I'd be happy to help you get started. What would you like to work on?",
-        ),
-      ];
-
     return create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Run",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "run_00000000000000000000000001",
+        id: o?.id ?? SAMPLE_RUN_ID,
         name: "demo-execution",
         slug: "demo-execution",
         org: "demo",
@@ -347,14 +453,13 @@ export const samples = {
       spec: create(RunSpecSchema, {
         target: {
           case: "sessionId",
-          value: o?.sessionId ?? "ses-00000000-0000-0000-0000-000000000001",
+          value: o?.sessionId ?? SAMPLE_SESSION_ID,
         },
-        message: msgs[0]?.content ?? "",
+        message: o?.message ?? SAMPLE_USER_MESSAGE,
       }),
       status: create(RunStatusSchema, {
         agentId: o?.agentId ?? "agt-00000000-0000-0000-0000-000000000001",
         phase: o?.phase ?? RunPhase.RUN_COMPLETED,
-        messages: msgs,
         artifacts: o?.artifacts ?? [],
       }),
     });
@@ -488,45 +593,183 @@ export const samples = {
     });
   },
 
-  // ---- Message & artifact primitives ----
+  // ---- Session events: a conversation as its event log holds it ----
 
-  /** A human (user) message, stamped at {@link SAMPLE_INSTANT}. */
-  humanMessage(content: string): AgentMessage {
-    return create(AgentMessageSchema, {
-      type: MessageType.MESSAGE_HUMAN,
-      content,
-      timestamp: SAMPLE_INSTANT,
+  /** The person's message that starts a turn (`user.message`). Id: `<run>.user`. */
+  userMessageEvent(text: string, o?: SessionEventOverrides): SessionEvent {
+    const runId = o?.runId ?? SAMPLE_RUN_ID;
+    return sessionEvent(o, {
+      case: "userMessage",
+      value: { id: o?.id ?? `${runId}.user`, content: textContent(text), processedAt: at(o) },
     });
   },
 
-  /** An AI (assistant) message, optionally with tool calls, stamped at {@link SAMPLE_INSTANT}. */
-  aiMessage(content: string, toolCalls?: ToolCall[]): AgentMessage {
-    return create(AgentMessageSchema, {
-      type: MessageType.MESSAGE_AI,
-      content,
-      timestamp: SAMPLE_INSTANT,
-      toolCalls: toolCalls ?? [],
+  /** A message the agent wrote (`agent.message`). Id: `<run>.root.m0`. */
+  agentMessageEvent(text: string, o?: SessionEventOverrides): SessionEvent {
+    const runId = o?.runId ?? SAMPLE_RUN_ID;
+    return sessionEvent(o, {
+      case: "agentMessage",
+      value: { id: o?.id ?? `${runId}.root.m0`, content: textContent(text), processedAt: at(o) },
     });
   },
 
   /**
-   * A completed tool call with a result, spanning {@link SAMPLE_INSTANT} to 1.2s
-   * later so its duration chip reads a stable "1.2s".
-   *
-   * The `id` is `tc-${name}`, derived from the name so it is stable across
-   * runs. Two tool calls sharing a name therefore share an id — if a single
-   * demo renders both and one drives an approval (`useApproval(toolCall.id)`),
-   * build the second by hand with a distinct id via `create(ToolCallSchema)`.
+   * The agent's thinking: its `agent.thinking` and the
+   * `stigmer.agent.thinking` that carries its text. Id: `<run>.root.t0`.
    */
-  toolCall(name: string, result: string): ToolCall {
-    return create(ToolCallSchema, {
-      id: `tc-${name}`,
+  thinkingEvents(text: string, o?: SessionEventOverrides): SessionEvent[] {
+    const runId = o?.runId ?? SAMPLE_RUN_ID;
+    const id = o?.id ?? `${runId}.root.t0`;
+    return [
+      sessionEvent(o, { case: "agentThinking", value: { id, processedAt: at(o) } }),
+      sessionEvent(o, {
+        case: "stigmerAgentThinking",
+        value: { id: `${id}.text`, thinkingId: id, text, processedAt: at(o) },
+      }),
+    ];
+  },
+
+  /**
+   * A tool call (`agent.tool_use`, or `agent.mcp_tool_use` with an MCP
+   * server). Id: `<run>.tc-<name>`, stable across runs; a second call of
+   * the same name in one run needs its own `id`.
+   */
+  toolUseEvent(name: string, input: JsonObject = {}, o?: ToolUseEventOverrides): SessionEvent {
+    const runId = o?.runId ?? SAMPLE_RUN_ID;
+    const id = o?.id ?? `${runId}.tc-${name}`;
+    const common = {
+      id,
       name,
-      result,
-      status: ToolCallStatus.TOOL_CALL_COMPLETED,
-      startedAt: SAMPLE_INSTANT,
-      completedAt: SAMPLE_TOOL_CALL_COMPLETED_AT,
+      input,
+      evaluatedPermission: o?.evaluatedPermission ?? "",
+      sessionThreadId: o?.threadId ?? "",
+      processedAt: at(o),
+    };
+    return o?.mcpServerName
+      ? sessionEvent(o, { case: "agentMcpToolUse", value: { ...common, mcpServerName: o.mcpServerName } })
+      : sessionEvent(o, { case: "agentToolUse", value: common });
+  },
+
+  /**
+   * A tool call's result (`agent.tool_result`, or `agent.mcp_tool_result`),
+   * 1.2s after {@link SAMPLE_INSTANT} so the call's duration chip reads a
+   * stable "1.2s". Id: `<tool use>.r`.
+   */
+  toolResultEvent(toolUseId: string, text: string, o?: ToolResultEventOverrides): SessionEvent {
+    const value = {
+      id: o?.id ?? `${toolUseId}.r`,
+      content: textContent(text),
+      isError: o?.isError ?? false,
+      processedAt: o?.processedAt ?? SAMPLE_TOOL_RESULT_AT,
+    };
+    return o?.mcp
+      ? sessionEvent(o, { case: "agentMcpToolResult", value: { ...value, mcpToolUseId: toolUseId } })
+      : sessionEvent(o, { case: "agentToolResult", value: { ...value, toolUseId } });
+  },
+
+  /** Why a tool call waits for a person (`stigmer.permission.asked`). Id: `<tool use>.ask`. */
+  permissionAskedEvent(toolUseId: string, o?: PermissionAskedOverrides): SessionEvent {
+    return sessionEvent(o, {
+      case: "stigmerPermissionAsked",
+      value: {
+        id: o?.id ?? `${toolUseId}.ask`,
+        toolUseId,
+        message: o?.message ?? "",
+        argsPreview: o?.argsPreview ?? "",
+        policySource: o?.policySource ?? "builtin_category",
+        policyHook: o?.policyHook ?? "",
+        processedAt: at(o),
+      },
     });
+  },
+
+  /** A turn's phase (`stigmer.run.status`). Id: `<run>.status.<phase>`. */
+  runStatusEvent(phase: TurnPhase, o?: RunStatusEventOverrides): SessionEvent {
+    const runId = o?.runId ?? SAMPLE_RUN_ID;
+    return sessionEvent(o, {
+      case: "stigmerRunStatus",
+      value: {
+        id: o?.id ?? `${runId}.status.${phase}`,
+        phase,
+        stopCause: o?.stopCause ?? "",
+        error: o?.error ?? "",
+        processedAt: at(o),
+      },
+    });
+  },
+
+  /**
+   * A whole turn's events, in log order: the person's message, the status
+   * the turn starts with, each tool call's use and result, the reply, and
+   * the turn's phase. Default: a completed greeting and its answer.
+   */
+  turnEvents(o?: TurnOverrides): SessionEvent[] {
+    const runId = o?.runId ?? SAMPLE_RUN_ID;
+    const phase = o?.phase ?? "completed";
+    const events: SessionEvent[] = [
+      samples.userMessageEvent(o?.message ?? SAMPLE_USER_MESSAGE, { runId }),
+      samples.runStatusEvent("running", { runId }),
+    ];
+    for (const tool of o?.tools ?? []) {
+      const use = samples.toolUseEvent(tool.name, tool.input, {
+        runId,
+        ...(tool.mcpServerName === undefined ? {} : { mcpServerName: tool.mcpServerName }),
+      });
+      events.push(use);
+      if (tool.result !== undefined) {
+        events.push(
+          samples.toolResultEvent(use.event.value!.id, tool.result, {
+            runId,
+            isError: tool.isError ?? false,
+            mcp: tool.mcpServerName !== undefined,
+          }),
+        );
+      }
+    }
+    const reply = o?.reply ?? SAMPLE_REPLY;
+    if (reply !== "") events.push(samples.agentMessageEvent(reply, { runId }));
+    if (phase !== "running") events.push(samples.runStatusEvent(phase, { runId }));
+    return events;
+  },
+
+  /** A session's events folded (`foldSession`), numbered in order. */
+  fold(events: readonly SessionEvent[]): SessionFold {
+    return foldSession(numbered(events));
+  },
+
+  /** One turn, folded: {@link samples.turnEvents} as the conversation hooks hold it. */
+  turn(o?: TurnOverrides): Turn {
+    return samples.fold(samples.turnEvents(o)).turns[0]!;
+  },
+
+  /**
+   * A folded tool use that returned `result` (or still runs, when `result`
+   * is omitted), spanning {@link SAMPLE_INSTANT} to 1.2s later so its
+   * duration chip reads a stable "1.2s". Id: `<run>.tc-<name>`.
+   */
+  toolUse(name: string, result?: string, o?: ToolUseEventOverrides & { readonly input?: JsonObject; readonly isError?: boolean }): ToolUse {
+    const use = samples.toolUseEvent(name, o?.input, o);
+    const events = [use];
+    if (result !== undefined) {
+      events.push(
+        samples.toolResultEvent(use.event.value!.id, result, {
+          runId: o?.runId,
+          isError: o?.isError ?? false,
+          mcp: Boolean(o?.mcpServerName),
+        }),
+      );
+    }
+    return samples.fold(events).turns[0]!.items.find((item): item is ToolUse => item.kind === "tool_use")!;
+  },
+
+  /** A session event list response (`listEvents`), its events numbered in order. */
+  sessionEventList(events: readonly SessionEvent[]): SessionEventList {
+    return create(SessionEventListSchema, { events: numbered(events) });
+  },
+
+  /** A stream frame carrying one stored event (`streamEvents`). */
+  eventFrame(event: SessionEvent): StreamSessionEventsResponse {
+    return create(StreamSessionEventsResponseSchema, { frame: { case: "event", value: event } });
   },
 
   /** A file artifact produced by a run, stamped at {@link SAMPLE_INSTANT}. */

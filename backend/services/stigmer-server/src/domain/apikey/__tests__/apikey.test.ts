@@ -15,7 +15,11 @@
  *     byte-pinned "ApiKey not found" for an unknown or deleted hash —
  *     deletion takes effect on the very next lookup (no cache);
  *   - findAll answers newest first, so a key's last-use stamp rewriting
- *     its row never reorders the list (stigmer/stigmer#1255).
+ *     its row never reorders the list (stigmer/stigmer#1255);
+ *   - an update keeps a write that lands between its read and its write
+ *     (pipeline/guarded-write.ts): the lost swap reruns from a fresh read,
+ *     so the stored key and the answer carry both the landed visibility
+ *     and the update's expiry.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,13 +31,20 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import {
   API_KEY_PREFIX,
   fingerprintOf,
@@ -220,6 +231,51 @@ describe("apikey domain (composed server)", () => {
       expect(ConnectError.from(error).code).toBe(Code.NotFound);
       return true;
     });
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const created = await command.create(keyInput());
+    const id = created.metadata?.id ?? "";
+    expect(created.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.api_key,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.api_key,
+        ApiKeySchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () =>
+        command.update({
+          apiVersion: "iam.stigmer.ai/v1",
+          kind: "ApiKey",
+          metadata: {
+            id,
+            name: created.metadata?.name ?? "",
+            org: created.metadata?.org ?? "",
+          },
+          spec: { neverExpires: true },
+        }),
+    );
+
+    const stored = await server.store.getResource(
+      ApiResourceKind.api_key,
+      id,
+      ApiKeySchema,
+    );
+    for (const key of [updated, stored]) {
+      expect(key.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_org,
+      );
+      expect(key.spec?.neverExpires).toBe(true);
+    }
+    expect(writes).toBeGreaterThanOrEqual(2);
   });
 
   it("delete revokes on the very next lookup (no cache)", async () => {
