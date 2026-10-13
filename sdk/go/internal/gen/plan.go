@@ -80,6 +80,11 @@ type PlanTermsInput struct {
 	// you set from none, so zero means unset. What a license plan invoices for
 	// a one-year term, in micro-USD.
 	AnnualPriceMicros int64
+	// PerAgentHourMicros is not sent when zero: this input cannot tell a zero
+	// you set from none, so zero means unset. What a subscription plan bills
+	// for each working agent hour past its entitlements' included_agent_hours,
+	// in micro-USD.
+	PerAgentHourMicros int64
 }
 
 func (i *PlanInput) toProto() (*planv1.Plan, error) {
@@ -129,6 +134,10 @@ func (i *PlanTermsInput) toProto() (*planv1.PlanTerms, error) {
 		v := i.AnnualPriceMicros
 		p.AnnualPriceMicros = &v
 	}
+	if i.PerAgentHourMicros != 0 {
+		v := i.PerAgentHourMicros
+		p.PerAgentHourMicros = &v
+	}
 	return p, nil
 }
 
@@ -163,5 +172,6 @@ func planTermsInputFromProto(p *planv1.PlanTerms) *PlanTermsInput {
 	input.MonthlyMinimumMicros = p.GetMonthlyMinimumMicros()
 	input.PerExtraOrgMicros = p.GetPerExtraOrgMicros()
 	input.AnnualPriceMicros = p.GetAnnualPriceMicros()
+	input.PerAgentHourMicros = p.GetPerAgentHourMicros()
 	return input
 }

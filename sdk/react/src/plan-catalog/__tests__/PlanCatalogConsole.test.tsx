@@ -2,7 +2,9 @@
 // anyone without can_manage_plans (the catalog itself is never read for
 // them), the list with retired rows and features not yet offered marked,
 // retiring through the confirm, and creating through the review step,
-// a plan that admits child organizations with its included number and fee.
+// a plan that admits child organizations with its included number and fee,
+// and a plan that includes agent hours with the price of each hour over,
+// refused until the hours it is charged past are set.
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
@@ -100,6 +102,27 @@ describe("PlanCatalogConsole", () => {
     expect(client.plan.create.mock.calls[0]?.[0]).toMatchObject({
       entitlements: { limits: { includedChildOrgs: 3 } },
       terms: { perExtraOrgMicros: 20_000_000n },
+    });
+  });
+
+  it("creates a plan with agent hours included and a price for each hour over, refusing the price alone", async () => {
+    const client = mockClient(true);
+    renderConsole(client);
+    await userEvent.click(await screen.findByRole("button", { name: "New plan" }));
+    const form = screen.getByRole("form", { name: "New plan" });
+    await userEvent.type(within(form).getByLabelText(/^Name/), "Team 2027");
+    await userEvent.type(within(form).getByLabelText(/^Handle/), "team-2027");
+    await userEvent.type(within(form).getByLabelText(/^Monthly fee/), "129");
+    await userEvent.type(within(form).getByLabelText(/^Each hour over/), "0.50");
+    expect(within(form).getByText(/charged past the hours included/)).toBeTruthy();
+    await userEvent.type(within(form).getByLabelText(/^Agent hours included/), "50");
+    expect(within(form).queryByText(/charged past the hours included/)).toBeNull();
+    await userEvent.click(within(form).getByRole("button", { name: "Review" }));
+    await userEvent.click(within(form).getByRole("button", { name: "Create plan" }));
+    await waitFor(() => expect(client.plan.create).toHaveBeenCalledTimes(1));
+    expect(client.plan.create.mock.calls[0]?.[0]).toMatchObject({
+      entitlements: { limits: { includedAgentHours: 50 } },
+      terms: { perAgentHourMicros: 500_000n },
     });
   });
 });

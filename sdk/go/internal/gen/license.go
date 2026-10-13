@@ -103,6 +103,11 @@ type EntitlementLimitsInput struct {
 	// archived session workspace is kept before it is deleted, its files and
 	// snapshot included.
 	ArchivedWorkspaceRetentionDays int32
+	// IncludedAgentHours is not sent when zero: this input cannot tell a zero
+	// you set from none, so zero means unset. The working agent hours an
+	// organization may use each month before its plan's hourly price applies
+	// or, on a plan with none, before new work pauses until the next month.
+	IncludedAgentHours int32
 }
 
 func (i *LicenseInput) toProto() (*licensev1.License, error) {
@@ -197,6 +202,10 @@ func (i *EntitlementLimitsInput) toProto() (*platformv1.EntitlementLimits, error
 		v := i.ArchivedWorkspaceRetentionDays
 		p.ArchivedWorkspaceRetentionDays = &v
 	}
+	if i.IncludedAgentHours != 0 {
+		v := i.IncludedAgentHours
+		p.IncludedAgentHours = &v
+	}
 	return p, nil
 }
 
@@ -262,5 +271,6 @@ func entitlementLimitsInputFromProto(p *platformv1.EntitlementLimits) *Entitleme
 	input.IncludedChildOrgs = p.GetIncludedChildOrgs()
 	input.MaxActiveSessionSandboxes = p.GetMaxActiveSessionSandboxes()
 	input.ArchivedWorkspaceRetentionDays = p.GetArchivedWorkspaceRetentionDays()
+	input.IncludedAgentHours = p.GetIncludedAgentHours()
 	return input
 }

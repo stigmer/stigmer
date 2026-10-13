@@ -34,7 +34,8 @@ type PlanInstrument int32
 const (
 	PlanInstrument_plan_instrument_unspecified PlanInstrument = 0
 	// Bought as a Subscription by an organization on Stigmer Cloud, invoiced
-	// a flat fee each month.
+	// each month: its fee, plus the child organizations and agent hours past
+	// what it includes.
 	PlanInstrument_subscription PlanInstrument = 1
 	// Bought as a License by a self-hosting customer, invoiced for a term.
 	PlanInstrument_license PlanInstrument = 2
@@ -88,11 +89,16 @@ func (PlanInstrument) EnumDescriptor() ([]byte, []int) {
 // a term of one specific plan row, and no row ships in the contract, so the
 // contract itself carries no price.
 //
-// The instrument decides which terms a plan may carry, and the two rules
-// below refuse the cross: a license plan is invoiced for a term, so monthly
-// terms have no meaning on it; a subscription plan bills monthly, so an
-// annual price has none. per_extra_org_micros is bound to the
-// entitlements' child organizations, not to the instrument, and stays free.
+// The instrument decides which terms a plan may carry, and the four rules
+// below refuse what cannot be billed. A license plan is invoiced for a
+// term, so monthly terms have no meaning on it; a subscription plan bills
+// monthly, so an annual price has none. A license never meters a
+// self-hosted computer, so it carries no hourly price. And an hourly price
+// needs an allowance of agent hours to exceed, since a price with nothing
+// to exceed is never charged. per_extra_org_micros is bound to the
+// entitlements' child organizations, not to the instrument, and stays
+// free: with no included child organizations it still means "every child
+// organization is billed".
 type PlanSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The instrument this plan is bought through.
@@ -174,7 +180,9 @@ func (x *PlanSpec) GetDescription() string {
 // which is how a subscription plan and a license plan share one message. A
 // monthly plan costs its monthly fee, monthly_minimum_micros, plus
 // per_extra_org_micros for each child organization beyond the ones it
-// includes. Usage is never part of a plan's price.
+// includes, plus per_agent_hour_micros for each working agent hour beyond
+// the ones it includes. Model tokens are never part of a plan's price;
+// working agent hours past the plan's allowance are.
 type PlanTerms struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The plan's monthly fee: what a subscription plan bills per month, in
@@ -187,8 +195,15 @@ type PlanTerms struct {
 	// What a license plan invoices for a one-year term, in micro-USD. Absent on
 	// a subscription plan.
 	AnnualPriceMicros *int64 `protobuf:"varint,4,opt,name=annual_price_micros,json=annualPriceMicros,proto3,oneof" json:"annual_price_micros,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// What a subscription plan bills for each working agent hour past its
+	// entitlements' included_agent_hours, in micro-USD. Absent means the plan
+	// has no overage: an organization on it pauses at its allowance. Zero is
+	// refused, unlike the other terms, because a zero price on an allowance
+	// would be a second way to say "unlimited hours", which an absent
+	// allowance already says. Absent on a license plan.
+	PerAgentHourMicros *int64 `protobuf:"varint,5,opt,name=per_agent_hour_micros,json=perAgentHourMicros,proto3,oneof" json:"per_agent_hour_micros,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *PlanTerms) Reset() {
@@ -242,11 +257,18 @@ func (x *PlanTerms) GetAnnualPriceMicros() int64 {
 	return 0
 }
 
+func (x *PlanTerms) GetPerAgentHourMicros() int64 {
+	if x != nil && x.PerAgentHourMicros != nil {
+		return *x.PerAgentHourMicros
+	}
+	return 0
+}
+
 var File_ai_stigmer_billing_plan_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/billing/plan/v1/spec.proto\x12\x1aai.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"\xf7\x04\n" +
+	"%ai/stigmer/billing/plan/v1/spec.proto\x12\x1aai.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"\x87\b\n" +
 	"\bPlanSpec\x12Y\n" +
 	"\n" +
 	"instrument\x18\x01 \x01(\x0e2*.ai.stigmer.billing.plan.v1.PlanInstrumentB\r\xbaH\n" +
@@ -254,16 +276,20 @@ const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"instrument\x12P\n" +
 	"\fentitlements\x18\x02 \x01(\v2$.ai.stigmer.platform.v1.EntitlementsB\x06\xbaH\x03\xc8\x01\x01R\fentitlements\x12;\n" +
 	"\x05terms\x18\x03 \x01(\v2%.ai.stigmer.billing.plan.v1.PlanTermsR\x05terms\x12*\n" +
-	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription:\xd4\x02\xbaH\xd0\x02\x1a\xac\x01\n" +
+	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription:\xe4\x05\xbaH\xe0\x05\x1a\xac\x01\n" +
 	"&plan_spec.license_has_no_monthly_terms\x12Aa license plan carries no monthly_minimum_micros, the monthly fee\x1a?this.instrument != 2 || !has(this.terms.monthly_minimum_micros)\x1a\x9e\x01\n" +
-	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\"\xb8\x02\n" +
+	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\x1a\x9c\x01\n" +
+	")plan_spec.license_has_no_agent_hour_price\x12/a license plan carries no per_agent_hour_micros\x1a>this.instrument != 2 || !has(this.terms.per_agent_hour_micros)\x1a\xee\x01\n" +
+	"*plan_spec.agent_hour_price_needs_allowance\x12bper_agent_hour_micros needs entitlements.limits.included_agent_hours, the hours it is charged past\x1a\\!has(this.terms.per_agent_hour_micros) || has(this.entitlements.limits.included_agent_hours)\"\x93\x03\n" +
 	"\tPlanTerms\x12B\n" +
 	"\x16monthly_minimum_micros\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12=\n" +
 	"\x14per_extra_org_micros\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x01R\x11perExtraOrgMicros\x88\x01\x01\x12<\n" +
-	"\x13annual_price_micros\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x02R\x11annualPriceMicros\x88\x01\x01B\x19\n" +
+	"\x13annual_price_micros\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x02R\x11annualPriceMicros\x88\x01\x01\x12?\n" +
+	"\x15per_agent_hour_micros\x18\x05 \x01(\x03B\a\xbaH\x04\"\x02 \x00H\x03R\x12perAgentHourMicros\x88\x01\x01B\x19\n" +
 	"\x17_monthly_minimum_microsB\x17\n" +
 	"\x15_per_extra_org_microsB\x16\n" +
-	"\x14_annual_price_microsJ\x04\b\x02\x10\x03R\x18usage_share_basis_points*P\n" +
+	"\x14_annual_price_microsB\x18\n" +
+	"\x16_per_agent_hour_microsJ\x04\b\x02\x10\x03R\x18usage_share_basis_points*P\n" +
 	"\x0ePlanInstrument\x12\x1f\n" +
 	"\x1bplan_instrument_unspecified\x10\x00\x12\x10\n" +
 	"\fsubscription\x10\x01\x12\v\n" +

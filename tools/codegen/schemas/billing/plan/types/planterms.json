@@ -1,6 +1,6 @@
 {
   "name": "PlanTerms",
-  "description": "The commercial terms of a plan.\n\n Amounts are micro-USD (one millionth of a dollar). Every field has\n explicit presence: absent means the term does not apply to this plan,\n which is how a subscription plan and a license plan share one message. A\n monthly plan costs its monthly fee, monthly_minimum_micros, plus\n per_extra_org_micros for each child organization beyond the ones it\n includes. Usage is never part of a plan's price.",
+  "description": "The commercial terms of a plan.\n\n Amounts are micro-USD (one millionth of a dollar). Every field has\n explicit presence: absent means the term does not apply to this plan,\n which is how a subscription plan and a license plan share one message. A\n monthly plan costs its monthly fee, monthly_minimum_micros, plus\n per_extra_org_micros for each child organization beyond the ones it\n includes, plus per_agent_hour_micros for each working agent hour beyond\n the ones it includes. Model tokens are never part of a plan's price;\n working agent hours past the plan's allowance are.",
   "protoType": "ai.stigmer.billing.plan.v1.PlanTerms",
   "protoFile": "apis/ai/stigmer/billing/plan/v1/spec.proto",
   "fields": [
@@ -36,6 +36,17 @@
       "description": "What a license plan invoices for a one-year term, in micro-USD. Absent on\n a subscription plan.",
       "required": false,
       "oneofGroup": "_annual_price_micros"
+    },
+    {
+      "name": "PerAgentHourMicros",
+      "jsonName": "perAgentHourMicros",
+      "protoField": "per_agent_hour_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "What a subscription plan bills for each working agent hour past its\n entitlements' included_agent_hours, in micro-USD. Absent means the plan\n has no overage: an organization on it pauses at its allowance. Zero is\n refused, unlike the other terms, because a zero price on an allowance\n would be a second way to say \"unlimited hours\", which an absent\n allowance already says. Absent on a license plan.",
+      "required": false,
+      "oneofGroup": "_per_agent_hour_micros"
     }
   ]
 }
