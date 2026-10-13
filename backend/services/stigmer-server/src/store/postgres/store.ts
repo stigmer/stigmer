@@ -533,6 +533,7 @@ export class PostgresStore implements Store {
         runOfNewestType: undefined,
         othersWaiting: [],
         gates: [],
+        runEvents: [],
       };
       if (sessionId !== "") {
         const latestState = await latestOfTypes(client, sessionId, scope.stateEventTypes);
@@ -554,6 +555,10 @@ export class PostgresStore implements Store {
             scope.waitingKey === undefined
               ? []
               : await openGatesOfRuns(client, sessionId, [...othersWaiting, id]),
+          runEvents:
+            scope.runEventTypes === undefined
+              ? []
+              : await eventsOfRun(client, sessionId, id, scope.runEventTypes),
         };
       }
       const outcome = write(previous, context);
@@ -2597,7 +2602,7 @@ async function latestOfTypes(
  * closes (the closes_gate partial index). Nothing is decoded.
  */
 async function openGatesOfRuns(
-  client: PoolClient,
+  client: Pool | PoolClient,
   sessionId: string,
   runIds: ReadonlyArray<string>,
 ): Promise<OpenSessionEventGate[]> {
@@ -2622,6 +2627,29 @@ async function openGatesOfRuns(
     opened.map((row) => ({ runId: row.run_id, toolUseId: row.opens_gate, seq: Number(row.seq) })),
     closed.map((row) => ({ runId: row.run_id, toolUseId: row.closes_gate })),
   );
+}
+
+/**
+ * A run's events of `types` in a session, in log order: the
+ * (session_id, run_id, seq) index, under the caller's session lock; none
+ * for no type.
+ */
+async function eventsOfRun(
+  client: PoolClient,
+  sessionId: string,
+  runId: string,
+  types: ReadonlyArray<string>,
+): Promise<SessionEventRecord[]> {
+  if (types.length === 0) {
+    return [];
+  }
+  const result = await client.query(
+    `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+     WHERE session_id = $1 AND run_id = $2 AND type = ANY($3::text[])
+     ORDER BY seq ASC`,
+    [sessionId, runId, [...types]],
+  );
+  return (result.rows as SessionEventRow[]).map(sessionEventOf);
 }
 
 /** The run of the session's newest event of `type`; undefined when it has none. */
@@ -2719,6 +2747,12 @@ class PostgresSessionEventStore implements SessionEventStore {
     if (query.runId !== undefined) {
       where.push(`run_id = ${param(query.runId)}`);
     }
+    if (query.eventIds !== undefined) {
+      if (query.eventIds.length === 0) {
+        return [];
+      }
+      where.push(`event_id = ANY(${param([...query.eventIds])}::text[])`);
+    }
     if (query.processedAtGt !== undefined) {
       where.push(`processed_at > ${param(query.processedAtGt)}`);
     }
@@ -2742,6 +2776,10 @@ class PostgresSessionEventStore implements SessionEventStore {
       params,
     );
     return (result.rows as SessionEventRow[]).map(sessionEventOf);
+  }
+
+  async openGates(sessionId: string, runId: string): Promise<OpenSessionEventGate[]> {
+    return openGatesOfRuns(this.open(), sessionId, [runId]);
   }
 
   async append(

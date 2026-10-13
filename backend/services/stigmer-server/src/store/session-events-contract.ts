@@ -440,6 +440,80 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
+    "openGates reads one run's open gates in log order, whatever its phase; only the run's own event closes one",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_a${unique()}`;
+      const other = `run_b${unique()}`;
+      await put(store, run(r, s, RunPhase.RUN_COMPLETED));
+      await put(store, run(other, s, RunPhase.RUN_IN_PROGRESS));
+      assert.deepEqual(await store.sessionEvents.openGates(s, r), [], "a run with no gate");
+      await store.sessionEvents.append(
+        s,
+        "org-kit",
+        [gate("g1", r, "opens", "use-1"), gate("g2", r, "opens", "use-2"), gate("g3", r, "opens", "use-3")],
+        runGuard(r),
+      );
+      await store.sessionEvents.append(s, "org-kit", [gate("o1", other, "opens", "use-o")], runGuard(other));
+      await store.sessionEvents.append(
+        s,
+        "org-kit",
+        [gate("not-mine", other, "closes", "use-1"), gate("c2", r, "closes", "use-2")],
+        runGuard(other),
+      );
+      const open = await store.sessionEvents.openGates(s, r);
+      assert.deepEqual(
+        open.map((g) => [g.runId, g.toolUseId]),
+        [
+          [r, "use-1"],
+          [r, "use-3"],
+        ],
+      );
+      assert.ok(open[0]!.seq < open[1]!.seq, "in log order");
+      assert.deepEqual(await store.sessionEvents.openGates(`ses_${unique()}`, r), [], "another session holds none of them");
+    },
+  ],
+  [
+    "list reads only the events whose ids it names, and none for an empty list",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS));
+      await store.sessionEvents.append(s, "org-kit", [draft("a", r), draft("b", r), draft("c", r)], runGuard(r));
+      const named = await store.sessionEvents.list(s, { order: "asc", eventIds: ["c", "a", "absent"], limit: 10 });
+      assert.deepEqual(named.map((e) => e.eventId), ["a", "c"]);
+      assert.deepEqual(await store.sessionEvents.list(s, { order: "asc", eventIds: [], limit: 10 }), []);
+    },
+  ],
+  [
+    "the writer is handed its run's events of the types its scope names, in log order, read under the lock; none when it names none",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_a${unique()}`;
+      const other = `run_b${unique()}`;
+      await put(store, run(other, s, RunPhase.RUN_IN_PROGRESS), [draft("theirs", other, "kit.wanted")]);
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [draft("w1", r, "kit.wanted"), draft("x", r, "kit.other")]);
+      const seen: { events?: ReadonlyArray<string> } = {};
+      const writeAsking = (events: ReadonlyArray<SessionEventDraft>, types?: ReadonlyArray<string>) =>
+        store.writeResourceAppendingEvents(
+          ApiResourceKind.run,
+          r,
+          RunSchema,
+          (previous, session) => {
+            seen.events = session.runEvents.map((e) => e.eventId);
+            return { put: previous!, events };
+          },
+          { ...RUN_SCOPE, ...(types === undefined ? {} : { runEventTypes: types }) },
+        );
+      await writeAsking([draft("w2", r, "kit.wanted")], ["kit.wanted"]);
+      assert.deepEqual(seen.events, ["w1"], "the run's own events of the type, before this write's");
+      await writeAsking([], ["kit.wanted", "kit.other"]);
+      assert.deepEqual(seen.events, ["w1", "x", "w2"], "a committed write's events are read by the next");
+      await writeAsking([]);
+      assert.deepEqual(seen.events, [], "a scope that names no type is handed none");
+    },
+  ],
+  [
     "the writer is handed the session's newest state event and its type, read under the lock",
     async ({ store }) => {
       const s = `ses_${unique()}`;
@@ -630,6 +704,7 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       await fixture.disconnect();
       const notFound = (error: unknown): boolean => !(error instanceof ResourceNotFoundError);
       await assert.rejects(store.sessionEvents.list("ses_x", { order: "asc", limit: 1 }), notFound);
+      await assert.rejects(store.sessionEvents.openGates("ses_x", "run_x"), notFound);
       await assert.rejects(
         store.sessionEvents.append("ses_x", "org", [draft("a", "run_x")], runGuard("run_x")),
         notFound,
