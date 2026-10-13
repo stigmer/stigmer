@@ -10,7 +10,8 @@ import {
   useState,
 } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, toIdentityAccountUpdateInput } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/sdk";
+import { saveErrorMessage } from "../internal/maskedEdit.js";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useMyIdentityAccount } from "./useMyIdentityAccount.js";
 import { useUpdateIdentityAccount } from "./useUpdateIdentityAccount.js";
@@ -31,6 +32,15 @@ export interface AccountPreferencesPanelProps {
   readonly className?: string;
 }
 
+
+/** The preferences the form saves, each by its own path. */
+const PREFERENCES_FORM_PATHS = [
+  "spec.preferences.standing_context",
+  "spec.preferences.default_harness",
+  "spec.preferences.default_native_model",
+  "spec.preferences.default_cursor_model",
+  "spec.preferences.default_auto_approve",
+];
 /**
  * Self-contained editor for the current user's declared preferences
  * (`IdentityAccountSpec.preferences`): standing context plus the
@@ -42,8 +52,8 @@ export interface AccountPreferencesPanelProps {
  * Self-service: the account is resolved via `whoAmI()` and updated
  * through the caller's self-ownership permission — no explicit
  * permission check is needed. On save, calls `identityAccount.update()`
- * with the complete mapped input (full-spec-replace safety) and fires
- * `onUpdated`.
+ * naming only the preferences this form owns, with the etag the account
+ * was loaded at, and fires `onUpdated`.
  *
  * Served in every edition, so the panel asks no edition question: the
  * identity-account kind is `open_source`-tier and a trusted-local server
@@ -166,22 +176,24 @@ export function AccountPreferencesPanel({
 
       clearError();
       try {
-        // update() is a full-spec replace: spread the complete mapped input
-        // so unedited spec fields survive. `preferences` is a nested message,
-        // so the override spreads the mapper's COMPLETE preferences too —
-        // fields this form does not own (added by later phases) survive.
-        const mapped = toIdentityAccountUpdateInput(account);
-        const updated = await update({
-          ...mapped,
-          preferences: {
-            ...mapped.preferences,
-            standingContext: standingContext.trim() || undefined,
-            defaultHarness: defaultHarness || undefined,
-            defaultNativeModel: defaultNativeModel || undefined,
-            defaultCursorModel: defaultCursorModel || undefined,
-            defaultAutoApprove: defaultAutoApprove || undefined,
+        // The update names the preferences this form owns, one path each:
+        // every other preference (the memory flag, any later one) and every
+        // other field keep their stored values.
+        const updated = await update(
+          {
+            metadata: { id: account.metadata?.id ?? "", etag: account.metadata?.etag ?? "" },
+            spec: {
+              preferences: {
+                standingContext: standingContext.trim(),
+                defaultHarness,
+                defaultNativeModel,
+                defaultCursorModel,
+                defaultAutoApprove,
+              },
+            },
           },
-        });
+          PREFERENCES_FORM_PATHS,
+        );
         refetch();
         onUpdated?.(updated);
       } catch {
@@ -205,19 +217,18 @@ export function AccountPreferencesPanel({
 
   // The memory consent flag applies instantly (the UX-checkpoint decision):
   // a consent bit flipped-but-unsaved that silently reverts on navigation is
-  // the failure consent UX must not have. Same wipe-safe double spread.
+  // the failure consent UX must not have. It names the flag alone.
   const handleMemoryToggle = useCallback(
     async (next: boolean) => {
       if (!account) return;
       try {
-        const mapped = toIdentityAccountUpdateInput(account);
-        const updated = await updateMemoryFlag({
-          ...mapped,
-          preferences: {
-            ...mapped.preferences,
-            memoryEnabled: next || undefined,
+        const updated = await updateMemoryFlag(
+          {
+            metadata: { id: account.metadata?.id ?? "", etag: account.metadata?.etag ?? "" },
+            spec: { preferences: { memoryEnabled: next } },
           },
-        });
+          ["spec.preferences.memory_enabled"],
+        );
         refetch();
         onUpdated?.(updated);
       } catch {
@@ -401,7 +412,7 @@ export function AccountPreferencesPanel({
 
       {updateError && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-          {getUserMessage(updateError)}
+          {saveErrorMessage(updateError, "account")}
         </p>
       )}
 

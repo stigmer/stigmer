@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -1005,11 +1006,71 @@ func (x *ListFlaggedScoresByAgentRequest) GetPageToken() string {
 	return ""
 }
 
+// The changes an update makes to a score: the fields update_mask names,
+// taken from resource.
+type UpdateScoreInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The score carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *Score `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateScoreInput) Reset() {
+	*x = UpdateScoreInput{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateScoreInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateScoreInput) ProtoMessage() {}
+
+func (x *UpdateScoreInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateScoreInput.ProtoReflect.Descriptor instead.
+func (*UpdateScoreInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateScoreInput) GetResource() *Score {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateScoreInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_score_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/score/v1/io.proto\x12\x1bai.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
+	"$ai/stigmer/agentic/score/v1/io.proto\x12\x1bai.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"'\n" +
 	"\aScoreId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"8\n" +
 	"\x16ListScoresByRunRequest\x12\x1e\n" +
@@ -1077,7 +1138,12 @@ const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\x04days\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04days\x12$\n" +
 	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageTokenB\x89\x02\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\xdf\x02\n" +
+	"\x10UpdateScoreInput\x12F\n" +
+	"\bresource\x18\x01 \x01(\v2\".ai.stigmer.agentic.score.v1.ScoreB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n" +
+	"\x17update_names_its_target\x12Eresource.metadata.id is required: an update names the score by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\x89\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.score.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var (
@@ -1092,7 +1158,7 @@ func file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_score_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_ai_stigmer_agentic_score_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_ai_stigmer_agentic_score_v1_io_proto_goTypes = []any{
 	(*ScoreId)(nil),                         // 0: ai.stigmer.agentic.score.v1.ScoreId
 	(*ListScoresByRunRequest)(nil),          // 1: ai.stigmer.agentic.score.v1.ListScoresByRunRequest
@@ -1108,10 +1174,12 @@ var file_ai_stigmer_agentic_score_v1_io_proto_goTypes = []any{
 	(*QualityDay)(nil),                      // 11: ai.stigmer.agentic.score.v1.QualityDay
 	(*QualityVersion)(nil),                  // 12: ai.stigmer.agentic.score.v1.QualityVersion
 	(*ListFlaggedScoresByAgentRequest)(nil), // 13: ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest
-	(*Score)(nil),                           // 14: ai.stigmer.agentic.score.v1.Score
+	(*UpdateScoreInput)(nil),                // 14: ai.stigmer.agentic.score.v1.UpdateScoreInput
+	(*Score)(nil),                           // 15: ai.stigmer.agentic.score.v1.Score
+	(*fieldmaskpb.FieldMask)(nil),           // 16: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_score_v1_io_proto_depIdxs = []int32{
-	14, // 0: ai.stigmer.agentic.score.v1.ScoreList.items:type_name -> ai.stigmer.agentic.score.v1.Score
+	15, // 0: ai.stigmer.agentic.score.v1.ScoreList.items:type_name -> ai.stigmer.agentic.score.v1.Score
 	8,  // 1: ai.stigmer.agentic.score.v1.AgentQualityReport.total:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
 	11, // 2: ai.stigmer.agentic.score.v1.AgentQualityReport.days:type_name -> ai.stigmer.agentic.score.v1.QualityDay
 	12, // 3: ai.stigmer.agentic.score.v1.AgentQualityReport.versions:type_name -> ai.stigmer.agentic.score.v1.QualityVersion
@@ -1121,11 +1189,13 @@ var file_ai_stigmer_agentic_score_v1_io_proto_depIdxs = []int32{
 	10, // 7: ai.stigmer.agentic.score.v1.MetricTally.criteria:type_name -> ai.stigmer.agentic.score.v1.CriterionTally
 	8,  // 8: ai.stigmer.agentic.score.v1.QualityDay.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
 	8,  // 9: ai.stigmer.agentic.score.v1.QualityVersion.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	15, // 10: ai.stigmer.agentic.score.v1.UpdateScoreInput.resource:type_name -> ai.stigmer.agentic.score.v1.Score
+	16, // 11: ai.stigmer.agentic.score.v1.UpdateScoreInput.update_mask:type_name -> google.protobuf.FieldMask
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_score_v1_io_proto_init() }
@@ -1140,7 +1210,7 @@ func file_ai_stigmer_agentic_score_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_score_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_score_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

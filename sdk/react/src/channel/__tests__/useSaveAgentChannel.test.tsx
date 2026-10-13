@@ -3,19 +3,18 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { AgentChannelInput } from "@stigmer/sdk";
-import {
-  ServiceTier,
-  ThinkingMode,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
-import { useSaveAgentChannel, agentChannelToInput } from "../useSaveAgentChannel";
+import { useSaveAgentChannel } from "../useSaveAgentChannel";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 
 function createMockStigmer(overrides: {
   apply?: (input: AgentChannelInput) => Promise<unknown>;
+  update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
 } = {}) {
   return {
     agentChannel: {
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
+      update: overrides.update ?? vi.fn().mockResolvedValue({}),
     },
   } as never;
 }
@@ -48,187 +47,6 @@ function makeChannel(overrides: Record<string, unknown> = {}): AgentChannel {
     ...overrides,
   } as never;
 }
-
-describe("agentChannelToInput", () => {
-  it("reproduces an existing channel verbatim", () => {
-    const input = agentChannelToInput(makeChannel());
-
-    expect(input).toEqual({
-      name: "Support Slack",
-      slug: "support-slack",
-      org: "acme",
-      agentRef: { org: "acme", slug: "support-agent" },
-      enabled: true,
-      slack: {},
-    });
-  });
-
-  it("carries labels and omits empty optionals", () => {
-    const channel = makeChannel({
-      metadata: {
-        id: "ach_1",
-        name: "Support Slack",
-        slug: "",
-        org: "acme",
-        labels: { team: "cx" },
-      },
-    });
-
-    const input = agentChannelToInput(channel);
-    expect(input.labels).toEqual({ team: "cx" });
-    // An empty slug must be omitted, not sent as "" — apply would reject it.
-    expect(input).not.toHaveProperty("slug");
-  });
-
-  it("carries vaults — the toggle must never wipe bound credentials", () => {
-    const channel = makeChannel({
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent" },
-        enabled: true,
-        providerConfig: { case: "slack", value: {} },
-        vaults: [
-          { org: "acme", slug: "github-credentials" },
-          { org: "acme", slug: "search-credentials" },
-        ],
-      },
-    });
-
-    const input = agentChannelToInput(channel);
-    // Order preserved: the ref list's order is the merge priority.
-    expect(input.vaults).toEqual([
-      { org: "acme", slug: "github-credentials" },
-      { org: "acme", slug: "search-credentials" },
-    ]);
-  });
-
-  it("sends every stored reference back by its id (stigmer#2172): a renamed or deleted target stays the one meant", () => {
-    const channel = makeChannel({
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent", id: "agt_1" },
-        enabled: true,
-        providerConfig: { case: "slack", value: {} },
-        appRef: { org: "acme", slug: "", id: "chapp_gone" },
-        vaults: [{ org: "acme", slug: "github-credentials", id: "vlt_1" }],
-      },
-    });
-
-    const input = agentChannelToInput(channel);
-    expect(input.agentRef).toEqual({ org: "acme", slug: "", id: "agt_1" });
-    expect(input.appRef, "a deleted app's reference (id, no slug) is kept").toEqual({ org: "acme", slug: "", id: "chapp_gone" });
-    expect(input.vaults).toEqual([{ org: "acme", slug: "", id: "vlt_1" }]);
-  });
-
-  it("omits vaults entirely when the channel binds none", () => {
-    const input = agentChannelToInput(makeChannel());
-    expect(input).not.toHaveProperty("vaults");
-  });
-
-  it("carries app_ref — the toggle must never unbind the serving app", () => {
-    const channel = makeChannel({
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent" },
-        enabled: true,
-        providerConfig: { case: "slack", value: {} },
-        appRef: { org: "acme", slug: "acme-support-app" },
-      },
-    });
-
-    const input = agentChannelToInput(channel);
-    // Dropping app_ref on an installed channel would not just rebind to
-    // the platform app — the server FREEZES the binding while installed,
-    // so the toggle itself would be refused.
-    expect(input.appRef).toEqual({ org: "acme", slug: "acme-support-app" });
-  });
-
-  it("omits appRef entirely for platform-app channels", () => {
-    const input = agentChannelToInput(makeChannel());
-    expect(input).not.toHaveProperty("appRef");
-  });
-
-  it("carries run_config — the toggle must never wipe an API-set execution override", () => {
-    const channel = makeChannel({
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent" },
-        enabled: true,
-        providerConfig: { case: "slack", value: {} },
-        // Set via CLI/API (stigmer/stigmer#360); no console surface edits
-        // it, so it must ride through the full-input rebuild opaquely.
-        runConfig: { modelName: "gpt-5-mini", maxCostUsd: 0.25, maxToolRounds: 8 },
-      },
-    });
-
-    const input = agentChannelToInput(channel);
-    expect(input.runConfig).toEqual({
-      modelName: "gpt-5-mini",
-      maxCostUsd: 0.25,
-      maxToolRounds: 8,
-      serviceTier: undefined,
-    });
-  });
-
-  it("carries every run_config field — a field the rebuild drops is a field the toggle wipes", () => {
-    const runConfig = {
-      modelName: "claude-sonnet-4.6",
-      maxCostUsd: 0.5,
-      maxToolRounds: 12,
-      serviceTier: ServiceTier.FAST,
-      thinkingMode: ThinkingMode.ENABLED,
-      maxToolResultChars: 20000,
-    };
-    const channel = makeChannel({
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent" },
-        enabled: true,
-        providerConfig: { case: "slack", value: {} },
-        runConfig,
-      },
-    });
-
-    expect(agentChannelToInput(channel).runConfig).toStrictEqual(runConfig);
-  });
-
-  it("omits runConfig entirely when the channel carries none", () => {
-    const input = agentChannelToInput(makeChannel());
-    expect(input).not.toHaveProperty("runConfig");
-  });
-
-  it("omits the slack marker when the provider config is absent", () => {
-    const channel = makeChannel({
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent" },
-        enabled: false,
-        providerConfig: { case: undefined },
-      },
-    });
-
-    const input = agentChannelToInput(channel);
-    expect(input).not.toHaveProperty("slack");
-    expect(input.enabled).toBe(false);
-  });
-
-  it("carries the whatsapp arm with its number — the toggle must never empty the provider oneof", () => {
-    const channel = makeChannel({
-      spec: {
-        agentRef: { org: "acme", slug: "support-agent" },
-        enabled: true,
-        providerConfig: {
-          case: "whatsapp",
-          value: { phoneNumberId: "106540352242922" },
-        },
-        appRef: { org: "acme", slug: "acme-meta-app" },
-      },
-    });
-
-    const input = agentChannelToInput(channel);
-    // A save without the arm would empty spec.provider_config, which the
-    // server refuses as a provider-immutability violation — the toggle
-    // itself would hard-fail. The declared number rides along because it
-    // lives in spec (unlike Slack, whose config is an empty marker).
-    expect(input.whatsapp).toEqual({ phoneNumberId: "106540352242922" });
-    expect(input).not.toHaveProperty("slack");
-    expect(input.appRef).toEqual({ org: "acme", slug: "acme-meta-app" });
-  });
-});
 
 describe("useSaveAgentChannel", () => {
   beforeEach(() => {
@@ -263,15 +81,16 @@ describe("useSaveAgentChannel", () => {
     expect(result.current.isPending).toBe(false);
   });
 
-  it("supports the toggle idiom: full input with one field changed", async () => {
-    const apply = vi.fn().mockResolvedValue(makeChannel());
-    const client = createMockStigmer({ apply });
+  it("updates a channel naming only the patch's fields, on its id and the etag it was loaded at", async () => {
+    const update = vi.fn().mockResolvedValue(makeChannel());
+    const client = createMockStigmer({ update });
 
     const { result } = renderHook(() => useSaveAgentChannel(), {
       wrapper: wrapper(client),
     });
 
     const boundChannel = makeChannel({
+      metadata: { id: "ach_1", name: "Support Slack", slug: "support-slack", org: "acme", labels: {}, etag: "etag-at-load" },
       spec: {
         agentRef: { org: "acme", slug: "support-agent" },
         enabled: true,
@@ -282,26 +101,37 @@ describe("useSaveAgentChannel", () => {
     });
 
     await act(async () => {
-      await result.current.save({
-        ...agentChannelToInput(boundChannel),
-        enabled: false,
+      await result.current.update(boundChannel, { enabled: false });
+    });
+
+    // The disable toggle names `spec.enabled` alone: the agent reference,
+    // the provider marker, the serving-app binding and the bound
+    // credentials keep their stored values without being sent back.
+    const sent = sentUpdate<AgentChannel>(update);
+    expect(sent.paths).toEqual(["spec.enabled"]);
+    expect(sent.id).toBe("ach_1");
+    expect(sent.etag).toBe("etag-at-load");
+    expect(sent.resource.spec?.enabled).toBe(false);
+  });
+
+  it("names a key set to undefined, which clears that field", async () => {
+    const update = vi.fn().mockResolvedValue(makeChannel());
+    const client = createMockStigmer({ update });
+    const { result } = renderHook(() => useSaveAgentChannel(), {
+      wrapper: wrapper(client),
+    });
+
+    await act(async () => {
+      await result.current.update(makeChannel(), {
+        runConfig: undefined,
+        vaults: [{ org: "acme", slug: "github-credentials" }],
       });
     });
 
-    // The disable toggle must preserve the rest of the spec — a partial
-    // input would silently drop agentRef, the provider marker, the
-    // serving-app binding, or the bound credentials (apply semantics
-    // unbind whatever is omitted).
-    expect(apply).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: "Support Slack",
-        agentRef: { org: "acme", slug: "support-agent" },
-        slack: {},
-        enabled: false,
-        appRef: { org: "acme", slug: "acme-support-app" },
-        vaults: [{ org: "acme", slug: "github-credentials" }],
-      }),
-    );
+    const sent = sentUpdate<AgentChannel>(update);
+    expect(sent.paths).toEqual(["spec.run_config", "spec.vaults"]);
+    expect(sent.resource.spec?.runConfig).toBeUndefined();
+    expect(sentRefs(sent.resource.spec?.vaults)).toEqual([{ org: "acme", slug: "github-credentials" }]);
   });
 
   it("tracks isPending during the flight", async () => {

@@ -59,7 +59,7 @@ Team team = client.teams().get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getByReference`](#getbyreference) | Get a team by its organization-scoped reference (org/slug). |
 | [`listByOrg`](#listbyorg) | List the teams of an organization. |
 | [`create`](#create) | Create a team in an organization. |
-| [`update`](#update) | Update a team's name or description. |
+| [`update`](#update) | Update a team: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete a team. |
 | [`rename`](#rename) | Rename a team: change its slug, the name people type. |
 
@@ -261,58 +261,54 @@ Team team = client.teams().create(TeamInput.builder()
 
 ### update
 
-Update a team's name or description.
+Update a team: the fields update_mask names change, every other field keeps its stored value.
 
-An update names the team by its id, and the slug changes only through rename.
+A team's name and description may change.
+
+resource.metadata.id names the team; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the team does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the team changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the team kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const team = await stigmer.team.update({
-  name: "my-team",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  description: "...",
-});
+const team = await stigmer.team.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
+team.metadata!.name = "New name";
+const updated = await stigmer.team.update(team, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-team, err := client.Team.Update(ctx, &stigmer.TeamInput{
-  Name:        "my-team",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Description: "...",
-})
+team, err := client.Team.Get(ctx, "tm_01j5q3k7m8r2s4tnz2hfp0q0c3")
+team.Metadata.Name = "New name"
+updated, err := client.Team.Update(ctx, team, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-team = client.teams.update(TeamInput(
-    name="my-team",
-    org="acme",
-    slug="...",
-    labels={},
-    description="...",
-))
+team = client.teams.get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3")
+team.metadata.name = "New name"
+updated = client.teams.update(team, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Team team = client.teams().update(TeamInput.builder()
-    .name("my-team")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .description("...")
-    .build());
+Team team = client.teams().get("tm_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Team updated = client.teams().update(
+    team.toBuilder().setMetadata(team.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`TeamInput`](#teaminput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Team`](#team) | The team, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Team`](#team)
 
@@ -419,6 +415,17 @@ Input for creating or updating a Team.
     org: { type: "string", description: "Organization id (a slug is also accepted).", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     description: { type: "string", description: "What the team is for, shown where people pick a team to share with." },
+  }}
+/>
+
+### UpdateTeamInput
+
+The changes an update makes to a team: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "TeamInput", description: "The team carrying the new values, named by metadata.id.", typeDescriptionLink: "#teaminput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

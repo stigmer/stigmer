@@ -41,31 +41,31 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       ".proto\032)ai/stigmer/agentic/agentshare/v1" +
       "/io.proto\0328ai/stigmer/commons/apiresourc" +
       "e/rpc_service_options.proto\032+ai/stigmer/" +
-      "commons/rpc/method_options.proto2\356\005\n\033Age" +
+      "commons/rpc/method_options.proto2\202\006\n\033Age" +
       "ntShareCommandController\022c\n\005apply\022,.ai.s" +
       "tigmer.agentic.agentshare.v1.AgentShare\032" +
       ",.ai.stigmer.agentic.agentshare.v1.Agent" +
       "Share\022j\n\006create\022,.ai.stigmer.agentic.age" +
       "ntshare.v1.AgentShare\032,.ai.stigmer.agent" +
-      "ic.agentshare.v1.AgentShare\"\004\320\270\030\001\022\237\001\n\006up" +
-      "date\022,.ai.stigmer.agentic.agentshare.v1." +
-      "AgentShare\032,.ai.stigmer.agentic.agentsha" +
-      "re.v1.AgentShare\"9\302\270\0305\010\002\020.\"\013metadata.id*" +
-      "\"unauthorized to update agent share\022\267\001\n\017" +
-      "rotateShareLink\0226.ai.stigmer.agentic.age" +
-      "ntshare.v1.RotateShareLinkInput\032,.ai.sti" +
-      "gmer.agentic.agentshare.v1.AgentShare\">\302" +
-      "\270\030:\010\002\020.\"\013resource_id*\'unauthorized to ro" +
-      "tate agent share link\022\233\001\n\006delete\022..ai.st" +
-      "igmer.agentic.agentshare.v1.AgentShareId" +
-      "\032,.ai.stigmer.agentic.agentshare.v1.Agen" +
-      "tShare\"3\302\270\030/\010\003\020.\"\005value*\"unauthorized to" +
-      " delete agent share\032\004\240\377+.B\263\001B\014CommandPro" +
-      "toP\001\242\002\004ASAA\252\002 Ai.Stigmer.Agentic.Agentsh" +
-      "are.V1\312\002 Ai\\Stigmer\\Agentic\\Agentshare\\V" +
-      "1\342\002,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPB" +
-      "Metadata\352\002$Ai::Stigmer::Agentic::Agentsh" +
-      "are::V1b\006proto3"
+      "ic.agentshare.v1.AgentShare\"\004\320\270\030\001\022\263\001\n\006up" +
+      "date\0227.ai.stigmer.agentic.agentshare.v1." +
+      "UpdateAgentShareInput\032,.ai.stigmer.agent" +
+      "ic.agentshare.v1.AgentShare\"B\302\270\030>\010\002\020.\"\024r" +
+      "esource.metadata.id*\"unauthorized to upd" +
+      "ate agent share\022\267\001\n\017rotateShareLink\0226.ai" +
+      ".stigmer.agentic.agentshare.v1.RotateSha" +
+      "reLinkInput\032,.ai.stigmer.agentic.agentsh" +
+      "are.v1.AgentShare\">\302\270\030:\010\002\020.\"\013resource_id" +
+      "*\'unauthorized to rotate agent share lin" +
+      "k\022\233\001\n\006delete\022..ai.stigmer.agentic.agents" +
+      "hare.v1.AgentShareId\032,.ai.stigmer.agenti" +
+      "c.agentshare.v1.AgentShare\"3\302\270\030/\010\003\020.\"\005va" +
+      "lue*\"unauthorized to delete agent share\032" +
+      "\004\240\377+.B\263\001B\014CommandProtoP\001\242\002\004ASAA\252\002 Ai.Sti" +
+      "gmer.Agentic.Agentshare.V1\312\002 Ai\\Stigmer\\" +
+      "Agentic\\Agentshare\\V1\342\002,Ai\\Stigmer\\Agent" +
+      "ic\\Agentshare\\V1\\GPBMetadata\352\002$Ai::Stigm" +
+      "er::Agentic::Agentshare::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

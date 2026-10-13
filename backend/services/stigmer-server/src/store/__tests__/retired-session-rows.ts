@@ -1,8 +1,9 @@
 /**
  * Test support: the bytes an earlier release wrote for a session whose
  * spec held a conversation's own secrets (SessionSpec field 16) and
- * connections (field 17), both map<string, string>, built by wire number
- * because the current schema reserves them. Shared by the module's unit
+ * connections (field 17), both map<string, string>, or its harness state
+ * (fields 3 and 13), built by wire number because the current schema
+ * reserves them. Shared by the module's unit
  * test and both drivers' migration tests, so every one reads the same old
  * shape.
  */
@@ -22,6 +23,10 @@ const SESSION_STATUS_FIELD = 5;
 export interface RetiredSessionValues {
   readonly secrets?: Readonly<Record<string, string>>;
   readonly connections?: Readonly<Record<string, string>>;
+  /** The harness state an earlier release kept in the spec: field 3 (harness_state_id). */
+  readonly harnessStateId?: string;
+  /** Field 13 (harness_state_id_history), oldest first. */
+  readonly harnessStateIdHistory?: ReadonlyArray<string>;
   /** A field no release defined, which the step must keep as it is. */
   readonly foreign?: { readonly no: number; readonly value: string };
 }
@@ -58,6 +63,12 @@ export function sessionRowWithValues(
 
   const specWriter = new BinaryWriter();
   specWriter.raw(toBinary(SessionSpecSchema, spec));
+  if (retired.harnessStateId !== undefined) {
+    specWriter.tag(3, WireType.LengthDelimited).string(retired.harnessStateId);
+  }
+  for (const replaced of retired.harnessStateIdHistory ?? []) {
+    specWriter.tag(13, WireType.LengthDelimited).string(replaced);
+  }
   writeMap(specWriter, 16, retired.secrets ?? {});
   writeMap(specWriter, 17, retired.connections ?? {});
   if (retired.foreign !== undefined) {

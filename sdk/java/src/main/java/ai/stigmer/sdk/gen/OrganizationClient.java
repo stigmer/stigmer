@@ -13,8 +13,10 @@ import ai.stigmer.tenancy.organization.v1.OrganizationId;
 import ai.stigmer.tenancy.organization.v1.OrganizationList;
 import ai.stigmer.tenancy.organization.v1.OrganizationQueryControllerGrpc;
 import ai.stigmer.tenancy.organization.v1.Organizations;
+import ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput;
 import ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput;
 import com.google.protobuf.Empty;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -40,9 +42,12 @@ public final class OrganizationClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Organization update(OrganizationInput input) {
+    public Organization update(Organization resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateOrganizationInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

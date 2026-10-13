@@ -268,7 +268,7 @@ function ShareRow({
   // or credential bindings (the fails-closed posture the CLI shares).
   const handleToggleEnabled = useCallback(async () => {
     try {
-      await save({ ...draftFromShare(share), enabled: !enabled }, share);
+      await save({ ...draftFromShare(share), enabled: !enabled }, share, undefined, ["enabled"]);
       toast.success(enabled ? "Share paused" : "Share resumed");
       refetch();
     } catch (err) {

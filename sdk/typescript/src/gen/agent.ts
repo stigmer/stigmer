@@ -3,11 +3,11 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toResourceRefInputs } from "./proto-utils.js";
 import { type ListParams, type ListResult, type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentIdSchema, UpdateAgentInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSpecSchema, HookSourceSchema, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema, GetAgentVersionInputSchema, AgentVersionEntrySchema, type TagAgentVersionInput, type ListAgentVersionsInput, type ListAgentVersionsResponse, type GetAgentVersionInput, type AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
@@ -48,9 +48,9 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: AgentInput): Promise<Agent> {
+  async update(resource: Agent | MessageInitShape<typeof AgentSchema>, paths: string[]): Promise<Agent> {
     try {
-      return await this.command.update(buildAgentProto(input));
+      return await this.command.update(create(UpdateAgentInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -119,13 +119,13 @@ export class AgentClient {
   }
 }
 
-/** Input for creating/updating an Agent. */
+/** Input for creating or applying an Agent. */
 export interface AgentInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -337,31 +337,29 @@ function toRunConfigInput(msg: RunConfig): RunConfigInput {
 }
 
 /**
- * Maps a fetched {@link Agent} to a complete {@link AgentInput} for `update()`.
+ * Maps a fetched {@link Agent} to the complete {@link AgentInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toAgentInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toAgentUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toAgentUpdateInput(resource: Agent): AgentInput {
+export function toAgentInput(resource: Agent): AgentInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(AgentSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,
     org: meta?.org ?? "",
     labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
     visibility: meta?.visibility || undefined,
-    // Never carried over: a version message describes the NEXT update.
+    // Never carried over: a version message describes the NEXT save.
     versionMessage: undefined,
     description: spec.description || undefined,
     iconUrl: spec.iconUrl || undefined,

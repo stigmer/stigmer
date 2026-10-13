@@ -458,7 +458,7 @@ describe("[rpc:PluginCommandController.delete] Plugin conformance — delete", (
     await clients.pluginQuery.get({ value: plugin.metadata!.id });
 
     mine.spec!.plugins = [];
-    await clients.agentCommand.update(mine);
+    await clients.agentCommand.update({ resource: mine, updateMask: { paths: ["*"] } });
     await clients.pluginCommand.delete({ value: plugin.metadata!.id });
     await clients.agentCommand.delete({ value: mine.metadata!.id });
     await expectGrpcCode(() => clients.pluginQuery.get({ value: plugin.metadata!.id }), Code.NotFound, "head gone");

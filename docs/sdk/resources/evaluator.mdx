@@ -70,7 +70,7 @@ Evaluator evaluator = client.evaluators().get("evl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single evaluator by ID. |
 | [`getByAgent`](#getbyagent) | Get the evaluator of an agent. |
 | [`create`](#create) | Create the evaluator that switches AI grading on for an agent. |
-| [`update`](#update) | Update an evaluator's settings: whether it is enabled, its sample rate, its monthly limit and its model. |
+| [`update`](#update) | Update an evaluator: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete an evaluator, switching AI grading off for its agent. |
 
 ### get
@@ -224,74 +224,54 @@ Evaluator evaluator = client.evaluators().create(EvaluatorInput.builder()
 
 ### update
 
-Update an evaluator's settings: whether it is enabled, its sample rate, its monthly limit and its model.
+Update an evaluator: the fields update_mask names change, every other field keeps its stored value.
 
-The agent it grades stays as created, and this month's spend and counts are kept.
+Its settings are whether it is enabled, its sample rate, its monthly limit and its model. The agent it grades stays as created, and this month's spend and counts are kept.
+
+resource.metadata.id names the evaluator; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the evaluator does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the evaluator kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const evaluator = await stigmer.evaluator.update({
-  name: "my-evaluator",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  agentId: "...",
-  enabled: false,
-  sampleRate: 0,
-  monthlyLimitUsd: 0,
-  modelName: "...",
-});
+const evaluator = await stigmer.evaluator.get("evl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+evaluator.metadata!.name = "New name";
+const updated = await stigmer.evaluator.update(evaluator, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-evaluator, err := client.Evaluator.Update(ctx, &stigmer.EvaluatorInput{
-  Name:            "my-evaluator",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentId:         "...",
-  Enabled:         false,
-  SampleRate:      0,
-  MonthlyLimitUsd: 0,
-  ModelName:       "...",
-})
+evaluator, err := client.Evaluator.Get(ctx, "evl_01j5q3k7m8r2s4tnz2hfp0q0c3")
+evaluator.Metadata.Name = "New name"
+updated, err := client.Evaluator.Update(ctx, evaluator, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-evaluator = client.evaluators.update(EvaluatorInput(
-    name="my-evaluator",
-    org="acme",
-    slug="...",
-    labels={},
-    agent_id="...",
-    enabled=False,
-    sample_rate=0,
-    monthly_limit_usd=0,
-    model_name="...",
-))
+evaluator = client.evaluators.get("evl_01j5q3k7m8r2s4tnz2hfp0q0c3")
+evaluator.metadata.name = "New name"
+updated = client.evaluators.update(evaluator, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Evaluator evaluator = client.evaluators().update(EvaluatorInput.builder()
-    .name("my-evaluator")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .agentId("...")
-    .enabled(false)
-    .sampleRate(0)
-    .monthlyLimitUsd(0)
-    .modelName("...")
-    .build());
+Evaluator evaluator = client.evaluators().get("evl_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Evaluator updated = client.evaluators().update(
+    evaluator.toBuilder().setMetadata(evaluator.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`EvaluatorInput`](#evaluatorinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Evaluator`](#evaluator) | The evaluator, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Evaluator`](#evaluator)
 
@@ -349,6 +329,17 @@ Input for creating or updating an Evaluator.
     sampleRate: { type: "number", description: "The share of completed runs graded, from just above 0 to 1." },
     monthlyLimitUsd: { type: "number", description: "The most this agent's grading may spend in one calendar month (UTC), in estimated US dollars of model cost." },
     modelName: { type: "string", description: "The model the judge uses." },
+  }}
+/>
+
+### UpdateEvaluatorInput
+
+The changes an update makes to an evaluator: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "EvaluatorInput", description: "The evaluator carrying the new values, named by metadata.id.", typeDescriptionLink: "#evaluatorinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

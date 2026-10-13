@@ -130,6 +130,7 @@ import {
   TOKEN_TYPE_EXECUTION_SCOPED,
   BOUND_ELSEWHERE_DENY_REASON,
   boundOrgOf,
+  updateContext,
 } from "@stigmer/server";
 import type { BindingVerdict, CredentialBinding } from "@stigmer/server";
 import type { RunLane, RunLanes } from "@stigmer/server";
@@ -1306,9 +1307,10 @@ const registerLicenseService = (router: ConnectRouter): void => {
 /**
  * A consumer-served UPDATE and READ BY REFERENCE of the same shape of kind
  * (an enterprise-tier Team, which this server registers no service for).
- * The consumer's own loaders read its own table and stash the row under
- * the exported keys; BuildUpdateState then decides what a client may
- * change and stamps the audit, and AuthorizeResolvedTarget authorizes the
+ * The consumer's update runs on the resource its Update<Kind>Input carries
+ * (updateContext); its own loaders read its own table and stash the row
+ * under the exported keys; BuildUpdateState then merges the mask onto it
+ * and stamps the audit, and AuthorizeResolvedTarget authorizes the
  * loaded row exactly as the kind's `get` would, with `get`'s copy.
  */
 const storedTeam = (id: string): Team =>
@@ -1318,13 +1320,10 @@ const registerTeamService = (router: ConnectRouter): void => {
   const update = TeamCommandController.method.update;
   router.service(TeamCommandController, {
     update: async (input, ctx) => {
-      const reqCtx = new RequestContext(
-        update.input,
-        input,
-        callerIdentityOf(ctx),
-        ApiResourceKind.team,
-      );
-      const loadExisting: PipelineStep<typeof update.input> = {
+      // The chain runs on the resource the Update<Kind>Input carries, with
+      // its mask; Authorize reads the wire request.
+      const reqCtx = updateContext(TeamSchema, input, callerIdentityOf(ctx), ApiResourceKind.team);
+      const loadExisting: PipelineStep<typeof TeamSchema> = {
         name: "LoadExistingTeam",
         execute: (stepCtx) => {
           stepCtx.set(
@@ -1333,14 +1332,14 @@ const registerTeamService = (router: ConnectRouter): void => {
           );
         },
       };
-      await newPipeline<typeof update.input>(
+      await newPipeline<typeof TeamSchema>(
         "consumer-team-update",
         createLogger({ level: "error", pretty: false }),
       )
-        .addStep(newAuthorizeStep(update, authorizer))
-        .addStep(newValidateProtoStep())
+        .addStep(newAuthorizeStep(update, authorizer, input))
         .addStep(loadExisting)
         .addStep(newBuildUpdateStateStep())
+        .addStep(newValidateProtoStep({ of: "state" }))
         .build()
         .execute(reqCtx);
       return reqCtx.newState;

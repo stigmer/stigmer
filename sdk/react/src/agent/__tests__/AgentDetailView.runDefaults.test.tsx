@@ -14,9 +14,9 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import type { AgentInput } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
 import { AgentDetailView } from "../AgentDetailView";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 afterEach(cleanup);
@@ -28,7 +28,7 @@ function agentWith(spec: MessageInitShape<typeof AgentSpecSchema>): Agent {
   return agent;
 }
 
-function renderEditable(agent: Agent, update: (input: AgentInput) => Promise<Agent>) {
+function renderEditable(agent: Agent, update: (resource: Agent, paths: string[]) => Promise<Agent>) {
   render(<AgentDetailView org="acme" slug="support-bot" editable />, {
     wrapper: orgWrapper(
       {
@@ -51,8 +51,9 @@ const AGENT_SPEC: MessageInitShape<typeof AgentSpecSchema> = {
 describe("AgentDetailView run defaults", () => {
   it("saves the engine and the run settings together on the agent update", async () => {
     const agent = agentWith(AGENT_SPEC);
-    const update = vi.fn(async (input: AgentInput) => {
-      void input;
+    const update = vi.fn(async (resource: Agent, paths: string[]) => {
+      void resource;
+      void paths;
       return agent;
     });
     renderEditable(agent, update);
@@ -62,20 +63,21 @@ describe("AgentDetailView run defaults", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0][0];
-    expect(input.harness).toBe(Harness.CURSOR);
-    expect(input.runConfig).toEqual({
+    const sent = sentUpdate<Agent>(update);
+    expect(sent.paths).toEqual(["spec.harness", "spec.run_config"]);
+    expect(sent.resource.spec?.harness).toBe(Harness.CURSOR);
+    expect(sent.resource.spec?.runConfig).toMatchObject({
       modelName: "composer-2.5",
       maxCostUsd: 3,
       maxToolRounds: 8,
     });
-    expect(input.instructions).toBe("Answer tickets.");
   });
 
   it("shows the server's refusal of the save under the run defaults", async () => {
     const agent = agentWith(AGENT_SPEC);
-    const update = vi.fn(async (input: AgentInput): Promise<Agent> => {
-      void input;
+    const update = vi.fn(async (resource: Agent, paths: string[]): Promise<Agent> => {
+      void resource;
+      void paths;
       throw new Error("model composer-2.5 is not listed for the cursor engine");
     });
     renderEditable(agent, update);

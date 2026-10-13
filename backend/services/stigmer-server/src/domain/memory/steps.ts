@@ -418,9 +418,9 @@ export function newInitializeMemoryLifecycleStep(): PipelineStep<
  *     attribution, displayed beside the fact everywhere — attribution
  *     that can be edited is not attribution.
  *
- * Update replaces the spec wholesale (declarative semantics), so callers
- * carry the loaded values — the generated toMemoryUpdateInput mapper does
- * this by construction. metadata.slug/org immutability needs no step
+ * An update that does not name these fields keeps them as stored; one
+ * that names them (or the whole spec, as apply does) must carry the stored
+ * values. metadata.slug/org immutability needs no step
  * here: the generic BuildUpdateState preserves both. The lifecycle state
  * is protected by MECHANISM, not validation: PersistMemoryUpdate writes
  * metadata+spec+status.audit over the lifecycle of the row the chain read,

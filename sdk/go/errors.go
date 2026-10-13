@@ -17,6 +17,7 @@ const (
 	CodeAlreadyExists      = gen.CodeAlreadyExists
 	CodeResourceExhausted  = gen.CodeResourceExhausted
 	CodeFailedPrecondition = gen.CodeFailedPrecondition
+	CodeAborted            = gen.CodeAborted
 	CodeInternal           = gen.CodeInternal
 	CodeUnavailable        = gen.CodeUnavailable
 )

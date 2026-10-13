@@ -26,10 +26,10 @@ var File_ai_stigmer_iam_platformclient_v1_command_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_iam_platformclient_v1_command_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/iam/platformclient/v1/command.proto\x12 ai.stigmer.iam.platformclient.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a)ai/stigmer/iam/platformclient/v1/io.proto2\xc9\a\n" +
+	".ai/stigmer/iam/platformclient/v1/command.proto\x12 ai.stigmer.iam.platformclient.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a*ai/stigmer/iam/platformclient/v1/api.proto\x1a)ai/stigmer/iam/platformclient/v1/io.proto2\xdd\a\n" +
 	"\x1fPlatformClientCommandController\x12\xcf\x01\n" +
-	"\x06create\x120.ai.stigmer.iam.platformclient.v1.PlatformClient\x1a>.ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse\"S¸\x18O\b\x18\x10\x1e\"\fmetadata.org*;unauthorized to create platform client in this organization\x12\xab\x01\n" +
-	"\x06update\x120.ai.stigmer.iam.platformclient.v1.PlatformClient\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"=¸\x189\b\x02\x10\x17\"\vmetadata.id*&unauthorized to update platform client\x12\xa6\x01\n" +
+	"\x06create\x120.ai.stigmer.iam.platformclient.v1.PlatformClient\x1a>.ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse\"S¸\x18O\b\x18\x10\x1e\"\fmetadata.org*;unauthorized to create platform client in this organization\x12\xbf\x01\n" +
+	"\x06update\x12;.ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"F¸\x18B\b\x02\x10\x17\"\x14resource.metadata.id*&unauthorized to update platform client\x12\xa6\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"=¸\x189\b\x03\x10\x17\"\vresource_id*&unauthorized to rename platform client\x12\xb1\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"=¸\x189\b\x03\x10\x17\"\vresource_id*&unauthorized to delete platform client\x12\xc2\x01\n" +
 	"\frotateSecret\x122.ai.stigmer.iam.platformclient.v1.PlatformClientId\x1a>.ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse\">¸\x18:\b\x02\x10\x17\"\x05value*-unauthorized to rotate platform client secret\x1a\x04\xa0\xff+\x17B\xb7\x02\n" +
@@ -37,22 +37,23 @@ const file_ai_stigmer_iam_platformclient_v1_command_proto_rawDesc = "" +
 
 var file_ai_stigmer_iam_platformclient_v1_command_proto_goTypes = []any{
 	(*PlatformClient)(nil),                     // 0: ai.stigmer.iam.platformclient.v1.PlatformClient
-	(*apiresource.RenameInput)(nil),            // 1: ai.stigmer.commons.apiresource.RenameInput
-	(*apiresource.ApiResourceDeleteInput)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
-	(*PlatformClientId)(nil),                   // 3: ai.stigmer.iam.platformclient.v1.PlatformClientId
-	(*PlatformClientCreateResponse)(nil),       // 4: ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
+	(*UpdatePlatformClientInput)(nil),          // 1: ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput
+	(*apiresource.RenameInput)(nil),            // 2: ai.stigmer.commons.apiresource.RenameInput
+	(*apiresource.ApiResourceDeleteInput)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	(*PlatformClientId)(nil),                   // 4: ai.stigmer.iam.platformclient.v1.PlatformClientId
+	(*PlatformClientCreateResponse)(nil),       // 5: ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
 }
 var file_ai_stigmer_iam_platformclient_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	0, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	1, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
-	2, // 3: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
-	3, // 4: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClientId
-	4, // 5: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
+	1, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update:input_type -> ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput
+	2, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
+	3, // 3: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	4, // 4: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret:input_type -> ai.stigmer.iam.platformclient.v1.PlatformClientId
+	5, // 5: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
 	0, // 6: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
 	0, // 7: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rename:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
 	0, // 8: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.delete:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClient
-	4, // 9: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
+	5, // 9: ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rotateSecret:output_type -> ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse
 	5, // [5:10] is the sub-list for method output_type
 	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

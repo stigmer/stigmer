@@ -204,9 +204,7 @@ private static final long serialVersionUID = 0L;
    * the built-in assistant). Fields that must be set at session-creation
    * time and are immutable once a run has started — harness and
    * execution_target — can only reach an auto-created session through
-   * this field. session_spec.harness_state_id must be empty — it is
-   * server-owned harness continuity state, created by the runner after
-   * the first run.
+   * this field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -231,9 +229,7 @@ private static final long serialVersionUID = 0L;
    * the built-in assistant). Fields that must be set at session-creation
    * time and are immutable once a run has started — harness and
    * execution_target — can only reach an auto-created session through
-   * this field. session_spec.harness_state_id must be empty — it is
-   * server-owned harness continuity state, created by the runner after
-   * the first run.
+   * this field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -261,9 +257,7 @@ private static final long serialVersionUID = 0L;
    * the built-in assistant). Fields that must be set at session-creation
    * time and are immutable once a run has started — harness and
    * execution_target — can only reach an auto-created session through
-   * this field. session_spec.harness_state_id must be empty — it is
-   * server-owned harness continuity state, created by the runner after
-   * the first run.
+   * this field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2297,9 +2291,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2324,9 +2316,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2361,9 +2351,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2396,9 +2384,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2429,9 +2415,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2471,9 +2455,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2509,9 +2491,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2534,9 +2514,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
@@ -2567,9 +2545,7 @@ private static final long serialVersionUID = 0L;
      * the built-in assistant). Fields that must be set at session-creation
      * time and are immutable once a run has started — harness and
      * execution_target — can only reach an auto-created session through
-     * this field. session_spec.harness_state_id must be empty — it is
-     * server-owned harness continuity state, created by the runner after
-     * the first run.
+     * this field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>

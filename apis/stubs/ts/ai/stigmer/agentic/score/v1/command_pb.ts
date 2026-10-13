@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ScoreSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_score_v1_api } from "./api_pb.js";
-import type { ScoreIdSchema } from "./io_pb.js";
+import type { ScoreIdSchema, UpdateScoreInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_score_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/score/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_score_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxMoIDChZTY29yZUNvbW1hbmRDb250cm9sbGVyElYKBmNyZWF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZSIE0LgYARKFAQoGdXBkYXRlEiIuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlGiIuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlIjPCuBgvCAIQPSILbWV0YWRhdGEuaWQqHHVuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NvcmUSgQEKBmRlbGV0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZUlkGiIuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlIi3CuBgpCAMQPSIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgc2NvcmUaBKD/Kz1iBnByb3RvMw", [file_ai_stigmer_agentic_score_v1_api, file_ai_stigmer_agentic_score_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxMpYDChZTY29yZUNvbW1hbmRDb250cm9sbGVyElYKBmNyZWF0ZRIiLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZSIE0LgYARKZAQoGdXBkYXRlEi0uYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlVwZGF0ZVNjb3JlSW5wdXQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmUiPMK4GDgIAhA9IhRyZXNvdXJjZS5tZXRhZGF0YS5pZCocdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzY29yZRKBAQoGZGVsZXRlEiQuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmUiLcK4GCkIAxA9IgV2YWx1ZSocdW5hdXRob3JpemVkIHRvIGRlbGV0ZSBzY29yZRoEoP8rPWIGcHJvdG8z", [file_ai_stigmer_agentic_score_v1_api, file_ai_stigmer_agentic_score_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ScoreCommandController handles write operations for scores.
@@ -39,17 +39,31 @@ export const ScoreCommandController: GenService<{
     output: typeof ScoreSchema;
   },
   /**
-   * Update a person's rating: its value and comment.
+   * Update a score: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * Only feedback is editable, and only by the person who gave it, and only
-   * its value and comment: every other field, the score's name and labels
-   * included, stays as created. A check's verdict never changes.
+   * Only feedback is editable, only by the person who gave it, and only its
+   * value and comment; a check's verdict never changes.
+   *
+   * resource.metadata.id names the score; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the score does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the score kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.agentic.score.v1.ScoreCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof ScoreSchema;
+    input: typeof UpdateScoreInputSchema;
     output: typeof ScoreSchema;
   },
   /**

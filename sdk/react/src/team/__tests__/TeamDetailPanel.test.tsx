@@ -1,15 +1,14 @@
 /**
- * Pins TeamDetailPanel's save payload against the full-resource replace:
- * an edit spreads `toTeamUpdateInput(team)` and overrides only the name and
- * description, so the fields the form does not show (the id it addresses
- * the update by, the slug, labels) survive the save. The members panel and
+ * Pins TeamDetailPanel's save payload: an edit names the name and the
+ * description alone, on the team's id, so the fields the form does not
+ * show (the slug, the labels) keep their stored values. The members panel and
  * the permission gate are stubbed; they are proven elsewhere.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { clone, create } from "@bufbuild/protobuf";
 import { TeamSchema, type Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
-import type { TeamInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 
 vi.mock("../TeamMembersPanel.js", () => ({
@@ -35,8 +34,8 @@ const TEAM: Team = create(TeamSchema, {
 afterEach(cleanup);
 
 describe("TeamDetailPanel save payload", () => {
-  it("keeps the id, slug and labels when only the description is edited", async () => {
-    const update = vi.fn(async (_input: TeamInput) => TEAM);
+  it("names the name and description alone, on the team's id, when only the description is edited", async () => {
+    const update = vi.fn(async (_resource: Team, _paths: string[]) => TEAM);
     render(
       <StigmerContext.Provider
         value={{ team: { update }, iamPolicy: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
@@ -50,15 +49,13 @@ describe("TeamDetailPanel save payload", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0]![0]).toEqual({
-      id: "tm_sre",
-      name: "Site Reliability",
-      slug: "site-reliability",
-      org: "acme",
-      labels: { cost_center: "ops" },
-      visibility: undefined,
-      description: "Pages at night",
-    });
+    const sent = sentUpdate<Team>(update);
+    // The form's two fields by their paths: the slug and the labels keep
+    // their stored values without being sent back.
+    expect(sent.paths).toEqual(["metadata.name", "spec.description"]);
+    expect(sent.id).toBe("tm_sre");
+    expect(sent.resource.metadata?.name).toBe("Site Reliability");
+    expect(sent.resource.spec?.description).toBe("Pages at night");
   });
 });
 

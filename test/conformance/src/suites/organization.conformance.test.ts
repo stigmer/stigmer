@@ -99,11 +99,11 @@ describe("Organization conformance", () => {
     const { id, slug } = created.metadata!;
 
     const renamed = uniqueName("org-renamed");
-    const updated = await clients.organizationCommand.update({
+    const updated = await clients.organizationCommand.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: { id, name: renamed, slug: "attempted-different-slug" },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.id).toBe(id);
     expect(updated.metadata?.slug).toBe(slug);

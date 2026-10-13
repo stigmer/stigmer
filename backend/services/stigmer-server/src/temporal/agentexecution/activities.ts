@@ -240,7 +240,7 @@ export function createAgentExecutionActivities(
           { cause: error },
         );
       }
-      return session.spec?.harnessStateId ?? "";
+      return session.status?.harnessStateId ?? "";
     },
 
     /**

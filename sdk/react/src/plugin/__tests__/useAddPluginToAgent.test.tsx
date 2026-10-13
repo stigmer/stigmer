@@ -51,6 +51,7 @@ function agent(
 
 function setup(agents: Record<string, Agent>, refuseUpdate = false) {
   const updates: Agent[] = [];
+  const masks: string[][] = [];
   const transport = createRouterTransport(({ service }) => {
     service(AgentQueryController, {
       getByReference: (ref) => {
@@ -62,15 +63,17 @@ function setup(agents: Record<string, Agent>, refuseUpdate = false) {
     service(AgentCommandController, {
       update: (req) => {
         if (refuseUpdate) throw new ConnectError("agent 'reviewer' is managed by plugin 'toolbox'", Code.FailedPrecondition);
-        updates.push(req);
-        return req;
+        const resource = req.resource ?? create(AgentSchema);
+        updates.push(resource);
+        masks.push([...(req.updateMask?.paths ?? [])]);
+        return resource;
       },
     });
   });
   const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport });
   const wrapper = ({ children }: { children: ReactNode }) => <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>;
   const hook = renderHook(() => useAddPluginToAgent(OFFER), { wrapper });
-  return { hook, updates };
+  return { hook, updates, masks };
 }
 
 describe("useAddPluginToAgent", () => {
@@ -82,8 +85,8 @@ describe("useAddPluginToAgent", () => {
     expect(updates).toEqual([]);
   });
 
-  it("appends the plugin after the ones the agent lists, keeping the rest of its spec", async () => {
-    const { hook, updates } = setup({ reviewer: agent("reviewer", {}, ["notion"]) });
+  it("appends the plugin after the ones the agent lists, naming the plugins alone on the agent as read", async () => {
+    const { hook, updates, masks } = setup({ reviewer: agent("reviewer", {}, ["notion"]) });
     act(() => hook.result.current.pick({ org: ORG, slug: "reviewer" }));
     await waitFor(() => expect(hook.result.current.phase.status).toBe("ready"));
     expect(hook.result.current.phase).toMatchObject({ alreadyListed: false, toolsLeaveOut: false });
@@ -95,7 +98,10 @@ describe("useAddPluginToAgent", () => {
     expect(outcome).toEqual({ added: true });
     expect(updates).toHaveLength(1);
     expect(updates[0]!.spec?.plugins.map((ref) => ref.slug)).toEqual(["notion", "linear"]);
-    expect(updates[0]!.spec?.env["API_TOKEN"]?.description).toBe("already here");
+    // The plugins alone, on the agent's id: the rest of its spec keeps its
+    // stored value without being sent back.
+    expect(masks).toEqual([["spec.plugins"]]);
+    expect(updates[0]!.metadata?.id).toBe("agt_reviewer");
     expect(hook.result.current.phase.status).toBe("added");
   });
 

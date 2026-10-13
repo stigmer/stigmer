@@ -460,7 +460,7 @@ describe("vault resolution — a person's run", () => {
     ).toBe("after-rotation");
   });
 
-  it("[rpc:SessionCommandController.update] a repository's token is sealed and kept by a write sending the marker back; a stale write keeps the stored vault choice", async () => {
+  it("[rpc:SessionCommandController.update] a repository's token is sealed and kept by a write sending the marker back; an update built on an earlier read keeps the stored vault choice", async () => {
     const { org } = await target.provisionTenancy();
     const team = await sharedVaultWith(org, { TEAM_KEY: "team-value" });
     const input = makeSession({
@@ -482,7 +482,7 @@ describe("vault resolution — a person's run", () => {
       return source?.case === "gitRepo" ? source.value.token : undefined;
     };
 
-    // The read a runner takes when its turn starts, written back after.
+    // A read taken before the creator's change below.
     const turnStartRead = await clients.sessionQuery.get({ value: created.metadata!.id });
     expect(tokenOf(turnStartRead), "a read shows the marker, never the token").toBe(REDACTED_MARKER);
     expect(turnStartRead.spec?.includeMyVault).toBe(true);
@@ -492,21 +492,30 @@ describe("vault resolution — a person's run", () => {
     const fresh = await clients.sessionQuery.get({ value: created.metadata!.id });
     fresh.spec!.includeMyVault = false;
     fresh.spec!.vaults = [];
-    const changed = await clients.sessionCommand.update(fresh);
+    const changed = await clients.sessionCommand.update({ resource: fresh, updateMask: { paths: ["*"] } });
     expect(changed.spec?.includeMyVault).toBe(false);
     expect(changed.spec?.vaults).toEqual([]);
 
-    // The runner's after-turn write echoes the older read: it keeps the
-    // stored choice and the stored token.
-    const afterTurn = await clients.sessionCommand.update(turnStartRead);
-    expect(afterTurn.spec?.includeMyVault, "a stale write never switches My vault back").toBe(false);
+    // An update built on the older read: with its etag it is refused; with
+    // none, naming only the subject, it keeps the stored choice and token.
+    const stale = await expectGrpcCode(
+      () => clients.sessionCommand.update({ resource: turnStartRead, updateMask: { paths: ["spec.subject"] } }),
+      Code.Aborted,
+      "an update carrying the etag of a read the creator's change moved past",
+    );
+    expect(stale.rawMessage).toContain("changed since you read it");
+    const afterTurn = await clients.sessionCommand.update({
+      resource: { metadata: { id: created.metadata!.id }, spec: { subject: "Renamed after the change" } },
+      updateMask: { paths: ["spec.subject"] },
+    });
+    expect(afterTurn.spec?.includeMyVault, "an update naming the subject never switches My vault back").toBe(false);
     expect(afterTurn.spec?.vaults, "nor re-attaches a vault removed since").toEqual([]);
     expect(tokenOf(afterTurn)).toBe(REDACTED_MARKER);
 
     // A current write sending the marker back is accepted only when a token
     // is stored behind it: the token survived both writes.
     const current = await clients.sessionQuery.get({ value: created.metadata!.id });
-    const kept = await clients.sessionCommand.update(current);
+    const kept = await clients.sessionCommand.update({ resource: current, updateMask: { paths: ["*"] } });
     expect(tokenOf(kept), "the marker kept the sealed token").toBe(REDACTED_MARKER);
   });
 

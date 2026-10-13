@@ -15,6 +15,10 @@
  * on every request a minted token bears, so an outage that read as "no
  * client" would revoke every live token instead of failing loudly.
  *
+ * Every write stamps the client's etag as the shared store does
+ * (store/etag.ts), so every row a case reads back is compared with its
+ * fixture as stamped.
+ *
  * The duplicate arms check `instanceof DuplicatePlatformClientError` on the
  * exported class, because that is how the create chain's Persist step
  * catches it: a driver throwing a lookalike fails here for the reason it
@@ -25,11 +29,12 @@
  */
 import assert from "node:assert/strict";
 
-import { create, equals } from "@bufbuild/protobuf";
+import { clone, create, equals } from "@bufbuild/protobuf";
 
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
+import { stampEtag } from "../../store/etag.js";
 import { guardedPortDeclarations } from "../../store/guarded-port.js";
 import { portContractCases } from "../../store/port-contract.js";
 import type {
@@ -73,13 +78,16 @@ function platformClient(fields: {
   });
 }
 
+/** `actual` is `expected` as a driver stores it: stamped with the etag its content gives (store/etag.ts). */
 function assertSameClient(
   actual: PlatformClient | undefined,
   expected: PlatformClient,
   message: string,
 ): void {
   assert.ok(actual !== undefined, `${message}: no client was answered`);
-  assert.ok(equals(PlatformClientSchema, actual, expected), message);
+  const stored = clone(PlatformClientSchema, expected);
+  stampEtag(PlatformClientSchema, stored);
+  assert.ok(equals(PlatformClientSchema, actual, stored), message);
 }
 
 async function assertDuplicate(

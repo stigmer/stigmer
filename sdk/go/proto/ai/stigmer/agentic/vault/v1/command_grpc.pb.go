@@ -55,24 +55,27 @@ type VaultCommandControllerClient interface {
 	//   - SLUG_RESERVED — another vault held the slug until a recent rename, and
 	//     it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *Vault, opts ...grpc.CallOption) (*Vault, error)
-	// Update a vault's name, description and external id.
+	// Update a vault: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Entries are kept as stored: change them with setSecrets, removeSecrets,
-	// setConnection and removeConnections.
+	// Its name, description and external id may change. Entries are kept as
+	// stored: change them with setSecrets, removeSecrets, setConnection and
+	// removeConnections.
 	//
-	// The slug changes only through rename. An update authorizes the id it
-	// names, so wherever the server authorizes requests, an update without an
-	// id is refused before its slug is read. Where it reads one (a server that
-	// admits every caller), a slug the vault was renamed away from, named
-	// without the vault's id, is refused with FAILED_PRECONDITION
-	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-	// write by a name that stops resolving after 30 days would later make a
-	// second vault:
+	// resource.metadata.id names the vault; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the vault does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
 	//
-	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-	//     for reading, but a write names its current slug. Metadata: slug (the
-	//     one the request named).
-	Update(ctx context.Context, in *Vault, opts ...grpc.CallOption) (*Vault, error)
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the vault kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateVaultInput, opts ...grpc.CallOption) (*Vault, error)
 	// Update the visibility of a shared vault.
 	//
 	// Setting org lets every member of the organization use the vault in
@@ -159,7 +162,7 @@ func (c *vaultCommandControllerClient) Create(ctx context.Context, in *Vault, op
 	return out, nil
 }
 
-func (c *vaultCommandControllerClient) Update(ctx context.Context, in *Vault, opts ...grpc.CallOption) (*Vault, error) {
+func (c *vaultCommandControllerClient) Update(ctx context.Context, in *UpdateVaultInput, opts ...grpc.CallOption) (*Vault, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Vault)
 	err := c.cc.Invoke(ctx, VaultCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -290,24 +293,27 @@ type VaultCommandControllerServer interface {
 	//   - SLUG_RESERVED — another vault held the slug until a recent rename, and
 	//     it still leads there. Metadata: slug.
 	Create(context.Context, *Vault) (*Vault, error)
-	// Update a vault's name, description and external id.
+	// Update a vault: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Entries are kept as stored: change them with setSecrets, removeSecrets,
-	// setConnection and removeConnections.
+	// Its name, description and external id may change. Entries are kept as
+	// stored: change them with setSecrets, removeSecrets, setConnection and
+	// removeConnections.
 	//
-	// The slug changes only through rename. An update authorizes the id it
-	// names, so wherever the server authorizes requests, an update without an
-	// id is refused before its slug is read. Where it reads one (a server that
-	// admits every caller), a slug the vault was renamed away from, named
-	// without the vault's id, is refused with FAILED_PRECONDITION
-	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-	// write by a name that stops resolving after 30 days would later make a
-	// second vault:
+	// resource.metadata.id names the vault; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the vault does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
 	//
-	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
-	//     for reading, but a write names its current slug. Metadata: slug (the
-	//     one the request named).
-	Update(context.Context, *Vault) (*Vault, error)
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the vault changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the vault kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateVaultInput) (*Vault, error)
 	// Update the visibility of a shared vault.
 	//
 	// Setting org lets every member of the organization use the vault in
@@ -386,7 +392,7 @@ type UnimplementedVaultCommandControllerServer struct{}
 func (UnimplementedVaultCommandControllerServer) Create(context.Context, *Vault) (*Vault, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedVaultCommandControllerServer) Update(context.Context, *Vault) (*Vault, error) {
+func (UnimplementedVaultCommandControllerServer) Update(context.Context, *UpdateVaultInput) (*Vault, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedVaultCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Vault, error) {
@@ -458,7 +464,7 @@ func _VaultCommandController_Create_Handler(srv interface{}, ctx context.Context
 }
 
 func _VaultCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Vault)
+	in := new(UpdateVaultInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -470,7 +476,7 @@ func _VaultCommandController_Update_Handler(srv interface{}, ctx context.Context
 		FullMethod: VaultCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VaultCommandControllerServer).Update(ctx, req.(*Vault))
+		return srv.(VaultCommandControllerServer).Update(ctx, req.(*UpdateVaultInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

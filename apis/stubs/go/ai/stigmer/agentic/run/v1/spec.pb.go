@@ -410,9 +410,7 @@ type RunSpec_SessionSpec struct {
 	// the built-in assistant). Fields that must be set at session-creation
 	// time and are immutable once a run has started — harness and
 	// execution_target — can only reach an auto-created session through
-	// this field. session_spec.harness_state_id must be empty — it is
-	// server-owned harness continuity state, created by the runner after
-	// the first run.
+	// this field.
 	SessionSpec *v1.SessionSpec `protobuf:"bytes,13,opt,name=session_spec,json=sessionSpec,proto3,oneof"`
 }
 
@@ -786,7 +784,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x0e\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe3\f\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -807,9 +805,8 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\x11supersedes_run_id\x18\f \x01(\tR\x0fsupersedesRunId\x12a\n" +
 	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup\x12Z\n" +
 	"\x10plugin_eval_case\x18\x19 \x01(\v20.ai.stigmer.agentic.run.v1.PluginEvalCaseContextR\x0epluginEvalCase\x122\n" +
-	"\x15reconcile_file_review\x18\x1a \x01(\bR\x13reconcileFileReview:\xbb\x02\xbaH\xb7\x02\x1aa\n" +
-	"\x14run.message_required\x12\x13message is required\x1a4this.reconcile_file_review || size(this.message) > 0\x1a\xd1\x01\n" +
-	"\x1erun.session_spec_harness_state\x12jsession_spec.harness_state_id must be empty — harness state is created by the runner after the first run\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''B\b\n" +
+	"\x15reconcile_file_review\x18\x1a \x01(\bR\x13reconcileFileReview:f\xbaHc\x1aa\n" +
+	"\x14run.message_required\x12\x13message is required\x1a4this.reconcile_file_review || size(this.message) > 0B\b\n" +
 	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_configR\vruntime_env\"\x96\x03\n" +
 	"\n" +
 	"Attachment\x12\xe2\x01\n" +

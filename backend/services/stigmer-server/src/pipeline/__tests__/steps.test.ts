@@ -23,7 +23,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -53,6 +52,7 @@ import {
 import { compareCreatedAtDesc, matchesAllLabels } from "../steps/helpers.js";
 import { newIndexSearchStep } from "../steps/index-search.js";
 import {
+  EXISTING_RESOURCE_BYTES_KEY,
   EXISTING_RESOURCE_KEY,
   newLoadExistingStep,
 } from "../steps/load-existing.js";
@@ -245,17 +245,11 @@ describe("ResolveSlug", () => {
 
   // An update by id keeps its stored slug (BuildUpdateState), so the slug
   // derived from a new name is never used and never refused there.
-  it("derives without the check in an update chain by id, and keeps the check there without an id", async () => {
+  it("derives nothing in an update chain: the update keeps its stored slug", async () => {
     const step = newResolveSlugStep<typeof OrganizationSchema>({ update: true });
     const byId = orgCtx(org({ id: "org_1", name: "1st Team" }));
     await step.execute(byId);
-    expect(byId.newState.metadata?.slug).toBe("1st-team");
-
-    const bySlug = orgCtx(org({ name: "1st Team" }));
-    const error = await Promise.resolve()
-      .then(() => step.execute(bySlug))
-      .catch((e: unknown) => e);
-    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+    expect(byId.newState.metadata?.slug).toBe("");
   });
 });
 
@@ -474,26 +468,23 @@ describe("BuildUpdateState", () => {
 });
 
 describe("loaders", () => {
-  it("LoadExisting loads by id, falls back to slug (backfilling the id), and pins the NotFound copy", async () => {
+  it("LoadExisting loads by id with its stored bytes, refuses an update with no id, and pins the NotFound copy", async () => {
     const existing = agent({ id: "agt_1", slug: "support", org: "acme" });
     await store.saveResource(ApiResourceKind.agent, "agt_1", AgentSchema, existing);
 
     const byId = agentCtx(agent({ id: "agt_1", org: "acme" }));
     await newLoadExistingStep<typeof AgentSchema>(store).execute(byId);
     expect(byId.get(EXISTING_RESOURCE_KEY)).toBeDefined();
+    expect(byId.get(EXISTING_RESOURCE_BYTES_KEY)).toBeInstanceOf(Uint8Array);
 
     const bySlug = agentCtx(agent({ slug: "support", org: "acme" }));
-    await newLoadExistingStep<typeof AgentSchema>(store).execute(bySlug);
-    expect(bySlug.newState.metadata?.id).toBe("agt_1");
-
-    const otherOrg = agentCtx(agent({ slug: "support", org: "globex" }));
-    const otherError = await captureError(() =>
-      newLoadExistingStep<typeof AgentSchema>(store).execute(otherOrg),
+    const slugError = await captureError(() =>
+      newLoadExistingStep<typeof AgentSchema>(store).execute(bySlug),
     );
-    expect(
-      (otherError as ConnectError).rawMessage,
-      "a slug names its own organization's agent only",
-    ).toBe("Agent not found: support");
+    expect((slugError as ConnectError).code).toBe(Code.InvalidArgument);
+    expect((slugError as ConnectError).rawMessage).toBe(
+      "resource.metadata.id is required: an update names the agent by its id",
+    );
 
     const missing = agentCtx(agent({ id: "ghost" }));
     const error = await captureError(() =>
@@ -501,28 +492,6 @@ describe("loaders", () => {
     );
     expect((error as ConnectError).code).toBe(Code.NotFound);
     expect((error as ConnectError).rawMessage).toBe("Agent not found: ghost");
-
-    const run = new RequestContext(
-      RunSchema,
-      create(RunSchema, { metadata: { slug: "run-1", org: "acme" } }),
-      testCallerIdentity(),
-      ApiResourceKind.run,
-    );
-    const runError = await captureError(() =>
-      newLoadExistingStep<typeof RunSchema>(store).execute(run),
-    );
-    expect(
-      (runError as ConnectError).rawMessage,
-      "a kind whose slugs are not names is updated by id",
-    ).toBe("resource id is required to update a Run");
-
-    const neither = agentCtx(agent({ name: "" }));
-    const iaError = await captureError(() =>
-      newLoadExistingStep<typeof AgentSchema>(store).execute(neither),
-    );
-    expect((iaError as ConnectError).rawMessage).toBe(
-      "resource id or slug is required for update",
-    );
   });
 
   it("LoadForApply sets the create/update flags and never fails on not-found", async () => {

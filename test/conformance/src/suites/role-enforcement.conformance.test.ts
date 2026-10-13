@@ -209,12 +209,12 @@ const BLUEPRINT_KINDS: ReadonlyArray<BlueprintKind> = [
     },
     get: (using, id) => using.agentQuery.get({ value: id }),
     edit: (using, id) =>
-      using.agentCommand.update({
+      using.agentCommand.update({ resource: {
         apiVersion: AGENT_API_VERSION,
         kind: AGENT_KIND,
         metadata: { id, name: uniqueName("role-agent-renamed") },
         spec: makeAgentSpec({ description: "edited by a role" }),
-      }),
+      }, updateMask: { paths: ["*"] } }),
     delete: (using, id) => using.agentCommand.delete({ value: id }),
   },
   {
@@ -511,7 +511,7 @@ describe("role enforcement — agent creation: a member's by the organization's 
     const carried = await c.owner.organizationQuery.get({ value: c.org });
     carried.spec ??= create(OrganizationSpecSchema);
     carried.spec.policies = create(OrganizationPoliciesSchema, { membersCanCreateAgents: true });
-    await c.owner.organizationCommand.update(carried);
+    await c.owner.organizationCommand.update({ resource: carried, updateMask: { paths: ["*"] } });
     expect(await membersCanCreateAgents(c.owner, c.org)).toBe(false);
 
     await c.admin.organizationCommand.updatePolicies({
@@ -702,10 +702,10 @@ const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
         (a) => a.metadata?.id ?? "",
       ),
     edit: (using, org, row) =>
-      using.oauthAppCommand.update({
+      using.oauthAppCommand.update({ resource: {
         ...makeOAuthApp(org, row.name, { clientId: "edited-by-a-role" }),
         metadata: { id: row.id, name: row.name, org },
-      }),
+      }, updateMask: { paths: ["*"] } }),
     delete: (using, id) => using.oauthAppCommand.delete({ resourceId: id }),
   },
   {
@@ -740,10 +740,10 @@ const ADMINISTRATIVE_KINDS: ReadonlyArray<AdministrativeKind> = [
         (a) => a.metadata?.id ?? "",
       ),
     edit: (using, org, row) =>
-      using.channelAppCommand.update({
+      using.channelAppCommand.update({ resource: {
         ...makeSlackChannelApp(org, row.name, { clientId: "edited-by-a-role" }),
         metadata: { id: row.id, name: row.name, org },
-      }),
+      }, updateMask: { paths: ["*"] } }),
     delete: (using, id) => using.channelAppCommand.delete({ resourceId: id }),
   },
 ];

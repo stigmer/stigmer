@@ -263,6 +263,7 @@ describe("serializeManifest", () => {
       slug: "clinic-patient-assistant",
       org: "rakeshreddi098",
       version: { id: "ver_01", message: "server-managed" },
+      etag: "9b1c6f0e",
     },
     spec: {
       description: "Patient-facing WhatsApp assistant.",
@@ -282,12 +283,13 @@ describe("serializeManifest", () => {
     expect(yaml).not.toContain("api_version:");
   });
 
-  it("keeps metadata.id but strips server-managed metadata.version", () => {
+  it("keeps metadata.id but strips server-managed metadata.version and the etag", () => {
     const doc = parseYaml(serializeManifest(agent)) as {
       metadata: Record<string, unknown>;
     };
     expect(doc.metadata.id).toBe("agt_01example");
     expect(doc.metadata.version).toBeUndefined();
+    expect(doc.metadata.etag).toBeUndefined();
   });
 
   it("fills apiVersion and kind from the registry when the proto omits them", () => {
@@ -304,11 +306,12 @@ describe("serializeManifest", () => {
     expect(docs).toHaveLength(1);
 
     // The round-tripped proto matches the original minus system-managed
-    // state (status, metadata.version) — exactly what apply consumes.
+    // state (status, metadata.version, the etag) — exactly what apply
+    // consumes.
     const expected = create(AgentSchema, {
       ...agent,
       status: undefined,
-      metadata: { ...agent.metadata!, version: undefined },
+      metadata: { ...agent.metadata!, version: undefined, etag: "" },
     });
     expect(equals(AgentSchema, docs[0].message as Agent, expected)).toBe(true);
   });

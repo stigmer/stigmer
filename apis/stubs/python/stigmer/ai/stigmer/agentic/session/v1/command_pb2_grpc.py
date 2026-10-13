@@ -29,7 +29,7 @@ class SessionCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
                 _registered_method=True)
         self.updateSubject = channel.unary_unary(
@@ -67,6 +67,11 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.FromString,
                 _registered_method=True)
+        self.bindHarnessState = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateResponse.FromString,
+                _registered_method=True)
 
 
 class SessionCommandControllerServicer(object):
@@ -88,7 +93,22 @@ class SessionCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing session (e.g., subject, thread_id).
+        """Update a session: the fields update_mask names change, every other
+        field keeps its stored value.
+
+        resource.metadata.id names the session; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the session does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the session kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -235,6 +255,17 @@ class SessionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def bindHarnessState(self, request, context):
+        """Record the harness's conversation id for a run's session.
+
+        Only the runner acting for the run may call it, while the run is not
+        finished. The id replaced, if any, joins the session's
+        harness_state_id_history.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SessionCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -250,7 +281,7 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
             ),
             'updateSubject': grpc.unary_unary_rpc_method_handler(
@@ -287,6 +318,11 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
                     servicer.appendEvents,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.SerializeToString,
+            ),
+            'bindHarnessState': grpc.unary_unary_rpc_method_handler(
+                    servicer.bindHarnessState,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -369,7 +405,7 @@ class SessionCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.session.v1.SessionCommandController/update',
-            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
             options,
             channel_credentials,
@@ -560,6 +596,33 @@ class SessionCommandController(object):
             '/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def bindHarnessState(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateResponse.FromString,
             options,
             channel_credentials,
             insecure,

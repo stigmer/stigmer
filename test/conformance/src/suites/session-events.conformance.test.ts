@@ -94,4 +94,19 @@ describe("a session's event log — who may read and write it (on the enforcing 
     );
     expect(refused.rawMessage).toBe("only the runner acting for this run may append its events");
   });
+
+  it("[rpc:SessionCommandController.bindHarnessState] a person's own credential is no runner's: even the session's owner is refused", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    await ownersSession(lane);
+    const refused = await expectGrpcCode(
+      () =>
+        clients.sessionCommand.bindHarnessState({
+          runId: "run_01conformancenotarunner",
+          harnessStateId: "thread-forged",
+        }),
+      Code.PermissionDenied,
+      "bindHarnessState with a signed-in person's credential",
+    );
+    expect(refused.rawMessage).toBe("only the runner acting for this run may record its session's harness state");
+  });
 });

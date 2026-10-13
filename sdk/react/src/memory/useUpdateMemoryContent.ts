@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import type { Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
-import { toMemoryUpdateInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -22,11 +21,10 @@ export interface UseUpdateMemoryContentReturn {
  * Behavior hook that edits a memory's fact text — the one field the
  * subject owns after capture.
  *
- * The update RPC replaces the entire spec, so the loaded record is
- * mapped through the generated `toMemoryUpdateInput` and only `content`
- * is overridden — the wipe-safe editing rule. Subject and provenance
- * ride along verbatim (they are update-immutable server-side), and the
- * consent lifecycle is never touched by updates.
+ * The update names `spec.content` alone, on the record as loaded (its id
+ * and the etag it was read at): subject, provenance and the consent
+ * lifecycle keep their stored values, and a memory changed since it was
+ * read refuses the save (ABORTED, reason `ETAG_MISMATCH`).
  *
  * @example
  * ```tsx
@@ -49,10 +47,13 @@ export function useUpdateMemoryContent(): UseUpdateMemoryContentReturn {
       setError(null);
 
       try {
-        return await stigmer.memory.update({
-          ...toMemoryUpdateInput(memory),
-          content,
-        });
+        return await stigmer.memory.update(
+          {
+            metadata: { id: memory.metadata?.id ?? "", etag: memory.metadata?.etag ?? "" },
+            spec: { content },
+          },
+          ["spec.content"],
+        );
       } catch (err) {
         setError(toError(err));
         throw err;

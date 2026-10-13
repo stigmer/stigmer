@@ -234,7 +234,7 @@ describe("Run scores", () => {
     expect(info?.reason).toBe(SCORE_EXISTS_REASON);
     expect(info?.metadata["score_id"]).toBe(rated.metadata!.id);
 
-    const changed = await clients.scoreCommand.update(editedFeedback(rated, true, "fine after all"));
+    const changed = await clients.scoreCommand.update({ resource: editedFeedback(rated, true, "fine after all"), updateMask: { paths: ["*"] } });
     expect(changed.spec?.value).toEqual({ case: "passed", value: true });
     expect(changed.spec?.comment).toBe("fine after all");
 
@@ -243,7 +243,7 @@ describe("Run scores", () => {
     // reaches the chain and is refused with the copy; where it has no owner
     // (the hosted edition), authorization refuses it first.
     const verdict = await grpcCodeOf(
-      () => clients.scoreCommand.update(editedFeedback(health, true, "")),
+      () => clients.scoreCommand.update({ resource: editedFeedback(health, true, ""), updateMask: { paths: ["*"] } }),
       "changing a check's verdict",
     );
     expect([Code.FailedPrecondition, Code.PermissionDenied]).toContain(verdict);

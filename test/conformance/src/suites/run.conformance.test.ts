@@ -52,27 +52,6 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-describe("Run conformance — one-call session bootstrap validation (session_spec)", () => {
-  it("[rpc:RunCommandController.create] rejects a session_spec carrying harness_state_id (InvalidArgument — server-owned field)", async () => {
-    const { org } = await target.provisionTenancy();
-    // harness_state_id is engine-owned conversation continuity state; a
-    // caller-supplied value would fake state on a brand-new session and trip
-    // the immutability sentinel.
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-bootstrap-hstate"),
-            sessionSpec: { harnessStateId: "thread-forged" },
-          }),
-        ),
-      Code.InvalidArgument,
-      "create with a session_spec carrying harness_state_id",
-    );
-  });
-});
-
 describe("Run conformance — service-tier fail-closed validation (#357)", () => {
   // The tier exists to make pricing deterministic, so it is validated where
   // the price is decided — at create, against the model registry — with

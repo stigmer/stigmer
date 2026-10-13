@@ -7,13 +7,15 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { OAuthApp } from "./api_pb.js";
 import { file_ai_stigmer_iam_oauthapp_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/iam/oauthapp/v1/io.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9pby5wcm90bxIaYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEiJgoKT0F1dGhBcHBJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIkIKCU9BdXRoQXBwcxI1CgdlbnRyaWVzGAEgAygLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHAiLwoXTGlzdE9BdXRoQXBwc0J5T3JnSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABYgZwcm90bzM", [file_ai_stigmer_iam_oauthapp_v1_api, file_buf_validate_validate]);
+  fileDesc("CiNhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9pby5wcm90bxIaYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEiJgoKT0F1dGhBcHBJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIkIKCU9BdXRoQXBwcxI1CgdlbnRyaWVzGAEgAygLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHAiLwoXTGlzdE9BdXRoQXBwc0J5T3JnSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABItICChNVcGRhdGVPQXV0aEFwcElucHV0Ej4KCHJlc291cmNlGAEgASgLMiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHBCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrBAbpIvQEaugEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EklyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBPQXV0aCBhcHAgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_oauthapp_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * OAuthAppId identifies an OAuth app by its unique identifier.
@@ -78,4 +80,37 @@ export type ListOAuthAppsByOrgInput = Message<"ai.stigmer.iam.oauthapp.v1.ListOA
  */
 export const ListOAuthAppsByOrgInputSchema: GenMessage<ListOAuthAppsByOrgInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_oauthapp_v1_io, 2);
+
+/**
+ * The changes an update makes to an OAuth app: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput
+ */
+export type UpdateOAuthAppInput = Message<"ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput"> & {
+  /**
+   * The OAuth app carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.iam.oauthapp.v1.OAuthApp resource = 1;
+   */
+  resource?: OAuthApp;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput.
+ * Use `create(UpdateOAuthAppInputSchema)` to create a new message.
+ */
+export const UpdateOAuthAppInputSchema: GenMessage<UpdateOAuthAppInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_oauthapp_v1_io, 3);
 

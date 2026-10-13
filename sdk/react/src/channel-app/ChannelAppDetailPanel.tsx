@@ -2,7 +2,8 @@
 
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, toChannelAppUpdateInput } from "@stigmer/sdk";
+import { buildChannelAppProto, getUserMessage } from "@stigmer/sdk";
+import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { usePublicBaseUrl } from "../public-base-url-context.js";
 import { useUpdateChannelApp } from "./useUpdateChannelApp.js";
@@ -256,10 +257,9 @@ function SlackAppDetail({
 
       clearError();
       try {
-        // Full-spec-replace safety: spread the complete mapped input and
-        // override only the slack arm this form owns.
-        const updated = await update({
-          ...toChannelAppUpdateInput(channelApp),
+        // The update names the slack arm this form owns; the app's other
+        // fields keep their stored values.
+        const { resource, paths } = maskedEdit(channelApp, buildChannelAppProto, {
           slack: {
             clientId: clientId.trim(),
             // The redaction marker means "keep the stored value" — the
@@ -268,6 +268,7 @@ function SlackAppDetail({
             signingSecret: signingSecret.trim(),
           },
         });
+        const updated = await update(resource, paths);
         onUpdated?.(updated);
       } catch {
         // error state is managed by useUpdateChannelApp
@@ -345,7 +346,7 @@ function SlackAppDetail({
 
           {updateError && (
             <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-              {getUserMessage(updateError)}
+              {saveErrorMessage(updateError, "channel app")}
             </p>
           )}
 
@@ -419,10 +420,9 @@ function WhatsAppAppDetail({
 
       clearError();
       try {
-        // Full-spec-replace safety: spread the complete mapped input and
-        // override only the whatsapp arm this form owns.
-        const updated = await update({
-          ...toChannelAppUpdateInput(channelApp),
+        // The update names the whatsapp arm this form owns; the app's other
+        // fields keep their stored values.
+        const { resource, paths } = maskedEdit(channelApp, buildChannelAppProto, {
           whatsapp: {
             appId: metaAppId.trim(),
             // The redaction marker means "keep the stored value" — the
@@ -432,6 +432,7 @@ function WhatsAppAppDetail({
             verifyToken: verifyToken.trim(),
           },
         });
+        const updated = await update(resource, paths);
         onUpdated?.(updated);
       } catch {
         // error state is managed by useUpdateChannelApp
@@ -539,7 +540,7 @@ function WhatsAppAppDetail({
 
           {updateError && (
             <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-              {getUserMessage(updateError)}
+              {saveErrorMessage(updateError, "channel app")}
             </p>
           )}
 

@@ -28,7 +28,7 @@ class AgentShareCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.agentshare.v1.AgentShareCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2.AgentShare.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.UpdateAgentShareInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2.AgentShare.FromString,
                 _registered_method=True)
         self.rotateShareLink = channel.unary_unary(
@@ -66,11 +66,26 @@ class AgentShareCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing agent share.
+        """Update an agent share: the fields update_mask names change, every other
+        field keeps its stored value.
 
-        Replaces the spec wholesale: a manifest that omits audience makes the
-        share organization-only, and one that omits vaults detaches them (both
-        fail closed). The slug and referenced agent are immutable.
+        The referenced agent is immutable. A mask naming the audience or the
+        vaults replaces them whole: an empty audience makes the share
+        organization-only, and empty vaults detach them (both fail closed).
+
+        resource.metadata.id names the agent share; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the agent share does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the agent share kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -121,7 +136,7 @@ def add_AgentShareCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2.AgentShare.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.UpdateAgentShareInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2.AgentShare.SerializeToString,
             ),
             'rotateShareLink': grpc.unary_unary_rpc_method_handler(
@@ -215,7 +230,7 @@ class AgentShareCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.agentshare.v1.AgentShareCommandController/update',
-            ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2.AgentShare.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_io__pb2.UpdateAgentShareInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentshare_dot_v1_dot_api__pb2.AgentShare.FromString,
             options,
             channel_credentials,

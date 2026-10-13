@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentChannelSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_api } from "./api_pb.js";
-import type { AgentChannelIdSchema, CompleteChannelInstallInputSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema } from "./io_pb.js";
+import type { AgentChannelIdSchema, CompleteChannelInstallInputSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, UpdateAgentChannelInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentchannel/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEy9AcKHUFnZW50Q2hhbm5lbENvbW1hbmRDb250cm9sbGVyEmsKBWFwcGx5EjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5BZ2VudENoYW5uZWwaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbBJyCgZjcmVhdGUSMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbBowLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIgTQuBgBEqkBCgZ1cGRhdGUSMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbBowLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIjvCuBg3CAIQLyILbWV0YWRhdGEuaWQqJHVuYXV0aG9yaXplZCB0byB1cGRhdGUgYWdlbnQgY2hhbm5lbBLSAQoPaW5pdGlhdGVJbnN0YWxsEj8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Jbml0aWF0ZUNoYW5uZWxJbnN0YWxsSW5wdXQaQC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkluaXRpYXRlQ2hhbm5lbEluc3RhbGxPdXRwdXQiPMK4GDgIAhAvIgtyZXNvdXJjZV9pZColdW5hdXRob3JpemVkIHRvIGluc3RhbGwgYWdlbnQgY2hhbm5lbBLCAQoPY29tcGxldGVJbnN0YWxsEj8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5Db21wbGV0ZUNoYW5uZWxJbnN0YWxsSW5wdXQaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbCI8wrgYOAgCEC8iC3Jlc291cmNlX2lkKiV1bmF1dGhvcml6ZWQgdG8gaW5zdGFsbCBhZ2VudCBjaGFubmVsEqUBCgZkZWxldGUSMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbElkGjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5BZ2VudENoYW5uZWwiNcK4GDEIAxAvIgV2YWx1ZSokdW5hdXRob3JpemVkIHRvIGRlbGV0ZSBhZ2VudCBjaGFubmVsGgSg/ysvYgZwcm90bzM", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_agentic_agentchannel_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEyiAgKHUFnZW50Q2hhbm5lbENvbW1hbmRDb250cm9sbGVyEmsKBWFwcGx5EjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5BZ2VudENoYW5uZWwaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbBJyCgZjcmVhdGUSMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbBowLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIgTQuBgBEr0BCgZ1cGRhdGUSOy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlVwZGF0ZUFnZW50Q2hhbm5lbElucHV0GjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5BZ2VudENoYW5uZWwiRMK4GEAIAhAvIhRyZXNvdXJjZS5tZXRhZGF0YS5pZCokdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhZ2VudCBjaGFubmVsEtIBCg9pbml0aWF0ZUluc3RhbGwSPy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkluaXRpYXRlQ2hhbm5lbEluc3RhbGxJbnB1dBpALmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuSW5pdGlhdGVDaGFubmVsSW5zdGFsbE91dHB1dCI8wrgYOAgCEC8iC3Jlc291cmNlX2lkKiV1bmF1dGhvcml6ZWQgdG8gaW5zdGFsbCBhZ2VudCBjaGFubmVsEsIBCg9jb21wbGV0ZUluc3RhbGwSPy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbXBsZXRlQ2hhbm5lbEluc3RhbGxJbnB1dBowLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIjzCuBg4CAIQLyILcmVzb3VyY2VfaWQqJXVuYXV0aG9yaXplZCB0byBpbnN0YWxsIGFnZW50IGNoYW5uZWwSpQEKBmRlbGV0ZRIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsSWQaMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbCI1wrgYMQgDEC8iBXZhbHVlKiR1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGFnZW50IGNoYW5uZWwaBKD/Ky9iBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_agentic_agentchannel_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentChannelCommandController handles write operations for agent channels.
@@ -49,17 +49,31 @@ export const AgentChannelCommandController: GenService<{
     output: typeof AgentChannelSchema;
   },
   /**
-   * Update an existing agent channel.
+   * Update an agent channel: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * Replaces the spec wholesale. The slug, referenced agent, and provider
-   * arm are immutable; status (install facts, credential reference) is
-   * never touched by updates.
+   * The referenced agent and the provider arm are immutable; status
+   * (install facts, credential reference) is never touched by updates.
+   *
+   * resource.metadata.id names the agent channel; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the agent channel does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the agent channel kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof AgentChannelSchema;
+    input: typeof UpdateAgentChannelInputSchema;
     output: typeof AgentChannelSchema;
   },
   /**

@@ -306,21 +306,22 @@ describe("update", () => {
       vault: { org: ORG, vault: { case: "id", value: id } },
       secrets: { API_KEY: { value: "sk-1", description: "" } },
     });
-    const updated = await commands(ADMIN).update({
+    const updated = await commands(ADMIN).update({ resource: {
       ...created,
-      metadata: { ...created.metadata!, name: "Renamed" },
+      metadata: { ...created.metadata!, etag: "", name: "Renamed" },
       spec: { ...created.spec!, description: "new words", secrets: {} },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.name).toBe("Renamed");
     expect(updated.spec?.description).toBe("new words");
     expect(Object.keys(updated.spec?.secrets ?? {})).toEqual(["API_KEY"]);
     expectNoValues(updated);
 
     const moved = await failureOf(
-      commands(ADMIN).update({
+      commands(ADMIN).update({ resource: {
         ...created,
+        metadata: { ...created.metadata!, etag: "" },
         spec: { ...created.spec!, owner: { case: "person", value: ADMIN } },
-      }),
+      }, updateMask: { paths: ["*"] } }),
     );
     expect(moved.code).toBe(Code.InvalidArgument);
     expect(moved.rawMessage).toBe(OWNER_IMMUTABLE_REFUSAL);
@@ -343,10 +344,11 @@ describe("update", () => {
         ApiResourceVisibility.visibility_org,
       ),
       () =>
-        commands(ADMIN).update({
+        commands(ADMIN).update({ resource: {
           ...created,
+          metadata: { ...created.metadata!, etag: "" },
           spec: { ...created.spec!, description: "new words" },
-        }),
+        }, updateMask: { paths: ["*"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);
@@ -371,10 +373,11 @@ describe("update", () => {
           secrets: { API_KEY: { value: "sk-landed", description: "" } },
         }),
       () =>
-        commands(ADMIN).update({
+        commands(ADMIN).update({ resource: {
           ...created,
+          metadata: { ...created.metadata!, etag: "" },
           spec: { ...created.spec!, description: "new words" },
-        }),
+        }, updateMask: { paths: ["*"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);
@@ -403,10 +406,11 @@ describe("external ids", () => {
     ).toBe(first.metadata!.id);
 
     // Moved: the new id finds it and the old one is free again.
-    await commands(ADMIN).update({
+    await commands(ADMIN).update({ resource: {
       ...first,
+      metadata: { ...first.metadata!, etag: "" },
       spec: { ...first.spec!, externalId: "customer-2" },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(
       (await queries(ADMIN).getByExternalId({ org: ORG, externalId: "customer-2" }))
         .metadata?.id,
@@ -414,7 +418,7 @@ describe("external ids", () => {
     const reuse = await commands(ADMIN).create(sharedInput({ externalId: "customer-1" }));
 
     // Cleared, then deleted: both ids are free.
-    await commands(ADMIN).update({ ...first, spec: { ...first.spec!, externalId: "" } });
+    await commands(ADMIN).update({ resource: { ...first, metadata: { ...first.metadata!, etag: "" }, spec: { ...first.spec!, externalId: "" } }, updateMask: { paths: ["*"] } });
     await commands(ADMIN).create(sharedInput({ externalId: "customer-2" }));
     await commands(ADMIN).delete({ resourceId: reuse.metadata!.id });
     await commands(ADMIN).create(sharedInput({ externalId: "customer-1" }));
@@ -567,7 +571,7 @@ describe("entries, My vault and visibility", () => {
   it("My vault takes no external id", async () => {
     const mine = await queries(ANA).getMine({ org: ORG });
     const refused = await failureOf(
-      commands(ANA).update({ ...mine, spec: { ...mine.spec!, externalId: "x" } }),
+      commands(ANA).update({ resource: { ...mine, metadata: { ...mine.metadata!, etag: "" }, spec: { ...mine.spec!, externalId: "x" } }, updateMask: { paths: ["*"] } }),
     );
     expect(refused.code).toBe(Code.InvalidArgument);
   });
@@ -686,10 +690,11 @@ describe("reads and refusals at the edges", () => {
     await commands(ADMIN).create(sharedInput({ externalId: "taken-by-first" }));
     const second = await commands(ADMIN).create(sharedInput({ externalId: "second-own" }));
     const moved = await failureOf(
-      commands(ADMIN).update({
+      commands(ADMIN).update({ resource: {
         ...second,
+        metadata: { ...second.metadata!, etag: "" },
         spec: { ...second.spec!, externalId: "taken-by-first" },
-      }),
+      }, updateMask: { paths: ["*"] } }),
     );
     expect(moved.code).toBe(Code.AlreadyExists);
     // The second vault still answers to its own id.
@@ -759,9 +764,9 @@ describe("values from a request, and values in a response", () => {
     });
     const before = await storedEntries(id);
 
-    const updated = await commands(ADMIN).update({
+    const updated = await commands(ADMIN).update({ resource: {
       ...created,
-      metadata: { ...created.metadata!, name: "Renamed with values" },
+      metadata: { ...created.metadata!, etag: "", name: "Renamed with values" },
       spec: {
         ...created.spec!,
         // A message spread keeps its type, so the entries are messages too.
@@ -774,7 +779,7 @@ describe("values from a request, and values in a response", () => {
           "github.com": create(VaultConnectionSchema, { token: "gh-from-update" }),
         },
       },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.name).toBe("Renamed with values");
     expectNoValues(updated);
     expect(await storedEntries(id)).toEqual(before);

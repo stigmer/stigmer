@@ -3,6 +3,7 @@ import datetime
 from ai.stigmer.agentic.schedule.v1 import api_pb2 as _api_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -131,3 +132,11 @@ class ScheduleFireList(_message.Message):
     total_count: int
     items: _containers.RepeatedCompositeFieldContainer[ScheduleFire]
     def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[ScheduleFire, _Mapping]]] = ...) -> None: ...
+
+class UpdateScheduleInput(_message.Message):
+    __slots__ = ("resource", "update_mask")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MASK_FIELD_NUMBER: _ClassVar[int]
+    resource: _api_pb2.Schedule
+    update_mask: _field_mask_pb2.FieldMask
+    def __init__(self, resource: _Optional[_Union[_api_pb2.Schedule, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...

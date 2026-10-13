@@ -19,7 +19,7 @@
  */
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, toIdentityProviderUpdateInput } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/sdk";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { UpgradeNotice, planUpgradeFeature } from "../billing/UpgradeNotice.js";
@@ -88,7 +88,14 @@ function OwnerControls({
   const change = async (next: boolean) => {
     clearError();
     try {
-      const updated = await update({ ...toIdentityProviderUpdateInput(identityProvider), ssoRequired: next });
+      // The one field this switch changes, with the etag it was read at.
+      const updated = await update(
+        {
+          metadata: { id: identityProvider.metadata?.id ?? "", etag: identityProvider.metadata?.etag ?? "" },
+          spec: { ssoRequired: next },
+        },
+        ["spec.sso_required"],
+      );
       setStep("idle");
       onUpdated?.(updated);
     } catch {

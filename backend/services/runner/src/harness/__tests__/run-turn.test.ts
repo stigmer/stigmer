@@ -116,7 +116,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         RunPhase.RUN_IN_PROGRESS,
         RunPhase.RUN_COMPLETED,
       ]);
-      expect(driver.record.sessionUpdates, "an engine-minted adapter binds once across the round trip").toHaveLength(1);
+      expect(driver.record.harnessBinds, "an engine-minted adapter binds once across the round trip").toHaveLength(1);
     });
 
     it("the cost cap: the fake's stated price reads exactly in the copy", async () => {

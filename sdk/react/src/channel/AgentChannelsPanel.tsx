@@ -45,7 +45,8 @@ import {
 import { useAgentChannelList } from "./useAgentChannelList.js";
 import { useChannelToolReadiness } from "./useChannelToolReadiness.js";
 import { useDeleteAgentChannel } from "./useDeleteAgentChannel.js";
-import { agentChannelToInput, useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { saveErrorMessage } from "../internal/maskedEdit.js";
 
 /** Props for {@link AgentChannelsPanel}. */
 export interface AgentChannelsPanelProps {
@@ -492,7 +493,7 @@ function ChannelCard({
     channelPresentationOf(channel.spec?.providerConfig?.case) ??
     DEFAULT_CHANNEL_PRESENTATION;
 
-  const { save, isPending } = useSaveAgentChannel();
+  const { update, isPending } = useSaveAgentChannel();
 
   // Decide the card's actions here (not via nested permission wrappers) so
   // affordances are hidden entirely when the viewer can do nothing —
@@ -523,20 +524,19 @@ function ChannelCard({
       : null,
   });
 
-  // On/off is a full-input save with only `enabled` flipped —
-  // agentChannelToInput guarantees the toggle can never wipe the agent
-  // reference or the provider marker (the fails-closed posture shares use).
+  // On/off names `spec.enabled` alone: every other field keeps its
+  // stored value.
   const handleToggleEnabled = useCallback(
     async (next: boolean) => {
       try {
-        await save({ ...agentChannelToInput(channel), enabled: next });
+        await update(channel, { enabled: next });
         toast.success(next ? "Channel turned on" : "Channel turned off");
         refetch();
       } catch (err) {
-        toast.error(getUserMessage(err));
+        toast.error(saveErrorMessage(err, "channel"));
       }
     },
-    [save, channel, refetch],
+    [update, channel, refetch],
   );
 
   return (

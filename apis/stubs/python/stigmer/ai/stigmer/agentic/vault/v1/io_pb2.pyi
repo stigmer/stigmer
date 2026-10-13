@@ -3,6 +3,7 @@ import datetime
 from ai.stigmer.agentic.vault.v1 import api_pb2 as _api_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -176,3 +177,11 @@ class ConnectLink(_message.Message):
     url: str
     expires_at: _timestamp_pb2.Timestamp
     def __init__(self, url: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class UpdateVaultInput(_message.Message):
+    __slots__ = ("resource", "update_mask")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MASK_FIELD_NUMBER: _ClassVar[int]
+    resource: _api_pb2.Vault
+    update_mask: _field_mask_pb2.FieldMask
+    def __init__(self, resource: _Optional[_Union[_api_pb2.Vault, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...

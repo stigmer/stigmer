@@ -38,11 +38,6 @@ export interface SessionSpecOptions {
   harness?: Harness;
   // Where activities run. Omitted by default for the same parity reason.
   executionTarget?: ExecutionTarget;
-  // The immutability sentinel (spec.harness_state_id). Normally populated by the
-  // engine after the first execution; the immutability suite sets it directly to
-  // exercise the harness / execution_target immutability validators hermetically
-  // (it is a plain client-settable spec field). Omitted by default.
-  harnessStateId?: string;
   // Session-level plugin slugs, projected into spec.plugins (added to the
   // agent's own, one entry per plugin). Org is left empty so the server
   // normalizes it to the session's org.
@@ -82,7 +77,6 @@ export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof
     subject: opts.subject ?? "conformance fixture session",
     ...(opts.harness !== undefined ? { harness: opts.harness } : {}),
     ...(opts.executionTarget !== undefined ? { executionTarget: opts.executionTarget } : {}),
-    ...(opts.harnessStateId !== undefined ? { harnessStateId: opts.harnessStateId } : {}),
     ...(opts.plugins !== undefined
       ? { plugins: opts.plugins.map((slug) => ({ slug, kind: ApiResourceKind.plugin })) }
       : {}),

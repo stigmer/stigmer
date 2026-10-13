@@ -17,7 +17,7 @@ import { useSessionConversation, type UseSessionConversationReturn } from "./use
 import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionAgentVersion, type UseSessionAgentVersionReturn } from "./useSessionAgentVersion.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
-import { toSessionUpdateInput } from "@stigmer/sdk";
+import { toResourceRefInputs } from "@stigmer/sdk";
 import type { SessionAudience } from "./audience.js";
 import { isChannelOriginSession } from "./channelOrigin.js";
 import { assertValidRunConfig, type SessionRunConfig } from "./run-config.js";
@@ -582,14 +582,15 @@ export function useSessionPageFlow(
       }
     }
 
-    // Plugin and skill references, hydrated through the SDK's complete
-    // update-input mapper (the canonical proto → input lens).
-    const mapped = toSessionUpdateInput(conv.session);
-    if (mapped.plugins?.length) {
-      setPluginRefs(mapped.plugins);
+    // Plugin and skill references, read through the SDK's proto → input
+    // lens (each keeps its id, version and kind).
+    const plugins = toResourceRefInputs(spec?.plugins);
+    if (plugins?.length) {
+      setPluginRefs(plugins);
     }
-    if (mapped.skillRefs?.length) {
-      setSkillRefs(mapped.skillRefs);
+    const skillRefs = toResourceRefInputs(spec?.skillRefs);
+    if (skillRefs?.length) {
+      setSkillRefs(skillRefs);
     }
   }, [conv.session, workspace]);
 

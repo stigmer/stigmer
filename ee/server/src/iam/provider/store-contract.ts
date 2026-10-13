@@ -48,11 +48,12 @@
  */
 import assert from "node:assert/strict";
 
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import {
+  etagOf,
   guardedPortDeclarations,
   portContractCases,
   type PortContractCase,
@@ -108,6 +109,34 @@ async function swapOnCurrent(
 }
 
 const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
+  [
+    "every write stores the etag its content gives: an insert, a modify and a swap",
+    async ({ store }) => {
+      await store.insert(provider({ id: "idp_etag", org: "acme", slug: "etag-first", issuers: ["https://etag.contract.test"] }));
+      const inserted = await store.findById("idp_etag");
+      assert.ok(inserted !== undefined, "the insert is read back");
+      assert.notEqual(inserted.metadata?.etag ?? "", "", "an insert stamps the etag");
+      assert.equal(inserted.metadata?.etag, etagOf(IdentityProviderSchema, inserted));
+      await store.modifyById("idp_etag", (held) => {
+        if (held.metadata !== undefined) {
+          held.metadata.name = "Second";
+        }
+      });
+      const modified = await store.findById("idp_etag");
+      assert.ok(modified !== undefined);
+      assert.equal(modified.metadata?.etag, etagOf(IdentityProviderSchema, modified), "a modify restamps it");
+      assert.notEqual(modified.metadata?.etag, inserted.metadata?.etag);
+      const next = clone(IdentityProviderSchema, modified);
+      if (next.spec !== undefined) {
+        next.spec.displayName = "Third";
+      }
+      assert.deepEqual(await swapOnCurrent(store, next), { kind: "replaced" });
+      const swapped = await store.findById("idp_etag");
+      assert.ok(swapped !== undefined);
+      assert.equal(swapped.metadata?.etag, etagOf(IdentityProviderSchema, swapped), "a swap restamps it");
+      assert.notEqual(swapped.metadata?.etag, modified.metadata?.etag);
+    },
+  ],
   [
     "modifyById changes the payload and the slug together and keeps the routes; a claim change is refused, and an unknown id writes nothing",
     async ({ store }) => {

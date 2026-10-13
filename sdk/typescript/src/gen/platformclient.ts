@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp, toResourceRefInputs } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -12,7 +12,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PlatformClientSchema, type PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
-import { PlatformClientCreateResponseSchema, PlatformClientIdSchema, ListPlatformClientsByOrgInputSchema, PlatformClientsSchema, type PlatformClientCreateResponse, type ListPlatformClientsByOrgInput, type PlatformClients } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
+import { PlatformClientCreateResponseSchema, UpdatePlatformClientInputSchema, PlatformClientIdSchema, ListPlatformClientsByOrgInputSchema, PlatformClientsSchema, type PlatformClientCreateResponse, type ListPlatformClientsByOrgInput, type PlatformClients } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { PlatformClientQueryController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/query_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 import { PlatformClientTokenController, MintUserTokenRequestSchema, MintUserTokenResponseSchema, MintGuestTokenRequestSchema, MintGuestTokenResponseSchema, type MintUserTokenRequest, type MintUserTokenResponse, type MintGuestTokenRequest, type MintGuestTokenResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/token_pb";
@@ -36,9 +36,9 @@ export class PlatformClientClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: PlatformClientInput): Promise<PlatformClient> {
+  async update(resource: PlatformClient | MessageInitShape<typeof PlatformClientSchema>, paths: string[]): Promise<PlatformClient> {
     try {
-      return await this.command.update(buildPlatformClientProto(input));
+      return await this.command.update(create(UpdatePlatformClientInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -95,13 +95,13 @@ export class PlatformClientClient {
   }
 }
 
-/** Input for creating/updating a PlatformClient. */
+/** Input for creating or applying a PlatformClient. */
 export interface PlatformClientInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -149,24 +149,22 @@ export function buildPlatformClientProto(input: PlatformClientInput): PlatformCl
 }
 
 /**
- * Maps a fetched {@link PlatformClient} to a complete {@link PlatformClientInput} for `update()`.
+ * Maps a fetched {@link PlatformClient} to the complete {@link PlatformClientInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toPlatformClientInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toPlatformClientUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toPlatformClientUpdateInput(resource: PlatformClient): PlatformClientInput {
+export function toPlatformClientInput(resource: PlatformClient): PlatformClientInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(PlatformClientSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

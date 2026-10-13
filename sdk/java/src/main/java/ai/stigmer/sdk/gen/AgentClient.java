@@ -11,6 +11,7 @@ import ai.stigmer.agentic.agent.v1.GetAgentVersionInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse;
 import ai.stigmer.agentic.agent.v1.TagAgentVersionInput;
+import ai.stigmer.agentic.agent.v1.UpdateAgentInput;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -18,6 +19,7 @@ import ai.stigmer.commons.rpc.PageInfo;
 import ai.stigmer.search.v1.SearchRequest;
 import ai.stigmer.search.v1.SearchResponse;
 import ai.stigmer.search.v1.SearchServiceGrpc;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -45,9 +47,12 @@ public final class AgentClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Agent update(AgentInput input) {
+    public Agent update(Agent resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateAgentInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -10,14 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { IdentityProviderSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_identityprovider_v1_api } from "./api_pb.js";
-import type { AccessMoveRequestSchema, AccessMoveResultSchema, AccessMoveTicketSchema, RedeemAccessMoveInputSchema } from "./io_pb.js";
+import type { AccessMoveRequestSchema, AccessMoveResultSchema, AccessMoveTicketSchema, RedeemAccessMoveInputSchema, UpdateIdentityProviderInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_identityprovider_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/identityprovider/v1/command.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEyoQkKIUlkZW50aXR5UHJvdmlkZXJDb21tYW5kQ29udHJvbGxlchJzCgVhcHBseRI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlcho0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlchLLAQoGY3JlYXRlEjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyGjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyIlXCuBhRCAsQHiIMbWV0YWRhdGEub3JnKj11bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGlkZW50aXR5IHByb3ZpZGVyIGluIHRoaXMgb3JnYW5pemF0aW9uErUBCgZ1cGRhdGUSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiP8K4GDsIAhAVIgttZXRhZGF0YS5pZCoodW5hdXRob3JpemVkIHRvIHVwZGF0ZSBpZGVudGl0eSBwcm92aWRlchKsAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyIj/CuBg7CAMQFSILcmVzb3VyY2VfaWQqKHVuYXV0aG9yaXplZCB0byByZW5hbWUgaWRlbnRpdHkgcHJvdmlkZXIStwEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyIj/CuBg7CAMQFSILcmVzb3VyY2VfaWQqKHVuYXV0aG9yaXplZCB0byBkZWxldGUgaWRlbnRpdHkgcHJvdmlkZXIShQEKEGNyZWF0ZUFjY2Vzc01vdmUSNS5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLkFjY2Vzc01vdmVSZXF1ZXN0GjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5BY2Nlc3NNb3ZlVGlja2V0IgTQuBgBEokBChByZWRlZW1BY2Nlc3NNb3ZlEjkuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5SZWRlZW1BY2Nlc3NNb3ZlSW5wdXQaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLkFjY2Vzc01vdmVSZXN1bHQiBNC4GAEaBKD/KxViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityprovider_v1_api, file_ai_stigmer_iam_identityprovider_v1_io]);
+  fileDesc("CjBhaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEytQkKIUlkZW50aXR5UHJvdmlkZXJDb21tYW5kQ29udHJvbGxlchJzCgVhcHBseRI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlcho0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlchLLAQoGY3JlYXRlEjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyGjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyIlXCuBhRCAsQHiIMbWV0YWRhdGEub3JnKj11bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGlkZW50aXR5IHByb3ZpZGVyIGluIHRoaXMgb3JnYW5pemF0aW9uEskBCgZ1cGRhdGUSPy5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLlVwZGF0ZUlkZW50aXR5UHJvdmlkZXJJbnB1dBo0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciJIwrgYRAgCEBUiFHJlc291cmNlLm1ldGFkYXRhLmlkKih1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGlkZW50aXR5IHByb3ZpZGVyEqwBCgZyZW5hbWUSKy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuUmVuYW1lSW5wdXQaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiP8K4GDsIAxAVIgtyZXNvdXJjZV9pZCoodW5hdXRob3JpemVkIHRvIHJlbmFtZSBpZGVudGl0eSBwcm92aWRlchK3AQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiP8K4GDsIAxAVIgtyZXNvdXJjZV9pZCoodW5hdXRob3JpemVkIHRvIGRlbGV0ZSBpZGVudGl0eSBwcm92aWRlchKFAQoQY3JlYXRlQWNjZXNzTW92ZRI1LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuQWNjZXNzTW92ZVJlcXVlc3QaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLkFjY2Vzc01vdmVUaWNrZXQiBNC4GAESiQEKEHJlZGVlbUFjY2Vzc01vdmUSOS5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLlJlZGVlbUFjY2Vzc01vdmVJbnB1dBo0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuQWNjZXNzTW92ZVJlc3VsdCIE0LgYARoEoP8rFWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityprovider_v1_api, file_ai_stigmer_iam_identityprovider_v1_io]);
 
 /**
  * IdentityProviderCommandController provides write operations for identity providers.
@@ -93,7 +93,8 @@ export const IdentityProviderCommandController: GenService<{
     output: typeof IdentityProviderSchema;
   },
   /**
-   * Update an existing identity provider.
+   * Update an identity provider: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
    * On Stigmer Enterprise, changing how people sign in is growth the
    * server's license pays for. Once the license and its grace period have
@@ -118,14 +119,25 @@ export const IdentityProviderCommandController: GenService<{
    * an organization that already requires it keeps it, and may always
    * turn it off.
    *
-   * An update names the identity provider by its id, and the slug changes
-   * only through rename.
+   * resource.metadata.id names the identity provider; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the identity provider does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the identity provider kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof IdentityProviderSchema;
+    input: typeof UpdateIdentityProviderInputSchema;
     output: typeof IdentityProviderSchema;
   },
   /**

@@ -14,9 +14,9 @@
  * The rules are read from the proto through the shared validator, never
  * copied here, and a slug that breaks them is refused with its fix, never
  * shortened. Every slug the server derives outside a chain (plugin and
- * skill push, a plugin's members) calls the same check. An update chain by
- * id is the exception (ResolveSlugOptions.update): the stored slug wins
- * there, so the derived one is never checked.
+ * skill push, a plugin's members) calls the same check. An update chain is
+ * the exception (ResolveSlugOptions.update): it names its resource by id,
+ * and the stored slug is the one it keeps, so it derives none.
  */
 import { createHash } from "node:crypto";
 
@@ -33,11 +33,10 @@ import { validator } from "./validation.js";
 /** How a chain's ResolveSlug treats the slug it derives. */
 export interface ResolveSlugOptions {
   /**
-   * The chain updates a stored resource. With `metadata.id` set,
-   * LoadExisting reads the resource by id and BuildUpdateState puts its
-   * stored slug back, so the slug derived here is never used and is not
-   * held to the slug rules: an update that renames a resource whose new
-   * name would derive an invalid slug still applies.
+   * The chain updates a stored resource: LoadExisting reads it by the id
+   * the update names and BuildUpdateState keeps its stored slug, so no slug
+   * is derived, and a request whose mask leaves the name out is not asked
+   * for one.
    */
   readonly update?: boolean;
 }
@@ -56,20 +55,18 @@ export function newResolveSlugStep<
           "slug resolution",
         );
       }
-      if (metadata.slug !== "") {
-        return; // already set — idempotent
+      if (options.update === true || metadata.slug !== "") {
+        return; // the stored slug, or one already set
       }
       if (metadata.name === "") {
         // Name and slug both empty IS bad client input.
         throw invalidArgumentError("resource name is required");
       }
       const slug = generateSlug(metadata.name);
-      if (options.update !== true || metadata.id === "") {
-        checkDerivedSlug(slug, {
-          from: `the name '${metadata.name}'`,
-          fix: "set metadata.slug",
-        });
-      }
+      checkDerivedSlug(slug, {
+        from: `the name '${metadata.name}'`,
+        fix: "set metadata.slug",
+      });
       metadata.slug = slug;
     },
   };

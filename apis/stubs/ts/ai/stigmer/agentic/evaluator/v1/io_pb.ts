@@ -4,14 +4,18 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { Evaluator } from "./api_pb.js";
+import { file_ai_stigmer_agentic_evaluator_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/evaluator/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_evaluator_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvZXZhbHVhdG9yL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMuZXZhbHVhdG9yLnYxIikKC0V2YWx1YXRvcklkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASI6ChpHZXRFdmFsdWF0b3JCeUFnZW50UmVxdWVzdBIcCghhZ2VudF9pZBgBIAEoCUIKukgHcgUQARiAAWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvZXZhbHVhdG9yL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMuZXZhbHVhdG9yLnYxIikKC0V2YWx1YXRvcklkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASI6ChpHZXRFdmFsdWF0b3JCeUFnZW50UmVxdWVzdBIcCghhZ2VudF9pZBgBIAEoCUIKukgHcgUQARiAASLZAgoUVXBkYXRlRXZhbHVhdG9ySW5wdXQSRAoIcmVzb3VyY2UYASABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuZXZhbHVhdG9yLnYxLkV2YWx1YXRvckIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOsEBuki9ARq6AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSSXJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIGV2YWx1YXRvciBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_evaluator_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * EvaluatorId wraps an evaluator identifier.
@@ -54,4 +58,37 @@ export type GetEvaluatorByAgentRequest = Message<"ai.stigmer.agentic.evaluator.v
  */
 export const GetEvaluatorByAgentRequestSchema: GenMessage<GetEvaluatorByAgentRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_evaluator_v1_io, 1);
+
+/**
+ * The changes an update makes to an evaluator: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput
+ */
+export type UpdateEvaluatorInput = Message<"ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput"> & {
+  /**
+   * The evaluator carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.agentic.evaluator.v1.Evaluator resource = 1;
+   */
+  resource?: Evaluator;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput.
+ * Use `create(UpdateEvaluatorInputSchema)` to create a new message.
+ */
+export const UpdateEvaluatorInputSchema: GenMessage<UpdateEvaluatorInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_evaluator_v1_io, 2);
 

@@ -303,7 +303,7 @@ describe("API keys and service accounts (composed server, built-in Authorizer)",
       }
       const error = await refusal(
         createClient(ApiKeyCommandController, presenting(adminSa.key)).update(
-          own,
+          { resource: own, updateMask: { paths: ["*"] } },
         ),
       );
       expect(error.code).toBe(Code.PermissionDenied);

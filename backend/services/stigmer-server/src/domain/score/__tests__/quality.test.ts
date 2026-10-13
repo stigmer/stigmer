@@ -810,7 +810,7 @@ describe("an agent's quality, composed (trusted local)", () => {
 
     const edited = create(ScoreSchema, onTry);
     edited.spec!.value = { case: "passed", value: true };
-    const changed = await wire.update(edited);
+    const changed = await wire.update({ resource: edited, updateMask: { paths: ["*"] } });
     expect(changed.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe("pev_x");
     expect(changed.status?.agentId).toBe(agentId);
     expect(changed.status?.agentVersionHash).toBe("hash-1");

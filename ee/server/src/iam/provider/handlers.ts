@@ -99,7 +99,10 @@ import type { ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/co
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { IdentityProvidersSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import {
+  IdentityProvidersSchema,
+  UpdateIdentityProviderInputSchema,
+} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
@@ -115,6 +118,7 @@ import type {
 import type { ServiceAccountLookup } from "@stigmer/server";
 import {
   callerIdentityOf,
+  everyPathUpdate,
   internalError,
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
@@ -135,7 +139,7 @@ import {
   newRefuseServiceAccountCallerStep,
 } from "@stigmer/server";
 
-import { runUnaryChain } from "../../rpc/unary-chain.js";
+import { runUnaryChain, runUpdateChain } from "../../rpc/unary-chain.js";
 import { deniedCopyOf } from "../reference-miss.js";
 import type { OrganizationLookup } from "../organization-links.js";
 import type { ProviderRemoval } from "./removal.js";
@@ -297,9 +301,10 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
     // chain run again from a fresh read.
     update: (input, ctx) =>
       runGuardedWrite(() =>
-        runUnaryChain(
+        runUpdateChain(
           { chain: "identity-provider-update", step: "UpdateIdentityProvider" },
           method.update,
+          IdentityProviderSchema,
           input,
           ctx,
           deps,
@@ -348,7 +353,10 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
       );
       return existing === undefined
         ? commands.create(input, ctx)
-        : commands.update(withResolvedProviderId(input, existing), ctx);
+        : commands.update(
+            everyPathUpdate(UpdateIdentityProviderInputSchema, withResolvedProviderId(input, existing)),
+            ctx,
+          );
     },
     rename: async (input, ctx) => {
       const renamed = await renameResource(
@@ -565,7 +573,7 @@ async function insertProvider(
  * and status): the matrix, the row, the invalidation.
  */
 async function updateProvider(
-  reqCtx: RequestContext<typeof IdentityProviderCommandController.method.update.input>,
+  reqCtx: RequestContext<typeof IdentityProviderSchema>,
   deps: IdentityProviderLaneDeps,
 ): Promise<IdentityProvider> {
   const provider = reqCtx.newState;

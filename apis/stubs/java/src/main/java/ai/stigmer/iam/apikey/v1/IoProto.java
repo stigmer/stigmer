@@ -51,6 +51,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_apikey_v1_CreateServiceAccountKeyInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_apikey_v1_UpdateApiKeyInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_apikey_v1_UpdateApiKeyInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -63,28 +68,39 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n!ai/stigmer/iam/apikey/v1/io.proto\022\030ai." +
       "stigmer.iam.apikey.v1\032\"ai/stigmer/iam/ap" +
       "ikey/v1/api.proto\032\033buf/validate/validate" +
-      ".proto\032\037google/protobuf/timestamp.proto\"" +
-      "E\n\007ApiKeys\022:\n\007entries\030\001 \003(\0132 .ai.stigmer" +
-      ".iam.apikey.v1.ApiKeyR\007entries\"(\n\010ApiKey" +
-      "Id\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"*\n\nApiK" +
-      "eyHash\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"/\n\017" +
-      "ApiKeyAccountId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005" +
-      "value\"\325\001\n\034CreateServiceAccountKeyInput\0224" +
-      "\n\022service_account_id\030\001 \001(\tB\006\272H\003\310\001\001R\020serv" +
-      "iceAccountId\022\037\n\004name\030\002 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R" +
-      "\004name\0229\n\nexpires_at\030\003 \001(\0132\032.google.proto" +
-      "buf.TimestampR\texpiresAt\022#\n\rnever_expire" +
-      "s\030\004 \001(\010R\014neverExpiresB\216\001B\007IoProtoP\001\242\002\004AS" +
-      "IA\252\002\030Ai.Stigmer.Iam.Apikey.V1\312\002\030Ai\\Stigm" +
-      "er\\Iam\\Apikey\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey" +
-      "\\V1\\GPBMetadata\352\002\034Ai::Stigmer::Iam::Apik" +
-      "ey::V1b\006proto3"
+      ".proto\032 google/protobuf/field_mask.proto" +
+      "\032\037google/protobuf/timestamp.proto\"E\n\007Api" +
+      "Keys\022:\n\007entries\030\001 \003(\0132 .ai.stigmer.iam.a" +
+      "pikey.v1.ApiKeyR\007entries\"(\n\010ApiKeyId\022\034\n\005" +
+      "value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"*\n\nApiKeyHash" +
+      "\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"/\n\017ApiKey" +
+      "AccountId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"" +
+      "\325\001\n\034CreateServiceAccountKeyInput\0224\n\022serv" +
+      "ice_account_id\030\001 \001(\tB\006\272H\003\310\001\001R\020serviceAcc" +
+      "ountId\022\037\n\004name\030\002 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\004name\022" +
+      "9\n\nexpires_at\030\003 \001(\0132\032.google.protobuf.Ti" +
+      "mestampR\texpiresAt\022#\n\rnever_expires\030\004 \001(" +
+      "\010R\014neverExpires\"\340\002\n\021UpdateApiKeyInput\022D\n" +
+      "\010resource\030\001 \001(\0132 .ai.stigmer.iam.apikey." +
+      "v1.ApiKeyB\006\272H\003\330\001\003R\010resource\022C\n\013update_ma" +
+      "sk\030\002 \001(\0132\032.google.protobuf.FieldMaskB\006\272H" +
+      "\003\310\001\001R\nupdateMask:\277\001\272H\273\001\032\270\001\n\027update_names" +
+      "_its_target\022Gresource.metadata.id is req" +
+      "uired: an update names the API key by it" +
+      "s id\032Thas(this.resource) && has(this.res" +
+      "ource.metadata) && this.resource.metadat" +
+      "a.id != \'\'B\216\001B\007IoProtoP\001\242\002\004ASIA\252\002\030Ai.Sti" +
+      "gmer.Iam.Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\Apik" +
+      "ey\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMeta" +
+      "data\352\002\034Ai::Stigmer::Iam::Apikey::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.iam.apikey.v1.ApiProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
           com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_apikey_v1_ApiKeys_descriptor =
@@ -117,13 +133,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_apikey_v1_CreateServiceAccountKeyInput_descriptor,
         new java.lang.String[] { "ServiceAccountId", "Name", "ExpiresAt", "NeverExpires", });
+    internal_static_ai_stigmer_iam_apikey_v1_UpdateApiKeyInput_descriptor =
+      getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_iam_apikey_v1_UpdateApiKeyInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_apikey_v1_UpdateApiKeyInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.iam.apikey.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

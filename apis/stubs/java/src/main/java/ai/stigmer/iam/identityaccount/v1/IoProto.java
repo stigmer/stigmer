@@ -86,6 +86,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_identityaccount_v1_CreateServiceAccountInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_identityaccount_v1_UpdateIdentityAccountInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_identityaccount_v1_UpdateIdentityAccountInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -102,64 +107,74 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "rce/io.proto\032\'ai/stigmer/commons/rpc/pag" +
       "ination.proto\032+ai/stigmer/iam/identityac" +
       "count/v1/api.proto\032\034ai/stigmer/iam/v1/en" +
-      "um.proto\032\033buf/validate/validate.proto\"`\n" +
-      "\020IdentityAccounts\022L\n\007entries\030\001 \003(\01322.ai." +
-      "stigmer.iam.identityaccount.v1.IdentityA" +
-      "ccountR\007entries\"1\n\021IdentityAccountId\022\034\n\005" +
-      "value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"4\n\024IdentityAc" +
-      "countEmail\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value" +
-      "\"%\n\005IdpId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"" +
-      "\204\001\n\034ListWithIdentityAccountIdReq\022.\n\023iden" +
-      "tity_account_id\030\001 \001(\tR\021identityAccountId" +
-      "\0224\n\004page\030\002 \001(\0132 .ai.stigmer.commons.rpc." +
-      "PageInfoR\004page\"\205\001\n\024IdentityAccountsList\022" +
-      "\037\n\013total_pages\030\001 \001(\005R\ntotalPages\022L\n\007entr" +
-      "ies\030\002 \003(\01322.ai.stigmer.iam.identityaccou" +
-      "nt.v1.IdentityAccountR\007entries\"]\n\023ListWi" +
-      "thIdentityOrg\022\020\n\003org\030\001 \001(\tR\003org\0224\n\004page\030" +
-      "\002 \001(\0132 .ai.stigmer.commons.rpc.PageInfoR" +
-      "\004page\"\310\001\n\021ExternalSubLookup\022\030\n\003org\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\003org\022n\n\025identity_provider_ref\030\002" +
-      " \001(\01324.ai.stigmer.commons.apiresource.Ap" +
-      "iResourceReferenceB\004\340\205,\025R\023identityProvid" +
-      "erRef\022)\n\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013ext" +
-      "ernalSub\"\315\002\n\033CreateFederatedAccountInput" +
-      "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025identity_p" +
-      "rovider_ref\030\002 \001(\01324.ai.stigmer.commons.a" +
-      "piresource.ApiResourceReferenceB\004\340\205,\025R\023i" +
-      "dentityProviderRef\022)\n\014external_sub\030\003 \001(\t" +
-      "B\006\272H\003\310\001\001R\013externalSub\022\034\n\005email\030\004 \001(\tB\006\272H" +
-      "\003\310\001\001R\005email\022\035\n\nfirst_name\030\005 \001(\tR\tfirstNa" +
-      "me\022\033\n\tlast_name\030\006 \001(\tR\010lastName\022\037\n\013pictu" +
-      "re_url\030\007 \001(\tR\npictureUrl\"\315\002\n\033UpdateFeder" +
-      "atedAccountInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003o" +
-      "rg\022n\n\025identity_provider_ref\030\002 \001(\01324.ai.s" +
-      "tigmer.commons.apiresource.ApiResourceRe" +
-      "ferenceB\004\340\205,\025R\023identityProviderRef\022)\n\014ex" +
-      "ternal_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013externalSub\022\034\n" +
-      "\005email\030\004 \001(\tB\006\272H\003\310\001\001R\005email\022\035\n\nfirst_nam" +
-      "e\030\005 \001(\tR\tfirstName\022\033\n\tlast_name\030\006 \001(\tR\010l" +
-      "astName\022\037\n\013picture_url\030\007 \001(\tR\npictureUrl" +
-      "\"\376\001\n DeprovisionFederatedAccountInput\022\030\n" +
-      "\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025identity_prov" +
-      "ider_ref\030\002 \001(\01324.ai.stigmer.commons.apir" +
-      "esource.ApiResourceReferenceB\004\340\205,\025R\023iden" +
-      "tityProviderRef\022)\n\014external_sub\030\003 \001(\tB\006\272" +
-      "H\003\310\001\001R\013externalSub\022%\n\016delete_account\030\004 \001" +
-      "(\010R\rdeleteAccount\"\271\002\n\031CreateServiceAccou" +
-      "ntInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\037\n\004nam" +
-      "e\030\002 \001(\tB\013\272H\010r\003\030\200\001\310\001\001R\004name\022.\n\004role\030\003 \001(\016" +
-      "2\032.ai.stigmer.iam.v1.IamRoleR\004role:\260\001\272H\254" +
-      "\001\032\251\001\n\036service_account.role_not_owner\022Sro" +
-      "le must be admin, member or viewer; a se" +
-      "rvice account never owns its organizatio" +
-      "n\0322this.role == 2 || this.role == 3 || t" +
-      "his.role == 4B\262\001B\007IoProtoP\001\242\002\004ASII\252\002!Ai." +
-      "Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Stig" +
-      "mer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\" +
-      "Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai:" +
-      ":Stigmer::Iam::Identityaccount::V1b\006prot" +
-      "o3"
+      "um.proto\032\033buf/validate/validate.proto\032 g" +
+      "oogle/protobuf/field_mask.proto\"`\n\020Ident" +
+      "ityAccounts\022L\n\007entries\030\001 \003(\01322.ai.stigme" +
+      "r.iam.identityaccount.v1.IdentityAccount" +
+      "R\007entries\"1\n\021IdentityAccountId\022\034\n\005value\030" +
+      "\001 \001(\tB\006\272H\003\310\001\001R\005value\"4\n\024IdentityAccountE" +
+      "mail\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"%\n\005Id" +
+      "pId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\204\001\n\034Li" +
+      "stWithIdentityAccountIdReq\022.\n\023identity_a" +
+      "ccount_id\030\001 \001(\tR\021identityAccountId\0224\n\004pa" +
+      "ge\030\002 \001(\0132 .ai.stigmer.commons.rpc.PageIn" +
+      "foR\004page\"\205\001\n\024IdentityAccountsList\022\037\n\013tot" +
+      "al_pages\030\001 \001(\005R\ntotalPages\022L\n\007entries\030\002 " +
+      "\003(\01322.ai.stigmer.iam.identityaccount.v1." +
+      "IdentityAccountR\007entries\"]\n\023ListWithIden" +
+      "tityOrg\022\020\n\003org\030\001 \001(\tR\003org\0224\n\004page\030\002 \001(\0132" +
+      " .ai.stigmer.commons.rpc.PageInfoR\004page\"" +
+      "\310\001\n\021ExternalSubLookup\022\030\n\003org\030\001 \001(\tB\006\272H\003\310" +
+      "\001\001R\003org\022n\n\025identity_provider_ref\030\002 \001(\01324" +
+      ".ai.stigmer.commons.apiresource.ApiResou" +
+      "rceReferenceB\004\340\205,\025R\023identityProviderRef\022" +
+      ")\n\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013externalS" +
+      "ub\"\315\002\n\033CreateFederatedAccountInput\022\030\n\003or" +
+      "g\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025identity_provide" +
+      "r_ref\030\002 \001(\01324.ai.stigmer.commons.apireso" +
+      "urce.ApiResourceReferenceB\004\340\205,\025R\023identit" +
+      "yProviderRef\022)\n\014external_sub\030\003 \001(\tB\006\272H\003\310" +
+      "\001\001R\013externalSub\022\034\n\005email\030\004 \001(\tB\006\272H\003\310\001\001R\005" +
+      "email\022\035\n\nfirst_name\030\005 \001(\tR\tfirstName\022\033\n\t" +
+      "last_name\030\006 \001(\tR\010lastName\022\037\n\013picture_url" +
+      "\030\007 \001(\tR\npictureUrl\"\315\002\n\033UpdateFederatedAc" +
+      "countInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025" +
+      "identity_provider_ref\030\002 \001(\01324.ai.stigmer" +
+      ".commons.apiresource.ApiResourceReferenc" +
+      "eB\004\340\205,\025R\023identityProviderRef\022)\n\014external" +
+      "_sub\030\003 \001(\tB\006\272H\003\310\001\001R\013externalSub\022\034\n\005email" +
+      "\030\004 \001(\tB\006\272H\003\310\001\001R\005email\022\035\n\nfirst_name\030\005 \001(" +
+      "\tR\tfirstName\022\033\n\tlast_name\030\006 \001(\tR\010lastNam" +
+      "e\022\037\n\013picture_url\030\007 \001(\tR\npictureUrl\"\376\001\n D" +
+      "eprovisionFederatedAccountInput\022\030\n\003org\030\001" +
+      " \001(\tB\006\272H\003\310\001\001R\003org\022n\n\025identity_provider_r" +
+      "ef\030\002 \001(\01324.ai.stigmer.commons.apiresourc" +
+      "e.ApiResourceReferenceB\004\340\205,\025R\023identityPr" +
+      "oviderRef\022)\n\014external_sub\030\003 \001(\tB\006\272H\003\310\001\001R" +
+      "\013externalSub\022%\n\016delete_account\030\004 \001(\010R\rde" +
+      "leteAccount\"\271\002\n\031CreateServiceAccountInpu" +
+      "t\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\037\n\004name\030\002 \001(" +
+      "\tB\013\272H\010r\003\030\200\001\310\001\001R\004name\022.\n\004role\030\003 \001(\0162\032.ai." +
+      "stigmer.iam.v1.IamRoleR\004role:\260\001\272H\254\001\032\251\001\n\036" +
+      "service_account.role_not_owner\022Srole mus" +
+      "t be admin, member or viewer; a service " +
+      "account never owns its organization\0322thi" +
+      "s.role == 2 || this.role == 3 || this.ro" +
+      "le == 4\"\204\003\n\032UpdateIdentityAccountInput\022V" +
+      "\n\010resource\030\001 \001(\01322.ai.stigmer.iam.identi" +
+      "tyaccount.v1.IdentityAccountB\006\272H\003\330\001\003R\010re" +
+      "source\022C\n\013update_mask\030\002 \001(\0132\032.google.pro" +
+      "tobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\310\001\272H" +
+      "\304\001\032\301\001\n\027update_names_its_target\022Presource" +
+      ".metadata.id is required: an update name" +
+      "s the identity account by its id\032Thas(th" +
+      "is.resource) && has(this.resource.metada" +
+      "ta) && this.resource.metadata.id != \'\'B\262" +
+      "\001B\007IoProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Ide" +
+      "ntityaccount.V1\312\002!Ai\\Stigmer\\Iam\\Identit" +
+      "yaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Identityacc" +
+      "ount\\V1\\GPBMetadata\352\002%Ai::Stigmer::Iam::" +
+      "Identityaccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -170,6 +185,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.iam.identityaccount.v1.ApiProto.getDescriptor(),
           ai.stigmer.iam.v1.EnumProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccounts_descriptor =
       getDescriptor().getMessageType(0);
@@ -243,6 +259,12 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityaccount_v1_CreateServiceAccountInput_descriptor,
         new java.lang.String[] { "Org", "Name", "Role", });
+    internal_static_ai_stigmer_iam_identityaccount_v1_UpdateIdentityAccountInput_descriptor =
+      getDescriptor().getMessageType(12);
+    internal_static_ai_stigmer_iam_identityaccount_v1_UpdateIdentityAccountInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_identityaccount_v1_UpdateIdentityAccountInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
@@ -250,6 +272,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     ai.stigmer.iam.identityaccount.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);

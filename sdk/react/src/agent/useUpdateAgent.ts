@@ -1,31 +1,53 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentInput } from "@stigmer/sdk";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useUpdateAgent}. */
 export interface UseUpdateAgentReturn {
-  /** Update an existing agent with a full input. Returns the updated resource. */
-  readonly update: (input: AgentInput) => Promise<Agent>;
+  /**
+   * Update an agent: the fields `paths` names take their values from
+   * `resource`, and every other field keeps its stored value. Resolves
+   * with the updated resource.
+   */
+  readonly update: (
+    resource: Agent | MessageInitShape<typeof AgentSchema>,
+    paths: string[],
+  ) => Promise<Agent>;
   /** `true` while the update RPC is in flight. */
   readonly isUpdating: boolean;
   /** Error from the last failed update, or `null` when healthy. */
   readonly error: Error | null;
-  /** Clear the error state. */
+  /** Reset the error state to `null`. */
   readonly clearError: () => void;
 }
 
 /**
- * Mutation hook that updates an existing Agent resource.
+ * Mutation hook that wraps `agent.update(resource, paths)` with
+ * loading and error state.
  *
- * Wraps `stigmer.agent.update(input)` with loading and error state.
- * The caller must provide a **complete** `AgentInput` — the backend
- * performs full spec replacement. Use `toAgentUpdateInput()` (from
- * `@stigmer/sdk`) to reconstruct the input from a fetched agent, modify
- * the desired field, and pass the result here.
+ * `resource` names the agent by `metadata.id`, and `paths` names the
+ * fields the update changes (proto field paths such as
+ * `spec.description`). Every field it does not name keeps its stored value, so
+ * a teammate's change to another field survives the save. A agent read
+ * carries `metadata.etag`: sent back, the update is refused (ABORTED,
+ * reason `ETAG_MISMATCH`) if the agent changed since it was read.
+ *
+ * @example
+ * ```tsx
+ * const { update, isUpdating, error } = useUpdateAgent();
+ *
+ * await update(
+ *   {
+ *     metadata: { id: agent.metadata!.id, etag: agent.metadata!.etag },
+ *     spec: { description: "Reviews pull requests" },
+ *   },
+ *   ["spec.description"],
+ * );
+ * ```
  */
 export function useUpdateAgent(): UseUpdateAgentReturn {
   const stigmer = useStigmer();
@@ -35,12 +57,15 @@ export function useUpdateAgent(): UseUpdateAgentReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const update = useCallback(
-    async (input: AgentInput): Promise<Agent> => {
+    async (
+      resource: Agent | MessageInitShape<typeof AgentSchema>,
+      paths: string[],
+    ): Promise<Agent> => {
       setIsUpdating(true);
       setError(null);
 
       try {
-        return await stigmer.agent.update(input);
+        return await stigmer.agent.update(resource, paths);
       } catch (err) {
         setError(toError(err));
         throw err;

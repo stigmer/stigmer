@@ -20,6 +20,7 @@ export type ErrorCode =
   | "already-exists"
   | "resource-exhausted"
   | "failed-precondition"
+  | "aborted"
   | "internal"
   | "unavailable"
   | "cancelled";
@@ -32,6 +33,7 @@ const CODE_MAP: Record<number, ErrorCode> = {
   [Code.AlreadyExists]: "already-exists",
   [Code.ResourceExhausted]: "resource-exhausted",
   [Code.FailedPrecondition]: "failed-precondition",
+  [Code.Aborted]: "aborted",
   [Code.Internal]: "internal",
   [Code.Unavailable]: "unavailable",
   [Code.Canceled]: "cancelled",

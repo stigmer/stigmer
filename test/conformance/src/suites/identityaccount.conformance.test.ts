@@ -184,11 +184,11 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     const me = await whoAmI();
     try {
       const updated = await clients.identityAccountCommand.update(
-        withPreferences(me, {
+        { resource: withPreferences(me, {
           defaultHarness: "cursor",
           defaultCursorModel: "gpt-5",
           defaultAutoApprove: true,
-        }),
+        }), updateMask: { paths: ["*"] } },
       );
       expect(updated.metadata?.id).toBe(me.metadata?.id);
 
@@ -203,7 +203,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
     } finally {
       // Leave the account as we found it for the arms after us.
       await clients.identityAccountCommand.update(
-        withPreferences(await whoAmI(), me.spec?.preferences),
+        { resource: withPreferences(await whoAmI(), me.spec?.preferences), updateMask: { paths: ["*"] } },
       );
     }
   });
@@ -214,7 +214,7 @@ describe("IdentityAccount conformance — the shared RPC contract", () => {
 
     const error = await expectGrpcCode(
       () =>
-        clients.identityAccountCommand.update(withIdpId(me, freshSubject())),
+        clients.identityAccountCommand.update({ resource: withIdpId(me, freshSubject()), updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update that changes spec.idp_id",
     );

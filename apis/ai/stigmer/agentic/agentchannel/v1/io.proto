@@ -5,6 +5,7 @@ package ai.stigmer.agentic.agentchannel.v1;
 import "ai/stigmer/agentic/agentchannel/v1/api.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 
 // AgentChannelId wraps an agent channel identifier.
 message AgentChannelId {
@@ -108,4 +109,24 @@ message CompleteChannelInstallInput {
 
   // Authorization code returned by the provider's consent screen.
   string code = 3 [(buf.validate.field).required = true];
+}
+
+// The changes an update makes to an agent channel: the fields update_mask names,
+// taken from resource.
+message UpdateAgentChannelInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the agent channel by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The agent channel carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  AgentChannel resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }

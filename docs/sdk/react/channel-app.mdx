@@ -129,13 +129,20 @@ refetch(); // refresh the list after deletion
 
 ### useUpdateChannelApp
 
-Mutation hook that wraps `channelapp.update()` with loading and error
-state.
+Mutation hook that wraps `channelapp.update(resource, paths)` with
+loading and error state.
 
-Updates an existing channel app — typically to rotate its secrets.
-Sending the redaction marker (`***REDACTED***`) for a secret field
-preserves the stored value, so a form prefilled from a fetched
-(redacted) app can rotate one secret without re-entering the other.
+`resource` names the channel app by `metadata.id`, and `paths` names the
+fields the update changes (proto field paths such as
+`spec.slack`). Every field it does not name keeps its stored value, so
+a teammate's change to another field survives the save. A channel app read
+carries `metadata.etag`: sent back, the update is refused (ABORTED,
+reason `ETAG_MISMATCH`) if the channel app changed since it was read.
+
+Typically used to rotate a secret. A read shows each secret as the
+redaction marker (`***REDACTED***`); sending the marker back under a
+named path keeps the stored value, so a form prefilled from a fetched
+app can rotate one secret without re-entering the other.
 
 **Signature**
 
@@ -147,25 +154,23 @@ function useUpdateChannelApp(): UseUpdateChannelAppReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
     error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
-    isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
-    update: { type: "(input: ChannelAppInput) => Promise<ChannelApp>", description: "Submit a ChannelAppInput to update an existing channel app. Resolves with the updated resource." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(resource: MessageInit<ChannelApp>, paths: string[]) => Promise<ChannelApp>", description: "Update a channel app: the fields `paths` names take their values from `resource`, and every other field keeps its stored value. Resolves with the updated resource." },
   }}
 />
 
 ```tsx
 const { update, isUpdating, error } = useUpdateChannelApp();
 
-await update({
-  name: "Acme Support Bot",
-  org: "acme",
-  slack: {
-    clientId: "123456.789012",
-    clientSecret: "***REDACTED***",   // keep the stored value
-    signingSecret: "new-signing-secret", // rotate this one
+await update(
+  {
+    metadata: { id: app.metadata!.id, etag: app.metadata!.etag },
+    spec: { slack: { clientId: "123456.789012", clientSecret: "***REDACTED***", signingSecret: "new-signing-secret" } },
   },
-});
+  ["spec.slack"],
+);
 ```
 
 

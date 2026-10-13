@@ -47,6 +47,8 @@ import type {
   RenameInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateChannelAppInput } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { UpdateChannelAppInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -96,6 +98,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -131,7 +134,7 @@ export function registerChannelAppServices(
   router.service(ChannelAppCommandController, {
     apply: (app, ctx) => apply(deps, app, ctx),
     create: (app, ctx) => createChannelApp(deps, app, ctx),
-    update: (app, ctx) => update(deps, app, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (input, ctx) => deleteChannelApp(deps, input, ctx),
   });
@@ -204,13 +207,13 @@ async function createChannelApp(
  */
 async function update(
   deps: ChannelAppControllerDeps,
-  app: ChannelApp,
+  input: UpdateChannelAppInput,
   ctx: HandlerContext,
 ): Promise<ChannelApp> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       ChannelAppSchema,
-      app,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -219,13 +222,14 @@ async function update(
         newAuthorizeStep(
           ChannelAppCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
-      .addStep(newValidateProviderImmutableStep())
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
+      .addStep(newValidateProviderImmutableStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(
         newEncryptChannelAppSecretsForUpdateStep(deps.secretService, deps.logger),
@@ -308,7 +312,14 @@ async function apply(
   }
   return shouldCreate
     ? createChannelApp(deps, app, ctx)
-    : update(deps, withResolvedApplyId(ChannelAppSchema, app, reqCtx), ctx);
+    : update(
+        deps,
+        everyPathUpdate(
+          UpdateChannelAppInputSchema,
+          withResolvedApplyId(ChannelAppSchema, app, reqCtx),
+        ),
+        ctx,
+      );
 }
 
 /**

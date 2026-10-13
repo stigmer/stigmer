@@ -10,12 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { TeamSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_team_v1_api } from "./api_pb.js";
+import type { UpdateTeamInputSchema } from "./io_pb.js";
+import { file_ai_stigmer_iam_team_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/team/v1/command.proto.
  */
 export const file_ai_stigmer_iam_team_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2lhbS90ZWFtL3YxL2NvbW1hbmQucHJvdG8SFmFpLnN0aWdtZXIuaWFtLnRlYW0udjEyxwQKFVRlYW1Db21tYW5kQ29udHJvbGxlchKOAQoGY3JlYXRlEhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIkjCuBhECC0QHiIMbWV0YWRhdGEub3JnKjB1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHRlYW0gaW4gdGhpcyBvcmdhbml6YXRpb24SeAoGdXBkYXRlEhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIjLCuBguCAIQGCILbWV0YWRhdGEuaWQqG3VuYXV0aG9yaXplZCB0byB1cGRhdGUgdGVhbRKHAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIjLCuBguCAMQGCILcmVzb3VyY2VfaWQqG3VuYXV0aG9yaXplZCB0byByZW5hbWUgdGVhbRKSAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iMsK4GC4IAxAYIgtyZXNvdXJjZV9pZCobdW5hdXRob3JpemVkIHRvIGRlbGV0ZSB0ZWFtGgSg/ysYYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_team_v1_api]);
+  fileDesc("CiRhaS9zdGlnbWVyL2lhbS90ZWFtL3YxL2NvbW1hbmQucHJvdG8SFmFpLnN0aWdtZXIuaWFtLnRlYW0udjEy3AQKFVRlYW1Db21tYW5kQ29udHJvbGxlchKOAQoGY3JlYXRlEhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIkjCuBhECC0QHiIMbWV0YWRhdGEub3JnKjB1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHRlYW0gaW4gdGhpcyBvcmdhbml6YXRpb24SjAEKBnVwZGF0ZRInLmFpLnN0aWdtZXIuaWFtLnRlYW0udjEuVXBkYXRlVGVhbUlucHV0GhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIjvCuBg3CAIQGCIUcmVzb3VyY2UubWV0YWRhdGEuaWQqG3VuYXV0aG9yaXplZCB0byB1cGRhdGUgdGVhbRKHAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIjLCuBguCAMQGCILcmVzb3VyY2VfaWQqG3VuYXV0aG9yaXplZCB0byByZW5hbWUgdGVhbRKSAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iMsK4GC4IAxAYIgtyZXNvdXJjZV9pZCobdW5hdXRob3JpemVkIHRvIGRlbGV0ZSB0ZWFtGgSg/ysYYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_team_v1_api, file_ai_stigmer_iam_team_v1_io]);
 
 /**
  * TeamCommandController provides write operations for teams.
@@ -60,16 +62,30 @@ export const TeamCommandController: GenService<{
     output: typeof TeamSchema;
   },
   /**
-   * Update a team's name or description.
+   * Update a team: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * An update names the team by its id, and the slug changes only through
-   * rename.
+   * A team's name and description may change.
+   *
+   * resource.metadata.id names the team; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the team does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the team changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the team kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof TeamSchema;
+    input: typeof UpdateTeamInputSchema;
     output: typeof TeamSchema;
   },
   /**

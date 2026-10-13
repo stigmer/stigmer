@@ -41,23 +41,24 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "oto\032(ai/stigmer/agentic/evaluator/v1/io." +
       "proto\0328ai/stigmer/commons/apiresource/rp" +
       "c_service_options.proto\032+ai/stigmer/comm" +
-      "ons/rpc/method_options.proto2\276\003\n\032Evaluat" +
+      "ons/rpc/method_options.proto2\322\003\n\032Evaluat" +
       "orCommandController\022f\n\006create\022*.ai.stigm" +
       "er.agentic.evaluator.v1.Evaluator\032*.ai.s" +
       "tigmer.agentic.evaluator.v1.Evaluator\"\004\320" +
-      "\270\030\001\022\231\001\n\006update\022*.ai.stigmer.agentic.eval" +
-      "uator.v1.Evaluator\032*.ai.stigmer.agentic." +
-      "evaluator.v1.Evaluator\"7\302\270\0303\010\002\020>\"\013metada" +
-      "ta.id* unauthorized to update evaluator\022" +
-      "\225\001\n\006delete\022,.ai.stigmer.agentic.evaluato" +
-      "r.v1.EvaluatorId\032*.ai.stigmer.agentic.ev" +
-      "aluator.v1.Evaluator\"1\302\270\030-\010\003\020>\"\005value* u" +
-      "nauthorized to delete evaluator\032\004\240\377+>B\257\001" +
-      "B\014CommandProtoP\001\242\002\004ASAE\252\002\037Ai.Stigmer.Age" +
-      "ntic.Evaluator.V1\312\002\037Ai\\Stigmer\\Agentic\\E" +
-      "valuator\\V1\342\002+Ai\\Stigmer\\Agentic\\Evaluat" +
-      "or\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic" +
-      "::Evaluator::V1b\006proto3"
+      "\270\030\001\022\255\001\n\006update\0225.ai.stigmer.agentic.eval" +
+      "uator.v1.UpdateEvaluatorInput\032*.ai.stigm" +
+      "er.agentic.evaluator.v1.Evaluator\"@\302\270\030<\010" +
+      "\002\020>\"\024resource.metadata.id* unauthorized " +
+      "to update evaluator\022\225\001\n\006delete\022,.ai.stig" +
+      "mer.agentic.evaluator.v1.EvaluatorId\032*.a" +
+      "i.stigmer.agentic.evaluator.v1.Evaluator" +
+      "\"1\302\270\030-\010\003\020>\"\005value* unauthorized to delet" +
+      "e evaluator\032\004\240\377+>B\257\001B\014CommandProtoP\001\242\002\004A" +
+      "SAE\252\002\037Ai.Stigmer.Agentic.Evaluator.V1\312\002\037" +
+      "Ai\\Stigmer\\Agentic\\Evaluator\\V1\342\002+Ai\\Sti" +
+      "gmer\\Agentic\\Evaluator\\V1\\GPBMetadata\352\002#" +
+      "Ai::Stigmer::Agentic::Evaluator::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

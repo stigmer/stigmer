@@ -105,12 +105,15 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     Agent byRef = client.agent.getByReference(
         ResourceRef.builder().org("my-org").slug("my-agent").build());
 
-    // Update
-    Agent updated = client.agent.update(AgentInput.builder()
-        .name("my-agent")
-        .org("my-org")
-        .description("Updated description")
-        .build());
+    // Update: read, change, then name the fields you changed. Every other
+    // field keeps its stored value. The read's etag makes the save fail with
+    // "aborted" if someone changed the agent since.
+    Agent current = client.agent.get(agent.getMetadata().getId());
+    Agent updated = client.agent.update(
+        current.toBuilder()
+            .setSpec(current.getSpec().toBuilder().setDescription("Updated description"))
+            .build(),
+        java.util.List.of("spec.description"));
 
     // Delete
     client.agent.delete(agent.getMetadata().getId());

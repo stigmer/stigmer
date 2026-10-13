@@ -290,7 +290,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
   }
 
   function editProvider(as_: string, id: string, displayName: string) {
-    return createClient(IdentityProviderCommandController, as(as_)).update({
+    return createClient(IdentityProviderCommandController, as(as_)).update({ resource: {
       apiVersion: "iam.stigmer.ai/v1",
       kind: "IdentityProvider",
       metadata: { id, name: "Acme Platform", org: ACME },
@@ -299,7 +299,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
         ...publishedIssuer("https://acme-platform.acme.test"),
         expectedAudience: "https://acme-platform.acme.test/stigmer",
       },
-    });
+    }, updateMask: { paths: ["*"] } });
   }
 
   async function listedProviders(account: string): Promise<string[]> {

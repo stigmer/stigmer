@@ -9,6 +9,7 @@
  * existing one.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import {
   cleanup,
   fireEvent,
@@ -233,8 +234,9 @@ describe("run scores in a thread", () => {
       expect(mock.score.update).toHaveBeenCalledTimes(1),
     );
     expect(mock.score.get).toHaveBeenCalledWith("scr_mine");
-    const changed = buildScoreProto(mock.score.update.mock.calls[0]?.[0] as ScoreInput);
-    expect(changed.metadata?.id).toBe("scr_mine");
-    expect(changed.spec?.value).toEqual({ case: "passed", value: true });
+    const changed = sentUpdate<Score>(mock.score.update);
+    expect(changed.id).toBe("scr_mine");
+    expect(changed.paths).toEqual(["spec.passed", "spec.comment"]);
+    expect(changed.resource.spec?.value).toEqual({ case: "passed", value: true });
   });
 });

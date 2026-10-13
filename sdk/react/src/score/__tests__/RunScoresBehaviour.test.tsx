@@ -11,6 +11,7 @@
  * input with the new thumb, and either hook's error clears.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import {
   act,
   cleanup,
@@ -294,12 +295,11 @@ describe("the write hooks", () => {
     await act(async () => {
       await result.current.updateRating(mine, { passed: false });
     });
-    const sent = buildScoreProto(
-      mock.score.update.mock.calls[0]?.[0] as ScoreInput,
-    );
-    expect(sent.metadata?.id).toBe("scr_mine");
-    expect(sent.spec?.value).toEqual({ case: "passed", value: false });
-    expect(sent.spec?.comment).toBe("");
+    const sent = sentUpdate<Score>(mock.score.update);
+    expect(sent.id).toBe("scr_mine");
+    expect(sent.paths).toEqual(["spec.passed", "spec.comment"]);
+    expect(sent.resource.spec?.value).toEqual({ case: "passed", value: false });
+    expect(sent.resource.spec?.comment).toBe("");
     expect(result.current.isUpdating).toBe(false);
   });
 

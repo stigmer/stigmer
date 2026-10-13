@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { ChannelAppInput } from "@stigmer/sdk";
+import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { PublicBaseUrlContext } from "../../public-base-url-context";
 import { CreateChannelAppForm, type ChannelAppCreateHandoff } from "../CreateChannelAppForm";
@@ -11,7 +13,7 @@ afterEach(cleanup);
 
 function createMockStigmer(overrides: {
   create?: (input: ChannelAppInput) => Promise<unknown>;
-  update?: (input: ChannelAppInput) => Promise<unknown>;
+  update?: (resource: ChannelApp, paths: string[]) => Promise<unknown>;
   baseUrl?: string;
 } = {}) {
   return {
@@ -244,13 +246,13 @@ describe("ChannelAppDetailPanel — WhatsApp branch", () => {
     fireEvent.click(screen.getByRole("button", { name: /save credentials/i }));
 
     await waitFor(() => expect(update).toHaveBeenCalled());
-    expect(update).toHaveBeenCalledWith({
-      // The generated mapper carries metadata.id for exact update addressing.
-      id: "chapp_1",
-      name: "Acme WhatsApp",
-      org: "acme",
-      slug: "acme-whatsapp",
-      whatsapp: {
+    // The whatsapp arm alone, addressed by the app's id.
+    const sent = sentUpdate<ChannelApp>(update);
+    expect(sent.paths).toEqual(["spec.whatsapp"]);
+    expect(sent.id).toBe("chapp_1");
+    expect(sent.resource.spec?.providerConfig).toMatchObject({
+      case: "whatsapp",
+      value: {
         appId: "1234567890123456",
         appSecret: "***REDACTED***",
         accessToken: "EAAG-new-token",

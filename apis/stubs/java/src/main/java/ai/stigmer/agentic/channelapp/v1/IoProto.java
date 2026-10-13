@@ -36,6 +36,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsByOrgInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_channelapp_v1_UpdateChannelAppInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_channelapp_v1_UpdateChannelAppInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -48,21 +53,33 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n)ai/stigmer/agentic/channelapp/v1/io.pr" +
       "oto\022 ai.stigmer.agentic.channelapp.v1\032*a" +
       "i/stigmer/agentic/channelapp/v1/api.prot" +
-      "o\032\033buf/validate/validate.proto\"U\n\013Channe" +
-      "lApps\022F\n\007entries\030\001 \003(\0132,.ai.stigmer.agen" +
-      "tic.channelapp.v1.ChannelAppR\007entries\"6\n" +
-      "\031ListChannelAppsByOrgInput\022\031\n\003org\030\001 \001(\tB" +
-      "\007\272H\004r\002\020\001R\003orgB\256\001B\007IoProtoP\001\242\002\004ASAC\252\002 Ai." +
-      "Stigmer.Agentic.Channelapp.V1\312\002 Ai\\Stigm" +
-      "er\\Agentic\\Channelapp\\V1\342\002,Ai\\Stigmer\\Ag" +
-      "entic\\Channelapp\\V1\\GPBMetadata\352\002$Ai::St" +
-      "igmer::Agentic::Channelapp::V1b\006proto3"
+      "o\032\033buf/validate/validate.proto\032 google/p" +
+      "rotobuf/field_mask.proto\"U\n\013ChannelApps\022" +
+      "F\n\007entries\030\001 \003(\0132,.ai.stigmer.agentic.ch" +
+      "annelapp.v1.ChannelAppR\007entries\"6\n\031ListC" +
+      "hannelAppsByOrgInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002" +
+      "\020\001R\003org\"\364\002\n\025UpdateChannelAppInput\022P\n\010res" +
+      "ource\030\001 \001(\0132,.ai.stigmer.agentic.channel" +
+      "app.v1.ChannelAppB\006\272H\003\330\001\003R\010resource\022C\n\013u" +
+      "pdate_mask\030\002 \001(\0132\032.google.protobuf.Field" +
+      "MaskB\006\272H\003\310\001\001R\nupdateMask:\303\001\272H\277\001\032\274\001\n\027upda" +
+      "te_names_its_target\022Kresource.metadata.i" +
+      "d is required: an update names the chann" +
+      "el app by its id\032Thas(this.resource) && " +
+      "has(this.resource.metadata) && this.reso" +
+      "urce.metadata.id != \'\'B\256\001B\007IoProtoP\001\242\002\004A" +
+      "SAC\252\002 Ai.Stigmer.Agentic.Channelapp.V1\312\002" +
+      " Ai\\Stigmer\\Agentic\\Channelapp\\V1\342\002,Ai\\S" +
+      "tigmer\\Agentic\\Channelapp\\V1\\GPBMetadata" +
+      "\352\002$Ai::Stigmer::Agentic::Channelapp::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.channelapp.v1.ApiProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_channelapp_v1_ChannelApps_descriptor =
       getDescriptor().getMessageType(0);
@@ -76,12 +93,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_channelapp_v1_ListChannelAppsByOrgInput_descriptor,
         new java.lang.String[] { "Org", });
+    internal_static_ai_stigmer_agentic_channelapp_v1_UpdateChannelAppInput_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_channelapp_v1_UpdateChannelAppInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_channelapp_v1_UpdateChannelAppInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.channelapp.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

@@ -523,12 +523,12 @@ describe("Run — the parent pinned its subagent at save", () => {
     const name = sub.metadata!.slug;
 
     const subMeta = sub.metadata!;
-    await clients.agentCommand.update({
+    await clients.agentCommand.update({ resource: {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       metadata: { id: subMeta.id, name: subMeta.name, slug: subMeta.slug, org: subMeta.org },
       spec: makeAgentSpec({ instructions: after }),
-    });
+    }, updateMask: { paths: ["*"] } });
 
     /** A new conversation on the parent that hands off once; answers the subagent's request as text. */
     async function subagentRequestOfNewConversation(): Promise<string> {
@@ -546,12 +546,12 @@ describe("Run — the parent pinned its subagent at save", () => {
     expect(unsaved, "the edit has not reached the parent").not.toContain("AFTER-EDIT");
 
     const parentMeta = agent.metadata!;
-    const resaved = await clients.agentCommand.update({
+    const resaved = await clients.agentCommand.update({ resource: {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       metadata: { id: parentMeta.id, name: parentMeta.name, slug: parentMeta.slug, org: parentMeta.org },
       spec: makeAgentSpec({ subagents: [name] }),
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(resaved.spec?.subagents[0]?.version, "saving the parent again pins the subagent's current version").not.toBe(
       agent.spec?.subagents[0]?.version,
     );
@@ -569,12 +569,12 @@ describe("Run — the parent pinned its subagent at save", () => {
     const oldName = subMeta.slug;
 
     // A later version, then a rename: the parent stays pinned to the first.
-    await clients.agentCommand.update({
+    await clients.agentCommand.update({ resource: {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       metadata: { id: subMeta.id, name: subMeta.name, slug: subMeta.slug, org: subMeta.org },
       spec: makeAgentSpec({ instructions: "You are the LATER-VERSION helper; answer in one sentence." }),
-    });
+    }, updateMask: { paths: ["*"] } });
     const newName = uniqueName("helper-renamed");
     await clients.agentCommand.rename({ resourceId: subMeta.id, slug: newName });
 

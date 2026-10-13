@@ -17,7 +17,8 @@
  * has written them.
  */
 
-import { create } from "@bufbuild/protobuf";
+import { create, toBinary } from "@bufbuild/protobuf";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { describe, expect, it } from "vitest";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
@@ -98,19 +99,19 @@ describe("the host sink's calls to the runner", () => {
     ]);
   });
 
-  it("writes the state id and clears the slug on the session record once the runner has written them", async () => {
+  it("forwards the state id to the runner and leaves the session record as it was handed", async () => {
     const { turn, runner, input } = hostTurn(0);
     input.session.metadata!.slug = "server-generated";
+    const before = toBinary(SessionSchema, input.session);
     let bound = "";
-    runner.handle("bindHarnessState", async ({ harnessStateId }) => {
-      bound = harnessStateId;
-      expect(input.session.spec!.harnessStateId, "not before the runner wrote it").toBe("");
+    runner.handle("bindHarnessState", async (args) => {
+      bound = args.harnessStateId;
+      expect(Object.keys(args).sort(), "the bind carries the id and its turn, nothing of the session").toEqual(["harnessStateId", "turnId"]);
       return null;
     });
 
     await turn.sink.bindHarnessState("engine-state-1");
     expect(bound).toBe("engine-state-1");
-    expect(input.session.spec!.harnessStateId).toBe("engine-state-1");
-    expect(input.session.metadata!.slug).toBe("");
+    expect(toBinary(SessionSchema, input.session), "the session's door records the id; the record is not rewritten").toEqual(before);
   });
 });

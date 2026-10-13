@@ -26,21 +26,22 @@ var File_ai_stigmer_agentic_evaluator_v1_command_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_evaluator_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/evaluator/v1/command.proto\x12\x1fai.stigmer.agentic.evaluator.v1\x1a)ai/stigmer/agentic/evaluator/v1/api.proto\x1a(ai/stigmer/agentic/evaluator/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xbe\x03\n" +
+	"-ai/stigmer/agentic/evaluator/v1/command.proto\x12\x1fai.stigmer.agentic.evaluator.v1\x1a)ai/stigmer/agentic/evaluator/v1/api.proto\x1a(ai/stigmer/agentic/evaluator/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd2\x03\n" +
 	"\x1aEvaluatorCommandController\x12f\n" +
-	"\x06create\x12*.ai.stigmer.agentic.evaluator.v1.Evaluator\x1a*.ai.stigmer.agentic.evaluator.v1.Evaluator\"\x04и\x18\x01\x12\x99\x01\n" +
-	"\x06update\x12*.ai.stigmer.agentic.evaluator.v1.Evaluator\x1a*.ai.stigmer.agentic.evaluator.v1.Evaluator\"7¸\x183\b\x02\x10>\"\vmetadata.id* unauthorized to update evaluator\x12\x95\x01\n" +
+	"\x06create\x12*.ai.stigmer.agentic.evaluator.v1.Evaluator\x1a*.ai.stigmer.agentic.evaluator.v1.Evaluator\"\x04и\x18\x01\x12\xad\x01\n" +
+	"\x06update\x125.ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput\x1a*.ai.stigmer.agentic.evaluator.v1.Evaluator\"@¸\x18<\b\x02\x10>\"\x14resource.metadata.id* unauthorized to update evaluator\x12\x95\x01\n" +
 	"\x06delete\x12,.ai.stigmer.agentic.evaluator.v1.EvaluatorId\x1a*.ai.stigmer.agentic.evaluator.v1.Evaluator\"1¸\x18-\b\x03\x10>\"\x05value* unauthorized to delete evaluator\x1a\x04\xa0\xff+>B\xac\x02\n" +
 	"#com.ai.stigmer.agentic.evaluator.v1B\fCommandProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evaluator/v1;evaluatorv1\xa2\x02\x04ASAE\xaa\x02\x1fAi.Stigmer.Agentic.Evaluator.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Evaluator\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Evaluator\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Evaluator::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_evaluator_v1_command_proto_goTypes = []any{
-	(*Evaluator)(nil),   // 0: ai.stigmer.agentic.evaluator.v1.Evaluator
-	(*EvaluatorId)(nil), // 1: ai.stigmer.agentic.evaluator.v1.EvaluatorId
+	(*Evaluator)(nil),            // 0: ai.stigmer.agentic.evaluator.v1.Evaluator
+	(*UpdateEvaluatorInput)(nil), // 1: ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput
+	(*EvaluatorId)(nil),          // 2: ai.stigmer.agentic.evaluator.v1.EvaluatorId
 }
 var file_ai_stigmer_agentic_evaluator_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.create:input_type -> ai.stigmer.agentic.evaluator.v1.Evaluator
-	0, // 1: ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.update:input_type -> ai.stigmer.agentic.evaluator.v1.Evaluator
-	1, // 2: ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.delete:input_type -> ai.stigmer.agentic.evaluator.v1.EvaluatorId
+	1, // 1: ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.update:input_type -> ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput
+	2, // 2: ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.delete:input_type -> ai.stigmer.agentic.evaluator.v1.EvaluatorId
 	0, // 3: ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.create:output_type -> ai.stigmer.agentic.evaluator.v1.Evaluator
 	0, // 4: ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.update:output_type -> ai.stigmer.agentic.evaluator.v1.Evaluator
 	0, // 5: ai.stigmer.agentic.evaluator.v1.EvaluatorCommandController.delete:output_type -> ai.stigmer.agentic.evaluator.v1.Evaluator

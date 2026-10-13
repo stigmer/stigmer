@@ -134,8 +134,10 @@ const { teams, isLoading } = useTeamList(teamsServed ? orgSlug : null);
 
 ### useUpdateTeam
 
-Mutation hook that updates a team. Spread `toTeamUpdateInput(team)` so
-the fields you do not edit are kept.
+Mutation hook that updates a team: the fields `paths` names take their
+values from the resource, and every other field keeps its stored value.
+A team read carries `metadata.etag`; sent back, the update is refused
+(ABORTED, reason `ETAG_MISMATCH`) if the team changed since it was read.
 
 **Signature**
 
@@ -150,13 +152,16 @@ function useUpdateTeam(): UseUpdateTeamReturn
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed call, or `null` when healthy." },
     isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
-    update: { type: "(input: TeamInput) => Promise<Team>", description: "Replace a team's name and description." },
+    update: { type: "(resource: MessageInit<Team>, paths: string[]) => Promise<Team>", description: "Change the fields of a team that `paths` names (its name, its description)." },
   }}
 />
 
 ```tsx
 const { update } = useUpdateTeam();
-await update({ ...toTeamUpdateInput(team), description: next });
+await update(
+  { metadata: { id: team.metadata!.id, etag: team.metadata!.etag }, spec: { description: next } },
+  ["spec.description"],
+);
 ```
 
 

@@ -8,7 +8,7 @@ import type { SessionSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb.js";
 import type { SessionEventSchema } from "./event_pb.js";
 import { file_ai_stigmer_agentic_session_v1_event } from "./event_pb.js";
-import type { AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, SessionIdSchema, UpdateSessionSubjectRequestSchema } from "./io_pb.js";
+import type { AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, BindHarnessStateInputSchema, BindHarnessStateResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_session_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/session/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9jb21tYW5kLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MTL6DAoYU2Vzc2lvbkNvbW1hbmRDb250cm9sbGVyElcKBWFwcGx5EiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbhomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24SpQEKBmNyZWF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkvCuBhHCAgQHiIMbWV0YWRhdGEub3JnKjN1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHNlc3Npb24gaW4gdGhpcyBvcmdhbml6YXRpb24SjwEKBnVwZGF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIjXCuBgxCAIQKiILbWV0YWRhdGEuaWQqHnVuYXV0aG9yaXplZCB0byB1cGRhdGUgc2Vzc2lvbhKpAQoNdXBkYXRlU3ViamVjdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iNMK4GDAIAhAqIgJpZComdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzZXNzaW9uIHN1YmplY3QSygEKEXJldmlld0ZpbGVDaGFuZ2VzEjUuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuUmV2aWV3RmlsZUNoYW5nZXNJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlJldmlld0ZpbGVDaGFuZ2VzUmVzcG9uc2UiRMK4GEAIAhAqIgpzZXNzaW9uX2lkKi51bmF1dGhvcml6ZWQgdG8gcmV2aWV3IGZpbGUgY2hhbmdlcyBpbiBzZXNzaW9uErUBCg5jb25maXJtVG9vbFVzZRIyLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbmZpcm1Ub29sVXNlSW5wdXQaKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnQiQsK4GD4IAhAqIgpzZXNzaW9uX2lkKix1bmF1dGhvcml6ZWQgdG8gYW5zd2VyIGEgdG9vbCB1c2UgaW4gc2Vzc2lvbhLDAQoPZ3JhbnRQZXJtaXNzaW9uEjMuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuR3JhbnRQZXJtaXNzaW9uSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5HcmFudFBlcm1pc3Npb25SZXNwb25zZSJDwrgYPwgCECoiCnNlc3Npb25faWQqLXVuYXV0aG9yaXplZCB0byBncmFudCBhIHBlcm1pc3Npb24gaW4gc2Vzc2lvbhKzAQoJaW50ZXJydXB0EjQuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSW50ZXJydXB0U2Vzc2lvbklucHV0GjcuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSW50ZXJydXB0U2Vzc2lvblJlc3BvbnNlIjfCuBgzCAIQKiIKc2Vzc2lvbl9pZCohdW5hdXRob3JpemVkIHRvIGludGVycnVwdCBzZXNzaW9uEosBCgZkZWxldGUSKC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uSWQaJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIi/CuBgrCAMQKiIFdmFsdWUqHnVuYXV0aG9yaXplZCB0byBkZWxldGUgc2Vzc2lvbhKJAQoMYXBwZW5kRXZlbnRzEjcuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQXBwZW5kU2Vzc2lvbkV2ZW50c0lucHV0GjouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQXBwZW5kU2Vzc2lvbkV2ZW50c1Jlc3BvbnNlIgTQuBgBGgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_event, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9jb21tYW5kLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MTKYDgoYU2Vzc2lvbkNvbW1hbmRDb250cm9sbGVyElcKBWFwcGx5EiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbhomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24SpQEKBmNyZWF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkvCuBhHCAgQHiIMbWV0YWRhdGEub3JnKjN1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHNlc3Npb24gaW4gdGhpcyBvcmdhbml6YXRpb24SowEKBnVwZGF0ZRIxLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25JbnB1dBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iPsK4GDoIAhAqIhRyZXNvdXJjZS5tZXRhZGF0YS5pZCoedW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzZXNzaW9uEqkBCg11cGRhdGVTdWJqZWN0EjouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0GiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbiI0wrgYMAgCECoiAmlkKiZ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHNlc3Npb24gc3ViamVjdBLKAQoRcmV2aWV3RmlsZUNoYW5nZXMSNS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5SZXZpZXdGaWxlQ2hhbmdlc0lucHV0GjguYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuUmV2aWV3RmlsZUNoYW5nZXNSZXNwb25zZSJEwrgYQAgCECoiCnNlc3Npb25faWQqLnVuYXV0aG9yaXplZCB0byByZXZpZXcgZmlsZSBjaGFuZ2VzIGluIHNlc3Npb24StQEKDmNvbmZpcm1Ub29sVXNlEjIuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ29uZmlybVRvb2xVc2VJbnB1dBorLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudCJCwrgYPggCECoiCnNlc3Npb25faWQqLHVuYXV0aG9yaXplZCB0byBhbnN3ZXIgYSB0b29sIHVzZSBpbiBzZXNzaW9uEsMBCg9ncmFudFBlcm1pc3Npb24SMy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5HcmFudFBlcm1pc3Npb25JbnB1dBo2LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkdyYW50UGVybWlzc2lvblJlc3BvbnNlIkPCuBg/CAIQKiIKc2Vzc2lvbl9pZCotdW5hdXRob3JpemVkIHRvIGdyYW50IGEgcGVybWlzc2lvbiBpbiBzZXNzaW9uErMBCglpbnRlcnJ1cHQSNC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5JbnRlcnJ1cHRTZXNzaW9uSW5wdXQaNy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5JbnRlcnJ1cHRTZXNzaW9uUmVzcG9uc2UiN8K4GDMIAhAqIgpzZXNzaW9uX2lkKiF1bmF1dGhvcml6ZWQgdG8gaW50ZXJydXB0IHNlc3Npb24SiwEKBmRlbGV0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iL8K4GCsIAxAqIgV2YWx1ZSoedW5hdXRob3JpemVkIHRvIGRlbGV0ZSBzZXNzaW9uEokBCgxhcHBlbmRFdmVudHMSNy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BcHBlbmRTZXNzaW9uRXZlbnRzSW5wdXQaOi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BcHBlbmRTZXNzaW9uRXZlbnRzUmVzcG9uc2UiBNC4GAEShwEKEGJpbmRIYXJuZXNzU3RhdGUSNC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5CaW5kSGFybmVzc1N0YXRlSW5wdXQaNy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5CaW5kSGFybmVzc1N0YXRlUmVzcG9uc2UiBNC4GAEaBKD/KypiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_event, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -46,13 +46,28 @@ export const SessionCommandController: GenService<{
     output: typeof SessionSchema;
   },
   /**
-   * Update an existing session (e.g., subject, thread_id).
+   * Update a session: the fields update_mask names change, every other
+   * field keeps its stored value.
+   *
+   * resource.metadata.id names the session; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the session does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the session kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof SessionSchema;
+    input: typeof UpdateSessionInputSchema;
     output: typeof SessionSchema;
   },
   /**
@@ -216,6 +231,20 @@ export const SessionCommandController: GenService<{
     methodKind: "unary";
     input: typeof AppendSessionEventsInputSchema;
     output: typeof AppendSessionEventsResponseSchema;
+  },
+  /**
+   * Record the harness's conversation id for a run's session.
+   *
+   * Only the runner acting for the run may call it, while the run is not
+   * finished. The id replaced, if any, joins the session's
+   * harness_state_id_history.
+   *
+   * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.bindHarnessState
+   */
+  bindHarnessState: {
+    methodKind: "unary";
+    input: typeof BindHarnessStateInputSchema;
+    output: typeof BindHarnessStateResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_session_v1_command, 0);

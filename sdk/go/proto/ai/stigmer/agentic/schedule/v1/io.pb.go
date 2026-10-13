@@ -11,6 +11,7 @@ import (
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -697,11 +698,71 @@ func (x *ScheduleFireList) GetItems() []*ScheduleFire {
 	return nil
 }
 
+// The changes an update makes to a schedule: the fields update_mask names,
+// taken from resource.
+type UpdateScheduleInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The schedule carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *Schedule `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateScheduleInput) Reset() {
+	*x = UpdateScheduleInput{}
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateScheduleInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateScheduleInput) ProtoMessage() {}
+
+func (x *UpdateScheduleInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateScheduleInput.ProtoReflect.Descriptor instead.
+func (*UpdateScheduleInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateScheduleInput) GetResource() *Schedule {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateScheduleInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_schedule_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/schedule/v1/io.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"*\n" +
+	"'ai/stigmer/agentic/schedule/v1/io.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"*\n" +
 	"\n" +
 	"ScheduleId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x90\x01\n" +
@@ -744,7 +805,12 @@ const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\x10ScheduleFireList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12B\n" +
-	"\x05items\x18\x02 \x03(\v2,.ai.stigmer.agentic.schedule.v1.ScheduleFireR\x05items*z\n" +
+	"\x05items\x18\x02 \x03(\v2,.ai.stigmer.agentic.schedule.v1.ScheduleFireR\x05items\"\xeb\x02\n" +
+	"\x13UpdateScheduleInput\x12L\n" +
+	"\bresource\x18\x01 \x01(\v2(.ai.stigmer.agentic.schedule.v1.ScheduleB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xc0\x01\xbaH\xbc\x01\x1a\xb9\x01\n" +
+	"\x17update_names_its_target\x12Hresource.metadata.id is required: an update names the schedule by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''*z\n" +
 	"\x12ScheduleFireOrigin\x12$\n" +
 	" SCHEDULE_FIRE_ORIGIN_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19SCHEDULE_FIRE_ORIGIN_CRON\x10\x01\x12\x1f\n" +
@@ -773,7 +839,7 @@ func file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_schedule_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_agentic_schedule_v1_io_proto_goTypes = []any{
 	(ScheduleFireOrigin)(0),            // 0: ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin
 	(ScheduleFireOutcome)(0),           // 1: ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
@@ -785,30 +851,34 @@ var file_ai_stigmer_agentic_schedule_v1_io_proto_goTypes = []any{
 	(*ScheduleFire)(nil),               // 7: ai.stigmer.agentic.schedule.v1.ScheduleFire
 	(*ListScheduleFiresRequest)(nil),   // 8: ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest
 	(*ScheduleFireList)(nil),           // 9: ai.stigmer.agentic.schedule.v1.ScheduleFireList
-	nil,                                // 10: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),               // 11: ai.stigmer.commons.rpc.PageInfo
-	(*Schedule)(nil),                   // 12: ai.stigmer.agentic.schedule.v1.Schedule
-	(*timestamppb.Timestamp)(nil),      // 13: google.protobuf.Timestamp
+	(*UpdateScheduleInput)(nil),        // 10: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput
+	nil,                                // 11: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
+	(*rpc.PageInfo)(nil),               // 12: ai.stigmer.commons.rpc.PageInfo
+	(*Schedule)(nil),                   // 13: ai.stigmer.agentic.schedule.v1.Schedule
+	(*timestamppb.Timestamp)(nil),      // 14: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),      // 15: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_schedule_v1_io_proto_depIdxs = []int32{
-	11, // 0: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	12, // 1: ai.stigmer.agentic.schedule.v1.ScheduleList.items:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
-	10, // 2: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.labels:type_name -> ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
-	11, // 3: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	12, // 4: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.schedule:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
+	12, // 0: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	13, // 1: ai.stigmer.agentic.schedule.v1.ScheduleList.items:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
+	11, // 2: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.labels:type_name -> ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
+	12, // 3: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	13, // 4: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.schedule:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
 	1,  // 5: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.outcome:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
-	13, // 6: ai.stigmer.agentic.schedule.v1.ScheduleFire.nominal_fire_time:type_name -> google.protobuf.Timestamp
+	14, // 6: ai.stigmer.agentic.schedule.v1.ScheduleFire.nominal_fire_time:type_name -> google.protobuf.Timestamp
 	0,  // 7: ai.stigmer.agentic.schedule.v1.ScheduleFire.origin:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOrigin
 	1,  // 8: ai.stigmer.agentic.schedule.v1.ScheduleFire.outcome:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFireOutcome
-	13, // 9: ai.stigmer.agentic.schedule.v1.ScheduleFire.recorded_at:type_name -> google.protobuf.Timestamp
-	13, // 10: ai.stigmer.agentic.schedule.v1.ScheduleFire.completed_at:type_name -> google.protobuf.Timestamp
-	11, // 11: ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	14, // 9: ai.stigmer.agentic.schedule.v1.ScheduleFire.recorded_at:type_name -> google.protobuf.Timestamp
+	14, // 10: ai.stigmer.agentic.schedule.v1.ScheduleFire.completed_at:type_name -> google.protobuf.Timestamp
+	12, // 11: ai.stigmer.agentic.schedule.v1.ListScheduleFiresRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
 	7,  // 12: ai.stigmer.agentic.schedule.v1.ScheduleFireList.items:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleFire
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	13, // 13: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput.resource:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
+	15, // 14: ai.stigmer.agentic.schedule.v1.UpdateScheduleInput.update_mask:type_name -> google.protobuf.FieldMask
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_schedule_v1_io_proto_init() }
@@ -823,7 +893,7 @@ func file_ai_stigmer_agentic_schedule_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

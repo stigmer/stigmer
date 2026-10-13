@@ -40,13 +40,27 @@ type MemoryCommandControllerClient interface {
 	// calling credential and request context — values supplied on the
 	// request are overwritten.
 	Create(ctx context.Context, in *Memory, opts ...grpc.CallOption) (*Memory, error)
-	// Update a memory's fact text.
+	// Update a memory: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Replaces the spec wholesale, but only the content may actually
-	// change: the subject and provenance are immutable, and the consent
-	// lifecycle in status is never touched by updates — use confirm or
-	// reject to decide on a proposal.
-	Update(ctx context.Context, in *Memory, opts ...grpc.CallOption) (*Memory, error)
+	// Only the content may change: the subject and provenance are immutable,
+	// and the consent lifecycle in status is never touched by updates; use
+	// confirm or reject to decide on a proposal.
+	//
+	// resource.metadata.id names the memory; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the memory does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the memory kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateMemoryInput, opts ...grpc.CallOption) (*Memory, error)
 	// Delete a memory permanently, in any lifecycle state.
 	//
 	// Deletion is the retention mechanism: deleting a confirmed memory is
@@ -90,7 +104,7 @@ func (c *memoryCommandControllerClient) Create(ctx context.Context, in *Memory, 
 	return out, nil
 }
 
-func (c *memoryCommandControllerClient) Update(ctx context.Context, in *Memory, opts ...grpc.CallOption) (*Memory, error) {
+func (c *memoryCommandControllerClient) Update(ctx context.Context, in *UpdateMemoryInput, opts ...grpc.CallOption) (*Memory, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Memory)
 	err := c.cc.Invoke(ctx, MemoryCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -144,13 +158,27 @@ type MemoryCommandControllerServer interface {
 	// calling credential and request context — values supplied on the
 	// request are overwritten.
 	Create(context.Context, *Memory) (*Memory, error)
-	// Update a memory's fact text.
+	// Update a memory: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Replaces the spec wholesale, but only the content may actually
-	// change: the subject and provenance are immutable, and the consent
-	// lifecycle in status is never touched by updates — use confirm or
-	// reject to decide on a proposal.
-	Update(context.Context, *Memory) (*Memory, error)
+	// Only the content may change: the subject and provenance are immutable,
+	// and the consent lifecycle in status is never touched by updates; use
+	// confirm or reject to decide on a proposal.
+	//
+	// resource.metadata.id names the memory; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the memory does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the memory kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateMemoryInput) (*Memory, error)
 	// Delete a memory permanently, in any lifecycle state.
 	//
 	// Deletion is the retention mechanism: deleting a confirmed memory is
@@ -186,7 +214,7 @@ type UnimplementedMemoryCommandControllerServer struct{}
 func (UnimplementedMemoryCommandControllerServer) Create(context.Context, *Memory) (*Memory, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedMemoryCommandControllerServer) Update(context.Context, *Memory) (*Memory, error) {
+func (UnimplementedMemoryCommandControllerServer) Update(context.Context, *UpdateMemoryInput) (*Memory, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedMemoryCommandControllerServer) Delete(context.Context, *MemoryId) (*Memory, error) {
@@ -237,7 +265,7 @@ func _MemoryCommandController_Create_Handler(srv interface{}, ctx context.Contex
 }
 
 func _MemoryCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Memory)
+	in := new(UpdateMemoryInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -249,7 +277,7 @@ func _MemoryCommandController_Update_Handler(srv interface{}, ctx context.Contex
 		FullMethod: MemoryCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemoryCommandControllerServer).Update(ctx, req.(*Memory))
+		return srv.(MemoryCommandControllerServer).Update(ctx, req.(*UpdateMemoryInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

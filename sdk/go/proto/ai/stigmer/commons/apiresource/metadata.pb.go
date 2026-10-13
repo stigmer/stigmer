@@ -98,7 +98,14 @@ type ApiResourceMetadata struct {
 	// Tags for categorization.
 	Tags []string `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty"`
 	// Version information for the resource.
-	Version       *ApiResourceMetadataVersion `protobuf:"bytes,9,opt,name=version,proto3" json:"version,omitempty"`
+	Version *ApiResourceMetadataVersion `protobuf:"bytes,9,opt,name=version,proto3" json:"version,omitempty"`
+	// A fingerprint of what a person edits on the resource: its spec, name,
+	// labels, tags and annotations, as stored.
+	//
+	// Send it back on update or apply to refuse the write with ABORTED
+	// (ETAG_MISMATCH) when the resource changed since it was read; leave it
+	// empty and the last write wins. A status write never changes it.
+	Etag          string `protobuf:"bytes,10,opt,name=etag,proto3" json:"etag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -196,6 +203,13 @@ func (x *ApiResourceMetadata) GetVersion() *ApiResourceMetadataVersion {
 	return nil
 }
 
+func (x *ApiResourceMetadata) GetEtag() string {
+	if x != nil {
+		return x.Etag
+	}
+	return ""
+}
+
 // ApiResourceMetadataVersion contains version tracking information.
 //
 // For versioned resources (is_versioned: true), this is populated by the
@@ -284,7 +298,7 @@ var File_ai_stigmer_commons_apiresource_metadata_proto protoreflect.FileDescript
 
 const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x9c\x05\n" +
+	"-ai/stigmer/commons/apiresource/metadata.proto\x12\x1eai.stigmer.commons.apiresource\x1a)ai/stigmer/commons/apiresource/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xb0\x05\n" +
 	"\x13ApiResourceMetadata\x12\x1f\n" +
 	"\x04name\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\x18\xc8\x01R\x04name\x12;\n" +
 	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12\x0e\n" +
@@ -296,7 +310,9 @@ const file_ai_stigmer_commons_apiresource_metadata_proto_rawDesc = "" +
 	"\x06labels\x18\x06 \x03(\v2?.ai.stigmer.commons.apiresource.ApiResourceMetadata.LabelsEntryR\x06labels\x12f\n" +
 	"\vannotations\x18\a \x03(\v2D.ai.stigmer.commons.apiresource.ApiResourceMetadata.AnnotationsEntryR\vannotations\x12\x12\n" +
 	"\x04tags\x18\b \x03(\tR\x04tags\x12T\n" +
-	"\aversion\x18\t \x01(\v2:.ai.stigmer.commons.apiresource.ApiResourceMetadataVersionR\aversion\x1a9\n" +
+	"\aversion\x18\t \x01(\v2:.ai.stigmer.commons.apiresource.ApiResourceMetadataVersionR\aversion\x12\x12\n" +
+	"\x04etag\x18\n" +
+	" \x01(\tR\x04etag\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a>\n" +

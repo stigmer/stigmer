@@ -174,7 +174,7 @@ describe("Organization identity conformance", () => {
     expect(back.metadata?.slug, "an organization takes back its own old slug").toBe(before);
   });
 
-  it("[rpc:OrganizationCommandController.apply] [rpc:OrganizationCommandController.update] a write naming a renamed organization's old slug without its id is refused with SLUG_RENAMED, while a read still follows it", async () => {
+  it("[rpc:OrganizationCommandController.apply] [rpc:OrganizationCommandController.update] an apply naming a renamed organization's old slug is refused with SLUG_RENAMED and an update without its id is refused, while a read still follows it", async () => {
     const before = uniqueName("ident");
     const after = uniqueName("ident");
     const created = await createOrg(before);
@@ -183,13 +183,13 @@ describe("Organization identity conformance", () => {
 
     for (const [verb, write] of [
       ["apply", () => clients.organizationCommand.apply({ apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } })],
-      ["update", () => clients.organizationCommand.update({ apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } })],
+      ["update", () => clients.organizationCommand.update({ resource: { apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } }, updateMask: { paths: ["*"] } })],
     ] as const) {
-      if (verb === "update" && target.capabilities.enforcingAuthorizer) {
-        // An update authorizes its metadata.id: without one it is refused
-        // at Authorize, before its slug is read.
-        const denied = await expectGrpcCode(write, Code.PermissionDenied, "an update without an id");
-        expect(denied.rawMessage).toBe("unauthorized to update organization");
+      if (verb === "update") {
+        // An update names its target by resource.metadata.id: without one it
+        // is refused before its slug is read, on every target.
+        const refused = await expectGrpcCode(write, Code.InvalidArgument, "an update without an id");
+        expect(refused.rawMessage).toContain("resource.metadata.id is required");
         continue;
       }
       const refused = await expectGrpcCode(write, Code.FailedPrecondition, `an ${verb} by the old slug`);

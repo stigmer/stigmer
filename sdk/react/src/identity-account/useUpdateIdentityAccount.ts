@@ -1,48 +1,55 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { IdentityAccountInput } from "@stigmer/sdk";
-import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { IdentityAccount, IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useUpdateIdentityAccount}. */
 export interface UseUpdateIdentityAccountReturn {
-  /** Submit an {@link IdentityAccountInput} to update an identity account. Resolves with the updated resource. */
-  readonly update: (input: IdentityAccountInput) => Promise<IdentityAccount>;
-  /** `true` while the update request is in flight. */
+  /**
+   * Update an account: the fields `paths` names take their values from
+   * `resource`, and every other field keeps its stored value. Resolves
+   * with the updated resource.
+   */
+  readonly update: (
+    resource: IdentityAccount | MessageInitShape<typeof IdentityAccountSchema>,
+    paths: string[],
+  ) => Promise<IdentityAccount>;
+  /** `true` while the update RPC is in flight. */
   readonly isUpdating: boolean;
   /** Error from the last failed update, or `null` when healthy. */
   readonly error: Error | null;
-  /** Reset `error` to `null`. */
+  /** Reset the error state to `null`. */
   readonly clearError: () => void;
 }
 
 /**
- * Mutation hook that wraps `identityAccount.update()` with loading and
- * error state.
+ * Mutation hook that wraps `identityAccount.update(resource, paths)` with
+ * loading and error state.
  *
- * The update RPC is a full-spec replacement addressed by `org` + `slug`
- * (the generated input carries no id). Build the input from the loaded
- * resource with `toIdentityAccountUpdateInput` from `@stigmer/sdk` and
- * override only the fields being edited — sending a partial input wipes
- * the unsent spec fields. The same rule applies INSIDE nested messages:
- * override `preferences` by spreading the mapper's complete value first,
- * or the untouched preference fields wipe.
+ * `resource` names the account by `metadata.id`, and `paths` names the
+ * fields the update changes (proto field paths such as
+ * `spec.preferences`). Every field it does not name keeps its stored value, so
+ * a teammate's change to another field survives the save. A account read
+ * carries `metadata.etag`: sent back, the update is refused (ABORTED,
+ * reason `ETAG_MISMATCH`) if the account changed since it was read.
  *
- * Self-service: a user can always update their own account (`can_edit`
- * via the self-ownership relationship written at account creation).
+ * Self-service: a person can always update their own account (`can_edit`
+ * through the self-ownership written when the account was created).
  *
  * @example
  * ```tsx
  * const { update, isUpdating, error } = useUpdateIdentityAccount();
  *
- * const mapped = toIdentityAccountUpdateInput(account);
- * await update({
- *   ...mapped,
- *   preferences: { ...mapped.preferences, standingContext: "Keep answers terse." },
- * });
- * refetch(); // re-sync the editor
+ * await update(
+ *   {
+ *     metadata: { id: account.metadata!.id, etag: account.metadata!.etag },
+ *     spec: { preferences: { ...account.spec?.preferences, standingContext: "Keep answers terse." } },
+ *   },
+ *   ["spec.preferences"],
+ * );
  * ```
  */
 export function useUpdateIdentityAccount(): UseUpdateIdentityAccountReturn {
@@ -53,12 +60,15 @@ export function useUpdateIdentityAccount(): UseUpdateIdentityAccountReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const update = useCallback(
-    async (input: IdentityAccountInput): Promise<IdentityAccount> => {
+    async (
+      resource: IdentityAccount | MessageInitShape<typeof IdentityAccountSchema>,
+      paths: string[],
+    ): Promise<IdentityAccount> => {
       setIsUpdating(true);
       setError(null);
 
       try {
-        return await stigmer.identityAccount.update(input);
+        return await stigmer.identityAccount.update(resource, paths);
       } catch (err) {
         setError(toError(err));
         throw err;

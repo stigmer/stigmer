@@ -77,27 +77,27 @@ public final class AgentShareCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.AgentShare,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput,
       ai.stigmer.agentic.agentshare.v1.AgentShare> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.agentshare.v1.AgentShare.class,
+      requestType = ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput.class,
       responseType = ai.stigmer.agentic.agentshare.v1.AgentShare.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.AgentShare,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput,
       ai.stigmer.agentic.agentshare.v1.AgentShare> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.AgentShare, ai.stigmer.agentic.agentshare.v1.AgentShare> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput, ai.stigmer.agentic.agentshare.v1.AgentShare> getUpdateMethod;
     if ((getUpdateMethod = AgentShareCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (AgentShareCommandControllerGrpc.class) {
         if ((getUpdateMethod = AgentShareCommandControllerGrpc.getUpdateMethod) == null) {
           AgentShareCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentshare.v1.AgentShare, ai.stigmer.agentic.agentshare.v1.AgentShare>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput, ai.stigmer.agentic.agentshare.v1.AgentShare>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.agentshare.v1.AgentShare.getDefaultInstance()))
+                  ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agentshare.v1.AgentShare.getDefaultInstance()))
               .setSchemaDescriptor(new AgentShareCommandControllerMethodDescriptorSupplier("update"))
@@ -261,13 +261,25 @@ public final class AgentShareCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience makes the
-     * share organization-only, and one that omits vaults detaches them (both
-     * fail closed). The slug and referenced agent are immutable.
+     * Update an agent share: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent is immutable. A mask naming the audience or the
+     * vaults replaces them whole: an empty audience makes the share
+     * organization-only, and empty vaults detach them (both fail closed).
+     * resource.metadata.id names the agent share; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent share does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent share kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.agentshare.v1.AgentShare request,
+    default void update(ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.AgentShare> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -366,13 +378,25 @@ public final class AgentShareCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience makes the
-     * share organization-only, and one that omits vaults detaches them (both
-     * fail closed). The slug and referenced agent are immutable.
+     * Update an agent share: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent is immutable. A mask naming the audience or the
+     * vaults replaces them whole: an empty audience makes the share
+     * organization-only, and empty vaults detach them (both fail closed).
+     * resource.metadata.id names the agent share; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent share does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent share kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.agentshare.v1.AgentShare request,
+    public void update(ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.AgentShare> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -458,13 +482,25 @@ public final class AgentShareCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience makes the
-     * share organization-only, and one that omits vaults detaches them (both
-     * fail closed). The slug and referenced agent are immutable.
+     * Update an agent share: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent is immutable. A mask naming the audience or the
+     * vaults replaces them whole: an empty audience makes the share
+     * organization-only, and empty vaults detach them (both fail closed).
+     * resource.metadata.id names the agent share; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent share does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent share kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.agentshare.v1.AgentShare update(ai.stigmer.agentic.agentshare.v1.AgentShare request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.agentshare.v1.AgentShare update(ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -547,13 +583,25 @@ public final class AgentShareCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience makes the
-     * share organization-only, and one that omits vaults detaches them (both
-     * fail closed). The slug and referenced agent are immutable.
+     * Update an agent share: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent is immutable. A mask naming the audience or the
+     * vaults replaces them whole: an empty audience makes the share
+     * organization-only, and empty vaults detach them (both fail closed).
+     * resource.metadata.id names the agent share; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent share does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent share kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.agentshare.v1.AgentShare update(ai.stigmer.agentic.agentshare.v1.AgentShare request) {
+    public ai.stigmer.agentic.agentshare.v1.AgentShare update(ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -638,14 +686,26 @@ public final class AgentShareCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent share.
-     * Replaces the spec wholesale: a manifest that omits audience makes the
-     * share organization-only, and one that omits vaults detaches them (both
-     * fail closed). The slug and referenced agent are immutable.
+     * Update an agent share: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent is immutable. A mask naming the audience or the
+     * vaults replaces them whole: an empty audience makes the share
+     * organization-only, and empty vaults detach them (both fail closed).
+     * resource.metadata.id names the agent share; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent share does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent share kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> update(
-        ai.stigmer.agentic.agentshare.v1.AgentShare request) {
+        ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -718,7 +778,7 @@ public final class AgentShareCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.AgentShare>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.agentshare.v1.AgentShare) request,
+          serviceImpl.update((ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentshare.v1.AgentShare>) responseObserver);
           break;
         case METHODID_ROTATE_SHARE_LINK:
@@ -765,7 +825,7 @@ public final class AgentShareCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.agentshare.v1.AgentShare,
+              ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput,
               ai.stigmer.agentic.agentshare.v1.AgentShare>(
                 service, METHODID_UPDATE)))
         .addMethod(

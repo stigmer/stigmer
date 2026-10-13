@@ -5,7 +5,7 @@
 
 import { Memory } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { MemoryId } from "./io_pbjs";
+import { MemoryId, UpdateMemoryInput } from "./io_pbjs";
 
 /**
  * MemoryCommandController handles write operations for memories.
@@ -33,18 +33,32 @@ export const MemoryCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update a memory's fact text.
+     * Update a memory: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * Replaces the spec wholesale, but only the content may actually
-     * change: the subject and provenance are immutable, and the consent
-     * lifecycle in status is never touched by updates — use confirm or
-     * reject to decide on a proposal.
+     * Only the content may change: the subject and provenance are immutable,
+     * and the consent lifecycle in status is never touched by updates; use
+     * confirm or reject to decide on a proposal.
+     *
+     * resource.metadata.id names the memory; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the memory does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the memory kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.memory.v1.MemoryCommandController.update
      */
     update: {
       name: "update",
-      I: Memory,
+      I: UpdateMemoryInput,
       O: Memory,
       kind: MethodKind.Unary,
     },

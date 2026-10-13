@@ -77,27 +77,27 @@ public final class ScheduleCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.Schedule,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.UpdateScheduleInput,
       ai.stigmer.agentic.schedule.v1.Schedule> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.schedule.v1.Schedule.class,
+      requestType = ai.stigmer.agentic.schedule.v1.UpdateScheduleInput.class,
       responseType = ai.stigmer.agentic.schedule.v1.Schedule.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.Schedule,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.UpdateScheduleInput,
       ai.stigmer.agentic.schedule.v1.Schedule> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.Schedule, ai.stigmer.agentic.schedule.v1.Schedule> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.UpdateScheduleInput, ai.stigmer.agentic.schedule.v1.Schedule> getUpdateMethod;
     if ((getUpdateMethod = ScheduleCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (ScheduleCommandControllerGrpc.class) {
         if ((getUpdateMethod = ScheduleCommandControllerGrpc.getUpdateMethod) == null) {
           ScheduleCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.Schedule, ai.stigmer.agentic.schedule.v1.Schedule>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.UpdateScheduleInput, ai.stigmer.agentic.schedule.v1.Schedule>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.schedule.v1.Schedule.getDefaultInstance()))
+                  ai.stigmer.agentic.schedule.v1.UpdateScheduleInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.schedule.v1.Schedule.getDefaultInstance()))
               .setSchemaDescriptor(new ScheduleCommandControllerMethodDescriptorSupplier("update"))
@@ -338,19 +338,26 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing schedule.
-     * Replaces the spec wholesale. The referenced agent and the target arm
-     * are immutable; cron, time zone, enablement, and the message may all
-     * change. Status (firing observations, the platform
-     * pause) is never touched by updates — use resume to clear a platform
-     * pause.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the schedule
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update a schedule: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the target arm are immutable; cron, time zone,
+     * enablement and the message may change. Status (firing observations,
+     * the platform pause) is never touched by updates: use resume to clear a
+     * platform pause.
+     * resource.metadata.id names the schedule; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the schedule does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the schedule kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.schedule.v1.Schedule request,
+    default void update(ai.stigmer.agentic.schedule.v1.UpdateScheduleInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -501,19 +508,26 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing schedule.
-     * Replaces the spec wholesale. The referenced agent and the target arm
-     * are immutable; cron, time zone, enablement, and the message may all
-     * change. Status (firing observations, the platform
-     * pause) is never touched by updates — use resume to clear a platform
-     * pause.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the schedule
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update a schedule: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the target arm are immutable; cron, time zone,
+     * enablement and the message may change. Status (firing observations,
+     * the platform pause) is never touched by updates: use resume to clear a
+     * platform pause.
+     * resource.metadata.id names the schedule; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the schedule does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the schedule kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.schedule.v1.Schedule request,
+    public void update(ai.stigmer.agentic.schedule.v1.UpdateScheduleInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -653,19 +667,26 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing schedule.
-     * Replaces the spec wholesale. The referenced agent and the target arm
-     * are immutable; cron, time zone, enablement, and the message may all
-     * change. Status (firing observations, the platform
-     * pause) is never touched by updates — use resume to clear a platform
-     * pause.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the schedule
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update a schedule: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the target arm are immutable; cron, time zone,
+     * enablement and the message may change. Status (firing observations,
+     * the platform pause) is never touched by updates: use resume to clear a
+     * platform pause.
+     * resource.metadata.id names the schedule; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the schedule does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the schedule kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.schedule.v1.Schedule update(ai.stigmer.agentic.schedule.v1.Schedule request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.schedule.v1.Schedule update(ai.stigmer.agentic.schedule.v1.UpdateScheduleInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -800,19 +821,26 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing schedule.
-     * Replaces the spec wholesale. The referenced agent and the target arm
-     * are immutable; cron, time zone, enablement, and the message may all
-     * change. Status (firing observations, the platform
-     * pause) is never touched by updates — use resume to clear a platform
-     * pause.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the schedule
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update a schedule: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the target arm are immutable; cron, time zone,
+     * enablement and the message may change. Status (firing observations,
+     * the platform pause) is never touched by updates: use resume to clear a
+     * platform pause.
+     * resource.metadata.id names the schedule; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the schedule does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the schedule kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.schedule.v1.Schedule update(ai.stigmer.agentic.schedule.v1.Schedule request) {
+    public ai.stigmer.agentic.schedule.v1.Schedule update(ai.stigmer.agentic.schedule.v1.UpdateScheduleInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -949,20 +977,27 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing schedule.
-     * Replaces the spec wholesale. The referenced agent and the target arm
-     * are immutable; cron, time zone, enablement, and the message may all
-     * change. Status (firing observations, the platform
-     * pause) is never touched by updates — use resume to clear a platform
-     * pause.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the schedule
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update a schedule: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The referenced agent and the target arm are immutable; cron, time zone,
+     * enablement and the message may change. Status (firing observations,
+     * the platform pause) is never touched by updates: use resume to clear a
+     * platform pause.
+     * resource.metadata.id names the schedule; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the schedule does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the schedule kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> update(
-        ai.stigmer.agentic.schedule.v1.Schedule request) {
+        ai.stigmer.agentic.schedule.v1.UpdateScheduleInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -1076,7 +1111,7 @@ public final class ScheduleCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.schedule.v1.Schedule) request,
+          serviceImpl.update((ai.stigmer.agentic.schedule.v1.UpdateScheduleInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
           break;
         case METHODID_RENAME:
@@ -1131,7 +1166,7 @@ public final class ScheduleCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.schedule.v1.Schedule,
+              ai.stigmer.agentic.schedule.v1.UpdateScheduleInput,
               ai.stigmer.agentic.schedule.v1.Schedule>(
                 service, METHODID_UPDATE)))
         .addMethod(

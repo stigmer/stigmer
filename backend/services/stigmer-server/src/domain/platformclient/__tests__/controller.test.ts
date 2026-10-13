@@ -192,7 +192,7 @@ describe("PlatformClient chains", () => {
     );
   });
 
-  it("update keeps the credentials, addressed by id or by slug", async () => {
+  it("update keeps the credentials, and needs the id", async () => {
     const created = await command.create(input("Dashboard"));
     const stored = created.platformClient;
     const clientId = stored?.spec?.clientId ?? "";
@@ -202,7 +202,7 @@ describe("PlatformClient chains", () => {
     byId.spec = clone(PlatformClientSpecSchema, stored.spec);
     byId.spec.clientId = "stgm_cid_forged";
     byId.spec.allowedOrigins = ["https://a.example"];
-    const updated = await command.update(byId);
+    const updated = await command.update({ resource: byId, updateMask: { paths: ["*"] } });
     expect(updated.spec?.clientId).toBe(clientId);
     expect(updated.spec?.allowedOrigins).toEqual(["https://a.example"]);
     expect(updated.spec?.clientSecretHash).toBe("");
@@ -213,9 +213,9 @@ describe("PlatformClient chains", () => {
       metadata: { name: "Dashboard", org: "acme", slug: "dashboard" },
       spec: { createAccountsOnSignIn: false },
     });
-    const viaSlug = await command.update(bySlug);
-    expect(viaSlug.metadata?.id).toBe(stored?.metadata?.id);
-    expect(viaSlug.spec?.clientId).toBe(clientId);
+    const viaSlug = await refusal(command.update({ resource: bySlug, updateMask: { paths: ["*"] } }));
+    expect(viaSlug.code).toBe(Code.InvalidArgument);
+    expect(viaSlug.rawMessage).toContain("resource.metadata.id is required");
     expect(
       (await clients.findById(stored?.metadata?.id ?? ""))?.spec
         ?.clientSecretHash,
@@ -248,6 +248,9 @@ describe("PlatformClient chains", () => {
     const edit = clone(PlatformClientSchema, stored);
     edit.spec = clone(PlatformClientSpecSchema, stored.spec);
     edit.spec.allowedOrigins = ["https://a.example"];
+    // An update that sends no etag: the rotation landing mid-update changes
+    // the spec, which a sent etag would refuse.
+    edit.metadata!.etag = "";
 
     let rotatedSecret = "";
     const { result, writes } = await writeLandsMidUpdate(
@@ -257,7 +260,7 @@ describe("PlatformClient chains", () => {
       async () => {
         rotatedSecret = (await command.rotateSecret({ value: id })).clientSecret;
       },
-      () => command.update(edit),
+      () => command.update({ resource: edit, updateMask: { paths: ["spec.allowed_origins"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);
@@ -330,7 +333,7 @@ describe("PlatformClient chains", () => {
       const edit = clone(PlatformClientSchema, stored);
       edit.spec = clone(PlatformClientSpecSchema, stored.spec);
       edit.spec.signInRole = role;
-      const updated = await refusal(command.update(edit));
+      const updated = await refusal(command.update({ resource: edit, updateMask: { paths: ["*"] } }));
       expect(updated.code, IamRole[role]).toBe(Code.InvalidArgument);
       expect(updated.rawMessage, IamRole[role]).toBe(
         signInRoleNotGrantableMessage(role),
@@ -392,7 +395,7 @@ describe("PlatformClient chains", () => {
     withGhost.spec.vaults = [
       create(ApiResourceReferenceSchema, vaultRef("ghost")),
     ];
-    const onUpdate = await refusal(command.update(withGhost));
+    const onUpdate = await refusal(command.update({ resource: withGhost, updateMask: { paths: ["*"] } }));
     expect(onUpdate.code).toBe(Code.FailedPrecondition);
     expect(onUpdate.rawMessage).toBe(missing);
     expect(
@@ -439,7 +442,7 @@ describe("PlatformClient chains", () => {
     const stored = await clients.findById("pcl_system");
     if (stored === undefined) throw new Error("seeded client missing");
 
-    const update = await refusal(command.update(stored));
+    const update = await refusal(command.update({ resource: stored, updateMask: { paths: ["*"] } }));
     expect(update.code).toBe(Code.FailedPrecondition);
     expect(update.rawMessage).toBe(systemManagedMessage("updated"));
 

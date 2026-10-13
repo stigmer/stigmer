@@ -243,10 +243,10 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("an organization that requires 
     const providers = await listProviders(owner.transport);
     const stored = providers.entries[0]!;
     const off = { ...stored, spec: { ...stored.spec!, ssoRequired: false } };
-    const refused = await refusalOf(createClient(IdentityProviderCommandController, rajOkta).update(off));
+    const refused = await refusalOf(createClient(IdentityProviderCommandController, rajOkta).update({ resource: off, updateMask: { paths: ["*"] } }));
     expect(refused.code).toBe(Code.PermissionDenied);
     expect(refused.rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
-    const updated = await createClient(IdentityProviderCommandController, owner.transport).update(off);
+    const updated = await createClient(IdentityProviderCommandController, owner.transport).update({ resource: off, updateMask: { paths: ["*"] } });
     expect(updated.spec?.ssoRequired).toBe(false);
     // Nothing is required any more, so the refusal is the plain one: the
     // email account moved everything it held and holds nothing there.

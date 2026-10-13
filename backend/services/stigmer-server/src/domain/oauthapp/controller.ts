@@ -47,6 +47,8 @@ import type {
   OAuthApps,
 } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import { OAuthAppQueryController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/query_pb";
+import type { UpdateOAuthAppInput } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
+import { UpdateOAuthAppInputSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -96,6 +98,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -135,7 +138,7 @@ export function registerOAuthAppServices(
   router.service(OAuthAppCommandController, {
     apply: (app, ctx) => apply(deps, app, ctx),
     create: (app, ctx) => createOAuthApp(deps, app, ctx),
-    update: (app, ctx) => update(deps, app, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (input, ctx) => deleteOAuthApp(deps, input, ctx),
   });
@@ -211,13 +214,13 @@ async function createOAuthApp(
  */
 async function update(
   deps: OAuthAppControllerDeps,
-  app: OAuthApp,
+  input: UpdateOAuthAppInput,
   ctx: HandlerContext,
 ): Promise<OAuthApp> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       OAuthAppSchema,
-      app,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -226,12 +229,13 @@ async function update(
         newAuthorizeStep(
           OAuthAppCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newCheckLoginEndpointsStep())
       .addStep(newNormalizeAddressesStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
@@ -311,7 +315,14 @@ async function apply(
   }
   return shouldCreate
     ? createOAuthApp(deps, app, ctx)
-    : update(deps, withResolvedApplyId(OAuthAppSchema, app, reqCtx), ctx);
+    : update(
+        deps,
+        everyPathUpdate(
+          UpdateOAuthAppInputSchema,
+          withResolvedApplyId(OAuthAppSchema, app, reqCtx),
+        ),
+        ctx,
+      );
 }
 
 /**
