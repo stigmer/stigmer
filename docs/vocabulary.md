@@ -368,8 +368,9 @@ An ongoing conversation with an Agent across multiple messages.
   sender's own My vault first). Sessions can add `plugins` and `skill_refs` to
   the Agent's; the Agent's tool lists still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
-  within a Session is one run. The proto also uses `MessageType` (HUMAN, AI,
-  TOOL, SYSTEM) for individual messages.
+  within a Session is one run. What happens in a Session is its event log
+  (`session/v1/event.proto`): the person's messages, the Agent's messages and
+  tool uses, and every answer, read with `listEvents` or `streamEvents`.
 - **Sharing**: A Session is private to the person who started it, and its
   Organization's admins do not read it. In the Enterprise and Cloud editions its
   owner shares it with people one by one, as a **Participant** (reads and sends
@@ -497,10 +498,11 @@ action before proceeding.
   destructive (`destructiveHint`). An Agent's hooks (`hooks`) decide call by
   call: refuse, ask, or allow. Its `tools` and `disallowed_tools` lists decide
   which tools it has at all. A call that asks is an `agent.tool_use` with
-  `evaluated_permission` `ask`, announced by `stigmer.permission.asked`.
-  Answered on the Session: `SessionCommandController.confirmToolUse` (`allow` or
-  `deny`, recorded as `user.tool_confirmation`) or `grantPermission` (the call's
-  class for the rest of the run).
+  `evaluated_permission` `ask`, announced by `stigmer.permission.asked`. Read
+  from the Session's log, and answered on the Session:
+  `SessionCommandController.confirmToolUse` (`allow` or `deny`, recorded as
+  `user.tool_confirmation`) or `grantPermission` (the call's class for the rest
+  of the run).
 
 **Good examples**:
 
@@ -1119,7 +1121,9 @@ message, fire a schedule or open a share link.
   stigmer runs logs <id>
   ```
 
-- **Message types**: `HUMAN`, `AI`, `TOOL`, `SYSTEM` (from `run/v1/enum.proto`).
+- **What a run did**: its Session's events with the run's `run_id`: messages,
+  tool uses and answers. The run itself holds its lifecycle (phase, timing, stop
+  cause) and its file record (`status.file_changes`).
 - **Phases**: `RUN_WAITING_FOR_APPROVAL` is a notable phase---the run pauses
   during an approval flow.
 - **Two meanings**: the word "run" means two different things across Stigmer.

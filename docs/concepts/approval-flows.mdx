@@ -154,21 +154,29 @@ and guest Sessions never inherit the host default.
 
 ## The approval lifecycle
 
-When a tool call triggers an approval:
+An approval lives on the Session's event log, like everything else the Agent
+does:
 
-1. The Agent runtime detects that the tool requires approval
-2. It sets the tool call status to `WAITING_APPROVAL` and pauses
-3. Stigmer computes a `PendingApproval` projection with the tool name, message,
-   and argument preview
-4. The UI or API surfaces the approval request
-5. The human submits a decision: **Approve**, **Skip**, or **Reject**
-6. The Agent resumes based on the decision
+1. The Agent calls a tool that needs approval. The log records the call
+   (`agent.tool_use` or `agent.mcp_tool_use`, with `evaluated_permission` set to
+   `ask`) and a `stigmer.permission.asked` event with the message, a preview of
+   the arguments and the rule that asked.
+2. The Session goes idle with the stop reason `requires_action`, naming the tool
+   uses that wait.
+3. The UI or API reads the waiting calls from the log (the SDK's
+   `followSession`, or `listEvents` and `streamEvents`) and shows them.
+4. The person answers through the Session's methods, naming the call by its
+   `tool_use_id`: `confirmToolUse` allows or denies the one call, and
+   `grantPermission` allows it and every call of its kind for the rest of the
+   turn.
+5. The answer is recorded on the log (`user.tool_confirmation`, or
+   `stigmer.permission.grant`) and the Agent resumes.
 
-| Decision    | What happens                                                            |
-| ----------- | ----------------------------------------------------------------------- |
-| **Approve** | The tool call executes with the original arguments                      |
-| **Skip**    | The tool call is skipped — the Agent continues without this action      |
-| **Reject**  | The tool call is rejected — the Agent receives the rejection and adapts |
+| Answer        | What happens                                                                                             |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| **Allow**     | The tool call executes with the original arguments                                                       |
+| **Allow all** | The call executes, and every call of its kind runs without asking for the rest of the turn               |
+| **Deny**      | The tool call does not run; the Agent receives the refusal, with your reason if you gave one, and adapts |
 
 The run is durable throughout this process. If the server restarts while waiting
 for approval, the Agent resumes from the same waiting state.
