@@ -23,7 +23,8 @@
  *                   row and the invalidation
  *                   (create and update then ask the switch's rules,
  *                   sso-required-steps.ts: a request that changes
- *                   `sso_required` also needs the organization's owners,
+ *                   `sso_required`, or whom a provider that requires it
+ *                   trusts, also needs the organization's owners,
  *                   and one that turns it on the host's plan gate when it
  *                   fills one; and end their steps with GrowthGate when
  *                   the host fills the port, iam/growth-gate.ts, which an
@@ -162,7 +163,7 @@ import {
   newOwnersDecideSsoRequiredStep,
   newProviderUpdateGrowthGateStep,
   newSsoPlanGateStep,
-  updateChangesSsoRequired,
+  updateNeedsOwners,
   updateTurnsSsoRequiredOn,
 } from "./sso-required-steps.js";
 import type { SsoPlanGate } from "./sso-required-steps.js";
@@ -304,7 +305,7 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
             newLoadExistingProviderStep(deps.store),
             newBuildUpdateStateStep(),
             newOwnersDecideSsoRequiredStep<typeof IdentityProviderSchema>(deps.authorizer, (ctx) =>
-              updateChangesSsoRequired(providerAt(ctx, EXISTING_RESOURCE_KEY), ctx.newState),
+              updateNeedsOwners(providerAt(ctx, EXISTING_RESOURCE_KEY), ctx.newState),
             ),
             ...ssoPlanGateOf(deps, (ctx) =>
               updateTurnsSsoRequiredOn(providerAt(ctx, EXISTING_RESOURCE_KEY), ctx.newState),

@@ -1584,6 +1584,33 @@ describe("the sign-in requirement", () => {
     expect((await r.store.findById(created.metadata?.id ?? ""))?.spec?.ssoRequired).toBe(false);
   });
 
+  it("while it is required, changing whom the provider trusts is the owners' too; a respelled issuer is not", async () => {
+    const r = rig({ decide: adminOnly });
+    await r.store.insert(storedProvider({ id: "idp_req", org: "acme", slug: "req", isSso: true, issuers: ["https://idp.acme.test"] }));
+    const stored = (await r.store.findById("idp_req"))!;
+    stored.spec!.ssoRequired = true;
+    stored.spec!.createAccountsOnSignIn = true;
+    stored.spec!.signInRole = IamRole.viewer;
+    stored.spec!.jwksUri = JWKS;
+    await r.store.replace(stored);
+
+    const repointed = clone(IdentityProviderSchema, stored);
+    repointed.spec!.allowedIssuers = ["https://login.acme.test"];
+    const error = await failure(r.commands.update(repointed));
+    expect(error.rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
+
+    const rekeyed = clone(IdentityProviderSchema, stored);
+    rekeyed.spec!.jwksUri = "https://login.acme.test/keys";
+    expect((await failure(r.commands.update(rekeyed))).rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
+
+    r.checks.length = 0;
+    const respelled = clone(IdentityProviderSchema, stored);
+    respelled.spec!.allowedIssuers = ["https://idp.acme.test/"];
+    respelled.spec!.displayName = "Acme Okta";
+    expect((await r.commands.update(respelled)).spec?.displayName).toBe("Acme Okta");
+    expect(r.checks).not.toContainEqual(OWNERS_ON_ACME);
+  });
+
   it("deleting a provider that requires sign-in through it asks the owners; one that does not, never", async () => {
     const owner = rig();
     const on = await stored(owner, true);

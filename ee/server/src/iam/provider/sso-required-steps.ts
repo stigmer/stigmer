@@ -4,11 +4,15 @@
  * the provider's create, update and delete chains splice (handlers.ts):
  *
  *   - Owners decide it. Requiring a sign-in decides how every member gets
- *     in, so turning it on or off, and deleting a provider that has it on
- *     (which ends the requirement), also asks `can_assign_roles` on the
- *     organization, which only its owners hold: the invitation lane's
- *     precedent for an owner link. Admins keep editing everything else on
- *     the provider. Asked of the composed Authorizer, so a bound credential
+ *     in, so turning it on or off, deleting a provider that has it on
+ *     (which ends the requirement), and, while it is on, changing whom the
+ *     provider trusts (its issuers, key set or audience, which decide whose
+ *     tokens count as the organization's people) also asks
+ *     `can_assign_roles` on the organization, which only its owners hold:
+ *     the invitation lane's precedent for an owner link. Otherwise an admin
+ *     could point a required provider at an identity provider of their own
+ *     and sign in people the organization never vetted. Admins keep editing
+ *     everything else on the provider. Asked of the composed Authorizer, so a bound credential
  *     and the sign-in rule itself answer as everywhere (an owner is exempt
  *     from the requirement, so an owner is never refused it here).
  *   - A host whose plans decide it gates turning it on (`SsoPlanGate`, the
@@ -33,6 +37,7 @@ import type { Authorizer, PipelineStep, RequestContext } from "@stigmer/server";
 import { failedPreconditionError, newAuthorizeResolvedTargetStep } from "@stigmer/server";
 
 import type { GrowthGate } from "../growth-gate.js";
+import { normalizeIssuerUrl } from "./issuer-url.js";
 import { PLAN_UPGRADE_REQUIRED } from "../team/plan-gate.js";
 
 /** The refusal of an admin who is not an owner. */
@@ -143,12 +148,33 @@ export function createSetsSsoRequired(provider: IdentityProvider): IdentityProvi
   return provider.spec?.ssoRequired === true ? provider : undefined;
 }
 
-/** Whether an update changes the requirement; the new provider when it does. */
-export function updateChangesSsoRequired(
-  stored: IdentityProvider,
-  next: IdentityProvider,
-): IdentityProvider | undefined {
-  return (stored.spec?.ssoRequired ?? false) !== (next.spec?.ssoRequired ?? false) ? next : undefined;
+/**
+ * Whether an update is the owners' to make: it changes the requirement, or
+ * changes whom a provider that requires sign-in trusts. The new provider
+ * when it is.
+ */
+export function updateNeedsOwners(stored: IdentityProvider, next: IdentityProvider): IdentityProvider | undefined {
+  if ((stored.spec?.ssoRequired ?? false) !== (next.spec?.ssoRequired ?? false)) {
+    return next;
+  }
+  return stored.spec?.ssoRequired === true && changesTrust(stored, next) ? next : undefined;
+}
+
+/** Whether `next` trusts other tokens than `stored`: its issuers, key set or audience. */
+function changesTrust(stored: IdentityProvider, next: IdentityProvider): boolean {
+  const before = stored.spec;
+  const after = next.spec;
+  // Compared as the row will store them (validation.ts normalizeIssuers),
+  // so a respelled issuer is not a change of trust.
+  const issuers = (spec: typeof before) =>
+    [...new Set((spec?.allowedIssuers ?? []).map(normalizeIssuerUrl).filter((issuer) => issuer !== ""))]
+      .sort()
+      .join("\n");
+  return (
+    (before?.jwksUri ?? "") !== (after?.jwksUri ?? "") ||
+    (before?.expectedAudience ?? "") !== (after?.expectedAudience ?? "") ||
+    issuers(before) !== issuers(after)
+  );
 }
 
 /** Whether an update turns the requirement on; the new provider when it does. */
