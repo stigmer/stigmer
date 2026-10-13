@@ -157,7 +157,7 @@ describe("no-repeated-calls", () => {
       name: "echo",
       argsKey: "",
       resultKey: "sha256:same",
-      status: "completed",
+      status: "completed" as const,
     };
     const health = gradeRunHealth({
       actions: [1, 2, 3].map((step) => ({ ...unknown, step })),
