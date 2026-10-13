@@ -1575,14 +1575,16 @@ describe("the sign-in requirement", () => {
     if (renamed.spec !== undefined) {
       renamed.spec.displayName = "Acme Okta";
     }
-    expect((await r.commands.update(renamed)).spec?.displayName).toBe("Acme Okta");
+    expect((await r.commands.update({ resource: renamed, updateMask: { paths: ["*"] } })).spec?.displayName).toBe("Acme Okta");
     expect(r.checks).not.toContainEqual(OWNERS_ON_ACME);
 
     const turnedOn = clone(IdentityProviderSchema, renamed);
+    // No etag: the update above moved the row since this copy was read.
+    turnedOn.metadata!.etag = "";
     if (turnedOn.spec !== undefined) {
       turnedOn.spec.ssoRequired = true;
     }
-    const error = await failure(r.commands.update(turnedOn));
+    const error = await failure(r.commands.update({ resource: turnedOn, updateMask: { paths: ["*"] } }));
     expect(error.rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
     expect((await r.store.findById(created.metadata?.id ?? ""))?.spec?.ssoRequired).toBe(false);
   });
@@ -1598,18 +1600,18 @@ describe("the sign-in requirement", () => {
 
     const repointed = clone(IdentityProviderSchema, stored);
     repointed.spec!.allowedIssuers = ["https://login.acme.test"];
-    const error = await failure(r.commands.update(repointed));
+    const error = await failure(r.commands.update({ resource: repointed, updateMask: { paths: ["*"] } }));
     expect(error.rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
 
     const rekeyed = clone(IdentityProviderSchema, stored);
     rekeyed.spec!.jwksUri = "https://login.acme.test/keys";
-    expect((await failure(r.commands.update(rekeyed))).rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
+    expect((await failure(r.commands.update({ resource: rekeyed, updateMask: { paths: ["*"] } }))).rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
 
     r.checks.length = 0;
     const respelled = clone(IdentityProviderSchema, stored);
     respelled.spec!.allowedIssuers = ["https://idp.acme.test/"];
     respelled.spec!.displayName = "Acme Okta";
-    expect((await r.commands.update(respelled)).spec?.displayName).toBe("Acme Okta");
+    expect((await r.commands.update({ resource: respelled, updateMask: { paths: ["*"] } })).spec?.displayName).toBe("Acme Okta");
     expect(r.checks).not.toContainEqual(OWNERS_ON_ACME);
   });
 
@@ -1649,13 +1651,13 @@ describe("the sign-in requirement", () => {
     if (edited.spec !== undefined) {
       edited.spec.displayName = "Acme Okta";
     }
-    const kept = await later.commands.update(edited);
+    const kept = await later.commands.update({ resource: edited, updateMask: { paths: ["*"] } });
     expect(kept.spec?.ssoRequired).toBe(true);
     const off = clone(IdentityProviderSchema, kept);
     if (off.spec !== undefined) {
       off.spec.ssoRequired = false;
     }
-    expect((await later.commands.update(off)).spec?.ssoRequired).toBe(false);
+    expect((await later.commands.update({ resource: off, updateMask: { paths: ["*"] } })).spec?.ssoRequired).toBe(false);
     expect(asked).toEqual([]);
   });
 
@@ -1673,18 +1675,20 @@ describe("the sign-in requirement", () => {
       renamed.spec.displayName = "Acme Okta";
       renamed.spec.ssoRequired = false;
     }
-    expect((await failure(frozen.commands.update(renamed))).rawMessage).toBe("the license has ended");
+    expect((await failure(frozen.commands.update({ resource: renamed, updateMask: { paths: ["*"] } }))).rawMessage).toBe("the license has ended");
 
     const off = clone(IdentityProviderSchema, on);
     if (off.spec !== undefined) {
       off.spec.ssoRequired = false;
     }
-    expect((await frozen.commands.update(off)).spec?.ssoRequired).toBe(false);
+    expect((await frozen.commands.update({ resource: off, updateMask: { paths: ["*"] } })).spec?.ssoRequired).toBe(false);
     const again = clone(IdentityProviderSchema, off);
+    // No etag: the update above moved the row since this copy was read.
+    again.metadata!.etag = "";
     if (again.spec !== undefined) {
       again.spec.ssoRequired = true;
     }
-    expect((await failure(frozen.commands.update(again))).rawMessage).toBe("the license has ended");
+    expect((await failure(frozen.commands.update({ resource: again, updateMask: { paths: ["*"] } }))).rawMessage).toBe("the license has ended");
   });
 
   it("the login page reads whether the organization requires it", async () => {
