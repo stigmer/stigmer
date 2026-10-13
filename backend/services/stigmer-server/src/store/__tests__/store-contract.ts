@@ -2529,6 +2529,8 @@ export function describeStoreContract(
     });
 
     it("of concurrent inserts of one id exactly one answers true, with one row and one entry", async () => {
+      // Every connection a driver pools is open first, so the inserts race.
+      await Promise.all(Array.from({ length: 8 }, () => fx.store.listResources(KIND)));
       const unrecorded = await Promise.all(
         Array.from({ length: 8 }, (_, n) =>
           fx.store.insertResource(
