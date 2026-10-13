@@ -47,7 +47,7 @@ export function registerAccessHistory(program: Command): void {
   const listCmd = group
     .command("list")
     .description("list the organization's access changes, newest first")
-    .option("--limit <n>", "the most entries to list", String(DEFAULT_LIMIT))
+    .option("--limit <n>", `the most entries to list (default ${DEFAULT_LIMIT})`)
     .action(async (options: ListFlags, command: Command) => {
       const format = readFormat(options);
       const limit = parseLimit(options.limit);

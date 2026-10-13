@@ -84,6 +84,7 @@ import {
   localIdpIdFor,
 } from "../../identityaccount/constants.js";
 import {
+  ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE,
   AUTHENTICATION_REQUIRED_MESSAGE,
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
   LAST_OWNER_MESSAGE,
@@ -1359,4 +1360,19 @@ describe("a wire kind string is refused BEFORE position 1 on every annotated lan
       expect(h.authorizer.checks).toEqual([]);
     });
   }
+});
+
+describe("listAccessHistory on the controller", () => {
+  it("is served by the access-policy query service, and refused on open source after authorizing", async () => {
+    const h = await harness({ caller: alice });
+    const error = await h.query.listAccessHistory({ org: "acme" }).then(
+      () => undefined,
+      (thrown: unknown) => ConnectError.from(thrown),
+    );
+    expect(error?.code).toBe(Code.Unimplemented);
+    expect(error?.rawMessage).toBe(ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE);
+    expect(h.authorizer.checks.map((check) => IamPermission[check.permission])).toEqual([
+      "can_view_access_history",
+    ]);
+  });
 });

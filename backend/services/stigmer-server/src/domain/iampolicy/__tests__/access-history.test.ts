@@ -120,6 +120,7 @@ async function harness(options: {
   decision?: AuthzDecision;
   gate?: PipelineStep<DescMessage>;
   policies?: IamPolicyStore;
+  principalDisplay?: PrincipalDisplay;
 } = {}): Promise<Harness> {
   const policies = fakeIamPolicyStore();
   const accounts = fakeIdentityAccountStore();
@@ -156,7 +157,7 @@ async function harness(options: {
             {
               policies: options.policies ?? policies,
               authorizer,
-              principalDisplay: teams,
+              principalDisplay: options.principalDisplay ?? teams,
               gateSteps: new Map(
                 options.gate === undefined
                   ? []
@@ -284,6 +285,14 @@ describe("listAccessHistory's chain", () => {
     const h = await harness();
     const error = await rejection(h.query.listAccessHistory({ org: ACME, pageSize: 101 }));
     expect(error.code).toBe(Code.InvalidArgument);
+  });
+
+  it("answers a fault naming the people as INTERNAL with a static message", async () => {
+    const h = await harness({ principalDisplay: { resolve: () => Promise.reject(new Error("team store down")) } });
+    await h.grant(triple({ kind: "team", id: "tm_core", relation: "member" }, "viewer", { kind: "agent", id: "agt_1" }));
+    const error = await rejection(h.query.listAccessHistory({ org: ACME }));
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to name the access history");
   });
 
   it("answers a store fault as INTERNAL with a static message", async () => {

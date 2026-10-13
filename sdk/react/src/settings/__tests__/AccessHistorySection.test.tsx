@@ -24,7 +24,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { createRouterTransport } from "@connectrpc/connect";
+import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { Stigmer, type DeploymentMode } from "@stigmer/sdk";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -90,9 +91,9 @@ interface EntryInit {
   readonly change?: AccessChange;
   readonly cause?: AccessChangeCause;
   readonly actorClass?: string;
-  readonly principal?: { kind?: string; id: string; name?: string; email?: string };
+  readonly principal?: { kind?: string; id: string; name?: string; email?: string; relation?: string };
   readonly role?: { id?: string; code?: string; name?: string };
-  readonly resource?: { org: string; kind: ApiResourceKind; id: string; slug: string };
+  readonly resource?: { org: string; kind: ApiResourceKind; id: string; slug: string } | undefined;
 }
 
 function entry(sequence: number, init: EntryInit) {
@@ -112,17 +113,22 @@ function entry(sequence: number, init: EntryInit) {
 
 /** The history newest first, two pages: the first page's token is "t1". */
 const NEWEST = [
-  entry(4, {
+  entry(5, {
     change: AccessChange.revoked,
     cause: AccessChangeCause.organization_access_revoked,
   }),
-  entry(3, {
+  entry(4, {
     role: { id: "editor", code: "editor", name: "Editor" },
     resource: { org: "org_acme", kind: ApiResourceKind.agent, id: "agt_billing", slug: "" },
   }),
 ];
 const OLDER = [
-  entry(2, { actorClass: "internal", principal: { kind: "identity_account", id: "ida_bob", name: "Bob Lee" } }),
+  entry(3, { actorClass: "internal", principal: { kind: "identity_account", id: "ida_bob", name: "Bob Lee" } }),
+  entry(2, {
+    principal: { kind: "team", id: "tm_core", name: "Core", relation: "member" },
+    role: { code: "viewer", name: "Viewer" },
+    resource: undefined,
+  }),
   entry(1, { cause: AccessChangeCause.organization_created, principal: ANA, role: { code: "owner", name: "Owner" } }),
 ];
 
@@ -132,7 +138,10 @@ interface Server {
   readonly reads: ListAccessHistoryInput[];
 }
 
-function renderSection(mode: DeploymentMode, verdict = true): Server {
+/** How the fake server answers a read: the pages above, a plan refusal, or a failing export. */
+type ReadMode = "pages" | "plan-refusal" | "export-fails";
+
+function renderSection(mode: DeploymentMode, verdict = true, read: ReadMode = "pages"): Server {
   const server: Server = { verdict, checks: [], reads: [] };
   const client = new Stigmer({
     baseUrl: "/",
@@ -148,6 +157,17 @@ function renderSection(mode: DeploymentMode, verdict = true): Server {
         },
         listAccessHistory: (input) => {
           server.reads.push(input);
+          if (read === "plan-refusal") {
+            throw new ConnectError(
+              "The access history needs the Enterprise plan.",
+              Code.FailedPrecondition,
+              undefined,
+              [{ desc: ErrorInfoSchema, value: { reason: "PLAN_UPGRADE_REQUIRED", metadata: { feature: "access_history" } } }],
+            );
+          }
+          if (read === "export-fails" && input.afterSequence !== undefined) {
+            throw new ConnectError("history unavailable", Code.Unavailable);
+          }
           if (input.afterSequence !== undefined) {
             const all = [...NEWEST, ...OLDER].reverse();
             return create(AccessHistoryPageSchema, {
@@ -187,6 +207,23 @@ afterEach(() => {
 });
 
 describe("AccessHistorySection", () => {
+  it("names the plan when the server refuses the read for it", async () => {
+    renderSection("cloud", true, "plan-refusal");
+    await waitFor(() => expect(screen.getByText("The access history needs the Enterprise plan.")).toBeTruthy());
+    expect(screen.getByRole("link", { name: "View plans" })).toBeTruthy();
+  });
+
+  it("says a failed download failed and keeps the history on screen", async () => {
+    renderSection("enterprise", true, "export-fails");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Download JSON Lines" })).toBeTruthy());
+    act(() => {
+      screen.getByRole("button", { name: "Download JSON Lines" }).click();
+    });
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("history unavailable"));
+    expect(stubs.downloads).toEqual([]);
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThan(0);
+  });
+
   it("says open source keeps no history and asks the server nothing", async () => {
     const server = renderSection("local");
     await settle();
@@ -233,7 +270,8 @@ describe("AccessHistorySection", () => {
     );
     expect(server.reads[1]).toMatchObject({ pageToken: "t1" });
     const items = screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
-    expect(items.map((text) => text.match(/#(\d+)/)?.[1])).toEqual(["4", "3", "2", "1"]);
+    expect(items.map((text) => text.match(/#(\d+)/)?.[1])).toEqual(["5", "4", "3", "2", "1"]);
+    expect(screen.getByText("Ana Silva gave the members of team Core the Viewer role on a resource")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 
@@ -247,7 +285,7 @@ describe("AccessHistorySection", () => {
     const [download] = stubs.downloads;
     expect(download?.filename).toBe("access-history-org_acme.jsonl");
     const lines = (download?.content ?? "").trimEnd().split("\n").map((line) => JSON.parse(line) as { sequence: string });
-    expect(lines.map((line) => line.sequence)).toEqual(["1", "2", "3", "4"]);
+    expect(lines.map((line) => line.sequence)).toEqual(["1", "2", "3", "4", "5"]);
     expect(server.reads.at(-1)).toMatchObject({ afterSequence: BigInt(0), pageSize: 100 });
   });
 });

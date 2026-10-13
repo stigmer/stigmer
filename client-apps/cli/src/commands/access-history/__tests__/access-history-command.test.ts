@@ -39,6 +39,7 @@ import { registerAccessHistory } from "../index.js";
 const backend = vi.hoisted(() => ({
   reads: [] as ListAccessHistoryInput[],
   refuse: false,
+  empty: false,
 }));
 
 function entry(sequence: number, change = AccessChange.granted) {
@@ -77,8 +78,9 @@ vi.mock("../../../backend.js", async () => {
               );
             }
             // Two entries a page, so every walk follows a token.
-            const ordered =
-              input.afterSequence === undefined
+            const ordered = backend.empty
+              ? []
+              : input.afterSequence === undefined
                 ? [...ALL].reverse()
                 : ALL.filter((e) => e.sequence > (input.afterSequence ?? 0n));
             const start = input.pageToken === "" ? 0 : Number(input.pageToken);
@@ -133,6 +135,7 @@ describe("stigmer access-history", () => {
   beforeEach(() => {
     backend.reads.length = 0;
     backend.refuse = false;
+    backend.empty = false;
     originalHome = process.env.HOME;
     home = mkdtempSync(join(tmpdir(), "stigmer-access-history-"));
     process.env.HOME = home;
@@ -171,6 +174,16 @@ describe("stigmer access-history", () => {
     expect(lines[1]).toMatch(/removed\s+raj@acme\.example\s+member\s+organization acme\s+ana@acme\.example\s+organization_access_revoked/);
     expect(lines[2]).toContain("agent agt_billing (deleted)");
     expect(lines[3]).toContain("server, for ana@acme.example");
+  });
+
+  it("lists the newest 50 by default, as YAML, and says so when there is nothing", async () => {
+    const { stdout } = await run(["access-history", "list", "-o", "yaml"]);
+    expect(backend.reads[0]?.pageSize).toBe(50);
+    expect(stdout).toContain("sequence: \"4\"");
+    backend.reads.length = 0;
+    backend.empty = true;
+    const none = await run(["access-history", "list"]);
+    expect(none.stdout).toContain("No access changes found");
   });
 
   it("lists in the organization --org names, as JSON", async () => {
