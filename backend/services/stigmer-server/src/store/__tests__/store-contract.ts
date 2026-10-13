@@ -2773,9 +2773,10 @@ export function describeStoreContract(
         resourceId: "acme",
       });
       expect(revoked?.occurredAt).toMatch(FIXED_WIDTH_UTC);
-      expect(fromBinary(IamPolicySchema, revoked?.data ?? new Uint8Array())).toEqual(
-        policy("iamp_a2", "ida_2", "acme"),
-      );
+      // The row as it stood: its id and triple (the store stamped its etag).
+      const stood = fromBinary(IamPolicySchema, revoked?.data ?? new Uint8Array());
+      expect(stood.metadata?.id).toBe("iamp_a2");
+      expect(stood.spec).toEqual(policy("iamp_a2", "ida_2", "acme").spec);
       const raw = (await fx.permissionHistory()).filter((entry) => entry.org === "acme");
       const read = await fx.store.listPermissionHistory("acme", { limit: 100, after: 0n });
       expect(read.map((record) => [record.occurredAt, record.policyId, record.change])).toEqual(

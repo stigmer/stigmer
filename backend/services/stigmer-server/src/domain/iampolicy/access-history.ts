@@ -32,7 +32,10 @@
  * unknown account keeping its id; the role as the access list renders it,
  * a structural relation keeping its code; the resource as a reference
  * whose slug the reference fill sets to its current name, or leaves empty
- * once it is deleted (pipeline/interceptors/resource-references.ts). The
+ * once it is deleted (pipeline/interceptors/resource-references.ts): within
+ * the change's organization, and an organization itself with no `org`, the
+ * scope the name table files organizations under (domain/organization/
+ * names.ts `organizationNameKey`). The
  * stored bytes never reach the wire.
  *
  * The cause enum is the wire twin of change.ts's union: `CAUSE_ON_WIRE` is
@@ -268,7 +271,10 @@ async function nameEntries(
       principal: withRelation(principalView, principal?.relation ?? ""),
       role: roleOf(spec?.relation ?? "", resourceKind),
       resource: create(ApiResourceReferenceSchema, {
-        org: change.organizationId,
+        // An organization is named at the platform's scope, so its own
+        // reference names no organization; every other resource is named
+        // within the organization the change was recorded in.
+        org: resourceKind === ApiResourceKind.organization ? "" : change.organizationId,
         kind: resourceKind,
         id: resource?.id ?? "",
       }),

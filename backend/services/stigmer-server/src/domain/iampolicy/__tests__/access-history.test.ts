@@ -324,7 +324,7 @@ describe("listAccessHistory's read", () => {
       actor: { kind: "identity_account", id: ANA, name: "Ana Silva", email: "ana@acme.example" },
       principal: { kind: "identity_account", id: RAJ, name: "Raj Patel", relation: "" },
       role: { code: "member" },
-      resource: { org: ACME, kind: ApiResourceKind.organization, id: ACME },
+      resource: { org: "", kind: ApiResourceKind.organization, id: ACME },
     });
     expect(removed?.role?.name).not.toBe("");
     expect(editor).toMatchObject({
