@@ -21,9 +21,9 @@ package ai.stigmer.billing.plan.v1;
  * self-hosted computer, so it carries no hourly price. And an hourly price
  * needs an allowance of agent hours to exceed, since a price with nothing
  * to exceed is never charged. per_extra_org_micros is bound to the
- * entitlements' child organizations, not to the instrument, and stays
- * free: with no included child organizations it still means "every child
- * organization is billed".
+ * entitlements' child organizations, not to the instrument, and no rule
+ * ties it to included_child_orgs yet (#2229): without an included count
+ * the children are unlimited and the fee is likewise never charged.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}
@@ -440,9 +440,9 @@ private static final long serialVersionUID = 0L;
    * self-hosted computer, so it carries no hourly price. And an hourly price
    * needs an allowance of agent hours to exceed, since a price with nothing
    * to exceed is never charged. per_extra_org_micros is bound to the
-   * entitlements' child organizations, not to the instrument, and stays
-   * free: with no included child organizations it still means "every child
-   * organization is billed".
+   * entitlements' child organizations, not to the instrument, and no rule
+   * ties it to included_child_orgs yet (#2229): without an included count
+   * the children are unlimited and the fee is likewise never charged.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanSpec}
