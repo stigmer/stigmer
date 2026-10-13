@@ -644,19 +644,21 @@ function buildPlatformPackage(platform, destDir) {
  */
 /**
  * The self-contained tree's package.json: the server's meta manifest, or
- * with --entry-package the same shape under the entry package's name, version,
- * description and license, private because that tree is never published.
+ * with --entry-package the same shape under the entry package's name,
+ * version, description, license and repository, private because that tree
+ * is never published.
  */
 function treePackageJson() {
   const meta = metaPackageJson();
   if (entryPackage === undefined) return meta;
-  const { name, description, license } = entryPackage.pkg;
+  const { name, description, license, repository } = entryPackage.pkg;
   return {
     ...meta,
     name,
     version: entryPackage.version,
     description,
     license,
+    repository,
     private: true,
   };
 }
