@@ -1,17 +1,17 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { ApprovalAction, ApprovalPolicySource, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { ApprovalPolicySource, ToolKind, resolveToolKind, type ToolUse } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import {
+  approvalPolicySourceOf,
   describeApprovalPolicySource,
   hookApproveAllLabel,
   isInformativePolicySource,
 } from "./approval-provenance.js";
 import {
-  resolveToolCategoryFromKind,
+  resolveToolCategoryFromCall,
   extractPrimaryArgFromPreview,
   extractShellIntentFromPreview,
   extractWriteContentFromArgs,
@@ -26,27 +26,31 @@ import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
+import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { useElapsedSince, formatElapsed } from "../internal/useElapsedSince.js";
+import type { ToolUseAnswer } from "./useAnswerToolUse.js";
 
 /** Props for {@link ApprovalCard}. */
 export interface ApprovalCardProps {
-  /** The pending approval request to render. */
-  readonly pendingApproval: PendingApproval;
   /**
-   * Called when the user clicks Approve, Skip, or Reject.
-   * The consumer (typically {@link MessageThread} or a platform
-   * builder's custom thread) handles the RPC via
-   * {@link useSubmitApproval}.
+   * The tool use that waits for a person (`state === "waiting"`); its `ask`
+   * says why and carries the sanitized preview the card shows.
    */
-  readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
-  /** True while the RPC for this specific tool call is in flight. */
+  readonly toolUse: ToolUse;
+  /**
+   * Called when the person answers: Approve (`"allow"`), Deny (`"deny"`, with
+   * the optional reason they typed), or Approve all of the call's class
+   * (`"grant"`). The consumer (typically {@link MessageThread} or a platform
+   * builder's custom thread) sends it via {@link useAnswerToolUse}.
+   */
+  readonly onAnswer: (answer: ToolUseAnswer, denyMessage?: string) => void;
+  /** True while this tool use's answer is in flight. */
   readonly isSubmitting?: boolean;
   /**
-   * This gate's last failed decision, or `null` — surfaced in-card, beside the
-   * action buttons (the optimistic spinner reverts on failure, so this explains
-   * the snap-back). A thread can hold many gates; the error must name the one it
-   * belongs to, which a single global banner cannot do. Supply the entry from
-   * {@link useSubmitApproval}'s `errorsByToolCallId` for this `toolCallId`.
+   * This gate's last failed answer, or `null` — surfaced in-card, beside the
+   * actions (the optimistic spinner reverts on failure, so this explains the
+   * snap-back). Supply {@link useAnswerToolUse}'s `errorsByToolUseId` entry
+   * for this tool use.
    */
   readonly error?: Error | null;
   /** Additional CSS class names for the root container. */
@@ -54,45 +58,38 @@ export interface ApprovalCardProps {
 }
 
 /**
- * Renders a pending tool-call approval request with the same visual
+ * Renders a tool use that waits for a person's answer with the same visual
  * structure as an expanded {@link ToolCallItem} in the history list.
  *
  * The compact header row matches the ToolCallItem layout:
  *   [CategoryIcon] Label  primaryArg  [⏳ waiting Xm]
  *
- * The body shows the proposed change from the tool args (the
- * pre-execution deny-gate has no captured `FileChangeSet` yet): the
- * write/edit content when present, an {@link EmptyChangeNotice} when
- * only a path is known, otherwise the shared {@link ToolArgsView}
- * dispatch, keeping pixel-level parity with the detail view.
+ * The body shows the proposed change from the tool's input (the call has
+ * not run, so nothing is captured yet): the write/edit content when
+ * present, an {@link EmptyChangeNotice} when only a path is known,
+ * otherwise the shared {@link ToolArgsView} dispatch, keeping pixel-level
+ * parity with the detail view.
  *
- * Wrapped in `React.memo` — structural sharing preserves the
- * `PendingApproval` reference when unchanged, so approval cards
- * skip re-renders during unrelated stream updates.
+ * Wrapped in `React.memo`: the session fold keeps an unchanged tool use's
+ * reference, so the card skips re-renders during unrelated stream updates.
  *
  * @example
  * ```tsx
  * <ApprovalCard
- *   pendingApproval={approval}
- *   onSubmit={(action) => submitApproval(executionId, approval.toolCallId, action)}
- *   isSubmitting={submittingIds.has(approval.toolCallId)}
+ *   toolUse={ask}
+ *   onAnswer={(answer, message) => answerToolUse(sessionId, ask.id, answer, message)}
+ *   isSubmitting={submittingToolUseIds.has(ask.id)}
  * />
  * ```
  */
 export const ApprovalCard = memo(function ApprovalCard({
-  pendingApproval,
-  onSubmit,
+  toolUse,
+  onAnswer,
   isSubmitting = false,
   error = null,
   className,
 }: ApprovalCardProps) {
-  // Prefer the denormalized wire tool_kind (populated by the server-side
-  // PendingApproval projection); fall back to the name for legacy runs.
-  const categoryInfo = resolveToolCategoryFromKind(
-    pendingApproval.toolKind,
-    pendingApproval.toolName,
-    pendingApproval.mcpServerSlug,
-  );
+  const categoryInfo = resolveToolCategoryFromCall(toolUse);
 
   // Cursor-grade chrome: a thin neutral card (no amber "brown" fill), with the
   // gate's "needs your decision" signal carried by one restrained cue — a 2px
@@ -106,17 +103,17 @@ export const ApprovalCard = memo(function ApprovalCard({
   return (
     <div
       role="alert"
-      aria-label={`Approval required for ${pendingApproval.toolName}`}
+      aria-label={`Approval required for ${toolUse.name}`}
       className={cn(
         "stg:rounded-lg stg:border stg:border-border-prominent",
         accentClass,
         className,
       )}
     >
-      <ApprovalCardHeader pendingApproval={pendingApproval} bordered />
+      <ApprovalCardHeader toolUse={toolUse} bordered />
       <ApprovalCardBody
-        pendingApproval={pendingApproval}
-        onSubmit={onSubmit}
+        toolUse={toolUse}
+        onAnswer={onAnswer}
         isSubmitting={isSubmitting}
         error={error}
       />
@@ -126,42 +123,31 @@ export const ApprovalCard = memo(function ApprovalCard({
 
 /** Props for {@link ApprovalCardHeader}. */
 export interface ApprovalCardHeaderProps {
-  /** The pending approval to summarize. */
-  readonly pendingApproval: PendingApproval;
+  /** The waiting tool use to summarize. */
+  readonly toolUse: ToolUse;
   /** Adds a bottom divider, for use above {@link ApprovalCardBody}. */
   readonly bordered?: boolean;
 }
 
 /**
- * The compact summary row of an approval — `[icon] Label primaryArg [via sub]
- * [⏳ Xm]`. Used as the standalone {@link ApprovalCard}'s header. Not rendered
- * inline on a {@link ToolCallItem}, whose own row already serves as the header.
+ * The compact summary row of an approval — `[icon] Label primaryArg [⏳ Xm]`.
+ * Used as the standalone {@link ApprovalCard}'s header. Not rendered inline
+ * on a {@link ToolCallItem}, whose own row already serves as the header.
+ *
+ * The primary argument and intent are read from the ask's sanitized preview
+ * (secrets redacted), never from the raw input.
  */
 export function ApprovalCardHeader({
-  pendingApproval,
+  toolUse,
   bordered = false,
 }: ApprovalCardHeaderProps) {
-  const categoryInfo = resolveToolCategoryFromKind(
-    pendingApproval.toolKind,
-    pendingApproval.toolName,
-    pendingApproval.mcpServerSlug,
-  );
+  const categoryInfo = resolveToolCategoryFromCall(toolUse);
   const CategoryIcon = CATEGORY_ICON[categoryInfo.category];
+  const argsPreview = toolUse.ask?.argsPreview ?? "";
 
   const primaryArg = useMemo(
-    () =>
-      extractPrimaryArgFromPreview(
-        pendingApproval.toolName,
-        pendingApproval.argsPreview,
-        pendingApproval.mcpServerSlug,
-        pendingApproval.toolKind,
-      ),
-    [
-      pendingApproval.toolName,
-      pendingApproval.argsPreview,
-      pendingApproval.mcpServerSlug,
-      pendingApproval.toolKind,
-    ],
+    () => extractPrimaryArgFromPreview(toolUse.name, argsPreview, toolUse.mcpServerName),
+    [toolUse.name, argsPreview, toolUse.mcpServerName],
   );
 
   // A shell gate whose call carries a model-authored intent phrase titles
@@ -169,19 +155,8 @@ export function ApprovalCardHeader({
   // command stays foregrounded in the body's terminal preview, which remains
   // the content the user is approving.
   const intent = useMemo(
-    () =>
-      extractShellIntentFromPreview(
-        pendingApproval.toolName,
-        pendingApproval.argsPreview,
-        pendingApproval.mcpServerSlug,
-        pendingApproval.toolKind,
-      ),
-    [
-      pendingApproval.toolName,
-      pendingApproval.argsPreview,
-      pendingApproval.mcpServerSlug,
-      pendingApproval.toolKind,
-    ],
+    () => extractShellIntentFromPreview(toolUse.name, argsPreview, toolUse.mcpServerName),
+    [toolUse.name, argsPreview, toolUse.mcpServerName],
   );
 
   return (
@@ -217,13 +192,7 @@ export function ApprovalCardHeader({
           ))}
       </span>
 
-      {pendingApproval.fromSubAgent && pendingApproval.subAgentName && (
-        <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-muted-foreground">
-          via {pendingApproval.subAgentSubject || pendingApproval.subAgentName}
-        </span>
-      )}
-
-      <WaitingDuration requestedAt={pendingApproval.requestedAt} />
+      <WaitingDuration requestedAt={toolUse.ask?.processedAt ?? toolUse.processedAt} />
 
       <span className="stg:shrink-0 stg:text-warning" aria-hidden="true">
         <ClockIcon />
@@ -234,24 +203,19 @@ export function ApprovalCardHeader({
 
 /** Props for {@link ApprovalCardBody}. */
 export interface ApprovalCardBodyProps {
-  /** The pending approval to render a decision panel for. */
-  readonly pendingApproval: PendingApproval;
   /**
-   * The gated tool row's authoritative arguments (`ToolCall.args`), when the
-   * caller holds the row — the inline gate on a {@link ToolCallItem} does.
-   * They supply the proposed write/edit content, which the pending approval's
-   * `argsPreview` (the runner's sanitized summary) cannot carry for a file of
-   * any real size; every other field the card shows still comes from the
-   * preview, so nothing the runner redacted becomes visible. Absent, the card
-   * renders from the preview alone and a large write shows the "no preview"
-   * notice rather than its content.
+   * The waiting tool use to render a decision panel for. The card shows its
+   * ask's sanitized preview, with the proposed write/edit content taken from
+   * the tool's input (the one value the preview cannot carry for a file of
+   * any real size); nothing the runner redacted in the preview becomes
+   * visible.
    */
-  readonly args?: Record<string, unknown>;
-  /** Called when the user picks Approve / Approve-all / Skip / Reject. */
-  readonly onSubmit: (action: ApprovalAction, comment?: string) => void;
-  /** True while the RPC for this tool call is in flight. */
+  readonly toolUse: ToolUse;
+  /** Called when the person answers: allow, deny (with an optional reason) or grant. */
+  readonly onAnswer: (answer: ToolUseAnswer, denyMessage?: string) => void;
+  /** True while this tool use's answer is in flight. */
   readonly isSubmitting?: boolean;
-  /** This gate's last failed decision, or `null` — surfaced in-card below the actions. */
+  /** This gate's last failed answer, or `null` — surfaced in-card below the actions. */
   readonly error?: Error | null;
   /** Additional CSS class names for the body container. */
   readonly className?: string;
@@ -259,84 +223,100 @@ export interface ApprovalCardBodyProps {
 
 /**
  * The decision panel of an approval: the optional message and gate reason, the
- * proposed change (the write/edit content from the row's `args` when the caller
- * holds the row, the sanitized args preview otherwise), and the action buttons.
+ * proposed change, and the actions — Approve, Deny (with an optional reason the
+ * agent reads), and Approve all of the call's class for the rest of the turn.
  * Reused in two places — the standalone {@link ApprovalCard} (with
- * {@link ApprovalCardHeader} above it) and inline inside a gated
- * {@link ToolCallItem}'s expanded panel, where the item's own row is the header.
- * One body, one preview rule in both.
+ * {@link ApprovalCardHeader} above it) and inline inside a waiting
+ * {@link ToolCallItem}'s expanded panel, where the item's own row is the
+ * header. One body, one preview rule in both.
  */
 export function ApprovalCardBody({
-  pendingApproval,
-  args,
-  onSubmit,
+  toolUse,
+  onAnswer,
   isSubmitting = false,
   error = null,
   className,
 }: ApprovalCardBodyProps) {
-  const [activeAction, setActiveAction] = useState<ApprovalAction | null>(null);
+  const [activeAnswer, setActiveAnswer] = useState<ToolUseAnswer | null>(null);
+  // Deny opens an inline reason row first: the reason is optional, and the
+  // agent reads it as the call's result.
+  const [denying, setDenying] = useState(false);
+  const [denyReason, setDenyReason] = useState("");
+  const reasonId = useId();
 
-  const handleAction = useCallback(
-    (action: ApprovalAction) => {
-      setActiveAction(action);
-      onSubmit(action);
+  const handleAnswer = useCallback(
+    (answer: ToolUseAnswer, denyMessage?: string) => {
+      setActiveAnswer(answer);
+      onAnswer(answer, denyMessage);
     },
-    [onSubmit],
+    [onAnswer],
+  );
+
+  const handleDenySubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const reason = denyReason.trim();
+      handleAnswer("deny", reason === "" ? undefined : reason);
+    },
+    [denyReason, handleAnswer],
   );
 
   useEffect(() => {
     if (!isSubmitting) {
-      setActiveAction(null);
+      setActiveAnswer(null);
     }
   }, [isSubmitting]);
 
-  const categoryInfo = resolveToolCategoryFromKind(
-    pendingApproval.toolKind,
-    pendingApproval.toolName,
-    pendingApproval.mcpServerSlug,
-  );
+  const ask = toolUse.ask;
+  const argsPreview = ask?.argsPreview ?? "";
+  const policySource = approvalPolicySourceOf(ask?.policySource ?? "");
+  const policyHook = ask?.policyHook ?? "";
+  const categoryInfo = resolveToolCategoryFromCall(toolUse);
 
   // What the card shows: the preview's fields (the runner's sanitized summary),
-  // with the proposed write/edit content overlaid from the row's authoritative
-  // `args` when the caller holds the row — the one value the summary cannot
-  // carry for a file of any real size, and the one the user is asked to approve.
-  // A preview that does not parse (a record persisted under an older runner's
-  // whole-string truncation) stays `null`: nothing is overlaid onto a summary
-  // the card cannot read, and the notice below says so honestly.
+  // with the proposed write/edit content overlaid from the tool's input — the
+  // one value the summary cannot carry for a file of any real size, and the one
+  // the user is asked to approve. A preview that does not parse stays `null`:
+  // nothing is overlaid onto a summary the card cannot read, and the notice
+  // below says so honestly.
   const displayArgs = useMemo<Record<string, unknown> | null>(() => {
-    const previewArgs = parseArgsPreview(pendingApproval.argsPreview);
-    return previewArgs ? withAuthoritativeWriteContent(previewArgs, args) : null;
-  }, [pendingApproval.argsPreview, args]);
+    const previewArgs = parseArgsPreview(argsPreview);
+    return previewArgs ? withAuthoritativeWriteContent(previewArgs, toolUse.input) : null;
+  }, [argsPreview, toolUse.input]);
 
-  // APPROVE_ALL now grants a run-lifetime lease scoped to the clicked tool's
-  // CLASS — its MCP server for an MCP tool, else its approval category (where
+  // A grant allows every call of the clicked tool's CLASS for the rest of the
+  // turn — its MCP server for an MCP tool, else its approval category (where
   // write and edit collapse to one "file edits" class, mirroring the runner's
-  // toolApprovalCategory). The label must name that exact class so the button
+  // toolApprovalCategory). The label names that exact class so the button
   // never over-promises: it does NOT silence other classes.
   const approveAllLabel = useMemo(
-    () => buildApproveAllLabel(categoryInfo.category, pendingApproval),
-    [categoryInfo.category, pendingApproval],
+    () =>
+      buildApproveAllLabel(categoryInfo.category, {
+        name: toolUse.name,
+        mcpServerName: toolUse.mcpServerName,
+        policySource,
+        policyHook,
+      }),
+    [categoryInfo.category, toolUse.name, toolUse.mcpServerName, policySource, policyHook],
   );
 
-  // Why-gated: the authorization provenance the server projected onto the
-  // PendingApproval (approval_policy_source). Smart-suppressed — the everyday
-  // "this category needs approval" default is noise next to the action it gates,
-  // so only a genuinely informative provenance (an explicit override, a
-  // server-marked destructive tighten) earns a line; the full phrase is on hover.
+  // Why-gated: the rule that asked (the ask's policy source). Smart-suppressed
+  // — the everyday "this category needs approval" default is noise next to the
+  // action it gates, so only a genuinely informative provenance (a hook, a
+  // server-marked destructive tighten) earns a line.
   const gateReason = useMemo(
-    () => describeApprovalPolicySource(pendingApproval.approvalPolicySource, pendingApproval.approvalPolicyHook),
-    [pendingApproval.approvalPolicySource, pendingApproval.approvalPolicyHook],
+    () => describeApprovalPolicySource(policySource, policyHook),
+    [policySource, policyHook],
   );
-  const showGateReason =
-    gateReason != null &&
-    isInformativePolicySource(pendingApproval.approvalPolicySource);
+  const showGateReason = gateReason != null && isInformativePolicySource(policySource);
 
   // The runner's message for a file tool ("Write file: <path>") only restates
   // the header + diff, so it is suppressed; a message is shown only when it adds
   // information (e.g. an MCP tool's human-authored prompt). Shell shows its
   // command in the args view, never a message.
+  const message = ask?.message ?? "";
   const showMessage =
-    Boolean(pendingApproval.message) &&
+    message !== "" &&
     categoryInfo.category !== "shell" &&
     !isFileCategory(categoryInfo.category);
 
@@ -350,31 +330,26 @@ export function ApprovalCardBody({
     [displayArgs],
   );
 
-  // The decision-relevant preview. The pre-execution deny-gate is an
-  // apply-then-review exception: the change has not been captured yet (the tool
-  // is DENIED, awaiting approval), so there is no `FileChangeSet` to render.
-  // Instead the gate shows the PROPOSED change from the tool args: the write/edit
-  // content when the args carry it (path suppressed — the header has it); a
-  // neutral "no preview" notice when only a path is known (the resume placeholder
-  // case); otherwise the shared args view for non-file tools. (Captured
-  // file-review — the apply-then-review path — renders via FileReviewCard, not
-  // here.)
+  // The decision-relevant preview. The call has not run, so nothing is
+  // captured yet: the gate shows the PROPOSED change from the tool's input —
+  // the write/edit content when it carries one (path suppressed: the header
+  // has it); a neutral "no preview" notice when only a path is known;
+  // otherwise the shared args view for non-file tools. (The turn's captured
+  // changes are reviewed in FileReviewCard, not here.)
   let preview: ReactNode = null;
   if (isWriteEdit && writeContent === null) {
-    // No proposed content in the args. A whole-file write is modeled as a create
-    // throughout the runner (FILE_WRITE -> CREATE), so the authoritative toolKind
-    // lets the gate say plainly that a new file is being written rather than the
-    // misleading non-committal "no preview". An edit (modify) cannot be proven a
-    // create, so it keeps the non-committal notice.
-    const kind =
-      pendingApproval.toolKind === ToolKind.FILE_WRITE ? "create" : "no-preview";
+    // No proposed content. A whole-file write is modeled as a create
+    // throughout the runner (FILE_WRITE -> CREATE), so the gate says plainly
+    // that a new file is being written; an edit cannot be proven a create,
+    // so it keeps the non-committal notice.
+    const kind = resolveToolKind(toolUse) === ToolKind.FILE_WRITE ? "create" : "no-preview";
     preview = <EmptyChangeNotice kind={kind} />;
   } else if (displayArgs) {
     preview = (
       <ToolArgsView
-        toolName={pendingApproval.toolName}
+        toolName={toolUse.name}
         args={displayArgs}
-        mcpServerSlug={pendingApproval.mcpServerSlug}
+        mcpServerSlug={toolUse.mcpServerName}
         showFileName={!isWriteEdit}
       />
     );
@@ -383,7 +358,7 @@ export function ApprovalCardBody({
   return (
     <div className={cn("stg:px-3 stg:py-2.5 stg:space-y-2", className)}>
       {showMessage && (
-        <p className="stg:text-xs stg:text-foreground">{pendingApproval.message}</p>
+        <p className="stg:text-xs stg:text-foreground">{message}</p>
       )}
 
       {preview}
@@ -400,48 +375,83 @@ export function ApprovalCardBody({
         </p>
       )}
 
-      {/* Decision actions — quiet, Cursor-grade hierarchy: one neutral-chip
-          primary (Approve), ghost Skip, ghost-danger Reject. The broad
-          run-lifetime lease (Approve all) is demoted to the far right via
-          `ml-auto` so it never competes with — or is mis-clicked for — the
-          per-call Approve (Fitts/Hick). */}
-      <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
-        <DecisionButton
-          label="Approve"
-          variant="primary"
-          onClick={() => handleAction(ApprovalAction.APPROVE)}
-          isActive={activeAction === ApprovalAction.APPROVE}
-          isSubmitting={isSubmitting}
-          cursorTarget="approve-button"
-        />
-        <DecisionButton
-          label="Skip"
-          variant="ghost"
-          onClick={() => handleAction(ApprovalAction.SKIP)}
-          isActive={activeAction === ApprovalAction.SKIP}
-          isSubmitting={isSubmitting}
-        />
-        <DecisionButton
-          label="Reject"
-          variant="danger"
-          onClick={() => handleAction(ApprovalAction.REJECT)}
-          isActive={activeAction === ApprovalAction.REJECT}
-          isSubmitting={isSubmitting}
-        />
-        {/* Subordinate escalation: approve this call AND stop asking for THIS
-            CLASS of tool for the rest of the run (its MCP server, or its file
-            edit / delete / shell category) — other classes keep prompting. The
-            label names the leased class so the scope is never a surprise. */}
-        <DecisionButton
-          label={approveAllLabel}
-          variant="ghost"
-          onClick={() => handleAction(ApprovalAction.APPROVE_ALL)}
-          isActive={activeAction === ApprovalAction.APPROVE_ALL}
-          isSubmitting={isSubmitting}
-          className="stg:ml-auto"
-          cursorTarget="approve-all-button"
-        />
-      </div>
+      {denying ? (
+        // The deny row: an optional reason the agent reads, then Deny or
+        // Cancel. Enter submits.
+        <form
+          onSubmit={handleDenySubmit}
+          className="stg:flex stg:items-center stg:gap-2 stg:pt-1"
+          data-cursor-target="deny-reason-form"
+        >
+          <label htmlFor={reasonId} className="stg:sr-only">
+            Reason for denying (optional)
+          </label>
+          <input
+            id={reasonId}
+            type="text"
+            autoFocus
+            value={denyReason}
+            onChange={(event) => setDenyReason(event.target.value)}
+            placeholder="Tell the agent why (optional)"
+            maxLength={2000}
+            disabled={isSubmitting}
+            className={cn(INPUT_CLASSES, "stg:min-w-0 stg:flex-1")}
+          />
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            aria-label="Deny"
+            data-cursor-target="deny-confirm-button"
+            className={DENY_SUBMIT_CLASSES}
+          >
+            Deny
+          </button>
+          <DecisionButton
+            label="Cancel"
+            variant="ghost"
+            onClick={() => {
+              setDenying(false);
+              setDenyReason("");
+            }}
+            isSubmitting={isSubmitting}
+          />
+        </form>
+      ) : (
+        // Decision actions — quiet, Cursor-grade hierarchy: one neutral-chip
+        // primary (Approve) and a ghost-danger Deny. The broad grant (Approve
+        // all of the class) is demoted to the far right via `ml-auto` so it
+        // never competes with — or is mis-clicked for — the per-call Approve.
+        <div className="stg:flex stg:items-center stg:gap-2 stg:pt-1">
+          <DecisionButton
+            label="Approve"
+            variant="primary"
+            onClick={() => handleAnswer("allow")}
+            isActive={activeAnswer === "allow"}
+            isSubmitting={isSubmitting}
+            cursorTarget="approve-button"
+          />
+          <DecisionButton
+            label="Deny"
+            variant="danger"
+            onClick={() => setDenying(true)}
+            isSubmitting={isSubmitting}
+            cursorTarget="deny-button"
+          />
+          {/* Subordinate escalation: allow this call AND every call of THIS
+              CLASS for the rest of the turn (its MCP server, or its file
+              edit / delete / shell category) — other classes keep asking.
+              The label names the class so the scope is never a surprise. */}
+          <DecisionButton
+            label={approveAllLabel}
+            variant="ghost"
+            onClick={() => handleAnswer("grant")}
+            isActive={activeAnswer === "grant"}
+            isSubmitting={isSubmitting}
+            className="stg:ml-auto"
+            cursorTarget="approve-all-button"
+          />
+        </div>
+      )}
 
       {/* De-emphasized provenance, trailing the decision it explains. Only the
           informative reasons reach here (see showGateReason). */}
@@ -475,28 +485,32 @@ export function ApprovalCardBody({
 // ---------------------------------------------------------------------------
 
 /**
- * Builds the truthful APPROVE_ALL button label for a tool's lease class.
+ * Builds the truthful "Approve all" label for a tool's grant class.
  *
- * The lease an APPROVE_ALL grants is scoped to ONE class: when a hook asked,
- * that hook's asks on that one tool (`hookApproveAllLabel`); otherwise the MCP
- * server for an MCP tool, or the approval category (write/delete/shell) — where
- * the presentation "write" and "edit" categories collapse to a single "file
- * edits" class, exactly as the runner's `toolApprovalCategory` collapses
- * FILE_WRITE and FILE_EDIT to "write". The label names that class so the button
- * never implies a broader effect than the lease actually has. The generic
- * fallback only applies to a tool with no leasable class, which is not normally
- * gated for approval.
+ * A grant is scoped to ONE class: when a hook asked, that hook's asks on that
+ * one tool (`hookApproveAllLabel`); otherwise the MCP server for an MCP tool,
+ * or the approval category (write/delete/shell) — where the presentation
+ * "write" and "edit" categories collapse to a single "file edits" class,
+ * exactly as the runner's `toolApprovalCategory` collapses FILE_WRITE and
+ * FILE_EDIT to "write". The label names that class so the button never
+ * implies a broader effect than the grant actually has. The generic fallback
+ * only applies to a tool with no class, which is not normally asked about.
  */
 function buildApproveAllLabel(
   category: ToolCategory,
-  pending: Pick<PendingApproval, "mcpServerSlug" | "toolName" | "approvalPolicySource" | "approvalPolicyHook">,
+  tool: {
+    readonly name: string;
+    readonly mcpServerName: string;
+    readonly policySource: ApprovalPolicySource;
+    readonly policyHook: string;
+  },
 ): string {
-  const { mcpServerSlug } = pending;
-  if (pending.approvalPolicySource === ApprovalPolicySource.HOOK) {
-    return hookApproveAllLabel(hookLeaseSubject(category, pending.toolName, mcpServerSlug), pending.approvalPolicyHook);
+  const { mcpServerName } = tool;
+  if (tool.policySource === ApprovalPolicySource.HOOK) {
+    return hookApproveAllLabel(hookLeaseSubject(category, tool.name, mcpServerName), tool.policyHook);
   }
-  if (mcpServerSlug) {
-    return `Approve all ${mcpServerSlug} tools`;
+  if (mcpServerName) {
+    return `Approve all ${mcpServerName} tools`;
   }
   switch (category) {
     case "shell":
@@ -511,9 +525,9 @@ function buildApproveAllLabel(
   }
 }
 
-/** What a hook lease covers, in words: one tool's calls, so a write and an edit stay apart. */
-function hookLeaseSubject(category: ToolCategory, toolName: string, mcpServerSlug: string): string {
-  if (mcpServerSlug) return `${toolName} calls`;
+/** What a hook grant covers, in words: one tool's calls, so a write and an edit stay apart. */
+function hookLeaseSubject(category: ToolCategory, toolName: string, mcpServerName: string): string {
+  if (mcpServerName) return `${toolName} calls`;
   switch (category) {
     case "shell":
       return "shell commands";
@@ -527,6 +541,18 @@ function hookLeaseSubject(category: ToolCategory, toolName: string, mcpServerSlu
       return `${toolName} calls`;
   }
 }
+
+/**
+ * The deny row's submit button, in {@link DecisionButton}'s danger weight
+ * (a form submit, so it cannot be a DecisionButton, whose type is `button`).
+ */
+const DENY_SUBMIT_CLASSES = cn(
+  "stg:inline-flex stg:shrink-0 stg:items-center stg:justify-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5",
+  "stg:text-xs stg:font-medium stg:transition-colors stg:text-destructive",
+  "stg:hover:bg-destructive-subtle",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:ring-offset-2",
+  "stg:disabled:cursor-not-allowed stg:disabled:opacity-50 stg:disabled:pointer-events-none",
+);
 
 // ---------------------------------------------------------------------------
 // Internal sub-components

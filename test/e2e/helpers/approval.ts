@@ -87,7 +87,7 @@ export function shellBlock(toolCallId: string, command: string): ToolUseBlock {
  *
  * The browser is then used only to render and resolve the gate, so the test
  * isolates exactly the changed surface (disclosure + the SessionViewer ->
- * submitApproval wiring) from the new-session launcher's agent/model/harness
+ * answer wiring) from the new-session launcher's agent/model/harness
  * defaults.
  *
  * Ordering matters: the mock turns are enqueued BEFORE the run is created,
@@ -432,14 +432,19 @@ export function approveAllButton(scope: Page | Locator): Locator {
   return scope.locator('[data-cursor-target="approve-all-button"]');
 }
 
-/** The "Skip" decision button (aria-label). */
-export function skipButton(scope: Page | Locator): Locator {
-  return scope.getByRole("button", { name: "Skip", exact: true });
+/** The "Deny" decision button: it opens the optional reason row. */
+export function denyButton(scope: Page | Locator): Locator {
+  return scope.locator('[data-cursor-target="deny-button"]');
 }
 
-/** The "Reject" decision button (aria-label). */
-export function rejectButton(scope: Page | Locator): Locator {
-  return scope.getByRole("button", { name: "Reject", exact: true });
+/** The reason row's own "Deny", which sends the deny (with the reason typed, if any). */
+export function denyConfirmButton(scope: Page | Locator): Locator {
+  return scope.locator('[data-cursor-target="deny-confirm-button"]');
+}
+
+/** The reason row's optional text field. */
+export function denyReasonField(scope: Page | Locator): Locator {
+  return scope.getByLabel("Reason for denying (optional)");
 }
 
 /**

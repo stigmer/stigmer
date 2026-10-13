@@ -1,231 +1,128 @@
+/**
+ * findStreamingPlan: the plan a live Plan-mode turn is writing, read from
+ * the turn's folded items and its run's mode. Gated on Plan mode and on the
+ * turn not having ended (a wait for a person keeps it live); the candidate
+ * is the turn's LAST content-bearing agent message (live or stored), and it
+ * qualifies only with a leading `# ` title, tolerating an enclosing plan
+ * fence that has not closed yet while leaving inner code fences and other
+ * languages alone.
+ */
 import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  RunSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  RunPhase,
-  InteractionMode,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionLog, type Turn, type TurnPhase } from "@stigmer/sdk";
 import { findStreamingPlan } from "../detect-streaming-plan";
+import { samples } from "../../test/samples";
+import {
+  previewDelta,
+  previewStart,
+  runOf,
+  said,
+  status,
+  thought,
+  turnsOf,
+  use,
+  user,
+} from "../../run/__tests__/__fixtures__/thread-events";
 
-function makeMessage(type: MessageType, content: string) {
-  const msg = create(AgentMessageSchema);
-  msg.type = type;
-  msg.content = content;
-  return msg;
+const R = "run_a";
+
+function turnWith(phase: TurnPhase, ...extra: SessionEvent[]): Turn {
+  return turnsOf(user(R, "plan it"), status(R, "running"), ...extra, ...(phase === "running" ? [] : [status(R, phase)]))[0]!;
 }
 
-function makeExecution(opts: {
-  phase?: RunPhase;
-  interactionMode?: InteractionMode;
-  messages?: ReturnType<typeof makeMessage>[];
-}): Run {
-  const exec = create(RunSchema);
+const planRun = (mode = InteractionMode.PLAN) => runOf(R, { spec: { interactionMode: mode }, status: {} });
 
-  const spec = create(RunSpecSchema);
-  if (opts.interactionMode !== undefined) {
-    spec.interactionMode = opts.interactionMode;
-  }
-  exec.spec = spec;
-
-  const status = create(RunStatusSchema);
-  status.phase = opts.phase ?? RunPhase.RUN_IN_PROGRESS;
-  if (opts.messages) {
-    status.messages = opts.messages;
-  }
-  exec.status = status;
-
-  return exec;
-}
-
-/** A live Plan-mode run with the given messages — the common case. */
-function livePlanExecution(...messages: ReturnType<typeof makeMessage>[]) {
-  return makeExecution({
-    phase: RunPhase.RUN_IN_PROGRESS,
-    interactionMode: InteractionMode.PLAN,
-    messages,
-  });
+/** A live Plan-mode turn whose agent messages are `texts`, in order. */
+function livePlan(...texts: string[]) {
+  return findStreamingPlan(turnWith("running", ...texts.map((text, i) => said(R, i, text))), planRun());
 }
 
 describe("findStreamingPlan — mode and phase gating", () => {
-  const planMessage = makeMessage(MessageType.MESSAGE_AI, "# The Plan\n\nBody");
+  const PLAN_TEXT = "# The Plan\n\nBody";
 
-  it("detects a plan on a live Plan-mode execution", () => {
-    const plan = findStreamingPlan(livePlanExecution(planMessage));
-    expect(plan).toBeDefined();
-    expect(plan!.messageIndex).toBe(0);
-    expect(plan!.displayText).toBe("# The Plan\n\nBody");
+  it("detects a plan on a live Plan-mode turn", () => {
+    expect(livePlan(PLAN_TEXT)).toEqual({ messageId: `${R}.root.m0`, displayText: PLAN_TEXT });
   });
 
-  it("returns undefined for null/undefined executions", () => {
-    expect(findStreamingPlan(null)).toBeUndefined();
-    expect(findStreamingPlan(undefined)).toBeUndefined();
+  it("returns undefined without a turn", () => {
+    expect(findStreamingPlan(null, planRun())).toBeUndefined();
+    expect(findStreamingPlan(undefined, planRun())).toBeUndefined();
   });
 
-  it("returns undefined for an Agent-mode execution, even with a plan-shaped message", () => {
-    const exec = makeExecution({
-      phase: RunPhase.RUN_IN_PROGRESS,
-      interactionMode: InteractionMode.AGENT,
-      messages: [planMessage],
-    });
-    expect(findStreamingPlan(exec)).toBeUndefined();
+  it("returns undefined for an Agent-mode turn, no mode, or no run", () => {
+    const turn = turnWith("running", said(R, 0, PLAN_TEXT));
+    expect(findStreamingPlan(turn, planRun(InteractionMode.AGENT))).toBeUndefined();
+    expect(findStreamingPlan(turn, planRun(InteractionMode.UNSPECIFIED))).toBeUndefined();
+    expect(findStreamingPlan(turn, undefined)).toBeUndefined();
   });
 
-  it("returns undefined when no interaction mode is set", () => {
-    const exec = makeExecution({
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [planMessage],
-    });
-    expect(findStreamingPlan(exec)).toBeUndefined();
+  it.each<TurnPhase>(["completed", "failed", "cancelled", "terminated"])("returns undefined once the turn ended (%s)", (phase) => {
+    expect(findStreamingPlan(turnWith(phase, said(R, 0, PLAN_TEXT)), planRun())).toBeUndefined();
   });
 
-  it.each([
-    RunPhase.RUN_COMPLETED,
-    RunPhase.RUN_FAILED,
-    RunPhase.RUN_CANCELLED,
-    RunPhase.RUN_TERMINATED,
-  ])("returns undefined for terminal phase %s", (phase) => {
-    const exec = makeExecution({
-      phase,
-      interactionMode: InteractionMode.PLAN,
-      messages: [planMessage],
-    });
-    expect(findStreamingPlan(exec)).toBeUndefined();
+  it("detects while the turn waits for a person", () => {
+    expect(findStreamingPlan(turnWith("waiting", said(R, 0, PLAN_TEXT)), planRun())).toBeDefined();
   });
 
-  it("detects during a non-terminal wait (approval gate mid-turn)", () => {
-    const exec = makeExecution({
-      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-      interactionMode: InteractionMode.PLAN,
-      messages: [planMessage],
-    });
-    expect(findStreamingPlan(exec)).toBeDefined();
+  it("detects a plan still being written (a live preview)", () => {
+    const log = new SessionLog();
+    log.apply(samples.sessionEventList([user(R, "plan it"), status(R, "running")]).events);
+    log.applyFrame(previewStart(`${R}.root.m0`));
+    log.applyFrame(previewDelta(`${R}.root.m0`, "# Live"));
+
+    expect(findStreamingPlan(log.snapshot().turns[0], planRun())?.displayText).toBe("# Live");
   });
 });
 
 describe("findStreamingPlan — candidate selection", () => {
-  it("considers only the LAST content-bearing AI message", () => {
-    // The earlier plan-shaped message is settled narration once a later AI
-    // message exists — falling back to it would promote the wrong text.
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "# Early heading in narration"),
-      makeMessage(MessageType.MESSAGE_AI, "Now let me check the tests."),
-    );
-    expect(findStreamingPlan(exec)).toBeUndefined();
+  it("considers only the LAST content-bearing agent message", () => {
+    expect(livePlan("# Early heading in narration", "Now let me check the tests.")).toBeUndefined();
   });
 
-  it("skips trailing empty AI messages (extractFinalPlanText's rule)", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "# The Plan\n\nBody"),
-      makeMessage(MessageType.MESSAGE_AI, "   "),
-    );
-    expect(findStreamingPlan(exec)?.messageIndex).toBe(0);
+  it("skips trailing empty messages", () => {
+    expect(livePlan("# The Plan\n\nBody", "   ")?.messageId).toBe(`${R}.root.m0`);
   });
 
-  it("ignores non-AI message types when selecting the candidate", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "# The Plan\n\nBody"),
-      makeMessage(MessageType.MESSAGE_THINKING, "hmm, one more thing"),
-      makeMessage(MessageType.MESSAGE_TOOL, "tool output"),
-    );
-    expect(findStreamingPlan(exec)?.messageIndex).toBe(0);
+  it("ignores thinking and tool calls when selecting the candidate", () => {
+    const turn = turnWith("running", said(R, 0, "# The Plan\n\nBody"), ...thought(R, 0, "hmm, one more thing"), use(R, "c1", "read_file"));
+    expect(findStreamingPlan(turn, planRun())?.messageId).toBe(`${R}.root.m0`);
   });
 
   it("returns undefined when there are no messages", () => {
-    expect(findStreamingPlan(livePlanExecution())).toBeUndefined();
+    expect(livePlan()).toBeUndefined();
   });
 });
 
 describe("findStreamingPlan — H1 convention", () => {
-  it("does not detect narration (no leading H1)", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "Let me explore the codebase."),
-    );
-    expect(findStreamingPlan(exec)).toBeUndefined();
-  });
-
-  it("does not detect a lone '#' first token (title not started yet)", () => {
-    const exec = livePlanExecution(makeMessage(MessageType.MESSAGE_AI, "#"));
-    expect(findStreamingPlan(exec)).toBeUndefined();
+  it("does not detect narration, a lone '#', or an H2-led message", () => {
+    expect(livePlan("Let me explore the codebase.")).toBeUndefined();
+    expect(livePlan("#")).toBeUndefined();
+    expect(livePlan("## Notes\n\nSome section")).toBeUndefined();
   });
 
   it("detects the moment the H1 gains its first title character", () => {
-    const exec = livePlanExecution(makeMessage(MessageType.MESSAGE_AI, "# T"));
-    expect(findStreamingPlan(exec)?.displayText).toBe("# T");
-  });
-
-  it("does not detect an H2-led message (## is a section, not a plan title)", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "## Notes\n\nSome section"),
-    );
-    expect(findStreamingPlan(exec)).toBeUndefined();
+    expect(livePlan("# T")?.displayText).toBe("# T");
   });
 
   it("tolerates leading blank lines before the H1", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "\n\n# The Plan\n\nBody"),
-    );
-    expect(findStreamingPlan(exec)).toBeDefined();
+    expect(livePlan("\n\n# The Plan\n\nBody")).toBeDefined();
   });
 });
 
 describe("findStreamingPlan — unterminated-fence tolerance", () => {
-  it("unwraps an unterminated ```markdown fence", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "```markdown\n# The Plan\n\nBody"),
-    );
-    expect(findStreamingPlan(exec)?.displayText).toBe("# The Plan\n\nBody");
+  it.each([
+    ["```markdown\n# The Plan\n\nBody", "# The Plan\n\nBody"],
+    ["```md\n# The Plan", "# The Plan"],
+    ["```\n# The Plan", "# The Plan"],
+    ["```markdown\n# The Plan\n\nBody\n```", "# The Plan\n\nBody"],
+    ["```markdown\n# The Plan\n\n```ts\nconst x = 1;\n```\n\nMore", "# The Plan\n\n```ts\nconst x = 1;\n```\n\nMore"],
+  ])("unwraps the enclosing plan fence of %j", (text, displayText) => {
+    expect(livePlan(text)?.displayText).toBe(displayText);
   });
 
-  it("unwraps an unterminated ```md fence", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "```md\n# The Plan"),
-    );
-    expect(findStreamingPlan(exec)?.displayText).toBe("# The Plan");
-  });
-
-  it("unwraps an unterminated bare ``` fence (plan surfaces are markdown by contract)", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "```\n# The Plan"),
-    );
-    expect(findStreamingPlan(exec)?.displayText).toBe("# The Plan");
-  });
-
-  it("strips the closing fence once it streams in as the final line", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "```markdown\n# The Plan\n\nBody\n```"),
-    );
-    expect(findStreamingPlan(exec)?.displayText).toBe("# The Plan\n\nBody");
-  });
-
-  it("keeps a code-block fence inside the plan intact", () => {
-    const content = "```markdown\n# The Plan\n\n```ts\nconst x = 1;\n```\n\nMore";
-    const exec = livePlanExecution(makeMessage(MessageType.MESSAGE_AI, content));
-    // Only the ENCLOSING fence is stripped; the ts block's fences are content.
-    expect(findStreamingPlan(exec)?.displayText).toBe(
-      "# The Plan\n\n```ts\nconst x = 1;\n```\n\nMore",
-    );
-  });
-
-  it("never unwraps a fence with another language tag (a real code block)", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "```python\n# not a heading, a comment"),
-    );
-    expect(findStreamingPlan(exec)).toBeUndefined();
-  });
-
-  it("does not detect a fenced message whose body has no H1", () => {
-    const exec = livePlanExecution(
-      makeMessage(MessageType.MESSAGE_AI, "```\nplain fenced text"),
-    );
-    expect(findStreamingPlan(exec)).toBeUndefined();
+  it("never unwraps a fence with another language tag, nor detects a fenced body without an H1", () => {
+    expect(livePlan("```python\n# not a heading, a comment")).toBeUndefined();
+    expect(livePlan("```\nplain fenced text")).toBeUndefined();
   });
 });

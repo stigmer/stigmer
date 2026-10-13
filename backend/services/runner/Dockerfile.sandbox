@@ -194,6 +194,15 @@ RUN cd backend/libs/ts/tool-vocabulary && npm install --ignore-scripts
 COPY backend/libs/ts/tool-vocabulary/ backend/libs/ts/tool-vocabulary/
 RUN cd backend/libs/ts/tool-vocabulary && npm run build
 
+# Build @stigmer/session-log (file: dependency of the runner) — the to-do
+# rule the runner's transcript builder shares with every client that folds a
+# session's events. It links the protos and the tool vocabulary built above,
+# named as folders so neither comes from the registry.
+COPY backend/libs/ts/session-log/package.json backend/libs/ts/session-log/
+RUN cd backend/libs/ts/session-log && npm install --ignore-scripts --no-save ../../../../apis/stubs/ts ../tool-vocabulary
+COPY backend/libs/ts/session-log/ backend/libs/ts/session-log/
+RUN cd backend/libs/ts/session-log && npm run build
+
 # Build @stigmer/eval-runtime (file: dependency of the runner) — what a plugin
 # eval's server and runner both execute with: the transcript reader, the mock
 # guard and rendering, the try-stop wording. Same treatment as the other libs.

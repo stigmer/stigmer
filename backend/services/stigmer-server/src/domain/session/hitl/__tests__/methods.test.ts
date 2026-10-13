@@ -37,6 +37,7 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+import { eventTypeOf } from "@stigmer/session-log";
 import { createLogger } from "../../../../boot/logger.js";
 import type { Authorizer, AuthzCheck } from "../../../../extensions/authorizer.js";
 import { servedMethods } from "../../../../extensions/__tests__/composed-support.js";
@@ -56,7 +57,6 @@ import { StreamBroker } from "../../../run/stream-broker.js";
 import { registerSessionServices } from "../../controller.js";
 import type { SessionControllerDeps } from "../../controller.js";
 import { SessionEventBroker } from "../../events/broker.js";
-import { eventTypeOf } from "../../events/catalog.js";
 import { draftOf, eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../events/run-writes.js";
 import { approvalAnswerOf, toolConfirmationEventId } from "../answer.js";
@@ -189,6 +189,9 @@ async function logAfterAsks(): Promise<string[]> {
   return records.map(eventOf).flatMap((event) => {
     const type = eventTypeOf(event);
     switch (event.event.case) {
+      // Each turn's own phase is pinned in domain/session/events; these pins read the session's.
+      case "stigmerRunStatus":
+        return [];
       case "userToolConfirmation":
         return [`${type} ${event.event.value.toolUseId} ${event.event.value.result}${event.event.value.denyMessage === "" ? "" : ` "${event.event.value.denyMessage}"`}`];
       case "stigmerPermissionGrant":

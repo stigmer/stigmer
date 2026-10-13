@@ -16,6 +16,8 @@ export default defineConfig({
       "@stigmer/protos",
       "@stigmer/theme",
       "@stigmer/plugin-package",
+      "@stigmer/session-log",
+      "@stigmer/tool-vocabulary",
     ],
   },
 

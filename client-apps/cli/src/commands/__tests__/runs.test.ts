@@ -1,8 +1,8 @@
 // Command-level contract for the `stigmer runs` group: each verb hands the run
 // id and its flags to the right resource call and prints the success line the
-// group promises on stderr; `approve` refuses a missing --tool-call as a
-// usage error before any call; `logs`,
-// `trace` and `scores` pass their flags through. The backend and the run resources are
+// group promises on stderr; `cancel` names the turns it stopped, and says so when the run had already ended; `approve` passes an
+// absent --tool-call as empty and reports the answer; `logs`, `trace` and
+// `scores` pass their flags through. The backend and the run resources are
 // replaced at their module seams (the commands import them lazily); the
 // program, the flag parsing and the result rendering are real.
 
@@ -60,11 +60,11 @@ beforeEach(() => {
     stderr.push(String(chunk));
     return true;
   });
-  control.cancelRun.mockResolvedValue({ phase: "cancelled" });
+  control.cancelRun.mockResolvedValue({ phase: "cancelled", wasAlreadyTerminal: false, stoppedRunIds: ["aex_1", "aex_2"] });
   control.terminateRun.mockResolvedValue({ phase: "terminated" });
   control.pauseRun.mockResolvedValue({ phase: "paused" });
   control.resumeRun.mockResolvedValue({ phase: "running" });
-  approve.approveAgentToolCall.mockResolvedValue(undefined);
+  approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "aex_1.c1", toolName: "delete", answer: "deny" });
   logs.streamRunLogs.mockResolvedValue(undefined);
   trace.traceRun.mockResolvedValue(undefined);
   scores.showRunScores.mockResolvedValue(undefined);
@@ -76,10 +76,22 @@ afterEach(() => {
 });
 
 describe("stigmer runs cancel | terminate | pause | resume", () => {
-  it("cancels with the reason and reports the phase the server returned", async () => {
-    const out = await runs("cancel", "aex_1", "--reason", "no longer needed");
-    expect(control.cancelRun).toHaveBeenCalledWith(stigmer, "aex_1", "no longer needed");
+  it("cancels and reports the phase and every turn the interrupt stopped", async () => {
+    const out = await runs("cancel", "aex_1");
+    expect(control.cancelRun).toHaveBeenCalledWith(stigmer, "aex_1");
+    expect(out).toContain("Run cancelled: aex_1 (phase: cancelled; stopped: aex_1, aex_2)");
+  });
+
+  it("names no stopped turns when the interrupt stopped none", async () => {
+    control.cancelRun.mockResolvedValue({ phase: "cancelled", wasAlreadyTerminal: false, stoppedRunIds: [] });
+    const out = await runs("cancel", "aex_1");
     expect(out).toContain("Run cancelled: aex_1 (phase: cancelled)");
+  });
+
+  it("says when the run had already ended", async () => {
+    control.cancelRun.mockResolvedValue({ phase: "completed", wasAlreadyTerminal: true, stoppedRunIds: [] });
+    const out = await runs("cancel", "aex_1");
+    expect(out).toContain("Run already ended: aex_1 (phase: completed)");
   });
 
   it("terminates with the reason", async () => {
@@ -102,20 +114,32 @@ describe("stigmer runs cancel | terminate | pause | resume", () => {
 });
 
 describe("stigmer runs approve", () => {
-  it("submits an agent tool-call decision with the given action", async () => {
-    const out = await runs("approve", "aex_1", "--tool-call", "tc_1", "--action", "deny");
+  it("answers the named tool call with the given action and reason", async () => {
+    const out = await runs("approve", "aex_1", "--tool-call", "aex_1.c1", "--action", "deny", "--comment", "unsafe");
     expect(approve.approveAgentToolCall).toHaveBeenCalledWith(stigmer, {
       runId: "aex_1",
-      toolCallId: "tc_1",
+      toolCallId: "aex_1.c1",
       action: "deny",
-      comment: "",
+      comment: "unsafe",
     });
-    expect(out).toContain("Approval submitted: tool-call=tc_1 action=deny");
+    expect(out).toContain("Tool call denied: delete (aex_1.c1)");
   });
 
-  it("refuses an approval without --tool-call before calling the server", async () => {
-    await expect(runs("approve", "aex_1")).rejects.toThrow(new UsageError("--tool-call is required"));
-    expect(approve.approveAgentToolCall).not.toHaveBeenCalled();
+  it("approves the one waiting call when no --tool-call is named", async () => {
+    approve.approveAgentToolCall.mockResolvedValue({ toolUseId: "aex_1.c1", toolName: "shell", answer: "grant" });
+    const out = await runs("approve", "aex_1", "--action", "approve-all");
+    expect(approve.approveAgentToolCall).toHaveBeenCalledWith(stigmer, {
+      runId: "aex_1",
+      toolCallId: "",
+      action: "approve-all",
+      comment: "",
+    });
+    expect(out).toContain("Tool call allowed for the rest of the turn: shell (aex_1.c1)");
+  });
+
+  it("passes the resource's refusal through", async () => {
+    approve.approveAgentToolCall.mockRejectedValue(new UsageError("run aex_1 has no tool call waiting for an answer"));
+    await expect(runs("approve", "aex_1")).rejects.toThrow("run aex_1 has no tool call waiting for an answer");
   });
 });
 

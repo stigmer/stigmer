@@ -7,10 +7,7 @@ export type {
   UseCreateRunReturn,
 } from "./useCreateRun.js";
 
-export { isTerminalPhase } from "./run-phases.js";
-
-export { useRunStream } from "./useRunStream.js";
-export type { UseRunStreamReturn } from "./useRunStream.js";
+export { isTerminalPhase, runPhaseOf } from "./run-phases.js";
 
 export { useLiveRun } from "./useLiveRun.js";
 export type {
@@ -29,19 +26,6 @@ export type { UseResolveRunSessionReturn } from "./useResolveRunSession.js";
 
 export { UsageWidget, formatTokenCount } from "./UsageWidget.js";
 export type { UsageWidgetProps } from "./UsageWidget.js";
-
-export { useContextWindow } from "./useContextWindow.js";
-export type {
-  ContextHealth,
-  SummarizationEventView,
-  UseContextWindowReturn,
-} from "./useContextWindow.js";
-
-export { ContextGauge } from "./ContextGauge.js";
-export type { ContextGaugeProps } from "./ContextGauge.js";
-
-export { SummarizationBadge } from "./SummarizationBadge.js";
-export type { SummarizationBadgeProps } from "./SummarizationBadge.js";
 
 export { SummarizationCard } from "./SummarizationCard.js";
 export type { SummarizationCardProps } from "./SummarizationCard.js";
@@ -145,7 +129,7 @@ export type { ToolSegment } from "./segment-tool-calls.js";
 export { ToolCallDetail, formatDuration } from "./ToolCallDetail.js";
 export type { ToolCallDetailProps } from "./ToolCallDetail.js";
 
-export { describeApprovalPolicySource } from "./approval-provenance.js";
+export { describeApprovalPolicySource, approvalPolicySourceOf } from "./approval-provenance.js";
 
 export { McpToolDetail, McpArgsView, McpMetadataRow, parseMcpResult } from "./McpToolDetail.js";
 export type {
@@ -191,11 +175,11 @@ export type {
 export { ToolCallItem } from "./ToolCallItem.js";
 export type { ToolCallItemProps } from "./ToolCallItem.js";
 
-export { SubAgentSection } from "./SubAgentSection.js";
+export { SubAgentSection, subAgentSubjectOf } from "./SubAgentSection.js";
 export type { SubAgentSectionProps } from "./SubAgentSection.js";
 
 export { MessageEntry } from "./MessageEntry.js";
-export type { MessageEntryProps } from "./MessageEntry.js";
+export type { MessageEntryProps, ThreadMessage, UserMessageItem } from "./MessageEntry.js";
 
 export { MessageAttachments } from "./MessageAttachments.js";
 export type {
@@ -235,19 +219,27 @@ export { TodoCard } from "./TodoCard.js";
 export type { TodoCardProps } from "./TodoCard.js";
 
 
-export { useSubmitApproval } from "./useSubmitApproval.js";
-export type { UseSubmitApprovalReturn } from "./useSubmitApproval.js";
+export { useAnswerToolUse } from "./useAnswerToolUse.js";
+export type { UseAnswerToolUseReturn, ToolUseAnswer } from "./useAnswerToolUse.js";
 
-export { useFileReview, fileDecisionKey } from "./useFileReview.js";
-export type { UseFileReviewReturn, FileDecisionOptions } from "./useFileReview.js";
+export { useReviewFileChanges, fileDecisionKey } from "./useReviewFileChanges.js";
+export type {
+  UseReviewFileChangesReturn,
+  ReviewFileChangesOptions,
+  FileReviewAction,
+} from "./useReviewFileChanges.js";
+
+export { useChangeSetCapture } from "./useChangeSetCapture.js";
+export type { UseChangeSetCaptureReturn } from "./useChangeSetCapture.js";
 
 export {
   fileReviewability,
   changeSetReviewability,
-  deriveEffectiveVerdicts,
+  fileForRowPath,
   changeForRowPath,
   fileReviewRowState,
   fileReviewRowChange,
+  fileChangeKindOf,
 } from "./file-review-status.js";
 export type {
   FileReviewability,

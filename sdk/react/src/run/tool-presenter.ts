@@ -2,9 +2,9 @@
 
 // Headless presentation layer for tool calls.
 //
-// useToolPresentation turns a ToolCall into everything a renderer needs — kind,
-// label, primary argument, a normalized result view, and a one-line summary —
-// without rendering anything. Styled components (ToolCallItem, ToolCallDetail)
+// useToolPresentation turns a tool use (the session fold's ToolUse) into
+// everything a renderer needs — kind, label, primary argument, a normalized
+// result view, and a one-line summary — without rendering anything. Styled components (ToolCallItem, ToolCallDetail)
 // consume it; platform builders can consume it to build their own tool UI.
 //
 // The registry lets a consumer override the label or summary for a ToolKind
@@ -13,9 +13,8 @@
 // presentation seam.
 
 import { useMemo } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { ToolKind, resolveToolKind, normalizeToolResult } from "@stigmer/sdk";
-import type { ToolResultView } from "@stigmer/sdk";
+import type { ToolResultView, ToolUse } from "@stigmer/sdk";
 import {
   resolveToolCategoryFromCall,
   extractPrimaryArg,
@@ -30,15 +29,15 @@ import { summarizeResultView } from "./ResultView.js";
 /** Optional per-kind overrides for label, summary, disclosure, and run-grouping. */
 export interface ToolPresenter {
   /** Overrides the display label (e.g. "Shell" -> "Run command"). */
-  readonly label?: (toolCall: ToolCall) => string;
+  readonly label?: (toolUse: ToolUse) => string;
   /** Overrides the one-line result summary suffix. */
-  readonly summary?: (toolCall: ToolCall, result: ToolResultView) => string | null;
+  readonly summary?: (toolUse: ToolUse, result: ToolResultView) => string | null;
   /**
    * Overrides the default inline disclosure. Use to keep a noisy MCP tool
    * compact (`() => "summary"`) or to foreground a custom tool's output
    * (`() => "preview"`) without forking the components.
    */
-  readonly disclosure?: (toolCall: ToolCall, result: ToolResultView) => ToolDisclosure;
+  readonly disclosure?: (toolUse: ToolUse, result: ToolResultView) => ToolDisclosure;
   /**
    * Overrides the default chrome tier — quiet unboxed line vs bordered card
    * (see {@link ToolChrome}). Use to restore the boxed look for a kind
@@ -47,14 +46,14 @@ export interface ToolPresenter {
    * regardless of this override — a decision surface and error output must
    * never render frameless.
    */
-  readonly chrome?: (toolCall: ToolCall, result: ToolResultView) => ToolChrome;
+  readonly chrome?: (toolUse: ToolUse, result: ToolResultView) => ToolChrome;
   /**
    * Overrides whether consecutive same-kind calls fold into one collapsible
    * "Read 5 files" chip. Use to fold a chatty custom tool (`() => true`) or to
    * keep a normally-folded category as standalone rows (`() => false`) without
    * forking the thread layout. Defaults to {@link isRunGroupableCategory}.
    */
-  readonly runGroupable?: (toolCall: ToolCall) => boolean;
+  readonly runGroupable?: (toolUse: ToolUse) => boolean;
 }
 
 const registry = new Map<ToolKind, ToolPresenter>();
@@ -110,11 +109,11 @@ export function getToolPresenter(kind: ToolKind): ToolPresenter | undefined {
  * {@link useToolPresentation}, so the pure `segmentToolCalls` layout pass and
  * the component layer share one source of truth (and honour the same override).
  */
-export function resolveRunGroupable(toolCall: ToolCall): boolean {
-  const kind = resolveToolKind(toolCall);
+export function resolveRunGroupable(toolUse: ToolUse): boolean {
+  const kind = resolveToolKind(toolUse);
   const override = registry.get(kind)?.runGroupable;
-  if (override) return override(toolCall);
-  return isRunGroupableCategory(resolveToolCategoryFromCall(toolCall).category);
+  if (override) return override(toolUse);
+  return isRunGroupableCategory(resolveToolCategoryFromCall(toolUse).category);
 }
 
 /** The fully-resolved presentation for a tool call, returned by {@link useToolPresentation}. */
@@ -172,30 +171,30 @@ export interface ToolPresentation {
  * Resolves the complete, render-ready presentation for a tool call.
  *
  * Headless and memoized: the returned object is referentially stable across
- * renders for the same `toolCall`, so it is safe to depend on in `React.memo`
+ * renders for the same `toolUse`, so it is safe to depend on in `React.memo`
  * leaves of the streaming thread.
  */
-export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
+export function useToolPresentation(toolUse: ToolUse): ToolPresentation {
   return useMemo(() => {
-    const kind = resolveToolKind(toolCall);
-    const categoryInfo = resolveToolCategoryFromCall(toolCall);
-    const result = normalizeToolResult(toolCall);
+    const kind = resolveToolKind(toolUse);
+    const categoryInfo = resolveToolCategoryFromCall(toolUse);
+    const result = normalizeToolResult(toolUse);
     const override = registry.get(kind);
 
-    const overrideLabel = override?.label?.(toolCall);
+    const overrideLabel = override?.label?.(toolUse);
     const label = overrideLabel ?? categoryInfo.label;
-    const intent = extractShellIntent(toolCall);
+    const intent = extractShellIntent(toolUse);
     const title = overrideLabel ?? intent ?? categoryInfo.label;
     const resultSummary =
-      override?.summary?.(toolCall, result) ?? summarizeResultView(result);
+      override?.summary?.(toolUse, result) ?? summarizeResultView(result);
     const disclosure =
-      override?.disclosure?.(toolCall, result) ??
+      override?.disclosure?.(toolUse, result) ??
       defaultDisclosureForCategory(categoryInfo.category);
     const chrome =
-      override?.chrome?.(toolCall, result) ??
+      override?.chrome?.(toolUse, result) ??
       defaultChromeForCategory(categoryInfo.category);
     const runGroupable =
-      override?.runGroupable?.(toolCall) ??
+      override?.runGroupable?.(toolUse) ??
       isRunGroupableCategory(categoryInfo.category);
 
     return {
@@ -204,12 +203,12 @@ export function useToolPresentation(toolCall: ToolCall): ToolPresentation {
       label,
       intent,
       title,
-      primaryArg: extractPrimaryArg(toolCall),
+      primaryArg: extractPrimaryArg(toolUse),
       result,
       resultSummary,
       disclosure,
       chrome,
       runGroupable,
     };
-  }, [toolCall]);
+  }, [toolUse]);
 }

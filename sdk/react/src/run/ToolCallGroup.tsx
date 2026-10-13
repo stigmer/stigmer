@@ -1,35 +1,30 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import type { ToolUse } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { ToolCallItem } from "./ToolCallItem.js";
 import { ToolRunGroup } from "./ToolRunGroup.js";
 import { segmentToolCalls } from "./segment-tool-calls.js";
-import { isCollapsedToolCall } from "./tool-categories.js";
 
 /** Props for {@link ToolCallGroup}. */
 export interface ToolCallGroupProps {
-  /** Tool calls in this group, ordered by invocation time. */
-  readonly toolCalls: readonly ToolCall[];
   /**
-   * Sub-agent runs from the parent `RunStatus`.
-   * When provided, tool calls whose `id` matches a
-   * `SubAgentRun.id` are rendered with a nested sub-agent
-   * thread instead of a standard detail panel.
+   * Tool uses in this group, in the order the agent made them. A tool use
+   * that started a sub-agent renders its nested thread instead of a
+   * standard detail panel.
    */
-  readonly subAgentRuns?: readonly SubAgentRun[];
+  readonly toolUses: readonly ToolUse[];
   /**
    * Custom label formatter for a folded run chip (e.g. a run of reads).
-   * Receives the run's tool calls and returns the chip's collapsed label.
+   * Receives the run's tool uses and returns the chip's collapsed label.
    *
    * NOTE: the unit of summary moved from the *turn* to the *run*. This used to
    * label the whole turn ("Ran 3 tools"); since the turn no longer collapses,
    * it now labels each {@link ToolRunGroup} chip. The signature is unchanged.
    */
-  readonly formatSummary?: (toolCalls: readonly ToolCall[]) => string;
+  readonly formatSummary?: (toolUses: readonly ToolUse[]) => string;
   /**
    * @deprecated No-op. The turn no longer collapses as a unit — rows persist
    * and only repetitive runs fold (see {@link ToolRunGroup}). Kept for
@@ -43,10 +38,9 @@ export interface ToolCallGroupProps {
 /**
  * Shallow comparison for `ToolCallGroupProps`.
  *
- * The `toolCalls` array may be a newly allocated subset (e.g.
- * `buildThreadItems` filters out `task` calls). Structural sharing
- * keeps individual `ToolCall` objects stable, so we compare
- * array elements by reference rather than the array itself.
+ * The `toolUses` array is newly allocated by each thread build; the session
+ * fold keeps unchanged `ToolUse` objects stable, so we compare array
+ * elements by reference rather than the array itself.
  *
  * @internal Exported for testing — not part of the public API.
  */
@@ -54,12 +48,11 @@ export function toolCallGroupPropsEqual(
   prev: Readonly<ToolCallGroupProps>,
   next: Readonly<ToolCallGroupProps>,
 ): boolean {
-  if (prev.toolCalls.length !== next.toolCalls.length) return false;
-  for (let i = 0; i < prev.toolCalls.length; i++) {
-    if (prev.toolCalls[i] !== next.toolCalls[i]) return false;
+  if (prev.toolUses.length !== next.toolUses.length) return false;
+  for (let i = 0; i < prev.toolUses.length; i++) {
+    if (prev.toolUses[i] !== next.toolUses[i]) return false;
   }
   return (
-    prev.subAgentRuns === next.subAgentRuns &&
     prev.formatSummary === next.formatSummary &&
     prev.defaultExpanded === next.defaultExpanded &&
     prev.className === next.className
@@ -85,50 +78,27 @@ export function toolCallGroupPropsEqual(
  * turn's tools visually associated with their AI message without a tab that
  * hides things.
  *
- * Wrapped in `React.memo` with a custom comparator that checks `toolCalls`
- * elements by reference (structural sharing keeps individual `ToolCall` objects
- * stable for unchanged calls), so settled rows skip re-renders while siblings
- * stream.
+ * Wrapped in `React.memo` with a custom comparator that checks `toolUses`
+ * elements by reference (the session fold keeps unchanged `ToolUse` objects
+ * stable), so settled rows skip re-renders while siblings stream.
  *
  * @example
  * ```tsx
- * <ToolCallGroup toolCalls={message.toolCalls} />
+ * <ToolCallGroup toolUses={toolUses} />
  * ```
  */
 export const ToolCallGroup = memo(function ToolCallGroup({
-  toolCalls,
-  subAgentRuns,
+  toolUses,
   formatSummary,
   className,
 }: ToolCallGroupProps) {
-  useRenderTracer("ToolCallGroup", { toolCallCount: toolCalls.length });
+  useRenderTracer("ToolCallGroup", { toolCallCount: toolUses.length });
 
-  // Drop runner-collapsed duplicates (a superseded same-turn denial twin of an
-  // approval gate) so one gated resource renders one card, not two. The blanked
-  // twin is kept in the persisted transcript (the backend's append-only guard
-  // forbids dropping it); it is simply not drawn.
-  const visibleToolCalls = useMemo(
-    () => toolCalls.filter((tc) => !isCollapsedToolCall(tc)),
-    [toolCalls],
-  );
+  const segments = useMemo(() => segmentToolCalls(toolUses), [toolUses]);
 
-  const segments = useMemo(
-    () => segmentToolCalls(visibleToolCalls),
-    [visibleToolCalls],
-  );
+  if (toolUses.length === 0) return null;
 
-  const subAgentMap = useMemo(() => {
-    if (!subAgentRuns || subAgentRuns.length === 0) return null;
-    const map = new Map<string, SubAgentRun>();
-    for (const sub of subAgentRuns) {
-      map.set(sub.id, sub);
-    }
-    return map;
-  }, [subAgentRuns]);
-
-  if (visibleToolCalls.length === 0) return null;
-
-  const ariaLabel = `${visibleToolCalls.length} tool ${visibleToolCalls.length === 1 ? "call" : "calls"}`;
+  const ariaLabel = `${toolUses.length} tool ${toolUses.length === 1 ? "call" : "calls"}`;
 
   return (
     <div
@@ -149,15 +119,11 @@ export const ToolCallGroup = memo(function ToolCallGroup({
           <ToolRunGroup
             key={segment.key}
             category={segment.category}
-            toolCalls={segment.toolCalls}
+            toolUses={segment.toolUses}
             formatLabel={formatSummary}
           />
         ) : (
-          <ToolCallItem
-            key={segment.key}
-            toolCall={segment.toolCall}
-            subAgentRun={subAgentMap?.get(segment.toolCall.id) ?? null}
-          />
+          <ToolCallItem key={segment.key} toolUse={segment.toolUse} />
         ),
       )}
     </div>

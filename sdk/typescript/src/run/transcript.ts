@@ -1,98 +1,98 @@
 // The canonical, full-fidelity session transcript (stigmer/stigmer#814).
 //
 // A session's whole conversation — thinking included, tool calls with their
-// offloaded outputs resolved, sub-agent turns, timestamps — assembled ONCE
-// here so every consumer (the SessionViewer export control, the CLI, an
-// embedder's backend analysis job) reads the same authoritative record
-// instead of re-deriving it.
+// offloaded outputs resolved, sub-agent threads, the asks and their answers,
+// timestamps — assembled ONCE here so every consumer (the SessionViewer
+// export control, the CLI, an embedder's backend analysis job) reads the
+// same authoritative record instead of re-deriving it.
+//
+// The record is the session's event log (Claude Managed Agents events,
+// `SessionQueryController.listEvents`), folded by the one fold every client
+// reads a conversation with (`foldSession`, @stigmer/session-log). The
+// session's runs are read only for what a turn's record says about the turn
+// itself: whether an edit replaced it, whether it builds from a plan, and
+// when it started.
 //
 // Canonical rules, decided for #814:
-//   - Fidelity beats noise suppression. Thinking and system messages are
-//     carried verbatim; presentation-layer cleanups (the CLI replay's
-//     system-error rewriting, approval-noise dropping) stay in the
-//     presentation layers. The transcript is raw material for improving
-//     agents — the judgment signal lives in exactly the parts a polished
-//     view hides.
-//   - Tool calls attach to their parent MESSAGE_AI message. Every tool call
-//     lives on an AI message in the data model, so this shows each call
-//     exactly once, in position. (The CLI replay's started_at interleaving
-//     is an event-stream presentation need, not a data rule.)
-//   - Superseded turns (edit-and-resubmit) are excluded by default, matching
-//     what the conversation view shows; `includeSuperseded: true` keeps them,
-//     marked, for the history-faithful variant.
-//   - An in-flight run exports as its last-persisted snapshot and is
-//     marked `inProgress` — honest about what a mid-run export is.
-//   - Sub-agent transcripts (`status.sub_agent_runs` — task-tool
-//     delegations) are embedded in the parent's status and export in full.
+//   - Fidelity beats noise suppression. Thinking, the platform's own notes,
+//     each ask and its answer are carried verbatim; presentation-layer
+//     cleanups stay in the presentation layers. The transcript is raw
+//     material for improving agents — the judgment signal lives in exactly
+//     the parts a polished view hides. The one thing left out is a repeat:
+//     a `session.error` saying what the turn's own status already says.
+//   - Each item renders once, in the order the agent produced it, and a
+//     sub-agent's thread renders inside the `task` call that opened it.
+//   - Superseded turns (edit-and-resubmit, the successor run's
+//     `spec.supersedes_run_id`) are excluded by default, matching what the
+//     conversation view shows; `includeSuperseded: true` keeps them, marked,
+//     for the history-faithful variant.
+//   - A turn that had not ended when the log was read exports as what the
+//     log held then and is marked `inProgress` — honest about what a
+//     mid-turn export is.
+//   - A large tool output is stored whole beside its head; the transcript
+//     resolves it through the tool use's full-output location.
 //
 // Like the rest of this folder, the module is framework-free: the fetch
 // entry point takes a structural client slice, so it runs in React hosts,
 // Node jobs, and the CLI alike.
 
-import { toJson, type JsonValue } from "@bufbuild/protobuf";
-import { create } from "@bufbuild/protobuf";
+import { create, toJson, type JsonValue } from "@bufbuild/protobuf";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type {
-  Run,
-  RunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type {
-  AgentMessage,
-  ToolCall,
-  ToolCallOutputRef,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type {
+  GetArtifactContentRequest,
   GetArtifactContentResponse,
   ListRunsBySessionRequest,
   RunList,
-  GetArtifactContentRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import {
   GetArtifactContentRequestSchema,
   ListRunsBySessionRequestSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type {
+  ListSessionEventsRequest,
+  SessionEventList,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { ListSessionEventsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import {
+  foldSession,
+  toManagedAgentsJson,
+  type Thread,
+  type ToolFullOutput,
+  type ToolUse,
+  type Turn,
+  type TurnItem,
+} from "@stigmer/session-log";
 import { resolvedSubject } from "../session.js";
 import { deletedReferenceLabel, isDeletedReference } from "../references.js";
-import {
-  runIdFromStorageKey,
-  isBuildFromPlanTurn,
-  sortChronologically,
-  supersededRunIds,
-  syntheticUserPrompt,
-} from "./conversation-rules.js";
-import { isTerminalPhase } from "./run-phases.js";
+import { isBuildFromPlanTurn, supersededRunIds } from "./conversation-rules.js";
 
 // ============================================================================
 // Model
 // ============================================================================
 
 /**
- * The fetched content of one offloaded tool output
- * ({@link ToolCallOutputRef}), keyed in the transcript by its storage key —
+ * The fetched content of one offloaded tool output (a tool use's
+ * {@link ToolFullOutput}), keyed in the transcript by its storage key —
  * the one identifier that is unique across runs and sub-agents.
  */
 export interface ResolvedToolOutput {
-  /** The `output_ref.storage_key` this content belongs to. */
+  /** The full output's `storage_key` this content belongs to. */
   readonly storageKey: string;
   /**
    * The resolved text, possibly truncated at the server's content cap
    * (512 KB by default). `undefined` when the fetch failed or was skipped —
-   * serializers fall back to the ref's `truncated_preview`.
+   * serializers fall back to the tool result's head.
    */
   readonly content?: string;
   /** `true` when the server truncated {@link content} at the byte cap. */
   readonly truncated: boolean;
   /** Full stored size in bytes, when known. */
   readonly totalSizeBytes?: number;
-  /** MIME type recorded on the ref. */
+  /** MIME type recorded with the output. */
   readonly mimeType: string;
   /** `true` for image outputs — never inlined; serializers note them. */
   readonly isImage: boolean;
@@ -100,15 +100,18 @@ export interface ResolvedToolOutput {
   readonly error?: string;
 }
 
-/** One run's contribution to the conversation, with the canonical
- * rules' verdicts precomputed so consumers never re-derive them. */
+/** One turn of the conversation, with the canonical rules' verdicts
+ * precomputed so consumers never re-derive them. */
 export interface TranscriptTurn {
-  /** The run, verbatim — messages, tool calls, sub-agents, timestamps. */
-  readonly run: Run;
+  /** The run that is the turn. */
+  readonly runId: string;
+  /** The turn as the fold reads it: its items, threads, asks, status. */
+  readonly turn: Turn;
+  /** The turn's own events, in log order: the record the fold read. */
+  readonly events: readonly SessionEvent[];
   /**
    * The user prose that opened this turn, or `null` when the turn has none
-   * (programmatic create, `"execute"` placeholder, Build-from-plan label) —
-   * the shared `syntheticUserPrompt` rule.
+   * (no message, the `"execute"` placeholder, a Build-from-plan label).
    */
   readonly userPrompt: string | null;
   /** `true` for a Build-from-plan turn (machine-labeled, no user prose). */
@@ -116,21 +119,22 @@ export interface TranscriptTurn {
   /** `true` when the turn was replaced by an edit-and-resubmit. Only ever
    * `true` when the transcript was assembled with `includeSuperseded`. */
   readonly superseded: boolean;
-  /** `true` when the run had not reached a terminal phase at assembly
-   * time — its content is the last-persisted snapshot of a running turn. */
+  /** `true` when the turn had not ended when the log was read. */
   readonly inProgress: boolean;
+  /** When the turn's run started, as its record says; `undefined` before it did. */
+  readonly startedAt: string | undefined;
 }
 
 /** The canonical whole-conversation record of one session. */
 export interface SessionTranscript {
   /** The session, verbatim. */
   readonly session: Session;
-  /** The conversation's turns, in chronological (ULID) order. */
+  /** The conversation's turns, in log order. */
   readonly turns: readonly TranscriptTurn[];
   /**
    * Fetched offloaded tool outputs, keyed by storage key. Empty when
-   * resolution was skipped; serializers then fall back to each ref's
-   * `truncated_preview`.
+   * resolution was skipped; serializers then fall back to each tool
+   * result's head.
    */
   readonly resolvedOutputs: Readonly<Record<string, ResolvedToolOutput>>;
   /** Whether superseded (edit-and-resubmit) turns were kept. */
@@ -154,33 +158,49 @@ export interface AssembleSessionTranscriptOptions {
 }
 
 /**
- * Assembles the canonical transcript from a session and its runs.
+ * Assembles the canonical transcript from a session, its events (in log
+ * order) and its runs.
  *
- * Pure — same inputs, same transcript. Ordering, superseded filtering, and
- * user-turn synthesis are the shared conversation rules from
- * `conversation-rules.ts`, so this cannot drift from what the conversation
- * view renders.
+ * Pure — same inputs, same transcript. The turns are the fold's, in log
+ * order; a run's record contributes only the superseded and Build-from-plan
+ * rules (`conversation-rules.ts`, shared with the conversation view) and its
+ * start time. An event of no run (the session's own status) belongs to no
+ * turn.
  */
 export function assembleSessionTranscript(
   session: Session,
-  executions: readonly Run[],
+  events: readonly SessionEvent[],
+  runs: readonly Run[],
   options?: AssembleSessionTranscriptOptions,
 ): SessionTranscript {
   const includeSuperseded = options?.includeSuperseded === true;
-  const ordered = sortChronologically(executions);
-  const superseded = supersededRunIds(ordered);
+  const superseded = supersededRunIds(runs);
+  const runsById = new Map(runs.map((run) => [run.metadata?.id ?? "", run]));
+  const eventsByRun = new Map<string, SessionEvent[]>();
+  for (const event of events) {
+    const list = eventsByRun.get(event.runId);
+    if (list === undefined) {
+      eventsByRun.set(event.runId, [event]);
+    } else {
+      list.push(event);
+    }
+  }
 
   const turns: TranscriptTurn[] = [];
-  for (const execution of ordered) {
-    const isSuperseded = superseded.has(execution.metadata?.id ?? "");
+  for (const turn of foldSession(events).turns) {
+    const isSuperseded = superseded.has(turn.runId);
     if (isSuperseded && !includeSuperseded) continue;
-    const phase = execution.status?.phase;
+    const run = runsById.get(turn.runId);
+    const isBuildFromPlan = run !== undefined && isBuildFromPlanTurn(run);
     turns.push({
-      run: execution,
-      userPrompt: syntheticUserPrompt(execution),
-      isBuildFromPlan: isBuildFromPlanTurn(execution),
+      runId: turn.runId,
+      turn,
+      events: eventsByRun.get(turn.runId) ?? [],
+      userPrompt: userPromptOf(turn, isBuildFromPlan),
+      isBuildFromPlan,
       superseded: isSuperseded,
-      inProgress: phase === undefined || !isTerminalPhase(phase),
+      inProgress: !turn.ended,
+      startedAt: run?.status?.startedAt || undefined,
     });
   }
 
@@ -190,6 +210,19 @@ export function assembleSessionTranscript(
     resolvedOutputs: options?.resolvedOutputs ?? {},
     includesSuperseded: includeSuperseded,
   };
+}
+
+/**
+ * The user prose that opened a turn, or `null`: a turn with no message, the
+ * legacy `"execute"` placeholder stamped on runs started without one, and a
+ * Build-from-plan turn's machine-written label are not user prose.
+ */
+function userPromptOf(turn: Turn, isBuildFromPlan: boolean): string | null {
+  const text = turn.userMessage?.text ?? "";
+  if (text === "" || text === "execute" || isBuildFromPlan) {
+    return null;
+  }
+  return text;
 }
 
 // ============================================================================
@@ -204,6 +237,7 @@ export function assembleSessionTranscript(
 export interface SessionTranscriptClient {
   readonly session: {
     get(id: string): Promise<Session>;
+    listEvents(input: ListSessionEventsRequest): Promise<SessionEventList>;
   };
   readonly run: {
     listBySession(
@@ -220,36 +254,41 @@ export interface FetchSessionTranscriptOptions {
   /** See {@link AssembleSessionTranscriptOptions.includeSuperseded}. */
   readonly includeSuperseded?: boolean;
   /**
-   * Fetch offloaded tool outputs (`output_ref`) so the transcript carries
-   * them in full instead of their truncated previews. Defaults to `true` —
-   * resolution is the fidelity bar of #814. Individual fetch failures never
-   * fail the export; the failed ref falls back to its preview, with the
-   * error recorded on its {@link ResolvedToolOutput}.
+   * Fetch offloaded tool outputs so the transcript carries them in full
+   * instead of their heads. Defaults to `true` — resolution is the fidelity
+   * bar of #814. Individual fetch failures never fail the export; the
+   * failed output falls back to its head, with the error recorded on its
+   * {@link ResolvedToolOutput}.
    */
   readonly resolveOutputs?: boolean;
   /** Concurrent output fetches. Defaults to 4. */
   readonly concurrency?: number;
 }
 
+/** The most events one listEvents page returns. */
+const EVENT_PAGE_SIZE = 1000;
+
 /**
- * Fetches everything a session's transcript needs and assembles it.
+ * Fetches everything a session's transcript needs and assembles it: the
+ * session, its whole event log (every page, oldest first), and its runs.
  *
  * One `listBySession` call returns the complete run set: the RPC
  * returns a session's runs whole by contract, and its paging fields
  * are deprecated. A response claiming more than one page (`total_pages >
  * 1`) fails with a descriptive error rather than silently exporting a
- * truncated "full-fidelity" transcript.
+ * conversation whose superseded turns cannot all be known.
  */
 export async function fetchSessionTranscript(
   client: SessionTranscriptClient,
   sessionId: string,
   options?: FetchSessionTranscriptOptions,
 ): Promise<SessionTranscript> {
-  const [session, list] = await Promise.all([
+  const [session, list, events] = await Promise.all([
     client.session.get(sessionId),
     client.run.listBySession(
       create(ListRunsBySessionRequestSchema, { sessionId }),
     ),
+    listAllEvents(client, sessionId),
   ]);
 
   if (list.totalPages > 1) {
@@ -257,42 +296,60 @@ export async function fetchSessionTranscript(
       `Session ${sessionId} has ${list.totalPages} pages of runs but ` +
         "transcript export reads a single page. The server has started " +
         "paginating listBySession; teach fetchSessionTranscript to walk " +
-        "pages before exporting, so no turns are silently dropped.",
+        "pages before exporting, so no turn is misjudged.",
     );
   }
 
-  const resolvedOutputs =
-    options?.resolveOutputs === false
-      ? {}
-      : await resolveOffloadedOutputs(client, list.entries, {
-          concurrency: options?.concurrency,
-        });
-
-  return assembleSessionTranscript(session, list.entries, {
+  const transcript = assembleSessionTranscript(session, events, list.entries, {
     includeSuperseded: options?.includeSuperseded,
-    resolvedOutputs,
   });
+  if (options?.resolveOutputs === false) {
+    return transcript;
+  }
+  const resolvedOutputs = await resolveOffloadedOutputs(
+    client,
+    transcript.turns.map((t) => t.turn),
+    { concurrency: options?.concurrency },
+  );
+  return { ...transcript, resolvedOutputs };
+}
+
+/** Every event of a session, oldest first, walking every page. */
+async function listAllEvents(
+  client: Pick<SessionTranscriptClient, "session">,
+  sessionId: string,
+): Promise<SessionEvent[]> {
+  const events: SessionEvent[] = [];
+  let pageToken = "";
+  do {
+    const page = await client.session.listEvents(
+      create(ListSessionEventsRequestSchema, { sessionId, pageSize: EVENT_PAGE_SIZE, pageToken }),
+    );
+    events.push(...page.events);
+    pageToken = page.nextPageToken;
+  } while (pageToken !== "");
+  return events;
 }
 
 /**
  * Fetches the content behind every offloaded tool output in the given
- * runs (parent and sub-agent transcripts alike), keyed by storage key.
+ * turns (primary and sub-agent threads alike), keyed by storage key.
  *
- * Image refs are never fetched — serializers render them as notes. The
- * run id for each fetch derives from the storage key itself
- * (`runIdFromStorageKey`): sub-agent outputs are stored under the PARENT
- * run's id, and the key is the record of that.
+ * Image outputs are never fetched — serializers render them as notes. Each
+ * output is read from the run whose tool use it belongs to: a sub-agent's
+ * call is its turn's, so its output is stored under that run too.
  */
 export async function resolveOffloadedOutputs(
   client: Pick<SessionTranscriptClient, "run">,
-  executions: readonly Run[],
+  turns: readonly Turn[],
   options?: { readonly concurrency?: number },
 ): Promise<Record<string, ResolvedToolOutput>> {
-  const refs = new Map<string, ToolCallOutputRef>();
-  for (const execution of executions) {
-    for (const toolCall of allToolCalls(execution.status)) {
-      const ref = toolCall.outputRef;
-      if (ref?.storageKey) refs.set(ref.storageKey, ref);
+  const outputs = new Map<string, { readonly runId: string; readonly full: ToolFullOutput }>();
+  for (const turn of turns) {
+    for (const tool of allToolUses(turn.items)) {
+      if (tool.fullOutput !== undefined && tool.fullOutput.storageKey !== "") {
+        outputs.set(tool.fullOutput.storageKey, { runId: tool.runId, full: tool.fullOutput });
+      }
     }
   }
 
@@ -300,43 +357,34 @@ export async function resolveOffloadedOutputs(
   const decoder = new TextDecoder("utf-8", { fatal: false });
 
   await mapWithConcurrency(
-    [...refs.values()],
+    [...outputs.values()],
     options?.concurrency ?? 4,
-    async (ref) => {
+    async ({ runId, full }) => {
       const base = {
-        storageKey: ref.storageKey,
-        mimeType: ref.mimeType,
-        isImage: ref.isImage,
-        totalSizeBytes: Number(ref.sizeBytes),
+        storageKey: full.storageKey,
+        mimeType: full.mimeType,
+        isImage: full.isImage,
+        totalSizeBytes: Number(full.sizeBytes),
       };
-      if (ref.isImage) {
-        resolved[ref.storageKey] = { ...base, truncated: false };
-        return;
-      }
-      const executionId = runIdFromStorageKey(ref.storageKey);
-      if (!executionId) {
-        resolved[ref.storageKey] = {
-          ...base,
-          truncated: false,
-          error: `unexpected storage key shape: ${ref.storageKey}`,
-        };
+      if (full.isImage) {
+        resolved[full.storageKey] = { ...base, truncated: false };
         return;
       }
       try {
         const response = await client.run.getArtifactContent(
           create(GetArtifactContentRequestSchema, {
-            runId: executionId,
-            storageKey: ref.storageKey,
+            runId,
+            storageKey: full.storageKey,
           }),
         );
-        resolved[ref.storageKey] = {
+        resolved[full.storageKey] = {
           ...base,
           content: decoder.decode(response.content),
           truncated: response.truncated,
           totalSizeBytes: Number(response.totalSizeBytes),
         };
       } catch (e) {
-        resolved[ref.storageKey] = {
+        resolved[full.storageKey] = {
           ...base,
           truncated: false,
           error: e instanceof Error ? e.message : String(e),
@@ -348,19 +396,13 @@ export async function resolveOffloadedOutputs(
   return resolved;
 }
 
-/** Every tool call in a run's status — the parent transcript's plus
- * each embedded sub-agent transcript's. */
-function* allToolCalls(
-  status: RunStatus | undefined,
-): Generator<ToolCall> {
-  if (!status) return;
-  const messageLists: readonly (readonly AgentMessage[])[] = [
-    status.messages,
-    ...status.subAgentRuns.map((sa) => sa.messages),
-  ];
-  for (const messages of messageLists) {
-    for (const message of messages) {
-      yield* message.toolCalls;
+/** Every tool use in a list of items — its own and each sub-agent thread's, at any depth. */
+function* allToolUses(items: readonly TurnItem[]): Generator<ToolUse> {
+  for (const item of items) {
+    if (item.kind !== "tool_use") continue;
+    yield item;
+    if (item.thread !== undefined) {
+      yield* allToolUses(item.thread.items);
     }
   }
 }
@@ -410,10 +452,11 @@ export interface TranscriptToMarkdownOptions {
  *
  * Deterministic: same transcript, same bytes — the format is a pinned
  * contract (see `__tests__/transcript.test.ts`). Roles are bold labels
- * (User / Assistant / Thinking / System), thinking and system content is
- * blockquoted, tool calls carry fenced args and output, and sub-agent turns
- * are blockquoted sections. Fences self-size past any backtick runs in the
- * content, so hostile content cannot break out of its block.
+ * (User / Assistant / Thinking / System), thinking and the platform's notes
+ * are blockquoted, tool calls carry fenced input and output with their ask
+ * and answer, and sub-agent threads are blockquoted sections. Fences
+ * self-size past any backtick runs in the content, so hostile content
+ * cannot break out of its block.
  */
 export function transcriptToMarkdown(
   transcript: SessionTranscript,
@@ -438,35 +481,37 @@ export function transcriptToMarkdown(
   }
   if (options?.generatedAt) out.push(`- Exported: ${options.generatedAt}`);
 
-  for (const [i, turn] of turns.entries()) {
+  for (const [i, entry] of turns.entries()) {
     out.push("", "---", "");
-    out.push(`## Turn ${i + 1}${turnHeaderSuffix(turn)}`);
+    out.push(`## Turn ${i + 1}${entry.startedAt ? ` · ${entry.startedAt}` : ""}`);
 
-    if (turn.superseded) {
+    if (entry.superseded) {
       out.push("", "_Superseded by an edited resubmission._");
     }
-    if (turn.inProgress) {
-      out.push("", "_In progress at export time — content is the last persisted snapshot._");
+    if (entry.inProgress) {
+      out.push("", "_In progress at export time — content is what the log held then._");
     }
-    if (turn.isBuildFromPlan) {
+    if (entry.isBuildFromPlan) {
       out.push("", "_Build from plan._");
     }
 
-    if (turn.userPrompt !== null) {
-      out.push("", "**User**", "", turn.userPrompt);
+    if (entry.userPrompt !== null) {
+      out.push("", "**User**", "", entry.userPrompt);
     }
 
-    renderMessages(
-      out,
-      turn.run.status?.messages ?? [],
-      turn.run.status?.subAgentRuns ?? [],
-      resolvedOutputs,
-      turn.userPrompt,
-    );
+    renderItems(out, entry.turn.items, resolvedOutputs);
 
-    const error = turn.run.status?.error;
-    if (error) {
-      out.push("", "**Run error**", "", blockquote(error));
+    const { turn } = entry;
+    if (turn.structuredOutput !== undefined) {
+      out.push("", "**Structured output**", "", fenced(JSON.stringify(turn.structuredOutput, null, 2), "json"));
+    }
+    const runError = turn.status?.error ?? "";
+    for (const error of turn.errors) {
+      if (error.message === runError) continue;
+      out.push("", `**Error** (\`${error.type}\`)`, "", blockquote(error.message));
+    }
+    if (runError) {
+      out.push("", "**Run error**", "", blockquote(runError));
     }
   }
 
@@ -474,102 +519,103 @@ export function transcriptToMarkdown(
   return out.join("\n");
 }
 
-function turnHeaderSuffix(turn: TranscriptTurn): string {
-  const startedAt = turn.run.status?.startedAt;
-  return startedAt ? ` · ${startedAt}` : "";
-}
-
-/** Renders one message list — the parent turn's or a sub-agent's. */
-function renderMessages(
+/** Renders one thread's items — the turn's primary thread or a sub-agent's. */
+function renderItems(
   out: string[],
-  messages: readonly AgentMessage[],
-  subAgents: readonly SubAgentRun[],
+  items: readonly TurnItem[],
   resolvedOutputs: Readonly<Record<string, ResolvedToolOutput>>,
-  userPrompt: string | null,
 ): void {
-  for (const message of messages) {
-    switch (message.type) {
-      case MessageType.MESSAGE_TOOL:
-        // Tool calls render from their parent MESSAGE_AI's tool_calls (the
-        // canonical attach rule); the MESSAGE_TOOL echo would double them.
-        continue;
-      case MessageType.MESSAGE_HUMAN: {
-        // The turn's opening prompt is already rendered from spec.message;
-        // skip its status.messages echo. Any OTHER human message is kept.
-        if (userPrompt !== null && message.content === userPrompt) continue;
-        out.push("", "**User**", "", message.content);
-        continue;
-      }
-      case MessageType.MESSAGE_THINKING:
-        out.push("", "**Thinking**", "", blockquote(message.content));
-        continue;
-      case MessageType.MESSAGE_SYSTEM:
-        out.push("", "**System**", "", blockquote(message.content));
-        continue;
-      case MessageType.MESSAGE_AI: {
-        if (message.content.trim()) {
-          out.push("", "**Assistant**", "", message.content);
-        }
-        for (const toolCall of message.toolCalls) {
-          if (toolCall.name === "task") {
-            const subAgent = subAgents.find((sa) => sa.id === toolCall.id);
-            if (subAgent) {
-              renderSubAgent(out, subAgent, resolvedOutputs);
-              continue;
-            }
-          }
-          renderToolCall(out, toolCall, resolvedOutputs);
+  for (const item of items) {
+    switch (item.kind) {
+      case "message":
+        if (item.text.trim()) {
+          out.push("", "**Assistant**", "", item.text);
         }
         continue;
+      case "thinking":
+        out.push("", "**Thinking**", "", blockquote(item.text));
+        continue;
+      case "note":
+        out.push("", "**System**", "", blockquote(item.text));
+        continue;
+      case "compacted":
+        out.push("", "_Context compacted._");
+        continue;
+      case "tool_use":
+        if (item.thread !== undefined) {
+          renderSubAgent(out, item, item.thread, resolvedOutputs);
+        } else {
+          renderToolUse(out, item, resolvedOutputs);
+        }
+        continue;
+      /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+      default: {
+        const exhaustive: never = item;
+        throw new Error(`unknown turn item ${String(exhaustive)}`);
       }
-      default:
-        // Unknown future message type: carry the content rather than drop it.
-        if (message.content) out.push("", blockquote(message.content));
     }
   }
 }
 
-function renderToolCall(
+function renderToolUse(
   out: string[],
-  toolCall: ToolCall,
+  tool: ToolUse,
   resolvedOutputs: Readonly<Record<string, ResolvedToolOutput>>,
 ): void {
-  out.push("", `**Tool — \`${toolCall.name}\`**${toolCallSuffix(toolCall)}`);
+  const name = tool.mcpServerName ? `${tool.mcpServerName}/${tool.name}` : tool.name;
+  out.push("", `**Tool — \`${name}\`**${toolSuffix(tool)}`);
 
-  // ToolCall.args is a google.protobuf.Struct, which protobuf-es represents
+  // The input is a google.protobuf.Struct, which protobuf-es represents
   // as a plain JsonObject — safe to stringify directly (no bigint fields).
-  const args = toolCall.args
-    ? JSON.stringify(toolCall.args, null, 2)
-    : undefined;
-  if (args && args !== "{}") {
-    out.push("", fenced(args, "json"));
+  const input = JSON.stringify(tool.input, null, 2);
+  if (input !== "{}") {
+    out.push("", fenced(input, "json"));
   }
 
-  const output = toolOutputText(toolCall, resolvedOutputs);
-  if (output.note) out.push("", `_${output.note}_`);
-  if (output.text) out.push("", fenced(output.text));
+  for (const line of answerLines(tool)) {
+    out.push("", line);
+  }
 
-  if (toolCall.error) {
-    out.push("", "Error:", "", fenced(toolCall.error));
+  const output = toolOutputText(tool, resolvedOutputs);
+  if (output.note) out.push("", `_${output.note}_`);
+  if (output.text) {
+    out.push("", ...(tool.result?.isError ? ["Error:", ""] : []), fenced(output.text));
   }
 }
 
-/** The output text and honesty note for a tool call, applying the
+/** The ask a tool use made and the answer it got, one line each. */
+function answerLines(tool: ToolUse): string[] {
+  const lines: string[] = [];
+  if (tool.ask !== undefined) {
+    lines.push(`_Asked for approval${tool.ask.message ? `: ${tool.ask.message}` : ""}._`);
+  }
+  if (tool.confirmation?.result === "deny") {
+    lines.push(`_Denied${tool.confirmation.denyMessage ? `: ${tool.confirmation.denyMessage}` : ""}._`);
+  } else if (tool.grant !== undefined) {
+    lines.push("_Allowed, with every call of its class for the rest of the turn._");
+  } else if (tool.confirmation !== undefined) {
+    lines.push("_Allowed._");
+  }
+  return lines;
+}
+
+/** The output text and honesty note for a tool use, applying the
  * offload-resolution fallbacks. */
 function toolOutputText(
-  toolCall: ToolCall,
+  tool: ToolUse,
   resolvedOutputs: Readonly<Record<string, ResolvedToolOutput>>,
 ): { text?: string; note?: string } {
-  const ref = toolCall.outputRef;
-  if (!ref?.storageKey) {
-    return toolCall.result ? { text: toolCall.result } : {};
+  const head = tool.result?.text || undefined;
+  const full = tool.fullOutput;
+  if (full === undefined || full.storageKey === "") {
+    return { text: head };
   }
-  if (ref.isImage) {
+  if (full.isImage) {
     return {
-      note: `Image output (${ref.mimeType || "image"}, ${Number(ref.sizeBytes)} bytes) — not inlined.`,
+      note: `Image output (${full.mimeType || "image"}, ${Number(full.sizeBytes)} bytes) — not inlined.`,
     };
   }
-  const resolved = resolvedOutputs[ref.storageKey];
+  const resolved = resolvedOutputs[full.storageKey];
   if (resolved?.content !== undefined) {
     return {
       text: resolved.content,
@@ -579,67 +625,54 @@ function toolOutputText(
     };
   }
   return {
-    text: ref.truncatedPreview || toolCall.result || undefined,
+    text: head,
     note: resolved?.error
-      ? `Offloaded output unavailable (${resolved.error}) — showing preview.`
-      : "Offloaded output not resolved — showing preview.",
+      ? `Offloaded output unavailable (${resolved.error}) — showing its head.`
+      : "Offloaded output not resolved — showing its head.",
   };
 }
 
-function toolCallSuffix(toolCall: ToolCall): string {
-  const parts: string[] = [];
-  const status = toolCallStatusLabel(toolCall.status);
-  if (status) parts.push(status);
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
+const TOOL_STATE_LABELS: Readonly<Record<ToolUse["state"], string>> = {
+  running: "running",
+  waiting: "waiting for approval",
+  completed: "completed",
+  failed: "failed",
+  denied: "denied",
+  stopped: "stopped",
+};
+
+function toolSuffix(tool: ToolUse): string {
+  const parts = [TOOL_STATE_LABELS[tool.state]];
+  const duration = formatDuration(tool.processedAt, tool.result?.processedAt);
   if (duration) parts.push(duration);
-  return parts.length > 0 ? ` (${parts.join(" · ")})` : "";
+  return ` (${parts.join(" · ")})`;
 }
 
-function toolCallStatusLabel(status: ToolCallStatus): string | null {
-  switch (status) {
-    case ToolCallStatus.TOOL_CALL_COMPLETED:
-      return "completed";
-    case ToolCallStatus.TOOL_CALL_FAILED:
-      return "failed";
-    case ToolCallStatus.TOOL_CALL_SKIPPED:
-      return "skipped";
-    case ToolCallStatus.TOOL_CALL_INTERRUPTED:
-      return "interrupted";
-    case ToolCallStatus.TOOL_CALL_RUNNING:
-      return "running";
-    case ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
-      return "waiting for approval";
-    case ToolCallStatus.TOOL_CALL_PENDING:
-      return "pending";
-    default:
-      return null;
-  }
-}
-
+/** A sub-agent's thread, inside the `task` call that opened it. */
 function renderSubAgent(
   out: string[],
-  subAgent: SubAgentRun,
+  tool: ToolUse,
+  thread: Thread,
   resolvedOutputs: Readonly<Record<string, ResolvedToolOutput>>,
 ): void {
   const nested: string[] = [];
-  const title = subAgent.subject || subAgent.name || "sub-agent";
-  nested.push(`**Sub-agent — ${title}**${subAgentSuffix(subAgent)}`);
-  if (subAgent.input) {
-    nested.push("", "Input:", "", subAgent.input);
+  const title = thread.agentName || "sub-agent";
+  const duration = formatDuration(tool.processedAt, tool.result?.processedAt);
+  nested.push(`**Sub-agent — ${title}**${duration ? ` (${duration})` : ""}`);
+  if (thread.input) {
+    nested.push("", "Input:", "", thread.input);
   }
-  renderMessages(nested, subAgent.messages, [], resolvedOutputs, null);
-  if (subAgent.output) {
-    nested.push("", "Output:", "", subAgent.output);
+  renderItems(nested, thread.items, resolvedOutputs);
+  if (thread.reply) {
+    nested.push(
+      "",
+      ...(thread.state === "failed" ? ["Error:", "", fenced(thread.reply)] : ["Output:", "", thread.reply]),
+    );
   }
-  if (subAgent.error) {
-    nested.push("", "Error:", "", fenced(subAgent.error));
+  if (thread.state === "stopped") {
+    nested.push("", "_Stopped before it finished._");
   }
   out.push("", blockquote(nested.join("\n")));
-}
-
-function subAgentSuffix(subAgent: SubAgentRun): string {
-  const duration = formatDuration(subAgent.startedAt, subAgent.completedAt);
-  return duration ? ` (${duration})` : "";
 }
 
 /** `"3.2s"` when both ISO timestamps parse and are ordered, else `null`. */
@@ -684,28 +717,30 @@ function fenced(content: string, language = ""): string {
 /**
  * Renders the transcript as a plain JSON value for programmatic analysis.
  *
- * Proto parts serialize through `toJson` with `useProtoFieldName: true` —
- * the platform-wide protojson parity contract (snake_case fields, int64 as
- * strings, `fromJson` round-trippable). Never `JSON.stringify` a raw proto
- * object here: int64 fields are `bigint` and would throw.
+ * Each turn carries its events as Claude Managed Agents JSON (the shape
+ * Anthropic's SDK types), in log order: the record itself, which any reader
+ * can fold again. The session serializes through `toJson` with
+ * `useProtoFieldName: true` — the platform-wide protojson parity contract
+ * (snake_case fields, int64 as strings, `fromJson` round-trippable). Never
+ * `JSON.stringify` a raw proto object here: int64 fields are `bigint` and
+ * would throw. An event of a member this build does not know is left out.
  *
- * The format is `stigmer.ai/session-transcript/v2`: each turn's `run` is an
- * Run. v1 named it `execution` and held the AgentExecution shape that
+ * The format is `stigmer.ai/session-transcript/v3`. v2 held each turn's
+ * whole run record as `run`, and v1 named it `execution`, the shape
  * executions had before they were named runs.
  */
 export function transcriptToJson(transcript: SessionTranscript): JsonValue {
-  const turns: JsonValue[] = transcript.turns.map((turn) => {
-    const run = toJson(RunSchema, turn.run, {
-      useProtoFieldName: true,
-    });
-    return {
-      user_prompt: turn.userPrompt,
-      build_from_plan: turn.isBuildFromPlan || undefined,
-      superseded: turn.superseded || undefined,
-      in_progress: turn.inProgress || undefined,
-      run,
-    } as unknown as JsonValue;
-  });
+  const turns: JsonValue[] = transcript.turns.map((entry) => ({
+    run_id: entry.runId,
+    user_prompt: entry.userPrompt,
+    build_from_plan: entry.isBuildFromPlan || undefined,
+    superseded: entry.superseded || undefined,
+    in_progress: entry.inProgress || undefined,
+    started_at: entry.startedAt,
+    events: entry.events
+      .filter((event) => event.event.case !== undefined)
+      .map(toManagedAgentsJson),
+  }) as unknown as JsonValue);
 
   const resolvedOutputs: Record<string, JsonValue> = {};
   for (const [key, output] of Object.entries(transcript.resolvedOutputs)) {
@@ -721,7 +756,7 @@ export function transcriptToJson(transcript: SessionTranscript): JsonValue {
   }
 
   return {
-    format: "stigmer.ai/session-transcript/v2",
+    format: "stigmer.ai/session-transcript/v3",
     session: toJson(SessionSchema, transcript.session, {
       useProtoFieldName: true,
     }),

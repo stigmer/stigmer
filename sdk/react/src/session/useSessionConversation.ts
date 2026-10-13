@@ -1,39 +1,65 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { ApprovalAction, RunPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { InterruptSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { supersededRunIds, toSessionUpdateInput, type AttachmentInput, type ResourceRef, type WorkspaceEntryInput } from "@stigmer/sdk";
-import { isTerminalPhase } from "../run/run-phases.js";
+import {
+  displayFileChangeSets,
+  supersededRunIds,
+  toSessionUpdateInput,
+  type AttachmentInput,
+  type FileReviewSet,
+  type ResourceRef,
+  type ToolUse,
+  type Turn,
+  type TurnPhase,
+  type WorkspaceEntryInput,
+} from "@stigmer/sdk";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { useFetch } from "../internal/useFetch.js";
 import { useConversationStoreRef } from "../internal/store/index.js";
 // Type-only import so the SharedRunFields doc links below resolve;
 // the strict tsdoc gate (tsdoc:check) guards it against removal.
 import { useCreateRun, type SharedRunFields } from "../run/useCreateRun.js";
-import { useRunStream } from "../run/useRunStream.js";
 import { useRunActions } from "../run/useRunActions.js";
-import { useSubmitApproval } from "../run/useSubmitApproval.js";
-import { useFileReview, type FileDecisionOptions } from "../run/useFileReview.js";
+import { useAnswerToolUse, type ToolUseAnswer } from "../run/useAnswerToolUse.js";
+import {
+  useReviewFileChanges,
+  type FileReviewAction,
+  type ReviewFileChangesOptions,
+} from "../run/useReviewFileChanges.js";
 import { useSession } from "./useSession.js";
+import { useSessionEvents } from "./useSessionEvents.js";
 import { useSessionRuns } from "./useSessionRuns.js";
 import { useUpdateSession } from "./useUpdateSession.js";
 import { useLocalSessionWorker } from "./useLocalSessionWorker.js";
 
 /**
- * Cadence for re-discovering the session's runs while the live stream
- * cannot be relied on (a created-but-not-yet-listed run, a silent
- * connect-timeout, or an exhausted stream error). Disabled the instant the
- * stream is healthy or terminal, so this never competes with the live feed.
+ * How often the live turn's run is read again while it works, for what only
+ * the run record carries live: its setup progress, its running usage and the
+ * files it has changed so far. What the agent did comes from the session's
+ * events, never from this read.
  */
-const REDISCOVERY_POLL_INTERVAL_MS = 5_000;
+const LIVE_RUN_REFRESH_MS = 3_000;
+
+/** The phases a turn can be stopped from: every unfinished one (the session's interrupt stops them all). */
+const STOPPABLE_PHASES: ReadonlySet<TurnPhase> = new Set<TurnPhase>([
+  "pending",
+  "running",
+  "waiting",
+  "paused",
+]);
+
+const EMPTY_ASKS: readonly ToolUse[] = [];
+const EMPTY_SETS: readonly FileReviewSet[] = [];
 
 /**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
@@ -151,9 +177,11 @@ export interface SendFollowUpOptions {
 /**
  * Return value of {@link useSessionConversation}.
  *
- * Provides the full conversation state for a session: loaded data,
- * active stream, follow-up submission, approval handling, and
- * session-level context (workspace entries, plugins, skills).
+ * Provides the full conversation state for a session: its turns, folded
+ * from the session's events; its runs, for each turn's lifecycle and files;
+ * follow-up submission; the answers to tool uses that wait for a person;
+ * file review; and session-level context (workspace entries, plugins,
+ * skills).
  */
 export interface UseSessionConversationReturn {
   /** The session object, or null while loading. */
@@ -168,35 +196,45 @@ export interface UseSessionConversationReturn {
    */
   readonly org: string;
   /**
-   * Runs in terminal phases, in chronological order.
+   * The conversation's turns, in order: the session's events folded (each
+   * turn's message, the agent's items, its asks, to-dos, file reviews and
+   * phase). Objects no event touched keep their reference from render to
+   * render, so memoized rows skip re-renders.
    *
-   * Excludes turns replaced via edit-and-resubmit (a run whose id
-   * appears as another run's `supersedesRunId`) — the edited
-   * message stands in the original's place. Superseded records remain in
-   * run history surfaces; only the conversation view hides them.
-   *
-   * Excludes reconcile turns too (`spec.reconcileFileReview`): the
-   * message-less run an Undo starts to put files back is not a turn of the
-   * conversation, so it never shows as an empty one.
+   * Excludes turns replaced via edit-and-resubmit (a run whose id appears
+   * as another run's `supersedesRunId`) — the edited message stands in the
+   * original's place — and reconcile turns (`spec.reconcileFileReview`):
+   * the message-less turn an Undo starts to put files back is not a turn of
+   * the conversation.
    */
-  readonly completedRuns: readonly Run[];
-  /** Currently streaming run (stream or fetch fallback), or null. */
-  readonly activeStreamRun: Run | null;
-  /** Phase of the active run, or null if none active. */
-  readonly activePhase: RunPhase | null;
-  /** True while the active run's stream is delivering updates. */
+  readonly turns: readonly Turn[];
+  /**
+   * The conversation's runs, oldest first: each turn's lifecycle, stamps
+   * and files (phase, error, usage, artifacts, write-backs, captured file
+   * changes). The live turn's run is read again while it works. Excludes
+   * superseded and reconcile runs, as {@link turns} does.
+   */
+  readonly runs: readonly Run[];
+  /** The newest turn that has not ended, or null when none works or waits. */
+  readonly activeTurn: Turn | null;
+  /** The live turn's run, or null (also while a just-sent turn is not yet listed). */
+  readonly activeRun: Run | null;
+  /**
+   * The live turn's phase, or null when no turn is live. A turn just sent
+   * reads `"pending"` until its first status arrives.
+   */
+  readonly activePhase: TurnPhase | null;
+  /** True while the session's events are being delivered. */
   readonly isStreaming: boolean;
   /**
-   * True after the stream subscription starts but before the first
-   * snapshot arrives from the server. Platform builders can use this
-   * to differentiate between "connecting to stream" and "execution is
-   * PENDING but stream is established."
+   * True after the session's follow starts and before its first events
+   * arrive.
    */
   readonly isConnecting: boolean;
 
   /**
-   * Submit a follow-up message. Internally creates a run and
-   * starts streaming it.
+   * Submit a follow-up message. Internally creates a run (a new turn of the
+   * session).
    *
    * When session-level fields (`agentRef`, `workspaceEntries`,
    * `plugins`, `skillRefs`) are provided in options, the
@@ -207,7 +245,7 @@ export interface UseSessionConversationReturn {
     message: string,
     options?: SendFollowUpOptions,
   ) => Promise<void>;
-  /** True when the input should be enabled (no active run, not creating). */
+  /** True when the input should be enabled (no live turn, not creating). */
   readonly canSendFollowUp: boolean;
   /** True during the create RPC call (between submit and run ID). */
   readonly isSending: boolean;
@@ -241,9 +279,10 @@ export interface UseSessionConversationReturn {
   readonly moveToCurrentAgentVersion: () => Promise<void>;
 
   /**
-   * The user's message text, shown in the thread before the stream delivers it.
-   * Retained when a send fails so the typed message is never lost — pair with
-   * {@link sendError} to render the turn as failed with a retry control.
+   * The user's message text, shown in the thread before the session's
+   * events carry it. Retained when a send fails so the typed message is
+   * never lost — pair with {@link sendError} to render the turn as failed
+   * with a retry control.
    */
   readonly pendingUserMessage: string | null;
   /**
@@ -262,137 +301,144 @@ export interface UseSessionConversationReturn {
   /** Current skill references from the session spec. Empty array when session is not loaded. */
   readonly skillRefs: readonly ProtoApiResourceReference[];
 
-  /** Pending approval requests from the active run, empty when none. */
-  readonly pendingApprovals: readonly PendingApproval[];
-  /** Submit an approval decision. The executionId is managed internally. */
-  readonly submitApproval: (
-    toolCallId: string,
-    action: ApprovalAction,
-    comment?: string,
+  /** The live turn's tool uses that wait for a person's answer, in log order; empty when none. */
+  readonly asks: readonly ToolUse[];
+  /**
+   * Answer a waiting tool use: allow it, deny it (with an optional message
+   * the agent reads), or grant its class for the rest of the turn. The
+   * session id is managed internally. Rejects with the server's error.
+   */
+  readonly answerToolUse: (
+    toolUseId: string,
+    answer: ToolUseAnswer,
+    denyMessage?: string,
   ) => Promise<void>;
-  /** Set of tool call IDs currently being submitted for approval. */
-  readonly submittingApprovalIds: ReadonlySet<string>;
+  /** The tool uses whose answer is in flight, by id. */
+  readonly answeringToolUseIds: ReadonlySet<string>;
   /**
-   * Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card by
-   * {@link MessageThread}/{@link ApprovalCard} beside the gate that failed
-   * (inline row or bottom backstop). The keyed parallel of
-   * {@link submittingApprovalIds}.
+   * Each tool use's last failed answer, keyed by its id — surfaced in-card by
+   * {@link MessageThread}/{@link ApprovalCard} beside the gate that failed.
    */
-  readonly approvalErrors: ReadonlyMap<string, Error>;
+  readonly answerErrors: ReadonlyMap<string, Error>;
   /**
-   * Error from the last approval submission, or `null` when healthy — the scalar
-   * mirror of {@link approvalErrors} (symmetric with `fileReviewError`), for a
-   * headless consumer wanting a single error value (e.g. the `ink` surface).
+   * The most recent answer failure, or `null` — the scalar mirror of
+   * {@link answerErrors} for a headless consumer wanting a single value
+   * (e.g. the terminal surface).
    */
-  readonly approvalError: Error | null;
-  /** Reset every approval error (both {@link approvalErrors} and `approvalError`). */
-  readonly clearApprovalError: () => void;
+  readonly answerError: Error | null;
+  /** Reset every answer error (both {@link answerErrors} and `answerError`). */
+  readonly clearAnswerError: () => void;
 
   /**
-   * Captured change sets awaiting file review on the conversation's newest
-   * turn, whether or not that turn has finished; empty when none. A turn
-   * never waits on review, so its edits stay offered for Keep and Undo
-   * after it ends, until a decision settles them or the next message is
-   * sent (the server keeps what is still undecided then).
+   * The newest turn's file reviews with files still undecided, whether or
+   * not that turn has finished; empty when none. A turn never waits on
+   * review, so its edits stay offered for Keep and Undo after it ends,
+   * until a decision settles them or the next message is sent (the server
+   * keeps what is still undecided then).
    */
-  readonly fileChangeSets: readonly FileChangeSet[];
+  readonly fileReviewSets: readonly FileReviewSet[];
   /**
-   * Mid-run live capture: the transient, non-authoritative snapshot of the
-   * workspace delta accumulating during the active turn ("N files changed so far").
-   * Undefined when no turn is currently capturing. Never decidable — the reviewed
-   * diff is {@link fileChangeSets}.
+   * The captured change sets the conversation's runs hold (each file's
+   * before/after bytes), keyed by change set id: what a review card renders
+   * its diffs and capture provenance from. Never a decision's source.
+   */
+  readonly fileChangeCaptures: ReadonlyMap<string, FileChangeSet>;
+  /**
+   * Mid-turn live capture: the transient, non-authoritative snapshot of the
+   * workspace delta accumulating during the live turn ("N files changed so
+   * far"). Undefined when no turn is capturing. Never decidable — the
+   * reviewed changes are {@link fileReviewSets}.
    */
   readonly fileChangeProgress: FileChangeProgress | undefined;
   /**
-   * Submit a file-review decision for a change set of the newest turn
-   * ({@link fileChangeSets}). The run id is managed internally; a decision
-   * on a finished turn re-reads the session's runs so the dock settles.
+   * Keep or undo files of one of {@link fileReviewSets} (one file, or the
+   * whole set). The session id is managed internally.
    */
-  readonly submitFileDecision: (
+  readonly reviewFileChanges: (
     changeSetId: string,
-    action: FileDecisionAction,
-    options?: FileDecisionOptions,
+    action: FileReviewAction,
+    options: ReviewFileChangesOptions,
   ) => Promise<void>;
   /** Decision keys ({@link fileDecisionKey}) currently being submitted. */
   readonly submittingFileDecisionKeys: ReadonlySet<string>;
   /**
    * Per-decision failures, keyed by {@link fileDecisionKey} — surfaced in-card
-   * by {@link MessageThread}/{@link FileReviewCard} beside the failed control.
+   * by {@link FileReviewCard} beside the failed control.
    */
   readonly fileDecisionErrors: ReadonlyMap<string, Error>;
   /** Clear the error for one decision key (e.g. before a retry of that target). */
   readonly clearFileDecisionError: (key: string) => void;
   /**
    * The most-recent file-review failure, or `null` when healthy — the scalar
-   * mirror of {@link fileDecisionErrors} (symmetric with `approvalError`), for a
-   * headless consumer wanting a single error value.
+   * mirror of {@link fileDecisionErrors}, for a headless consumer wanting a
+   * single error value.
    */
   readonly fileReviewError: Error | null;
   /** Reset every file-review error (both {@link fileDecisionErrors} and `fileReviewError`). */
   readonly clearFileReviewError: () => void;
 
   /**
-   * `true` when the active run can be stopped — i.e. it is in a phase
-   * the backend accepts a cancel/terminate from (`PENDING` or `IN_PROGRESS`).
-   *
-   * Distinct from "is something active": a run paused at an approval
-   * gate (`WAITING_FOR_APPROVAL`) is active but **not** stoppable — the
-   * approval card (approve / skip / reject) is its control surface. Drive the
-   * composer's Stop affordance off this so it only appears when {@link stop}
-   * will actually succeed.
+   * `true` when the live turn can be stopped: it is pending, running,
+   * waiting for an answer, or paused. Drive the composer's Stop affordance
+   * off this.
    */
   readonly isStoppable: boolean;
   /**
-   * Stop the active run, with progressive escalation: the first call
-   * gracefully cancels; a repeat call (because the run is still winding down)
-   * forcefully terminates. No-op when nothing is {@link isStoppable}.
+   * Stop the live turn, with progressive escalation: the first call
+   * interrupts the session (every unfinished turn stops gracefully); a
+   * repeat call, because the turn is still winding down, terminates its run
+   * (with `reason` recorded). No-op when nothing is {@link isStoppable}.
    */
   readonly stop: (reason?: string) => Promise<void>;
-  /** `true` while a stop (cancel/terminate) request is in flight. */
+  /** `true` while a stop (interrupt or terminate) request is in flight. */
   readonly isStopping: boolean;
   /** Error from the last stop attempt, or `null` when healthy. */
   readonly stopError: Error | null;
 
-  /** `true` while the session or run list is loading. */
+  /**
+   * `true` while the session or its runs are loading, or, for a session with
+   * runs, until the first of its events arrive.
+   */
   readonly isLoading: boolean;
   /** Error from session or run list loading, or `null` when healthy. */
   readonly loadError: Error | null;
 
   /**
-   * `true` while the run stream is auto-reconnecting after a transient
-   * drop. The conversation stays visible and `streamError` remains `null` —
-   * surface a subtle "Reconnecting…" hint rather than an error banner.
+   * `true` while the session's follow is reconnecting after a dropped
+   * stream. The conversation stays visible and `streamError` remains
+   * `null` — surface a subtle "Reconnecting…" hint rather than an error.
    */
   readonly isReconnecting: boolean;
   /**
-   * `true` when the stream opened but never delivered a first snapshot within
-   * the watchdog window (even after a silent retry) — the agent hasn't started.
-   * Distinct from `streamError`: nothing threw, the stream is simply silent.
-   * Surface an actionable "the agent hasn't started — Retry" banner wired to
-   * {@link reconnectStream}.
+   * `true` when the follow opened but delivered nothing within the watchdog
+   * window, even after a silent reconnect. Surface an actionable banner
+   * wired to {@link reconnectStream}.
    */
   readonly connectTimedOut: boolean;
   /**
-   * `true` when a live, non-terminal stream has been silent past the slow
-   * threshold. Purely informational ("still working — taking longer than
-   * usual"); cleared by the next update. Never an error.
+   * `true` when the live turn works but nothing arrived for the slow-stall
+   * window. Purely informational ("still working — taking longer than
+   * usual"); cleared by the next event. Never an error.
    */
   readonly isSlow: boolean;
-  /** Error from the run stream, or `null` when healthy or reconnecting. */
+  /** Why the follow ended (refused, or its reconnects ran out), or `null`. */
   readonly streamError: Error | null;
-  /** Reset the stream error and re-establish the run stream subscription. */
+  /** Re-open the session's follow (the conversation stays on screen). */
   readonly reconnectStream: () => void;
 }
 
 /**
  * Behavior hook that encapsulates the full conversation lifecycle for
- * a session: loading data, streaming the active run, submitting
- * follow-up messages, and updating session-level workspace entries.
+ * a session: its turns, read from the session's event log; its runs, for
+ * each turn's lifecycle and files; submitting follow-up messages; answering
+ * the tool uses that wait for a person; reviewing a turn's file changes;
+ * stopping the live turn; and updating session-level workspace entries.
  *
  * Composes {@link useSession}, {@link useSessionRuns},
- * {@link useCreateRun}, {@link useRunStream}, and
- * {@link useUpdateSession} into a single return value that drives
- * both {@link MessageThread} and {@link SessionComposer}.
+ * {@link useSessionEvents}, {@link useCreateRun}, {@link useAnswerToolUse},
+ * {@link useReviewFileChanges} and {@link useUpdateSession} into a single
+ * return value that drives both {@link MessageThread} and
+ * {@link SessionComposer}.
  *
  * Platform builders get the complete conversation loop without
  * reimplementing orchestration logic.
@@ -416,11 +462,11 @@ export interface UseSessionConversationReturn {
  *   return (
  *     <>
  *       <MessageThread
- *         runs={conv.completedRuns}
- *         activeStreamRun={conv.activeStreamRun}
+ *         turns={conv.turns}
+ *         runs={conv.runs}
  *         pendingUserMessage={conv.pendingUserMessage}
- *         onApprovalSubmit={conv.submitApproval}
- *         submittingApprovalIds={conv.submittingApprovalIds}
+ *         onAnswerToolUse={conv.answerToolUse}
+ *         answeringToolUseIds={conv.answeringToolUseIds}
  *       />
  *       <SessionComposer
  *         onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
@@ -443,51 +489,51 @@ export function useSessionConversation(
     error: sessionError,
     refetch: refetchSession,
   } = useSession(sessionId);
-  // Bounded re-discovery (see REDISCOVERY_POLL_INTERVAL_MS). The gate depends on
-  // the stream below, so the decision is synced into state via an effect and fed
-  // back here on the next render — a one-frame lag that is immaterial at 5s.
-  const [rediscoveryActive, setRediscoveryActive] = useState(false);
   const {
-    runs: executions,
-    isLoading: executionsLoading,
-    error: executionsError,
+    runs: listedRuns,
+    isLoading: runsLoading,
+    error: runsError,
     refetch,
   } = useSessionRuns(sessionId, {
-    refetchInterval: rediscoveryActive ? REDISCOVERY_POLL_INTERVAL_MS : false,
     // Re-list on app-relaunch / tab refocus so a run that appeared while
     // backgrounded is picked up without the user having to act.
     refetchOnWindowFocus: true,
   });
   const {
-    create,
+    create: createRun,
     isCreating,
     clearError: clearCreateError,
   } = useCreateRun();
   const { update: updateSession } = useUpdateSession();
   const turnOrg = session?.metadata?.org || org;
   const {
-    submitApproval: rawSubmitApproval,
-    submittingToolCallIds,
-    errorsByToolCallId: approvalErrors,
-    error: approvalError,
-    clearError: clearApprovalError,
-  } = useSubmitApproval();
+    answerToolUse: rawAnswerToolUse,
+    submittingToolUseIds,
+    errorsByToolUseId,
+    error: answerError,
+    clearError: clearAnswerError,
+  } = useAnswerToolUse();
   const {
-    submitFileDecision: rawSubmitFileDecision,
+    reviewFileChanges: rawReviewFileChanges,
     submittingDecisionKeys,
     decisionErrors: fileDecisionErrors,
     clearDecisionError: clearFileDecisionError,
     error: fileReviewError,
     clearError: clearFileReviewError,
-  } = useFileReview();
+  } = useReviewFileChanges();
 
   // Local run: attach the session's runner worker while it is open and
   // detach it on close. No-op for cloud sessions or when no adapter is set.
   useLocalSessionWorker(sessionId, session);
 
-  const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(
-    null,
-  );
+  // The session's events, folded, in a store that outlives renders.
+  const conversationStore = useConversationStoreRef();
+  const events = useSessionEvents(sessionId, { store: conversationStore });
+  const foldTurns = events.fold?.turns;
+
+  // The run a send just created, until its turn appears in the events: it
+  // holds the composer closed and the optimistic bubble up across the gap.
+  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
     null,
   );
@@ -506,144 +552,146 @@ export function useSessionConversation(
     options?: SendFollowUpOptions;
   } | null>(null);
 
-  const listActiveId = useMemo(() => {
-    for (let i = executions.length - 1; i >= 0; i--) {
-      // A reconcile turn is never streamed as the conversation's active
-      // turn: it has no message to show, and the composer stays open while
-      // it puts the undone files back.
-      if (isReconcileTurn(executions[i])) continue;
-      const phase = executions[i].status?.phase;
-      if (phase === undefined || !isTerminalPhase(phase)) {
-        return executions[i].metadata?.id ?? null;
-      }
+  const listedById = useMemo(() => {
+    const map = new Map<string, Run>();
+    for (const run of listedRuns) {
+      const id = run.metadata?.id;
+      if (id) map.set(id, run);
+    }
+    return map;
+  }, [listedRuns]);
+
+  // The newest turn that has not ended: the live one. A reconcile turn is
+  // never the conversation's live turn — it has no message to show, and the
+  // composer stays open while it puts the undone files back.
+  const liveTurn = useMemo(() => {
+    for (let i = (foldTurns?.length ?? 0) - 1; i >= 0; i--) {
+      const turn = foldTurns![i]!;
+      if (!isConversationTurn(turn, listedById.get(turn.runId))) continue;
+      return turn.ended ? null : turn;
     }
     return null;
-  }, [executions]);
+  }, [foldTurns, listedById]);
 
-  const activeRunId = pendingExecutionId ?? listActiveId;
+  const activeRunId = pendingRunId ?? liveTurn?.runId ?? null;
 
-  // The conversation store is shared between useRunStream (which
-  // ingests snapshots with structural sharing + rAF coalescing) and the
-  // rendering tree. This eliminates the duplicate structuralShare that
-  // was previously done in this hook.
-  const conversationStore = useConversationStoreRef();
-  const stream = useRunStream(activeRunId, {
-    store: conversationStore,
-  });
+  // The live turn's run, read again while it works (LIVE_RUN_REFRESH_MS).
+  const { data: liveRun, refetch: refetchLiveRun } = useFetch(
+    activeRunId ? () => stigmer.run.get(activeRunId) : null,
+    [activeRunId, stigmer],
+    null,
+    {
+      cacheKey: activeRunId ? `agent-execution:${activeRunId}` : undefined,
+      refetchInterval: activeRunId ? LIVE_RUN_REFRESH_MS : false,
+    },
+  );
+  const activeRun =
+    liveRun !== null && liveRun.metadata?.id === activeRunId ? liveRun : null;
 
-  // Re-discovery gate. Poll only while the live stream cannot carry us:
-  //  • a fresh session whose first run is created but not yet listed
-  //    (`executions.length === 0`) — the race this fix targets,
-  //  • a silent connect-timeout, or an exhausted stream error.
-  // Never while the stream is healthy (`isStreaming`) or the active run
-  // has reached a terminal phase — the live feed is then the source of truth.
-  const streamTerminal =
-    activeRunId !== null && isTerminalPhase(stream.phase);
-  const needsRediscovery =
-    !stream.isStreaming &&
-    !streamTerminal &&
-    ((activeRunId === null && executions.length === 0) ||
-      stream.connectTimedOut ||
-      stream.error !== null);
-
+  // Once the sent turn appears in the events, the optimistic state hands
+  // over to it: the pending run, message and attachments clear, and so
+  // does a stale send error.
+  const sentTurnArrived =
+    pendingRunId !== null && (foldTurns ?? []).some((turn) => turn.runId === pendingRunId);
   useEffect(() => {
-    setRediscoveryActive(needsRediscovery);
-  }, [needsRediscovery]);
+    if (!sentTurnArrived) return;
+    setPendingRunId(null);
+    setPendingUserMessage(null);
+    setPendingAttachments(null);
+    setSendError(null);
+  }, [sentTurnArrived]);
 
-  // Clear pendingExecutionId once the run appears in the fetched list
+  // The run list is read again when, after it has loaded, the events show a
+  // turn it does not hold (another client's message; a send reads the list
+  // itself), once per such turn.
+  const requestedRunIdsRef = useRef<Set<string>>(new Set());
+  const newestTurn = foldTurns?.at(-1);
+  const unlistedRunId =
+    !runsLoading && newestTurn !== undefined && !listedById.has(newestTurn.runId)
+      ? newestTurn.runId
+      : null;
   useEffect(() => {
-    if (
-      pendingExecutionId &&
-      executions.some((e) => (e.metadata?.id ?? "") === pendingExecutionId)
-    ) {
-      setPendingExecutionId(null);
-    }
-  }, [pendingExecutionId, executions]);
+    if (unlistedRunId === null || requestedRunIdsRef.current.has(unlistedRunId)) return;
+    requestedRunIdsRef.current.add(unlistedRunId);
+    refetch();
+  }, [unlistedRunId, refetch]);
 
-  // Clear the optimistic message — and any stale send error — once the stream
-  // delivers a real snapshot. This also handles recovery: if a failed send's
-  // run is later re-discovered and streams, the failed turn resolves into
-  // the live one instead of lingering. (At send time the composer is only
-  // enabled when no run is active, so a *fresh* failure cannot be cleared
-  // here prematurely — `stream.execution` is null then.)
+  // ...and when a live turn ends (its final status, usage, artifacts and
+  // captured files) — a change seen while the session is open, never the
+  // fold that opening it delivers.
+  const liveRunId = liveTurn?.runId ?? null;
+  const previousLiveRunIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!stream.run) return;
-    if (pendingUserMessage) setPendingUserMessage(null);
-    if (pendingAttachments) setPendingAttachments(null);
-    if (sendError) setSendError(null);
-  }, [pendingUserMessage, pendingAttachments, sendError, stream.run]);
-
-  // Refetch runs when stream reaches a terminal phase so the
-  // fetched list reflects the completed status and listActiveId clears.
-  useEffect(() => {
-    if (activeRunId && isTerminalPhase(stream.phase)) {
-      refetch();
-    }
-  }, [activeRunId, stream.phase, refetch]);
+    const previous = previousLiveRunIdRef.current;
+    previousLiveRunIdRef.current = liveRunId;
+    if (previous !== null && previous !== liveRunId) refetch();
+  }, [liveRunId, refetch]);
 
   // Runs replaced via edit-and-resubmit (the shared conversation rule —
-  // see supersededRunIds in @stigmer/sdk for the why). The extra id is
-  // the live stream copy's link: right after a resubmit, the successor streams
-  // before the list refetch delivers it. Display-only: the raw `executions`
-  // list (and therefore active-id resolution above) is never filtered.
-  //
-  // Dep is the scalar link, NOT stream.execution: the stream object changes
-  // reference every frame, and rebuilding the Set per frame would hand
-  // MessageThread a fresh runs array mid-stream, defeating its
-  // memoization.
-  const streamSupersededId =
-    stream.run?.spec?.supersedesRunId || null;
+  // see supersededRunIds in @stigmer/sdk). The extra id is the live run's
+  // link: right after a resubmit, its turn shows before the list delivers
+  // the new run.
+  const liveSupersededId = activeRun?.spec?.supersedesRunId || null;
   const supersededIds = useMemo(
-    () => supersededRunIds(executions, streamSupersededId),
-    [executions, streamSupersededId],
+    () => supersededRunIds(listedRuns, liveSupersededId),
+    [listedRuns, liveSupersededId],
   );
 
-  const completedRuns = useMemo(() => {
-    return executions.filter((e) => {
-      const id = e.metadata?.id ?? "";
-      if (activeRunId && id === activeRunId) return false;
-      if (isReconcileTurn(e)) return false;
-      return !supersededIds.has(id);
-    });
-  }, [executions, activeRunId, supersededIds]);
-
-  const fetchedActiveExecution = useMemo(() => {
-    if (!activeRunId) return null;
-    return (
-      executions.find(
-        (e) => (e.metadata?.id ?? "") === activeRunId,
-      ) ?? null
+  const runs = useMemo<readonly Run[]>(() => {
+    const merged = listedRuns.map((run) =>
+      activeRun !== null && run.metadata?.id === activeRun.metadata?.id ? activeRun : run,
     );
-  }, [executions, activeRunId]);
+    if (activeRun !== null && !listedById.has(activeRun.metadata?.id ?? "")) {
+      merged.push(activeRun);
+    }
+    return merged.filter(
+      (run) =>
+        run.spec?.reconcileFileReview !== true && !supersededIds.has(run.metadata?.id ?? ""),
+    );
+  }, [listedRuns, activeRun, listedById, supersededIds]);
 
-  const activeStreamRun =
-    stream.run ?? fetchedActiveExecution;
+  const turns = useMemo<readonly Turn[]>(
+    () =>
+      (foldTurns ?? []).filter(
+        (turn) =>
+          !supersededIds.has(turn.runId) &&
+          isConversationTurn(turn, listedById.get(turn.runId)),
+      ),
+    [foldTurns, supersededIds, listedById],
+  );
 
-  const activePhase = useMemo<RunPhase | null>(() => {
-    if (!activeRunId) return null;
-    return stream.phase;
-  }, [activeRunId, stream.phase]);
-
-  // Stop is only valid in phases the backend cancels/terminates from
-  // (PENDING / IN_PROGRESS). Other non-terminal phases (e.g.
-  // WAITING_FOR_APPROVAL) are handled by their own control surface.
+  const activePhase: TurnPhase | null =
+    activeRunId === null ? null : (liveTurn?.status?.phase ?? "pending");
   const isStoppable =
-    activePhase === RunPhase.RUN_PENDING ||
-    activePhase === RunPhase.RUN_IN_PROGRESS;
+    liveTurn !== null && activePhase !== null && STOPPABLE_PHASES.has(activePhase);
 
-  const stopActions = useRunActions(activeRunId, {
-    // The cancel/terminate also broadcasts the new phase over the stream, but
-    // refetch is the belt-and-suspenders that clears the active id even if the
-    // stream has already ended.
-    onSuccess: refetch,
-  });
-
+  // Stop: the session's interrupt first; a repeat press for the same run,
+  // while it still winds down, terminates it.
+  const runActions = useRunActions(activeRunId, { onSuccess: refetch });
+  const [isInterrupting, setIsInterrupting] = useState(false);
+  const [interruptError, setInterruptError] = useState<Error | null>(null);
+  const interruptedRunRef = useRef<string | null>(null);
+  const terminate = runActions.terminate;
   const stop = useCallback(
     async (reason?: string): Promise<void> => {
-      if (!isStoppable) return;
-      await stopActions.stop(reason);
+      if (!isStoppable || !sessionId || !activeRunId) return;
+      if (interruptedRunRef.current === activeRunId) {
+        await terminate(reason);
+        return;
+      }
+      interruptedRunRef.current = activeRunId;
+      setIsInterrupting(true);
+      setInterruptError(null);
+      try {
+        await stigmer.session.interrupt(create(InterruptSessionInputSchema, { sessionId }));
+      } catch (err) {
+        interruptedRunRef.current = null;
+        setInterruptError(toError(err));
+      } finally {
+        setIsInterrupting(false);
+      }
     },
-    [isStoppable, stopActions.stop],
+    [isStoppable, sessionId, activeRunId, terminate, stigmer],
   );
 
   const canSendFollowUp = !isCreating && activeRunId === null;
@@ -707,7 +755,7 @@ export function useSessionConversation(
           refetchSession();
         }
 
-        const result = await create({
+        const result = await createRun({
           org: turnOrg,
           sessionId,
           message,
@@ -721,7 +769,8 @@ export function useSessionConversation(
           workspaceFileRefs: options?.workspaceFileRefs,
           supersedesRunId: options?.supersedesRunId,
         });
-        setPendingExecutionId(result.runId);
+        requestedRunIdsRef.current.add(result.runId);
+        setPendingRunId(result.runId);
         refetch();
       } catch (err) {
         // Surface the failure and KEEP the user's message visible (do not clear
@@ -738,7 +787,7 @@ export function useSessionConversation(
         }
       }
     },
-    [sessionId, session, turnOrg, stigmer, create, updateSession, refetch, refetchSession],
+    [sessionId, session, turnOrg, stigmer, createRun, updateSession, refetch, refetchSession],
   );
 
   const moveToCurrentAgentVersion = useCallback(async (): Promise<void> => {
@@ -770,80 +819,85 @@ export function useSessionConversation(
     clearCreateError();
   }, [clearCreateError]);
 
-  const pendingApprovals = useMemo<readonly PendingApproval[]>(
-    () => activeStreamRun?.status?.pendingApprovals ?? [],
-    [activeStreamRun],
-  );
+  const asks = liveTurn?.asks ?? EMPTY_ASKS;
 
-  const submitApproval = useCallback(
-    async (
-      toolCallId: string,
-      action: ApprovalAction,
-      comment?: string,
-    ): Promise<void> => {
-      if (!activeRunId) return;
-      await rawSubmitApproval(activeRunId, toolCallId, action, comment);
+  const answerToolUse = useCallback(
+    async (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string): Promise<void> => {
+      if (!sessionId) return;
+      await rawAnswerToolUse(sessionId, toolUseId, answer, denyMessage);
     },
-    [activeRunId, rawSubmitApproval],
+    [sessionId, rawAnswerToolUse],
   );
 
   // The conversation's newest turn, finished or not: the one whose edits
-  // are offered for review. While a turn is active it is that turn's live
-  // copy; otherwise the newest listed turn, reconcile turns skipped (an
-  // Undo's run is not a turn, and its own status carries no change set).
-  const newestTurnRun = useMemo<Run | null>(() => {
-    if (activeRunId) return activeStreamRun;
-    for (let i = executions.length - 1; i >= 0; i--) {
-      if (!isReconcileTurn(executions[i])) return executions[i];
+  // are offered for review.
+  const reviewTurn = turns.at(-1);
+  const fileReviewSets = useMemo<readonly FileReviewSet[]>(() => {
+    const sets = reviewTurn?.fileReview ?? EMPTY_SETS;
+    return sets.every((set) => set.undecided) ? sets : sets.filter((set) => set.undecided);
+  }, [reviewTurn]);
+
+  const fileChangeCaptures = useMemo<ReadonlyMap<string, FileChangeSet>>(() => {
+    const map = new Map<string, FileChangeSet>();
+    for (const run of runs) {
+      for (const changeSet of displayFileChangeSets(run.status)) map.set(changeSet.id, changeSet);
     }
-    return null;
-  }, [activeRunId, activeStreamRun, executions]);
-  const newestTurnRunId = newestTurnRun?.metadata?.id ?? null;
+    return map;
+  }, [runs]);
 
-  const fileChangeSets = useMemo<readonly FileChangeSet[]>(
-    () =>
-      (newestTurnRun?.status?.fileChangeSets ?? []).filter(
-        (cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW,
-      ),
-    [newestTurnRun],
-  );
+  // Mid-turn live capture: the transient "N files changed so far" snapshot
+  // of the live turn. The server clears it once the turn's changes are
+  // captured, so its mere presence means a turn is still accumulating them.
+  const fileChangeProgress = activeRun?.status?.fileChangeProgress;
 
-  // Mid-run live capture: the transient, non-authoritative "N files
-  // changed so far" snapshot for the active turn. The server clears it once the
-  // turn's change set leaves CAPTURING, so its mere presence means a turn is
-  // still accumulating changes. Reference-stable (it rides the
-  // structurally-shared live status).
-  const fileChangeProgress = useMemo<FileChangeProgress | undefined>(
-    () => activeStreamRun?.status?.fileChangeProgress,
-    [activeStreamRun],
-  );
-
-  const submitFileDecision = useCallback(
+  const reviewFileChanges = useCallback(
     async (
       changeSetId: string,
-      action: FileDecisionAction,
-      options?: FileDecisionOptions,
+      action: FileReviewAction,
+      options: ReviewFileChangesOptions,
     ): Promise<void> => {
-      if (!newestTurnRunId) return;
-      await rawSubmitFileDecision(newestTurnRunId, changeSetId, action, options);
-      // A streamed turn delivers its settled sets on the stream; a finished
-      // one streams nothing, so its new projection is read from the list.
-      if (newestTurnRunId !== activeRunId) refetch();
+      if (!sessionId) return;
+      await rawReviewFileChanges(sessionId, changeSetId, action, options);
     },
-    [newestTurnRunId, activeRunId, rawSubmitFileDecision, refetch],
+    [sessionId, rawReviewFileChanges],
   );
 
-  const isLoading = sessionLoading || executionsLoading;
-  const loadError = sessionError || executionsError;
+  // The live run is read again as soon as its turn changes phase, not only
+  // on the next tick (its first read is the fetch itself). A failed read is
+  // not a load error: the turn still renders from the events.
+  const livePhase = liveTurn?.status?.phase;
+  const previousLivePhaseRef = useRef<{ runId: string; phase: TurnPhase } | null>(null);
+  useEffect(() => {
+    const previous = previousLivePhaseRef.current;
+    previousLivePhaseRef.current =
+      liveRunId !== null && livePhase !== undefined ? { runId: liveRunId, phase: livePhase } : null;
+    if (previous?.runId === liveRunId && livePhase !== undefined && previous.phase !== livePhase) {
+      refetchLiveRun();
+    }
+  }, [liveRunId, livePhase, refetchLiveRun]);
+
+  // A session whose runs are listed has events to show: it loads until the
+  // first of them is folded (or the follow fails or times out). A session
+  // with no runs has none to wait for.
+  const isLoading =
+    sessionLoading ||
+    runsLoading ||
+    (events.fold === null &&
+      listedRuns.length > 0 &&
+      events.error === null &&
+      !events.connectTimedOut);
+  const loadError = sessionError || runsError;
 
   return {
     session,
     org: turnOrg,
-    completedRuns,
-    activeStreamRun,
+    turns,
+    runs,
+    activeTurn: liveTurn,
+    activeRun,
     activePhase,
-    isStreaming: stream.isStreaming,
-    isConnecting: stream.isConnecting,
+    isStreaming: events.isStreaming,
+    isConnecting: events.isConnecting,
 
     sendFollowUp,
     canSendFollowUp,
@@ -860,16 +914,17 @@ export function useSessionConversation(
     plugins,
     skillRefs,
 
-    pendingApprovals,
-    submitApproval,
-    submittingApprovalIds: submittingToolCallIds,
-    approvalErrors,
-    approvalError,
-    clearApprovalError,
+    asks,
+    answerToolUse,
+    answeringToolUseIds: submittingToolUseIds,
+    answerErrors: errorsByToolUseId,
+    answerError,
+    clearAnswerError,
 
-    fileChangeSets,
+    fileReviewSets,
+    fileChangeCaptures,
     fileChangeProgress,
-    submitFileDecision,
+    reviewFileChanges,
     submittingFileDecisionKeys: submittingDecisionKeys,
     fileDecisionErrors,
     clearFileDecisionError,
@@ -878,17 +933,17 @@ export function useSessionConversation(
 
     isStoppable,
     stop,
-    isStopping: stopActions.isSubmitting,
-    stopError: stopActions.error,
+    isStopping: isInterrupting || runActions.isSubmitting,
+    stopError: interruptError ?? runActions.error,
 
     isLoading,
     loadError,
 
-    isReconnecting: stream.isReconnecting,
-    connectTimedOut: stream.connectTimedOut,
-    isSlow: stream.isSlow,
-    streamError: stream.error,
-    reconnectStream: stream.reconnect,
+    isReconnecting: events.isReconnecting,
+    connectTimedOut: events.connectTimedOut,
+    isSlow: events.isSlow,
+    streamError: events.error,
+    reconnectStream: events.reconnect,
   };
 }
 
@@ -897,11 +952,14 @@ export function useSessionConversation(
 // ---------------------------------------------------------------------------
 
 /**
- * Whether a run is a reconcile turn: the message-less run the server starts
- * when an Undo lands on a finished turn, to put the undone files back.
+ * Whether a folded turn is a turn of the conversation: not a reconcile turn
+ * (the message-less run the server starts when an Undo lands on a finished
+ * turn, to put files back) — known by its run when listed, and by having no
+ * message and no items otherwise.
  */
-function isReconcileTurn(run: Run): boolean {
-  return run.spec?.reconcileFileReview === true;
+function isConversationTurn(turn: Turn, run: Run | undefined): boolean {
+  if (run?.spec?.reconcileFileReview === true) return false;
+  return turn.userMessage !== undefined || turn.items.length > 0;
 }
 
 /**

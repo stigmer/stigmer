@@ -1,7 +1,8 @@
 // useExportTranscript (stigmer/stigmer#814): the lazy export actions run the
 // REAL canonical assembly (fetchSessionTranscript from @stigmer/sdk) against
-// a fake client, so these tests pin the hook's end-to-end content, filenames,
-// clipboard strategy, and failure honesty — not a mock of the SDK.
+// a fake client serving the session, its event log and its runs, so these
+// tests pin the hook's end-to-end content, filenames, clipboard strategy,
+// and failure honesty — not a mock of the SDK.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -9,12 +10,10 @@ import { create } from "@bufbuild/protobuf";
 import {
   RunSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunListSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { samples } from "../../test/samples";
 
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
@@ -33,19 +32,24 @@ const fakeSession = create(SessionSchema, {
 const fakeExecution = create(RunSchema, {
   metadata: { id: "aex_01" },
   spec: { target: { case: "sessionId", value: "ses_01" }, message: "Why is CI red?" },
-  status: {
-    phase: RunPhase.RUN_COMPLETED,
-    messages: [
-      { type: MessageType.MESSAGE_THINKING, content: "Checking the loop." },
-      { type: MessageType.MESSAGE_AI, content: "Found it." },
-    ],
-  },
+  status: { phase: RunPhase.RUN_COMPLETED },
 });
+
+/** The turn as the session's event log holds it: the question, a thinking, the answer. */
+const fakeEvents = samples.sessionEventList([
+  samples.userMessageEvent("Why is CI red?", { runId: "aex_01" }),
+  ...samples.thinkingEvents("Checking the loop.", { runId: "aex_01" }),
+  samples.agentMessageEvent("Found it.", { runId: "aex_01" }),
+  samples.runStatusEvent("completed", { runId: "aex_01" }),
+]);
 
 let listBySession: (input: unknown) => Promise<unknown>;
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
-    session: { get: () => Promise.resolve(fakeSession) },
+    session: {
+      get: () => Promise.resolve(fakeSession),
+      listEvents: () => Promise.resolve(fakeEvents),
+    },
     run: {
       listBySession: (input: unknown) => listBySession(input),
       getArtifactContent: vi.fn(),
@@ -161,10 +165,9 @@ describe("useExportTranscript", () => {
 
     expect(downloadedFilenames).toEqual(["fix-the-flaky-test-transcript.json"]);
     const parsed = JSON.parse(await createdBlobs[0].text());
-    expect(parsed.format).toBe("stigmer.ai/session-transcript/v2");
-    expect(parsed.turns[0].run.status.messages[0].content).toBe(
-      "Checking the loop.",
-    );
+    expect(parsed.format).toBe("stigmer.ai/session-transcript/v3");
+    expect(parsed.turns[0].run_id).toBe("aex_01");
+    expect(JSON.stringify(parsed.turns[0].events)).toContain("Checking the loop.");
   });
 
   it("surfaces fetch failures as a typed error and a toast — never a silent no-op", async () => {

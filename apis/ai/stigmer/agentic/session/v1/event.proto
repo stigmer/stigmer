@@ -123,6 +123,14 @@ message SessionEvent {
 
     // A person allowed every call of one class for the rest of the turn.
     StigmerPermissionGrantEvent stigmer_permission_grant = 108 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];
+
+    // A turn (run) changed phase: it started, waits, paused, or ended and
+    // how.
+    StigmerRunStatusEvent stigmer_run_status = 109 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.run.status"];
+
+    // Where the whole output of a tool result that was too large to keep
+    // inline is stored.
+    StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];
   }
 }
 
@@ -822,4 +830,77 @@ message DeltaContent {
 
   // The index of the content block the fragment belongs to.
   int32 index = 3 [(buf.validate.field).int32.gte = 0];
+}
+
+// StigmerRunStatusEvent records that a turn (a run) changed phase:
+// stigmer.run.status. Written by the server only, in the same write as the
+// run's change, on every phase change of every run. The session's own
+// status events say what the whole session does; a session can hold more
+// than one unfinished turn (a second message queues behind the first), and
+// when the first ends while the second works the session's status does not
+// change, so this event is how a client learns that one turn ended, and
+// how.
+message StigmerRunStatusEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The turn's new phase: pending (queued), running, waiting (for a
+  // person's answer), paused, completed, failed, cancelled or terminated.
+  // The last four end the turn.
+  string phase = 3 [(buf.validate.field).string = {
+    in: [
+      "pending",
+      "running",
+      "waiting",
+      "paused",
+      "completed",
+      "failed",
+      "cancelled",
+      "terminated"
+    ]
+  }];
+
+  // Why the turn ended, when it did and the cause is known, as the run's
+  // RunStatus.stop_cause states it; empty otherwise.
+  string stop_cause = 4;
+
+  // What went wrong, for a person, when the turn failed or was stopped
+  // with a reason; empty otherwise.
+  string error = 5;
+}
+
+// StigmerToolResultFullOutputEvent says where the whole output of a tool
+// result is stored, when the output was too large to keep inline:
+// stigmer.tool_result.full_output. It follows the agent.tool_result or
+// agent.mcp_tool_result it belongs to, which carries the output's head.
+// A client reads the bytes with RunQueryController.getArtifactContent (or
+// getArtifactDownloadUrl), by the envelope's run_id and storage_key.
+message StigmerToolResultFullOutputEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The agent.tool_use or agent.mcp_tool_use event whose result this is.
+  string tool_use_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Where the whole output is stored.
+  string storage_key = 4 [(buf.validate.field).string.min_len = 1];
+
+  // The whole output's size in bytes.
+  int64 size_bytes = 5 [(buf.validate.field).int64.gte = 0];
+
+  // The SHA-256 hex digest of the whole output, which changes when the
+  // content under the same key does.
+  string content_hash = 6;
+
+  // The output's media type, for example text/plain or image/png.
+  string mime_type = 7;
+
+  // Whether the output is an image to show inline.
+  bool is_image = 8;
 }

@@ -56,10 +56,7 @@ export interface UsageWidgetProps {
  * const conv = useSessionConversation(sessionId, org);
  *
  * <UsageWidget
- *   runs={[
- *     ...conv.completedRuns,
- *     ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
- *   ]}
+ *   runs={conv.runs}
  * />
  * ```
  *

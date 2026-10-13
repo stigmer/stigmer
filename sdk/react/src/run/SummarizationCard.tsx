@@ -1,100 +1,60 @@
 "use client";
 
 import { memo } from "react";
+import type { CompactedItem } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
-import type { SummarizationEventView } from "./useContextWindow.js";
-import { formatTokenCount } from "./UsageWidget.js";
 
 /** Props for {@link SummarizationCard}. */
 export interface SummarizationCardProps {
-  /** The summarization event to display. */
-  readonly event: SummarizationEventView;
+  /**
+   * The compaction, as the session's fold holds it
+   * (`agent.thread_context_compacted`).
+   */
+  readonly compacted: CompactedItem;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
 
 /**
- * Inline timeline card shown when context summarization occurs mid-conversation.
- *
- * Renders as a compact system-event divider in the {@link MessageThread},
- * positioned chronologically between messages based on the event timestamp.
- *
- * Shows:
- * - "Context compacted" header with compression icon
- * - Token reduction (before -> after) and compression percentage
- * - Duration and model when available (native harness)
- * - For Cursor harness (model/duration unavailable): "Detected context compaction"
+ * Inline timeline card shown where the agent's context was compacted
+ * mid-conversation: a compact system-event divider in the
+ * {@link MessageThread}, at the compaction's place among the turn's items,
+ * with the time it happened.
  *
  * All visual properties flow through `--stgm-*` tokens.
- *
- * @see {@link useContextWindow} - data source for summarization events
- * @see {@link SummarizationBadge} - sidebar aggregate widget (complementary)
  */
 export const SummarizationCard = memo(function SummarizationCard({
-  event,
+  compacted,
   className,
 }: SummarizationCardProps) {
-  const reduction = Math.round(event.compressionRatio * 100);
-  const isInferred = !event.model;
-
   return (
     <div
       role="status"
       aria-label="Context compacted"
       className={cn(
-        "stg:mx-4 stg:flex stg:items-center stg:gap-3 stg:rounded-md stg:border stg:border-border/50",
-        "stg:bg-muted/30 stg:px-3 stg:py-2",
+        "stg:mx-4 stg:flex stg:items-center stg:gap-3 stg:rounded-md stg:border stg:border-border-muted",
+        "stg:bg-muted-faint stg:px-3 stg:py-2",
         className,
       )}
     >
       <CompactionIcon />
-      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:gap-0.5">
-        <div className="stg:flex stg:items-baseline stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
-          <span>{isInferred ? "Detected context compaction" : "Context compacted"}</span>
-          {event.timestamp && (
-            <time dateTime={event.timestamp} className="stg:ml-auto stg:tabular-nums stg:text-muted-foreground/70">
-              {formatTime(event.timestamp)}
-            </time>
-          )}
-        </div>
-        <div className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:text-xs stg:tabular-nums stg:text-muted-foreground/80">
-          <span>
-            {formatTokenCount(event.tokensBefore)} &rarr; {formatTokenCount(event.tokensAfter)} tokens
-          </span>
-          <span className="stg:text-muted-foreground/50">&middot;</span>
-          <span>{reduction}% reduction</span>
-          {event.durationMs > 0 && (
-            <>
-              <span className="stg:text-muted-foreground/50">&middot;</span>
-              <span>{formatDuration(event.durationMs)}</span>
-            </>
-          )}
-          {event.model && (
-            <>
-              <span className="stg:text-muted-foreground/50">&middot;</span>
-              <span>{event.model}</span>
-            </>
-          )}
-        </div>
+      <div className="stg:flex stg:min-w-0 stg:flex-1 stg:items-baseline stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground">
+        <span>Context compacted</span>
+        {compacted.processedAt && (
+          <time dateTime={compacted.processedAt} className="stg:ml-auto stg:tabular-nums stg:text-muted-foreground-subtle">
+            {formatTime(compacted.processedAt)}
+          </time>
+        )}
       </div>
     </div>
   );
 });
 
 function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleTimeString(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(1)}s`;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? iso
+    : date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
 function CompactionIcon() {
@@ -108,7 +68,7 @@ function CompactionIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="stg:shrink-0 stg:text-muted-foreground/70"
+      className="stg:shrink-0 stg:text-muted-foreground-subtle"
       aria-hidden="true"
     >
       <path d="M4 2v4l4-2-4-2zM12 14v-4l-4 2 4 2z" />

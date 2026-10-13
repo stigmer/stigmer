@@ -16,18 +16,20 @@ one that already exists.
 
 The subcommands fall into three areas:
 
-- **Lifecycle** — `cancel` gracefully stops a run in progress at its next safe
-  point; `terminate` force-stops it immediately without cleanup (and cannot be
+- **Lifecycle** — `cancel` interrupts the run's conversation: the run and every
+  other unfinished turn of its session stop, and the command names each turn it
+  stopped; `terminate` force-stops it immediately without cleanup (and cannot be
   recovered); `pause` checkpoints a run in progress; `resume` continues a paused
   one from its last checkpoint.
-- **Observability** — `logs` views or streams a run's messages; `trace` shows
-  the tool-call structure with status and timing; `scores` shows how good a
-  finished run was: each person's thumbs, the run-health checks, the AI judge
-  and, on a plugin eval's try, each check of its case
-  ([Scores](/docs/concepts/scores)); `to-eval-case` writes a run as a test case
-  in a local plugin's `evals/` folder.
-- **Approval** — `approve` submits a decision for a run waiting on an approval
-  for a tool call.
+- **Observability** — `logs` lists or follows a run's events, one line each;
+  `trace` shows its tool calls and how each ended, or lists its events as JSON
+  or YAML; `scores` shows how good a finished run was: each person's thumbs, the
+  run-health checks, the AI judge and, on a plugin eval's try, each check of its
+  case ([Scores](/docs/concepts/scores)); `to-eval-case` writes a run as a test
+  case in a local plugin's `evals/` folder.
+- **Approval** — `approve` answers a tool call the run waits on: allow it, deny
+  it with a reason the agent reads, or allow it and every waiting call of its
+  kind for the rest of the turn.
 
 ## Usage
 
@@ -40,7 +42,7 @@ stigmer runs
 ### Cancel and terminate
 
 ```bash
-# Gracefully cancel a run
+# Cancel a run: every unfinished turn of its conversation stops
 stigmer runs cancel run_01abc123
 
 # Force-stop immediately (unrecoverable)
@@ -57,10 +59,10 @@ stigmer runs resume run_01abc123
 ### Stream logs and inspect a trace
 
 ```bash
-# Stream live messages from a run
+# Follow a run's events until it ends
 stigmer runs logs run_01abc123 --follow
 
-# Show the tool-call timeline as YAML
+# List the run's events as YAML
 stigmer runs trace run_01abc123 -o yaml
 ```
 
@@ -93,49 +95,51 @@ overwritten. See
 ### Approve a waiting run
 
 ```bash
-# Approve a tool call
-stigmer runs approve run_01xyz789 --tool-call tc_abc --action approve
+# Allow the one tool call the run waits on
+stigmer runs approve run_01xyz789
+
+# Deny a named call (its tool_use_id, from `stigmer runs logs`) with a reason
+stigmer runs approve run_01xyz789 --tool-call run_01xyz789.toolu_abc --action deny --comment "not on prod"
+
+# Allow it and every waiting call of its kind for the rest of the turn
+stigmer runs approve run_01xyz789 --tool-call run_01xyz789.toolu_abc --action approve-all
 ```
 
 ## Subcommands
 
 ### stigmer runs approve
 
-submit approval for a waiting run
+answer a tool call a run waits on
 
 ```bash
 stigmer runs approve <run-id> [flags]
 ```
 
-| Flag          | Type     | Default   | Description                      |
-| ------------- | -------- | --------- | -------------------------------- |
-| `--action`    | `string` | `approve` | approval action: approve or deny |
-| `--comment`   | `string` |           | approval comment                 |
-| `--tool-call` | `string` |           | tool call ID to approve          |
+| Flag          | Type     | Default   | Description                                                                                          |
+| ------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------- |
+| `--action`    | `string` | `approve` | approve, deny, or approve-all (allow it and every waiting call of its kind for the rest of the turn) |
+| `--comment`   | `string` |           | the reason the agent reads with a deny                                                               |
+| `--tool-call` | `string` |           | the tool use to answer, as runs logs shows it; optional when the run waits on one                    |
 
 ### stigmer runs cancel
 
-gracefully cancel a run in progress
+cancel a run in progress: every unfinished turn of its conversation stops
 
 ```bash
-stigmer runs cancel <run-id> [flags]
+stigmer runs cancel <run-id>
 ```
-
-| Flag       | Type     | Default | Description             |
-| ---------- | -------- | ------- | ----------------------- |
-| `--reason` | `string` |         | reason for cancellation |
 
 ### stigmer runs logs
 
-view run message logs (use --follow to stream)
+view a run's events (use --follow to stream)
 
 ```bash
 stigmer runs logs <run-id> [flags]
 ```
 
-| Flag             | Type   | Default | Description        |
-| ---------------- | ------ | ------- | ------------------ |
-| `--follow`, `-f` | `bool` |         | stream live events |
+| Flag             | Type   | Default | Description                                 |
+| ---------------- | ------ | ------- | ------------------------------------------- |
+| `--follow`, `-f` | `bool` |         | keep printing new events until the run ends |
 
 ### stigmer runs pause
 
@@ -199,7 +203,7 @@ stigmer runs to-eval-case <run-id> [flags]
 
 ### stigmer runs trace
 
-show run tool-call structure and timing
+show a run's tool calls and how each ended
 
 ```bash
 stigmer runs trace <run-id> [flags]

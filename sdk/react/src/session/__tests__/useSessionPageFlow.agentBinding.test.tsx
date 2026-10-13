@@ -23,10 +23,11 @@ const BOUND_SESSION = {
 const mockConv = {
   session: BOUND_SESSION as unknown,
   isLoading: false,
-  completedRuns: [] as unknown[],
-  activeStreamRun: null,
+  runs: [] as unknown[],
+  activeRun: null,
+  asks: [] as unknown[],
   workspaceEntries: [] as unknown[],
-  submitApproval: vi.fn(),
+  answerToolUse: vi.fn(),
   sendFollowUp: mockSendFollowUp,
 };
 vi.mock("../useSessionConversation", () => ({

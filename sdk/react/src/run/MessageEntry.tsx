@@ -2,11 +2,8 @@
 
 import { memo, useMemo, useState, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  MessageType,
-  type InteractionMode,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { MessageItem, NoteItem, ThinkingItem } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import {
   MARKDOWN_COMPONENTS,
@@ -22,43 +19,61 @@ import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 
+/**
+ * The message a person wrote to start a turn, as the thread renders it: the
+ * turn's `user.message` (or, before the session's events carry it, the text
+ * just sent).
+ */
+export interface UserMessageItem {
+  readonly kind: "user";
+  /** The `user.message` event's id, or a stand-in for one not yet sent. */
+  readonly id: string;
+  readonly text: string;
+}
+
+/**
+ * One message of a conversation as {@link MessageEntry} renders it: what a
+ * person wrote, or an agent's message, thinking or platform note from the
+ * session's fold.
+ */
+export type ThreadMessage = UserMessageItem | MessageItem | ThinkingItem | NoteItem;
+
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {
-  /** The agent message to render. */
-  readonly message: AgentMessage;
+  /** The message to render. */
+  readonly message: ThreadMessage;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
-   * When provided on a `MESSAGE_HUMAN` entry, a hover-revealed "Edit" button
+   * When provided on a person's message, a hover-revealed "Edit" button
    * appears on the bubble. Clicking it invokes this callback — the session
    * chat uses it to stop the in-flight turn and pre-fill the composer with
-   * this message for editing. Ignored for non-human messages.
+   * this message for editing. Ignored for other messages.
    */
   readonly onEdit?: () => void;
   /**
-   * Renders a `MESSAGE_AI` entry as a first-class plan document
+   * Renders an agent message as a first-class plan document
    * ({@link PlanDocumentMessage}) instead of a chat bubble. Set by the thread
    * builder only on the NO-ARTIFACT fallback path: a completed Plan turn that
    * never published `plan.md` (older runs, failed upload) keeps its
    * plan inline — the message is the only copy of the plan. A turn that
    * published the artifact collapses the message into the compact plan card
-   * instead (the document lives in the panel's plan tab). Ignored for non-AI
+   * instead (the document lives in the panel's plan tab). Ignored for other
    * messages.
    */
   readonly isPlanDocument?: boolean;
   /**
    * The turn's interaction mode, stamped by the thread builder on the
-   * synthetic prompt bubble (`MESSAGE_HUMAN`). Renders the
-   * {@link InteractionModeBadge} for non-default modes (a "Plan" pill), so
-   * the transcript reads unambiguously after mode switches. Ignored for
-   * non-human messages.
+   * person's message. Renders the {@link InteractionModeBadge} for
+   * non-default modes (a "Plan" pill), so the transcript reads unambiguously
+   * after mode switches. Ignored for other messages.
    */
   readonly interactionMode?: InteractionMode;
   /**
-   * The turn's submitted attachments, stamped by the thread builder on
-   * `MESSAGE_HUMAN` bubbles from the run's `spec.attachments` (or the
-   * pending submit context). Renders as a {@link MessageAttachments} row
-   * above the prose. Ignored for non-human messages.
+   * The turn's submitted attachments, stamped by the thread builder on a
+   * person's message from the run's `spec.attachments` (or the pending
+   * submit context). Renders as a {@link MessageAttachments} row above the
+   * prose. Ignored for other messages.
    *
    * A `MessageEntry` slot override that delegates to the built-in inherits
    * attachment rendering; one that ignores this prop renders text only.
@@ -72,7 +87,7 @@ export interface MessageEntryProps {
    */
   readonly runId?: string;
   /**
-   * Extra controls for a `MESSAGE_AI` entry's quiet actions row, rendered
+   * Extra controls for an agent message's quiet actions row, rendered
    * beside copy once the message settles. The thread passes a completed
    * run's `RunScores` here on its final answer. Ignored for other
    * message types.
@@ -83,25 +98,24 @@ export interface MessageEntryProps {
 /**
  * Renders a single message in the conversation thread.
  *
- * - `MESSAGE_HUMAN` — plain text with muted background
- * - `MESSAGE_AI` — markdown-rendered via Streamdown with block-level
- *   memoization and streaming-aware incomplete-syntax healing
- * - `MESSAGE_THINKING` — collapsible thinking block with subdued styling,
+ * - `user` — a person's message: plain text with muted background
+ * - `message` — an agent message, markdown-rendered via Streamdown with
+ *   block-level memoization and streaming-aware incomplete-syntax healing
+ *   while it is still being written (`live`)
+ * - `thinking` — collapsible thinking block with subdued styling,
  *   collapsed by default showing a brief summary
- * - `MESSAGE_SYSTEM` — small muted text
- * - `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results are
- *   consumed by {@link ToolCallGroup})
+ * - `note` — a line the platform added in its own voice: small muted text
  *
- * Wrapped in `React.memo` — structural sharing guarantees that
- * unchanged messages keep the same object reference, so completed
- * messages skip re-renders entirely during streaming.
+ * Wrapped in `React.memo` — the session fold keeps an unchanged message's
+ * reference, so completed messages skip re-renders entirely during
+ * streaming.
  *
  * Purely presentational — no data fetching, no state.
  * All visual properties flow through `--stgm-*` tokens.
  *
  * @example
  * ```tsx
- * <MessageEntry message={agentMessage} />
+ * <MessageEntry message={item} />
  * ```
  */
 export const MessageEntry = memo(function MessageEntry({
@@ -115,16 +129,16 @@ export const MessageEntry = memo(function MessageEntry({
   actions,
 }: MessageEntryProps) {
   useRenderTracer("MessageEntry", {
-    messageType: message.type,
-    contentLength: message.content.length,
-    isStreaming: message.isStreaming,
+    messageType: message.kind,
+    contentLength: message.text.length,
+    isStreaming: message.kind !== "user" && message.kind !== "note" && message.live,
   });
 
-  switch (message.type) {
-    case MessageType.MESSAGE_HUMAN:
+  switch (message.kind) {
+    case "user":
       return (
         <HumanMessage
-          content={message.content}
+          content={message.text}
           className={className}
           onEdit={onEdit}
           interactionMode={interactionMode}
@@ -132,34 +146,32 @@ export const MessageEntry = memo(function MessageEntry({
           executionId={executionId}
         />
       );
-    case MessageType.MESSAGE_AI:
+    case "message":
       // A completed Plan turn's plan is a document, not a bubble. The flag is
       // only ever set on a settled message, so the streaming path is untouched.
       if (isPlanDocument) {
         return (
-          <PlanDocumentMessage content={message.content} className={className} />
+          <PlanDocumentMessage content={message.text} className={className} />
         );
       }
       return (
         <AiMessage
-          content={message.content}
-          isStreaming={message.isStreaming}
+          content={message.text}
+          isStreaming={message.live}
           className={className}
           actions={actions}
         />
       );
-    case MessageType.MESSAGE_THINKING:
+    case "thinking":
       return (
         <ThinkingMessage
-          content={message.content}
-          isStreaming={message.isStreaming}
+          content={message.text}
+          isStreaming={message.live}
           className={className}
         />
       );
-    case MessageType.MESSAGE_SYSTEM:
-      return <SystemMessage content={message.content} className={className} />;
-    default:
-      return null;
+    case "note":
+      return <SystemMessage content={message.text} className={className} />;
   }
 });
 

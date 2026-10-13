@@ -1,14 +1,10 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-
-import { MessageEntry } from "../MessageEntry";
+import { MessageEntry, type ThreadMessage } from "../MessageEntry";
 import type { MessageAttachmentView } from "../MessageAttachments";
 
 // ---------------------------------------------------------------------------
-// MessageEntry attachment rendering (stigmer/stigmer#372): the human bubble
+// MessageEntry attachment rendering (stigmer/stigmer#372): a person's bubble
 // shows the turn's submitted files — image previews and document downloads
 // when the run record exists, inert chips on the pending bubble, and
 // nothing at all when the turn had no attachments.
@@ -57,11 +53,8 @@ afterEach(() => {
   urlState = { url: null, error: null };
 });
 
-function humanMessage(content: string) {
-  const msg = create(AgentMessageSchema);
-  msg.type = MessageType.MESSAGE_HUMAN;
-  msg.content = content;
-  return msg;
+function humanMessage(text: string): ThreadMessage {
+  return { kind: "user", id: "u1", text };
 }
 
 const imageAttachment: MessageAttachmentView = {
@@ -211,10 +204,14 @@ describe("MessageEntry attachment rendering", () => {
     expect(screen.getByText("data.bin")).toBeTruthy();
   });
 
-  it("ignores attachments on non-human messages", () => {
-    const aiMsg = create(AgentMessageSchema);
-    aiMsg.type = MessageType.MESSAGE_AI;
-    aiMsg.content = "Assistant reply.";
+  it("ignores attachments on an agent's message", () => {
+    const aiMsg: ThreadMessage = {
+      kind: "message",
+      id: "m1",
+      text: "Assistant reply.",
+      live: false,
+      processedAt: "",
+    };
 
     render(
       <MessageEntry

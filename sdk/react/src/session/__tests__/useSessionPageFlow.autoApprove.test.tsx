@@ -1,6 +1,15 @@
+/**
+ * Proves useSessionPageFlow's session-scoped auto-approve: a gate's "Approve
+ * all" (a grant) arms it, follow-ups carry it, "Turn off" reverts it, the
+ * host default, the account preference and an armed live run seed it; while
+ * armed, the live turn's waiting tool uses are granted one at a time, never
+ * on a guest's, observer's, channel conversation's or participant's behalf;
+ * and the page's display runs are the conversation's runs.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolUseAnswer } from "../../run/useAnswerToolUse";
 
 // ---------------------------------------------------------------------------
 // Mocks — useSessionPageFlow composes many hooks; we stub them to isolate the
@@ -8,7 +17,7 @@ import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_p
 // "Turn off" reverts it).
 // ---------------------------------------------------------------------------
 
-const mockSubmitApproval = vi.fn<(t: string, a: ApprovalAction, c?: string) => Promise<void>>();
+const mockAnswerToolUse = vi.fn<(t: string, a: ToolUseAnswer, m?: string) => Promise<void>>();
 const mockSendFollowUp = vi.fn();
 
 /** Loosely-typed conversation stub — individual tests mutate the arming and
@@ -19,14 +28,19 @@ const mockConv = {
     metadata?: { labels?: Record<string, string> };
   },
   isLoading: false,
-  completedRuns: [] as unknown[],
-  activeStreamRun: null as {
+  runs: [] as {
+    metadata?: { id: string };
+    spec?: { autoApproveAll?: boolean; interactionMode?: InteractionMode };
+    status?: object;
+  }[],
+  activeRun: null as {
+    metadata?: { id: string };
     spec?: { autoApproveAll?: boolean };
     status?: object;
   } | null,
-  pendingApprovals: [] as { toolCallId: string }[],
+  asks: [] as { id: string }[],
   workspaceEntries: [] as unknown[],
-  submitApproval: mockSubmitApproval,
+  answerToolUse: mockAnswerToolUse,
   sendFollowUp: mockSendFollowUp,
 };
 vi.mock("../useSessionConversation", () => ({
@@ -81,7 +95,7 @@ function hostDefaultWrapper(autoApproveAll: boolean) {
 
 describe("useSessionPageFlow — gate-driven auto-approve", () => {
   beforeEach(() => {
-    mockSubmitApproval.mockResolvedValue(undefined);
+    mockAnswerToolUse.mockResolvedValue(undefined);
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -92,33 +106,35 @@ describe("useSessionPageFlow — gate-driven auto-approve", () => {
     expect(result.current.autoApproveAll).toBe(false);
   });
 
-  it("flips autoApproveAll when the gate decision is APPROVE_ALL", async () => {
+  it("flips autoApproveAll when the gate's answer is a grant", async () => {
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     await act(async () => {
-      await result.current.submitApproval("tc1", ApprovalAction.APPROVE_ALL);
+      await result.current.answerToolUse("tc1", "grant");
     });
 
     expect(result.current.autoApproveAll).toBe(true);
     // Still delegates to the underlying conversation submit.
-    expect(mockSubmitApproval).toHaveBeenCalledWith("tc1", ApprovalAction.APPROVE_ALL, undefined);
+    expect(mockAnswerToolUse).toHaveBeenCalledWith("tc1", "grant", undefined);
   });
 
-  it("does NOT flip autoApproveAll for a plain APPROVE", async () => {
+  it("does NOT flip autoApproveAll for a plain allow or a deny", async () => {
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     await act(async () => {
-      await result.current.submitApproval("tc1", ApprovalAction.APPROVE);
+      await result.current.answerToolUse("tc1", "allow");
+      await result.current.answerToolUse("tc2", "deny", "not now");
     });
 
     expect(result.current.autoApproveAll).toBe(false);
+    expect(mockAnswerToolUse).toHaveBeenLastCalledWith("tc2", "deny", "not now");
   });
 
   it("carries autoApproveAll into follow-up submissions once enabled", async () => {
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     await act(async () => {
-      await result.current.submitApproval("tc1", ApprovalAction.APPROVE_ALL);
+      await result.current.answerToolUse("tc1", "grant");
     });
     await act(async () => {
       await result.current.handleSubmit("next message");
@@ -129,7 +145,7 @@ describe("useSessionPageFlow — gate-driven auto-approve", () => {
     expect(followUpOpts.autoApproveAll).toBe(true);
   });
 
-  it("does not carry autoApproveAll before any APPROVE_ALL decision", async () => {
+  it("does not carry autoApproveAll before any grant", async () => {
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     await act(async () => {
@@ -144,7 +160,7 @@ describe("useSessionPageFlow — gate-driven auto-approve", () => {
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     await act(async () => {
-      await result.current.submitApproval("tc1", ApprovalAction.APPROVE_ALL);
+      await result.current.answerToolUse("tc1", "grant");
     });
     expect(result.current.autoApproveAll).toBe(true);
 
@@ -163,7 +179,7 @@ describe("useSessionPageFlow — gate-driven auto-approve", () => {
 
 describe("useSessionPageFlow — host-set approval default (#302)", () => {
   beforeEach(() => {
-    mockSubmitApproval.mockResolvedValue(undefined);
+    mockAnswerToolUse.mockResolvedValue(undefined);
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -224,7 +240,7 @@ describe("useSessionPageFlow — host-set approval default (#302)", () => {
 
 describe("useSessionPageFlow — account preference seed (default_auto_approve)", () => {
   beforeEach(() => {
-    mockSubmitApproval.mockResolvedValue(undefined);
+    mockAnswerToolUse.mockResolvedValue(undefined);
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -311,19 +327,19 @@ describe("useSessionPageFlow — account preference seed (default_auto_approve)"
 
 describe("useSessionPageFlow — arming derived from the in-flight run (#816)", () => {
   afterEach(() => {
-    mockConv.activeStreamRun = null;
-    mockConv.completedRuns = [];
+    mockConv.activeRun = null;
+    mockConv.runs = [];
     vi.clearAllMocks();
   });
 
   it("reflects an active execution armed at create (launcher handoff)", () => {
-    mockConv.activeStreamRun = { spec: { autoApproveAll: true }, status: {} };
+    mockConv.activeRun = { spec: { autoApproveAll: true }, status: {} };
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
     expect(result.current.autoApproveAll).toBe(true);
   });
 
   it("the user's explicit OFF beats the armed run for follow-up carry", async () => {
-    mockConv.activeStreamRun = { spec: { autoApproveAll: true }, status: {} };
+    mockConv.activeRun = { spec: { autoApproveAll: true }, status: {} };
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
 
     act(() => {
@@ -342,7 +358,7 @@ describe("useSessionPageFlow — arming derived from the in-flight run (#816)", 
     // A reloaded page whose history contains an armed run must come up at
     // the host default — deriving from history would make the consent
     // silently survive reloads.
-    mockConv.completedRuns = [{ spec: { autoApproveAll: true }, status: {} }];
+    mockConv.runs = [{ spec: { autoApproveAll: true }, status: {} }];
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
     expect(result.current.autoApproveAll).toBe(false);
   });
@@ -350,11 +366,11 @@ describe("useSessionPageFlow — arming derived from the in-flight run (#816)", 
 
 describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)", () => {
   beforeEach(() => {
-    mockSubmitApproval.mockResolvedValue(undefined);
+    mockAnswerToolUse.mockResolvedValue(undefined);
   });
   afterEach(() => {
-    mockConv.pendingApprovals = [];
-    mockConv.activeStreamRun = null;
+    mockConv.asks = [];
+    mockConv.activeRun = null;
     mockConv.session = { spec: {} };
     vi.clearAllMocks();
   });
@@ -364,27 +380,27 @@ describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)"
       wrapper: hostDefaultWrapper(true),
     });
 
-    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    mockConv.asks = [{ id: "tc1" }];
     await act(async () => rerender());
 
-    expect(mockSubmitApproval).toHaveBeenCalledExactlyOnceWith(
+    expect(mockAnswerToolUse).toHaveBeenCalledExactlyOnceWith(
       "tc1",
-      ApprovalAction.APPROVE_ALL,
+      "grant",
     );
   });
 
   it("releases a gate already waiting when the toggle flips ON", async () => {
-    mockConv.pendingApprovals = [{ toolCallId: "tc9" }];
+    mockConv.asks = [{ id: "tc9" }];
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
-    expect(mockSubmitApproval).not.toHaveBeenCalled();
+    expect(mockAnswerToolUse).not.toHaveBeenCalled();
 
     await act(async () => {
       result.current.setAutoApproveAll(true);
     });
 
-    expect(mockSubmitApproval).toHaveBeenCalledExactlyOnceWith(
+    expect(mockAnswerToolUse).toHaveBeenCalledExactlyOnceWith(
       "tc9",
-      ApprovalAction.APPROVE_ALL,
+      "grant",
     );
   });
 
@@ -393,71 +409,88 @@ describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)"
       wrapper: hostDefaultWrapper(true),
     });
 
-    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    mockConv.asks = [{ id: "tc1" }];
     await act(async () => rerender());
     await act(async () => rerender());
 
-    expect(mockSubmitApproval).toHaveBeenCalledTimes(1);
+    expect(mockAnswerToolUse).toHaveBeenCalledTimes(1);
   });
 
-  it("covers a LATER gate of a different class (lease scope contract)", async () => {
-    // A gate-time APPROVE_ALL grants a class-scoped lease, so a second gate
-    // of another class still parks — the responder must answer it too.
+  it("grants one waiting call at a time, then the next once the first is settled", async () => {
+    // A grant covers every waiting call of its class; one of another class
+    // stays in the list and gets its own grant when the list changes.
     const { rerender } = renderHook(() => useSessionPageFlow(OPTS), {
       wrapper: hostDefaultWrapper(true),
     });
 
-    mockConv.pendingApprovals = [{ toolCallId: "tc-shell" }];
+    mockConv.asks = [{ id: "tc-shell" }, { id: "tc-write" }];
     await act(async () => rerender());
-    mockConv.pendingApprovals = [{ toolCallId: "tc-write" }];
+    expect(mockAnswerToolUse).toHaveBeenCalledExactlyOnceWith("tc-shell", "grant");
+
+    mockConv.asks = [{ id: "tc-write" }];
+    await act(async () => rerender());
+    expect(mockAnswerToolUse).toHaveBeenCalledTimes(2);
+    expect(mockAnswerToolUse).toHaveBeenLastCalledWith("tc-write", "grant");
+  });
+
+  it("covers a LATER gate of a different class (grant scope contract)", async () => {
+    // A grant is class-scoped, so a second gate of another class still
+    // parks the turn — the responder must answer it too.
+    const { rerender } = renderHook(() => useSessionPageFlow(OPTS), {
+      wrapper: hostDefaultWrapper(true),
+    });
+
+    mockConv.asks = [{ id: "tc-shell" }];
+    await act(async () => rerender());
+    mockConv.asks = [{ id: "tc-write" }];
     await act(async () => rerender());
 
-    expect(mockSubmitApproval).toHaveBeenCalledTimes(2);
-    expect(mockSubmitApproval).toHaveBeenLastCalledWith(
+    expect(mockAnswerToolUse).toHaveBeenCalledTimes(2);
+    expect(mockAnswerToolUse).toHaveBeenLastCalledWith(
       "tc-write",
-      ApprovalAction.APPROVE_ALL,
+      "grant",
     );
   });
 
   it("does not retry a failed submission (the card stays for manual action)", async () => {
-    mockSubmitApproval.mockRejectedValue(new Error("boom"));
+    mockAnswerToolUse.mockRejectedValue(new Error("boom"));
     const { rerender } = renderHook(() => useSessionPageFlow(OPTS), {
       wrapper: hostDefaultWrapper(true),
     });
 
-    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    mockConv.asks = [{ id: "tc1" }];
     await act(async () => rerender());
     await act(async () => rerender());
 
-    expect(mockSubmitApproval).toHaveBeenCalledTimes(1);
+    expect(mockAnswerToolUse).toHaveBeenCalledTimes(1);
   });
 
   it("stays inert while OFF", async () => {
     const { rerender } = renderHook(() => useSessionPageFlow(OPTS));
 
-    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    mockConv.asks = [{ id: "tc1" }];
     await act(async () => rerender());
 
-    expect(mockSubmitApproval).not.toHaveBeenCalled();
+    expect(mockAnswerToolUse).not.toHaveBeenCalled();
   });
 
   it("never fires for a guest, even when the run itself is armed", async () => {
-    mockConv.activeStreamRun = { spec: { autoApproveAll: true }, status: {} };
-    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    mockConv.activeRun = { spec: { autoApproveAll: true }, status: {} };
+    mockConv.asks = [{ id: "tc1" }];
     renderHook(() => useSessionPageFlow({ ...OPTS, audience: "guest" }), {
       wrapper: hostDefaultWrapper(true),
     });
 
-    expect(mockSubmitApproval).not.toHaveBeenCalled();
+    expect(mockAnswerToolUse).not.toHaveBeenCalled();
   });
 
   it("never fires for an observer", async () => {
-    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    mockConv.asks = [{ id: "tc1" }];
     renderHook(() => useSessionPageFlow({ ...OPTS, audience: "observer" }), {
       wrapper: hostDefaultWrapper(true),
     });
 
-    expect(mockSubmitApproval).not.toHaveBeenCalled();
+    expect(mockAnswerToolUse).not.toHaveBeenCalled();
   });
 
   it("never fires for a channel-origin session (read-only by construction)", async () => {
@@ -465,25 +498,25 @@ describe("useSessionPageFlow — armed responder (#816, the walk-away scenario)"
       spec: {},
       metadata: { labels: { "stigmer.ai/channel-id": "ch_1" } },
     };
-    mockConv.pendingApprovals = [{ toolCallId: "tc1" }];
+    mockConv.asks = [{ id: "tc1" }];
     renderHook(() => useSessionPageFlow(OPTS), {
       wrapper: hostDefaultWrapper(true),
     });
 
-    expect(mockSubmitApproval).not.toHaveBeenCalled();
+    expect(mockAnswerToolUse).not.toHaveBeenCalled();
   });
 });
 
 describe("useSessionPageFlow — a participant's follow-up (canDecide false)", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    mockConv.activeStreamRun = null;
+    mockConv.activeRun = null;
   });
 
   it("sends the message alone: no settings rewrite, and never auto-approve, even when armed", async () => {
     // Armed three ways at once: the host default, the in-flight run, and
     // the gate's "approve all". None reaches a participant's turn.
-    mockConv.activeStreamRun = { spec: { autoApproveAll: true } };
+    mockConv.activeRun = { spec: { autoApproveAll: true } };
     const { result } = renderHook(
       () => useSessionPageFlow({ ...OPTS, canDecide: false }),
       { wrapper: hostDefaultWrapper(true) },
@@ -505,11 +538,43 @@ describe("useSessionPageFlow — a participant's follow-up (canDecide false)", (
   });
 
   it("never releases a gate on the owners' behalf while armed", () => {
-    mockConv.activeStreamRun = { spec: { autoApproveAll: true } };
-    mockConv.pendingApprovals = [{ toolCallId: "tc_participant" }];
+    mockConv.activeRun = { spec: { autoApproveAll: true } };
+    mockConv.asks = [{ id: "tc_participant" }];
     renderHook(() => useSessionPageFlow({ ...OPTS, canDecide: false }));
-    expect(mockSubmitApproval).not.toHaveBeenCalled();
-    mockConv.pendingApprovals = [];
+    expect(mockAnswerToolUse).not.toHaveBeenCalled();
+    mockConv.asks = [];
   });
 });
 
+
+describe("useSessionPageFlow — the page's runs", () => {
+  afterEach(() => {
+    mockConv.activeRun = null;
+    mockConv.runs = [];
+  });
+
+  it("shows the conversation's runs, the live run first for display, else the newest", () => {
+    const older = { metadata: { id: "run_a" } };
+    const newer = { metadata: { id: "run_b" } };
+    mockConv.runs = [older, newer];
+    const { result, rerender } = renderHook(() => useSessionPageFlow(OPTS));
+    expect(result.current.allRuns).toBe(mockConv.runs);
+    expect(result.current.displayRun).toBe(newer);
+
+    const live = { metadata: { id: "run_c" } };
+    mockConv.activeRun = live;
+    rerender();
+    expect(result.current.displayRun).toBe(live);
+  });
+
+  it("reflects the newest run's interaction mode in the composer", () => {
+    mockConv.runs = [{ metadata: { id: "run_a" }, spec: { interactionMode: InteractionMode.PLAN } }];
+    const { result } = renderHook(() => useSessionPageFlow(OPTS));
+    expect(result.current.interactionMode[0]).toBe("plan");
+  });
+
+  it("has no display run for a conversation with none", () => {
+    const { result } = renderHook(() => useSessionPageFlow(OPTS));
+    expect(result.current.displayRun).toBeNull();
+  });
+});

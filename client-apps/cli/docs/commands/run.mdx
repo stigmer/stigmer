@@ -111,13 +111,16 @@ stigmer run my-agent --attach ./image.png --attach ./spec.pdf
 | Flag | Behavior |
 |------|----------|
 | _(default)_ | Interactive terminal UI powered by [`@stigmer/ink`](/docs/sdk/ink/cli-integration) |
-| `--json` | Newline-delimited JSON events for scripting and CI |
+| `--json` | One JSON line per session event (Claude Managed Agents events) for scripting and CI |
 | `--detach` | Start the run and return immediately |
 
-Use `--json` when piping output to other tools:
+Use `--json` when piping output to other tools. Each line is one event of the
+session's log, in Claude Managed Agents' JSON (`type`, `id`, `processed_at`
+and the event's own fields); Stigmer's own events keep their `stigmer.*` type:
 
 ```bash
-stigmer run my-agent --json -m "Process data" | jq '.payload.content'
+stigmer run my-agent --json -m "Process data" \
+  | jq -r 'select(.type == "agent.message") | .content[].text'
 ```
 
 Use `--detach` for a fire-and-forget run. The CLI prints the session ID
@@ -134,7 +137,7 @@ stigmer run my-agent --detach -m "Generate weekly report"
 | `--model` | Override the LLM model (e.g., `claude-sonnet-4-6`) |
 | `--harness` | Choose the execution engine for the new session (`native` or `cursor`) |
 | `--auto-approve` | Approve all tool executions without prompting (bypasses approval policies) |
-| `--approve-default` | Auto-resolve approval prompts in non-interactive mode (`approve`, `skip`, `reject`) |
+| `--approve-default` | Auto-resolve approval prompts in non-interactive mode (`approve`, `skip`, `reject`, `approve-all`); unset skips each one |
 | `--verbose`, `-v` | Show run IDs and phase transitions in the TUI transcript |
 
 ```bash
@@ -195,11 +198,12 @@ The agent receives the message and streams its response to the terminal.
 stigmer run my-agent --json -m "Run integration tests" \
   --vault ci-keys \
   --auto-approve \
-  | jq -r 'select(.type == "message") | .payload.content'
+  | jq -r 'select(.type == "agent.message") | .content[].text'
 ```
 
-Stream events as JSON for programmatic consumption. Each line is a complete
-JSON object. Combine with `--auto-approve` to run without human interaction.
+Stream the session's events as JSON for programmatic consumption. Each line
+is one complete event. Combine with `--auto-approve` to run without human
+interaction.
 
 ### Git repository review
 

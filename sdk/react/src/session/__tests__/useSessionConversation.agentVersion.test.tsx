@@ -9,6 +9,7 @@ import {
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useSessionConversation } from "../useSessionConversation";
+import { sessionEventStream } from "./session-event-stream";
 
 // ---------------------------------------------------------------------------
 // The session writes that touch the agent version a conversation runs.
@@ -39,11 +40,12 @@ let executionCreate: ReturnType<typeof vi.fn>;
 
 function client(): Stigmer {
   return {
-    session: { get: sessionGet, update: sessionUpdate },
+    session: { get: sessionGet, update: sessionUpdate, streamEvents: sessionEventStream().streamEvents },
     run: {
       listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+      // The sent turn's run, read while it is live; never answered here.
+      get: vi.fn(() => new Promise(() => {})),
       create: executionCreate,
-      subscribe: vi.fn(),
     },
     identityAccount: { whoAmI: vi.fn().mockRejectedValue(new Error("none")) },
   } as unknown as Stigmer;

@@ -1,56 +1,21 @@
+// Pins ToolCallItem over the session fold's tool uses: the four disclosure
+// modes (summary, preview, tail, sub-agent), the density tier, the status
+// vocabulary read from `ToolUse.state`, duration chips from the use and
+// result times, the inline decision for a waiting call (ApprovalContext), the
+// Approved/Denied answer badge, and the file-review badge a file-edit row
+// reads from its turn's review by path.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  ToolCallSchema,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  PendingApprovalSchema,
-  type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import {
-  CapturedFileChangeSchema,
-  FileChangeSetSchema,
-  FileDecisionSchema,
-  type FileChangeSet,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  ApprovalAction,
-  FileChangeKind,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionScope,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewSet, ToolUse } from "@stigmer/sdk";
 import { ToolCallItem } from "../ToolCallItem";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
 import { FileReviewContext } from "../FileReviewContext";
+import { reviewFile, reviewSet, thread, toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
 
-function makeToolCall(opts: {
-  id?: string;
-  name: string;
-  args?: Record<string, unknown>;
-  result?: string;
-  mcpServerSlug?: string;
-  status?: ToolCallStatus;
-  fileChangeSetId?: string;
-  startedAt?: string;
-  completedAt?: string;
-}): ToolCall {
-  return create(ToolCallSchema, {
-    id: opts.id ?? opts.name,
-    name: opts.name,
-    args: (opts.args ?? {}) as JsonObject,
-    result: opts.result ?? "",
-    mcpServerSlug: opts.mcpServerSlug ?? "",
-    status: opts.status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
-    fileChangeSetId: opts.fileChangeSetId ?? "",
-    startedAt: opts.startedAt ?? "",
-    completedAt: opts.completedAt ?? "",
-  });
+function answering(onAnswer: ApprovalContextValue["onAnswer"] = () => {}, errors: ReadonlyMap<string, Error> = new Map()): ApprovalContextValue {
+  return { onAnswer, submittingIds: new Set(), errorsByToolUseId: errors };
 }
 
 // The card-level disclosure (header chevron) lives ONLY on summary / sub-agent
@@ -82,7 +47,7 @@ describe("ToolCallItem disclosure", () => {
     // story, so its body stays hidden behind the header chevron.
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({ name: "delete_file", args: { path: "/x.ts" } })}
+        toolUse={toolUse({ name: "delete_file", input: { path: "/x.ts" } })}
       />,
     );
     expect(hasHeaderChevron(container)).toBe(true);
@@ -97,11 +62,11 @@ describe("ToolCallItem disclosure", () => {
     // composition recomputes autoOpen from the new ToolCall on re-render.
     const { container, rerender } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           id: "tc-del",
           name: "delete_file",
-          args: { path: "/x.ts" },
-          status: ToolCallStatus.TOOL_CALL_RUNNING,
+          input: { path: "/x.ts" },
+          state: "running",
         })}
       />,
     );
@@ -109,11 +74,10 @@ describe("ToolCallItem disclosure", () => {
 
     rerender(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           id: "tc-del",
           name: "delete_file",
-          args: { path: "/x.ts" },
-          status: ToolCallStatus.TOOL_CALL_COMPLETED,
+          input: { path: "/x.ts" },
         })}
       />,
     );
@@ -129,11 +93,11 @@ describe("ToolCallItem disclosure", () => {
     // force-opened; the settled row must read as finished-by-interruption.
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           id: "tc-int",
           name: "delete_file",
-          args: { path: "/x.ts" },
-          status: ToolCallStatus.TOOL_CALL_INTERRUPTED,
+          input: { path: "/x.ts" },
+          state: "stopped",
         })}
       />,
     );
@@ -147,11 +111,11 @@ describe("ToolCallItem disclosure", () => {
     // arrives via a status update and the row must release its auto-open.
     const { container, rerender } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           id: "tc-int",
           name: "delete_file",
-          args: { path: "/x.ts" },
-          status: ToolCallStatus.TOOL_CALL_RUNNING,
+          input: { path: "/x.ts" },
+          state: "running",
         })}
       />,
     );
@@ -160,11 +124,11 @@ describe("ToolCallItem disclosure", () => {
 
     rerender(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           id: "tc-int",
           name: "delete_file",
-          args: { path: "/x.ts" },
-          status: ToolCallStatus.TOOL_CALL_INTERRUPTED,
+          input: { path: "/x.ts" },
+          state: "stopped",
         })}
       />,
     );
@@ -180,9 +144,9 @@ describe("ToolCallItem disclosure", () => {
     // gated (jsdom computes no layout), so it is asserted in e2e, not here.
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "StrReplace",
-          args: { path: "/x.ts" },
+          input: { path: "/x.ts" },
           result:
             '{"status":"success","value":{"linesAdded":1,"linesRemoved":1,"diffString":"@@ -1 +1 @@\\n-a\\n+b"}}',
         })}
@@ -200,9 +164,9 @@ describe("ToolCallItem disclosure", () => {
     // reduced contrast — with the header chevron as the expand control.
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Shell",
-          args: { command: "echo hello" },
+          input: { command: "echo hello" },
           result: "hello",
         })}
       />,
@@ -223,9 +187,9 @@ describe("ToolCallItem disclosure", () => {
   it("renders a settled MCP tool's result inline with no chevron", () => {
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "send_message",
-          mcpServerSlug: "acme/slack",
+          mcpServerName: "acme/slack",
           result: '{"ok":true}',
         })}
       />,
@@ -240,9 +204,9 @@ describe("ToolCallItem disclosure", () => {
     // leak its command or "exit N" into the header row.
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Shell",
-          args: { command: "ls /secret/abs/path" },
+          input: { command: "ls /secret/abs/path" },
           result: "denied\n[Command failed with exit code 2]",
         })}
       />,
@@ -262,11 +226,11 @@ describe("ToolCallItem disclosure", () => {
     // a user may collapse a noisy long-running command, and their choice wins.
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Shell",
-          args: { command: "echo hi" },
+          input: { command: "echo hi" },
           result: "hi",
-          status: ToolCallStatus.TOOL_CALL_RUNNING,
+          state: "running",
         })}
       />,
     );
@@ -280,24 +244,23 @@ describe("ToolCallItem disclosure", () => {
   // --- Tail settle lifecycle (issue #275) ------------------------------------
 
   it("collapses a running shell to the dimmed tail the moment it succeeds", () => {
-    const running = makeToolCall({
+    const running = toolUse({
       id: "tc-sh",
       name: "Shell",
-      args: { command: "make build" },
+      input: { command: "make build" },
       result: "compiling…",
-      status: ToolCallStatus.TOOL_CALL_RUNNING,
+      state: "running",
     });
-    const { container, rerender } = render(<ToolCallItem toolCall={running} />);
+    const { container, rerender } = render(<ToolCallItem toolUse={running} />);
     expect(isExpanded(container)).toBe(true);
 
     rerender(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           id: "tc-sh",
           name: "Shell",
-          args: { command: "make build" },
+          input: { command: "make build" },
           result: "compiling…\nBUILD OK",
-          status: ToolCallStatus.TOOL_CALL_COMPLETED,
         })}
       />,
     );
@@ -314,9 +277,9 @@ describe("ToolCallItem disclosure", () => {
     // string is the failure signal (status stays COMPLETED on the wire).
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Shell",
-          args: { command: "make build" },
+          input: { command: "make build" },
           result: "error: no rule\n[Command failed with exit code 2]",
         })}
       />,
@@ -333,9 +296,9 @@ describe("ToolCallItem disclosure", () => {
     const output = ["one", "two", "three", "four", "five"].join("\n");
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Shell",
-          args: { command: "seq 5" },
+          input: { command: "seq 5" },
           result: output,
         })}
       />,
@@ -348,13 +311,13 @@ describe("ToolCallItem disclosure", () => {
   });
 
   it("expands a collapsed tail to the full session on click, and the choice sticks", () => {
-    const settled = makeToolCall({
+    const settled = toolUse({
       id: "tc-sh2",
       name: "Shell",
-      args: { command: "echo hi" },
+      input: { command: "echo hi" },
       result: "hi",
     });
-    const { container, rerender } = render(<ToolCallItem toolCall={settled} />);
+    const { container, rerender } = render(<ToolCallItem toolUse={settled} />);
     expect(isExpanded(container)).toBe(false);
 
     fireEvent.click(rowHeaderToggle(container)!);
@@ -365,7 +328,7 @@ describe("ToolCallItem disclosure", () => {
 
     // A stream frame re-rendering the same settled call never recollapses a
     // row the user opened (useAutoDisclosure: the manual toggle wins).
-    rerender(<ToolCallItem toolCall={settled} />);
+    rerender(<ToolCallItem toolUse={settled} />);
     expect(isExpanded(container)).toBe(true);
   });
 
@@ -374,7 +337,7 @@ describe("ToolCallItem disclosure", () => {
     // `empty` (no output) must stay a clean one-line row, never an empty padded
     // box. (Shell never hits this — it always carries its command line.)
     const { container } = render(
-      <ToolCallItem toolCall={makeToolCall({ name: "some_unknown_tool", result: "" })} />,
+      <ToolCallItem toolUse={toolUse({ name: "some_unknown_tool", result: "" })} />,
     );
     expect(hasHeaderChevron(container)).toBe(false);
     expect(previewBody(container)).toBeNull();
@@ -387,9 +350,9 @@ describe("ToolCallItem disclosure", () => {
     // none (suppressed via showStats={false}).
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "StrReplace",
-          args: { path: "/x.ts" },
+          input: { path: "/x.ts" },
           result:
             '{"status":"success","value":{"linesAdded":3,"linesRemoved":0,"diffString":"@@ -0,0 +1,3 @@\\n+a\\n+b\\n+c"}}',
         })}
@@ -401,29 +364,17 @@ describe("ToolCallItem disclosure", () => {
     expect(container.querySelector("table")).not.toBeNull();
   });
 
-  // --- Approvals -------------------------------------------------------------
+  // --- Waiting calls (asks) ---------------------------------------------------
 
-  it("foregrounds a gated summary tool behind its chevron with inline actions", () => {
-    const tc = makeToolCall({
+  it("foregrounds a waiting summary tool behind its chevron with inline actions", () => {
+    const tu = toolUse({
       id: "tc-gated",
       name: "delete_file",
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      ask: { argsPreview: '{"path":"/tmp/x"}' },
     });
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-gated",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-    const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["tc-gated", approval]]),
-      onSubmit: () => {},
-      submittingIds: new Set(),
-      errorsByToolCallId: new Map(),
-    };
-
     const { container } = render(
-      <ApprovalContext.Provider value={ctx}>
-        <ToolCallItem toolCall={tc} />
+      <ApprovalContext.Provider value={answering()}>
+        <ToolCallItem toolUse={tu} />
       </ApprovalContext.Provider>,
     );
 
@@ -433,30 +384,26 @@ describe("ToolCallItem disclosure", () => {
     expect(screen.getByLabelText("Approve all file deletions")).toBeTruthy();
   });
 
-  it("renders a gated preview tool's actions inline with no chevron", () => {
-    // A gated shell (a preview category) shows its decision actions in the
+  it("shows no decision UI on a waiting call when no answer handler is wired", () => {
+    const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: {} });
+    const { container } = render(<ToolCallItem toolUse={tu} />);
+    expect(screen.queryByLabelText("Approve")).toBeNull();
+    // The waiting call still reads as waiting: the clock, in the warning tone.
+    expect(container.querySelector(".stg\\:text-warning")).not.toBeNull();
+  });
+
+  it("renders a waiting preview tool's actions inline with no chevron", () => {
+    // A waiting shell (a preview category) shows its decision actions in the
     // always-visible body — no header chevron, since there is nothing to reveal.
-    const tc = makeToolCall({
+    const tu = toolUse({
       id: "tc-shell-gated",
       name: "Shell",
-      args: { command: "rm -rf /tmp/x" },
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      input: { command: "rm -rf /tmp/x" },
+      ask: { argsPreview: '{"command":"rm -rf /tmp/x"}' },
     });
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-shell-gated",
-      toolName: "Shell",
-      argsPreview: '{"command":"rm -rf /tmp/x"}',
-    });
-    const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["tc-shell-gated", approval]]),
-      onSubmit: () => {},
-      submittingIds: new Set(),
-      errorsByToolCallId: new Map(),
-    };
-
     const { container } = render(
-      <ApprovalContext.Provider value={ctx}>
-        <ToolCallItem toolCall={tc} />
+      <ApprovalContext.Provider value={answering()}>
+        <ToolCallItem toolUse={tu} />
       </ApprovalContext.Provider>,
     );
 
@@ -465,27 +412,11 @@ describe("ToolCallItem disclosure", () => {
     expect(screen.getByLabelText("Approve")).toBeTruthy();
   });
 
-  it("gives a pending gate card a restrained destructive accent (no amber fill)", () => {
-    const tc = makeToolCall({
-      id: "tc-gated",
-      name: "delete_file",
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    });
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-gated",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-    const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["tc-gated", approval]]),
-      onSubmit: () => {},
-      submittingIds: new Set(),
-      errorsByToolCallId: new Map(),
-    };
-
+  it("gives a waiting gate card a restrained destructive accent (no amber fill)", () => {
+    const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: { argsPreview: '{"path":"/tmp/x"}' } });
     const { container } = render(
-      <ApprovalContext.Provider value={ctx}>
-        <ToolCallItem toolCall={tc} />
+      <ApprovalContext.Provider value={answering()}>
+        <ToolCallItem toolUse={tu} />
       </ApprovalContext.Provider>,
     );
 
@@ -494,33 +425,19 @@ describe("ToolCallItem disclosure", () => {
     expect(row.className).not.toContain("stg:bg-warning");
   });
 
-  it("shows a gated write's whole proposed content from the row's args, never the preview's elision marker (stigmer#1107)", () => {
-    // The row holds the authoritative `args`; the approval's `argsPreview` is
-    // the runner's sanitized summary and cannot carry a file of any real size
-    // (an older runner wrote `[N chars]`; the current one leaves the field
-    // out). The inline gate must read the content from the row.
+  it("shows a waiting write's whole proposed content from the call's input, never the preview's elision marker (stigmer#1107)", () => {
+    // The tool use holds the whole input; the ask's `argsPreview` is the
+    // runner's sanitized summary and cannot carry a file of any real size.
     const big = Array.from({ length: 30 }, (_, i) => `gate line ${i + 1}`).join("\n") + "\n";
-    const tc = makeToolCall({
+    const tu = toolUse({
       id: "tc-big-write",
       name: "write_file",
-      args: { file_path: "/tmp/e2e-big-gate.txt", content: big },
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      input: { file_path: "/tmp/e2e-big-gate.txt", content: big },
+      ask: { argsPreview: '{"file_path":"/tmp/e2e-big-gate.txt","content":"[381 chars]"}' },
     });
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-big-write",
-      toolName: "write_file",
-      argsPreview: '{"file_path":"/tmp/e2e-big-gate.txt","content":"[381 chars]"}',
-    });
-    const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["tc-big-write", approval]]),
-      onSubmit: () => {},
-      submittingIds: new Set(),
-      errorsByToolCallId: new Map(),
-    };
-
     const { container } = render(
-      <ApprovalContext.Provider value={ctx}>
-        <ToolCallItem toolCall={tc} />
+      <ApprovalContext.Provider value={answering()}>
+        <ToolCallItem toolUse={tu} />
       </ApprovalContext.Provider>,
     );
 
@@ -532,83 +449,116 @@ describe("ToolCallItem disclosure", () => {
     expect(screen.getByLabelText("Approve")).toBeTruthy();
   });
 
-  it("routes an inline APPROVE_ALL decision with the gated tool's id", () => {
-    const tc = makeToolCall({
-      id: "tc-gated",
-      name: "delete_file",
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    });
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-gated",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-    const onSubmit = vi.fn();
-    const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["tc-gated", approval]]),
-      onSubmit,
-      submittingIds: new Set(),
-      errorsByToolCallId: new Map(),
-    };
-
+  it("routes an inline grant with the waiting tool use's id", () => {
+    const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: { argsPreview: '{"path":"/tmp/x"}' } });
+    const onAnswer = vi.fn();
     render(
-      <ApprovalContext.Provider value={ctx}>
-        <ToolCallItem toolCall={tc} />
+      <ApprovalContext.Provider value={answering(onAnswer)}>
+        <ToolCallItem toolUse={tu} />
       </ApprovalContext.Provider>,
     );
 
     fireEvent.click(screen.getByLabelText("Approve all file deletions"));
-    expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(onSubmit).toHaveBeenCalledWith(
-      "tc-gated",
-      ApprovalAction.APPROVE_ALL,
-      undefined,
-    );
+    expect(onAnswer).toHaveBeenCalledTimes(1);
+    expect(onAnswer).toHaveBeenCalledWith("tc-gated", "grant", undefined);
   });
 
-  it("surfaces a keyed approval error in-card on the gated row (the primary route)", () => {
-    const tc = makeToolCall({
-      id: "tc-gated",
-      name: "delete_file",
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    });
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-gated",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-    const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["tc-gated", approval]]),
-      onSubmit: () => {},
-      submittingIds: new Set(),
-      // The error for THIS gate, keyed by its tool call id.
-      errorsByToolCallId: new Map([["tc-gated", new Error("gate already resolved")]]),
-    };
-
+  it("surfaces a keyed answer error in-card on the waiting row (the primary route)", () => {
+    const tu = toolUse({ id: "tc-gated", name: "delete_file", ask: { argsPreview: '{"path":"/tmp/x"}' } });
     const { container } = render(
-      <ApprovalContext.Provider value={ctx}>
-        <ToolCallItem toolCall={tc} />
+      <ApprovalContext.Provider
+        value={answering(() => {}, new Map([["tc-gated", new Error("gate already resolved")]]))}
+      >
+        <ToolCallItem toolUse={tu} />
       </ApprovalContext.Provider>,
     );
 
-    const alert = container.querySelector(
-      '[data-cursor-target="approval-error"]',
-    );
+    const alert = container.querySelector('[data-cursor-target="approval-error"]');
     expect(alert).toBeTruthy();
     expect(alert!.textContent).toContain("gate already resolved");
+  });
+
+  // --- How a person answered -------------------------------------------------
+
+  function answerBadge(container: HTMLElement): string | null {
+    const label = [...container.querySelectorAll("span")].find(
+      (el) => el.textContent === "Approved" || el.textContent === "Denied",
+    );
+    return label?.textContent ?? null;
+  }
+
+  it("badges an asked call Approved once allowed, or once a grant was given on it", () => {
+    const allowed = render(
+      <ToolCallItem
+        toolUse={toolUse({ name: "delete_file", ask: {}, confirmation: "allow", result: "ok" })}
+      />,
+    );
+    expect(answerBadge(allowed.container)).toBe("Approved");
+    cleanup();
+
+    const granted = render(
+      <ToolCallItem toolUse={toolUse({ name: "delete_file", ask: {}, grant: {}, result: "ok" })} />,
+    );
+    expect(answerBadge(granted.container)).toBe("Approved");
+  });
+
+  it("badges a denied call Denied and settles it quietly — no status icon", () => {
+    const { container } = render(
+      <ToolCallItem toolUse={toolUse({ name: "delete_file", ask: {}, confirmation: "deny" })} />,
+    );
+    expect(answerBadge(container)).toBe("Denied");
+    expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
+    expect(container.querySelector(".stg\\:text-success")).toBeNull();
+  });
+
+  it("shows no answer badge on a call that never asked, or still waits", () => {
+    const plain = render(<ToolCallItem toolUse={toolUse({ name: "delete_file", result: "ok" })} />);
+    expect(answerBadge(plain.container)).toBeNull();
+    cleanup();
+
+    const waiting = render(<ToolCallItem toolUse={toolUse({ name: "delete_file", ask: {} })} />);
+    expect(answerBadge(waiting.container)).toBeNull();
+  });
+
+  // --- Sub-agent rows --------------------------------------------------------
+
+  it("titles a task row with what it asked its sub-agent, and nests the thread in its body", () => {
+    const tu = toolUse({
+      name: "task",
+      input: { description: "Survey the docs" },
+      thread: thread({ agentName: "researcher", input: "Find every page", state: "completed" }),
+      result: "done",
+    });
+    const { container } = render(<ToolCallItem toolUse={tu} />);
+    expect(container.textContent).toContain("Survey the docs");
+    fireEvent.click(rowHeaderToggle(container)!);
+    expect(container.textContent).toContain("Find every page");
+  });
+
+  it("falls back to the sub-agent's name when the task call carries no description", () => {
+    const tu = toolUse({ name: "task", thread: thread({ agentName: "researcher" }) });
+    const { container } = render(<ToolCallItem toolUse={tu} />);
+    expect(rowRoot(container).textContent).toContain("researcher");
+  });
+
+  it("shows an MCP tool's server beside its title", () => {
+    const { container } = render(
+      <ToolCallItem toolUse={toolUse({ name: "send_message", mcpServerName: "acme-slack", result: "{}" })} />,
+    );
+    expect(rowRoot(container).textContent).toContain("acme-slack");
   });
 
   // --- Card chrome -----------------------------------------------------------
 
   it("renders as its own bordered card by default, with a divider-row fallback when nested", () => {
-    const tc = makeToolCall({ name: "Shell", args: { command: "echo hi" }, result: "hi" });
+    const tc = toolUse({ name: "Shell", input: { command: "echo hi" }, result: "hi" });
 
-    const { container, rerender } = render(<ToolCallItem toolCall={tc} />);
+    const { container, rerender } = render(<ToolCallItem toolUse={tc} />);
     let row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
     expect(row.className).toContain("stg:rounded-lg");
     expect(row.className).toContain("stg:border-border-prominent");
 
-    rerender(<ToolCallItem toolCall={tc} bordered={false} />);
+    rerender(<ToolCallItem toolUse={tc} bordered={false} />);
     row = container.querySelector('[data-cursor-target="tool-call-row"]')!;
     expect(row.className).not.toContain("stg:rounded-lg");
     expect(row.className).toContain("stg:border-b");
@@ -629,29 +579,29 @@ function isQuietLine(container: HTMLElement): boolean {
 
 describe("ToolCallItem density tier", () => {
   it("renders metadata-only rows as quiet unboxed lines (read / list / search / think)", () => {
-    const cases: ToolCall[] = [
-      makeToolCall({ name: "Read", args: { path: "/a.ts" } }),
-      makeToolCall({ name: "ls", args: { path: "/src" } }),
-      makeToolCall({ name: "Grep", args: { pattern: "foo" }, result: "2 matches" }),
-      makeToolCall({ name: "think", args: { thought: "considering options" } }),
+    const cases: ToolUse[] = [
+      toolUse({ name: "Read", input: { path: "/a.ts" } }),
+      toolUse({ name: "ls", input: { path: "/src" } }),
+      toolUse({ name: "Grep", input: { pattern: "foo" }, result: "2 matches" }),
+      toolUse({ name: "think", input: { thought: "considering options" } }),
     ];
     for (const tc of cases) {
-      const { container, unmount } = render(<ToolCallItem toolCall={tc} />);
+      const { container, unmount } = render(<ToolCallItem toolUse={tc} />);
       expect(isQuietLine(container), `${tc.name} should be a quiet line`).toBe(true);
       unmount();
     }
   });
 
   it("keeps content-bearing rows as cards (shell / edit)", () => {
-    const cases: ToolCall[] = [
-      makeToolCall({ name: "Shell", args: { command: "echo hi" }, result: "hi" }),
-      makeToolCall({
+    const cases: ToolUse[] = [
+      toolUse({ name: "Shell", input: { command: "echo hi" }, result: "hi" }),
+      toolUse({
         name: "StrReplace",
-        args: { path: "/a.ts", old_string: "a", new_string: "b" },
+        input: { path: "/a.ts", old_string: "a", new_string: "b" },
       }),
     ];
     for (const tc of cases) {
-      const { container, unmount } = render(<ToolCallItem toolCall={tc} />);
+      const { container, unmount } = render(<ToolCallItem toolUse={tc} />);
       expect(rowRoot(container).className, `${tc.name} should stay a card`).toContain(
         "stg:border-border-prominent",
       );
@@ -660,37 +610,26 @@ describe("ToolCallItem density tier", () => {
   });
 
   it("escalates a quiet row to a card when it fails — error output is content", () => {
-    const failed = makeToolCall({
+    const failed = toolUse({
       name: "Read",
-      args: { path: "/a.ts" },
-      status: ToolCallStatus.TOOL_CALL_FAILED,
+      input: { path: "/a.ts" },
+      isError: true,
       result: '{"status":"error","message":"permission denied"}',
     });
-    const { container } = render(<ToolCallItem toolCall={failed} />);
+    const { container } = render(<ToolCallItem toolUse={failed} />);
     expect(rowRoot(container).className).toContain("stg:border-border-prominent");
   });
 
-  it("escalates a quiet row to a card while gated — a decision surface is never frameless", () => {
-    const gated = makeToolCall({
+  it("escalates a quiet row to a card while it waits — a decision surface is never frameless", () => {
+    const gated = toolUse({
       id: "tc-read-gated",
       name: "Read",
-      args: { path: "/secret" },
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      input: { path: "/secret" },
+      ask: { argsPreview: '{"path":"/secret"}' },
     });
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-read-gated",
-      toolName: "Read",
-      argsPreview: '{"path":"/secret"}',
-    });
-    const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["tc-read-gated", approval]]),
-      onSubmit: () => {},
-      submittingIds: new Set(),
-      errorsByToolCallId: new Map(),
-    };
     const { container } = render(
-      <ApprovalContext.Provider value={ctx}>
-        <ToolCallItem toolCall={gated} />
+      <ApprovalContext.Provider value={answering()}>
+        <ToolCallItem toolUse={gated} />
       </ApprovalContext.Provider>,
     );
     const cls = rowRoot(container).className;
@@ -699,31 +638,31 @@ describe("ToolCallItem density tier", () => {
   });
 
   it("stays a quiet line while running — the in-flight state rides the label, not a frame", () => {
-    const running = makeToolCall({
+    const running = toolUse({
       name: "Read",
-      args: { path: "/a.ts" },
-      status: ToolCallStatus.TOOL_CALL_RUNNING,
+      input: { path: "/a.ts" },
+      state: "running",
     });
-    const { container } = render(<ToolCallItem toolCall={running} />);
+    const { container } = render(<ToolCallItem toolUse={running} />);
     expect(isQuietLine(container)).toBe(true);
     expect(container.querySelector(".stg\\:animate-spin")).not.toBeNull();
   });
 
   it("sweeps the running label with the ambient-liveness shimmer, settled labels stay static", () => {
-    const running = makeToolCall({
+    const running = toolUse({
       name: "Shell",
-      args: { command: "sleep 5" },
-      status: ToolCallStatus.TOOL_CALL_RUNNING,
+      input: { command: "sleep 5" },
+      state: "running",
     });
-    const { container, rerender } = render(<ToolCallItem toolCall={running} />);
+    const { container, rerender } = render(<ToolCallItem toolUse={running} />);
     expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Shell");
 
-    const settled = makeToolCall({
+    const settled = toolUse({
       name: "Shell",
-      args: { command: "sleep 5" },
+      input: { command: "sleep 5" },
       result: "done",
     });
-    rerender(<ToolCallItem toolCall={settled} />);
+    rerender(<ToolCallItem toolUse={settled} />);
     expect(container.querySelector(".stgm-shimmer-label")).toBeNull();
   });
 
@@ -731,12 +670,12 @@ describe("ToolCallItem density tier", () => {
     // Grep is a summary category with a real result body: expanding the quiet
     // line must bound the body with the rail (the ThinkingMessage precedent),
     // never leave it bleeding into the thread.
-    const tc = makeToolCall({
+    const tc = toolUse({
       name: "Grep",
-      args: { pattern: "foo" },
+      input: { pattern: "foo" },
       result: "src/a.ts:1: foo",
     });
-    const { container } = render(<ToolCallItem toolCall={tc} />);
+    const { container } = render(<ToolCallItem toolUse={tc} />);
     fireEvent.click(rowHeaderToggle(container)!);
     expect(container.querySelector(".stg\\:border-l-2")).not.toBeNull();
   });
@@ -750,7 +689,7 @@ describe("ToolCallItem status vocabulary", () => {
   it("renders no status icon on a completed row — success is the silent default", () => {
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({ name: "Shell", args: { command: "echo hi" }, result: "hi" })}
+        toolUse={toolUse({ name: "Shell", input: { command: "echo hi" }, result: "hi" })}
       />,
     );
     expect(container.querySelector(".stg\\:text-success")).toBeNull();
@@ -759,10 +698,10 @@ describe("ToolCallItem status vocabulary", () => {
   it("keeps the failed icon — failure shouts", () => {
     const { container } = render(
       <ToolCallItem
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Shell",
-          args: { command: "false" },
-          status: ToolCallStatus.TOOL_CALL_FAILED,
+          input: { command: "false" },
+          isError: true,
         })}
       />,
     );
@@ -776,25 +715,24 @@ describe("ToolCallItem status vocabulary", () => {
 
 describe("ToolCallItem duration chip", () => {
   it("suppresses a sub-second duration — the chip would be noise", () => {
-    const tc = makeToolCall({
+    const tc = toolUse({
       name: "Read",
-      args: { path: "/a.ts" },
-      startedAt: "2026-08-13T10:00:00.000Z",
-      completedAt: "2026-08-13T10:00:00.400Z",
+      input: { path: "/a.ts" },
+      result: "contents",
+      durationMs: 400,
     });
-    render(<ToolCallItem toolCall={tc} />);
+    render(<ToolCallItem toolUse={tc} />);
     expect(screen.queryByText("400ms")).toBeNull();
   });
 
   it("shows a duration of a second or more — it carries information", () => {
-    const tc = makeToolCall({
+    const tc = toolUse({
       name: "Shell",
-      args: { command: "sleep 2" },
+      input: { command: "sleep 2" },
       result: "",
-      startedAt: "2026-08-13T10:00:00.000Z",
-      completedAt: "2026-08-13T10:00:02.500Z",
+      durationMs: 2_500,
     });
-    render(<ToolCallItem toolCall={tc} />);
+    render(<ToolCallItem toolUse={tc} />);
     expect(screen.getByText("2.5s")).toBeTruthy();
   });
 });
@@ -804,95 +742,61 @@ describe("ToolCallItem duration chip", () => {
 // ---------------------------------------------------------------------------
 
 describe("ToolCallItem file-review badge", () => {
-  const SET_ID = "aex-1:0";
-
-  function reviewSet(
-    status: FileChangeSetStatus,
-    decisions: { action: FileDecisionAction }[] = [],
-  ): FileChangeSet {
-    return create(FileChangeSetSchema, {
-      id: SET_ID,
-      status,
-      changes: [
-        create(CapturedFileChangeSchema, {
-          id: `${SET_ID}:notes.md`,
-          pathBefore: "notes.md",
-          pathAfter: "notes.md",
-          kind: FileChangeKind.MODIFY,
-          diffComplete: true,
-        }),
-      ],
-      decisions: decisions.map((d) =>
-        create(FileDecisionSchema, {
-          changeSetId: SET_ID,
-          scope: FileDecisionScope.CHANGE_SET,
-          action: d.action,
-        }),
-      ),
-    });
-  }
-
-  function renderStampedRow(set: FileChangeSet) {
-    const tc = makeToolCall({
-      id: "tc-edit",
-      name: "edit",
-      args: { path: "notes.md", old_string: "a", new_string: "b" },
-      fileChangeSetId: SET_ID,
-    });
+  function renderEditRow(set: FileReviewSet, row: ToolUse = editRow()) {
     return render(
-      <FileReviewContext.Provider value={{ changeSetsById: new Map([[SET_ID, set]]) }}>
-        <ToolCallItem toolCall={tc} />
+      <FileReviewContext.Provider
+        value={{ fileReviewByRunId: new Map([["run_1", [set]]]), changeSetsById: new Map() }}
+      >
+        <ToolCallItem toolUse={row} />
       </FileReviewContext.Provider>,
     );
+  }
+
+  function editRow(path = "/workspace/notes.md"): ToolUse {
+    return toolUse({ id: "tc-edit", name: "edit", input: { path, old_string: "a", new_string: "b" }, result: "ok" });
+  }
+
+  function setWith(state: "undecided" | "kept" | "undoing" | "undone" | "undo_failed"): FileReviewSet {
+    return reviewSet({ files: [reviewFile({ path: "notes.md", state })] });
   }
 
   function badge(container: HTMLElement): Element | null {
     return container.querySelector('[data-cursor-target="file-review-row-badge"]');
   }
 
-  it("badges a stamped row 'Pending review' while its set awaits review", () => {
-    const { container } = renderStampedRow(reviewSet(FileChangeSetStatus.AWAITING_REVIEW));
+  it("badges an edit row 'Pending review' while its file is undecided", () => {
+    const { container } = renderEditRow(setWith("undecided"));
     expect(badge(container)?.textContent).toBe("Pending review");
   });
 
-  it("flips the badge to the file's verdict once the set is decided", () => {
-    const kept = renderStampedRow(
-      reviewSet(FileChangeSetStatus.RECONCILED, [{ action: FileDecisionAction.APPROVE }]),
-    );
-    expect(badge(kept.container)?.textContent).toBe("Kept");
-    cleanup();
-
-    const discarded = renderStampedRow(
-      reviewSet(FileChangeSetStatus.RECONCILED, [{ action: FileDecisionAction.REJECT }]),
-    );
-    expect(badge(discarded.container)?.textContent).toBe("Discarded");
+  it("flips the badge to the file's state once it is decided", () => {
+    const cases = [
+      ["kept", "Kept"],
+      ["undoing", "Discarded"],
+      ["undone", "Discarded"],
+      ["undo_failed", "Review failed"],
+    ] as const;
+    for (const [state, label] of cases) {
+      const { container, unmount } = renderEditRow(setWith(state));
+      expect(badge(container)?.textContent, state).toBe(label);
+      unmount();
+    }
   });
 
-  it("shows no badge for an unstamped row or without a provider", () => {
-    // Unstamped (a plain edit outside capture mode) — provider present.
-    const unstamped = makeToolCall({
-      id: "tc-plain",
-      name: "edit",
-      args: { path: "notes.md", old_string: "a", new_string: "b" },
-    });
-    const withProvider = render(
-      <FileReviewContext.Provider
-        value={{ changeSetsById: new Map([[SET_ID, reviewSet(FileChangeSetStatus.AWAITING_REVIEW)]]) }}
-      >
-        <ToolCallItem toolCall={unstamped} />
-      </FileReviewContext.Provider>,
-    );
-    expect(badge(withProvider.container)).toBeNull();
+  it("shows no badge for a file the review does not hold, a row that edits no file, or without a provider", () => {
+    const otherFile = renderEditRow(setWith("undecided"), editRow("/workspace/other.md"));
+    expect(badge(otherFile.container)).toBeNull();
     cleanup();
 
-    // Stamped but no provider (a consumer without file review) — no badge.
-    const stamped = makeToolCall({
-      id: "tc-edit",
-      name: "edit",
-      args: { path: "notes.md", old_string: "a", new_string: "b" },
-      fileChangeSetId: SET_ID,
-    });
-    const bare = render(<ToolCallItem toolCall={stamped} />);
+    // A read of the same path is not an edit: it never carries the badge.
+    const read = renderEditRow(
+      setWith("undecided"),
+      toolUse({ name: "Read", input: { path: "/workspace/notes.md" }, result: "x" }),
+    );
+    expect(badge(read.container)).toBeNull();
+    cleanup();
+
+    const bare = render(<ToolCallItem toolUse={editRow()} />);
     expect(badge(bare.container)).toBeNull();
   });
 });

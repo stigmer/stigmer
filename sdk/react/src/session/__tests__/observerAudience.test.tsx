@@ -73,8 +73,10 @@ const stubConv = {
   session: { spec: {} } as Record<string, unknown>,
   isLoading: false,
   loadError: null,
-  completedRuns: [],
-  activeStreamRun: null,
+  turns: [],
+  runs: [],
+  activeTurn: null,
+  activeRun: null,
   activePhase: null,
   isStreaming: false,
   isConnecting: false,
@@ -87,16 +89,17 @@ const stubConv = {
   workspaceEntries: [],
   plugins: [],
   skillRefs: [],
-  pendingApprovals: [],
-  submitApproval: vi.fn(),
-  submittingApprovalIds: new Set<string>(),
-  fileChangeSets: [],
-  submitFileDecision: vi.fn(),
+  asks: [],
+  answerToolUse: vi.fn(),
+  answeringToolUseIds: new Set<string>(),
+  fileReviewSets: [],
+  fileChangeCaptures: new Map(),
+  reviewFileChanges: vi.fn(),
   submittingFileDecisionKeys: new Set<string>(),
   fileDecisionErrors: new Map<string, Error>(),
   streamError: null,
   reconnectStream: vi.fn(),
-  approvalError: null,
+  answerError: null,
   retryLastSend: vi.fn(),
 };
 
@@ -128,7 +131,7 @@ const stubSessionPageFlow = {
   sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
   autoApproveAll: false,
   setAutoApproveAll: vi.fn(),
-  submitApproval: vi.fn(),
+  answerToolUse: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
   displayRun: null,
@@ -182,7 +185,7 @@ function expectReadOnlyTranscript() {
   // Every thread interaction affordance is unwired (they are opt-in via
   // their callbacks).
   const thread = lastThreadProps();
-  expect(thread.onApprovalSubmit).toBeUndefined();
+  expect(thread.onAnswerToolUse).toBeUndefined();
   expect(thread.onEditMessage).toBeUndefined();
   expect(thread.onRetrySend).toBeUndefined();
   expect(thread.onRetryRun).toBeUndefined();
@@ -251,7 +254,7 @@ describe("SessionViewer — observer audience", () => {
 
     expect(composerProps.length).toBeGreaterThan(0);
     const thread = lastThreadProps();
-    expect(thread.onApprovalSubmit).toBeDefined();
+    expect(thread.onAnswerToolUse).toBeDefined();
     expect(thread.onRetrySend).toBeDefined();
   });
 });

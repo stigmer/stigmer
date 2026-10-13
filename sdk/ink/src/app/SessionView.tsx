@@ -1,7 +1,16 @@
+// The terminal session view: a session's conversation (its turns, read from
+// the session's events) with the live turn's phase, to-dos and usage, the
+// mid-turn file progress, the docked file-review decision, and the follow-up
+// input with its agent/plan mode.
 import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import Spinner from "ink-spinner";
-import { useSessionConversation, resolvedSubject, PENDING_SUBJECT } from "@stigmer/react";
+import {
+  useSessionConversation,
+  resolvedSubject,
+  runPhaseOf,
+  PENDING_SUBJECT,
+} from "@stigmer/react";
 import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
@@ -95,12 +104,8 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
     );
   }
 
-  const allRuns = [
-    ...conv.completedRuns,
-    ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
-  ];
-
-  const activeTodos = conv.activeStreamRun?.status?.todos;
+  const activeTodos = conv.activeTurn?.todos ?? [];
+  const reviewSet = conv.fileReviewSets[0];
 
   const subject = resolvedSubject(conv.session?.spec?.subject);
 
@@ -137,36 +142,34 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
         </Box>
       )}
 
-      {conv.activePhase != null &&
-        conv.activePhase !== 0 &&
-        conv.fileChangeSets.length === 0 && (
-          // Suppressed while a set awaits review: there is no run phase
-          // for review (it lives on FileChangeSet.status), so the phase would
-          // otherwise read as an active "Running" spinner while the agent is
-          // idle awaiting the reviewer — the FileReviewPrompt is the honest cue.
-          <RunProgress phase={conv.activePhase} />
-        )}
+      {conv.activePhase !== null && reviewSet === undefined && (
+        // Suppressed while a set awaits review: review is not a phase of the
+        // turn, so the phase would otherwise read as an active "Running"
+        // spinner while the agent is idle awaiting the reviewer — the
+        // FileReviewPrompt is the honest cue.
+        <RunProgress phase={runPhaseOf(conv.activePhase)} />
+      )}
 
       <MessageThread
-        runs={conv.completedRuns}
-        activeStreamRun={conv.activeStreamRun}
+        turns={conv.turns}
+        runs={conv.runs}
         pendingUserMessage={conv.pendingUserMessage}
-        onApprovalSubmit={conv.submitApproval}
-        submittingApprovalIds={conv.submittingApprovalIds}
+        onAnswerToolUse={conv.answerToolUse}
+        answeringToolUseIds={conv.answeringToolUseIds}
         expandToolCalls={expandTools}
         showFileReviewRecords
       />
 
-      {activeTodos && Object.keys(activeTodos).length > 0 && (
+      {activeTodos.length > 0 && (
         <Box marginTop={1} paddingLeft={1}>
           <TodoList todos={activeTodos} />
         </Box>
       )}
 
-      {conv.approvalError && (
+      {conv.answerError && (
         <Box paddingLeft={1}>
           <Text color="red">
-            Approval error: {conv.approvalError.message}
+            Approval error: {conv.answerError.message}
           </Text>
         </Box>
       )}
@@ -179,33 +182,34 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
         </Box>
       )}
 
-      <UsageWidget runs={allRuns} />
+      <UsageWidget runs={conv.runs} />
 
-      {/* Mid-run live capture: the transient "N files changing…" strip
+      {/* Mid-turn live capture: the transient "N files changing…" strip
           for a still-running turn, covering shell-made changes with no tool row.
           Mutually exclusive with the FileReviewPrompt below — progress shows
-          while CAPTURING, the prompt once AWAITING_REVIEW — so it hands off
-          cleanly when review opens. Non-interactive; the per-file list reuses the
-          existing Ctrl+O expand toggle. */}
+          while the turn captures, the prompt once its changes are offered — so
+          it hands off cleanly when review opens. Non-interactive; the per-file
+          list reuses the existing Ctrl+O expand toggle. */}
       <FileChangeProgressBar
         progress={conv.fileChangeProgress}
         expanded={expandTools}
       />
 
-      {conv.fileChangeSets.length > 0 && (
+      {reviewSet && (
         <Box flexDirection="column">
           <FileReviewPrompt
-            changeSet={conv.fileChangeSets[0]}
-            onSubmit={conv.submitFileDecision}
+            fileReviewSet={reviewSet}
+            capture={conv.fileChangeCaptures.get(reviewSet.changeSetId) ?? null}
+            onSubmit={conv.reviewFileChanges}
             submittingDecisionKeys={conv.submittingFileDecisionKeys}
             decisionErrors={conv.fileDecisionErrors}
-            // Single active decision surface: yield to a pending tool approval.
-            isActive={conv.pendingApprovals.length === 0}
+            // Single active decision surface: yield to a tool use that waits.
+            isActive={conv.asks.length === 0}
           />
-          {conv.fileChangeSets.length > 1 && (
+          {conv.fileReviewSets.length > 1 && (
             <Box paddingLeft={2}>
               <Text dimColor>
-                {conv.fileChangeSets.length - 1} more awaiting review
+                {conv.fileReviewSets.length - 1} more awaiting review
               </Text>
             </Box>
           )}

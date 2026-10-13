@@ -1,47 +1,38 @@
+// How a turn's file changes stand in review, read from the session's fold
+// (`FileReviewSet`, `FileReviewFile`): what each file can be decided as, the
+// whole set's bulk affordance, a transcript row's badge, and the change-kind
+// word as the shared badge's enum. The captured bytes a diff renders stay
+// on the run (`CapturedFileChange`); `changeForRowPath` and
+// `fileReviewRowChange` find them for a row, never a decision.
 import type {
   CapturedFileChange,
   FileChangeSet,
-  FileDecision,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  DiffCompleteness,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionScope,
-  FileReviewBlockReason,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewFile, FileReviewSet } from "@stigmer/sdk";
 
 /**
- * Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
- * runner records on `CapturedFileChange.blocked_reason`.
+ * Why an `"unavailable"` file cannot be reviewed.
  *
- * - `"secret"` — the path looks like a secret; the bytes were deliberately never
- *   captured (there is nothing to review, by design).
- * - `"size"` — the diff was captured but its bodies were dropped to keep the
- *   persisted status under its size limit.
- * - `"unknown"` — incomplete for a reason the wire does not name (a defensive
- *   catch-all; historical rows and future/unmapped causes land here).
+ * - `"secret"` — the path looks like a secret; the bytes were deliberately
+ *   never captured (there is nothing to review, by design).
+ * - `"partial"` — the diff is incomplete: too large to keep, or not
+ *   capturable.
  */
-export type FileBlockReason = "secret" | "size" | "unknown";
+export type FileBlockReason = "secret" | "partial";
 
 /**
- * How completely a single captured file change can be reviewed before a decision
- * is made — the classification that decides whether a file can be kept. A
- * discriminated union so every consumer handles each case exhaustively and reads
- * the block reason from one place (no "classify, then separately look up why").
+ * How completely a single file change can be reviewed before it is decided —
+ * the classification that decides whether a file can be kept.
  *
- * - `{ kind: "reviewable" }` — the full before/after diff is available; the
- *   reviewer can see exactly what changed and Keep or Discard it.
- * - `{ kind: "binary" }` — a binary file changed; there is no text diff to
- *   review (the bytes are captured and flagged, but a byte diff is not
- *   human-reviewable). Binary is proven by `FileContent.is_binary`, not by the
- *   block reason.
- * - `{ kind: "unavailable"; reason }` — the diff is not available to review at
- *   all, with the honest {@link FileBlockReason} the runner recorded.
+ * - `{ kind: "reviewable" }` — the full before/after diff is available.
+ * - `{ kind: "binary" }` — a binary file changed: no text diff, but its exact
+ *   bytes are captured, so it can be kept consciously ("Keep anyway").
+ * - `{ kind: "unavailable"; reason }` — the diff is not available to review
+ *   at all; the file can only be discarded.
  *
- * Both `"binary"` and `"unavailable"` are non-reviewable: the file cannot be
- * approved (kept), only discarded. This mirrors the server, which blocks
- * approval of any change set that is not fully complete.
+ * Mirrors the server, which refuses to keep a set that is not complete
+ * unless every incompleteness is binary and acknowledged.
  */
 export type FileReviewability =
   | { readonly kind: "reviewable" }
@@ -49,116 +40,103 @@ export type FileReviewability =
   | { readonly kind: "unavailable"; readonly reason: FileBlockReason };
 
 /**
- * Classify a {@link CapturedFileChange} by how completely it can be reviewed,
- * from the signals the runner authors onto the change (see the file-review
- * producer in the runner's `shared/filereview`).
- *
- * The mapping is derived from three proto signals, in order:
- *
- * 1. `diff_complete === true` → `"reviewable"`. The change set can only be
- *    `COMPLETE` when every file is complete, so a complete file is always
- *    reviewable.
- * 2. otherwise, a binary side (`before.is_binary` or `after.is_binary`) →
- *    `"binary"`. The runner marks a git-tracked file incomplete precisely
- *    because a side is binary (`diff_complete = !binary`); a CAS file carries
- *    `is_binary` on its blob ref. `is_binary` is preserved when a large body is
- *    offloaded from an inline value to a storage ref, so this holds regardless
- *    of offload. Binary is therefore derived here, never duplicated onto the
- *    block reason.
- * 3. otherwise → `"unavailable"` with the honest cause from
- *    `blocked_reason`: `SECRET_WITHHELD → "secret"`, `SIZE_ELIDED → "size"`,
- *    else `"unknown"`. Before the runner recorded it, this bucket was
- *    cause-agnostic (the wire could not prove secret-withheld vs
- *    size-dropped); the runner now records the cause at capture time, so the
- *    UI can say *why* rather than only *that* the diff is unavailable.
+ * Classify a file of a turn's review by its `reviewable` word (the runner's
+ * `complete`, `binary`, `secret` or `partial`).
  */
-export function fileReviewability(change: CapturedFileChange): FileReviewability {
-  if (change.diffComplete) return { kind: "reviewable" };
-  if (change.before?.isBinary || change.after?.isBinary) return { kind: "binary" };
-  return { kind: "unavailable", reason: blockReasonOf(change.blockedReason) };
-}
-
-/** Map the proto {@link FileReviewBlockReason} to the UI {@link FileBlockReason}. */
-function blockReasonOf(reason: FileReviewBlockReason): FileBlockReason {
-  switch (reason) {
-    case FileReviewBlockReason.SECRET_WITHHELD:
-      return "secret";
-    case FileReviewBlockReason.SIZE_ELIDED:
-      return "size";
+export function fileReviewability(file: Pick<FileReviewFile, "reviewable">): FileReviewability {
+  switch (file.reviewable) {
+    case "complete":
+      return { kind: "reviewable" };
+    case "binary":
+      return { kind: "binary" };
+    case "secret":
+      return { kind: "unavailable", reason: "secret" };
     default:
-      return "unknown";
+      return { kind: "unavailable", reason: "partial" };
   }
 }
 
 /**
- * How completely a whole {@link FileChangeSet} can be reviewed — the set-level
- * sibling of {@link FileReviewability} that decides whether the set can be kept
- * in one action. Drives the card's bulk affordance and keeps headless builders
- * on the same classification.
+ * How completely a whole set can be reviewed — the set-level sibling of
+ * {@link FileReviewability} that decides whether the set can be kept in one
+ * action.
  *
- * - `"complete"` — every file is reviewable; the set can be approved as-is.
- * - `"binary-only"` — the set's ONLY blocker is binary files (every non-binary
- *   file is fully reviewable). No text diff for the binaries, but their exact
- *   bytes are captured and reconcilable, so the whole set can be KEPT in one
- *   acknowledged action ("Keep all"). Includes mixed sets (text edits + images).
- * - `"blocked"` — at least one file is unavailable to review with no keepable
- *   bytes (secret-withheld / size-elided / uncapturable), so the set cannot be
- *   approved at once; it must be resolved per file.
+ * - `"complete"` — every file is reviewable; the set can be kept as-is.
+ * - `"binary-only"` — the ONLY blocker is binary files: the whole set can be
+ *   kept in one acknowledged action ("Keep all").
+ * - `"blocked"` — at least one file is unavailable to review, so the set
+ *   cannot be kept at once; it must be resolved per file.
  */
 export type ChangeSetReviewability = "complete" | "binary-only" | "blocked";
 
-/**
- * Classify a {@link FileChangeSet} from its server-derived `diff_completeness`
- * rollup (the field exists precisely so clients need not re-fold the per-file
- * signals). The runner and the size backstop both derive that value from the
- * same rule the backend gate re-checks, so this classification, the per-file
- * {@link fileReviewability} fold, and the server gate agree by construction.
- */
-export function changeSetReviewability(set: FileChangeSet): ChangeSetReviewability {
-  switch (set.diffCompleteness) {
-    case DiffCompleteness.COMPLETE:
-      return "complete";
-    case DiffCompleteness.BINARY_SUMMARY_ONLY:
-      return "binary-only";
-    default:
-      return "blocked";
+/** Classify a set from its files' reviewability. */
+export function changeSetReviewability(set: Pick<FileReviewSet, "files">): ChangeSetReviewability {
+  let binary = false;
+  for (const file of set.files) {
+    const kind = fileReviewability(file).kind;
+    if (kind === "unavailable") return "blocked";
+    if (kind === "binary") binary = true;
   }
+  return binary ? "binary-only" : "complete";
+}
+
+/** Whether a row's path names a changed file: an exact match or a `/`-boundary suffix (row paths may be absolute). */
+function pathMatches(rowPath: string, path: string): boolean {
+  const normalized = rowPath.replace(/\\/g, "/");
+  return path !== "" && (normalized === path || normalized.endsWith(`/${path}`));
 }
 
 /**
- * Each file's EFFECTIVE verdict for a settled set, folding the decisions the
- * way the runner reconcile does (most-specific-wins): the last CHANGE_SET
- * decision is the baseline for every file, and a later-or-earlier FILE decision
- * overrides it for that file (FILE > CHANGE_SET regardless of ledger order;
- * within a scope, last write wins).
+ * The file of a turn's review a transcript row's path refers to, or `null`.
+ * Presentation-only — never a correlation key.
+ */
+export function fileForRowPath(
+  set: Pick<FileReviewSet, "files">,
+  rowPath: string,
+): FileReviewFile | null {
+  if (!rowPath) return null;
+  return set.files.find((file) => pathMatches(rowPath, file.path)) ?? null;
+}
+
+/**
+ * The review state a file-edit row should badge — how the file it changed
+ * stands in its turn's review. `null` means "show no badge", chosen over
+ * guessing: a turn with no review yet, or a row whose file is absent from it
+ * (its edit was superseded or reverted within the turn), renders unbadged.
  *
- * This is the fold for DISPLAYING history — a set decided via "Keep all"
- * correctly reads every file as kept. The interactive per-file selected state
- * deliberately uses the FILE-only fold instead (a CHANGE_SET decision cannot
- * coexist with an open review, so it never pre-selects anything there).
+ * - `"pending"` — the file is undecided; it is on the decision surface now.
+ * - `"kept"` / `"discarded"` — it was kept, or undone (or is being undone).
+ * - `"failed"` — the undo failed; the workspace is not as decided.
  */
-export function deriveEffectiveVerdicts(
-  set: FileChangeSet,
-): ReadonlyMap<string, FileDecisionAction> {
-  let bulk: FileDecisionAction | null = null;
-  const byFileId = new Map<string, FileDecisionAction>();
-  for (const d of set.decisions as readonly FileDecision[]) {
-    if (d.scope === FileDecisionScope.CHANGE_SET) bulk = d.action;
-    else if (d.scope === FileDecisionScope.FILE && d.fileChangeId) {
-      byFileId.set(d.fileChangeId, d.action);
-    }
+export type FileReviewRowState = "pending" | "kept" | "discarded" | "failed";
+
+const ROW_STATE: Readonly<Record<FileReviewFile["state"], FileReviewRowState>> = {
+  undecided: "pending",
+  kept: "kept",
+  undoing: "discarded",
+  undone: "discarded",
+  undo_failed: "failed",
+};
+
+/**
+ * The {@link FileReviewRowState} of a row's file across a turn's review
+ * sets (a later set wins), or `null`.
+ */
+export function fileReviewRowState(
+  sets: ReadonlyArray<Pick<FileReviewSet, "files">>,
+  rowPath: string | null,
+): FileReviewRowState | null {
+  if (!rowPath) return null;
+  for (let i = sets.length - 1; i >= 0; i--) {
+    const file = fileForRowPath(sets[i]!, rowPath);
+    if (file) return ROW_STATE[file.state];
   }
-  const effective = new Map<string, FileDecisionAction>();
-  for (const c of set.changes) {
-    const verdict = byFileId.get(c.id) ?? bulk;
-    if (verdict != null) effective.set(c.id, verdict);
-  }
-  return effective;
+  return null;
 }
 
 /**
- * The captured change a transcript row's file path refers to, or `null`. The
- * row's path may be absolute (harness tool args) while captured paths are
+ * The captured change (the run's bytes) a transcript row's file path refers
+ * to, or `null`. The row's path may be absolute while captured paths are
  * workspace-root-relative, so the match accepts an exact match or a
  * `/`-boundary suffix. Presentation-only — never a correlation key.
  */
@@ -167,28 +145,16 @@ export function changeForRowPath(
   rowPath: string,
 ): CapturedFileChange | null {
   if (!rowPath) return null;
-  const normalized = rowPath.replace(/\\/g, "/");
-  for (const c of set.changes) {
-    const path = c.pathAfter || c.pathBefore;
-    if (path && (normalized === path || normalized.endsWith(`/${path}`))) {
-      return c;
-    }
+  for (const change of set.changes) {
+    if (pathMatches(rowPath, change.pathAfter || change.pathBefore)) return change;
   }
   return null;
 }
 
 /**
- * The captured change a stamped transcript row should render as its inline
- * diff, or `null` to keep the row's own content view. The row-diff sibling of
- * {@link fileReviewRowState}: both resolve through {@link changeForRowPath},
- * so the badge and the diff can never disagree about which file a row refers
- * to. What renders is the set's captured NET change for the file — the same
- * artifact the badge's verdict applies to.
- *
- * `null` follows the badge's honest-degradation discipline, plus one rule of
- * its own: a non-`reviewable` change ({@link fileReviewability} — binary,
- * secret-withheld, size-elided) resolves to `null` so the row falls back to
- * showing the tool's own args content rather than a diff that cannot honestly
+ * The captured change a write row should render as its inline diff, or
+ * `null` to keep the row's own content view: no capture, a path miss, or an
+ * incomplete diff (binary, secret-withheld, elided) that cannot honestly
  * render.
  */
 export function fileReviewRowChange(
@@ -197,47 +163,21 @@ export function fileReviewRowChange(
 ): CapturedFileChange | null {
   if (!set || !rowPath) return null;
   const change = changeForRowPath(set, rowPath);
-  if (!change) return null;
-  return fileReviewability(change).kind === "reviewable" ? change : null;
+  return change?.diffComplete ? change : null;
 }
 
-/**
- * The review state a stamped transcript row should badge — how this file edit
- * stands in its change set's review lifecycle. `null` means "show no badge",
- * chosen over guessing: a missing set (not yet projected), a CAPTURING set, or
- * a row whose file is absent from the set (its edit was superseded or fully
- * reverted within the turn) renders unbadged, never mislabeled.
- *
- * - `"pending"` — the set is AWAITING_REVIEW; this edit's net result is on the
- *   decision surface now.
- * - `"kept"` / `"discarded"` — the set is decided/reconciled and this file's
- *   effective verdict is known ({@link deriveEffectiveVerdicts}).
- * - `"failed"` — the set's reconcile failed; the workspace outcome for this
- *   edit is not the reviewed one.
- */
-export type FileReviewRowState = "pending" | "kept" | "discarded" | "failed";
+const CHANGE_KIND_OF_WORD: ReadonlyMap<string, FileChangeKind> = new Map([
+  ["added", FileChangeKind.ADD],
+  ["modified", FileChangeKind.MODIFY],
+  ["deleted", FileChangeKind.DELETE],
+  ["renamed", FileChangeKind.RENAME],
+]);
 
-export function fileReviewRowState(
-  set: FileChangeSet | undefined,
-  rowPath: string | null,
-): FileReviewRowState | null {
-  if (!set) return null;
-  switch (set.status) {
-    case FileChangeSetStatus.AWAITING_REVIEW:
-      return "pending";
-    case FileChangeSetStatus.FAILED:
-      return "failed";
-    case FileChangeSetStatus.DECIDED:
-    case FileChangeSetStatus.RECONCILED: {
-      if (!rowPath) return null;
-      const change = changeForRowPath(set, rowPath);
-      if (!change) return null;
-      const verdict = deriveEffectiveVerdicts(set).get(change.id);
-      if (verdict === FileDecisionAction.APPROVE) return "kept";
-      if (verdict === FileDecisionAction.REJECT) return "discarded";
-      return null;
-    }
-    default:
-      return null;
-  }
+/**
+ * The {@link FileChangeKind} a file's change word names (`added`,
+ * `modified`, `deleted`, `renamed`), for the shared change-kind badge;
+ * `UNSPECIFIED` for any other word.
+ */
+export function fileChangeKindOf(change: string): FileChangeKind {
+  return CHANGE_KIND_OF_WORD.get(change) ?? FileChangeKind.UNSPECIFIED;
 }

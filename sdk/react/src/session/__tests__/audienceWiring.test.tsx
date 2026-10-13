@@ -95,8 +95,10 @@ const stubConv = {
   session: { spec: {} } as Record<string, unknown>,
   isLoading: false,
   loadError: null,
-  completedRuns: [],
-  activeStreamRun: null,
+  turns: [],
+  runs: [],
+  activeTurn: null,
+  activeRun: null,
   activePhase: null,
   isStreaming: false,
   isConnecting: false,
@@ -110,16 +112,17 @@ const stubConv = {
   workspaceEntries: [],
   plugins: [],
   skillRefs: [],
-  pendingApprovals: [],
-  submitApproval: vi.fn(),
-  submittingApprovalIds: new Set<string>(),
-  fileChangeSets: [],
-  submitFileDecision: vi.fn(),
+  asks: [],
+  answerToolUse: vi.fn(),
+  answeringToolUseIds: new Set<string>(),
+  fileReviewSets: [],
+  fileChangeCaptures: new Map(),
+  reviewFileChanges: vi.fn(),
   submittingFileDecisionKeys: new Set<string>(),
   fileDecisionErrors: new Map<string, Error>(),
   streamError: null,
   reconnectStream: vi.fn(),
-  approvalError: null,
+  answerError: null,
 };
 
 const stubSessionPageFlow = {
@@ -149,7 +152,7 @@ const stubSessionPageFlow = {
   workspace: stubWorkspace,
   autoApproveAll: false,
   setAutoApproveAll: vi.fn(),
-  submitApproval: vi.fn(),
+  answerToolUse: vi.fn(),
   handleSubmit: vi.fn(),
   displayRun: null,
   allRuns: [],
@@ -427,7 +430,7 @@ describe("SessionViewer — audience wiring", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
 
     const props = lastThreadProps();
-    expect(props.onApprovalSubmit).toBeUndefined();
+    expect(props.onAnswerToolUse).toBeUndefined();
     // Chat interaction survives — a guest owns their own conversation.
     expect(props.onRetrySend).toBeDefined();
   });
@@ -435,7 +438,7 @@ describe("SessionViewer — audience wiring", () => {
   it("integrator: approvals stay wired on the thread", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
-    expect(lastThreadProps().onApprovalSubmit).toBeDefined();
+    expect(lastThreadProps().onAnswerToolUse).toBeDefined();
   });
 
   it("hands the composer the conversation's vault choice and who created it", () => {
@@ -639,7 +642,7 @@ describe("SessionViewer — the agent version notice and the personal-key disclo
     // Turns already ran on that agent: nothing new to disclose.
     mockUseSessionPageFlow.mockImplementation(() => ({
       ...stubSessionPageFlow,
-      conv: { ...stubConv, session: pinnedSession, completedRuns: [{}] as never[] },
+      conv: { ...stubConv, session: pinnedSession, turns: [{}] as never[] },
     }));
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(lastComposerProps().disclosePersonalKeys).toBe(false);
@@ -649,7 +652,7 @@ describe("SessionViewer — the agent version notice and the personal-key disclo
     mockUseSessionPageFlow.mockImplementation(() => ({
       ...stubSessionPageFlow,
       agentRef: { org: "acme", slug: "other-bot" },
-      conv: { ...stubConv, session: pinnedSession, completedRuns: [{}] as never[] },
+      conv: { ...stubConv, session: pinnedSession, turns: [{}] as never[] },
     }));
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     expect(lastComposerProps().disclosePersonalKeys).toBe(true);

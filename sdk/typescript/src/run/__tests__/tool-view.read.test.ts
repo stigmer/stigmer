@@ -8,18 +8,16 @@
 
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { toolUseOf } from "./tool-use.js";
 import {
   ToolCallStatus,
-  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { normalizeToolResult } from "../tool-view";
 
 function readCall(result: string) {
-  return create(ToolCallSchema, {
+  return toolUseOf({
     id: "tc-read",
     name: "read_file",
-    toolKind: ToolKind.FILE_READ,
     status: ToolCallStatus.TOOL_CALL_COMPLETED,
     args: { file_path: "/workspace/main.go" } as JsonObject,
     result,

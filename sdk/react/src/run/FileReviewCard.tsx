@@ -4,16 +4,9 @@ import { memo, useCallback, useEffect, useId, useMemo, useState } from "react";
 import type {
   CapturedFileChange,
   FileChangeSet,
-  FileDecision,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  FileCaptureClass,
-  FileChangeKind,
-  FileDecisionAction,
-  FileDecisionOrigin,
-  FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { toDisplayFileChange } from "@stigmer/sdk";
+import { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { toDisplayFileChange, type FileReviewFile, type FileReviewSet } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { FileChangeDiff } from "./FileChangesView.js";
 import { FileKindBadge, FileLineStats } from "./FileReviewAtoms.js";
@@ -21,10 +14,15 @@ import { FilePathLink } from "./FilePathLink.js";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import { DecisionButton } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
-import { fileDecisionKey, type FileDecisionOptions } from "./useFileReview.js";
+import {
+  fileDecisionKey,
+  type FileReviewAction,
+  type ReviewFileChangesOptions,
+} from "./useReviewFileChanges.js";
+import { useChangeSetCapture } from "./useChangeSetCapture.js";
 import {
   changeSetReviewability,
-  deriveEffectiveVerdicts,
+  fileChangeKindOf,
   fileReviewability,
   type FileReviewability,
 } from "./file-review-status.js";
@@ -38,23 +36,32 @@ const NO_ERRORS: ReadonlyMap<string, Error> = new Map();
 
 /** Props for {@link FileReviewCard}. */
 export interface FileReviewCardProps {
-  /** The captured change set awaiting review (status AWAITING_REVIEW). */
-  readonly fileChangeSet: FileChangeSet;
   /**
-   * Called when the user makes a decision. The consumer (typically
-   * {@link MessageThread} or a platform builder's surface) handles the RPC via
-   * {@link useFileReview}. A whole-set Approve/Reject sends `CHANGE_SET` scope;
-   * a per-file Keep/Discard sends `FILE` scope with the file's id. Optional and
-   * ignored when {@link FileReviewCardProps.interactive} is `false`.
+   * The turn's changes and how each file stands, from the session's fold
+   * (`Turn.fileReview`). Decisions, verdicts and progress are read from it.
    */
-  readonly onSubmit?: (action: FileDecisionAction, options?: FileDecisionOptions) => void;
+  readonly fileReviewSet: FileReviewSet;
+  /**
+   * The set's captured bytes (its run's change set), when the caller already
+   * holds the run: the diffs and each file's capture provenance render from
+   * it. Omitted, the card reads the run itself, and only when it shows diffs.
+   */
+  readonly capture?: FileChangeSet | null;
+  /**
+   * Called when the person decides. The consumer (typically the session's
+   * dock or a platform builder's surface) sends it via
+   * {@link useReviewFileChanges}. A whole-set Keep/Discard sends
+   * `"change_set"` scope; a per-file one sends `"file"` scope with the
+   * file's id. Optional and ignored when
+   * {@link FileReviewCardProps.interactive} is `false`.
+   */
+  readonly onSubmit?: (action: FileReviewAction, options: ReviewFileChangesOptions) => void;
   /**
    * Whether the card presents decision controls. Defaults to `true` (the live
-   * review surface). Set to `false` to render a **settled** change set read-only:
-   * the per-file diffs and each file's committed verdict are shown, but the
-   * decision controls, bulk footer, and error affordances are omitted. Used for a
-   * decided/reconciled set, or any set on a terminal run — a historical
-   * record of what changed and how it was decided, not an actionable gate.
+   * review surface). Set to `false` to render a **settled** set read-only:
+   * each file's verdict is shown, but the decision controls and error
+   * affordances are omitted — a historical record of what changed and how it
+   * was decided, not an actionable gate.
    */
   readonly interactive?: boolean;
   /**
@@ -72,7 +79,7 @@ export interface FileReviewCardProps {
   readonly showDiffs?: boolean;
   /**
    * The decision keys currently being submitted — exactly the set
-   * {@link useFileReview} returns as `submittingDecisionKeys`. A card has more
+   * {@link useReviewFileChanges} returns as `submittingDecisionKeys`. A card has more
    * than one decision target (the whole set plus each file), so it takes the
    * keyed set rather than a single boolean and derives each control's in-flight
    * state via {@link fileDecisionKey}.
@@ -84,7 +91,7 @@ export interface FileReviewCardProps {
    * `setId:fileChangeId` for a per-file one. A failed decision is surfaced
    * in-card, beside the control that failed (and the optimistic verdict reverts),
    * so the reviewer sees *which* action did not take and why. Supply
-   * {@link useFileReview}'s `decisionErrors`.
+   * {@link useReviewFileChanges}'s `decisionErrors`.
    */
   readonly decisionErrors?: ReadonlyMap<string, Error>;
   /** Additional CSS class names for the root container. */
@@ -92,8 +99,9 @@ export interface FileReviewCardProps {
 }
 
 /**
- * Renders a captured {@link FileChangeSet} as a **compact decision bar**: one
- * line carrying the set summary and the whole-set decision controls, with the
+ * Renders a turn's file changes (`FileReviewSet`) as a **compact
+ * decision bar**: one line carrying the set summary and the whole-set
+ * decision controls, with the
  * per-file detail behind an expander. What the expander holds depends on
  * {@link FileReviewCardProps.showDiffs}: the diff-rich body (default — for
  * surfaces where this card is the only review surface) or a compact file list
@@ -104,15 +112,14 @@ export interface FileReviewCardProps {
  * File edits are reviewed as a captured workspace delta, not tool calls, so this
  * is a dedicated decision surface distinct from the message transcript and the
  * tool-approval {@link ApprovalCard}. The reviewer can decide each file
- * individually (Keep / Discard, a `FILE`-scoped decision) or act on the whole
- * set at once (Approve / Reject, a `CHANGE_SET` decision). Either way the runner
- * reconciles the exact approved bytes with hash verification.
+ * individually (Keep / Discard, a `"file"` decision) or act on the whole set
+ * at once (Keep / Discard all, a `"change_set"` decision). Kept bytes stay;
+ * discarded ones are put back, verified against the digest the person saw.
  *
- * The unified HITL gate clears only when EVERY file has a verdict — one
- * `CHANGE_SET` decision, or a `FILE` decision per file — so a partially-decided
- * set stays actionable and deciding the last file is what resumes the turn. A
- * per-file verdict is changeable while the set is still open: clicking the other
- * option records a new decision (the backend reconcile is last-write-wins).
+ * The set stays offered until every file has a verdict, so a partially
+ * decided set stays actionable. A per-file verdict is changeable while the
+ * set is still open: clicking the other option records a new decision (the
+ * last one wins).
  *
  * A `binary-only` set (binary files are the only blocker) can be kept in one
  * action: the bulk button reads "Keep all" and carries the acknowledgment.
@@ -122,29 +129,29 @@ export interface FileReviewCardProps {
  *
  * Each non-reviewable file is labeled honestly by {@link fileReviewability}: a
  * `binary` change has no text diff to review; an `unavailable` change is one
- * whose diff isn't available at all, with the honest cause the runner recorded
- * (a secret path whose bytes were never captured, or a diff dropped to bound the
- * status). Both are discard-only, and their Keep affordance is disabled
- * with the reason associated via `aria-describedby`. Files captured outside
- * normal git tracking (gitignored / non-git CAS) carry a small provenance badge
- * so the reviewer knows the change is not part of the repo's tracked history.
+ * whose diff isn't available at all (a secret path whose bytes were never
+ * captured, or an incomplete diff). Both are discard-only, and their Keep
+ * affordance is disabled with the reason associated via `aria-describedby`.
+ * Files captured outside normal git tracking (gitignored / non-git CAS) carry
+ * a small provenance badge, read from the capture, so the reviewer knows the
+ * change is not part of the repo's tracked history.
  *
- * Wrapped in `React.memo` — the streamed `FileChangeSet` reference is preserved
- * by structural sharing when unchanged, so review cards skip re-renders during
- * unrelated stream updates.
+ * Wrapped in `React.memo` — the session fold keeps an unchanged set's
+ * reference, so review cards skip re-renders during unrelated stream updates.
  *
  * @example
  * ```tsx
- * const { submitFileDecision, submittingDecisionKeys } = useFileReview();
+ * const { reviewFileChanges, submittingDecisionKeys } = useReviewFileChanges();
  * <FileReviewCard
- *   fileChangeSet={changeSet}
- *   onSubmit={(action, opts) => submitFileDecision(executionId, changeSet.id, action, opts)}
+ *   fileReviewSet={set}
+ *   onSubmit={(action, opts) => reviewFileChanges(sessionId, set.changeSetId, action, opts)}
  *   submittingDecisionKeys={submittingDecisionKeys}
  * />
  * ```
  */
 export const FileReviewCard = memo(function FileReviewCard({
-  fileChangeSet,
+  fileReviewSet,
+  capture,
   onSubmit,
   submittingDecisionKeys = NO_KEYS,
   decisionErrors = NO_ERRORS,
@@ -152,33 +159,22 @@ export const FileReviewCard = memo(function FileReviewCard({
   showDiffs = true,
   className,
 }: FileReviewCardProps) {
-  const changes = fileChangeSet.changes;
-  const total = changes.length;
-  const setId = fileChangeSet.id;
+  const files = fileReviewSet.files;
+  const total = files.length;
+  const setId = fileReviewSet.changeSetId;
 
-  // Each file's current verdict, a last-write-wins fold over the ledger-ordered
-  // FILE decisions (the same precedence the runner reconcile applies). Drives
-  // which per-file option reads as selected and the reviewed-count progress.
-  const verdictByFileId = useMemo(
-    () => deriveFileVerdicts(fileChangeSet.decisions),
-    [fileChangeSet.decisions],
-  );
-  const decidedCount = verdictByFileId.size;
-
-  // The EFFECTIVE verdicts for history (a CHANGE_SET decision covers every file
-  // a FILE decision does not override — the reconcile's own precedence), so a
-  // settled "Keep all" set reads every file as kept, never "Not reviewed".
-  // Interactive per-file selection deliberately keeps the FILE-only fold above.
-  const effectiveVerdicts = useMemo(
-    () => deriveEffectiveVerdicts(fileChangeSet),
-    [fileChangeSet],
+  // The files decided so far drive the reviewed-count progress and the bulk
+  // labels; each file's own state drives its selected option.
+  const decidedCount = useMemo(
+    () => files.filter((file) => file.state !== "undecided").length,
+    [files],
   );
 
   // The set-level reviewability drives the bulk affordance. A "binary-only" set
   // (binary files are the ONLY blocker) is keepable in one acknowledged action
   // ("Keep all"); a "blocked" set (a secret/elided file with no keepable
-  // bytes) can never be approved at once and must be resolved per file.
-  const reviewability = changeSetReviewability(fileChangeSet);
+  // bytes) can never be kept at once and must be resolved per file.
+  const reviewability = changeSetReviewability(fileReviewSet);
   const incomplete = reviewability !== "complete";
   const binaryOnly = reviewability === "binary-only";
 
@@ -211,103 +207,112 @@ export const FileReviewCard = memo(function FileReviewCard({
   );
   const bodyId = useId();
 
+  // The diff bodies need the captured bytes: the caller's, or read from the
+  // run once the diffs are on screen.
+  const loaded = useChangeSetCapture(
+    fileReviewSet.runId,
+    setId,
+    capture === undefined && showDiffs && expanded,
+  );
+  const captureSet = capture === undefined ? loaded.capture : capture;
+  const capturedById = useMemo(() => {
+    const map = new Map<string, CapturedFileChange>();
+    for (const change of captureSet?.changes ?? []) map.set(change.id, change);
+    return map;
+  }, [captureSet]);
+  const diffState: DiffState = loaded.error
+    ? "error"
+    : loaded.isLoading
+      ? "loading"
+      : "ready";
+
   const wholeSetSubmitting = submittingDecisionKeys.has(setId);
   const wholeSetError = decisionErrors.get(setId) ?? null;
 
-  // Bulk (CHANGE_SET) decision state — mirrors ApprovalCardBody: one active
-  // action drives the clicked button's spinner, cleared when the RPC settles.
-  const [activeAction, setActiveAction] = useState<FileDecisionAction | null>(null);
+  // Bulk (whole-set) decision state — mirrors ApprovalCardBody: one active
+  // action drives the clicked button's spinner, cleared when the call settles.
+  const [activeAction, setActiveAction] = useState<FileReviewAction | null>(null);
   useEffect(() => {
     if (!wholeSetSubmitting) setActiveAction(null);
   }, [wholeSetSubmitting]);
 
   const handleBulk = useCallback(
-    (action: FileDecisionAction) => {
+    (action: FileReviewAction) => {
       setActiveAction(action);
-      // Whole-set decision: CHANGE_SET scope, bound to the aggregate digest the
-      // reviewer saw (the enforcement gate the runner re-verifies at reconcile).
+      // Whole-set decision, bound to the aggregate digest the reviewer saw.
       // A "Keep all" on a binary-only set carries the acknowledgment: the
-      // binaries have no text diff but reconcilable bytes, so the user
-      // consciously keeps the whole set. The server honors it only when
-      // every incompleteness is binary and never relaxes the digest gate.
+      // binaries have no text diff but exact bytes, so the person consciously
+      // keeps the whole set. The server honors it only when every
+      // incompleteness is binary and never relaxes the digest.
       onSubmit?.(action, {
-        scope: FileDecisionScope.CHANGE_SET,
-        expectedDigest: fileChangeSet.aggregateDigest,
-        acknowledgeUnreviewable: action === FileDecisionAction.APPROVE && binaryOnly,
+        scope: "change_set",
+        expectedDigest: fileReviewSet.aggregateDigest,
+        acknowledgeUnreviewable: action === "keep" && binaryOnly,
       });
     },
-    [onSubmit, fileChangeSet.aggregateDigest, binaryOnly],
+    [onSubmit, fileReviewSet.aggregateDigest, binaryOnly],
   );
 
   const handleFileDecide = useCallback(
-    (change: CapturedFileChange, action: FileDecisionAction) => {
-      // Per-file decision: FILE scope correlated by the change id, bound to that
-      // file's digest (echoed verbatim — the server compares it against the same
-      // captured value, so it can never spuriously mismatch). A "Keep anyway" on a
-      // binary file carries the acknowledgment: it has no text diff, but its exact
-      // bytes are captured and reconcilable, so the user consciously keeps it.
-      // The server honors this only for a binary file and never relaxes
-      // the digest gate.
+    (file: FileReviewFile, action: FileReviewAction) => {
+      // Per-file decision, bound to that file's digest (echoed verbatim — the
+      // server compares it against the same captured value). A "Keep anyway"
+      // on a binary file carries the acknowledgment; the server honors it
+      // only for a binary file and never relaxes the digest.
       onSubmit?.(action, {
-        scope: FileDecisionScope.FILE,
-        fileChangeId: change.id,
-        expectedDigest: change.fileDigest,
-        acknowledgeUnreviewable:
-          action === FileDecisionAction.APPROVE &&
-          fileReviewability(change).kind === "binary",
+        scope: "file",
+        fileChangeId: file.fileChangeId,
+        expectedDigest: file.digest,
+        acknowledgeUnreviewable: action === "keep" && fileReviewability(file).kind === "binary",
       });
     },
     [onSubmit],
   );
 
-  // The set's aggregate `+N −M`, summed from the capture-time per-file counts
-  // (linesAdded/linesRemoved are stamped by the runner with the same diff
-  // algorithm the renderers use — see CapturedFileChange). A file with no
-  // counts (binary, secret-withheld, or a record predating the fields)
-  // contributes zero; when NO file has counts the aggregate is hidden rather
-  // than shown as a dishonest "+0 −0".
+  // The set's aggregate `+N −M`, summed from the capture-time per-file
+  // counts. A file with no counts (binary, secret-withheld) contributes zero;
+  // when NO file has counts the aggregate is hidden rather than shown as a
+  // dishonest "+0 −0".
   const totals = useMemo(() => {
     let additions = 0;
     let deletions = 0;
-    for (const c of changes) {
-      additions += c.linesAdded;
-      deletions += c.linesRemoved;
+    for (const file of files) {
+      additions += file.linesAdded;
+      deletions += file.linesRemoved;
     }
     return { additions, deletions };
-  }, [changes]);
+  }, [files]);
 
-  // Which non-reviewable classes are present in the set — folded once (memoized
-  // like `totals`) so the blocked-set copy is accurate to what's actually
-  // here (never the generic "binary or truncated").
+  // Which non-reviewable classes are present in the set — folded once so the
+  // blocked-set copy is accurate to what's actually here.
   const blockSummary = useMemo(() => {
     let hasBinary = false;
     let hasUnavailable = false;
-    for (const c of changes) {
-      const r = fileReviewability(c);
+    for (const file of files) {
+      const r = fileReviewability(file);
       if (r.kind === "binary") hasBinary = true;
       else if (r.kind === "unavailable") hasUnavailable = true;
     }
     return { hasBinary, hasUnavailable };
-  }, [changes]);
+  }, [files]);
 
   // Associates the disabled whole-set Approve with the notice explaining why it
   // is unavailable (a11y: a disabled action is never an unexplained dead end).
   const incompleteNoticeId = useId();
 
   const labels = bulkLabels(total, decidedCount, binaryOnly);
-  // A set the auto-keep policy kept (every change produced by a command the user
+  // A set a policy kept (every change produced by a command the person
   // already approved) says so explicitly: consent was given at the command
-  // gate, and the record must never read as if a human reviewed it here.
-  // A plugin eval's try keeps its edits by policy too, as Claude Code's
-  // evals apply them; nobody reviews a try.
-  const autoKept = interactive ? undefined : policyKeepOf(fileChangeSet);
+  // gate, and the record must never read as if a person reviewed it here.
+  // A plugin eval's try keeps its edits by policy too; nobody reviews a try.
+  const autoKept = interactive ? undefined : policyKeepOf(fileReviewSet);
   const summary = interactive
     ? `${total} file${total === 1 ? "" : "s"} awaiting review`
-    : autoKept === FileDecisionOrigin.POLICY_APPROVED_COMMAND
+    : autoKept === "approved_command"
       ? "Kept automatically — produced by a command you approved"
-      : autoKept === FileDecisionOrigin.POLICY_EVAL_TRY
+      : autoKept === "eval_try"
         ? "Kept automatically — an eval's try keeps its edits"
-        : settledSummary(total, changes, effectiveVerdicts);
+        : settledSummary(files);
 
   return (
     <div
@@ -347,8 +352,8 @@ export const FileReviewCard = memo(function FileReviewCard({
             <DecisionButton
               label={labels.approve}
               variant="primary"
-              onClick={() => handleBulk(FileDecisionAction.APPROVE)}
-              isActive={activeAction === FileDecisionAction.APPROVE}
+              onClick={() => handleBulk("keep")}
+              isActive={activeAction === "keep"}
               isSubmitting={wholeSetSubmitting}
               disabled={incomplete && !binaryOnly}
               ariaDescribedby={incomplete ? incompleteNoticeId : undefined}
@@ -357,8 +362,8 @@ export const FileReviewCard = memo(function FileReviewCard({
             <DecisionButton
               label={labels.reject}
               variant="danger"
-              onClick={() => handleBulk(FileDecisionAction.REJECT)}
-              isActive={activeAction === FileDecisionAction.REJECT}
+              onClick={() => handleBulk("undo")}
+              isActive={activeAction === "undo"}
               isSubmitting={wholeSetSubmitting}
               cursorTarget="file-review-reject"
             />
@@ -418,10 +423,10 @@ export const FileReviewCard = memo(function FileReviewCard({
           className="stg:space-y-2 stg:border-t stg:border-border-muted stg:px-3 stg:py-2.5"
         >
           {/* The list body carries no summary header: the bar already shows
-              the file count and the aggregate +N −M (per-file counts are
-              capture-time facts on the wire — linesAdded/linesRemoved — so no
-              body fetch is ever needed to decorate the list). Diff mode keeps
-              its fuller DiffSummary line above the rendered diffs. */}
+              the file count and the aggregate +N −M (per-file counts ride the
+              session's events, so no read is ever needed to decorate the
+              list). Diff mode keeps its fuller DiffSummary line above the
+              rendered diffs. */}
           {showDiffs && (
             <DiffSummary
               fileCount={total}
@@ -431,42 +436,50 @@ export const FileReviewCard = memo(function FileReviewCard({
           )}
 
           {!interactive
-            ? // Settled: every file paired with its committed EFFECTIVE
-              // verdict (a bulk decision covers files without their own), no
-              // controls — a record of what changed and how it was decided.
-              changes.map((change) => (
+            ? // Settled: every file paired with its verdict, no controls — a
+              // record of what changed and how it was decided.
+              files.map((file) => (
                 <SettledFileRow
-                  key={change.id}
-                  change={change}
-                  verdict={effectiveVerdicts.get(change.id) ?? null}
+                  key={file.fileChangeId}
+                  file={file}
+                  captured={capturedById.get(file.fileChangeId)}
+                  diffState={diffState}
                   showDiffs={showDiffs}
                 />
               ))
             : showPerFile
-              ? changes.map((change) => (
+              ? files.map((file) => (
                   <FileChangeReviewRow
-                    key={change.id}
-                    change={change}
-                    verdict={verdictByFileId.get(change.id) ?? null}
+                    key={file.fileChangeId}
+                    file={file}
+                    captured={capturedById.get(file.fileChangeId)}
+                    diffState={diffState}
                     isSubmitting={
-                      submittingDecisionKeys.has(fileDecisionKey(setId, change.id)) ||
+                      submittingDecisionKeys.has(fileDecisionKey(setId, file.fileChangeId)) ||
                       wholeSetSubmitting
                     }
-                    error={decisionErrors.get(fileDecisionKey(setId, change.id)) ?? null}
+                    error={decisionErrors.get(fileDecisionKey(setId, file.fileChangeId)) ?? null}
                     onDecide={handleFileDecide}
                     showDiffs={showDiffs}
                   />
                 ))
               : // A single complete file decided via the bar's bulk controls:
                 // its detail is informational, with no per-file control.
-                changes.map((change) =>
+                files.map((file) =>
                   showDiffs ? (
-                    <div key={change.id} className="stg:space-y-1.5">
-                      <CaptureBadge change={change} />
-                      <CapturedChangeDiff change={change} />
+                    <div key={file.fileChangeId} className="stg:space-y-1.5">
+                      <CaptureBadge captured={capturedById.get(file.fileChangeId)} />
+                      <CapturedChangeDiff
+                        captured={capturedById.get(file.fileChangeId)}
+                        diffState={diffState}
+                      />
                     </div>
                   ) : (
-                    <FileListRow key={change.id} change={change} />
+                    <FileListRow
+                      key={file.fileChangeId}
+                      file={file}
+                      captured={capturedById.get(file.fileChangeId)}
+                    />
                   ),
                 )}
 
@@ -481,45 +494,60 @@ export const FileReviewCard = memo(function FileReviewCard({
 
 /**
  * The policy that kept the set, when one did: the approved-command auto-keep
- * (POLICY_APPROVED_COMMAND) or a plugin eval's try (POLICY_EVAL_TRY).
- * Origin is audit provenance — the record label derives from it so an
- * automatic keep is never presented as a human review.
+ * (`approved_command`) or a plugin eval's try (`eval_try`). The decision's
+ * origin is audit provenance — the record label derives from it so an
+ * automatic keep is never presented as a person's review.
  */
-function policyKeepOf(fileChangeSet: FileChangeSet): FileDecisionOrigin | undefined {
-  return fileChangeSet.decisions.find(
-    (d) =>
-      d.origin === FileDecisionOrigin.POLICY_APPROVED_COMMAND ||
-      d.origin === FileDecisionOrigin.POLICY_EVAL_TRY,
-  )?.origin;
+function policyKeepOf(set: FileReviewSet): "approved_command" | "eval_try" | undefined {
+  for (const decision of set.decisions) {
+    if (decision.origin === "approved_command" || decision.origin === "eval_try") {
+      return decision.origin;
+    }
+  }
+  return undefined;
 }
 
 /**
- * The settled bar's one-line history: verdict counts folded from the effective
- * decisions ("2 kept · 1 discarded"), with an honest "not reviewed" bucket for
- * files a terminated set never decided. Falls back to a plain changed-count
- * when nothing was decided at all.
+ * The settled bar's one-line history: verdict counts ("2 kept · 1
+ * discarded"), with an honest bucket for an undo that failed and one for
+ * files never decided. Falls back to a plain changed-count when nothing was
+ * decided at all.
  */
-function settledSummary(
-  total: number,
-  changes: readonly CapturedFileChange[],
-  effectiveVerdicts: ReadonlyMap<string, FileDecisionAction>,
-): string {
+function settledSummary(files: readonly FileReviewFile[]): string {
+  const total = files.length;
   let kept = 0;
   let discarded = 0;
-  for (const c of changes) {
-    const v = effectiveVerdicts.get(c.id);
-    if (v === FileDecisionAction.APPROVE) kept++;
-    else if (v === FileDecisionAction.REJECT) discarded++;
+  let failed = 0;
+  for (const file of files) {
+    if (file.state === "kept") kept++;
+    else if (file.state === "undone" || file.state === "undoing") discarded++;
+    else if (file.state === "undo_failed") failed++;
   }
-  const undecided = total - kept - discarded;
-  if (kept === 0 && discarded === 0) {
+  const undecided = total - kept - discarded - failed;
+  if (undecided === total) {
     return `${total} file${total === 1 ? "" : "s"} changed`;
   }
   const parts: string[] = [];
   if (kept > 0) parts.push(`${kept} kept`);
   if (discarded > 0) parts.push(`${discarded} discarded`);
+  if (failed > 0) parts.push(`${failed} could not be put back`);
   if (undecided > 0) parts.push(`${undecided} not reviewed`);
   return parts.join(" · ");
+}
+
+/** Whether a row's diff body is loading, failed to load, or ready (shown or absent). */
+type DiffState = "loading" | "error" | "ready";
+
+/** A file's verdict as the per-file control reads it: kept, undone, or not yet decided. */
+function verdictOf(file: FileReviewFile): FileReviewAction | null {
+  switch (file.state) {
+    case "kept":
+      return "keep";
+    case "undecided":
+      return null;
+    default:
+      return "undo";
+  }
 }
 
 /** The bar expander's disclosure chevron (rotates when open). */
@@ -550,14 +578,15 @@ function ExpanderChevron({ expanded }: { expanded: boolean }) {
 // ---------------------------------------------------------------------------
 
 interface FileChangeReviewRowProps {
-  readonly change: CapturedFileChange;
-  /** The file's committed verdict (server truth), or null if undecided. */
-  readonly verdict: FileDecisionAction | null;
+  readonly file: FileReviewFile;
+  /** The file's captured bytes, when loaded (diff mode). */
+  readonly captured: CapturedFileChange | undefined;
+  readonly diffState: DiffState;
   /** True while THIS file's decision (or a whole-set decision) is in flight. */
   readonly isSubmitting: boolean;
   /** This file's last failed decision, or null — surfaced beside its control. */
   readonly error: Error | null;
-  readonly onDecide: (change: CapturedFileChange, action: FileDecisionAction) => void;
+  readonly onDecide: (file: FileReviewFile, action: FileReviewAction) => void;
   /** Diff-rich body vs compact list line — see {@link FileReviewCardProps.showDiffs}. */
   readonly showDiffs: boolean;
 }
@@ -569,23 +598,24 @@ interface FileChangeReviewRowProps {
  * compact {@link FileListRow} line with the control trailing it.
  */
 const FileChangeReviewRow = memo(function FileChangeReviewRow({
-  change,
-  verdict,
+  file,
+  captured,
+  diffState,
   isSubmitting,
   error,
   onDecide,
   showDiffs,
 }: FileChangeReviewRowProps) {
-  // One classification per change drives BOTH the disabled Keep and its reason,
+  // One classification per file drives BOTH the disabled Keep and its reason,
   // so the two can never disagree (single source of truth).
-  const reviewability = fileReviewability(change);
+  const reviewability = fileReviewability(file);
   const blocked = reviewability.kind !== "reviewable";
   const reasonId = useId();
   const verdictControl = (
     <FileVerdictControl
-      change={change}
+      file={file}
       reviewability={reviewability}
-      verdict={verdict}
+      verdict={verdictOf(file)}
       isSubmitting={isSubmitting}
       onDecide={onDecide}
       describedById={blocked ? reasonId : undefined}
@@ -595,12 +625,12 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
     <div className="stg:space-y-1.5">
       {showDiffs ? (
         <>
-          <CaptureBadge change={change} />
-          <CapturedChangeDiff change={change} />
+          <CaptureBadge captured={captured} />
+          <CapturedChangeDiff captured={captured} diffState={diffState} />
           {verdictControl}
         </>
       ) : (
-        <FileListRow change={change} trailing={verdictControl} />
+        <FileListRow file={file} captured={captured} trailing={verdictControl} />
       )}
       {blocked && <BlockReasonNote reviewability={reviewability} id={reasonId} />}
       {error && (
@@ -615,39 +645,41 @@ const FileChangeReviewRow = memo(function FileChangeReviewRow({
 });
 
 // ---------------------------------------------------------------------------
-// SettledFileRow — one file paired with its committed verdict (read-only)
+// SettledFileRow — one file paired with its verdict (read-only)
 // ---------------------------------------------------------------------------
 
 interface SettledFileRowProps {
-  readonly change: CapturedFileChange;
-  /** The file's committed verdict, or null if the set was never decided. */
-  readonly verdict: FileDecisionAction | null;
+  readonly file: FileReviewFile;
+  readonly captured: CapturedFileChange | undefined;
+  readonly diffState: DiffState;
   /** Diff-rich body vs compact list line — see {@link FileReviewCardProps.showDiffs}. */
   readonly showDiffs: boolean;
 }
 
 /**
- * A read-only file row for a settled change set: the capture provenance badge
- * and a static verdict badge, with the before/after diff in diff mode or the
+ * A read-only file row for a settled set: the capture provenance badge and a
+ * static verdict badge, with the before/after diff in diff mode or the
  * compact list line otherwise. No decision controls — the verdict is history,
- * not an action. Used by the read-only {@link FileReviewCard}
- * (`interactive={false}`) for decided/reconciled sets and terminal runs.
+ * not an action.
  */
 const SettledFileRow = memo(function SettledFileRow({
-  change,
-  verdict,
+  file,
+  captured,
+  diffState,
   showDiffs,
 }: SettledFileRowProps) {
   if (!showDiffs) {
-    return <FileListRow change={change} trailing={<VerdictBadge verdict={verdict} />} />;
+    return (
+      <FileListRow file={file} captured={captured} trailing={<VerdictBadge state={file.state} />} />
+    );
   }
   return (
     <div className="stg:space-y-1.5">
       <div className="stg:flex stg:items-center stg:gap-2">
-        <CaptureBadge change={change} />
-        <VerdictBadge verdict={verdict} />
+        <CaptureBadge captured={captured} />
+        <VerdictBadge state={file.state} />
       </div>
-      <CapturedChangeDiff change={change} />
+      <CapturedChangeDiff captured={captured} diffState={diffState} />
     </div>
   );
 });
@@ -658,12 +690,32 @@ const SettledFileRow = memo(function SettledFileRow({
 
 /**
  * Projects a {@link CapturedFileChange} onto the display `FileChange` and
- * renders its bounded diff — the one place the diff body renders, shared by the
- * interactive, settled, and single-file branches of the diff-mode body.
+ * renders its bounded diff — the one place the diff body renders, shared by
+ * the interactive, settled, and single-file branches of the diff-mode body.
+ * While the run's bytes load it says so; a failed read or a file the run does
+ * not hold renders a short notice instead of a diff.
  */
-function CapturedChangeDiff({ change }: { change: CapturedFileChange }) {
-  const adapted = useMemo(() => toDisplayFileChange(change), [change]);
-  return <FileChangeDiff change={adapted} bounded />;
+function CapturedChangeDiff({
+  captured,
+  diffState,
+}: {
+  readonly captured: CapturedFileChange | undefined;
+  readonly diffState: DiffState;
+}) {
+  const adapted = useMemo(
+    () => (captured ? toDisplayFileChange(captured) : null),
+    [captured],
+  );
+  if (adapted) return <FileChangeDiff change={adapted} bounded />;
+  return (
+    <p className="stg:text-[11px] stg:italic stg:text-muted-foreground">
+      {diffState === "loading"
+        ? "Loading the diff…"
+        : diffState === "error"
+          ? "Couldn't load the diff."
+          : "The diff isn't available."}
+    </p>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -671,7 +723,7 @@ function CapturedChangeDiff({ change }: { change: CapturedFileChange }) {
 // ---------------------------------------------------------------------------
 
 /**
- * One file of the change set as a compact list line: kind letter, linked path,
+ * One file of the set as a compact list line: kind letter, linked path,
  * `+N −M` stats, provenance badge, and an optional trailing slot (the verdict
  * control while reviewing; the committed verdict once settled).
  *
@@ -684,64 +736,70 @@ function CapturedChangeDiff({ change }: { change: CapturedFileChange }) {
  * reads in one line.
  */
 function FileListRow({
-  change,
+  file,
+  captured,
   trailing,
 }: {
-  readonly change: CapturedFileChange;
+  readonly file: FileReviewFile;
+  readonly captured: CapturedFileChange | undefined;
   readonly trailing?: React.ReactNode;
 }) {
-  const path = change.pathAfter || change.pathBefore;
   const renamedFrom =
-    change.kind === FileChangeKind.RENAME && change.pathBefore !== change.pathAfter
-      ? change.pathBefore
-      : "";
+    file.change === "renamed" && file.previousPath !== file.path ? file.previousPath : "";
   return (
     <div
       className="stg:flex stg:flex-wrap stg:items-center stg:gap-x-2 stg:gap-y-1"
       data-cursor-target="file-review-list-row"
     >
-      <FileKindBadge kind={change.kind} />
+      <FileKindBadge kind={fileChangeKindOf(file.change)} />
       {renamedFrom && (
         <span className="stg:min-w-0 stg:truncate stg:font-mono stg:text-xs stg:text-muted-foreground-faint">
           {renamedFrom}&nbsp;→&nbsp;
         </span>
       )}
-      <FilePathLink path={path} dirDisplay="dim" className="stg:min-w-0 stg:flex-1 stg:text-xs" />
+      <FilePathLink path={file.path} dirDisplay="dim" className="stg:min-w-0 stg:flex-1 stg:text-xs" />
       <FileLineStats
-        linesAdded={change.linesAdded}
-        linesRemoved={change.linesRemoved}
+        linesAdded={file.linesAdded}
+        linesRemoved={file.linesRemoved}
       />
-      <CaptureBadge change={change} />
+      <CaptureBadge captured={captured} />
       {trailing}
     </div>
   );
 }
 
 /**
- * A change's committed verdict as a static badge: APPROVE reads "Kept" (the
- * bytes were reconciled into the workspace), REJECT reads "Discarded" (reverted
- * to baseline), and an undecided change (a set terminated mid-review) reads "Not
- * reviewed". Uses the same diff add/remove tokens the card uses elsewhere, so it
- * introduces no new token.
+ * A file's verdict as a static badge: kept reads "Kept", an undo reads
+ * "Discarded" (put back, or being put back), a failed undo reads "Undo
+ * failed", and an undecided file reads "Not reviewed". Uses the diff
+ * add/remove tokens the card uses elsewhere, so it introduces no new token.
  */
-function VerdictBadge({ verdict }: { verdict: FileDecisionAction | null }) {
-  if (verdict === FileDecisionAction.APPROVE) {
-    return (
-      <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-diff-added-fg">Kept</span>
-    );
+function VerdictBadge({ state }: { state: FileReviewFile["state"] }) {
+  switch (state) {
+    case "kept":
+      return (
+        <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-diff-added-fg">Kept</span>
+      );
+    case "undoing":
+    case "undone":
+      return (
+        <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-diff-removed-fg">
+          Discarded
+        </span>
+      );
+    case "undo_failed":
+      return (
+        <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-destructive">
+          Undo failed
+        </span>
+      );
+    case "undecided":
+      return (
+        <span className="stg:shrink-0 stg:text-[11px] stg:italic stg:text-muted-foreground">
+          Not reviewed
+        </span>
+      );
   }
-  if (verdict === FileDecisionAction.REJECT) {
-    return (
-      <span className="stg:shrink-0 stg:text-[11px] stg:font-medium stg:text-diff-removed-fg">
-        Discarded
-      </span>
-    );
-  }
-  return (
-    <span className="stg:shrink-0 stg:text-[11px] stg:italic stg:text-muted-foreground">
-      Not reviewed
-    </span>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -749,12 +807,12 @@ function VerdictBadge({ verdict }: { verdict: FileDecisionAction | null }) {
 // ---------------------------------------------------------------------------
 
 interface FileVerdictControlProps {
-  readonly change: CapturedFileChange;
+  readonly file: FileReviewFile;
   /** The file's reviewability — `Keep` is available only when `reviewable`. */
   readonly reviewability: FileReviewability;
-  readonly verdict: FileDecisionAction | null;
+  readonly verdict: FileReviewAction | null;
   readonly isSubmitting: boolean;
-  readonly onDecide: (change: CapturedFileChange, action: FileDecisionAction) => void;
+  readonly onDecide: (file: FileReviewFile, action: FileReviewAction) => void;
   /** Id of the reason note describing why `Keep` is unavailable (a11y). */
   readonly describedById?: string;
 }
@@ -764,32 +822,32 @@ interface FileVerdictControlProps {
  * `radiogroup` (the established idiom across the SDK — Keep XOR Discard is a
  * persistent, mutually-exclusive choice because the card stays visible after
  * each file decision). The committed verdict reads as `aria-checked`; clicking
- * the other option flips it (a new last-write-wins decision).
+ * the other option flips it (a new decision; the last one wins).
  *
  * `Keep` behavior by reviewability: a `reviewable` file keeps normally; a
- * `binary` file has no text diff but reconcilable bytes, so `Keep` is enabled as
- * an explicit "Keep anyway" that carries the acknowledgment; an
- * `unavailable` file (secret-withheld / size-elided) has no keepable bytes, so
- * `Keep` stays disabled — it can only be discarded. `describedById` associates
- * the group with the note explaining the binary/unavailable case.
+ * `binary` file has no text diff but exact bytes, so `Keep` is enabled as an
+ * explicit "Keep anyway" that carries the acknowledgment; an `unavailable`
+ * file has no keepable bytes, so `Keep` stays disabled — it can only be
+ * discarded. `describedById` associates the group with the note explaining
+ * the binary/unavailable case.
  */
 function FileVerdictControl({
-  change,
+  file,
   reviewability,
   verdict,
   isSubmitting,
   onDecide,
   describedById,
 }: FileVerdictControlProps) {
-  // Optimistic: show the clicked option immediately; the server's decisions
-  // projection then confirms it (or, on failure, it reverts to `verdict`).
-  const [pending, setPending] = useState<FileDecisionAction | null>(null);
+  // Optimistic: show the clicked option immediately; the session's events
+  // then confirm it (or, on failure, it reverts to `verdict`).
+  const [pending, setPending] = useState<FileReviewAction | null>(null);
   useEffect(() => {
     if (!isSubmitting) setPending(null);
   }, [isSubmitting]);
 
   const effective = pending ?? verdict;
-  const path = change.pathAfter || change.pathBefore;
+  const path = file.path;
   // A binary file is keepable via an explicit acknowledgment; only a truly
   // unavailable diff (no captured bytes) leaves Keep disabled.
   const isBinary = reviewability.kind === "binary";
@@ -800,12 +858,12 @@ function FileVerdictControl({
     : `Keep ${path}`;
 
   const decide = useCallback(
-    (action: FileDecisionAction) => {
+    (action: FileReviewAction) => {
       if (isSubmitting) return;
       setPending(action);
-      onDecide(change, action);
+      onDecide(file, action);
     },
-    [isSubmitting, onDecide, change],
+    [isSubmitting, onDecide, file],
   );
 
   return (
@@ -819,19 +877,19 @@ function FileVerdictControl({
         label={keepLabel}
         accessibleLabel={keepAccessibleLabel}
         tone="keep"
-        selected={effective === FileDecisionAction.APPROVE}
-        busy={isSubmitting && pending === FileDecisionAction.APPROVE}
+        selected={effective === "keep"}
+        busy={isSubmitting && pending === "keep"}
         disabled={isSubmitting || keepDisabled}
-        onClick={() => decide(FileDecisionAction.APPROVE)}
+        onClick={() => decide("keep")}
       />
       <VerdictOption
         label="Discard"
         accessibleLabel={`Discard ${path}`}
         tone="discard"
-        selected={effective === FileDecisionAction.REJECT}
-        busy={isSubmitting && pending === FileDecisionAction.REJECT}
+        selected={effective === "undo"}
+        busy={isSubmitting && pending === "undo"}
         disabled={isSubmitting}
-        onClick={() => decide(FileDecisionAction.REJECT)}
+        onClick={() => decide("undo")}
       />
     </div>
   );
@@ -908,12 +966,14 @@ const PROVENANCE: Partial<Record<FileCaptureClass, { label: string; aria: string
 
 /**
  * A small provenance pill for a file captured outside normal git tracking —
- * gitignored or non-git (CAS). Renders nothing for ordinary git-tracked (or
- * untracked-but-new) files, so the badge appears only when it carries real
- * signal: this change is not part of the repo's tracked history.
+ * gitignored or non-git (CAS), read from the run's capture. Renders nothing
+ * for ordinary git-tracked (or untracked-but-new) files, or while the capture
+ * is not loaded, so the badge appears only when it carries real signal: this
+ * change is not part of the repo's tracked history.
  */
-function CaptureBadge({ change }: { change: CapturedFileChange }) {
-  const provenance = PROVENANCE[change.captureClass];
+function CaptureBadge({ captured }: { captured: CapturedFileChange | undefined }) {
+  if (!captured) return null;
+  const provenance = PROVENANCE[captured.captureClass];
   if (!provenance) return null;
   return (
     <span
@@ -964,14 +1024,9 @@ function blockReasonText(reviewability: FileReviewability): string | null {
     case "binary":
       return "Binary file — no text diff to review. Keep it as-is (its exact bytes are applied) or discard it.";
     case "unavailable":
-      switch (reviewability.reason) {
-        case "secret":
-          return "Contents withheld — this path looks like a secret, so it was never captured for review and can only be discarded.";
-        case "size":
-          return "Diff too large to display — the full contents were elided to stay within limits, so this change can only be discarded.";
-        default:
-          return "The full diff isn't available to review, so this change can only be discarded.";
-      }
+      return reviewability.reason === "secret"
+        ? "Contents withheld — this path looks like a secret, so it was never captured for review and can only be discarded."
+        : "The full diff isn't available to review (it was too large or could not be captured), so this change can only be discarded.";
     default:
       return null;
   }
@@ -1034,27 +1089,9 @@ function ReviewProgress({ decided, total }: { decided: number; total: number }) 
 // ---------------------------------------------------------------------------
 
 /**
- * Fold the ledger-ordered decisions into each file's current verdict, last
- * write wins (the precedence the runner reconcile applies). Only FILE-scoped
- * decisions are per-file; a CHANGE_SET decision cannot coexist with an
- * AWAITING_REVIEW set, so it is ignored defensively.
- */
-function deriveFileVerdicts(
-  decisions: readonly FileDecision[],
-): Map<string, FileDecisionAction> {
-  const byFileId = new Map<string, FileDecisionAction>();
-  for (const d of decisions) {
-    if (d.scope === FileDecisionScope.FILE && d.fileChangeId) {
-      byFileId.set(d.fileChangeId, d.action);
-    }
-  }
-  return byFileId;
-}
-
-/**
  * The whole-set action labels, sharpened by file count and review progress. A
- * `binaryOnly` set reads as "Keep all" rather than "Approve all": the
- * bulk keep carries the binary acknowledgment, and "Keep" is the same verb the
+ * `binaryOnly` set reads as "Keep all" rather than "Approve all": the bulk
+ * keep carries the binary acknowledgment, and "Keep" is the same verb the
  * per-file binary control uses ("Keep anyway").
  */
 function bulkLabels(

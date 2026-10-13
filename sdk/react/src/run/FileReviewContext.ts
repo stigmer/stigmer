@@ -3,77 +3,93 @@ import type {
   CapturedFileChange,
   FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { FileReviewSet } from "@stigmer/sdk";
 import {
+  fileForRowPath,
   fileReviewRowChange,
   fileReviewRowState,
   type FileReviewRowState,
 } from "./file-review-status.js";
 
 /**
- * Context value that carries the session's captured change sets to the
- * transcript tool rows that reference them, so a stamped file-edit row
- * (`ToolCall.file_change_set_id`) can badge itself with the set's live review
- * state — pending review, kept, discarded — right where the edit happened.
+ * Context value that carries the session's file reviews to the transcript
+ * tool rows, so a file-edit row can badge itself with the live review state
+ * of the file it changed — pending review, kept, discarded — right where the
+ * edit happened, and a write row can render its file's captured diff.
  *
- * The sibling of {@link ApprovalContext}, and the same discipline: provided by
- * {@link MessageThread}, keyed by a stable id, rebuilt only when the underlying
- * change sets actually change (structural sharing keeps set references stable
- * across streaming frames), and an empty default so consumers without a
- * provider render no badge (backward compatible).
+ * A row is linked to a review by its turn (the tool use's run, whose
+ * `fileReview` sets hold the turn's changes) and its path. What is decided
+ * comes only from the session's fold; the captured bytes a diff renders come
+ * from the turns' runs.
  *
- * Read-only by design: the row badge is presentation of the set's state, never
- * a decision surface — decisions live exclusively on the set's decision bar
- * ({@link FileReviewCard}).
+ * The sibling of {@link ApprovalContext}, and the same discipline: provided
+ * by {@link MessageThread}, rebuilt only when the underlying sets change (the
+ * fold keeps unchanged set references), and an empty default so consumers
+ * without a provider render no badge.
+ *
+ * Read-only by design: the row badge is presentation, never a decision
+ * surface — decisions live on the set's decision bar ({@link FileReviewCard}).
  */
 export interface FileReviewContextValue {
-  /** Every displayable change set across the session, keyed by `FileChangeSet.id`. */
+  /** Each turn's file reviews from the session's fold, keyed by the turn's run id. */
+  readonly fileReviewByRunId: ReadonlyMap<string, readonly FileReviewSet[]>;
+  /** The captured change sets (the runs' bytes), keyed by change set id. */
   readonly changeSetsById: ReadonlyMap<string, FileChangeSet>;
 }
 
 const DEFAULT_VALUE: FileReviewContextValue = {
+  fileReviewByRunId: new Map(),
   changeSetsById: new Map(),
 };
 
-/** Context that supplies the session's change sets to stamped tool rows. */
+/** Context that supplies the session's file reviews to the tool rows. */
 export const FileReviewContext =
   createContext<FileReviewContextValue>(DEFAULT_VALUE);
 
+const NO_SETS: readonly FileReviewSet[] = [];
+
 /**
- * The review state a stamped tool row should badge, or `null` for no badge
- * (unstamped row, unknown set, or a file absent from its set — see
- * {@link fileReviewRowState} for the honest-degradation rules).
+ * The review state a file-edit row should badge, or `null` for no badge (no
+ * review for its turn yet, or a file absent from it — see
+ * {@link fileReviewRowState}).
  *
- * @param fileChangeSetId The row's `ToolCall.file_change_set_id` (may be "").
- * @param rowPath The row's file path (the presenter's primary arg), used to
- *   resolve this file's verdict once the set is decided.
+ * @param runId The row's turn (`ToolUse.runId`).
+ * @param rowPath The row's file path (the presenter's primary arg); pass
+ *   `null` for a row that edits no file.
  */
 export function useFileReviewRowState(
-  fileChangeSetId: string,
+  runId: string,
   rowPath: string | null,
 ): FileReviewRowState | null {
-  const { changeSetsById } = useContext(FileReviewContext);
-  if (!fileChangeSetId) return null;
-  return fileReviewRowState(changeSetsById.get(fileChangeSetId), rowPath);
+  const { fileReviewByRunId } = useContext(FileReviewContext);
+  return fileReviewRowState(fileReviewByRunId.get(runId) ?? NO_SETS, rowPath);
 }
 
 /**
- * The captured change a stamped tool row should render as its inline diff, or
- * `null` to keep the row's own content view (unstamped row, unknown set, path
- * miss, or a non-reviewable change — see {@link fileReviewRowChange} for the
- * honest-degradation rules).
+ * The captured change a write row should render as its inline diff, or
+ * `null` to keep the row's own content view: no review for its turn, a path
+ * miss, a capture the runs do not hold, or a non-reviewable change (see
+ * {@link fileReviewRowChange}).
  *
- * The diff sibling of {@link useFileReviewRowState}: both read the same
- * context entry through the same path matcher, so a row's badge and its diff
- * always describe the same captured artifact.
+ * The diff sibling of {@link useFileReviewRowState}: both match the row's
+ * path against the same turn's review, so a row's badge and its diff always
+ * describe the same file.
  *
- * @param fileChangeSetId The row's `ToolCall.file_change_set_id` (may be "").
- * @param rowPath The row's file path (the presenter's primary arg).
+ * @param runId The row's turn (`ToolUse.runId`).
+ * @param rowPath The row's file path; `null` for a row that writes no file.
  */
 export function useFileReviewRowChange(
-  fileChangeSetId: string,
+  runId: string,
   rowPath: string | null,
 ): CapturedFileChange | null {
-  const { changeSetsById } = useContext(FileReviewContext);
-  if (!fileChangeSetId) return null;
-  return fileReviewRowChange(changeSetsById.get(fileChangeSetId), rowPath);
+  const { fileReviewByRunId, changeSetsById } = useContext(FileReviewContext);
+  if (!rowPath) return null;
+  const sets = fileReviewByRunId.get(runId) ?? NO_SETS;
+  for (let i = sets.length - 1; i >= 0; i--) {
+    const set = sets[i]!;
+    if (fileForRowPath(set, rowPath)) {
+      return fileReviewRowChange(changeSetsById.get(set.changeSetId), rowPath);
+    }
+  }
+  return null;
 }

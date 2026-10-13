@@ -8,7 +8,8 @@
  * read, the per-event bound, previews, what a failed or refused append
  * does, and the two file-review events the runner writes (a captured
  * change set's `changes`, once; an undo's `reconciled`, at once and before
- * the engine's turn begins). The hermetic event goldens prove the same through the real
+ * the engine's turn begins), and an offloaded output's full-output event
+ * after its result. The hermetic event goldens prove the same through the real
  * activity on both harnesses.
  */
 
@@ -126,6 +127,31 @@ describe("the sealed prefix of a thread", () => {
     await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
     await e.flush(st, { final: true });
     expect(ids(log)).toEqual(["r", "root.m1"]);
+  });
+});
+
+describe("an offloaded output", () => {
+  it("writes the result with the output's head, then where the whole output is stored, once", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const offloaded = row("big", {
+      result: "line 1\n\n[output truncated — 900 KB total; view full output]",
+      outputRef: { storageKey: `artifacts/${RUN}/toolcalls/big.txt`, sizeBytes: 900_000n, contentHash: "ab12", mimeType: "text/plain", truncatedPreview: "line 1" },
+    });
+    const st = status({ messages: [{ type: AI, content: "Reading the log.", toolCalls: [offloaded, row("small")] }] });
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(st, { final: false });
+    await e.flush(st, { final: true });
+    expect(ids(log)).toEqual(["root.m0", "big", "small", "big.r", "big.full", "small.r"]);
+    const full = log.events[4]!.event;
+    expect(full.case === "stigmerToolResultFullOutput" && [full.value.toolUseId, full.value.storageKey, full.value.sizeBytes, full.value.contentHash, full.value.mimeType, full.value.isImage]).toEqual([
+      `${RUN}.big`,
+      `artifacts/${RUN}/toolcalls/big.txt`,
+      900_000n,
+      "ab12",
+      "text/plain",
+      false,
+    ]);
   });
 });
 

@@ -1,33 +1,19 @@
+// Pins useToolPresentation over the session fold's tool uses: kind and
+// category classification (Cursor and native names, MCP tools), labels,
+// primary argument, result views and summaries, and the presenter
+// registry's overrides (label, summary, disclosure, chrome, run-grouping)
+// with their disposers.
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ToolKind } from "@stigmer/sdk";
 import { useToolPresentation, registerToolPresenter } from "../tool-presenter";
-
-function makeToolCall(opts: {
-  name: string;
-  args?: Record<string, unknown>;
-  result?: string;
-  mcpServerSlug?: string;
-  status?: ToolCallStatus;
-}) {
-  return create(ToolCallSchema, {
-    id: opts.name,
-    name: opts.name,
-    args: (opts.args ?? {}) as JsonObject,
-    result: opts.result ?? "",
-    mcpServerSlug: opts.mcpServerSlug ?? "",
-    status: opts.status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
-  });
-}
+import { toolUse } from "./__fixtures__/fold-values";
 
 describe("useToolPresentation", () => {
   it("classifies a Cursor PascalCase edit tool (the bug this fixes)", () => {
-    const tc = makeToolCall({
+    const tc = toolUse({
       name: "StrReplace",
-      args: { path: "/x.ts", old_string: "a", new_string: "b" },
+      input: { path: "/x.ts", old_string: "a", new_string: "b" },
       result: '{"status":"success","value":{"linesAdded":1,"linesRemoved":1}}',
     });
     const { result } = renderHook(() => useToolPresentation(tc));
@@ -40,9 +26,9 @@ describe("useToolPresentation", () => {
   });
 
   it("summarizes a failed shell exit code", () => {
-    const tc = makeToolCall({
+    const tc = toolUse({
       name: "Shell",
-      args: { command: "false" },
+      input: { command: "false" },
       result: "oops\n[Command failed with exit code 3]",
     });
     const { result } = renderHook(() => useToolPresentation(tc));
@@ -53,7 +39,7 @@ describe("useToolPresentation", () => {
   });
 
   it("extracts the primary argument", () => {
-    const tc = makeToolCall({ name: "Shell", args: { command: "ls -la" } });
+    const tc = toolUse({ name: "Shell", input: { command: "ls -la" } });
     const { result } = renderHook(() => useToolPresentation(tc));
     expect(result.current.primaryArg).toBe("ls -la");
   });
@@ -63,7 +49,7 @@ describe("useToolPresentation", () => {
       label: () => "Run command",
     });
     try {
-      const tc = makeToolCall({ name: "Shell", args: { command: "ls" } });
+      const tc = toolUse({ name: "Shell", input: { command: "ls" } });
       const { result } = renderHook(() => useToolPresentation(tc));
       expect(result.current.label).toBe("Run command");
     } finally {
@@ -71,7 +57,7 @@ describe("useToolPresentation", () => {
     }
 
     // After dispose, the default label is restored — no global leakage.
-    const tc = makeToolCall({ name: "Shell", args: { command: "ls" } });
+    const tc = toolUse({ name: "Shell", input: { command: "ls" } });
     const { result } = renderHook(() => useToolPresentation(tc));
     expect(result.current.label).toBe("Shell");
   });
@@ -82,7 +68,7 @@ describe("useToolPresentation", () => {
       // category and edit/write are `preview` categories (output / diff is
       // the information), asserted separately below.
       for (const name of ["Read", "Grep", "Glob"]) {
-        const tc = makeToolCall({ name, args: { path: "/x", command: "ls", pattern: "p" } });
+        const tc = toolUse({ name, input: { path: "/x", command: "ls", pattern: "p" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.disclosure).toBe("summary");
       }
@@ -90,9 +76,9 @@ describe("useToolPresentation", () => {
 
     it("previews file edits and writes (the diff is the information)", () => {
       for (const name of ["StrReplace", "Write"]) {
-        const tc = makeToolCall({
+        const tc = toolUse({
           name,
-          args: { path: "/x.ts", contents: "x", old_string: "a", new_string: "b" },
+          input: { path: "/x.ts", contents: "x", old_string: "a", new_string: "b" },
         });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.disclosure).toBe("preview");
@@ -100,7 +86,7 @@ describe("useToolPresentation", () => {
     });
 
     it("gives shell the tail disclosure (live preview, dimmed-tail settle)", () => {
-      const tc = makeToolCall({ name: "Shell", args: { command: "ls" }, result: "files" });
+      const tc = toolUse({ name: "Shell", input: { command: "ls" }, result: "files" });
       const { result } = renderHook(() => useToolPresentation(tc));
       expect(result.current.category).toBe("shell");
       expect(result.current.disclosure).toBe("tail");
@@ -112,7 +98,7 @@ describe("useToolPresentation", () => {
         disclosure: () => "preview",
       });
       try {
-        const tc = makeToolCall({ name: "Shell", args: { command: "ls" }, result: "files" });
+        const tc = toolUse({ name: "Shell", input: { command: "ls" }, result: "files" });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.disclosure).toBe("preview");
       } finally {
@@ -121,10 +107,10 @@ describe("useToolPresentation", () => {
     });
 
     it("foregrounds MCP tools as preview", () => {
-      const tc = makeToolCall({
+      const tc = toolUse({
         name: "send_message",
-        mcpServerSlug: "acme/slack",
-        args: { channel: "general" },
+        mcpServerName: "acme/slack",
+        input: { channel: "general" },
       });
       const { result } = renderHook(() => useToolPresentation(tc));
       expect(result.current.category).toBe("mcp");
@@ -132,7 +118,7 @@ describe("useToolPresentation", () => {
     });
 
     it("foregrounds an unrecognized tool as preview", () => {
-      const tc = makeToolCall({ name: "frobnicate_widget", args: { x: "1" } });
+      const tc = toolUse({ name: "frobnicate_widget", input: { x: "1" } });
       const { result } = renderHook(() => useToolPresentation(tc));
       expect(result.current.category).toBe("unknown");
       expect(result.current.disclosure).toBe("preview");
@@ -143,9 +129,9 @@ describe("useToolPresentation", () => {
         disclosure: () => "summary",
       });
       try {
-        const tc = makeToolCall({
+        const tc = toolUse({
           name: "noisy_tool",
-          mcpServerSlug: "acme/noisy",
+          mcpServerName: "acme/noisy",
         });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.disclosure).toBe("summary");
@@ -157,8 +143,8 @@ describe("useToolPresentation", () => {
 
   describe("chrome", () => {
     it("quiets metadata-only categories and keeps content-bearing ones as cards", () => {
-      const quiet = makeToolCall({ name: "Read", args: { path: "/x" } });
-      const card = makeToolCall({ name: "Shell", args: { command: "ls" }, result: "files" });
+      const quiet = toolUse({ name: "Read", input: { path: "/x" } });
+      const card = toolUse({ name: "Shell", input: { command: "ls" }, result: "files" });
       expect(renderHook(() => useToolPresentation(quiet)).result.current.chrome).toBe("quiet");
       expect(renderHook(() => useToolPresentation(card)).result.current.chrome).toBe("card");
     });
@@ -168,7 +154,7 @@ describe("useToolPresentation", () => {
         chrome: () => "card",
       });
       try {
-        const tc = makeToolCall({ name: "Read", args: { path: "/x" } });
+        const tc = toolUse({ name: "Read", input: { path: "/x" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.chrome).toBe("card");
       } finally {
@@ -180,7 +166,7 @@ describe("useToolPresentation", () => {
   describe("runGroupable", () => {
     it("folds read-only repetitive categories", () => {
       for (const name of ["Read", "Grep", "Glob"]) {
-        const tc = makeToolCall({ name, args: { path: "/x", pattern: "p" } });
+        const tc = toolUse({ name, input: { path: "/x", pattern: "p" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.runGroupable).toBe(true);
       }
@@ -188,7 +174,7 @@ describe("useToolPresentation", () => {
 
     it("never folds high-signal categories", () => {
       for (const name of ["Shell", "StrReplace"]) {
-        const tc = makeToolCall({ name, args: { command: "ls", path: "/x" } });
+        const tc = toolUse({ name, input: { command: "ls", path: "/x" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.runGroupable).toBe(false);
       }
@@ -199,7 +185,7 @@ describe("useToolPresentation", () => {
         runGroupable: () => true,
       });
       try {
-        const tc = makeToolCall({ name: "Shell", args: { command: "ls" } });
+        const tc = toolUse({ name: "Shell", input: { command: "ls" } });
         const { result } = renderHook(() => useToolPresentation(tc));
         expect(result.current.runGroupable).toBe(true);
       } finally {

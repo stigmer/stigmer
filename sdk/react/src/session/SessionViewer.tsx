@@ -500,19 +500,17 @@ export function SessionViewer({
   );
   const planDraft = usePlanDraft(sessionPlan);
 
-  // The plan the ACTIVE turn is writing right now (the H1 convention — see
+  // The plan the LIVE turn is writing right now (the H1 convention — see
   // findStreamingPlan), resolved at this level for the same reason
-  // sessionPlan is: the panel's plan tab renders it. Recomputed per stream
+  // sessionPlan is: the panel's plan tab renders it. Recomputed per fold
   // commit by design — this component already re-renders on every commit
-  // (it reads `flow`), and the scan touches only the last AI message.
+  // (it reads `flow`), and the scan touches only the last agent message.
   const streamingPlan = useMemo<SessionStreamingPlan | undefined>(() => {
-    const activeExec = conv.activeStreamRun;
-    const live = findStreamingPlan(activeExec);
-    const executionId = activeExec?.metadata?.id;
-    return live && executionId
-      ? { executionId, displayText: live.displayText }
+    const live = findStreamingPlan(conv.activeTurn, conv.activeRun);
+    return live && conv.activeTurn
+      ? { executionId: conv.activeTurn.runId, displayText: live.displayText }
       : undefined;
-  }, [conv.activeStreamRun]);
+  }, [conv.activeTurn, conv.activeRun]);
   const [isBuildingFromPlan, setIsBuildingFromPlan] = useState(false);
   const [planAttachFailed, setPlanAttachFailed] = useState(false);
 
@@ -911,10 +909,10 @@ const ConversationColumn = memo(function ConversationColumn({
   threadSlots,
 }: ConversationColumnProps) {
   const { conv } = flow;
-  // Approval failures are NOT folded into this banner: they now surface in-card,
-  // beside the exact gate that failed (see MessageThread's approvalErrors →
+  // Answer failures are NOT folded into this banner: they surface in-card,
+  // beside the exact gate that failed (see MessageThread's answerErrors →
   // ApprovalCard), matching the file-review card. A single banner cannot name
-  // which of several concurrent gates failed. The scalar conv.approvalError
+  // which of several concurrent gates failed. The scalar conv.answerError
   // stays available for headless/`ink` consumers.
   const sendError = conv.sendError ?? conv.stopError;
 
@@ -923,8 +921,7 @@ const ConversationColumn = memo(function ConversationColumn({
   // than the session runs: that is when the keys the agent will read from
   // the person's My vault are named. Guests and observers
   // never send on their own agent choice.
-  const hasTurns =
-    conv.completedRuns.length > 0 || conv.activeStreamRun !== null;
+  const hasTurns = conv.turns.length > 0;
   const runsSessionAgent = isSameAgent(flow.agentRef, agentRefOfSession(conv.session));
   // The vaults the conversation uses, as the composer's vault picker
   // starts from them, and who may change them: only its creator.
@@ -951,8 +948,8 @@ const ConversationColumn = memo(function ConversationColumn({
     [flow.handleSubmit],
   );
 
-  // Stop the in-flight turn (graceful cancel, escalating to terminate on a
-  // repeat press). Only wired while the active run is stoppable.
+  // Stop the live turn (the session's interrupt, escalating to terminate on
+  // a repeat press). Only wired while the live turn is stoppable.
   const handleStop = useCallback(() => {
     void conv.stop();
   }, [conv.stop]);
@@ -971,7 +968,7 @@ const ConversationColumn = memo(function ConversationColumn({
   const [editingExecutionId, setEditingExecutionId] = useState<string | null>(
     null,
   );
-  const activeRunId = conv.activeStreamRun?.metadata?.id ?? null;
+  const activeRunId = conv.activeTurn?.runId ?? null;
 
   const handleEditMessage = useCallback(
     (text: string) => {
@@ -1025,8 +1022,8 @@ const ConversationColumn = memo(function ConversationColumn({
   return (
     <div className="stg:flex stg:h-full stg:min-w-0 stg:flex-col">
       <MessageThread
-        runs={conv.completedRuns}
-        activeStreamRun={conv.activeStreamRun}
+        turns={conv.turns}
+        runs={conv.runs}
         pendingUserMessage={conv.pendingUserMessage}
         pendingAttachments={conv.pendingAttachments}
         pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
@@ -1044,9 +1041,9 @@ const ConversationColumn = memo(function ConversationColumn({
         // for pre-existing sessions and embedders composing the SDK directly.
         // A participant's decisions are the owners' too (run#can_edit):
         // the pending line above the composer names who it waits on.
-        onApprovalSubmit={isObserver || isGuest || isParticipant ? undefined : flow.submitApproval}
-        submittingApprovalIds={conv.submittingApprovalIds}
-        approvalErrors={conv.approvalErrors}
+        onAnswerToolUse={isObserver || isGuest || isParticipant ? undefined : flow.answerToolUse}
+        answeringToolUseIds={conv.answeringToolUseIds}
+        answerErrors={conv.answerErrors}
         showFileReviewRecords
         // Editing a message stops the run it started: an owner's act.
         onEditMessage={
@@ -1121,8 +1118,9 @@ const ConversationColumn = memo(function ConversationColumn({
           <FileChangeProgressBar progress={conv.fileChangeProgress} />
           {!isObserver && !isParticipant && (
             <FileReviewDock
-              changeSets={conv.fileChangeSets}
-              onSubmit={conv.submitFileDecision}
+              fileReviewSets={conv.fileReviewSets}
+              captures={conv.fileChangeCaptures}
+              onSubmit={conv.reviewFileChanges}
               submittingDecisionKeys={conv.submittingFileDecisionKeys}
               decisionErrors={conv.fileDecisionErrors}
             />
@@ -1130,7 +1128,7 @@ const ConversationColumn = memo(function ConversationColumn({
         </FilePathContext.Provider>
         {/* Only an approval holds a turn for the owner; file review never
             does, and the next message keeps what is still undecided. */}
-        {isParticipant && conv.pendingApprovals.length > 0 && (
+        {isParticipant && conv.asks.length > 0 && (
           <WaitingOnOwnerNotice name={creatorName} />
         )}
         {/* Observers and viewers never get a composer: the server denies

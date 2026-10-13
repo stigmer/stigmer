@@ -1,72 +1,51 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  StreamController,
-  type StreamControllerSink,
-} from "../stream-controller";
+/**
+ * Proves the session follow's state machine (../stream-controller.ts):
+ * `connecting` on start, `streaming` on the first frame (and back from
+ * `reconnecting`), frames folded at once but published at most once per
+ * scheduled flush, `reconnecting` and `error` keeping the last fold, reset
+ * cancelling a pending publish, and the two watchdogs — the connect-timeout
+ * that fires only while still connecting, and the slow-stall hint that
+ * restarts on every frame and stands down on a drop or an error.
+ */
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { samples } from "../../test/samples";
+import { StreamController, type StreamControllerSink } from "../stream-controller";
 import type { StreamState } from "../store/conversation-store";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeSnapshot(
-  phase: RunPhase,
-  messageCount = 0,
-): Run {
-  const exec = create(RunSchema);
-  const status = create(RunStatusSchema);
-  status.phase = phase;
-  for (let i = 0; i < messageCount; i++) {
-    status.messages.push({} as never);
-  }
-  exec.status = status;
-  return exec;
-}
-
-function createTestSink(): StreamControllerSink & {
-  snapshots: Run[];
-  states: Array<{ stage: string; executionId?: string; error?: Error }>;
-  connectTimeouts: number;
-  slow: boolean[];
-} {
-  const snapshots: Run[] = [];
-  const states: Array<{ stage: string; executionId?: string; error?: Error }> =
-    [];
-  const slow: boolean[] = [];
+function createTestSink(changes = true) {
   const sink = {
-    snapshots,
-    states,
+    frames: [] as StreamSessionEventsResponse[],
+    publishes: 0,
+    states: [] as StreamState[],
     connectTimeouts: 0,
-    slow,
-    ingestSnapshot(snapshot: Run) {
-      snapshots.push(snapshot);
+    slow: [] as boolean[],
+    changes,
+    applyFrame(frame: StreamSessionEventsResponse): boolean {
+      sink.frames.push(frame);
+      return sink.changes;
     },
-    setStreamState(state: StreamState) {
-      states.push(state as never);
+    publish(): void {
+      sink.publishes += 1;
     },
-    onConnectTimeout() {
+    setStreamState(state: StreamState): void {
+      sink.states.push(state);
+    },
+    onConnectTimeout(): void {
       sink.connectTimeouts += 1;
     },
-    setSlow(value: boolean) {
-      slow.push(value);
+    setSlow(value: boolean): void {
+      sink.slow.push(value);
     },
-  };
+  } satisfies StreamControllerSink & Record<string, unknown>;
   return sink;
 }
 
-/**
- * Manual watchdog clock: records armed timers without firing them. Tests fire
- * a specific timer explicitly by its configured duration, so no real time is
- * consumed and existing (non-watchdog) tests are unaffected — their timers are
- * simply recorded and discarded.
- */
+/** A manual clock: records armed timers and fires them by duration. */
 function createManualTimers() {
   const timers = new Map<number, { cb: () => void; ms: number }>();
   let nextId = 1;
@@ -79,7 +58,6 @@ function createManualTimers() {
     clearTimer(id: number): void {
       timers.delete(id);
     },
-    /** Fire every currently-armed timer whose duration equals `ms`. */
     fire(ms: number): void {
       for (const [id, t] of [...timers]) {
         if (t.ms === ms) {
@@ -88,58 +66,53 @@ function createManualTimers() {
         }
       }
     },
-    get pending(): number {
-      return timers.size;
+    armed(ms: number): number {
+      return [...timers.values()].filter((t) => t.ms === ms).length;
     },
   };
 }
 
-type FlushCallback = () => void;
-
-function createSynchronousScheduler() {
-  const pending: Array<{ id: number; cb: FlushCallback }> = [];
+/** A manual animation-frame scheduler. */
+function createScheduler() {
+  const pending = new Map<number, () => void>();
   let nextId = 1;
-
   return {
-    pending,
-    schedule(cb: FlushCallback): number {
+    schedule(cb: () => void): number {
       const id = nextId++;
-      pending.push({ id, cb });
+      pending.set(id, cb);
       return id;
     },
     cancel(id: number): void {
-      const idx = pending.findIndex((p) => p.id === id);
-      if (idx !== -1) pending.splice(idx, 1);
+      pending.delete(id);
     },
     flush(): void {
-      const toRun = [...pending];
-      pending.length = 0;
-      for (const { cb } of toRun) cb();
+      const run = [...pending.values()];
+      pending.clear();
+      for (const cb of run) cb();
     },
-    get size() {
-      return pending.length;
+    get size(): number {
+      return pending.size;
     },
   };
 }
+
+const CONNECT_MS = 100;
+const SLOW_MS = 500;
+const frame = samples.eventFrame(samples.userMessageEvent("hi"));
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-// Distinct, small watchdog durations so a test can fire one timer without the
-// other (the manual clock fires by exact duration).
-const CONNECT_MS = 100;
-const SLOW_MS = 500;
-
 describe("StreamController", () => {
   let sink: ReturnType<typeof createTestSink>;
-  let scheduler: ReturnType<typeof createSynchronousScheduler>;
+  let scheduler: ReturnType<typeof createScheduler>;
   let timers: ReturnType<typeof createManualTimers>;
   let controller: StreamController;
 
   beforeEach(() => {
     sink = createTestSink();
-    scheduler = createSynchronousScheduler();
+    scheduler = createScheduler();
     timers = createManualTimers();
     controller = new StreamController(sink, scheduler.schedule, scheduler.cancel, {
       setTimer: timers.setTimer,
@@ -149,448 +122,153 @@ describe("StreamController", () => {
     });
   });
 
-  describe("initial state", () => {
-    it("starts in idle", () => {
-      expect(controller.state).toEqual({ stage: "idle" });
-    });
-
-    it("has no pending flush", () => {
-      expect(controller.hasPendingFlush).toBe(false);
-    });
+  it("starts idle and ignores frames, drops and errors while idle", () => {
+    expect(controller.state).toEqual({ stage: "idle" });
+    controller.handleFrame(frame);
+    controller.handleReconnecting(1);
+    controller.handleError(new Error("x"));
+    expect(sink.frames).toEqual([]);
+    expect(sink.states).toEqual([]);
+    expect(sink.publishes).toBe(0);
   });
 
-  describe("start()", () => {
-    it("transitions to connecting", () => {
-      controller.start("exec-1");
-      expect(controller.state).toEqual({
-        stage: "connecting",
-        executionId: "exec-1",
-      });
-    });
-
-    it("notifies the sink of the state transition", () => {
-      controller.start("exec-1");
-      expect(sink.states).toEqual([
-        { stage: "connecting", executionId: "exec-1" },
-      ]);
-    });
-
-    it("resets when starting a different execution", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      controller.start("exec-2");
-      expect(controller.state).toEqual({
-        stage: "connecting",
-        executionId: "exec-2",
-      });
-      expect(scheduler.size).toBe(0);
-    });
+  it("enters connecting and arms both watchdogs", () => {
+    controller.start("s1");
+    expect(controller.state).toEqual({ stage: "connecting", sessionId: "s1" });
+    expect(timers.armed(CONNECT_MS)).toBe(1);
+    expect(timers.armed(SLOW_MS)).toBe(1);
   });
 
-  describe("handleSnapshot() — non-terminal", () => {
-    beforeEach(() => {
-      controller.start("exec-1");
-      sink.states.length = 0;
-    });
+  it("moves to streaming on the first frame and coalesces publishes per flush", () => {
+    controller.start("s1");
+    controller.handleFrame(frame);
+    controller.handleFrame(frame);
+    controller.handleFrame(frame);
 
-    it("transitions from connecting to streaming on first snapshot", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      expect(controller.state).toEqual({
-        stage: "streaming",
-        executionId: "exec-1",
-      });
-    });
+    expect(controller.state).toEqual({ stage: "streaming", sessionId: "s1" });
+    expect(sink.states.map((s) => s.stage)).toEqual(["connecting", "streaming"]);
+    expect(sink.frames).toHaveLength(3);
+    expect(controller.hasPendingFlush).toBe(true);
+    expect(scheduler.size).toBe(1);
+    expect(sink.publishes).toBe(0);
 
-    it("buffers the snapshot (does not flush immediately)", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      expect(sink.snapshots).toHaveLength(0);
-      expect(controller.hasPendingFlush).toBe(true);
-    });
-
-    it("flushes on scheduler callback", () => {
-      const snap = makeSnapshot(RunPhase.RUN_IN_PROGRESS);
-      controller.handleSnapshot(snap);
-      scheduler.flush();
-      expect(sink.snapshots).toEqual([snap]);
-      expect(controller.hasPendingFlush).toBe(false);
-    });
-
-    it("coalesces multiple snapshots into one flush", () => {
-      const snap1 = makeSnapshot(RunPhase.RUN_IN_PROGRESS, 1);
-      const snap2 = makeSnapshot(RunPhase.RUN_IN_PROGRESS, 2);
-      const snap3 = makeSnapshot(RunPhase.RUN_IN_PROGRESS, 3);
-
-      controller.handleSnapshot(snap1);
-      controller.handleSnapshot(snap2);
-      controller.handleSnapshot(snap3);
-
-      expect(scheduler.size).toBe(1);
-      scheduler.flush();
-      expect(sink.snapshots).toEqual([snap3]);
-    });
-
-    it("schedules a new flush after the previous one fires", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS, 1),
-      );
-      scheduler.flush();
-      expect(scheduler.size).toBe(0);
-
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS, 2),
-      );
-      expect(scheduler.size).toBe(1);
-    });
+    scheduler.flush();
+    expect(sink.publishes).toBe(1);
+    expect(controller.hasPendingFlush).toBe(false);
   });
 
-  describe("handleSnapshot() — terminal", () => {
-    beforeEach(() => {
-      controller.start("exec-1");
-      sink.states.length = 0;
-    });
-
-    it("flushes immediately without waiting for scheduler", () => {
-      const snap = makeSnapshot(RunPhase.RUN_COMPLETED);
-      controller.handleSnapshot(snap);
-      expect(sink.snapshots).toEqual([snap]);
-      expect(scheduler.size).toBe(0);
-    });
-
-    it("transitions to complete", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_COMPLETED),
-      );
-      expect(controller.state).toEqual({
-        stage: "complete",
-        executionId: "exec-1",
-      });
-    });
-
-    it("cancels any pending non-terminal flush", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS, 1),
-      );
-      expect(scheduler.size).toBe(1);
-
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_COMPLETED),
-      );
-      expect(scheduler.size).toBe(0);
-    });
-
-    it("handles terminal as first snapshot (connecting -> complete)", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_COMPLETED),
-      );
-      expect(controller.state).toEqual({
-        stage: "complete",
-        executionId: "exec-1",
-      });
-      expect(sink.states).toEqual([
-        { stage: "complete", executionId: "exec-1" },
-      ]);
-    });
-
-    it("handles RUN_FAILED as terminal", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_FAILED),
-      );
-      expect(controller.state.stage).toBe("complete");
-    });
-
-    it("handles RUN_CANCELLED as terminal", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_CANCELLED),
-      );
-      expect(controller.state.stage).toBe("complete");
-    });
-
-    it("handles RUN_TERMINATED as terminal", () => {
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_TERMINATED),
-      );
-      expect(controller.state.stage).toBe("complete");
-    });
+  it("schedules no publish for a frame that changed nothing", () => {
+    sink.changes = false;
+    controller.start("s1");
+    controller.handleFrame(frame);
+    expect(controller.hasPendingFlush).toBe(false);
+    expect(controller.state.stage).toBe("streaming");
   });
 
-  describe("handleStreamEnd()", () => {
-    it("flushes buffered snapshot and transitions to complete", () => {
-      controller.start("exec-1");
-      const snap = makeSnapshot(RunPhase.RUN_IN_PROGRESS);
-      controller.handleSnapshot(snap);
-      controller.handleStreamEnd();
-
-      expect(sink.snapshots).toEqual([snap]);
-      expect(controller.state).toEqual({
-        stage: "complete",
-        executionId: "exec-1",
-      });
-    });
-
-    it("no-ops if already complete (terminal snapshot already handled)", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_COMPLETED),
-      );
-      sink.states.length = 0;
-
-      controller.handleStreamEnd();
-      expect(sink.states).toHaveLength(0);
-    });
-
-    it("no-ops if idle", () => {
-      controller.handleStreamEnd();
-      expect(sink.states).toHaveLength(0);
-    });
+  it("a frame stands the connect watchdog down and restarts the slow window", () => {
+    controller.start("s1");
+    controller.handleFrame(frame);
+    expect(timers.armed(CONNECT_MS)).toBe(0);
+    expect(timers.armed(SLOW_MS)).toBe(1);
+    timers.fire(CONNECT_MS);
+    expect(sink.connectTimeouts).toBe(0);
   });
 
-  describe("handleError()", () => {
-    it("transitions to error state", () => {
-      controller.start("exec-1");
-      const err = new Error("network timeout");
-      controller.handleError(err);
-
-      expect(controller.state).toEqual({
-        stage: "error",
-        executionId: "exec-1",
-        error: err,
-      });
-    });
-
-    it("flushes buffered snapshot before transitioning", () => {
-      controller.start("exec-1");
-      const snap = makeSnapshot(RunPhase.RUN_IN_PROGRESS);
-      controller.handleSnapshot(snap);
-      controller.handleError(new Error("fail"));
-
-      expect(sink.snapshots).toEqual([snap]);
-    });
-
-    it("cancels pending rAF", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      expect(scheduler.size).toBe(1);
-
-      controller.handleError(new Error("fail"));
-      expect(scheduler.size).toBe(0);
-    });
-
-    it("no-ops if idle", () => {
-      controller.handleError(new Error("orphan"));
-      expect(sink.states).toHaveLength(0);
-    });
+  it("reports a connect timeout only while still connecting", () => {
+    controller.start("s1");
+    timers.fire(CONNECT_MS);
+    expect(sink.connectTimeouts).toBe(1);
   });
 
-  describe("reset()", () => {
-    it("transitions to idle", () => {
-      controller.start("exec-1");
-      controller.reset();
-      expect(controller.state).toEqual({ stage: "idle" });
-    });
+  it("raises the slow hint after a quiet stretch and clears it on the next frame", () => {
+    controller.start("s1");
+    controller.handleFrame(frame);
+    sink.slow.length = 0;
+    timers.fire(SLOW_MS);
+    expect(sink.slow).toEqual([true]);
 
-    it("cancels pending flush", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      controller.reset();
-      expect(scheduler.size).toBe(0);
-      expect(controller.hasPendingFlush).toBe(false);
-    });
-
-    it("clears buffered snapshot", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      controller.reset();
-      scheduler.flush();
-      expect(sink.snapshots).toHaveLength(0);
-    });
-
-    it("no-ops if already idle", () => {
-      controller.reset();
-      expect(sink.states).toHaveLength(0);
-    });
-
-    it("notifies sink of idle transition", () => {
-      controller.start("exec-1");
-      sink.states.length = 0;
-      controller.reset();
-      expect(sink.states).toEqual([{ stage: "idle" }]);
-    });
+    controller.handleFrame(frame);
+    expect(sink.slow).toEqual([true, false]);
   });
 
-  describe("stale event guard", () => {
-    it("ignores snapshots after reset", () => {
-      controller.start("exec-1");
-      controller.reset();
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      expect(sink.snapshots).toHaveLength(0);
-    });
+  it("enters reconnecting, standing the watchdogs down, and streams again on a frame", () => {
+    controller.start("s1");
+    controller.handleFrame(frame);
+    controller.handleReconnecting(2);
 
-    it("ignores errors after reset", () => {
-      controller.start("exec-1");
-      controller.reset();
-      controller.handleError(new Error("stale"));
-      expect(controller.state).toEqual({ stage: "idle" });
-    });
+    expect(controller.state).toEqual({ stage: "reconnecting", sessionId: "s1", attempt: 2 });
+    expect(timers.armed(SLOW_MS)).toBe(0);
+    expect(sink.slow.at(-1)).toBe(false);
+
+    controller.handleFrame(frame);
+    expect(controller.state).toEqual({ stage: "streaming", sessionId: "s1" });
   });
 
-  describe("watchdog — connect timeout", () => {
-    it("fires onConnectTimeout while still connecting", () => {
-      controller.start("exec-1");
-      timers.fire(CONNECT_MS);
-      expect(sink.connectTimeouts).toBe(1);
-    });
+  it("publishes what was folded and enters error", () => {
+    controller.start("s1");
+    controller.handleFrame(frame);
+    const error = new Error("refused");
+    controller.handleError(error);
 
-    it("does not fire once a first snapshot arrives (connect timer cleared)", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      timers.fire(CONNECT_MS);
-      expect(sink.connectTimeouts).toBe(0);
-    });
-
-    it("does not fire after a terminal snapshot", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_FAILED),
-      );
-      timers.fire(CONNECT_MS);
-      expect(sink.connectTimeouts).toBe(0);
-    });
-
-    it("does not fire after reset", () => {
-      controller.start("exec-1");
-      controller.reset();
-      timers.fire(CONNECT_MS);
-      expect(sink.connectTimeouts).toBe(0);
-    });
-
-    it("stands down while auto-reconnect is in flight", () => {
-      controller.start("exec-1");
-      controller.handleReconnecting(1, new Error("drop"));
-      timers.fire(CONNECT_MS);
-      expect(sink.connectTimeouts).toBe(0);
-    });
+    expect(sink.publishes).toBe(1);
+    expect(controller.hasPendingFlush).toBe(false);
+    expect(controller.state).toEqual({ stage: "error", sessionId: "s1", error });
+    expect(timers.armed(SLOW_MS)).toBe(0);
   });
 
-  describe("watchdog — slow stall", () => {
-    it("sets the slow hint after the threshold while streaming", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      timers.fire(SLOW_MS);
-      expect(sink.slow.at(-1)).toBe(true);
-    });
+  it("resets to idle, cancelling a pending publish, and stays quiet when already idle", () => {
+    controller.start("s1");
+    controller.handleFrame(frame);
+    controller.reset();
 
-    it("clears the slow hint on the next snapshot", () => {
-      controller.start("exec-1");
-      timers.fire(SLOW_MS);
-      expect(sink.slow.at(-1)).toBe(true);
+    expect(controller.state).toEqual({ stage: "idle" });
+    expect(scheduler.size).toBe(0);
+    scheduler.flush();
+    expect(sink.publishes).toBe(0);
 
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      // Re-arming on a fresh snapshot clears the prior hint.
-      expect(sink.slow.at(-1)).toBe(false);
-    });
-
-    it("clears the slow hint on a terminal snapshot", () => {
-      controller.start("exec-1");
-      timers.fire(SLOW_MS);
-      expect(sink.slow.at(-1)).toBe(true);
-
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_COMPLETED),
-      );
-      expect(sink.slow.at(-1)).toBe(false);
-    });
-
-    it("clears the slow hint and timer on reset", () => {
-      controller.start("exec-1");
-      timers.fire(SLOW_MS);
-      controller.reset();
-      expect(sink.slow.at(-1)).toBe(false);
-      // The (already fired) timer leaves nothing armed; a stray fire is a no-op.
-      const before = sink.slow.length;
-      timers.fire(SLOW_MS);
-      expect(sink.slow.length).toBe(before);
-    });
-
-    it("does not fire after reaching a terminal phase", () => {
-      controller.start("exec-1");
-      controller.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_COMPLETED),
-      );
-      const before = sink.slow.length;
-      timers.fire(SLOW_MS);
-      expect(sink.slow.length).toBe(before);
-    });
+    const transitions = sink.states.length;
+    controller.reset();
+    expect(sink.states).toHaveLength(transitions);
   });
 
-  describe("default constructor (browser rAF binding)", () => {
-    let mockRaf: ReturnType<typeof vi.fn>;
-    let mockCaf: ReturnType<typeof vi.fn>;
+  it("restarting cancels the previous session's pending publish", () => {
+    controller.start("s1");
+    controller.handleFrame(frame);
+    controller.start("s2");
+    expect(scheduler.size).toBe(0);
+    expect(controller.state).toEqual({ stage: "connecting", sessionId: "s2" });
+  });
 
-    beforeEach(() => {
-      let nextId = 1;
-      mockRaf = vi.fn((cb: () => void) => {
-        const id = nextId++;
-        setTimeout(cb, 0);
-        return id;
-      });
-      mockCaf = vi.fn();
+  it("schedules on the platform's animation frame and timers by default", async () => {
+    const defaults = createTestSink();
+    const live = new StreamController(defaults);
+    live.start("s1");
+    live.handleFrame(frame);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(defaults.publishes).toBe(1);
 
-      vi.stubGlobal("requestAnimationFrame", mockRaf);
-      vi.stubGlobal("cancelAnimationFrame", mockCaf);
-    });
+    live.handleFrame(frame);
+    live.reset();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(defaults.publishes).toBe(1);
+  });
 
-    afterEach(() => {
+  it("falls back to timers where there is no animation frame, and cancels through them", async () => {
+    vi.stubGlobal("requestAnimationFrame", undefined);
+    vi.stubGlobal("cancelAnimationFrame", undefined);
+    try {
+      const defaults = createTestSink();
+      const live = new StreamController(defaults);
+      live.start("s1");
+      live.handleFrame(frame);
+      live.reset();
+      live.start("s1");
+      live.handleFrame(frame);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(defaults.publishes).toBe(1);
+      live.reset();
+    } finally {
       vi.unstubAllGlobals();
-    });
-
-    it("does not throw when using default scheduleFlush/cancelFlush", () => {
-      const defaultController = new StreamController(sink, undefined, undefined, {
-        setTimer: timers.setTimer,
-        clearTimer: timers.clearTimer,
-      });
-      defaultController.start("exec-1");
-
-      expect(() => {
-        defaultController.handleSnapshot(
-          makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-        );
-      }).not.toThrow();
-
-      expect(mockRaf).toHaveBeenCalledOnce();
-    });
-
-    it("delegates cancelFlush to cancelAnimationFrame", () => {
-      const defaultController = new StreamController(sink, undefined, undefined, {
-        setTimer: timers.setTimer,
-        clearTimer: timers.clearTimer,
-      });
-      defaultController.start("exec-1");
-      defaultController.handleSnapshot(
-        makeSnapshot(RunPhase.RUN_IN_PROGRESS),
-      );
-      defaultController.reset();
-
-      expect(mockCaf).toHaveBeenCalledOnce();
-    });
+    }
   });
 });

@@ -1,22 +1,24 @@
-// MCP tools for runs: start a run, poll it, answer its approval requests,
-// and cancel it. Together they close the agent iteration loop: author with
-// apply_agent, run with run_agent, observe with get_run, steer with
+// MCP tools for runs: start a run, poll it, answer the tool uses it waits
+// on, and cancel it. Together they close the agent iteration loop: author
+// with apply_agent, run with run_agent, observe with get_run, steer with
 // submit_run_approval, stop with cancel_run.
 //
 // A run is asynchronous by design: run_agent returns as soon as the backend
-// accepts the run; progress is observed by polling. Runs have no event-log
-// RPC, so get_run IS the poll loop — which is why it defaults to the compact
-// view (see fetch.ts). pause/resume/terminate stay CLI-only until a real MCP
-// need shows up.
+// accepts the run; progress is observed by polling. MCP tools are
+// request/response, so get_run IS the poll loop: each call reads the run's
+// events from its session's log, which is why it defaults to the compact
+// view (see fetch.ts). Answers and the stop go through the run's session
+// (approve.ts, cancel.ts). pause/resume/terminate stay CLI-only until a real
+// MCP need shows up.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { resolveToken, type BackendTarget } from "../client.js";
 import { textOrError } from "../toolresult.js";
-import { submitRunApproval } from "./approve.js";
+import { APPROVAL_DECISIONS, submitRunApproval } from "./approve.js";
 import { cancelRun } from "./cancel.js";
-import { DEFAULT_MESSAGE_LIMIT, fetchRun } from "./fetch.js";
+import { DEFAULT_ITEM_LIMIT, fetchRun } from "./fetch.js";
 import { runAgent } from "./run.js";
 
 /** Register the tools that start, observe and steer a run; returns the registered tool names. */
@@ -27,7 +29,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
       description:
         "Start a run (asynchronous). Returns immediately with the created run " +
         "(run_* ID) while the run continues in the background — poll get_run to observe " +
-        "progress, pending approvals, and the final result. Omit session_id to start a fresh " +
+        "progress, the tool uses it waits on, and the final answer. Omit session_id to start a fresh " +
         "conversation on the agent; pass one to send a follow-up message into an existing session, " +
         "which runs the agent the session started on.",
       inputSchema: {
@@ -115,25 +117,28 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
     "get_run",
     {
       description:
-        "Get a run's status: phase, messages, pending approvals, errors, timing. " +
-        "Runs have no event log — poll this tool to track a run started with run_agent " +
-        "(terminal phases: completed, failed, cancelled, terminated). The default compact view " +
-        "returns the last few messages and omits bulky bookkeeping fields (approval ledger, " +
-        "sub-agent transcripts); total_messages tells you when the tail is a window. " +
-        "credentials.sources names the vault and entry each key the run uses came from, " +
-        "never a value. Use view=full for the complete record.",
+        "Get a run and what its agent did: the run's lifecycle (phase, timing, error, " +
+        "stop_cause) and the run's events from its session's event log. Poll this tool to " +
+        "track a run started with run_agent (terminal phases: completed, failed, cancelled, " +
+        "terminated). The default compact view summarizes the turn: its phase, its answer, " +
+        "asks (the tool uses waiting for your answer, each with the tool_use_id " +
+        "submit_run_approval takes), its to-do list, its changed files and the last few items " +
+        "(messages, thinking, tool uses with their results); total_items tells you when the " +
+        "tail is a window. run.status.credentials.sources names the vault and entry each key " +
+        "the run uses came from, never a value. Use view=full for every event of the run as " +
+        "Claude Managed Agents JSON.",
       inputSchema: {
         run_id: z.string().describe("Run ID (run_*, or aex_* for a run created before the rename)."),
         view: z
           .enum(["compact", "full"])
           .optional()
-          .describe("Response shape: compact (default, bounded message tail) or full protojson."),
-        message_limit: z
+          .describe("Response shape: compact (default, the turn summarized with a bounded item tail) or full (every event)."),
+        item_limit: z
           .number()
           .int()
           .min(1)
           .optional()
-          .describe(`Compact view only: number of trailing messages to return (default ${DEFAULT_MESSAGE_LIMIT}).`),
+          .describe(`Compact view only: number of trailing items of the turn to return (default ${DEFAULT_ITEM_LIMIT}).`),
       },
     },
     (args, extra) =>
@@ -143,7 +148,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
           resolveToken(extra, target.apiKey),
           args.run_id,
           args.view ?? "compact",
-          args.message_limit ?? DEFAULT_MESSAGE_LIMIT,
+          args.item_limit ?? DEFAULT_ITEM_LIMIT,
         ),
       ),
   );
@@ -152,35 +157,37 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
     "submit_run_approval",
     {
       description:
-        "Approve, skip, or reject a tool call a run is waiting on (phase " +
-        "waiting-for-approval). Find pending requests in get_run's " +
-        "status.pending_approvals — tool_call_id must match exactly. reject denies the single " +
-        "tool call and feeds your comment back to the agent, which then continues; to stop the " +
-        "whole run use cancel_run instead.",
+        "Answer a tool use a run is waiting on (get_run's turn.phase is waiting). Find the waiting tool uses " +
+        "in get_run's turn.asks — tool_use_id must match exactly. The run continues once " +
+        "every waiting tool use of its turn is answered. deny refuses the one call and feeds " +
+        "your reason back to the agent, which then continues; to stop the conversation use " +
+        "cancel_run instead.",
       inputSchema: {
         run_id: z.string().describe("Run ID (run_*, or aex_* for a run created before the rename)."),
-        tool_call_id: z
+        tool_use_id: z
           .string()
-          .describe("Tool call awaiting the decision (status.pending_approvals[].tool_call_id)."),
-        action: z
-          .enum(["approve", "skip", "reject"])
+          .describe("The waiting tool use to answer (get_run's turn.asks[].tool_use_id)."),
+        decision: z
+          .enum(APPROVAL_DECISIONS)
           .describe(
-            "approve: execute the tool. skip: don't execute, agent proceeds without it. " +
-              "reject: don't execute, agent is told why (see comment) and adapts.",
+            "allow: run this call. deny: refuse it; the agent is told why (see reason) and adapts. " +
+              "allow_all: run this call and every call of its class (its built-in category, MCP " +
+              "server or asking hook) for the rest of the turn, including the class's other " +
+              "waiting calls.",
           ),
-        comment: z
+        reason: z
           .string()
           .optional()
-          .describe("Reason for the decision; on reject it is fed back to the agent."),
+          .describe("With deny only: why the call is refused, fed back to the agent."),
       },
     },
     (args, extra) =>
       textOrError(() =>
         submitRunApproval(target.serverAddress, resolveToken(extra, target.apiKey), {
           runId: args.run_id,
-          toolCallId: args.tool_call_id,
-          action: args.action,
-          comment: args.comment,
+          toolUseId: args.tool_use_id,
+          decision: args.decision,
+          reason: args.reason,
         }),
       ),
   );
@@ -194,27 +201,18 @@ export function registerRunControlTools(server: McpServer, target: BackendTarget
     "cancel_run",
     {
       description:
-        "Gracefully cancel a run in progress (run_*, or aex_* from before the rename). " +
-        "Cancellation is terminal: the run stops after cleanup and " +
-        "cannot be resumed. Runs already in a terminal phase are returned with " +
-        "already_terminal=true instead of an error.",
+        "Cancel a run in progress (run_*, or aex_* from before the rename) by interrupting " +
+        "its conversation: every unfinished turn of the conversation stops (queued, working, " +
+        "waiting for an answer or paused), not this run alone, and each ends cancelled. " +
+        "Cancellation is terminal: a stopped turn cannot be resumed. The response names the " +
+        "runs stopped (stopped_run_ids). A run already in a terminal phase is returned with " +
+        "already_terminal=true and nothing is stopped.",
       inputSchema: {
         run_id: z.string().describe("Run ID to cancel (run_*, or aex_* for a run created before the rename)."),
-        reason: z
-          .string()
-          .optional()
-          .describe("Human-readable reason for the cancellation, stored in the audit trail."),
       },
     },
     (args, extra) =>
-      textOrError(() =>
-        cancelRun(
-          target.serverAddress,
-          resolveToken(extra, target.apiKey),
-          args.run_id,
-          args.reason ?? "",
-        ),
-      ),
+      textOrError(() => cancelRun(target.serverAddress, resolveToken(extra, target.apiKey), args.run_id)),
   );
 
   return ["cancel_run"];

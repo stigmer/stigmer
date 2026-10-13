@@ -64,10 +64,7 @@ export interface ArtifactsWidgetProps {
  * const conv = useSessionConversation(sessionId, org);
  *
  * <ArtifactsWidget
- *   runs={[
- *     ...conv.completedRuns,
- *     ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
- *   ]}
+ *   runs={conv.runs}
  *   org={activeOrg}
  *   onApplied={(result) => toast(`${result.kind} applied`)}
  * />

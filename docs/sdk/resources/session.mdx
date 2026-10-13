@@ -1242,6 +1242,8 @@ SessionEvent is one entry in a session's ordered event log.
     stigmerFileReviewDecided: { type: "StigmerFileReviewDecidedEventInput", description: "A turn's file changes, or one of its files, were kept or undone." },
     stigmerFileReviewReconciled: { type: "StigmerFileReviewReconciledEventInput", description: "The files that were undone were put back." },
     stigmerPermissionGrant: { type: "StigmerPermissionGrantEventInput", description: "A person allowed every call of one class for the rest of the turn." },
+    stigmerRunStatus: { type: "StigmerRunStatusEventInput", description: "A turn (run) changed phase: it started, waits, paused, or ended and how." },
+    stigmerToolResultFullOutput: { type: "StigmerToolResultFullOutputEventInput", description: "Where the whole output of a tool result that was too large to keep inline is stored." },
   }}
 />
 

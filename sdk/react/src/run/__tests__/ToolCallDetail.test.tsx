@@ -1,23 +1,25 @@
+// Pins ToolCallDetail over the session fold's tool uses: the body shows
+// content and never the header's metadata (duration), the provenance note
+// read from the ask's rule word (smart-suppressed), search and edit bodies
+// without duplicated stats, and a write's body: its turn's captured diff of
+// the file (matched through the turn's file review by path, the bytes from
+// the run's change set), with the proposed-content fallback for every
+// unresolvable case.
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  ToolCallSchema,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { create } from "@bufbuild/protobuf";
+import type { ToolUse } from "@stigmer/sdk";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
   type FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
-  ApprovalPolicySource,
   FileChangeKind,
   FileReviewBlockReason,
-  ToolCallStatus,
-  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { UseFileChangeContentReturn } from "../useFileChangeContent";
+import { reviewFile, reviewSet, toolUse, type ToolUseInit } from "./__fixtures__/fold-values";
 
 // Mock the diff-body content resolver (the seam FileChangesView.test.tsx also
 // mocks): FileChangeDiff calls it unconditionally, and its real implementation
@@ -47,45 +49,16 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-function makeToolCall(opts: {
-  name: string;
-  toolKind?: ToolKind;
-  args?: Record<string, unknown>;
-  result?: string;
-  approvalPolicySource?: ApprovalPolicySource;
-  startedAt?: string;
-  completedAt?: string;
-  status?: ToolCallStatus;
-  error?: string;
-  fileChangeSetId?: string;
-}): ToolCall {
-  return create(ToolCallSchema, {
-    id: opts.name,
-    name: opts.name,
-    toolKind: opts.toolKind ?? ToolKind.UNSPECIFIED,
-    args: (opts.args ?? {}) as JsonObject,
-    result: opts.result ?? "",
-    approvalPolicySource:
-      opts.approvalPolicySource ?? ApprovalPolicySource.UNSPECIFIED,
-    startedAt: opts.startedAt ?? "",
-    completedAt: opts.completedAt ?? "",
-    status: opts.status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
-    error: opts.error ?? "",
-    fileChangeSetId: opts.fileChangeSetId ?? "",
-  });
-}
-
 describe("ToolCallDetail — metadata invariant (header owns it, body shows content)", () => {
   it("does not render the duration in the body (the owning row header shows it)", () => {
     // A 5s run would format as "5.0s" if the body still printed duration.
     const { container } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "delete_file",
-          toolKind: ToolKind.FILE_DELETE,
-          args: { path: "/tmp/x.ts" },
-          startedAt: "2026-01-01T00:00:00.000Z",
-          completedAt: "2026-01-01T00:00:05.000Z",
+          input: { path: "/tmp/x.ts" },
+          result: "deleted",
+          durationMs: 5_000,
         })}
       />,
     );
@@ -95,25 +68,25 @@ describe("ToolCallDetail — metadata invariant (header owns it, body shows cont
   it("suppresses the everyday default provenance (built-in tool policy is noise)", () => {
     const { queryByText } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "delete_file",
-          toolKind: ToolKind.FILE_DELETE,
-          args: { path: "/tmp/x.ts" },
-          approvalPolicySource: ApprovalPolicySource.BUILTIN_CATEGORY,
+          input: { path: "/tmp/x.ts" },
+          ask: { policySource: "builtin_category" },
+          confirmation: "allow",
+          result: "deleted",
         })}
       />,
     );
     expect(queryByText(/required by/)).toBeNull();
   });
 
-  it("suppresses provenance entirely for a legacy/ungated UNSPECIFIED call", () => {
+  it("suppresses provenance entirely for a call no rule asked about", () => {
     const { queryByText } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "delete_file",
-          toolKind: ToolKind.FILE_DELETE,
-          args: { path: "/tmp/x.ts" },
-          approvalPolicySource: ApprovalPolicySource.UNSPECIFIED,
+          input: { path: "/tmp/x.ts" },
+          result: "deleted",
         })}
       />,
     );
@@ -124,15 +97,31 @@ describe("ToolCallDetail — metadata invariant (header owns it, body shows cont
   it("surfaces a genuinely informative provenance (a run lease that cleared the call)", () => {
     const { getByText } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "delete_file",
-          toolKind: ToolKind.FILE_DELETE,
-          args: { path: "/tmp/x.ts" },
-          approvalPolicySource: ApprovalPolicySource.APPROVAL_LEASE,
+          input: { path: "/tmp/x.ts" },
+          ask: { policySource: "approval_lease" },
+          confirmation: "allow",
+          result: "deleted",
         })}
       />,
     );
     expect(getByText("auto-approved by a run lease")).toBeTruthy();
+  });
+
+  it("names the plugin whose hook asked", () => {
+    const { getByText } = render(
+      <ToolCallDetail
+        toolUse={toolUse({
+          name: "delete_file",
+          input: { path: "/tmp/x.ts" },
+          ask: { policySource: "hook", policyHook: "safety" },
+          confirmation: "allow",
+          result: "deleted",
+        })}
+      />,
+    );
+    expect(getByText("decided by the safety plugin's hook")).toBeTruthy();
   });
 });
 
@@ -140,10 +129,9 @@ describe("ToolCallDetail — search body de-duplicates the query", () => {
   it("does not restate the query (no 'Pattern:' row) when the header shows it in full", () => {
     const { container } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Grep",
-          toolKind: ToolKind.SEARCH,
-          args: { pattern: "pipeline" },
+          input: { pattern: "pipeline" },
           result:
             '{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}',
         })}
@@ -161,10 +149,9 @@ describe("ToolCallDetail — search body de-duplicates the query", () => {
   it("unwraps the real {status,value:{workspaceResults}} grep result instead of dumping JSON", () => {
     const { container } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Grep",
-          toolKind: ToolKind.SEARCH,
-          args: { pattern: "pipeline" },
+          input: { pattern: "pipeline" },
           result:
             '{"status":"success","value":{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}}',
         })}
@@ -179,10 +166,9 @@ describe("ToolCallDetail — search body de-duplicates the query", () => {
   it("does not restate the result count in the body (the row header shows it)", () => {
     const { container } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Glob",
-          toolKind: ToolKind.SEARCH,
-          args: { pattern: "Dockerfile" },
+          input: { pattern: "Dockerfile" },
           result:
             '{"status":"success","value":{"files":["Dockerfile"],"totalFiles":1,"clientTruncated":false,"ripgrepTruncated":false}}',
         })}
@@ -198,10 +184,9 @@ describe("ToolCallDetail — search body de-duplicates the query", () => {
       "a-very-long-search-query-that-would-not-fit-in-the-header-subtitle";
     const { container } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
+        toolUse={toolUse({
           name: "Grep",
-          toolKind: ToolKind.SEARCH,
-          args: { pattern: longQuery },
+          input: { pattern: longQuery },
           result:
             '{"workspaceResults":{"/work/demo":{"type":"files","output":{"files":[],"count":0}}}}',
         })}
@@ -217,10 +202,9 @@ describe("ToolCallDetail — edit body has no duplicate stats", () => {
   it("renders the edit diff as a table without restating the +N -M counts", () => {
     const { container } = render(
       <ToolCallDetail
-        toolCall={makeToolCall({
-          name: "str_replace",
-          toolKind: ToolKind.FILE_EDIT,
-          args: { path: "src/x.ts" },
+        toolUse={toolUse({
+          name: "StrReplace",
+          input: { path: "src/x.ts" },
           result:
             '{"status":"success","value":{"linesAdded":1,"linesRemoved":0,"diffString":"@@ -0,0 +1,1 @@\\n+new line"}}',
         })}
@@ -239,14 +223,14 @@ describe("ToolCallDetail — edit body has no duplicate stats", () => {
 // ---------------------------------------------------------------------------
 
 describe("ToolCallDetail — write body", () => {
-  const SET_ID = "aex-1:0";
+  const SET_ID = "cs-1";
   // BoundedContent's collapsed pixel clamp (PREVIEW_MAX_HEIGHT). Its presence/
   // absence is how these tests pin WHICH truncation mechanism bounds the body —
   // jsdom has no layout, so the reveal control itself only appears for the
   // line-count mechanism (CollapsibleCode), never for the pixel clamp.
   const CLAMP = ".stg\\:max-h-48";
 
-  /** A change set capturing one reviewable modify of `path`. */
+  /** The run's change set capturing one modify of `path`. */
   function capturedSet(
     path = "notes.md",
     overrides?: { diffComplete?: boolean; blockedReason?: FileReviewBlockReason },
@@ -267,30 +251,35 @@ describe("ToolCallDetail — write body", () => {
     });
   }
 
-  function writeCall(opts?: Partial<Parameters<typeof makeToolCall>[0]>): ToolCall {
-    return makeToolCall({
+  function writeCall(opts?: Partial<ToolUseInit>): ToolUse {
+    return toolUse({
       name: "write_file",
-      toolKind: ToolKind.FILE_WRITE,
-      args: { file_path: "notes.md", contents: "proposed body\n" },
+      input: { file_path: "notes.md", contents: "proposed body\n" },
       result: "Successfully wrote to 'notes.md'",
       ...opts,
     });
   }
 
-  function renderWithSet(toolCall: ToolCall, set: FileChangeSet | null) {
-    const changeSetsById = new Map(set ? [[SET_ID, set]] : []);
+  /**
+   * Renders the detail with the turn's review naming `reviewedPath` (none
+   * when null) and the run holding `capture` (none when null).
+   */
+  function renderWith(row: ToolUse, reviewedPath: string | null, capture: FileChangeSet | null) {
+    const fileReviewByRunId = new Map(
+      reviewedPath === null
+        ? []
+        : [["run_1", [reviewSet({ changeSetId: SET_ID, files: [reviewFile({ path: reviewedPath })] })]] as const],
+    );
+    const changeSetsById = new Map(capture ? [[SET_ID, capture]] : []);
     return render(
-      <FileReviewContext.Provider value={{ changeSetsById }}>
-        <ToolCallDetail toolCall={toolCall} />
+      <FileReviewContext.Provider value={{ fileReviewByRunId, changeSetsById }}>
+        <ToolCallDetail toolUse={row} />
       </FileReviewContext.Provider>,
     );
   }
 
-  it("renders the captured net diff (not the Content block) on a stamped row", () => {
-    const { container } = renderWithSet(
-      writeCall({ fileChangeSetId: SET_ID }),
-      capturedSet(),
-    );
+  it("renders the captured net diff (not the Content block) when the turn's review holds the file", () => {
+    const { container } = renderWith(writeCall(), "notes.md", capturedSet());
     // The captured before/after renders as a real diff table...
     expect(container.querySelector('[data-cursor-target="file-diff"]')).not.toBeNull();
     expect(container.textContent).toContain("captured-after");
@@ -307,7 +296,7 @@ describe("ToolCallDetail — write body", () => {
     const longBody = Array.from({ length: 55 }, (_, i) => `line ${i + 1}`).join("\n");
     const { container, getAllByRole } = render(
       <ToolCallDetail
-        toolCall={writeCall({ args: { file_path: "notes.md", contents: longBody } })}
+        toolUse={writeCall({ input: { file_path: "notes.md", contents: longBody } })}
       />,
     );
     // The file view self-truncates (line-count mechanism, one control)...
@@ -321,25 +310,21 @@ describe("ToolCallDetail — write body", () => {
   });
 
   it("falls back to the Content block for every unresolvable capture", () => {
-    const cases: Array<[string, ToolCall, FileChangeSet | null]> = [
-      ["unstamped row", writeCall(), capturedSet()],
-      ["set missing from context", writeCall({ fileChangeSetId: SET_ID }), null],
-      [
-        "path not in set",
-        writeCall({ fileChangeSetId: SET_ID }),
-        capturedSet("other.md"),
-      ],
+    const cases: Array<[string, string | null, FileChangeSet | null]> = [
+      ["no review for the turn", null, capturedSet()],
+      ["capture missing from the runs", "notes.md", null],
+      ["file not in the review", "other.md", capturedSet("other.md")],
       [
         "non-reviewable (secret-withheld) change",
-        writeCall({ fileChangeSetId: SET_ID }),
+        "notes.md",
         capturedSet("notes.md", {
           diffComplete: false,
           blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
         }),
       ],
     ];
-    for (const [label, toolCall, set] of cases) {
-      const { container } = renderWithSet(toolCall, set);
+    for (const [label, reviewed, capture] of cases) {
+      const { container } = renderWith(writeCall(), reviewed, capture);
       expect(container.textContent, label).toContain("Content");
       expect(container.textContent, label).toContain("proposed body");
       expect(
@@ -353,9 +338,9 @@ describe("ToolCallDetail — write body", () => {
   it("keeps a FAILED write's error view inside the pixel clamp (bounding-rule lock)", () => {
     const { container } = render(
       <ToolCallDetail
-        toolCall={writeCall({
-          status: ToolCallStatus.TOOL_CALL_FAILED,
-          error: "EACCES: permission denied, open 'notes.md'",
+        toolUse={writeCall({
+          isError: true,
+          result: "EACCES: permission denied, open 'notes.md'",
         })}
       />,
     );
@@ -364,21 +349,39 @@ describe("ToolCallDetail — write body", () => {
     expect(container.querySelector(CLAMP)).not.toBeNull();
   });
 
-  it("leaves a stamped EDIT row on its per-call args diff, never the captured net diff", () => {
-    const edit = makeToolCall({
+  it("leaves an EDIT row on its per-call input diff, never the captured net diff", () => {
+    const edit = toolUse({
       name: "edit_file",
-      toolKind: ToolKind.FILE_EDIT,
-      args: { file_path: "notes.md", old_string: "alpha", new_string: "edit-args-b" },
+      input: { file_path: "notes.md", old_string: "alpha", new_string: "edit-args-b" },
       result: "Successfully replaced 1 occurrence in 'notes.md'",
-      fileChangeSetId: SET_ID,
     });
-    const { container } = renderWithSet(edit, capturedSet());
-    // The per-call diff from the row's own args renders...
+    const { container } = renderWith(edit, "notes.md", capturedSet());
+    // The per-call diff from the call's own input renders...
     expect(container.textContent).toContain("edit-args-b");
     // ...not the change set's captured net content...
     expect(container.textContent).not.toContain("captured-after");
     // ...still inside the shared pixel clamp (unchanged behavior).
     expect(container.querySelector(CLAMP)).not.toBeNull();
+  });
+});
+
+describe("ToolCallDetail — think body", () => {
+  it("shows the thought from the input, else from the result", () => {
+    const fromInput = render(
+      <ToolCallDetail toolUse={toolUse({ name: "think", input: { thought: "weigh the options" } })} />,
+    );
+    expect(fromInput.container.textContent).toContain("weigh the options");
+    cleanup();
+
+    const fromResult = render(
+      <ToolCallDetail toolUse={toolUse({ name: "think", result: "considered" })} />,
+    );
+    expect(fromResult.container.textContent).toContain("considered");
+  });
+
+  it("renders nothing for an empty thought", () => {
+    const { container } = render(<ToolCallDetail toolUse={toolUse({ name: "think" })} />);
+    expect(container.textContent).toBe("");
   });
 });
 

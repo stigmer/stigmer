@@ -1,18 +1,15 @@
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  InteractionMode,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { isTerminalPhase } from "@stigmer/sdk";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Turn } from "@stigmer/sdk";
 
 /**
- * A plan being written by a live Plan-mode run, detected mid-stream so
+ * A plan being written by a live Plan-mode turn, detected mid-stream so
  * the UI can promote it to a document surface (panel plan tab + compact thread
  * card) instead of letting it dump into the chat as a giant streaming bubble.
  */
 export interface StreamingPlan {
-  /** Index of the plan message in `execution.status.messages`. */
-  readonly messageIndex: number;
+  /** The id of the plan's message among the turn's items. */
+  readonly messageId: string;
   /**
    * The plan text to render on document surfaces: the message content with
    * any enclosing plan fence stripped, streaming-tolerantly (an unterminated
@@ -58,8 +55,8 @@ function unwrapStreamingPlanFence(content: string): string {
 }
 
 /**
- * Detects the plan a live Plan-mode run is currently writing, or
- * `undefined` when the run has no recognizable plan in flight.
+ * Detects the plan a live Plan-mode turn is currently writing, or
+ * `undefined` when the turn has no recognizable plan in flight.
  *
  * This is the third leg of the plan convention, alongside the runner's prompt
  * directive ("your FINAL message IS the plan, starting with a single `#`
@@ -68,38 +65,38 @@ function unwrapStreamingPlanFence(content: string): string {
  * (the published `plan.md` artifact); mid-stream it must be inferred, and the
  * directive's mandated shape is the inference:
  *
- * - the run runs in Plan mode and is **non-terminal** (a completed turn
- *   is owned by the artifact path; a stopped/failed turn has no live plan),
- * - the candidate is the **last content-bearing `MESSAGE_AI`** — the exact
- *   selection rule the runner's `extractFinalPlanText` and the thread's
- *   `findPlanMessageIndex` share, so all three stay in lockstep,
+ * - the turn's run runs in Plan mode and the turn has **not ended** (a
+ *   completed turn is owned by the artifact path; a stopped/failed turn has
+ *   no live plan),
+ * - the candidate is the turn's **last content-bearing agent message** (live
+ *   or stored) — the exact selection rule the runner's `extractFinalPlanText`
+ *   and the thread's plan-message rule share, so all three stay in lockstep,
  * - and that candidate opens with an `# H1` title (after tolerating an
  *   enclosing plan fence, see {@link unwrapStreamingPlanFence}) — the shape
  *   the directive mandates and narration essentially never has.
  *
  * Degradation is graceful by design: a model that ignores the directive
  * simply streams its plan in the thread as before, and the completion-time
- * pipeline is unaffected either way. Only the LAST content-bearing AI message
- * is ever considered — an earlier message is settled narration, and falling
- * back to it would promote the wrong text.
+ * pipeline is unaffected either way. Only the LAST content-bearing agent
+ * message is ever considered — an earlier message is settled narration, and
+ * falling back to it would promote the wrong text.
+ *
+ * @param turn - The turn, from the session's fold.
+ * @param run - The turn's run (its spec says the interaction mode).
  */
 export function findStreamingPlan(
-  execution: Run | null | undefined,
+  turn: Turn | null | undefined,
+  run: Run | null | undefined,
 ): StreamingPlan | undefined {
-  if (execution?.spec?.interactionMode !== InteractionMode.PLAN) {
+  if (!turn || turn.ended || run?.spec?.interactionMode !== InteractionMode.PLAN) {
     return undefined;
   }
-  const phase = execution.status?.phase;
-  if (phase === undefined || isTerminalPhase(phase)) return undefined;
-
-  const messages = execution.status?.messages ?? [];
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msg = messages[i];
-    if (msg.type !== MessageType.MESSAGE_AI) continue;
-    if (msg.content.trim().length === 0) continue;
-    const displayText = unwrapStreamingPlanFence(msg.content);
+  for (let i = turn.items.length - 1; i >= 0; i--) {
+    const item = turn.items[i]!;
+    if (item.kind !== "message" || item.text.trim().length === 0) continue;
+    const displayText = unwrapStreamingPlanFence(item.text);
     return LEADING_H1_RE.test(displayText.trimStart())
-      ? { messageIndex: i, displayText }
+      ? { messageId: item.id, displayText }
       : undefined;
   }
   return undefined;
