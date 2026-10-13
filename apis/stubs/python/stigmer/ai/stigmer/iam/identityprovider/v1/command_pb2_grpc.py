@@ -111,9 +111,8 @@ class IdentityProviderCommandControllerServicer(object):
         identity provider keeps signing people in as it is, and can still
         be deleted. No metadata.
 
-        The slug changes only through rename. An update that names the identity
-        provider by a slug it was renamed away from, without its id, is refused
-        with SLUG_RENAMED (see apply).
+        An update names the identity provider by its id, and the slug changes
+        only through rename.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

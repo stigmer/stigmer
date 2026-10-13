@@ -62,15 +62,8 @@ export const TeamCommandController: GenService<{
   /**
    * Update a team's name or description.
    *
-   * The slug changes only through rename. A slug the team was renamed away
-   * from, named without the team's id, is refused with FAILED_PRECONDITION
-   * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
-   * write by a name that stops resolving after 30 days would later make a
-   * second team:
-   *
-   *   - SLUG_RENAMED — the slug was renamed: it still leads to the same team
-   *     for reading, but a write names its current slug. Metadata: slug (the
-   *     one the request named).
+   * An update names the team by its id, and the slug changes only through
+   * rename.
    *
    * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.update
    */
@@ -85,8 +78,7 @@ export const TeamCommandController: GenService<{
    * The team keeps its id, so everything that names it keeps working, and every
    * answer names it by the new slug. The old slug keeps leading to the team for
    * reading for 30 days, during which no other team of the organization can
-   * take it and this one can take it back; then it is released. A write that
-   * names the old slug is refused with SLUG_RENAMED (see update). A slug
+   * take it and this one can take it back; then it is released. A slug
    * another team holds is refused with ALREADY_EXISTS, and one another team was
    * recently renamed away from with SLUG_RESERVED (see create).
    *

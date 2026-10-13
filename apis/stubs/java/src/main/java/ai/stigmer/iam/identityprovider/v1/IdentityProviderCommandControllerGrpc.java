@@ -295,9 +295,8 @@ public final class IdentityProviderCommandControllerGrpc {
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
      *     identity provider keeps signing people in as it is, and can still
      *     be deleted. No metadata.
-     * The slug changes only through rename. An update that names the identity
-     * provider by a slug it was renamed away from, without its id, is refused
-     * with SLUG_RENAMED (see apply).
+     * An update names the identity provider by its id, and the slug changes
+     * only through rename.
      * </pre>
      */
     default void update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -432,9 +431,8 @@ public final class IdentityProviderCommandControllerGrpc {
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
      *     identity provider keeps signing people in as it is, and can still
      *     be deleted. No metadata.
-     * The slug changes only through rename. An update that names the identity
-     * provider by a slug it was renamed away from, without its id, is refused
-     * with SLUG_RENAMED (see apply).
+     * An update names the identity provider by its id, and the slug changes
+     * only through rename.
      * </pre>
      */
     public void update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -556,9 +554,8 @@ public final class IdentityProviderCommandControllerGrpc {
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
      *     identity provider keeps signing people in as it is, and can still
      *     be deleted. No metadata.
-     * The slug changes only through rename. An update that names the identity
-     * provider by a slug it was renamed away from, without its id, is refused
-     * with SLUG_RENAMED (see apply).
+     * An update names the identity provider by its id, and the slug changes
+     * only through rename.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) throws io.grpc.StatusException {
@@ -677,9 +674,8 @@ public final class IdentityProviderCommandControllerGrpc {
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
      *     identity provider keeps signing people in as it is, and can still
      *     be deleted. No metadata.
-     * The slug changes only through rename. An update that names the identity
-     * provider by a slug it was renamed away from, without its id, is refused
-     * with SLUG_RENAMED (see apply).
+     * An update names the identity provider by its id, and the slug changes
+     * only through rename.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) {
@@ -800,9 +796,8 @@ public final class IdentityProviderCommandControllerGrpc {
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
      *     identity provider keeps signing people in as it is, and can still
      *     be deleted. No metadata.
-     * The slug changes only through rename. An update that names the identity
-     * provider by a slug it was renamed away from, without its id, is refused
-     * with SLUG_RENAMED (see apply).
+     * An update names the identity provider by its id, and the slug changes
+     * only through rename.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> update(

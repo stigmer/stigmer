@@ -86,9 +86,8 @@ type IdentityProviderCommandControllerClient interface {
 	//     identity provider keeps signing people in as it is, and can still
 	//     be deleted. No metadata.
 	//
-	// The slug changes only through rename. An update that names the identity
-	// provider by a slug it was renamed away from, without its id, is refused
-	// with SLUG_RENAMED (see apply).
+	// An update names the identity provider by its id, and the slug changes
+	// only through rename.
 	Update(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Rename an identity provider: change its slug, the name people type.
 	//
@@ -228,9 +227,8 @@ type IdentityProviderCommandControllerServer interface {
 	//     identity provider keeps signing people in as it is, and can still
 	//     be deleted. No metadata.
 	//
-	// The slug changes only through rename. An update that names the identity
-	// provider by a slug it was renamed away from, without its id, is refused
-	// with SLUG_RENAMED (see apply).
+	// An update names the identity provider by its id, and the slug changes
+	// only through rename.
 	Update(context.Context, *IdentityProvider) (*IdentityProvider, error)
 	// Rename an identity provider: change its slug, the name people type.
 	//

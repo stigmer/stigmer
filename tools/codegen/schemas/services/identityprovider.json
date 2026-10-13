@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Update an existing identity provider.\n\n On Stigmer Enterprise, changing how people sign in is growth the\n server's license pays for. Once the license and its grace period have\n ended, an update is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the\n     identity provider keeps signing people in as it is, and can still\n     be deleted. No metadata.\n\n The slug changes only through rename. An update that names the identity\n provider by a slug it was renamed away from, without its id, is refused\n with SLUG_RENAMED (see apply)."
+          "description": "Update an existing identity provider.\n\n On Stigmer Enterprise, changing how people sign in is growth the\n server's license pays for. Once the license and its grace period have\n ended, an update is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the\n     identity provider keeps signing people in as it is, and can still\n     be deleted. No metadata.\n\n An update names the identity provider by its id, and the slug changes\n only through rename."
         },
         {
           "name": "Rename",

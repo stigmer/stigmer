@@ -93,9 +93,8 @@ export const IdentityProviderCommandController: GenService<{
    *     identity provider keeps signing people in as it is, and can still
    *     be deleted. No metadata.
    *
-   * The slug changes only through rename. An update that names the identity
-   * provider by a slug it was renamed away from, without its id, is refused
-   * with SLUG_RENAMED (see apply).
+   * An update names the identity provider by its id, and the slug changes
+   * only through rename.
    *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.update
    */

@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.team.v1.Team",
           "outputType": "Team",
           "outputFullType": "ai.stigmer.iam.team.v1.Team",
-          "description": "Update a team's name or description.\n\n The slug changes only through rename. A slug the team was renamed away\n from, named without the team's id, is refused with FAILED_PRECONDITION\n carrying a google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), because a\n write by a name that stops resolving after 30 days would later make a\n second team:\n\n   - SLUG_RENAMED — the slug was renamed: it still leads to the same team\n     for reading, but a write names its current slug. Metadata: slug (the\n     one the request named)."
+          "description": "Update a team's name or description.\n\n An update names the team by its id, and the slug changes only through\n rename."
         },
         {
           "name": "Rename",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
           "outputType": "Team",
           "outputFullType": "ai.stigmer.iam.team.v1.Team",
-          "description": "Rename a team: change its slug, the name people type.\n\n The team keeps its id, so everything that names it keeps working, and every\n answer names it by the new slug. The old slug keeps leading to the team for\n reading for 30 days, during which no other team of the organization can\n take it and this one can take it back; then it is released. A write that\n names the old slug is refused with SLUG_RENAMED (see update). A slug\n another team holds is refused with ALREADY_EXISTS, and one another team was\n recently renamed away from with SLUG_RESERVED (see create).\n\n Its memberships and shares name its id and are unchanged."
+          "description": "Rename a team: change its slug, the name people type.\n\n The team keeps its id, so everything that names it keeps working, and every\n answer names it by the new slug. The old slug keeps leading to the team for\n reading for 30 days, during which no other team of the organization can\n take it and this one can take it back; then it is released. A slug\n another team holds is refused with ALREADY_EXISTS, and one another team was\n recently renamed away from with SLUG_RESERVED (see create).\n\n Its memberships and shares name its id and are unchanged."
         },
         {
           "name": "Delete",
