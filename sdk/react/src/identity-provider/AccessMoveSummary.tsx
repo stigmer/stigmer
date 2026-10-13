@@ -43,8 +43,8 @@ export function AccessMoveSummary({ move, invitationIds, moved, automationHref, 
   return (
     <div className={cn("stg:space-y-3 stg:text-xs", className)}>
       <p className="stg:text-foreground">
-        {moved ? "Moved" : "Moves"} {move.movedPolicies} {move.movedPolicies === 1 ? "role or share" : "roles and shares"},
-        including everything you own here.
+        {moved ? "Moved" : "Moves"} {move.movedPolicies} {move.movedPolicies === 1 ? "piece of access" : "pieces of access"}:
+        your roles, your shares, and everything you made or own here.
       </p>
 
       {move.myVaultEntries.length > 0 && (

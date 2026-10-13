@@ -323,13 +323,14 @@ for the full pattern in all SDK languages.
 ## Require sign-in through your Identity Provider
 
 Enabling SSO adds a way in. Requiring it makes it the only way in: once your
-Organization requires sign-in through its SSO provider, a person acts in the
-Organization only through the account your Identity Provider signed them in as.
-Someone who signs in another way (an email login) is refused everywhere in the
-Organization with a message that names your provider and a button to sign in
-through it. An API key acts as the account that made it, so a key made by an
-email account stops working in the Organization and a key made while signed in
-through SSO keeps working.
+Organization requires sign-in through its SSO provider, its people (everyone
+holding a role in it, directly or through a team) act in the Organization only
+through the account your Identity Provider signed them in as. One of them who
+signs in another way (an email login) is refused everywhere in the Organization
+with a message that names your provider and a button to sign in through it. An
+API key acts as the account that made it, so a key made by an email account
+stops working in the Organization and a key made while signed in through SSO
+keeps working.
 
 Only the Organization's owners can turn the requirement on or off, from the SSO
 provider's page in the console. Before it turns on, the console shows who would
@@ -343,6 +344,9 @@ The requirement never applies to:
 - **Service accounts and runs.** Their credentials aren't a person's sign-in.
 - **Your Organization's own platform clients.** A user token your app mints acts
   for a person your app vouched for.
+- **People of your child Organizations.** A member of a child Organization still
+  reads the agents, skills and plugins you share with your child Organizations;
+  your requirement covers your own people, not theirs.
 
 While the requirement is on, changing whom the SSO provider trusts (its issuers,
 key set or audience) and deleting it, which ends the requirement, are also the
@@ -361,9 +365,11 @@ A person who worked in the Organization under another sign-in before it required
 SSO has two accounts: the old one, and the one your Identity Provider creates at
 their first SSO sign-in. From the refusal, they choose **Bring my access with
 me**, see what moves, and sign in through your Identity Provider. Their roles,
-team memberships, shares and the resources they own in the Organization move to
-their SSO account, and the Organization's access history records each change as
-a move. Nothing outside the Organization moves.
+team memberships, shares and everything they created or own in the Organization
+move to their SSO account, their past conversations included, and the
+Organization's access history records each change as a move. Nothing outside the
+Organization moves. A past conversation can be read after the move; continuing
+it still runs as the old account, so start a new one.
 
 Some things don't move:
 

@@ -1,17 +1,21 @@
 // ---------------------------------------------------------------------------
 // AccessMoveFinishPage — the access move's second half
 //
-// It redeems the ticket the first half kept in this tab, once, and drops it
-// whatever the answer; with no ticket in the tab it says there is no move
-// to finish and redeems nothing.
+// It redeems the ticket the first half kept in this tab and drops it once
+// the move finished or was refused; a redeem the server failed partway
+// keeps the ticket and offers to try again, which finishes the move. With
+// no ticket in the tab it says there is no move to finish and redeems
+// nothing.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 const mocks = vi.hoisted(() => ({
   redeemed: [] as string[],
   refuse: false,
+  fault: false,
 }));
 
 vi.mock("@stigmer/react", () => ({
@@ -20,6 +24,9 @@ vi.mock("@stigmer/react", () => ({
       mocks.redeemed.push(ticket);
       if (mocks.refuse) {
         return Promise.reject(new Error("refused"));
+      }
+      if (mocks.fault) {
+        return Promise.reject(faultError());
       }
       return Promise.resolve({
         org: "org_acme",
@@ -30,7 +37,9 @@ vi.mock("@stigmer/react", () => ({
     isRedeeming: false,
     error: mocks.refuse
       ? new Error("Finish moving your access while signed in through Acme Okta")
-      : null,
+      : mocks.fault
+        ? faultError()
+        : null,
   }),
   AccessMoveSummary: () => <div data-testid="summary" />,
 }));
@@ -44,6 +53,10 @@ vi.mock("next/link", () => ({
   }) => <a href={href}>{children}</a>,
 }));
 
+function faultError(): ConnectError {
+  return new ConnectError("the server failed partway", Code.Internal);
+}
+
 import { AccessMoveFinishPage } from "../AccessMoveFinishPage";
 import { readPendingMove, savePendingMove } from "../move-ticket";
 
@@ -52,6 +65,7 @@ afterEach(() => {
   sessionStorage.clear();
   mocks.redeemed = [];
   mocks.refuse = false;
+  mocks.fault = false;
 });
 
 describe("AccessMoveFinishPage", () => {
@@ -71,6 +85,21 @@ describe("AccessMoveFinishPage", () => {
       "Finish moving your access while signed in through Acme Okta",
     );
     await vi.waitFor(() => expect(readPendingMove()).toBeNull());
+  });
+
+  it("keeps the ticket when the server failed partway, and finishes the move on another try", async () => {
+    mocks.fault = true;
+    savePendingMove({ ticket: "tkt_secret", org: "org_acme" });
+    const view = render(<AccessMoveFinishPage />);
+    const retry = await screen.findByRole("button", { name: "Try again" });
+    expect(readPendingMove()?.ticket).toBe("tkt_secret");
+
+    mocks.fault = false;
+    fireEvent.click(retry);
+    view.rerender(<AccessMoveFinishPage />);
+    expect(await screen.findByTestId("summary")).toBeTruthy();
+    expect(mocks.redeemed).toEqual(["tkt_secret", "tkt_secret"]);
+    expect(readPendingMove()).toBeNull();
   });
 
   it("says there is no move to finish when the tab holds no ticket", async () => {

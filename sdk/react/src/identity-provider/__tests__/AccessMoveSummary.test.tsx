@@ -43,7 +43,7 @@ afterEach(() => {
 describe("AccessMoveSummary", () => {
   it("before the move: what moves, what it deletes and stops, nothing offered to make again", () => {
     render(<AccessMoveSummary move={move} invitationIds={["inv_1"]} moved={false} />);
-    expect(screen.getByText(/Moves 3 roles and shares/)).toBeTruthy();
+    expect(screen.getByText(/Moves 3 pieces of access: your roles, your shares, and everything you made or own here/)).toBeTruthy();
     expect(screen.getByText("GITHUB_TOKEN")).toBeTruthy();
     expect(screen.getByText(/An invitation you created here stop working/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Make it again as me" })).toBeNull();
@@ -69,7 +69,7 @@ describe("AccessMoveSummary", () => {
     state.fail = true;
     render(<AccessMoveSummary move={create(MoveOrgAccessResultSchema, { movedPolicies: 1, automations: move.automations })} invitationIds={["a", "b"]} moved />);
     expect(screen.getByRole("alert").textContent).toContain("could not make it again");
-    expect(screen.getByText(/Moved 1 role or share/)).toBeTruthy();
+    expect(screen.getByText(/Moved 1 piece of access/)).toBeTruthy();
     expect(screen.getByText(/2 invitations you created here stopped working/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Make it again as me" }));
     expect(state.remade).toEqual(["sch_1"]);

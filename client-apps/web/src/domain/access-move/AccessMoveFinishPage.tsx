@@ -3,14 +3,16 @@
 /**
  * The access move's second half: the organization's SSO provider signed the
  * person in and landed here. It redeems the ticket the first half kept in
- * this tab, once, and shows what moved and what to make again. A refused
- * redeem (signed in as someone the provider did not make, a ticket that
- * expired) says why; the ticket is dropped either way, since a new move
- * starts from the refusal again.
+ * this tab, and shows what moved and what to make again. A refused redeem
+ * (signed in as someone the provider did not make, a ticket that expired)
+ * says why and drops the ticket, since a new move starts from the refusal
+ * again. A redeem the server failed partway keeps the ticket and offers to
+ * try again: the same ticket finishes the move while it lasts, and only a
+ * finished move deletes the old account's My vault there.
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, isRetryableError } from "@stigmer/sdk";
 import { AccessMoveSummary, useRedeemAccessMove } from "@stigmer/react";
 import type { AccessMoveResult } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { clearPendingMove, readPendingMove } from "./move-ticket";
@@ -21,20 +23,29 @@ export function AccessMoveFinishPage() {
   const [missing, setMissing] = useState(false);
   const asked = useRef(false);
 
+  const finish = useCallback(() => {
+    const pending = readPendingMove();
+    if (pending === null) {
+      setMissing(true);
+      return;
+    }
+    redeem(pending.ticket).then(
+      (answer) => {
+        clearPendingMove();
+        setResult(answer);
+      },
+      (failure: unknown) => {
+        // The hook holds the error, shown below; a refusal ends the ticket.
+        if (!isRetryableError(failure)) clearPendingMove();
+      },
+    );
+  }, [redeem]);
+
   useEffect(() => {
     if (asked.current) return;
     asked.current = true;
-    const pending = readPendingMove();
-    const moved =
-      pending === null
-        ? Promise.resolve(null)
-        : redeem(pending.ticket).finally(clearPendingMove);
-    moved.then(
-      (answer) => (answer === null ? setMissing(true) : setResult(answer)),
-      // The hook holds the error, shown below.
-      () => undefined,
-    );
-  }, [redeem]);
+    finish();
+  }, [finish]);
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-4 px-4 py-10">
@@ -44,10 +55,21 @@ export function AccessMoveFinishPage() {
           There is no move to finish in this tab. Start it again from the
           organization&apos;s sign-in notice.
         </p>
-      ) : error ? (
-        <p role="alert" className="text-destructive text-sm">
-          {getUserMessage(error)}
-        </p>
+      ) : error && !isRedeeming ? (
+        <div className="space-y-3">
+          <p role="alert" className="text-destructive text-sm">
+            {getUserMessage(error)}
+          </p>
+          {isRetryableError(error) && (
+            <button
+              type="button"
+              onClick={finish}
+              className="text-primary text-sm font-medium hover:underline"
+            >
+              Try again
+            </button>
+          )}
+        </div>
       ) : isRedeeming || result === null ? (
         <p className="text-muted-foreground text-sm">Moving your access…</p>
       ) : (
