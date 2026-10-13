@@ -196,11 +196,23 @@ describe("tool uses", () => {
     const fold = foldSession([
       user(R, "go"),
       result(R, "c1", "head"),
-      ev(R, { case: "stigmerToolResultFullOutput", value: { id: `${R}.c1.full`, toolUseId: `${R}.c1`, storageKey: "k", sizeBytes: 9n, contentHash: "h", mimeType: "text/plain" } }),
+      ev(R, { case: "stigmerToolResultFullOutput", value: { id: `${R}.c1.full`, toolUseId: `${R}.c1`, storageKey: `artifacts/${R}/k`, sizeBytes: 9n, contentHash: "h", mimeType: "text/plain" } }),
       use(R, "c1", "read"),
     ]);
     const tool = toolsOf(fold.turns[0]!.items)[0]!;
-    expect([tool.state, tool.result?.text, tool.fullOutput?.storageKey, tool.fullOutput?.sizeBytes]).toEqual(["completed", "head", "k", 9n]);
+    expect([tool.state, tool.result?.text, tool.fullOutput?.storageKey, tool.fullOutput?.sizeBytes]).toEqual(["completed", "head", `artifacts/${R}/k`, 9n]);
+  });
+
+  it("takes a full output only from the tool use's own run, under that run's artifacts", () => {
+    const full = (runId: string, storageKey: string, id: string) =>
+      ev(runId, { case: "stigmerToolResultFullOutput", value: { id, toolUseId: `${R}.c1`, storageKey, sizeBytes: 9n } });
+    const fullOf = (...events: SessionEvent[]) =>
+      toolsOf(foldSession([user(R, "go"), use(R, "c1", "read"), result(R, "c1", "head"), ...events]).turns[0]!.items)[0]!.fullOutput;
+    expect(fullOf(full(R, `artifacts/${R}/toolcalls/c1.txt`, "f1"))?.storageKey).toBe(`artifacts/${R}/toolcalls/c1.txt`);
+    expect(fullOf(full(R, "artifacts/run_other/toolcalls/c1.txt", "f2")), "another run's artifact").toBeUndefined();
+    expect(fullOf(full(R, `artifacts/${R}/../run_other/c1.txt`, "f3")), "a key that climbs out of the run").toBeUndefined();
+    expect(fullOf(full(R2, `artifacts/${R2}/toolcalls/c1.txt`, "f4")), "written under another run").toBeUndefined();
+    expect(fullOf(full(R, `uploads/${R}/c1.txt`, "f5")), "outside the artifacts").toBeUndefined();
   });
 
   it("an answer naming something the log never shows stays held, through later events, and changes nothing", () => {

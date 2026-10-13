@@ -602,7 +602,7 @@ describe("transcriptToMarkdown", () => {
       log.add("run_x", { case: "agentToolUse", value: { id: "run_x.c1", name: "screenshot" } });
       log.add("run_x", {
         case: "stigmerToolResultFullOutput",
-        value: { id: "run_x.c1.full", toolUseId: "run_x.c1", storageKey: "k.png", sizeBytes: 9n, isImage: true },
+        value: { id: "run_x.c1.full", toolUseId: "run_x.c1", storageKey: "artifacts/run_x/toolcalls/k.png", sizeBytes: 9n, isImage: true },
       });
     });
     expect(transcriptToMarkdown(assembleSessionTranscript(session(), events, []))).toContain(

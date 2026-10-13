@@ -21,7 +21,11 @@
  * (`stigmer.permission.asked`), an answer (`user.tool_confirmation`), a
  * grant and a full-output location name their tool use; a thinking's text
  * names its thinking. An event that names something the log has not shown
- * yet is held until it has.
+ * yet is held until it has. A full-output location is taken only from the
+ * tool use's own run and only inside that run's artifacts
+ * (`artifacts/<run>/`, no `..` segment): a client fetches it by the tool
+ * use's run, as `RunQueryController.getArtifactContent` serves it, so a
+ * location naming another run's bytes is never shown as this call's.
  *
  * Previews. `event_start` opens a live message or thinking under the id its
  * stored event will carry, `event_delta` grows a message's text, and
@@ -384,7 +388,9 @@ export class SessionLog {
           isImage: e.value.isImage,
         };
         this.whenTool(e.value.toolUseId, (tool) => {
-          tool.fullOutput = full;
+          if (runId === tool.runId && isRunArtifact(tool.runId, full.storageKey)) {
+            tool.fullOutput = full;
+          }
         });
         break;
       }
@@ -891,6 +897,17 @@ function textItemOf(item: MutText): TurnItem {
     case "compacted":
       return { kind: "compacted", id: item.id, processedAt: item.processedAt } satisfies CompactedItem;
   }
+}
+
+/** Whether a storage key lies inside one run's artifacts: `artifacts/<run>/...`, with no empty, `.` or `..` segment. */
+function isRunArtifact(runId: string, storageKey: string): boolean {
+  const segments = storageKey.split("/");
+  return (
+    segments.length > 2 &&
+    segments[0] === "artifacts" &&
+    segments[1] === runId &&
+    segments.every((part) => part !== "" && part !== "." && part !== "..")
+  );
 }
 
 /** A tool use's state (types.ts `ToolUseState`). */
