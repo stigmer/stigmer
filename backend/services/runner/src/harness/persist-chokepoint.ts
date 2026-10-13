@@ -23,8 +23,11 @@
  *     and `request()` keeps its promise to the adapters.
  *  3. `streaming_usage` is refreshed from the accumulator when it has turns,
  *     so the summary the UI shows is the one the write carries.
- *  4. `persistStatus` (`shared/status.ts`): tool-output offload over the
- *     rows, the run's file record read from the rows' ledger, then the
+ *  4. The run's file record: the change sets of the rows' ledger the server
+ *     has not seen as they stand (`shared/filereview/record.ts`
+ *     `FileRecordSender`), on this write only; marked sent once it lands.
+ *  5. `persistStatus` (`shared/status.ts`): tool-output offload over the
+ *     rows, then the
  *     session event flush (`events/emitter.ts`: what the agent did, read from
  *     the rows as offloaded and appended to the session's log before the
  *     status that follows it), then the aggregate size cap, transient
@@ -32,9 +35,9 @@
  *     under the same single flight: an adapter's coalesced follow-up covers
  *     both. The status sent carries lifecycle, stamps and files, never the
  *     rows.
- *  5. A Temporal heartbeat, so a long streaming turn's liveness is proven by
+ *  6. A Temporal heartbeat, so a long streaming turn's liveness is proven by
  *     the writes it makes.
- *  6. The control plane's answer: STOP becomes the runtime's platform-stop
+ *  7. The control plane's answer: STOP becomes the runtime's platform-stop
  *     cause on the stop controller, which aborts the adapter's signal.
  *
  * Single-flight with coalescing: an adapter's `requestPersist()` while a
@@ -58,6 +61,7 @@ import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { captureFileChangeProgress } from "../shared/filereview/progress.js";
+import { FileRecordSender } from "../shared/filereview/record.js";
 import { persistStatus } from "../shared/status.js";
 import type { ToolOutputOffloadContext } from "../shared/status-offload.js";
 import type { SessionEventEmitter } from "./events/emitter.js";
@@ -97,6 +101,7 @@ export interface PersistChokepointDeps {
 export class PersistChokepoint {
   private inFlight: Promise<void> | undefined;
   private followUp: Promise<void> | undefined;
+  private readonly fileRecord = new FileRecordSender();
 
   constructor(private readonly deps: PersistChokepointDeps) {}
 
@@ -142,9 +147,12 @@ export class PersistChokepoint {
       status.streamingUsage = create(StreamingUsageSummarySchema, usage.snapshot());
     }
     const events = this.deps.events;
+    const record = this.fileRecord.pending(rows);
+    status.fileChanges = record;
     const signal = await persistStatus(client, executionId, status, {
       rows,
       offload,
+      onWritten: () => this.fileRecord.written(record),
       ...(events ? { afterOffload: () => events.flush(rows, { final: opts.final === true }) } : {}),
     });
     heartbeat();

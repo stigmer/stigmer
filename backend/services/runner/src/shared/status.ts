@@ -20,7 +20,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import { fileRecordOf } from "./filereview/record.js";
 import {
   offloadOversizedToolOutputs,
   offloadCandidateChangesToFit,
@@ -55,13 +54,14 @@ function isPayloadTooLarge(err: unknown): boolean {
 export interface PersistStatusOptions {
   /**
    * The turn's rows, when the write is a turn's: their oversized tool
-   * outputs are offloaded (the emitter reads them as offloaded), and the
-   * run's file record (`status.file_changes`) is read from their ledger
-   * (`filereview/record.ts`). The rows themselves are never sent: the
-   * session's log is where they go. Absent for a write that carries no
-   * turn (a setup-progress report).
+   * outputs and captured file bodies are offloaded (the emitter reads them
+   * as offloaded, and the file record holds the same change objects). The
+   * rows themselves are never sent: the session's log is where they go.
+   * Absent for a write that carries no turn (a setup-progress report).
    */
   readonly rows?: TurnRows;
+  /** Told once the status was written, with no failure: the persist chokepoint marks the file record it carried as sent. */
+  readonly onWritten?: () => void;
   /**
    * When supplied, oversized tool outputs (a screenshot's base64, a multi-MB
    * dump) are spilled to artifact storage before persisting — the only path
@@ -133,8 +133,6 @@ export async function persistStatus(
       console.warn(`[persistStatus] ${executionId}: tool-output offload failed (non-fatal): ${err}`);
     }
   }
-  // The run's file record, read from the turn's ledger as offloaded.
-  if (rows) status.fileChanges = fileRecordOf(rows);
   // File record: if the status still exceeds the soft cap after per-item
   // offload, offload the largest still-inline captured bodies to retrievable
   // refs so those files stay REVIEWABLE (lazily fetched) instead of being
@@ -168,6 +166,7 @@ export async function persistStatus(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await client.updateStatus(executionId, status);
+      options.onWritten?.();
       return response.signal;
     } catch (err) {
       // Oversize rejection is recoverable exactly once and out-of-band from the
@@ -180,6 +179,7 @@ export async function persistStatus(
         enforceStatusSizeLimit(status, STATUS_PAYLOAD_HARD_LIMIT_BYTES);
         try {
           const response = await client.updateStatus(executionId, status);
+          options.onWritten?.();
           return response.signal;
         } catch (retryErr) {
           console.error(`[persistStatus] ${executionId}: still failing after hard elide:`, retryErr);
