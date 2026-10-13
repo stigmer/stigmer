@@ -32,9 +32,9 @@ const OUT_DIR = fileURLToPath(
 );
 
 // Scenario scripting mirrors the workflow unit tests' double: behaviors
-// consumed per agent invocation, gate states per load.
+// consumed per agent invocation, open-gate counts per HITL read.
 let executeBehaviors: Array<() => Promise<Record<string, unknown>>> = [];
-let loadResults: Array<Record<string, unknown>> = [];
+let gateCounts: number[] = [];
 
 const activities = {
   EnsureThread: async () => "thread-1",
@@ -48,8 +48,12 @@ const activities = {
     throw new Error("not used in capture scenarios");
   },
   UpdateExecutionStatus: async () => {},
-  LoadAgentExecution: async () =>
-    loadResults.length > 1 ? loadResults.shift()! : loadResults[0]!,
+  // The HITL wait counts the turn's open gates in its session's log.
+  CountOpenGates: async () => (gateCounts.length > 1 ? gateCounts.shift()! : (gateCounts[0] ?? 0)),
+  CloseFileReview: async () => {},
+  // A history recorded before the open-gate count loaded the run instead;
+  // registered so such a history's load can still be scripted.
+  LoadAgentExecution: async () => ({ metadata: { id: "exec-replay" } }),
   ReadHarnessStateId: async () => "",
   // The retired run-end cleanup (temporal/agentexecution/names.ts): a new
   // capture records its patch and never calls it; registered so the
@@ -59,16 +63,6 @@ const activities = {
 
 function slim(phase: string): Record<string, unknown> {
   return { phase };
-}
-
-function executionWithPendingApproval(): Record<string, unknown> {
-  return {
-    metadata: { id: "exec-replay" },
-    status: {
-      phase: "EXECUTION_WAITING_FOR_APPROVAL",
-      pendingApprovals: [{ toolCallId: "tc-1", toolName: "echo" }],
-    },
-  };
 }
 
 async function main(): Promise<void> {
@@ -126,7 +120,7 @@ async function main(): Promise<void> {
 
   // 1. Happy path: EnsureThread → one completed turn.
   executeBehaviors = [async () => slim("EXECUTION_COMPLETED")];
-  loadResults = [];
+  gateCounts = [];
   await capture(
     "happy-completed",
     { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
@@ -141,7 +135,7 @@ async function main(): Promise<void> {
     async () => slim("EXECUTION_WAITING_FOR_APPROVAL"),
     async () => slim("EXECUTION_COMPLETED"),
   ];
-  loadResults = [executionWithPendingApproval()];
+  gateCounts = [1];
   await capture(
     "hitl-approval",
     { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
@@ -162,7 +156,7 @@ async function main(): Promise<void> {
       }),
     async () => slim("EXECUTION_COMPLETED"),
   ];
-  loadResults = [];
+  gateCounts = [];
   await capture(
     "pause-resume",
     { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
@@ -184,7 +178,7 @@ async function main(): Promise<void> {
   executeBehaviors = [
     async () => ({ phase: "EXECUTION_FAILED", error: "replay capture failure" }),
   ];
-  loadResults = [];
+  gateCounts = [];
   await capture(
     "runner-failed",
     { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
@@ -205,7 +199,7 @@ async function main(): Promise<void> {
         releaseCancelHold = () => resolve(slim("EXECUTION_CANCELLED"));
       }),
   ];
-  loadResults = [];
+  gateCounts = [];
   await capture(
     "user-cancel",
     { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },

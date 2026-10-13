@@ -13,31 +13,27 @@
  * denying, recording Authorizer unit — and driven through the REAL
  * activities with the REAL in-process edge (`server.inProcessTransport`),
  * so the path under test is the production one end to end: activity →
- * transport → interceptors → updateStatus handler → merge → status hooks
- * → broadcast. Failing-first record: against the pre-fix activity (the
+ * transport → interceptors → updateStatus handler → merge → status hooks.
+ * Failing-first record: against the pre-fix activity (the
  * trusted-local `user` identity handed straight to the domain function)
  * the first arm answered `[permission_denied] unauthorized to update agent
  * execution status` from authorize.ts — the dark production composition's
  * exact log line.
  *
  * The payload shapes are the workflow's real ones
- * (invoke-agent-execution.ts): updateStatusOnFailure's FAILED with two
- * MESSAGE_SYSTEM lines (a flow that broke) or none (a runner-reported
- * failure), updateStatusOnCancellation's CANCELLED with its stop row,
- * and the phase-only persistFinalStatus / persistInterruptedStatus /
- * persistResumedStatus shape.
- *
- * The last arms pin the transcript a stopped execution keeps over this
- * production lane (stigmer#980): the platform's lines are appended to the
- * runner's transcript, never substituted for it, and the cancel row stays
- * last when the runner's settle write lands after it. The merge's full
- * case matrix is domain/agentexecution/__tests__/update-status.test.ts.
+ * (invoke-agent-execution.ts): updateStatusOnFailure's FAILED with its
+ * error and stop cause, updateStatusOnCancellation's CANCELLED with its
+ * stop cause, and the phase-only persistFinalStatus /
+ * persistInterruptedStatus / persistResumedStatus shape. A payload a run in
+ * flight across the deploy recorded with the transcript lines these
+ * writes once carried still lands, the lines dropped. The merge's full
+ * case matrix is domain/run/__tests__/update-status.test.ts.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { create, toJson } from "@bufbuild/protobuf";
-import type { JsonValue, MessageInitShape } from "@bufbuild/protobuf";
+import type { JsonValue } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -46,16 +42,10 @@ import {
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import {
-  RunPhase,
-  MessageType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { loadConfig } from "../../../boot/config.js";
-import { CANCEL_STOP_ROW } from "../../../domain/run/platform-rows.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
@@ -157,7 +147,6 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
   async function seedExecution(
     id: string,
     phase: RunPhase = RunPhase.RUN_IN_PROGRESS,
-    messages: MessageInitShape<typeof AgentMessageSchema>[] = [],
   ): Promise<void> {
     // Seeded through the store: the create path is not under test, and
     // the denying Authorizer would refuse it over the wire.
@@ -170,7 +159,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
         kind: "Run",
         metadata: { id, name: "own-behalf", org: "acme" },
         spec: { target: { case: "sessionId", value: "ses_1" } },
-        status: { agentId: "agt_1", phase, messages },
+        status: { agentId: "agt_1", phase },
       }),
     );
   }
@@ -188,17 +177,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     const failed = create(RunStatusSchema, {
       phase: RunPhase.RUN_FAILED,
       error: "agent execution failed: runner refused",
-      messages: [
-        {
-          type: MessageType.MESSAGE_SYSTEM,
-          content:
-            "Internal system error occurred during execution. Please contact support if this issue persists.",
-        },
-        {
-          type: MessageType.MESSAGE_SYSTEM,
-          content: "Error details: runner refused",
-        },
-      ],
+      stopCause: "failed",
     });
     const before = logLines.length;
 
@@ -261,12 +240,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
         RunStatusSchema,
         create(RunStatusSchema, {
           phase: RunPhase.RUN_CANCELLED,
-          messages: [
-            {
-              type: MessageType.MESSAGE_SYSTEM,
-              content: CANCEL_STOP_ROW,
-            },
-          ],
+          stopCause: "user",
         }),
       ),
     );
@@ -275,7 +249,22 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     expect(execution.status?.phase).toBe(RunPhase.RUN_CANCELLED);
     // A user-initiated cancel is a quiet terminal state (stigmer#282).
     expect(execution.status?.error).toBe("");
+    expect(execution.status?.stopCause).toBe("user");
     expect(authorizerCalls).toHaveLength(0);
+  });
+
+  it("lands a payload recorded with the transcript lines the cancellation once sent, the lines dropped", async () => {
+    await seedExecution("aex_ownbehalf_recorded");
+
+    await updateStatus("aex_ownbehalf_recorded", {
+      phase: "RUN_CANCELLED",
+      stopCause: "user",
+      messages: [{ type: "MESSAGE_SYSTEM", content: "Cancelled by user" }],
+    });
+
+    const execution = await persisted("aex_ownbehalf_recorded");
+    expect(execution.status?.phase).toBe(RunPhase.RUN_CANCELLED);
+    expect(execution.status?.stopCause).toBe("user");
   });
 
   it("re-asserts a phase with the message-less persistInterruptedStatus shape", async () => {
@@ -305,134 +294,6 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
     const execution = await persisted("aex_ownbehalf_interrupted");
     expect(execution.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(authorizerCalls).toHaveLength(0);
-  });
-
-  describe("the transcript a stopped execution keeps (stigmer#980)", () => {
-    const runnerTurns = [
-      { type: MessageType.MESSAGE_AI, content: "a1" },
-      { type: MessageType.MESSAGE_AI, content: "a2" },
-    ];
-
-    async function transcriptOf(id: string): Promise<string[]> {
-      return ((await persisted(id)).status?.messages ?? []).map(
-        (m) => m.content,
-      );
-    }
-
-    it("appends the cancel row to a transcript the Cancel RPC already stamped CANCELLED, and keeps it last across the runner's late settle write", async () => {
-      await seedExecution(
-        "aex_ownbehalf_cancel_race",
-        RunPhase.RUN_CANCELLED,
-        runnerTurns,
-      );
-
-      await updateStatus(
-        "aex_ownbehalf_cancel_race",
-        toJson(
-          RunStatusSchema,
-          create(RunStatusSchema, {
-            phase: RunPhase.RUN_CANCELLED,
-            messages: [
-              { type: MessageType.MESSAGE_SYSTEM, content: CANCEL_STOP_ROW },
-            ],
-          }),
-        ),
-      );
-      expect(await transcriptOf("aex_ownbehalf_cancel_race")).toEqual([
-        "a1",
-        "a2",
-        CANCEL_STOP_ROW,
-      ]);
-
-      // The runner learns of the cancel on its next heartbeat and settles
-      // its transcript over the same handler, with no row and no phase.
-      await statusWriter.updateStatus(
-        create(RunUpdateStatusInputSchema, {
-          runId: "aex_ownbehalf_cancel_race",
-          status: {
-            messages: [
-              ...runnerTurns,
-              { type: MessageType.MESSAGE_AI, content: "a3" },
-            ],
-          },
-        }),
-      );
-      expect(await transcriptOf("aex_ownbehalf_cancel_race")).toEqual([
-        "a1",
-        "a2",
-        "a3",
-        CANCEL_STOP_ROW,
-      ]);
-    });
-
-    it("appends a broken flow's two lines to the runner's transcript", async () => {
-      await seedExecution(
-        "aex_ownbehalf_broken_flow",
-        RunPhase.RUN_IN_PROGRESS,
-        runnerTurns,
-      );
-
-      await updateStatus(
-        "aex_ownbehalf_broken_flow",
-        toJson(
-          RunStatusSchema,
-          create(RunStatusSchema, {
-            phase: RunPhase.RUN_FAILED,
-            error: "activity crashed",
-            messages: [
-              {
-                type: MessageType.MESSAGE_SYSTEM,
-                content: "Internal system error occurred during execution.",
-              },
-              {
-                type: MessageType.MESSAGE_SYSTEM,
-                content: "Error details: activity crashed",
-              },
-            ],
-          }),
-        ),
-      );
-
-      const execution = await persisted("aex_ownbehalf_broken_flow");
-      expect(execution.status?.phase).toBe(RunPhase.RUN_FAILED);
-      expect(await transcriptOf("aex_ownbehalf_broken_flow")).toEqual([
-        "a1",
-        "a2",
-        "Internal system error occurred during execution.",
-        "Error details: activity crashed",
-      ]);
-    });
-
-    it("leaves a runner-reported failure's transcript as the runner wrote it", async () => {
-      await seedExecution(
-        "aex_ownbehalf_runner_failed",
-        RunPhase.RUN_FAILED,
-        [
-          ...runnerTurns,
-          {
-            type: MessageType.MESSAGE_SYSTEM,
-            content: "Execution failed: the tool refused",
-          },
-        ],
-      );
-
-      await updateStatus(
-        "aex_ownbehalf_runner_failed",
-        toJson(
-          RunStatusSchema,
-          create(RunStatusSchema, {
-            phase: RunPhase.RUN_FAILED,
-            error: "agent execution failed: the tool refused",
-          }),
-        ),
-      );
-
-      expect(await transcriptOf("aex_ownbehalf_runner_failed")).toEqual([
-        "a1",
-        "a2",
-        "Execution failed: the tool refused",
-      ]);
-    });
   });
 
   it("surfaces the lane's NotFound as the activity's failure for a deleted execution", async () => {

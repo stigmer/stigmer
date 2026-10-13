@@ -33,8 +33,8 @@ export interface AgentExecutionWorkerDeps {
   readonly logger: Logger;
   /**
    * The in-process status edge for the worker's own-behalf writes
-   * (activities.ts header): the Authorizer, the status hooks, and the
-   * broadcast all live in the handler this edge reaches — the worker
+   * (activities.ts header): the Authorizer and the status hooks both live
+   * in the handler this edge reaches — the worker
    * composes none of them itself.
    */
   readonly statusWriter: () => ExecutionStatusWriter;
