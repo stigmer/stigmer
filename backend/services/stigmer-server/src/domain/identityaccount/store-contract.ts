@@ -41,13 +41,14 @@
  */
 import assert from "node:assert/strict";
 
-import { create, equals } from "@bufbuild/protobuf";
+import { clone, create, equals } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
+import { etagOf } from "../../store/etag.js";
 import { guardedPortDeclarations } from "../../store/guarded-port.js";
 import { portContractCases } from "../../store/port-contract.js";
 import type {
@@ -251,6 +252,25 @@ function subjectsOf(accounts: ReadonlyArray<IdentityAccount>): string[] {
 }
 
 const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
+  [
+    "every write stores the etag its content gives: a save and a swap",
+    async ({ store }) => {
+      const account = directAccount({ idpId: "auth0|etag", email: "etag@example.com", firstName: "First" });
+      await store.save(clone(IdentityAccountSchema, account));
+      const saved = await store.findById(idOf(account));
+      assert.ok(saved !== undefined, "the save is read back");
+      assert.notEqual(saved.metadata?.etag ?? "", "", "a save stamps the etag");
+      assert.equal(saved.metadata?.etag, etagOf(IdentityAccountSchema, saved));
+      const read = await store.readForWrite(idOf(account));
+      assert.ok(read !== undefined && read.row.spec !== undefined);
+      read.row.spec.firstName = "Second";
+      assert.equal(await store.swap(idOf(account), read.bytes, read.row), true);
+      const swapped = await store.findById(idOf(account));
+      assert.ok(swapped !== undefined);
+      assert.equal(swapped.metadata?.etag, etagOf(IdentityAccountSchema, swapped), "a swap restamps it");
+      assert.notEqual(swapped.metadata?.etag, saved.metadata?.etag);
+    },
+  ],
   [
     "save then findById round-trips the account",
     async ({ store }) => {

@@ -52,6 +52,7 @@ import type { IdentityAccountStore } from "../store.js";
 
 /** The kit's contract lines, pinned: a dropped or renamed case is a visible diff here. */
 const CONTRACT_CASE_NAMES = [
+  "every write stores the etag its content gives: a save and a swap",
   "save then findById round-trips the account",
   "a second save under a held id is DuplicateAccountError, and the first row stands",
   "findDirectByIdpId answers a direct account by its subject and undefined for an unknown one",
