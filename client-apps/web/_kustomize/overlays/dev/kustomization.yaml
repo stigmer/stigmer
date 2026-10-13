@@ -1,0 +1,15 @@
+# dev's overlay: the base plus one patch file. The openapi schema is the line that matters --
+# planton-schema.json declares `name` as the merge key of the env lists, so a variable in the patch
+# MERGES with the base's list instead of replacing it. Regenerated with
+# `planton service kustomize patch-schema --dir _kustomize`.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+openapi:
+  path: ../../planton-schema.json
+
+resources:
+  - ../../base
+
+patches:
+  - path: service.yaml

@@ -1,33 +1,69 @@
-apiVersion: kubernetes.project-planton.org/v1
+# The web console on new Planton: the static export served by nginx, and its door on the environment's
+# front door. This base holds what is the same in every environment; the hostname, the API it calls and
+# the sign-in tenant are the overlay's. The console reads its settings when the container starts
+# (entrypoint.sh writes config.json from the NEXT_PUBLIC_* variables), so one image serves every
+# environment and promotes unchanged. Service Hub reads this tree (../service.yaml,
+# `deploy.kustomize.baseDirectory`).
+apiVersion: kubernetes.planton.dev/v1alpha1
 kind: KubernetesDeployment
 metadata:
   name: stigmer-web
   org: stigmer
-  labels:
-    project-planton.org/provisioner: pulumi
-    pulumi.project-planton.org/organization: stigmer
-    pulumi.project-planton.org/project: stigmer
 spec:
   container:
     app:
       image:
-        repo: ghcr.io/stigmer/stigmer/client-apps/web
+        # Inside the hosted service's Artifact Registry repository; Service Hub replaces it with the image
+        # it built and injects the tag.
+        repo: us-central1-docker.pkg.dev/pc-stigmer-foundation/stigmer/stigmer-web
+      # nginx serving static files: the previous platform's production numbers.
       resources:
-        limits:
-          cpu: 100m
-          memory: 64Mi
         requests:
-          cpu: 10m
-          memory: 16Mi
+          cpu: 20m
+          memory: 32Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
       ports:
+        # nginx listens on 3000 (nginx.conf); servicePort 80 so the route's backend is spelled without a port.
         - name: app
-          containerPort: 3000
-          servicePort: 80
           appProtocol: http
           networkProtocol: TCP
-          isIngressPort: true
+          servicePort: 80
+          containerPort: 3000
+      env:
+        variables:
+        # The hosted console always signs in through the environment's OIDC tenant.
+        - name: NEXT_PUBLIC_AUTH_MODE
+          value: oidc
+  # The console never calls the Kubernetes API.
+  pod:
+    automountServiceAccountToken: false
+  # One replica; a rollout surges a new pod before the old one stops.
   availability:
-    minReplicas: 1
-    horizontalPodAutoscaling:
-      isEnabled: false
-  version: main
+    replicas: 1
+    strategy:
+      maxUnavailable: '0'
+      maxSurge: '1'
+---
+# The console's door: every path on the environment's app hostname. Attaches to the environment's listener
+# set (its front door), not the Gateway itself; the hostname is the overlay's.
+apiVersion: kubernetes.planton.dev/v1alpha1
+kind: KubernetesHttpRoute
+metadata:
+  name: stigmer-web
+  org: stigmer
+spec:
+  parentRefs:
+  - kind: ListenerSet
+    name:
+      value: front-door
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name:
+        value: stigmer-web
+      port: 80 # the app port
