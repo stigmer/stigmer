@@ -198,6 +198,7 @@ describe("stigmer access-history", () => {
     expect(await exitOf(["access-history", "list", "--limit", "many"])).toBe(ExitCode.Usage);
     expect(await exitOf(["access-history", "export", "--after", "-1"])).toBe(ExitCode.Usage);
     expect(await exitOf(["access-history", "export", "--after", "4.5"])).toBe(ExitCode.Usage);
+    expect(await exitOf(["access-history", "export", "--after", "9999999999999999999"])).toBe(ExitCode.Usage);
     expect(backend.reads).toEqual([]);
   });
 

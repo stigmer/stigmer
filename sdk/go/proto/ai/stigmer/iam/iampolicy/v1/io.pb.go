@@ -1951,17 +1951,20 @@ type AccessHistoryEntry struct {
 	Change AccessChange `protobuf:"varint,3,opt,name=change,proto3,enum=ai.stigmer.iam.iampolicy.v1.AccessChange" json:"change,omitempty"`
 	// Why the change happened.
 	Cause AccessChangeCause `protobuf:"varint,4,opt,name=cause,proto3,enum=ai.stigmer.iam.iampolicy.v1.AccessChangeCause" json:"cause,omitempty"`
-	// Who made the change: a person or service account, named as they are
-	// called today. A departed member is still named; an account that no
-	// longer exists, or the server acting on its own, carries only its id.
+	// Who made the change: a person or service account, named as their
+	// account reads today (display name, email and avatar), whether or not
+	// they still belong to the organization, so a security team can tell who
+	// a past member was. An account that no longer exists, or the server
+	// acting on its own, carries only its id.
 	Actor *ApiResourceRefView `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
 	// How the actor made the change: "user" for a person, "service_account"
 	// for a service account's key, "internal" for the server acting on the
 	// actor's behalf (an invitation's redemption, a removal's sweep). An
 	// edition may add its own.
 	ActorClass string `protobuf:"bytes,6,opt,name=actor_class,json=actorClass,proto3" json:"actor_class,omitempty"`
-	// Who was given or lost access: a person, or a group written with its
-	// relation (the members of a team, the viewers of an organization).
+	// Who was given or lost access: a person, named as the actor is, or a
+	// group written with its relation (the members of a team, the viewers of
+	// an organization).
 	Principal *ApiResourceRefView `protobuf:"bytes,7,opt,name=principal,proto3" json:"principal,omitempty"`
 	// The role given or taken away, as the access list shows it.
 	Role *RoleInfo `protobuf:"bytes,8,opt,name=role,proto3" json:"role,omitempty"`

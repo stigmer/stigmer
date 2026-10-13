@@ -34,6 +34,9 @@ import { readCursorPages } from "./cursor-pages.js";
 /** The client these helpers call. */
 export type AccessHistoryClient = Pick<Stigmer, "iamPolicy">;
 
+/** The largest sequence there can be: a 64-bit signed integer. */
+const MAX_SEQUENCE = BigInt("9223372036854775807");
+
 /** The most entries one page of the history returns. */
 const MAX_PAGE_SIZE = 100;
 
@@ -72,7 +75,7 @@ export async function exportAccessHistoryLines(
 /** `--after`: the last sequence the caller holds, a whole number. */
 export function parseAfterSequence(raw: string | undefined): bigint {
   if (raw === undefined || raw === "") return BigInt(0);
-  if (!/^\d{1,19}$/.test(raw)) {
+  if (!/^\d{1,19}$/.test(raw) || BigInt(raw) > MAX_SEQUENCE) {
     throw new UsageError(`invalid --after value "${raw}"\n\nPass the last sequence you hold, such as --after 42.`);
   }
   return BigInt(raw);

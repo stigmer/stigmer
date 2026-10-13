@@ -21,8 +21,8 @@
  * for one more than the page, so the token is set only when more entries
  * exist; a follow read that reaches the newest entry ends without one, and
  * the tool next asks after the last number it holds. The token is opaque
- * and versioned: the direction, the last number returned, and a hash of the
- * request's other fields, refused as `invalid page_token` when malformed
+ * and versioned: the last number returned and a hash of the request's
+ * other fields (the direction among them), refused as `invalid page_token` when malformed
  * and as issued for another request when they differ, as on every paged
  * lane (pipeline/steps/list-page.ts).
  *
@@ -193,7 +193,7 @@ async function readAccessHistory(
   const resumed =
     input.pageToken === ""
       ? undefined
-      : decodeAccessHistoryToken(input.pageToken, fingerprint, ascending);
+      : decodeAccessHistoryToken(input.pageToken, fingerprint);
   const size =
     input.pageSize === 0
       ? ACCESS_HISTORY_DEFAULT_PAGE_SIZE
@@ -218,7 +218,7 @@ async function readAccessHistory(
     entries,
     nextPageToken:
       more && last !== undefined
-        ? encodeAccessHistoryToken(ascending, last.sequence, fingerprint)
+        ? encodeAccessHistoryToken(last.sequence, fingerprint)
         : "",
   });
 }
@@ -307,19 +307,21 @@ export function causeOnWire(cause: string): AccessChangeCause {
 
 const TOKEN_VERSION = 1;
 
+/** The largest sequence a token may carry: the store's 64-bit signed integer. */
+const MAX_SEQUENCE = BigInt("9223372036854775807");
+
 function fingerprintHash(fingerprint: string): string {
   return createHash("sha256").update(fingerprint).digest("base64url").slice(0, 16);
 }
 
-/** An opaque, versioned token for the position after `sequence`, in the read's direction. */
-export function encodeAccessHistoryToken(
-  ascending: boolean,
-  sequence: bigint,
-  fingerprint: string,
-): string {
+/**
+ * An opaque, versioned token for the position after `sequence`. The read's
+ * direction is the request's own (`after_sequence` set or not), which the
+ * fingerprint binds, so the token need not carry it.
+ */
+export function encodeAccessHistoryToken(sequence: bigint, fingerprint: string): string {
   const body = {
     v: TOKEN_VERSION,
-    d: ascending ? "a" : "d",
     s: sequence.toString(),
     f: fingerprintHash(fingerprint),
   };
@@ -327,11 +329,7 @@ export function encodeAccessHistoryToken(
 }
 
 /** The sequence a token resumes from, refused as on every paged lane when it is not this request's. */
-export function decodeAccessHistoryToken(
-  token: string,
-  fingerprint: string,
-  ascending: boolean,
-): bigint {
+export function decodeAccessHistoryToken(token: string, fingerprint: string): bigint {
   let body: unknown;
   try {
     const bytes = Buffer.from(token, "base64url");
@@ -342,19 +340,19 @@ export function decodeAccessHistoryToken(
   } catch {
     throw invalidArgumentError("invalid page_token");
   }
-  const parsed = body as { v?: unknown; d?: unknown; s?: unknown; f?: unknown } | null;
+  const parsed = body as { v?: unknown; s?: unknown; f?: unknown } | null;
   if (
     typeof parsed !== "object" ||
     parsed === null ||
     parsed.v !== TOKEN_VERSION ||
-    (parsed.d !== "a" && parsed.d !== "d") ||
     typeof parsed.s !== "string" ||
     !/^(0|[1-9][0-9]{0,18})$/.test(parsed.s) ||
+    BigInt(parsed.s) > MAX_SEQUENCE ||
     typeof parsed.f !== "string"
   ) {
     throw invalidArgumentError("invalid page_token");
   }
-  if (parsed.f !== fingerprintHash(fingerprint) || (parsed.d === "a") !== ascending) {
+  if (parsed.f !== fingerprintHash(fingerprint)) {
     throw invalidArgumentError("page_token was issued for a different request");
   }
   return BigInt(parsed.s);

@@ -1011,9 +1011,11 @@ export type AccessHistoryEntry = Message<"ai.stigmer.iam.iampolicy.v1.AccessHist
   cause: AccessChangeCause;
 
   /**
-   * Who made the change: a person or service account, named as they are
-   * called today. A departed member is still named; an account that no
-   * longer exists, or the server acting on its own, carries only its id.
+   * Who made the change: a person or service account, named as their
+   * account reads today (display name, email and avatar), whether or not
+   * they still belong to the organization, so a security team can tell who
+   * a past member was. An account that no longer exists, or the server
+   * acting on its own, carries only its id.
    *
    * @generated from field: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView actor = 5;
    */
@@ -1030,8 +1032,9 @@ export type AccessHistoryEntry = Message<"ai.stigmer.iam.iampolicy.v1.AccessHist
   actorClass: string;
 
   /**
-   * Who was given or lost access: a person, or a group written with its
-   * relation (the members of a team, the viewers of an organization).
+   * Who was given or lost access: a person, named as the actor is, or a
+   * group written with its relation (the members of a team, the viewers of
+   * an organization).
    *
    * @generated from field: ai.stigmer.iam.iampolicy.v1.ApiResourceRefView principal = 7;
    */

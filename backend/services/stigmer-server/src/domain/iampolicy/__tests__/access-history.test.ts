@@ -420,6 +420,13 @@ describe("listAccessHistory's read", () => {
     const garbage = await rejection(h.query.listAccessHistory({ org: ACME, pageToken: "not-a-token" }));
     expect(garbage.code).toBe(Code.InvalidArgument);
     expect(garbage.rawMessage).toBe("invalid page_token");
+    // A token whose number no 64-bit sequence holds is refused as the
+    // caller's input, never read into a store fault.
+    const issued = JSON.parse(Buffer.from(newest.nextPageToken, "base64url").toString("utf8")) as Record<string, unknown>;
+    const beyond = Buffer.from(JSON.stringify({ ...issued, s: "9999999999999999999" })).toString("base64url");
+    const outOfRange = await rejection(h.query.listAccessHistory({ org: ACME, pageSize: 1, pageToken: beyond }));
+    expect(outOfRange.code).toBe(Code.InvalidArgument);
+    expect(outOfRange.rawMessage).toBe("invalid page_token");
 
     for (const other of [
       { org: "org_beta", pageToken: newest.nextPageToken },
