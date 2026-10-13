@@ -111,6 +111,11 @@ message IdentityProviderSpec {
     expression: "!this.is_sso_provider || (this.create_accounts_on_sign_in && this.sign_in_role != 0)"
   };
   option (buf.validate.message).cel = {
+    id: "identity_provider.sso_required_needs_sso_provider"
+    message: "sso_required is valid only on the organization's SSO provider (is_sso_provider)"
+    expression: "!this.sso_required || this.is_sso_provider"
+  };
+  option (buf.validate.message).cel = {
     id: "identity_provider.jwks_uri_required_with_issuers"
     message: "jwks_uri is required when allowed_issuers names an issuer"
     expression: "this.allowed_issuers.size() == 0 || this.jwks_uri != ''"
@@ -283,4 +288,32 @@ message IdentityProviderSpec {
   // `identity_provider.sign_in_role_not_owner`: ownership is assigned
   // explicitly.
   ai.stigmer.iam.v1.IamRole sign_in_role = 14;
+
+  // Whether people act in this organization only through this provider.
+  //
+  // When true, a person counts in the organization only through the account
+  // this provider signed them in as: an account made by another sign-in
+  // (an email login, the server's own sign-in) or an API key such an
+  // account made is refused there, on every read and write, with
+  // PERMISSION_DENIED carrying a google.rpc.ErrorInfo detail (domain
+  // "stigmer.ai"):
+  //
+  //   - SSO_REQUIRED: the organization requires sign-in through its SSO
+  //     provider. Metadata: org (the organization's id), provider (this
+  //     provider's slug). A console sends the person to the organization's
+  //     SSO sign-in.
+  //
+  // The organization's owners are exempt, so a broken provider never locks
+  // everyone out. Service accounts, a run's own credential and the
+  // organization's platform clients are unaffected; a schedule, evaluator
+  // or eval that acts as a refused account stops, saying why. A person may
+  // move their access to the account this provider made for them
+  // (IdentityProviderCommandController.createAccessMove).
+  //
+  // Only the organization's owners may turn it on or off, or delete the
+  // provider while it is on (can_assign_roles on the organization).
+  // Deleting the provider ends the requirement. Valid only on the SSO
+  // provider (is_sso_provider). A change takes effect at once on the
+  // server that wrote it and within a minute on its other replicas.
+  bool sso_required = 15;
 }

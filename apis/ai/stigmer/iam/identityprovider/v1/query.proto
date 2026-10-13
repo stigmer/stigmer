@@ -73,4 +73,23 @@ service IdentityProviderQueryController {
   rpc getSsoProvider(OrganizationSsoLookup) returns (SsoProviderInfo) {
     option (ai.stigmer.commons.rpc.is_public) = true;
   }
+
+  // Say who would stop counting in an organization if its SSO provider
+  // required sign-in through it (IdentityProviderSpec.sso_required): the
+  // members whose account the provider did not sign in, each with the open
+  // invitations they created and the automations that act as them, and the
+  // owners, who are exempt. An owner reads it before turning the
+  // requirement on.
+  //
+  // NOT_FOUND when the organization has no SSO provider.
+  //
+  // @internal
+  // Authorization: Requires can_assign_roles on the organization: only its
+  // owners decide how its members sign in.
+  rpc previewSsoRequirement(SsoRequirementPreviewInput) returns (SsoRequirementPreview) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_assign_roles;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to preview the organization's sign-in requirement";
+  }
 }

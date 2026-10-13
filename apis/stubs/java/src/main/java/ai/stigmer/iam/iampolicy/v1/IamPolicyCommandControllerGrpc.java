@@ -213,6 +213,37 @@ public final class IamPolicyCommandControllerGrpc {
     return getBootstrapRevokeOrgAccessMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput,
+      ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult> getBootstrapMoveOrgAccessMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "bootstrapMoveOrgAccess",
+      requestType = ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput.class,
+      responseType = ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput,
+      ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult> getBootstrapMoveOrgAccessMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput, ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult> getBootstrapMoveOrgAccessMethod;
+    if ((getBootstrapMoveOrgAccessMethod = IamPolicyCommandControllerGrpc.getBootstrapMoveOrgAccessMethod) == null) {
+      synchronized (IamPolicyCommandControllerGrpc.class) {
+        if ((getBootstrapMoveOrgAccessMethod = IamPolicyCommandControllerGrpc.getBootstrapMoveOrgAccessMethod) == null) {
+          IamPolicyCommandControllerGrpc.getBootstrapMoveOrgAccessMethod = getBootstrapMoveOrgAccessMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput, ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "bootstrapMoveOrgAccess"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult.getDefaultInstance()))
+              .setSchemaDescriptor(new IamPolicyCommandControllerMethodDescriptorSupplier("bootstrapMoveOrgAccess"))
+              .build();
+        }
+      }
+    }
+    return getBootstrapMoveOrgAccessMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -369,6 +400,17 @@ public final class IamPolicyCommandControllerGrpc {
         io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getBootstrapRevokeOrgAccessMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Move one account's access inside an organization to another account,
+     * via the system (bootstrap) path.
+     * </pre>
+     */
+    default void bootstrapMoveOrgAccess(ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getBootstrapMoveOrgAccessMethod(), responseObserver);
+    }
   }
 
   /**
@@ -512,6 +554,18 @@ public final class IamPolicyCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getBootstrapRevokeOrgAccessMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Move one account's access inside an organization to another account,
+     * via the system (bootstrap) path.
+     * </pre>
+     */
+    public void bootstrapMoveOrgAccess(ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getBootstrapMoveOrgAccessMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -623,6 +677,17 @@ public final class IamPolicyCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getBootstrapRevokeOrgAccessMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Move one account's access inside an organization to another account,
+     * via the system (bootstrap) path.
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult bootstrapMoveOrgAccess(ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getBootstrapMoveOrgAccessMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -733,6 +798,17 @@ public final class IamPolicyCommandControllerGrpc {
     public com.google.protobuf.Empty bootstrapRevokeOrgAccess(ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getBootstrapRevokeOrgAccessMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Move one account's access inside an organization to another account,
+     * via the system (bootstrap) path.
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult bootstrapMoveOrgAccess(ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getBootstrapMoveOrgAccessMethod(), getCallOptions(), request);
     }
   }
 
@@ -851,6 +927,18 @@ public final class IamPolicyCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getBootstrapRevokeOrgAccessMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Move one account's access inside an organization to another account,
+     * via the system (bootstrap) path.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult> bootstrapMoveOrgAccess(
+        ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getBootstrapMoveOrgAccessMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE = 0;
@@ -859,6 +947,7 @@ public final class IamPolicyCommandControllerGrpc {
   private static final int METHODID_CLEANUP_RESOURCE_POLICIES = 3;
   private static final int METHODID_REVOKE_ORG_ACCESS = 4;
   private static final int METHODID_BOOTSTRAP_REVOKE_ORG_ACCESS = 5;
+  private static final int METHODID_BOOTSTRAP_MOVE_ORG_ACCESS = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -900,6 +989,10 @@ public final class IamPolicyCommandControllerGrpc {
         case METHODID_BOOTSTRAP_REVOKE_ORG_ACCESS:
           serviceImpl.bootstrapRevokeOrgAccess((ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput) request,
               (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
+          break;
+        case METHODID_BOOTSTRAP_MOVE_ORG_ACCESS:
+          serviceImpl.bootstrapMoveOrgAccess((ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -961,6 +1054,13 @@ public final class IamPolicyCommandControllerGrpc {
               ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput,
               com.google.protobuf.Empty>(
                 service, METHODID_BOOTSTRAP_REVOKE_ORG_ACCESS)))
+        .addMethod(
+          getBootstrapMoveOrgAccessMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput,
+              ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult>(
+                service, METHODID_BOOTSTRAP_MOVE_ORG_ACCESS)))
         .build();
   }
 
@@ -1015,6 +1115,7 @@ public final class IamPolicyCommandControllerGrpc {
               .addMethod(getCleanupResourcePoliciesMethod())
               .addMethod(getRevokeOrgAccessMethod())
               .addMethod(getBootstrapRevokeOrgAccessMethod())
+              .addMethod(getBootstrapMoveOrgAccessMethod())
               .build();
         }
       }

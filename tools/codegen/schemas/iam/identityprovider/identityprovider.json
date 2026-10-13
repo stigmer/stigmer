@@ -138,6 +138,16 @@
       },
       "description": "The role an account receives the first time it signs in to an\n organization through this provider: the organization its token is bound\n to (external_id_claim's, or the provider's own).\n\n Granted once per account and organization. A role an admin later removes\n is not granted again, and changing this setting does not reach accounts\n that already signed in there. Unspecified (iam_role_unspecified) grants\n nothing. The owner role is refused with\n `identity_provider.sign_in_role_not_owner`: ownership is assigned\n explicitly.",
       "required": false
+    },
+    {
+      "name": "SsoRequired",
+      "jsonName": "ssoRequired",
+      "protoField": "sso_required",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether people act in this organization only through this provider.\n\n When true, a person counts in the organization only through the account\n this provider signed them in as: an account made by another sign-in\n (an email login, the server's own sign-in) or an API key such an\n account made is refused there, on every read and write, with\n PERMISSION_DENIED carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"):\n\n   - SSO_REQUIRED: the organization requires sign-in through its SSO\n     provider. Metadata: org (the organization's id), provider (this\n     provider's slug). A console sends the person to the organization's\n     SSO sign-in.\n\n The organization's owners are exempt, so a broken provider never locks\n everyone out. Service accounts, a run's own credential and the\n organization's platform clients are unaffected; a schedule, evaluator\n or eval that acts as a refused account stops, saying why. A person may\n move their access to the account this provider made for them\n (IdentityProviderCommandController.createAccessMove).\n\n Only the organization's owners may turn it on or off, or delete the\n provider while it is on (can_assign_roles on the organization).\n Deleting the provider ends the requirement. Valid only on the SSO\n provider (is_sso_provider). A change takes effect at once on the\n server that wrote it and within a minute on its other replicas.",
+      "required": false
     }
   ]
 }

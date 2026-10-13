@@ -6,13 +6,19 @@ import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.iam.identityprovider.v1.AccessMoveRequest;
+import ai.stigmer.iam.identityprovider.v1.AccessMoveResult;
+import ai.stigmer.iam.identityprovider.v1.AccessMoveTicket;
 import ai.stigmer.iam.identityprovider.v1.IdentityProvider;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviders;
 import ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput;
 import ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup;
+import ai.stigmer.iam.identityprovider.v1.RedeemAccessMoveInput;
 import ai.stigmer.iam.identityprovider.v1.SsoProviderInfo;
+import ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview;
+import ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -62,6 +68,18 @@ public final class IdentityProviderClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public AccessMoveTicket createAccessMove(AccessMoveRequest input) {
+        try {
+            return command.createAccessMove(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AccessMoveResult redeemAccessMove(RedeemAccessMoveInput input) {
+        try {
+            return command.redeemAccessMove(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public IdentityProvider get(String id) {
         try {
             return query.get(ApiResourceId.newBuilder().setValue(id).build());
@@ -83,6 +101,12 @@ public final class IdentityProviderClient {
     public SsoProviderInfo getSsoProvider(OrganizationSsoLookup input) {
         try {
             return query.getSsoProvider(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SsoRequirementPreview previewSsoRequirement(SsoRequirementPreviewInput input) {
+        try {
+            return query.previewSsoRequirement(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

@@ -17,6 +17,8 @@ import ai.stigmer.iam.iampolicy.v1.IamPolicySpec;
 import ai.stigmer.iam.iampolicy.v1.ListAuthorizedPrincipalIdsInput;
 import ai.stigmer.iam.iampolicy.v1.ListAuthorizedResourceIdsInput;
 import ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput;
+import ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput;
+import ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult;
 import ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput;
 import ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles;
 import ai.stigmer.iam.iampolicy.v1.PrincipalsCount;
@@ -69,6 +71,12 @@ public final class IamPolicyClient {
     public void bootstrapRevokeOrgAccess(RevokeOrgAccessInput input) {
         try {
             command.bootstrapRevokeOrgAccess(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public MoveOrgAccessResult bootstrapMoveOrgAccess(MoveOrgAccessInput input) {
+        try {
+            return command.bootstrapMoveOrgAccess(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

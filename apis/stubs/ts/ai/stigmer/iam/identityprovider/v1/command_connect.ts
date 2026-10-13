@@ -6,6 +6,7 @@
 import { IdentityProvider } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, RenameInput } from "../../../commons/apiresource/io_pbjs";
+import { AccessMoveRequest, AccessMoveResult, AccessMoveTicket, RedeemAccessMoveInput } from "./io_pbjs";
 
 /**
  * IdentityProviderCommandController provides write operations for identity providers.
@@ -66,6 +67,16 @@ export const IdentityProviderCommandController = {
      *   - SLUG_RESERVED — another identity provider held the slug until a recent
      *     rename, and it still leads there. Metadata: slug.
      *
+     * A create that sets sso_required also needs can_assign_roles on the
+     * organization, which only its owners hold (PERMISSION_DENIED otherwise):
+     * requiring sign-in through a provider decides how every member gets in.
+     * Where the organization's plan decides it, a plan without SSO
+     * enforcement refuses it with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+     *     SSO enforcement. Metadata: feature ("sso_enforcement"), org.
+     *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.create
      */
     create: {
@@ -86,6 +97,17 @@ export const IdentityProviderCommandController = {
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
      *     identity provider keeps signing people in as it is, and can still
      *     be deleted. No metadata.
+     *
+     * An update whose only change is turning sso_required off is never
+     * refused this way: an organization may always stop requiring its SSO
+     * provider.
+     *
+     * An update that changes sso_required also needs can_assign_roles on the
+     * organization, which only its owners hold (PERMISSION_DENIED otherwise).
+     * Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
+     * organization's plan does not include SSO enforcement (see create);
+     * an organization that already requires it keeps it, and may always
+     * turn it off.
      *
      * An update names the identity provider by its id, and the slug changes
      * only through rename.
@@ -127,12 +149,63 @@ export const IdentityProviderCommandController = {
      * deleted with it, with every role they hold, so a provider created again
      * under the same slug inherits none of them.
      *
+     * Deleting a provider that sets sso_required ends the requirement, so it
+     * also needs can_assign_roles on the organization, which only its owners
+     * hold (PERMISSION_DENIED otherwise).
+     *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.delete
      */
     delete: {
       name: "delete",
       I: ApiResourceDeleteInput,
       O: IdentityProvider,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Start moving your access in an organization to the account its SSO
+     * provider signs you in as.
+     *
+     * For someone who worked in an organization under another sign-in (an
+     * email login) before the organization connected its SSO provider. The
+     * caller, signed in the old way, asks for a ticket; the answer says what
+     * the move will do (AccessMoveTicket.preview: the access that moves, the
+     * My vault entries it deletes, the automations that stop); the person
+     * then signs in through the organization's SSO provider and redeems the
+     * ticket with redeemAccessMove. The ticket works once, for ten minutes,
+     * for this account and this organization only.
+     *
+     * Refused with FAILED_PRECONDITION when the caller holds no access in the
+     * organization, is one of its owners (owners keep their own sign-in), or
+     * already signed in through an SSO provider; with NOT_FOUND when the
+     * organization has no SSO provider (the same copy getSsoProvider answers).
+     *
+     * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.createAccessMove
+     */
+    createAccessMove: {
+      name: "createAccessMove",
+      I: AccessMoveRequest,
+      O: AccessMoveTicket,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Redeem an access move ticket: the access it names moves to the caller.
+     *
+     * The caller must be signed in through the organization's SSO provider,
+     * as the account it made for them; anyone else is refused with
+     * PERMISSION_DENIED and the ticket stays usable until it expires. A
+     * ticket that is unknown, expired or already redeemed is refused with
+     * FAILED_PRECONDITION. A move that stops partway may be redeemed again
+     * with the same ticket while it lasts, and completes.
+     *
+     * Every change is recorded in the organization's permission history as a
+     * move, acting for the caller.
+     *
+     * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.redeemAccessMove
+     */
+    redeemAccessMove: {
+      name: "redeemAccessMove",
+      I: RedeemAccessMoveInput,
+      O: AccessMoveResult,
       kind: MethodKind.Unary,
     },
   }

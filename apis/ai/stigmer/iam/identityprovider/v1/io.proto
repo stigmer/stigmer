@@ -2,8 +2,10 @@ syntax = "proto3";
 
 package ai.stigmer.iam.identityprovider.v1;
 
+import "ai/stigmer/iam/iampolicy/v1/io.proto";
 import "ai/stigmer/iam/identityprovider/v1/api.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // IdentityProviderId identifies an identity provider by its unique identifier.
 message IdentityProviderId {
@@ -70,4 +72,97 @@ message SsoProviderInfo {
   // audience from server-side configuration and ignore this parameter.
   // Empty means the web app should omit the audience parameter.
   string expected_audience = 4;
+
+  // Whether the organization requires its members to sign in through this
+  // provider (IdentityProviderSpec.sso_required). The login page then
+  // offers no other way into the organization.
+  bool sso_required = 5;
+}
+
+// AccessMoveRequest asks to start moving the caller's access in an
+// organization to the account its SSO provider signs them in as.
+message AccessMoveRequest {
+  // The organization: its id or its slug.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// AccessMoveTicket is a single-use ticket that moves the access of the
+// account that asked for it, in one organization, to the account the
+// organization's SSO provider signs the same person in as.
+//
+// The ticket is the authorization: whoever redeems it while signed in
+// through the organization's SSO provider receives the access. A console
+// keeps it in the browser that asked for it and never shows it.
+message AccessMoveTicket {
+  // The ticket, redeemed with redeemAccessMove.
+  string ticket = 1;
+
+  // When the ticket stops working, ten minutes after it was made.
+  google.protobuf.Timestamp expires_at = 2;
+
+  // The organization's id.
+  string org = 3;
+
+  // The organization's SSO provider, to sign in through next.
+  SsoProviderInfo provider = 4;
+
+  // What the move will do.
+  ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult preview = 5;
+}
+
+// RedeemAccessMoveInput redeems an access move ticket.
+message RedeemAccessMoveInput {
+  // The ticket createAccessMove answered.
+  string ticket = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 256
+  }];
+}
+
+// AccessMoveResult says what a redeemed ticket moved.
+message AccessMoveResult {
+  // The organization's id.
+  string org = 1;
+
+  // What moved, the My vault entries deleted and the automations that
+  // stopped, to make again as the new account.
+  ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult moved = 2;
+}
+
+// SsoRequirementPreviewInput names the organization to preview.
+message SsoRequirementPreviewInput {
+  // The organization's id or slug.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// SsoRequirementPreview lists who would stop counting in an organization if
+// its SSO provider required sign-in through it: its members whose account
+// that provider did not sign in.
+message SsoRequirementPreview {
+  // The members who would be refused, each with what acts as them.
+  repeated SsoRequirementMember members = 1;
+
+  // The owners whose account the provider did not sign in. They are
+  // exempt and keep their own sign-in.
+  repeated SsoRequirementMember exempt_owners = 2;
+}
+
+// SsoRequirementMember is one member an SSO requirement would affect.
+message SsoRequirementMember {
+  // The member's identity account id.
+  string identity_account_id = 1;
+
+  // The member's email, as their account records it.
+  string email = 2;
+
+  // The member's display name, as their account records it.
+  string display_name = 3;
+
+  // The open invitations the member created, which stop redeeming once
+  // they move their access or are refused.
+  repeated string invitation_ids = 4;
+
+  // The schedules, evaluators and evals the member created in the
+  // organization, which stop once the requirement is on.
+  repeated ai.stigmer.iam.iampolicy.v1.AccountAutomation automations = 5;
 }

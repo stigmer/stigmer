@@ -11,7 +11,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IdentityProviderSchema, type IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders, type OrganizationSsoLookup, type SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import { AccessMoveRequestSchema, AccessMoveTicketSchema, RedeemAccessMoveInputSchema, AccessMoveResultSchema, ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema, SsoRequirementPreviewInputSchema, SsoRequirementPreviewSchema, type AccessMoveRequest, type AccessMoveTicket, type RedeemAccessMoveInput, type AccessMoveResult, type ListIdentityProvidersByOrgInput, type IdentityProviders, type OrganizationSsoLookup, type SsoProviderInfo, type SsoRequirementPreviewInput, type SsoRequirementPreview } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -60,6 +60,18 @@ export class IdentityProviderClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async createAccessMove(input: AccessMoveRequest): Promise<AccessMoveTicket> {
+    try {
+      return await this.command.createAccessMove(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async redeemAccessMove(input: RedeemAccessMoveInput): Promise<AccessMoveResult> {
+    try {
+      return await this.command.redeemAccessMove(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<IdentityProvider> {
     try {
       return await this.query.get(create(ApiResourceIdSchema, { value: id }));
@@ -81,6 +93,12 @@ export class IdentityProviderClient {
   async getSsoProvider(input: OrganizationSsoLookup): Promise<SsoProviderInfo> {
     try {
       return await this.query.getSsoProvider(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async previewSsoRequirement(input: SsoRequirementPreviewInput): Promise<SsoRequirementPreview> {
+    try {
+      return await this.query.previewSsoRequirement(input);
     } catch (e) { throw wrapError(e); }
   }
 }
@@ -109,6 +127,7 @@ export interface IdentityProviderInput {
   externalIdClaim?: string;
   createAccountsOnSignIn?: boolean;
   signInRole?: IamRole;
+  ssoRequired?: boolean;
 }
 
 export function buildIdentityProviderProto(input: IdentityProviderInput): IdentityProvider {
@@ -134,6 +153,7 @@ export function buildIdentityProviderProto(input: IdentityProviderInput): Identi
       externalIdClaim: input.externalIdClaim,
       createAccountsOnSignIn: input.createAccountsOnSignIn,
       signInRole: input.signInRole,
+      ssoRequired: input.ssoRequired,
     })),
   }) as IdentityProvider;
 }
@@ -173,5 +193,6 @@ export function toIdentityProviderUpdateInput(resource: IdentityProvider): Ident
     externalIdClaim: spec.externalIdClaim || undefined,
     createAccountsOnSignIn: spec.createAccountsOnSignIn || undefined,
     signInRole: spec.signInRole || undefined,
+    ssoRequired: spec.ssoRequired || undefined,
   };
 }

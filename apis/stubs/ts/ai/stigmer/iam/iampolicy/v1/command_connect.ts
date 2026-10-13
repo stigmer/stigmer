@@ -6,7 +6,7 @@
 import { ApiResourceRef, IamPolicySpec } from "./spec_pbjs";
 import { IamPolicy } from "./api_pbjs";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { RevokeOrgAccessInput } from "./io_pbjs";
+import { MoveOrgAccessInput, MoveOrgAccessResult, RevokeOrgAccessInput } from "./io_pbjs";
 
 /**
  * IAM Policy Command Controller
@@ -120,6 +120,18 @@ export const IamPolicyCommandController = {
       name: "bootstrapRevokeOrgAccess",
       I: RevokeOrgAccessInput,
       O: Empty,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Move one account's access inside an organization to another account,
+     * via the system (bootstrap) path.
+     *
+     * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.bootstrapMoveOrgAccess
+     */
+    bootstrapMoveOrgAccess: {
+      name: "bootstrapMoveOrgAccess",
+      I: MoveOrgAccessInput,
+      O: MoveOrgAccessResult,
       kind: MethodKind.Unary,
     },
   }
