@@ -11,6 +11,8 @@
  *   - the merge copies a set field and clears an unset one at each named
  *     path, replaces a list or a map whole, leaves every unnamed field as
  *     stored, and puts back a refused field under a broader path;
+ *   - clearing a nested field creates no message along its path that the
+ *     stored row lacks, so a clear of nothing changes nothing;
  *   - a chain reached without a mask names every path.
  */
 import { clone, create } from "@bufbuild/protobuf";
@@ -155,6 +157,14 @@ describe("applyUpdateMask", () => {
     const merged = clone(AgentSchema, row);
     applyUpdateMask(AgentSchema, merged, request, row, ["spec.run_config.model_name"], []);
     expect(merged.spec?.runConfig?.modelName).toBe("model-b");
+  });
+
+  it("creates no message a nested path goes through when the named field is cleared and the stored row has none", () => {
+    const row = stored();
+    row.spec!.runConfig = undefined;
+    const merged = clone(AgentSchema, row);
+    applyUpdateMask(AgentSchema, merged, create(AgentSchema), row, ["spec.run_config.model_name"], []);
+    expect(merged.spec?.runConfig).toBeUndefined();
   });
 
   it("puts back a refused field under a broader path, so a whole desired state applies", () => {

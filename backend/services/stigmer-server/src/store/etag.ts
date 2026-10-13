@@ -16,8 +16,8 @@
  */
 import { createHash } from "node:crypto";
 
-import { toJson } from "@bufbuild/protobuf";
-import type { DescMessage, JsonValue, MessageShape } from "@bufbuild/protobuf";
+import { toBinary, toJson } from "@bufbuild/protobuf";
+import type { DescMessage, JsonValue, Message, MessageShape } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -38,11 +38,7 @@ export function etagOf<Desc extends DescMessage>(
   const specField = root.desc.fields.find((field) => field.name === "spec");
   let spec: JsonValue = null;
   if (specField?.fieldKind === "message" && root.isSet(specField)) {
-    const value = root.get(specField) as ReflectMessage;
-    spec = toJson(specField.message, value.message, {
-      enumAsInteger: true,
-      useProtoFieldName: true,
-    });
+    spec = specRendering(specField.message, (root.get(specField) as ReflectMessage).message);
   }
   const edited: JsonValue = {
     spec,
@@ -52,6 +48,21 @@ export function etagOf<Desc extends DescMessage>(
     annotations: { ...metadata.annotations },
   };
   return createHash("sha256").update(canonicalJson(edited)).digest("hex");
+}
+
+/**
+ * The spec as the fingerprint reads it: its canonical JSON, which a map's
+ * insertion order never moves; or, for a spec holding a value JSON cannot
+ * carry but validation admits (a timestamp past year 9999, a NaN inside a
+ * google.protobuf.Value), its stored bytes, so a write never fails for its
+ * fingerprint.
+ */
+function specRendering(schema: DescMessage, spec: Message): JsonValue {
+  try {
+    return toJson(schema, spec, { enumAsInteger: true, useProtoFieldName: true });
+  } catch {
+    return { binary: Buffer.from(toBinary(schema, spec)).toString("base64") };
+  }
 }
 
 /** Stamps `resource`'s etag onto its metadata; a message with no resource metadata is left as it is. */

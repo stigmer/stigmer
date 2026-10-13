@@ -14,6 +14,8 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
@@ -123,5 +125,28 @@ describe("stampEtag and storedEtagOf", () => {
     stampEtag(AgentSchema, bare);
     expect(bare.metadata).toBeUndefined();
     expect(storedEtagOf(AgentSchema, bare)).toBeUndefined();
+  });
+});
+
+describe("etagOf on a spec JSON cannot carry", () => {
+  it("fingerprints a timestamp past year 9999 and a NaN in a struct value by their bytes, never throwing", () => {
+    const key = create(ApiKeySchema, {
+      metadata: { id: "key_1", org: "org_1", name: "far future" },
+      spec: { expiresAt: { seconds: 999_999_999_999n } },
+    });
+    const keyEtag = etagOf(ApiKeySchema, key);
+    expect(keyEtag).toMatch(/^[0-9a-f]{64}$/);
+    key.spec!.expiresAt!.seconds = 999_999_999_998n;
+    expect(etagOf(ApiKeySchema, key), "a change still moves it").not.toBe(keyEtag);
+
+    const run = create(RunSchema, {
+      metadata: { id: "run_1", org: "org_1", name: "nan" },
+      spec: {
+        structuredOutputSchema: { fields: { score: { kind: { case: "numberValue", value: Number.NaN } } } },
+      },
+    });
+    expect(etagOf(RunSchema, run)).toMatch(/^[0-9a-f]{64}$/);
+    stampEtag(RunSchema, run);
+    expect(run.metadata?.etag).toBe(etagOf(RunSchema, run));
   });
 });
