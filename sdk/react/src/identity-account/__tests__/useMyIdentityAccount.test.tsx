@@ -5,7 +5,7 @@ import {
   IdentityAccountSchema,
   type IdentityAccount,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
-import type { IdentityAccountInput } from "@stigmer/sdk";
+import type { MessageInitShape } from "@bufbuild/protobuf";
 import { StigmerContext } from "../../context";
 import { useMyIdentityAccount } from "../useMyIdentityAccount";
 import { useUpdateIdentityAccount } from "../useUpdateIdentityAccount";
@@ -30,7 +30,9 @@ function FetchProbe() {
   );
 }
 
-function UpdateProbe({ input }: { input: IdentityAccountInput }) {
+type AccountEdit = { resource: MessageInitShape<typeof IdentityAccountSchema>; paths: string[] };
+
+function UpdateProbe({ input }: { input: AccountEdit }) {
   const { update, isUpdating, error } = useUpdateIdentityAccount();
   return (
     <button
@@ -38,7 +40,7 @@ function UpdateProbe({ input }: { input: IdentityAccountInput }) {
       data-testid="probe"
       data-updating={String(isUpdating)}
       data-error={String(error !== null)}
-      onClick={() => void update(input).catch(() => undefined)}
+      onClick={() => void update(input.resource, input.paths).catch(() => undefined)}
     />
   );
 }
@@ -84,21 +86,21 @@ describe("useMyIdentityAccount", () => {
 });
 
 describe("useUpdateIdentityAccount", () => {
-  it("submits the input through identityAccount.update", async () => {
-    const update = vi.fn(async (_input: IdentityAccountInput) => ACCOUNT);
-    const input: IdentityAccountInput = {
-      name: "Ada",
-      org: "acme",
-      slug: "ada",
-      idpId: "auth0|abc",
-      preferences: { standingContext: "New" },
+  it("submits the resource and the paths through identityAccount.update", async () => {
+    const update = vi.fn(async (_resource: unknown, _paths: string[]) => ACCOUNT);
+    const input: AccountEdit = {
+      resource: {
+        metadata: { id: "ia-1", etag: "etag-at-load" },
+        spec: { preferences: { standingContext: "New" } },
+      },
+      paths: ["spec.preferences.standing_context"],
     };
     withClient({ identityAccount: { update } }, <UpdateProbe input={input} />);
 
     fireEvent.click(screen.getByTestId("probe"));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0]![0]).toEqual(input);
+    expect(update.mock.calls[0]).toEqual([input.resource, input.paths]);
   });
 
   it("captures update failures in error state", async () => {
@@ -107,7 +109,7 @@ describe("useUpdateIdentityAccount", () => {
     });
     withClient(
       { identityAccount: { update } },
-      <UpdateProbe input={{ name: "Ada", org: "acme", idpId: "x" }} />,
+      <UpdateProbe input={{ resource: { metadata: { id: "ia-1" } }, paths: ["metadata.name"] }} />,
     );
 
     fireEvent.click(screen.getByTestId("probe"));

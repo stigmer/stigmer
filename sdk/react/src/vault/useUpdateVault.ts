@@ -52,6 +52,11 @@ export function useUpdateVault(): UseUpdateVaultReturn {
         ...(input.description !== undefined ? ["spec.description"] : []),
         ...(input.externalId !== undefined ? ["spec.external_id"] : []),
       ];
+      if (paths.length === 0) {
+        // Nothing to change: an update must name a field.
+        setIsUpdating(false);
+        return input.vault;
+      }
       try {
         return await stigmer.vault.update(
           {

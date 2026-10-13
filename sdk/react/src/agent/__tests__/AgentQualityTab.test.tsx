@@ -9,6 +9,8 @@
  * offered.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
@@ -105,7 +107,10 @@ describe("AgentQualityTab", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(mock.evaluator.update).toHaveBeenCalledTimes(1));
-    expect(mock.evaluator.update.mock.calls[0]?.[0]).toMatchObject({ id: "evl_1", monthlyLimitUsd: 30, sampleRate: 0.5 });
+    const sent = sentUpdate<Evaluator>(mock.evaluator.update);
+    expect(sent.id).toBe("evl_1");
+    expect(sent.paths).toEqual(["spec.enabled", "spec.sample_rate", "spec.monthly_limit_usd", "spec.model_name"]);
+    expect(sent.resource.spec).toMatchObject({ monthlyLimitUsd: 30, sampleRate: 0.5 });
   });
 
   it("warns that a limit below one grade's maximum cost grades no run", async () => {
@@ -125,7 +130,10 @@ describe("AgentQualityTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("alert")).toBeDefined();
     expect(screen.getByRole("alert").textContent).toContain("unauthorized to update evaluator");
-    expect(mock.evaluator.update.mock.calls[0]?.[0]).toMatchObject({ sampleRate: 0.25, modelName: "claude-haiku-4-5" });
+    expect(sentUpdate<Evaluator>(mock.evaluator.update).resource.spec).toMatchObject({
+      sampleRate: 0.25,
+      modelName: "claude-haiku-4-5",
+    });
   });
 
   it("shows a read that failed for another reason than grading being off", async () => {

@@ -5,10 +5,11 @@
  * conversation was started with.
  */
 import { describe, it, expect, vi } from "vitest";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useSessionPageFlow } from "../useSessionPageFlow";
@@ -49,8 +50,8 @@ describe("useSessionPageFlow — a stored conversation's plugins", () => {
     });
 
     await waitFor(() => expect(sessionUpdate).toHaveBeenCalledTimes(1));
-    expect(sessionUpdate.mock.calls[0][0].plugins).toEqual([
-      expect.objectContaining({ org: "org_acme", slug: "linear" }),
+    expect(sentRefs(sentUpdate<Session>(sessionUpdate).resource.spec?.plugins)).toEqual([
+      { org: "org_acme", slug: "linear" },
     ]);
   });
 });

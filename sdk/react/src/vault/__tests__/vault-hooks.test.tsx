@@ -5,8 +5,8 @@
  *   or without a description, logins by address), refuses to write without
  *   an organization and a vault, and keeps the last failure as `error`;
  * - useCreateVault creates an empty shared vault with only the fields given;
- * - useUpdateVault sends the vault's own fields, the caller's changes over
- *   the loaded ones, and never its entries;
+ * - useUpdateVault names the fields the caller changes, on the vault's id
+ *   and etag, never its entries, and writes nothing for no change;
  * - useMyVault's removals name My vault by `mine`, and a failed write is kept;
  * - diffEnv treats a plain declaration with a value as satisfied.
  */
@@ -78,8 +78,9 @@ function clientWith(writes: string[], refuse = false) {
         },
         update: (req) => {
           if (refuse) fail();
+          const sent = req.resource;
           writes.push(
-            `update:${req.metadata?.id}:${req.metadata?.name}:${req.spec?.description}:${req.spec?.externalId}:${Object.keys(req.spec?.secrets ?? {}).length}`,
+            `update:${sent?.metadata?.id}:${sent?.metadata?.etag}:${sent?.metadata?.name}:${sent?.spec?.description}:${sent?.spec?.externalId}:${Object.keys(sent?.spec?.secrets ?? {}).length}:${req.updateMask?.paths.join(",")}`,
           );
           return SHARED;
         },
@@ -191,25 +192,26 @@ describe("useCreateVault", () => {
 });
 
 describe("useUpdateVault", () => {
-  it("sends the vault's own fields, the caller's changes over the loaded ones, and no entries", async () => {
+  it("names the fields the caller changes on the vault's id and etag, never its entries, and writes nothing for no change", async () => {
     const writes: string[] = [];
+    const loaded = create(VaultSchema, SHARED);
+    loaded.metadata!.etag = "etag-at-load";
     const { result } = renderHook(() => useUpdateVault(), { wrapper: providers(clientWith(writes)) });
     await act(async () => {
-      await result.current.update({ vault: SHARED, name: "Renamed" });
-      await result.current.update({ vault: SHARED, description: "new", externalId: "cust-2" });
-      await result.current.update({ vault: create(VaultSchema, {}) });
+      await result.current.update({ vault: loaded, name: "Renamed" });
+      await result.current.update({ vault: loaded, description: "new", externalId: "cust-2" });
+      await result.current.update({ vault: loaded });
     });
     expect(writes).toEqual([
-      "update:vlt_team:Renamed:team keys:cust-1:0",
-      "update:vlt_team:Support tools:new:cust-2:0",
-      "update:::::0",
+      "update:vlt_team:etag-at-load:Renamed:::0:metadata.name",
+      "update:vlt_team:etag-at-load::new:cust-2:0:spec.description,spec.external_id",
     ]);
   });
 
   it("keeps a refused update as its error until cleared", async () => {
     const { result } = renderHook(() => useUpdateVault(), { wrapper: providers(clientWith([], true)) });
     await act(async () => {
-      await expect(result.current.update({ vault: SHARED })).rejects.toThrow(/not allowed/);
+      await expect(result.current.update({ vault: SHARED, name: "Renamed" })).rejects.toThrow(/not allowed/);
     });
     expect(result.current.error).not.toBeNull();
     act(() => result.current.clearError());

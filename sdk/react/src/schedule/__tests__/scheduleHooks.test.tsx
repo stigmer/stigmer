@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { clone, create, equals } from "@bufbuild/protobuf";
@@ -319,61 +322,42 @@ describe("useScheduleFires", () => {
 });
 
 describe("useSetScheduleEnabled", () => {
-  it("re-applies the full proto with only spec.enabled flipped", async () => {
-    const apply = vi.fn(async (doc: { message: unknown }) => ({
-      yamlKind: "Schedule",
-      displayName: "Schedule",
-      name: "daily-fee-reminders",
-      slug: "daily-fee-reminders",
-      org: "isc",
-      id: "sch_01example",
-      message: doc.message,
-    }));
-    const client = { manifest: { apply } };
+  it("names spec.enabled alone, on the schedule's id and the etag it was loaded at", async () => {
+    const loaded = clone(ScheduleSchema, SCHEDULE);
+    loaded.metadata!.etag = "etag-at-load";
+    const update = vi.fn(async (resource: Schedule, _paths: string[]) => {
+      const stored = clone(ScheduleSchema, SCHEDULE);
+      stored.spec!.enabled = resource.spec?.enabled ?? false;
+      return stored;
+    });
+    const client = { schedule: { update } };
 
     const { result } = renderHook(() => useSetScheduleEnabled(), {
       wrapper: wrapper(client),
     });
 
-    const applied = await result.current.setEnabled(SCHEDULE, false);
+    const updated = await result.current.setEnabled(loaded, false);
 
-    // The apply went through the manifest engine with a real
-    // ManifestDocument (registry handler resolved from the proto type).
-    expect(apply).toHaveBeenCalledOnce();
-    const doc = apply.mock.calls[0][0] as {
-      handler: { yamlKind: string };
-      message: Schedule;
-    };
-    expect(doc.handler.yamlKind).toBe("Schedule");
-
-    // Round-trip field preservation: everything survives except the
-    // flipped flag. In particular metadata.tags — the field the curated
-    // ScheduleInput path would have silently wiped.
-    const expected = clone(ScheduleSchema, SCHEDULE);
-    expected.spec!.enabled = false;
-    expect(equals(ScheduleSchema, doc.message, expected)).toBe(true);
-    expect(doc.message.metadata?.tags).toEqual(["billing"]);
+    // The flag alone: every other field (the tags, the cron, the target)
+    // keeps its stored value without being sent back.
+    const sent = sentUpdate<Schedule>(update);
+    expect(sent.paths).toEqual(["spec.enabled"]);
+    expect(sent.resource.spec?.enabled).toBe(false);
+    expect(sent.id).toBe("sch_01example");
+    expect(sent.etag).toBe("etag-at-load");
 
     // The caller's copy is never mutated.
-    expect(SCHEDULE.spec?.enabled).toBe(true);
+    expect(loaded.spec?.enabled).toBe(true);
 
-    expect((applied as Schedule).spec?.enabled).toBe(false);
+    expect(updated.spec?.enabled).toBe(false);
     expect(toast.success).toHaveBeenCalledWith("Schedule disabled");
   });
 
   it("toasts 'enabled' when turning the schedule on", async () => {
     const disabled = clone(ScheduleSchema, SCHEDULE);
     disabled.spec!.enabled = false;
-    const apply = vi.fn(async (doc: { message: unknown }) => ({
-      yamlKind: "Schedule",
-      displayName: "Schedule",
-      name: "daily-fee-reminders",
-      slug: "daily-fee-reminders",
-      org: "isc",
-      id: "sch_01example",
-      message: doc.message,
-    }));
-    const client = { manifest: { apply } };
+    const update = vi.fn(async () => SCHEDULE);
+    const client = { schedule: { update } };
 
     const { result } = renderHook(() => useSetScheduleEnabled(), {
       wrapper: wrapper(client),
@@ -383,17 +367,18 @@ describe("useSetScheduleEnabled", () => {
     expect(toast.success).toHaveBeenCalledWith("Schedule enabled");
   });
 
-  it("rejects a schedule without a spec", async () => {
-    const bare = create(ScheduleSchema, {
-      metadata: { name: "x", org: "isc" },
-    });
-    const client = { manifest: { apply: vi.fn() } };
+  it("says to reload a schedule changed since it was loaded", async () => {
+    const changed = new ConnectError("Schedule 'isc/daily-fee-reminders' changed since you read it", Code.Aborted, undefined, [
+      { desc: ErrorInfoSchema, value: { domain: "stigmer.ai", reason: "ETAG_MISMATCH", metadata: {} } },
+    ]);
+    const client = { schedule: { update: vi.fn().mockRejectedValue(changed) } };
 
     const { result } = renderHook(() => useSetScheduleEnabled(), {
       wrapper: wrapper(client),
     });
 
-    await expect(result.current.setEnabled(bare, true)).rejects.toThrow(/no spec/);
-    expect(client.manifest.apply).not.toHaveBeenCalled();
+    await expect(result.current.setEnabled(SCHEDULE, false)).rejects.toThrow();
+    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/^This schedule changed since you opened it/));
   });
 });
+

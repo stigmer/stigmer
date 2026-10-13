@@ -12,12 +12,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { HookFormat, HookConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import type { AgentInput } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
 import { AgentDetailView } from "../AgentDetailView";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 afterEach(cleanup);
@@ -36,10 +37,15 @@ function agentWith(spec: MessageInitShape<typeof AgentSpecSchema>): Agent {
 
 const inlineSource = { source: { case: "inline" as const, value: INLINE_HOOKS } };
 
-function renderView(agent: Agent, props: { editable?: boolean; refuseUpdate?: boolean } = {}) {
-  const update = vi.fn(async (input: AgentInput) => {
+function renderView(
+  agent: Agent,
+  props: { editable?: boolean; refuseUpdate?: boolean; refusal?: ConnectError } = {},
+) {
+  const update = vi.fn(async (resource: Agent, paths: string[]) => {
     if (props.refuseUpdate) throw new ConnectError("plugin 'acme/extra' is not installed", Code.InvalidArgument);
-    void input;
+    if (props.refusal) throw props.refusal;
+    void resource;
+    void paths;
     return agent;
   });
   const onPluginClick = vi.fn();
@@ -84,7 +90,7 @@ describe("AgentDetailView plugins", () => {
     expect(onPluginClick).toHaveBeenCalledWith({ org: ACME_ID, slug: "linear" });
   });
 
-  it("removes a plugin and keeps the rest of the spec", async () => {
+  it("removes a plugin, naming the plugins alone", async () => {
     const { update } = renderView(
       agentWith({
         instructions: "Answer tickets.",
@@ -103,10 +109,11 @@ describe("AgentDetailView plugins", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
-    expect(input.plugins?.map((ref) => ref.slug)).toEqual(["linear"]);
-    expect(input.hooks?.[0]?.inline?.groups?.[0]?.handlers?.[0]?.command).toBe("./deny-push.sh");
-    expect(input.env?.["API_TOKEN"]).toMatchObject({ isSecret: true });
+    // The save names the plugins alone: the hooks and the env keep their
+    // stored values without being sent back.
+    const sent = sentUpdate<Agent>(update);
+    expect(sent.paths).toEqual(["spec.plugins"]);
+    expect(sent.resource.spec?.plugins.map((ref) => ref.slug)).toEqual(["linear"]);
   });
 
   it("adds a plugin typed in, after the ones listed", async () => {
@@ -123,7 +130,7 @@ describe("AgentDetailView plugins", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0]![0].plugins).toEqual([
+    expect(sentRefs(sentUpdate<Agent>(update).resource.spec?.plugins)).toEqual([
       { org: ACME_ID, slug: "guard" },
       { org: ACME_ID, slug: "linear" },
     ]);
@@ -140,5 +147,42 @@ describe("AgentDetailView plugins", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(await screen.findByText(/is not installed/)).toBeTruthy();
+  });
+
+  it("sends the agent's id and the etag it was loaded at", async () => {
+    const agent = agentWith({ instructions: "Answer tickets.", plugins: [{ org: ACME_ID, slug: "guard" }] });
+    agent.metadata!.etag = "etag-at-load";
+    const { update } = renderView(agent, { editable: true });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit plugins" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove guard" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    const sent = sentUpdate<Agent>(update);
+    expect(sent.id).toBe(agent.metadata?.id);
+    expect(sent.etag).toBe("etag-at-load");
+  });
+
+  it("says to reload when the agent changed since it was opened, and keeps the edit", async () => {
+    const changed = new ConnectError(
+      "Agent 'acme/support-bot' changed since you read it; reload it and make your change again",
+      Code.Aborted,
+      undefined,
+      [{ desc: ErrorInfoSchema, value: { domain: "stigmer.ai", reason: "ETAG_MISMATCH", metadata: {} } }],
+    );
+    renderView(agentWith({ instructions: "Answer tickets." }), { editable: true, refusal: changed });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit plugins" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add plugin" }));
+    const slug = screen.getByPlaceholderText("slug");
+    fireEvent.change(slug, { target: { value: "extra" } });
+    fireEvent.keyDown(slug, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(await screen.findByText(/This agent changed since you opened it/)).toBeTruthy();
+    // The editor stays open with the unsaved plugin in it.
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove extra" })).toBeTruthy();
   });
 });

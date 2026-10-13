@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
   ChannelAppSchema,
   type ChannelApp,
 } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
-import type { ChannelAppInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { ChannelAppDetailPanel } from "../ChannelAppDetailPanel";
 
 /**
- * Regression suite for the full-spec-replace wipe bug: both detail forms
- * must spread `toChannelAppUpdateInput` and override only their provider
- * arm, so identity fields and any future spec field survive the save.
- * Secrets follow the redaction contract: the form is seeded with the
+ * The detail form's save names its provider arm alone (`spec.slack`), on
+ * the app as loaded, so identity fields and any other spec field keep
+ * their stored values without being sent back. Secrets follow the
+ * redaction contract: the form is seeded with the
  * server's redaction marker, and sending the marker back means "keep the
  * stored value" (per-field, verified by the backend's
  * TestRedactAndEncryptCoverEveryProviderArm).
@@ -61,8 +61,8 @@ function renderPanel(update: ReturnType<typeof vi.fn>) {
 afterEach(cleanup);
 
 describe("ChannelAppDetailPanel save payload (slack arm)", () => {
-  it("spreads the complete mapped input and overrides only the slack config", async () => {
-    const update = vi.fn(async (_input: ChannelAppInput) => SLACK_APP);
+  it("names the slack arm alone, sending the marker for the secrets it did not change", async () => {
+    const update = vi.fn(async (_resource: ChannelApp, _paths: string[]) => SLACK_APP);
     renderPanel(update);
 
     const clientId = await screen.findByLabelText(/client id/i);
@@ -70,20 +70,15 @@ describe("ChannelAppDetailPanel save payload (slack arm)", () => {
     fireEvent.click(screen.getByRole("button", { name: /save credentials/i }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
+    const sent = sentUpdate<ChannelApp>(update);
 
+    // The arm alone, addressed by the app's id.
+    expect(sent.paths).toEqual(["spec.slack"]);
+    expect(sent.id).toBe("chapp_1");
     // The edited field, plus per-field keep-markers for untouched secrets.
-    expect(input.slack).toEqual({
-      clientId: "9999.0000",
-      clientSecret: REDACTED,
-      signingSecret: REDACTED,
+    expect(sent.resource.spec?.providerConfig).toMatchObject({
+      case: "slack",
+      value: { clientId: "9999.0000", clientSecret: REDACTED, signingSecret: REDACTED },
     });
-    // Identity and unrendered metadata survive via the mapper spread.
-    expect(input.name).toBe("Acme Slack");
-    expect(input.org).toBe("acme");
-    expect(input.slug).toBe("acme-slack");
-    expect(input.labels).toEqual({ team: "support" });
-    // The other provider arm stays absent — the oneof is preserved.
-    expect(input.whatsapp).toBeUndefined();
   });
 });

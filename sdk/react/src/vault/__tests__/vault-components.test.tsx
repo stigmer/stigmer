@@ -147,7 +147,7 @@ function clientWith(
         },
         update: (req) => {
           refuse();
-          writes.push(`update:${req.metadata?.name}:${req.spec?.description}:${req.spec?.externalId}`);
+          writes.push(`update:${req.resource?.metadata?.name}:${req.resource?.spec?.description}:${req.resource?.spec?.externalId}`);
           return SUPPORT;
         },
         delete: (req) => {

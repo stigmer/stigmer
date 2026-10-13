@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
+import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { AgentChannelInput } from "@stigmer/sdk";
@@ -37,7 +39,7 @@ afterEach(cleanup);
 
 interface MockOverrides {
   channels?: unknown[];
-  apply?: (input: AgentChannelInput) => Promise<unknown>;
+  update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
   delete?: (id: string) => Promise<unknown>;
   checkMyPermission?: (input: unknown) => Promise<unknown>;
 }
@@ -66,7 +68,8 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         totalCount: overrides.channels?.length ?? 0,
         items: overrides.channels ?? [],
       }),
-      apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
+      apply: vi.fn().mockResolvedValue({}),
+      update: overrides.update ?? vi.fn().mockResolvedValue({}),
       create: vi.fn().mockResolvedValue({ metadata: { id: "ach_new" } }),
       delete: overrides.delete ?? vi.fn().mockResolvedValue({}),
       initiateInstall: vi.fn().mockResolvedValue({
@@ -235,11 +238,11 @@ describe("AgentChannelsPanel", () => {
     expect(screen.getByText(/removed from Old WS/)).toBeTruthy();
   });
 
-  it("toggles serving with a full-spec save (config-preserving pause)", async () => {
-    const apply = vi.fn().mockResolvedValue({});
+  it("toggles serving by naming spec.enabled alone (config-preserving pause)", async () => {
+    const update = vi.fn().mockResolvedValue({});
     const client = createMockStigmer({
       channels: [makeChannel({ teamName: "Acme HQ" })],
-      apply,
+      update,
     });
     render(
       <Providers client={client}>
@@ -250,18 +253,12 @@ describe("AgentChannelsPanel", () => {
     await waitFor(() => expect(screen.getByRole("switch")).toBeTruthy());
     fireEvent.click(screen.getByRole("switch"));
 
-    await waitFor(() => expect(apply).toHaveBeenCalled());
-    // The toggle must carry the full input — dropping agentRef or the
-    // provider marker would wipe them on the server.
-    expect(apply).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: "Support Slack",
-        org: "acme",
-        agentRef: { org: "acme", slug: "support-agent" },
-        slack: {},
-        enabled: false,
-      }),
-    );
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    // The toggle names `spec.enabled` alone: the agent reference and the
+    // provider marker keep their stored values without being sent back.
+    const sent = sentUpdate<AgentChannel>(update);
+    expect(sent.paths).toEqual(["spec.enabled"]);
+    expect(sent.resource.spec?.enabled).toBe(false);
   });
 
   it("confirms before disconnecting and deletes on confirm", async () => {

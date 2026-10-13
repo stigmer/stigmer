@@ -111,24 +111,30 @@ describe("useUpdateChannelApp", () => {
     });
 
     await act(async () => {
-      await result.current.update({
-        name: "Acme Support Bot",
-        org: "acme",
-        slack: {
-          clientId: "1234.5678",
-          clientSecret: "***REDACTED***",
-          signingSecret: "rotated",
+      await result.current.update(
+        {
+          metadata: { id: "chapp_1", etag: "etag-at-load" },
+          spec: {
+            providerConfig: {
+              case: "slack",
+              value: { clientId: "1234.5678", clientSecret: "***REDACTED***", signingSecret: "rotated" },
+            },
+          },
         },
-      });
+        ["spec.slack"],
+      );
     });
 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        slack: expect.objectContaining({
-          clientSecret: "***REDACTED***",
-          signingSecret: "rotated",
+        metadata: expect.objectContaining({ id: "chapp_1", etag: "etag-at-load" }),
+        spec: expect.objectContaining({
+          providerConfig: expect.objectContaining({
+            value: expect.objectContaining({ clientSecret: "***REDACTED***", signingSecret: "rotated" }),
+          }),
         }),
       }),
+      ["spec.slack"],
     );
   });
 });
