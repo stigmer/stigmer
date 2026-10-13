@@ -568,12 +568,15 @@ jobs:
           npm install --no-package-lock --no-audit --no-fund --before="$cutoff"
 
       # The dist-exporting libs a consumer package imports (see the header),
-      # with @stigmer/eval-runtime, which plugin-package imports: the CLI
-      # resolves each from its dist, so all are built before it is
+      # with @stigmer/eval-runtime, which plugin-package imports, and
+      # @stigmer/tool-vocabulary, which session-log imports: the consumers
+      # resolve each from its dist, so all are built before they are
       # typechecked.
       - name: Build the dist-exporting libs the consumers import
         run: |
           npm run build -w @stigmer/protos
+          npm run build -w @stigmer/tool-vocabulary
+          npm run build -w @stigmer/session-log
           npm run build -w @stigmer/eval-runtime
           npm run build -w @stigmer/plugin-package
           npm run build -w @stigmer/zip-structure

@@ -48,9 +48,14 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      # Both the suite and the server import the built proto stubs (dist).
-      - name: Build proto stubs
-        run: npm run build -w @stigmer/protos
+      # Both the suite and the server import the built proto stubs (dist),
+      # and the session-log fold (dist) the SDK and the server read events
+      # with, which reads the tool vocabulary (dist).
+      - name: Build proto stubs and the session-log fold
+        run: |
+          npm run build -w @stigmer/protos
+          npm run build -w @stigmer/tool-vocabulary
+          npm run build -w @stigmer/session-log
 
       # The plugin-eval support arms read suites through the library's dist,
       # which imports @stigmer/eval-runtime's.
@@ -142,8 +147,11 @@ jobs:
       - name: Install npm workspace dependencies
         run: npm ci
 
-      - name: Build proto stubs
-        run: npm run build -w @stigmer/protos
+      - name: Build proto stubs and the session-log fold
+        run: |
+          npm run build -w @stigmer/protos
+          npm run build -w @stigmer/tool-vocabulary
+          npm run build -w @stigmer/session-log
 
       - name: Install server dependencies
         working-directory: backend/services/stigmer-server
