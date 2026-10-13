@@ -268,12 +268,8 @@ export class SessionEventEmitter {
     for (const row of args.rows.subAgentRuns) this.ownFrom.set(row.id, row.messages.length);
     if (args.resumed) {
       try {
-        const ids: string[] = [];
-        for (const event of await this.deps.client.listRunSessionEvents(args.sessionId, this.deps.runId)) {
-          if (event.event.case === undefined) continue;
-          this.sent.add(event.event.value.id);
-          ids.push(event.event.value.id);
-        }
+        const ids = (await this.deps.client.listRunSessionEvents(args.sessionId, this.deps.runId)).map(idOf);
+        for (const id of ids) this.sent.add(id);
         this.scopeBases = nextScopeIndexes(this.deps.runId, ids);
       } catch (err) {
         console.warn(`[session-events] run=${this.deps.runId}: reading what the run already wrote failed; writing on: ${String(err)}`);
@@ -795,9 +791,7 @@ export function nextScopeIndexes(runId: string, ids: readonly string[]): Map<str
     const match = PLACE_ID.exec(id);
     if (match === null) continue;
     const prefix = match[1]!;
-    const index = Number(match[2]);
-    if (!Number.isSafeInteger(index)) continue;
-    next.set(prefix, Math.max(next.get(prefix) ?? 0, index + 1));
+    next.set(prefix, Math.max(next.get(prefix) ?? 0, Number(match[2]) + 1));
   }
   return next;
 }

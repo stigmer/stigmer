@@ -83,7 +83,16 @@ describe("fileRecordOf", () => {
     baseline(rows, "run_1:1");
     candidate(rows, "run_1:0");
     rows.fileReviewEventStream!.events.push({ ...rows.fileReviewEventStream!.events[0]!, changeSetId: "" });
+    rows.fileReviewEventStream!.events.push(
+      create(FileReviewEventSchema, {
+        eventId: "f",
+        changeSetId: "run_1:1",
+        eventType: FileReviewEventType.FAILED,
+        payload: { case: "failed", value: { changeSetId: "run_1:1", detail: "a capture that failed adds nothing to the record" } },
+      }),
+    );
     expect(fileRecordOf(rows).map((set) => set.id)).toEqual(["run_1:0", "run_1:1"]);
+    expect(fileRecordOf(rows)[1]!.candidateSnapshot).toBeUndefined();
   });
 });
 

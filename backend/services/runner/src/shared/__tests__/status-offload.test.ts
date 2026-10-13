@@ -591,6 +591,32 @@ describe("enforceStatusSizeLimit", () => {
     expect(cs.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
   });
 
+  it("stops at the first set whose bodies bring the status under the limit, leaving the next set whole", () => {
+    const big = (id: string) =>
+      buildCapturedFileChange({
+        id,
+        pathBefore: `${id}.ts`,
+        pathAfter: `${id}.ts`,
+        kind: FileChangeKind.MODIFY,
+        captureClass: FileCaptureClass.GIT_TRACKED,
+        before: "Z".repeat(30_000),
+        after: "Z".repeat(30_000),
+      });
+    const status = statusWithRecord([big("first")], "exec-two");
+    status.fileChanges.push(...statusWithRecord([buildCapturedFileChange({
+      id: "small",
+      pathBefore: "small.ts",
+      pathAfter: "small.ts",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      before: "s",
+      after: "s!",
+    })], "exec-two-b").fileChanges);
+    expect(enforceStatusSizeLimit(status, 8_000)).toBe(true);
+    expect(status.fileChanges[0]!.changes[0]!.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+    expect(status.fileChanges[1]!.changes[0]!.after?.body.case, "the next set is never touched").toBe("inline");
+  });
+
   it("does not overwrite a more specific reason (SECRET_WITHHELD survives size elision)", () => {
     // A secret entry is content-less, so it can't be size-elided; but guard the
     // precedence explicitly: if a reason is already set, the size backstop keeps it.

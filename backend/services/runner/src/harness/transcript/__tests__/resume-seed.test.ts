@@ -80,6 +80,16 @@ describe("resumeSeedOf", () => {
     expect(seed.answerText, "the run's newest root answer").toBe("Building now.");
   });
 
+  it("leaves an MCP ask its result answered to the log", () => {
+    const useId = toolUseEventId(RUN, "call-mcp-done");
+    const seed = resumeSeedOf(RUN, [
+      use("call-mcp-done", { permission: "ask", mcp: "linear" }),
+      asked("call-mcp-done"),
+      event({ case: "agentMcpToolResult", value: { id: toolResultEventId(useId), mcpToolUseId: useId, content: [], isError: false } }),
+    ]);
+    expect(seed.rows.messages).toEqual([]);
+  });
+
   it("seeds an MCP call with its server, an ask the log lost with what its use states, and an unknown rule word as no rule", () => {
     const seed = resumeSeedOf(RUN, [
       use("call-mcp", { permission: "ask", mcp: "linear", name: "create_issue" }),

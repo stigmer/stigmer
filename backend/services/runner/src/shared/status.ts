@@ -126,23 +126,23 @@ export async function persistStatus(
 ): Promise<RunControlSignal> {
   const { rows, offload, retry } = options;
 
-  if (rows && offload) {
+  if (offload) {
     try {
-      await offloadOversizedToolOutputs(rows, offload);
+      if (rows) await offloadOversizedToolOutputs(rows, offload);
     } catch (err) {
       console.warn(`[persistStatus] ${executionId}: tool-output offload failed (non-fatal): ${err}`);
     }
-  }
-  // File record: if the status still exceeds the soft cap after per-item
-  // offload, offload the largest still-inline captured bodies to retrievable
-  // refs so those files stay REVIEWABLE (lazily fetched) instead of being
-  // dropped by the backstop below. Guarded on the record so an ordinary
-  // (non-review) turn pays nothing. Non-fatal.
-  if (offload && status.fileChanges.length > 0) {
-    try {
-      await offloadCandidateChangesToFit(status, offload);
-    } catch (err) {
-      console.warn(`[persistStatus] ${executionId}: file-review offload-to-fit failed (non-fatal): ${err}`);
+    // File record: if the status still exceeds the soft cap after per-item
+    // offload, offload the largest still-inline captured bodies to retrievable
+    // refs so those files stay REVIEWABLE (lazily fetched) instead of being
+    // dropped by the backstop below. Guarded on the record so an ordinary
+    // (non-review) turn pays nothing. Non-fatal.
+    if (status.fileChanges.length > 0) {
+      try {
+        await offloadCandidateChangesToFit(status, offload);
+      } catch (err) {
+        console.warn(`[persistStatus] ${executionId}: file-review offload-to-fit failed (non-fatal): ${err}`);
+      }
     }
   }
   // The rows as offloaded: the session event emitter reads them here
