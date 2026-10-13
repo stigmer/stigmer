@@ -587,7 +587,7 @@ export async function assertToolCallLimitTerminates(harness: RuntimeContractHarn
  * list, so a write holding only the resumed turn's own would erase the prior
  * turn's. The transcript is not carried: the resumed turn's rows hold the
  * asked call it resumes onto, seeded once from the session's log
- * (`harness/resume-seed.ts`), and the rows it wrote itself, never an earlier
+ * (`harness/transcript/resume-seed.ts`), and the rows it wrote itself, never an earlier
  * invocation's other rows. A first turn carries nothing, whatever the
  * record holds: the seed is gated on the log holding what the run's engine
  * did.

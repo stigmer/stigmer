@@ -27,7 +27,7 @@ import {
   approvalAnswersOf,
   copyAnswersOntoRows,
 } from "../approval-answers.js";
-import { RESUME_SEED_EVENT_TYPES } from "../resume-seed.js";
+import { RESUME_SEED_EVENT_TYPES } from "../transcript/resume-seed.js";
 import { REINVOCATION_EVENT_TYPES } from "../turn-context.js";
 import { toolUseEventId } from "../events/ids.js";
 import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";

@@ -206,7 +206,7 @@ export class TranscriptBuilder {
    * read from the session's log, and the sub-agent rows that hold them —
    * and index them, so a re-issued call reconciles onto its seeded row
    * instead of duplicating it. The runtime calls this once, in its
-   * reinvocation phase, before any harness runs (`harness/resume-seed.ts`
+   * reinvocation phase, before any harness runs (`harness/transcript/resume-seed.ts`
    * says what is seeded and why nothing else is). Seeded rows are an earlier
    * invocation's facts: this sets neither {@link dirty} nor
    * {@link awaitingApproval}.
@@ -530,7 +530,7 @@ export class TranscriptBuilder {
     // never a second gate. Keyed by the provider's tool_call_id, so this is an
     // exact match (no name heuristics). Two shapes reach here: the durable
     // checkpoint re-emitting a seeded WAITING call now that approval is granted
-    // (native's resume; the runtime's seed from the log, `resume-seed.ts`), and a
+    // (native's resume; the runtime's seed from the log, `transcript/resume-seed.ts`), and a
     // recovery replaying a call the server had marked INTERRUPTED when the
     // execution terminalized with it in flight (the enum's supersede rule; the
     // Cursor accumulator's merge). Either way an UNSETTLED row becomes RUNNING

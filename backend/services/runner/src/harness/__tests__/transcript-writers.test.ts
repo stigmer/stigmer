@@ -1,9 +1,11 @@
 /**
  * Pins who may CREATE a transcript row: an `AgentMessage`, a `ToolCall` or a
- * `SubAgentRun` on the execution status. Two writers, and no third:
+ * `SubAgentRun` on the turn's rows. Two writers, and no third:
  *
  *  - `src/harness/transcript/` — the one transcript builder, which every
- *    harness folds its engine's events through (`TurnSink.transcript`);
+ *    harness folds its engine's events through (`TurnSink.transcript`), and
+ *    beside it the reinvocation's seed, which builds the asks it resumes
+ *    onto from the session's log and hands them to the builder;
  *  - `src/harness/terminal-table.ts` — the runtime's terminal system rows
  *    (the pause copy, the failure copy), which are not transcript facts of
  *    any engine and never were.
@@ -20,11 +22,11 @@
  * legitimate, and the modules that do it are named in `TurnSink`'s header;
  * a fence over them would be a list, not a rule.
  *
- * A reinvocation's prior rows are not an exception: the runtime seeds them
- * THROUGH the builder (`TranscriptBuilder.seed`, from `turn-context.ts`
- * `seedFromPersistedStatus`), so the seed indexes what it appends and this
- * list stays at two. (For one commit the seed pushed rows itself and was
- * the third name here.)
+ * A reinvocation's asks are not an exception: the seed that builds them
+ * lives with the builder (`transcript/resume-seed.ts`) and they enter the
+ * rows THROUGH the builder (`TranscriptBuilder.seed`), so the seed indexes
+ * what it appends and this list stays at two. The generated row types
+ * (`src/gen`) name the schemas they define and are not swept.
  *
  * The rule is read off the TypeScript syntax tree, as the import fences are
  * (`import-direction.test.ts`): a schema named in a header comment, or a
@@ -98,7 +100,7 @@ function sweep(): Sweep {
   const visited: string[] = [];
   const creators: string[] = [];
   const offences: Offence[] = [];
-  for (const file of typeScriptFilesUnder(SRC_ROOT, new Set(["__tests__", "__test-utils__"]))) {
+  for (const file of typeScriptFilesUnder(SRC_ROOT, new Set(["__tests__", "__test-utils__", "gen"]))) {
     const relativeFile = relative(SRC_ROOT, file);
     visited.push(relativeFile);
     const writes = transcriptRowWrites(file, readSource(file));

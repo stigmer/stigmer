@@ -75,7 +75,7 @@ import type { StigmerClient } from "../client/stigmer-client.js";
 import { scopedRunnerCredential } from "../client/token-claims.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
 import { APPROVAL_ANSWER_EVENT_TYPES, approvalAnswersOf, copyAnswersOntoRows, type ApprovalAsk } from "./approval-answers.js";
-import { RESUME_SEED_EVENT_TYPES, resumeSeedOf } from "./resume-seed.js";
+import { RESUME_SEED_EVENT_TYPES, resumeSeedOf } from "./transcript/resume-seed.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
@@ -240,7 +240,7 @@ export interface ResolutionDeps {
  * `threadId` (the contract carries no flag by design, `types.ts` header) and
  * the runtime reads it only inside {@link resolveTurnContext}; the decisions
  * and the asks ARE on the input. The seeded asks are on `sink.rows`
- * (`resume-seed.ts`), each carrying the log's answer to its call; an
+ * (`transcript/resume-seed.ts`), each carrying the log's answer to its call; an
  * adapter wraps them by reference.
  */
 export interface TurnReinvocation {
@@ -432,7 +432,7 @@ export function runEventsReader(
  * artifact sends every earlier one too. The persisted protos are cloned so
  * the input execution stays immutable. Nothing of the transcript is carried:
  * the asks a resumed engine resumes onto come from the session's log
- * (`resume-seed.ts`), and every other row is the invocation's own.
+ * (`transcript/resume-seed.ts`), and every other row is the invocation's own.
  */
 export function seedStatusOutputs(status: RunStatus, execution: Run): void {
   const persisted = execution.status;
@@ -763,7 +763,7 @@ export async function startEvalMocks(
  * Whether this invocation resumes is read first ({@link isReinvocation},
  * with the log's {@link runWroteEngineEvents}). On a reinvocation the run's
  * events are read once ({@link REINVOCATION_EVENT_TYPES}) and the asks the
- * engine resumes onto are seeded through the builder (`resume-seed.ts`),
+ * engine resumes onto are seeded through the builder (`transcript/resume-seed.ts`),
  * before any harness runs; the status's own outputs are carried over
  * ({@link seedStatusOutputs}). Tool approvals (shell / MCP / a gated write)
  * resolve from the answers the server appended to the session's log, read

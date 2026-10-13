@@ -49,7 +49,7 @@
  * reported ({@link skipRootRows}) and skipped, because the session's status
  * events and the run's stop cause say it; every other SYSTEM row is a note
  * of the harness (`stigmer.harness.note`). A reinvocation's seeded asks
- * (`harness/resume-seed.ts`) sit on messages with no text, which write
+ * (`harness/transcript/resume-seed.ts`) sit on messages with no text, which write
  * nothing, and their tool uses are already in the log.
  *
  * Its memory is the log. A resumed or retried turn first lists its run's

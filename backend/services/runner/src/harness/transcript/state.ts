@@ -13,7 +13,7 @@
  * rows (the runtime's persist chokepoint, the settle modules that amend
  * rows by identity) keeps seeing every row. A reinvocation's asks arrive
  * through {@link TranscriptState.seed} — the turn runtime's seed from the
- * session's log (`harness/resume-seed.ts`) hands them here — so they are
+ * session's log (`harness/transcript/resume-seed.ts`) hands them here — so they are
  * indexed by the same routine that indexes rows handed to the constructor.
  *
  * One shape for every scope (since #1097): until then the root's indexes
@@ -139,7 +139,7 @@ export class TranscriptState {
 
   /**
    * Append a reinvocation's seeded asks to the rows AND index them — the
-   * runtime's seed from the session's log (`harness/resume-seed.ts`), the
+   * runtime's seed from the session's log (`harness/transcript/resume-seed.ts`), the
    * calls a resumed engine re-issues and the threads that hold them. Every
    * collection is pushed into, never reassigned, so the rows' arrays stay
    * the ones every holder of the rows holds. A sub-agent row already known

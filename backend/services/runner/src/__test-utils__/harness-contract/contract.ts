@@ -19,7 +19,7 @@
  * the row, `../approval-log.ts`) and on the next invocation does what the
  * runtime's seed does with the runtime's own code over that log: writes
  * each turn's rows into the log with the runtime's session event emitter,
- * seeds the next turn's rows with the asks it holds (`harness/resume-seed.ts`),
+ * seeds the next turn's rows with the asks it holds (`harness/transcript/resume-seed.ts`),
  * derives the decisions map and the asks, and copies each call's answer onto
  * its row (`harness/approval-answers.ts`). It hands each reinvocation a
  * CLONE of the previous status on BOTH the sink and the record
@@ -92,7 +92,7 @@ import { approvalAnswersOf, copyAnswersOntoRows } from "../../harness/approval-a
 import { terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
 import { answerEventsFor } from "../approval-log.js";
 import { SessionEventEmitter } from "../../harness/events/emitter.js";
-import { resumeSeedOf } from "../../harness/resume-seed.js";
+import { resumeSeedOf } from "../../harness/transcript/resume-seed.js";
 import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";

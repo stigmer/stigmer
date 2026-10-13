@@ -41,16 +41,17 @@
  * writes none) and its `stigmer.memory.recalled` (the memory selection a
  * resumed turn replays rather than re-selects).
  *
- * Proven by `__tests__/resume-seed.test.ts` and both harnesses' hermetic
- * resume goldens.
+ * Proven by `transcript/__tests__/resume-seed.test.ts` and both harnesses' hermetic
+ * resume goldens. It lives with the builder because it creates rows: the
+ * seed's rows are built here and enter the turn through `seed()`.
  */
 
 import { create } from "@bufbuild/protobuf";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import { POLICY_SOURCE_WORDS } from "./events/emitter.js";
-import type { TranscriptSeed } from "./transcript/state.js";
-import { classifyTool } from "../shared/tool-kind.js";
+import { POLICY_SOURCE_WORDS } from "../events/emitter.js";
+import type { TranscriptSeed } from "./state.js";
+import { classifyTool } from "../../shared/tool-kind.js";
 import {
   AgentMessageSchema,
   RecalledMemoriesReportSchema,
@@ -60,13 +61,13 @@ import {
   type RecalledMemoriesReport,
   type SubAgentRun,
   type ToolCall,
-} from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalPolicySource,
   MessageType,
   SubAgentStatus,
   ToolCallStatus,
-} from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The log types the seed reads. */
 export const RESUME_SEED_EVENT_TYPES = [

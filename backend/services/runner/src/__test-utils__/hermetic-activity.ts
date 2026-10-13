@@ -484,7 +484,7 @@ export class ExecutionRecord {
    * the log (`harness/events/emitter.ts`, the terminal write), then the
    * status it persisted. A resumed turn learns from the log that the run's
    * engine already worked (`turn-context.ts` `runWroteEngineEvents`) and
-   * which calls it asked and still waits on (`resume-seed.ts`), so a status
+   * which calls it asked and still waits on (`transcript/resume-seed.ts`), so a status
    * restored without its events would read as a first turn.
    */
   async restorePausedTurn(rows: TurnRows, status: RunStatus): Promise<void> {
@@ -509,7 +509,7 @@ export class ExecutionRecord {
    * asked (`confirmToolUse`, `grantPermission`): append the answer to the
    * session's log (`approval-log.ts`). Nothing is stamped on any row: the
    * resumed turn seeds its asks from the log and copies each answer onto its
-   * row (`harness/resume-seed.ts`, `harness/approval-answers.ts`), so a kit
+   * row (`harness/transcript/resume-seed.ts`, `harness/approval-answers.ts`), so a kit
    * that answered on the row would prove nothing. This is the ONE place a
    * test answers, and the call stays waiting until the resumed turn runs the
    * tool, exactly as in production. `onlyId` answers one of several calls

@@ -15,7 +15,7 @@
  *
  * One sink per turn, like the runtime. A reinvocation gets a NEW sink whose
  * rows are seeded with the asks the driver's log holds, as the runtime seeds
- * them (`harness/resume-seed.ts`) — nothing survives between turns by object
+ * them (`harness/transcript/resume-seed.ts`) — nothing survives between turns by object
  * identity.
  */
 
