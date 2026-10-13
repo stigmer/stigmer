@@ -190,6 +190,20 @@ export class RunEventsBuilder {
     });
   }
 
+  /** The session's own status (`session.status_running` or `session.status_idle`, the server's). */
+  sessionStatus(state: "running" | "idle"): this {
+    const id = `${this.runId}.session.${state}.${this.seq}`;
+    return this.push(
+      "",
+      state === "running"
+        ? { case: "sessionStatusRunning", value: { id } }
+        : {
+            case: "sessionStatusIdle",
+            value: { id, stopReason: { type: "end_turn" } },
+          },
+    );
+  }
+
   /** The turn's own phase (`stigmer.run.status`, the server's). */
   runStatus(phase: string, error = ""): this {
     return this.push("", {

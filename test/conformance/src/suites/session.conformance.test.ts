@@ -28,6 +28,11 @@
 //   - listByAgent answers the sessions pinned to an agent, whichever version.
 // Who may name or change an agent (the run gate) is the run-gate suite's.
 //
+// A session's state (status.state) is computed from its event log on every
+// read and never stored: a fresh session reads idle on get and on list, and
+// a state a client sends on create or update is not kept. A state that
+// moves with the session's turns is the session-events suite's.
+//
 // A conversation's own plugins (spec.plugins): each must name an installed
 // plugin, and a conversation whose turns would run where a plugin's local
 // program (a stdio MCP server) cannot start — the cloud target served by a
@@ -179,6 +184,27 @@ describe("Session conformance — CRUD & identity", () => {
 
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
     assertResourceParity(SessionSchema, created, fetched, "create vs get");
+  });
+
+  it("[rpc:SessionQueryController.get] get answers a fresh session's state as idle, whatever state create and update were sent", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentRef = await provisionAgentRef(org);
+    const created = await clients.sessionCommand.create({
+      ...makeSession({ org, name: uniqueName("session"), agentRef }),
+      status: { state: "running" },
+    });
+    fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }).catch(() => undefined));
+    expect((await clients.sessionQuery.get({ value: created.metadata!.id })).status?.state).toBe("idle");
+
+    const { id, name, slug } = created.metadata!;
+    await clients.sessionCommand.update({
+      apiVersion: SESSION_API_VERSION,
+      kind: SESSION_KIND,
+      metadata: { id, name, slug, org },
+      spec: makeSessionSpec({ agentRef, subject: "renamed" }),
+      status: { state: "running" },
+    });
+    expect((await clients.sessionQuery.get({ value: id })).status?.state).toBe("idle");
   });
 
   it("[rpc:SessionCommandController.apply] apply creates on first call and updates on second (same name + org)", async () => {
@@ -357,6 +383,17 @@ describe("Session conformance — queries", () => {
 
     expect(ids).toContain(a.metadata?.id);
     expect(ids).toContain(b.metadata?.id);
+  });
+
+  it("[rpc:SessionQueryController.list] list answers each fresh session's state as idle", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentRef = await provisionAgentRef(org);
+    const created = await createSession(org, uniqueName("session"), agentRef);
+
+    const listed = await clients.sessionQuery.list({});
+    const entry = listed.entries.find((s) => s.metadata?.id === created.metadata?.id);
+
+    expect(entry?.status?.state).toBe("idle");
   });
 
   it("[rpc:SessionQueryController.list] list pages one organization newest first, with no gap, no duplicate and a token until the last page", async () => {
