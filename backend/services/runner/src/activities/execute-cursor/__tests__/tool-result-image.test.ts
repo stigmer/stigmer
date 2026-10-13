@@ -25,7 +25,6 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
@@ -34,7 +33,7 @@ import {
 } from "../../../shared/status-offload.js";
 import { toResultString, canonicalizeImageResult } from "../tool-result.js";
 import { foldCursorEvents } from "../__test-utils__/fold.js";
-import { AgentMessageSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 // PNG signature + a little payload. PNG_BYTES is how the Cursor SDK delivers
 // image data at runtime (Node Buffer-JSON); PNG_BASE64 is its base64 form, used
@@ -184,7 +183,7 @@ describe("cursor image flows through the persist-time offload", () => {
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
 
     const tc = foldCursorEvents([event]).rows()[0];
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [create(AgentMessageSchema, { toolCalls: [tc] })],
     });
 
@@ -243,7 +242,7 @@ describe("sub-agent image normalization (sub-agent-steps)", () => {
       },
     } as unknown as Extract<SDKMessage, { type: "tool_call" }>;
 
-    const sub = foldCursorEvents([running, completed]).status.subAgentRuns[0];
+    const sub = foldCursorEvents([running, completed]).turnRows.subAgentRuns[0];
     const subToolResult = sub.messages[0].toolCalls[0].result;
     const img = detectImagePayload(subToolResult);
     expect(img?.base64).toBe(PNG_BASE64);

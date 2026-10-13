@@ -13,13 +13,14 @@ import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.j
 import type { ArtifactStorage } from "../../../shared/artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
+import { TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 // The publisher registers artifacts on the transcript builder (`addArtifact`);
 // the one builder since #1096.
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
 function makeStatusBuilder(): { sb: TranscriptBuilder; status: RunStatus } {
   const status = create(RunStatusSchema, {});
-  return { sb: new TranscriptBuilder("exec-test", status), status };
+  return { sb: new TranscriptBuilder("exec-test", create(TurnRowsSchema), status), status };
 }
 
 function mockWorkspaceBackend(files: Record<string, string>): WorkspaceBackend {
@@ -295,7 +296,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     await writeFile(join(dir, "src/app.ts"), "export const x = 42;", "utf-8");
 
     const status = create(RunStatusSchema, {});
-    const sb = new TranscriptBuilder("exec-disk", status);
+    const sb = new TranscriptBuilder("exec-disk", create(TurnRowsSchema), status);
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);
 
@@ -325,7 +326,7 @@ describe("InlinePublisher with LocalWorkspaceBackend (disk-backed)", () => {
     await mkdir(dir, { recursive: true });
 
     const status = create(RunStatusSchema, {});
-    const sb = new TranscriptBuilder("exec-miss", status);
+    const sb = new TranscriptBuilder("exec-miss", create(TurnRowsSchema), status);
     const storage = mockArtifactStorage();
     const backend = new LocalWorkspaceBackend(dir);
 

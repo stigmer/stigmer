@@ -9,13 +9,12 @@
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
 import { SessionEventEmitter } from "../../../harness/events/emitter.js";
 import { boundaryMayStillRewrite } from "../boundary-rows.js";
-import { ToolCallSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ToolCallSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RUN = "run_01jz8k3q9w4e5r6t7y8u9i0o1p";
@@ -28,8 +27,8 @@ function row(id: string, init: RowInit = {}): RowInit {
   return { id, name: "read", status: S.TOOL_CALL_COMPLETED, result: "ok", ...init };
 }
 
-function status(init: MessageInitShape<typeof RunStatusSchema>): RunStatus {
-  return create(RunStatusSchema, init);
+function status(init: MessageInitShape<typeof TurnRowsSchema>): TurnRows {
+  return create(TurnRowsSchema, init);
 }
 
 function logDouble() {
@@ -71,7 +70,7 @@ describe("the session events of a Cursor turn", () => {
         { type: AI, content: "The read was blocked, so I will" },
       ],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     e.observe({ kind: "text_delta", runId: "seg-2", text: "The read was blocked" }, { messageIndex: 1 });
     await e.flush(st, { final: false });
     expect(ids(log), "only the message before the blocked call").toEqual(["root.m0"]);
@@ -100,7 +99,7 @@ describe("the session events of a Cursor turn", () => {
         { type: AI, content: "Two steps.", toolCalls: [row("read-1"), row("edit-1", { name: "edit", args: { path: "a.md" }, result: "ok" })] },
       ],
     });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     await e.flush(st, { final: false });
     expect(ids(log)).toEqual(["root.m0", "read-1"]);
     await e.flush(st, { final: true });

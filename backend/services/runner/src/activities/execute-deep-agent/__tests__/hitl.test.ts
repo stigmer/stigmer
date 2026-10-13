@@ -3,9 +3,8 @@ import { Command } from "@langchain/langgraph";
 import { detectPendingInterrupts, resolveResumeInput, reconcileUnattendedSkips } from "../hitl.js";
 import { refusalsOf } from "../turn-setup.js";
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { GraphStateSnapshot } from "../hitl.js";
-import { AgentMessageSchema, ToolCallSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The runtime's reading of the answers onto the WAITING rows (`harness/approval-answers.ts`): a decision per WAITING tool-call id. */
@@ -212,7 +211,7 @@ describe("reconcileUnattendedSkips", () => {
   function statusWithCalls(
     toolCalls: Array<{ id: string; status: ToolCallStatus; result?: string }>,
   ) {
-    return create(RunStatusSchema, {
+    return create(TurnRowsSchema, {
       messages: [
         create(AgentMessageSchema, {
           toolCalls: toolCalls.map(tc =>
@@ -286,7 +285,7 @@ describe("reconcileUnattendedSkips", () => {
   });
 
   it("covers sub-agent transcripts (sub-agent gates share the parent registry)", () => {
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [],
       subAgentRuns: [{
         messages: [
@@ -323,7 +322,7 @@ describe("reconcileUnattendedSkips", () => {
 
 describe("reconcileUnattendedSkips — a hook's ask", () => {
   it("names the hook whose ask was skipped, and no hook when the default asked", () => {
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [create(AgentMessageSchema, {
         toolCalls: [
           create(ToolCallSchema, { id: "call-h", name: "execute", status: ToolCallStatus.TOOL_CALL_RUNNING }),

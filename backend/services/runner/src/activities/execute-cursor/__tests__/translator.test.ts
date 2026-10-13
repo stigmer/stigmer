@@ -16,7 +16,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { TranscriptEvent } from "../../../harness/transcript/events.js";
 import type { McpApprovalDefault } from "../../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
@@ -24,7 +23,7 @@ import { CursorFold, foldCursorEvents } from "../__test-utils__/fold.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";
 import { grantToken } from "../approval-state.js";
 import { CursorTranslator, extractSubagentName } from "../translator.js";
-import { AgentMessageSchema, ToolCallSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalAction,
   ApprovalPolicySource,
@@ -37,7 +36,7 @@ import {
 const RUN = "run-1";
 const ev = sdkEvents("agent-1", RUN);
 
-function translator(seeded = create(RunStatusSchema, {})): CursorTranslator {
+function translator(seeded = create(TurnRowsSchema, {})): CursorTranslator {
   return new CursorTranslator({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, leases: { global: false, categories: new Set() }, seeded: seeded.messages });
 }
 
@@ -229,19 +228,19 @@ describe("CursorTranslator — a tool_call event is the row's start and, when te
     const fold = foldCursorEvents([ev.assistant("Planning."), ev.toolCall("t1", "updateTodos", "running", TODOS)]);
     expect(fold.row("t1").toolKind).toBe(ToolKind.TODO);
     expect(fold.row("t1").requiresApproval).toBe(false);
-    expect(fold.status.todos, "a running write projects nothing: its args may be incomplete").toEqual({});
+    expect(fold.turnRows.todos, "a running write projects nothing: its args may be incomplete").toEqual({});
     fold.event(ev.toolCall("t1", "updateTodos", "completed", TODOS, "ok"));
-    expect(Object.keys(fold.status.todos)).toEqual(["todo-0"]);
+    expect(Object.keys(fold.turnRows.todos)).toEqual(["todo-0"]);
     // The legacy name projects too; a write that errors, and a tool that is not a todo tool, never do.
     fold.event(ev.toolCall("t2", "TodoWrite", "completed", { todos: [{ id: "x", content: "Legacy", status: "completed" }], merge: true }, "ok"));
-    expect(Object.keys(fold.status.todos).sort()).toEqual(["todo-0", "x"]);
+    expect(Object.keys(fold.turnRows.todos).sort()).toEqual(["todo-0", "x"]);
     fold.event(ev.toolCall("t3", "updateTodos", "error", { todos: [] }, "boom"));
     fold.event(ev.toolCall("t4", "write_notes", "completed", { todos: [] }, "ok"));
-    expect(Object.keys(fold.status.todos).sort()).toEqual(["todo-0", "x"]);
+    expect(Object.keys(fold.turnRows.todos).sort()).toEqual(["todo-0", "x"]);
     // A JSON-string args payload (the SDK's other shape) projects like an object.
     fold.event(ev.toolCall("t5", "updateTodos", "completed", JSON.stringify({ todos: [{ content: "From a string", status: "pending" }] }), "ok"));
-    expect(Object.keys(fold.status.todos)).toEqual(["todo-0"]);
-    expect(fold.status.todos["todo-0"].content).toBe("From a string");
+    expect(Object.keys(fold.turnRows.todos)).toEqual(["todo-0"]);
+    expect(fold.turnRows.todos["todo-0"].content).toBe("From a string");
   });
 
   it("the task SDK event is a system_note; an empty one, the system/status/user/request/usage events, are nothing", () => {
@@ -328,7 +327,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
       ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS),
     ]).finalize();
     expect(fold.row("task-1").toolKind).toBe(ToolKind.SUBAGENT);
-    const sub = fold.status.subAgentRuns[0];
+    const sub = fold.turnRows.subAgentRuns[0];
     expect(sub.id).toBe("task-1");
     expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
     expect(sub.output).toBe(JSON.stringify(STEPS));
@@ -345,8 +344,8 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
 
   it("a completion with no running before it still opens the sub-agent and delivers its transcript", () => {
     const fold = foldCursorEvents([ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS)]);
-    expect(fold.status.subAgentRuns[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
-    expect(fold.status.subAgentRuns[0].messages).toHaveLength(2);
+    expect(fold.turnRows.subAgentRuns[0].status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+    expect(fold.turnRows.subAgentRuns[0].messages).toHaveLength(2);
   });
 
   describe("one stream event is one instant, whatever the clock does between its folds (stigmer#1390)", () => {
@@ -361,7 +360,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
     it("a task completion with no running before it: the task row, the sub-agent row and the child's rows and messages share it", () => {
       const fold = new CursorFold({ observer: () => vi.advanceTimersByTime(1) }).event(ev.toolCall("task-1", "task", "completed", TASK_ARGS, STEPS));
       const task = fold.row("task-1");
-      const [sub] = fold.status.subAgentRuns;
+      const [sub] = fold.turnRows.subAgentRuns;
       const read = sub.messages.flatMap((m) => m.toolCalls)[0];
       expect([
         task.startedAt, task.completedAt,
@@ -400,7 +399,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
         },
       }),
     ]).finalize();
-    const sub = fold.status.subAgentRuns[0];
+    const sub = fold.turnRows.subAgentRuns[0];
     expect(sub.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => [tc.id, tc.status, tc.error])])).toEqual([
       [MessageType.MESSAGE_THINKING, "Let me look.", []],
       // Four tool steps with no assistant step before them share one empty message.
@@ -419,7 +418,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
   it("a result without conversationSteps, or not an object, yields an empty child transcript", () => {
     for (const result of [undefined, "just text", { status: "success", value: {} }, { status: "success", value: { conversationSteps: [] } }]) {
       const fold = foldCursorEvents([ev.toolCall("task-1", "task", "completed", TASK_ARGS, result)]);
-      expect(fold.status.subAgentRuns[0].messages).toHaveLength(0);
+      expect(fold.turnRows.subAgentRuns[0].messages).toHaveLength(0);
     }
   });
 
@@ -438,7 +437,7 @@ describe("CursorTranslator — a task tool call is a sub-agent, its transcript d
 
 describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAITING row by identity", () => {
   function seededStatus(rows: Array<{ id: string; action?: ApprovalAction; path?: string }>) {
-    return create(RunStatusSchema, {
+    return create(TurnRowsSchema, {
       messages: [
         create(AgentMessageSchema, {
           type: MessageType.MESSAGE_AI,
@@ -459,7 +458,7 @@ describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAIT
 
   it("the fresh call id's start is emitted with the SEEDED id, and its later events follow the alias", () => {
     const status = seededStatus([{ id: "seeded-1" }]);
-    const fold = new CursorFold({ status }).events(
+    const fold = new CursorFold({ turnRows: status }).events(
       ev.toolCall("fresh-1", "edit", "running", { path: "notes.md", content: "A\n" }),
       ev.toolCall("fresh-1", "edit", "completed", { path: "notes.md", content: "A\n" }, "ok"),
     );
@@ -471,14 +470,14 @@ describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAIT
 
   it("a declined seeded row is a closed gate: a same-identity call is a NEW row", () => {
     const status = seededStatus([{ id: "declined-1", action: ApprovalAction.REJECT }]);
-    const fold = new CursorFold({ status }).events(ev.toolCall("fresh-1", "edit", "running", { path: "notes.md", content: "A\n" }));
+    const fold = new CursorFold({ turnRows: status }).events(ev.toolCall("fresh-1", "edit", "running", { path: "notes.md", content: "A\n" }));
     expect(fold.rows().map((tc) => tc.id)).toEqual(["declined-1", "fresh-1"]);
     expect(fold.row("declined-1").status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
   });
 
   it("two co-pending seeded rows of one identity are consumed in transcript order; a third call is fresh", () => {
     const status = seededStatus([{ id: "seeded-1" }, { id: "seeded-2" }]);
-    const fold = new CursorFold({ status }).events(
+    const fold = new CursorFold({ turnRows: status }).events(
       ev.toolCall("fresh-1", "edit", "running", { path: "notes.md", content: "A\n" }),
       ev.toolCall("fresh-2", "edit", "running", { path: "notes.md", content: "A\n" }),
       ev.toolCall("fresh-3", "edit", "running", { path: "notes.md", content: "A\n" }),
@@ -492,12 +491,12 @@ describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAIT
 
   it("a different content for the same file is a different identity and never rides the seeded row", () => {
     const status = seededStatus([{ id: "seeded-1" }]);
-    const fold = new CursorFold({ status }).events(ev.toolCall("fresh-1", "edit", "running", { path: "notes.md", content: "B\n" }));
+    const fold = new CursorFold({ turnRows: status }).events(ev.toolCall("fresh-1", "edit", "running", { path: "notes.md", content: "B\n" }));
     expect(fold.rows().map((tc) => tc.id)).toEqual(["seeded-1", "fresh-1"]);
   });
 
   it("the identity is the hook's token space: a seeded shell row matches a re-run of the same command", () => {
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI,
         content: "Building.",
@@ -505,7 +504,7 @@ describe("CursorTranslator — a resumed agent's re-run lands on its seeded WAIT
       })],
     });
     expect(grantToken("shell", "make")).toBeTruthy();
-    const fold = new CursorFold({ status }).events(ev.toolCall("sh-new", "shell", "running", { command: "make" }));
+    const fold = new CursorFold({ turnRows: status }).events(ev.toolCall("sh-new", "shell", "running", { command: "make" }));
     expect(fold.rows().map((tc) => tc.id)).toEqual(["sh-seeded"]);
   });
 });
@@ -617,13 +616,13 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
   });
 
   it("a held completion for a resumed agent's re-run is re-targeted at the seeded row it aliases to", () => {
-    const status = create(RunStatusSchema, {
+    const status = create(TurnRowsSchema, {
       messages: [create(AgentMessageSchema, {
         type: MessageType.MESSAGE_AI, content: "Building.",
         toolCalls: [create(ToolCallSchema, { id: "sh-seeded", name: "shell", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, args: { command: "make" }, approvalAction: ApprovalAction.APPROVE })],
       })],
     });
-    const fold = new CursorFold({ status })
+    const fold = new CursorFold({ turnRows: status })
       .delta(output("sh-new", "building…"))
       .event(ev.toolCall("sh-new", "shell", "running", { command: "make" }));
     expect(fold.rows().map((tc) => tc.id)).toEqual(["sh-seeded"]);

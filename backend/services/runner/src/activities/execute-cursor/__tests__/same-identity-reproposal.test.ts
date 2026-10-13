@@ -30,7 +30,6 @@
 
 import { describe, it, expect } from "vitest";
 import { create, clone } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 import { approvalAnswersOf } from "../../../harness/approval-answers.js";
@@ -39,12 +38,7 @@ import { reconcileDeniedToolCalls } from "../boundary-rows.js";
 import { CursorFold, builderOver } from "../__test-utils__/fold.js";
 import { toolCallIdentityToken } from "../approval-state.js";
 import type { DeniedLedgerEntry } from "../approval-state.js";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  type AgentMessage,
-  type ToolCall,
-} from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, ToolCallSchema, type AgentMessage, type ToolCall, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const PATH = "/work/a.txt";
@@ -102,7 +96,7 @@ const RUN = "run_reproposal";
 function decisionsTheRuntimeWouldRead(messages: AgentMessage[], action: ApprovalAction): ReadonlyMap<string, ApprovalAction> {
   const first = create(ToolCallSchema, { id: FIRST_ID, name: "edit" });
   const log = answerEventsFor({ sessionId: "ses_reproposal", runId: RUN }, first, action);
-  return approvalAnswersOf(RUN, create(RunStatusSchema, { messages }), log).decisions;
+  return approvalAnswersOf(RUN, create(TurnRowsSchema, { messages }), log).decisions;
 }
 
 describe("a later same-identity proposal never lands on a decided row", () => {

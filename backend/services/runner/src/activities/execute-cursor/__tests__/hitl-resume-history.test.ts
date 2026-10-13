@@ -34,7 +34,6 @@
 
 import { describe, it, expect } from "vitest";
 import { create, clone } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import { reconcileDeniedToolCalls, clearProvisionalPostDenialNarration } from "../boundary-rows.js";
 import { CursorFold, builderOver } from "../__test-utils__/fold.js";
@@ -55,13 +54,9 @@ import {
   NO_MCP_DEFAULT,
 } from "../__test-utils__/cursor-hook-harness.js";
 import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  type AgentMessage,
-  SubAgentRunSchema,
-} from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, ToolCallSchema, type AgentMessage, SubAgentRunSchema, TurnRowsSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, MessageType, ToolCallStatus, SubAgentStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 /** The run the logged answers belong to. */
 const RUN_ID = "run_resume_history";
@@ -284,9 +279,9 @@ describe("Cursor HITL resume — append-only transcript", () => {
     });
     const statusRows = [seededSub];
 
-    const status = create(RunStatusSchema, {});
+    const status = create(TurnRowsSchema, {});
     status.subAgentRuns = statusRows;
-    new TranscriptBuilder("exec-resume", status).finalize();
+    new TranscriptBuilder("exec-resume", status, create(RunStatusSchema)).finalize();
 
     expect(status.subAgentRuns, "the status's own array, not a copy").toBe(statusRows);
     expect(status.subAgentRuns.some((s) => s.id === "sub_1")).toBe(true);
