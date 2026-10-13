@@ -268,14 +268,14 @@ jobs:
       # image and execs its own /runner/bin/node; the slim artifact at
       # /runner/dist, booted in place, so the runner's agent user reads it
       # with the modes a sandbox gives it). The runner's slim check runs from
-      # the checkout, mounted read-only (its scripts import only Node built-ins and each
-      # other), against the Temporal dev server on the host network: the
-      # cloud-mode boot to the Temporal dial, @cursor/sdk and its platform
-      # package, the attach waiter, a worker that reaches RUNNING, the
-      # manager lifecycle, and a warm-pool member booted with an OTLP endpoint
-      # set, as production sets one. A broken image or a runner that dies at boot (the
-      # 2026-04 stale-image failure mode) fails here, and no tag but
-      # main-<sha> names it.
+      # the checkout, mounted read-only (its scripts import only Node
+      # built-ins and each other), against the Temporal dev server on the
+      # host network: the cloud-mode boot to the Temporal dial, @cursor/sdk
+      # and its platform package, the attach waiter, a worker that reaches
+      # RUNNING, the manager lifecycle, and a warm-pool member booted with an
+      # OTLP endpoint set, as production sets one. A broken image or a runner
+      # that dies at boot (the 2026-04 stale-image failure mode) fails here,
+      # and no tag but main-<sha> names it.
       - name: Smoke-test the runner in the image
         if: matrix.arch == 'amd64'
         timeout-minutes: 8

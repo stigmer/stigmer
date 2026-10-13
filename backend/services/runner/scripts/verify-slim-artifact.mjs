@@ -82,9 +82,9 @@
  * the runner's agent user reads it with (a runner started as root through
  * the start script runs its agent host as that user, and a copy in a private
  * temporary directory is one it cannot read). Everything the checks write
- * goes to a scratch directory of their own, where a driver mounts the
- * sandbox's workspace; the Cursor SDK probe alone is written beside the
- * entry, inside a throwaway container.
+ * goes to a scratch directory of their own, standing in for the workspace
+ * and HOME a driver gives a sandbox; the Cursor SDK probe alone is written
+ * beside the entry, inside a throwaway container.
  * The script imports only Node built-ins and its siblings
  * verify-attach-boot.mjs and verify-agent-host-boot.mjs, so it runs from a
  * mounted checkout.
@@ -172,7 +172,7 @@ console.log(`[size]   OK: ${sizeMb.toFixed(1)} MB <= ${sizeBudgetMb} MB (sourcem
 // runDir holds the artifact the checks boot: an isolated copy, or with
 // --in-place the artifact itself. scratchDir takes what the runner writes
 // (its workspace and HOME): the copy itself, or with --in-place a directory
-// of its own, where a driver mounts the sandbox's workspace.
+// of its own, standing in for the workspace and HOME a driver gives a sandbox.
 const scratchDir = mkdtempSync(join(tmpdir(), "stigmer-slim-verify-"));
 const runDir = options["in-place"] ? artifactDir : scratchDir;
 if (runDir === scratchDir) cpSync(artifactDir, scratchDir, { recursive: true });
