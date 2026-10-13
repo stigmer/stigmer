@@ -21,12 +21,14 @@
  * Postgres comes from TEST_DATABASE_URL (unset: skipped by name outside a
  * test gate).
  */
+import { create } from "@bufbuild/protobuf";
 import { Code, createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
+import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
@@ -90,9 +92,13 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("an organization that requires 
     await createClient(IamPolicyCommandController, owner.transport).create(
       grant(ref("identity_account", rajEmail.accountId), "admin", ref("organization", acme)),
     );
-    const request = providerRequest(issuer, acme, OKTA, { displayName: "Acme Okta" });
-    const spec = { ...request.spec, isSsoProvider: true, oidcClientId: "acme-client", ssoRequired: true };
-    await createClient(IdentityProviderCommandController, owner.transport).create({ ...request, spec });
+    const request = create(IdentityProviderSchema, providerRequest(issuer, acme, OKTA, { displayName: "Acme Okta" }));
+    if (request.spec !== undefined) {
+      request.spec.isSsoProvider = true;
+      request.spec.oidcClientId = "acme-client";
+      request.spec.ssoRequired = true;
+    }
+    await createClient(IdentityProviderCommandController, owner.transport).create(request);
     rajOkta = transportTo(booted.port, federatedToken(issuer, OKTA, "okta|raj", "raj@acme.example"));
     rajOktaId = (await createClient(IdentityAccountQueryController, rajOkta).whoAmI({})).metadata?.id ?? "";
   }, 120_000);
