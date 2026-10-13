@@ -37,7 +37,7 @@ import { withTraceparent } from "../shared/trace-context.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import { Peer, type LineChannel } from "./channel.js";
 import { serveExec, serveFs } from "./fs-service.js";
-import { decodeTurnInput, encodeAdapterProjection, encodeCasSnapshot } from "./codec.js";
+import { decodeRunEvents, decodeTurnInput, encodeAdapterProjection, encodeCasSnapshot } from "./codec.js";
 import { HostTurn, type HostPeer } from "./host-sink.js";
 import {
   AGENT_HOST_PROTOCOL_VERSION,
@@ -128,6 +128,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
       verifyPlugin: async (slug) => {
         await peer.call("verifyPlugin", { turnId, slug });
       },
+      readRunEvents: async () => decodeRunEvents(await peer.call("readRunEvents", { turnId })),
     });
     const turn = new HostTurn(peer, turnId, input, args.status, args.timing);
     turns.set(turnId, turn);

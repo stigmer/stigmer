@@ -72,6 +72,7 @@ import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Config } from "../config.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
@@ -445,6 +446,14 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly standing: TurnStandingContext;
   /** Resolved once by the runtime before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;
+  /**
+   * Every event of this run in the session's log as it stands when called,
+   * oldest first: what an adapter reads to tell the turn's story so far (a
+   * replacement agent's recovery digest). Read on call, never cached, so an
+   * adapter that needs none costs no read; it throws when the log cannot be
+   * read.
+   */
+  readonly readRunEvents: () => Promise<readonly SessionEvent[]>;
   /**
    * A plugin-eval try's recorded conversation, which the native engine
    * resumes ahead of this turn's message on a thread that holds none

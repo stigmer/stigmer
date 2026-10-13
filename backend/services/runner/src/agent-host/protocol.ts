@@ -312,6 +312,8 @@ export interface RunnerCalls {
   };
   /** `MountedPlugin.verify` for one of the turn's plugins, by slug: the tree and its archive are the runner's. */
   readonly verifyPlugin: { readonly args: { readonly turnId: string; readonly slug: string }; readonly result: null };
+  /** `TurnInput.readRunEvents`: the turn's run's events, each a base64 `SessionEvent`; the log is the runner's to read. */
+  readonly readRunEvents: { readonly args: { readonly turnId: string }; readonly result: readonly string[] };
 }
 
 // ─── One-way notices ───────────────────────────────────────────────────────

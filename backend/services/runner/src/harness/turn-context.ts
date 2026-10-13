@@ -1863,6 +1863,7 @@ export async function resolveTurnContext(
       appendSystemPrompt: spec.appendSystemPrompt,
       standing: resolveStandingContext(deps, { execution, spec, blueprint }),
       artifactStorage: deps.artifactStorage,
+      readRunEvents: () => deps.client.listRunSessionEvents(sessionId, deps.input.executionId),
       ...(prepared?.case.history !== undefined && { resumedHistory: prepared.case.history }),
     },
   };

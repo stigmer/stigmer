@@ -81,6 +81,7 @@ import { ensureLoaded as ensurePricingLoaded, resolveModelId } from "./model-pri
 import {
   appendStructuredOutputDirective,
   buildPrompt,
+  isHitlReinvocation,
   primarySendCarriesImages,
   promptCarriesStandingContext,
   type BuildPromptInput,
@@ -92,10 +93,11 @@ import {
   createCloudAgent,
   resolveAgentWithTransportRecovery,
   type AgentResolution,
+  type AgentResolutionReason,
   type CreateAgentOptions,
   type CreateCloudAgentOptions,
 } from "./session-lifecycle.js";
-import { composeTurnRecoveryDigest } from "./turn-recovery.js";
+import { readTurnRecoveryDigest } from "./turn-recovery.js";
 import type { TurnStreamState } from "./turn-stream.js";
 import { buildCursorSubAgentDefinitions, subagentNamesInScope, subagentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
@@ -892,15 +894,22 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     ? await standing.selectRecalledMemories()
     : undefined;
 
+  // The turn's recorded transcript, read from the run's events in the
+  // session's log. Consumed only by the HITL-recovery shape (a HITL
+  // reinvocation on a fresh agent, `prompt-builder.ts` `promptShape`), so the
+  // log is read only for that shape.
+  const recoveryDigest = (reason: AgentResolutionReason): Promise<string | undefined> =>
+    isHitlReinvocation(approvalDecisions) && promptCarriesStandingContext(reason)
+      ? readTurnRecoveryDigest(input.readRunEvents, executionId)
+      : Promise.resolve(undefined);
+
   const prompt = buildPrompt({
     ...shared(),
     resolution: engine.resolution,
     recalledMemories,
-    // The turn's recorded transcript, seeded from the persisted execution on
-    // a reinvocation. Consumed only by the HITL-recovery shape — reached from
-    // HERE when the stored handle failed to resume at resolution time (issue
-    // #366 crossing 2).
-    turnRecoveryDigest: rows.isReinvocation ? composeTurnRecoveryDigest(sink.status.messages) : undefined,
+    // Reached from HERE when the stored handle failed to resume at
+    // resolution time (issue #366 crossing 2).
+    turnRecoveryDigest: rows.isReinvocation ? await recoveryDigest(engine.resolution.reason) : undefined,
   });
 
   // The structured output instruction is a per-turn directive, so like
@@ -950,9 +959,9 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
           // Lazily selected: the primary send may have been a resumed-agent
           // shape that carried no memories, but this fresh agent's prompt must.
           recalledMemories: await standing.selectRecalledMemories(),
-          // Composed fresh: the failed primary stream may have appended partial
-          // work onto the transcript, and the replacement agent should know it.
-          turnRecoveryDigest: composeTurnRecoveryDigest(sink.status.messages),
+          // Read fresh: the failed primary stream may have written partial
+          // work to the log, and the replacement agent should know it.
+          turnRecoveryDigest: await recoveryDigest(fresh.reason),
         }),
         structuredOutputSchema,
       ),

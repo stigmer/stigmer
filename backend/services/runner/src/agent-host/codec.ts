@@ -65,6 +65,7 @@ import { HookGroupSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/ho
 import { RunSchema, RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
@@ -101,6 +102,15 @@ export function encodeMessage<D extends DescMessage>(schema: D, message: Message
 
 export function decodeMessage<D extends DescMessage>(schema: D, base64: string): MessageShape<D> {
   return fromBinary(schema, Buffer.from(base64, "base64"));
+}
+
+/** A run's events as `readRunEvents` carries them across: each its own base64 `SessionEvent`. */
+export function encodeRunEvents(events: readonly SessionEvent[]): string[] {
+  return events.map((event) => encodeMessage(SessionEventSchema, event));
+}
+
+export function decodeRunEvents(wire: readonly string[]): SessionEvent[] {
+  return wire.map((event) => decodeMessage(SessionEventSchema, event));
 }
 
 // ─── The turn input ────────────────────────────────────────────────────────
@@ -342,6 +352,7 @@ export interface HostTurnServices {
   readonly selectRecalledMemories: () => Promise<RecalledMemoriesContent | undefined>;
   readonly artifactStorage: ArtifactStorage;
   readonly verifyPlugin: (slug: string) => Promise<void>;
+  readonly readRunEvents: () => Promise<readonly SessionEvent[]>;
 }
 
 export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices): TurnInput {
@@ -454,6 +465,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       selectRecalledMemories: services.selectRecalledMemories,
     },
     artifactStorage: wire.artifactStorage ? services.artifactStorage : undefined,
+    readRunEvents: services.readRunEvents,
     ...(wire.resumedHistory === null ? {} : { resumedHistory: wire.resumedHistory }),
   };
 }

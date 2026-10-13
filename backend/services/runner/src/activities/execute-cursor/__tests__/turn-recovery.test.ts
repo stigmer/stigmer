@@ -5,46 +5,61 @@
  * predecessor did, so these pins cover the three doctrine properties it
  * inherits from the rollover context bridge's composer — bounded lines, drop-oldest
  * budget enforcement with disclosure, never-throw — plus the rendering
- * contract per message/tool-call kind.
+ * contract per item of the run's folded events, and the read that fetches
+ * them only when asked and degrades when the log cannot be read.
  */
 
-import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  type AgentMessage,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { describe, it, expect, vi } from "vitest";
+import { create, type JsonObject } from "@bufbuild/protobuf";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import { composeTurnRecoveryDigest, formatTurnRecoveryText } from "../turn-recovery.js";
+import { composeTurnRecoveryDigest, formatTurnRecoveryText, readTurnRecoveryDigest } from "../turn-recovery.js";
 
-function aiMessage(content: string, toolCalls: ToolCall[] = []): AgentMessage {
-  return create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content, toolCalls });
+const RUN = "run_recovery";
+let seq = 0;
+
+type EventValue = NonNullable<Parameters<typeof create<typeof SessionEventSchema>>[1]>["event"];
+
+function ev(event: EventValue, runId = RUN): SessionEvent {
+  return create(SessionEventSchema, { runId, event });
 }
 
-type ToolCallFields = Partial<
-  Pick<ToolCall, "name" | "argsPreview" | "approvalMessage" | "status" | "error">
->;
-
-function toolCall(overrides: ToolCallFields): ToolCall {
-  return create(ToolCallSchema, {
-    id: "tc-1",
-    name: "Shell",
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
-    ...overrides,
-  });
+function message(text: string): SessionEvent {
+  const id = `${RUN}.root.m${seq++}`;
+  return ev({ case: "agentMessage", value: { id, content: [{ type: "text", text }] } });
 }
+
+function note(text: string): SessionEvent {
+  const id = `${RUN}.root.n${seq++}`;
+  return ev({ case: "stigmerHarnessNote", value: { id, text } });
+}
+
+/** A tool use, and what the log says about it after: an ask, an answer, a result. */
+function tool(
+  name: string,
+  input: JsonObject = {},
+  after: { ask?: { message?: string; argsPreview?: string }; answer?: "allow" | "deny"; result?: { text: string; isError: boolean } } = {},
+): SessionEvent[] {
+  const id = `${RUN}.call${seq++}`;
+  const events = [ev({ case: "agentToolUse", value: { id, name, input, evaluatedPermission: after.ask ? "ask" : "" } })];
+  if (after.ask) {
+    events.push(ev({ case: "stigmerPermissionAsked", value: { id: `${id}.ask`, toolUseId: id, message: after.ask.message ?? "", argsPreview: after.ask.argsPreview ?? "" } }));
+  }
+  if (after.answer) events.push(ev({ case: "userToolConfirmation", value: { id: `sevt_tc_${id}`, toolUseId: id, result: after.answer } }));
+  if (after.result) {
+    events.push(ev({ case: "agentToolResult", value: { id: `${id}.r`, toolUseId: id, content: [{ type: "text", text: after.result.text }], isError: after.result.isError } }));
+  }
+  return events;
+}
+
+const done = { result: { text: "ok", isError: false } };
 
 describe("composeTurnRecoveryDigest", () => {
-  it("renders assistant text and tool calls oldest-first", () => {
-    const digest = composeTurnRecoveryDigest([
-      aiMessage("Let me check the config first.", [
-        toolCall({ name: "Read", argsPreview: '{"path":"config.yaml"}' }),
-      ]),
-      aiMessage("The port is wrong — fixing it."),
-    ]);
+  it("renders the agent's messages and tool uses oldest-first", () => {
+    const digest = composeTurnRecoveryDigest(
+      [message("Let me check the config first."), ...tool("Read", { path: "config.yaml" }, done), message("The port is wrong — fixing it.")],
+      RUN,
+    );
     expect(digest).toBe(
       [
         "Assistant: Let me check the config first.",
@@ -54,30 +69,28 @@ describe("composeTurnRecoveryDigest", () => {
     );
   });
 
-  it("prefers the resolved approval message for a tool line — the same description the user approved against", () => {
-    const digest = composeTurnRecoveryDigest([
-      aiMessage("", [
-        toolCall({
-          approvalMessage: "Write file: gated.txt",
-          argsPreview: '{"path":"gated.txt","content":"..."}',
-          status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-        }),
-      ]),
-    ]);
-    expect(digest).toBe("Tool: Write file: gated.txt — paused for user approval");
+  it("prefers the ask's message for a tool line — the same description the user approved against — then its preview", () => {
+    const digest = composeTurnRecoveryDigest(
+      [
+        ...tool("Write", { path: "gated.txt", content: "..." }, { ask: { message: "Write file: gated.txt" }, answer: "allow" }),
+        ...tool("Shell", { command: "make" }, { ask: { argsPreview: '{"command":"make"}' } }),
+      ],
+      RUN,
+    );
+    expect(digest).toBe(["Tool: Write file: gated.txt — paused for user approval", 'Tool: Shell({"command":"make"}) — paused for user approval'].join("\n"));
   });
 
-  it("maps each terminal status honestly and treats in-flight calls as interrupted", () => {
-    const digest = composeTurnRecoveryDigest([
-      aiMessage("", [
-        toolCall({ name: "A", status: ToolCallStatus.TOOL_CALL_COMPLETED }),
-        toolCall({ name: "B", status: ToolCallStatus.TOOL_CALL_FAILED, error: "exit 1" }),
-        toolCall({ name: "C", status: ToolCallStatus.TOOL_CALL_FAILED }),
-        toolCall({ name: "D", status: ToolCallStatus.TOOL_CALL_SKIPPED }),
-        toolCall({ name: "E", status: ToolCallStatus.TOOL_CALL_RUNNING }),
-        toolCall({ name: "F", status: ToolCallStatus.TOOL_CALL_PENDING }),
-      ]),
-    ]);
+  it("maps each outcome honestly and treats in-flight calls as interrupted", () => {
+    const digest = composeTurnRecoveryDigest(
+      [
+        ...tool("A", {}, done),
+        ...tool("B", {}, { result: { text: "exit 1", isError: true } }),
+        ...tool("C", {}, { result: { text: "", isError: true } }),
+        ...tool("D", {}, { ask: { message: "" }, answer: "deny" }),
+        ...tool("E"),
+      ],
+      RUN,
+    );
     expect(digest).toBe(
       [
         "Tool: A — completed",
@@ -85,42 +98,43 @@ describe("composeTurnRecoveryDigest", () => {
         "Tool: C — failed",
         "Tool: D — skipped",
         "Tool: E — interrupted before it finished",
-        "Tool: F — interrupted before it finished",
       ].join("\n"),
     );
   });
 
-  it("keeps system notices but skips human messages (already in <user_request>), thinking, and blanks", () => {
-    const digest = composeTurnRecoveryDigest([
-      create(AgentMessageSchema, { type: MessageType.MESSAGE_HUMAN, content: "Fix the build" }),
-      create(AgentMessageSchema, { type: MessageType.MESSAGE_SYSTEM, content: "Budget warning: 80% used" }),
-      create(AgentMessageSchema, { type: MessageType.MESSAGE_THINKING, content: "hmm, maybe the lockfile" }),
-      aiMessage("   "),
-    ]);
+  it("keeps the platform's notes but skips the person's message (already in <user_request>), thinking, blanks and other runs", () => {
+    const thinkingId = `${RUN}.root.t${seq++}`;
+    const digest = composeTurnRecoveryDigest(
+      [
+        ev({ case: "userMessage", value: { id: "sevt_user", content: [{ type: "text", text: "Fix the build" }] } }),
+        note("Budget warning: 80% used"),
+        ev({ case: "agentThinking", value: { id: thinkingId } }),
+        ev({ case: "stigmerAgentThinking", value: { id: `${thinkingId}.text`, thinkingId, text: "hmm, maybe the lockfile" } }),
+        message("   "),
+        ev({ case: "agentMessage", value: { id: "run_other.root.m0", content: [{ type: "text", text: "another turn" }] } }, "run_other"),
+      ],
+      RUN,
+    );
     expect(digest).toBe("System: Budget warning: 80% used");
   });
 
   it("returns undefined when nothing renders", () => {
-    expect(composeTurnRecoveryDigest([])).toBeUndefined();
+    expect(composeTurnRecoveryDigest([], RUN)).toBeUndefined();
     expect(
-      composeTurnRecoveryDigest([
-        create(AgentMessageSchema, { type: MessageType.MESSAGE_HUMAN, content: "only the request" }),
-      ]),
+      composeTurnRecoveryDigest([ev({ case: "userMessage", value: { id: "sevt_only", content: [{ type: "text", text: "only the request" }] } })], RUN),
     ).toBeUndefined();
   });
 
   it("truncates a long assistant line at the per-line budget with an ellipsis", () => {
-    const digest = composeTurnRecoveryDigest([aiMessage("x".repeat(1000))]);
+    const digest = composeTurnRecoveryDigest([message("x".repeat(1000))], RUN);
     expect(digest).toBe(`Assistant: ${"x".repeat(400)}\u2026`);
   });
 
   it("drops the OLDEST lines when over the whole-digest budget and discloses the omission", () => {
     // 30 lines of ~311 chars each (~9.6k total) against the 4000-char budget:
     // the newest lines must survive, the oldest go, and the notice leads.
-    const messages = Array.from({ length: 30 }, (_, i) =>
-      aiMessage(`step ${String(i).padStart(2, "0")} ${"y".repeat(300)}`),
-    );
-    const digest = composeTurnRecoveryDigest(messages);
+    const events = Array.from({ length: 30 }, (_, i) => message(`step ${String(i).padStart(2, "0")} ${"y".repeat(300)}`));
+    const digest = composeTurnRecoveryDigest(events, RUN);
     expect(digest).toBeDefined();
     expect(digest!.length).toBeLessThanOrEqual(4000);
     const lines = digest!.split("\n");
@@ -130,15 +144,27 @@ describe("composeTurnRecoveryDigest", () => {
     expect(digest).not.toContain("step 00");
   });
 
-  it("never throws — a malformed message degrades to no digest, not a failed recovery", () => {
-    // Force the internal iteration to blow up: content getter that throws.
-    const poison = new Proxy(aiMessage("ok"), {
+  it("never throws — a malformed event degrades to no digest, not a failed recovery", () => {
+    // Force the fold to blow up: an event whose case getter throws.
+    const poison = new Proxy(message("ok"), {
       get(target, prop, receiver) {
-        if (prop === "content") throw new Error("corrupt row");
+        if (prop === "event") throw new Error("corrupt event");
         return Reflect.get(target, prop, receiver);
       },
     });
-    expect(composeTurnRecoveryDigest([poison as AgentMessage])).toBeUndefined();
+    expect(composeTurnRecoveryDigest([poison], RUN)).toBeUndefined();
+  });
+});
+
+describe("readTurnRecoveryDigest", () => {
+  it("reads the run's events once and composes them", async () => {
+    const read = vi.fn(async () => [message("Read it.")]);
+    expect(await readTurnRecoveryDigest(read, RUN)).toBe("Assistant: Read it.");
+    expect(read).toHaveBeenCalledOnce();
+  });
+
+  it("degrades to no digest when the log cannot be read", async () => {
+    expect(await readTurnRecoveryDigest(async () => Promise.reject(new Error("log unreachable")), RUN)).toBeUndefined();
   });
 });
 
