@@ -19,11 +19,6 @@
  *     audience claims none;
  *   - a provider's routes are a set: one naming an issuer twice claims its
  *     route once, and is admitted on insert and on swap;
- *   - an organization holds one live SSO provider: a second is `sso-taken`
- *     on insert and on a swap that makes a provider SSO, the refused
- *     write leaving nothing behind, while another organization's, a
- *     rewrite of the SSO provider itself, and one beside a provider being
- *     deleted are admitted;
  *   - a swap of a row that is gone is `changed`, and writes nothing;
  *   - the guarded write (`@stigmer/server`'s guarded-port kit): a swap on
  *     the bytes readForWrite answered is `replaced`, and is `changed` after
@@ -31,11 +26,11 @@
  *     row deleted since, or on bytes a landed swap replaced;
  *   - modifyById changes the payload and the slug together, so the old
  *     slug is free in the table and the new one taken, keeps the routes,
- *     refuses a change of the SSO flag or a route as a programming error,
+ *     refuses a change of a route as a programming error,
  *     and answers undefined for an unknown id, writing nothing;
  *   - a delete frees the provider's routes, and an unknown id resolves;
  *   - a provider marked as being deleted leaves the routing read
- *     (`findLive`) and the SSO read and is not live, while every other
+ *     (`findLive`) and is not live, while every other
  *     read still answers it and its routes stay claimed until its row
  *     goes; a mark is idempotent, and marking an unknown id writes nothing;
  *   - an outage is a fault, never "no provider": a route read that answered
@@ -75,9 +70,7 @@ function provider(fields: {
   issuers: ReadonlyArray<string>;
   audience?: string;
   displayName?: string;
-  sso?: boolean;
 }): IdentityProvider {
-  const sso = fields.sso === true;
   return create(IdentityProviderSchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityProvider",
@@ -87,8 +80,6 @@ function provider(fields: {
       displayName: fields.displayName ?? fields.slug,
       allowedIssuers: [...fields.issuers],
       expectedAudience: fields.audience ?? AUDIENCE,
-      isSsoProvider: sso,
-      oidcClientId: sso ? `client-${fields.slug}` : "",
     },
   });
 }
@@ -262,72 +253,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
     },
   ],
   [
-    "a second live SSO provider in an organization is sso-taken on insert and writes nothing, while another organization's is admitted",
-    async ({ store }) => {
-      assert.deepEqual(
-        await store.insert(provider({ id: "idp_c21", org: "acme", slug: "first-sso", issuers: ["https://first-sso.contract.test"], sso: true })),
-        { kind: "inserted" },
-      );
-      assert.deepEqual(
-        await store.insert(provider({ id: "idp_c22", org: "acme", slug: "second-sso", issuers: ["https://second-sso.contract.test"], sso: true })),
-        { kind: "sso-taken" },
-      );
-      assert.equal(await store.findById("idp_c22"), undefined, "a refused insert writes nothing");
-      assert.equal(
-        await store.findProviderIdByRoute("https://second-sso.contract.test", AUDIENCE),
-        undefined,
-        "and claims no route",
-      );
-      assert.equal((await store.findSsoProviderByOrg("acme"))?.metadata?.id, "idp_c21");
-      assert.deepEqual(
-        await store.insert(provider({ id: "idp_c23", org: "beta", slug: "beta-sso", issuers: ["https://beta-sso.contract.test"], sso: true })),
-        { kind: "inserted" },
-        "another organization holds its own",
-      );
-      assert.deepEqual(
-        await store.insert(provider({ id: "idp_c24", org: "acme", slug: "plain", issuers: ["https://plain.contract.test"] })),
-        { kind: "inserted" },
-        "a provider that is not SSO is never refused for it",
-      );
-    },
-  ],
-  [
-    "a swap that makes a provider SSO beside a live SSO provider is sso-taken and writes nothing; the SSO provider's own rewrite is admitted",
-    async ({ store }) => {
-      await store.insert(provider({ id: "idp_c25", org: "acme", slug: "the-sso", issuers: ["https://the-sso.contract.test"], sso: true }));
-      await store.insert(provider({ id: "idp_c26", org: "acme", slug: "plain", issuers: ["https://plain-before.contract.test"] }));
-      assert.deepEqual(
-        await swapOnCurrent(store, 
-          provider({ id: "idp_c26", org: "acme", slug: "plain", issuers: ["https://plain-after.contract.test"], sso: true }),
-        ),
-        { kind: "sso-taken" },
-      );
-      const kept = await store.findById("idp_c26");
-      assert.equal(kept?.spec?.isSsoProvider, false, "a refused swap writes nothing");
-      assert.equal(await store.findProviderIdByRoute("https://plain-before.contract.test", AUDIENCE), "idp_c26");
-      assert.equal(await store.findProviderIdByRoute("https://plain-after.contract.test", AUDIENCE), undefined);
-      assert.deepEqual(
-        await swapOnCurrent(store, 
-          provider({ id: "idp_c25", org: "acme", slug: "the-sso", issuers: ["https://the-sso.contract.test"], sso: true, displayName: "renamed" }),
-        ),
-        { kind: "replaced" },
-      );
-      assert.equal((await store.findById("idp_c25"))?.spec?.displayName, "renamed");
-    },
-  ],
-  [
-    "an SSO provider being deleted leaves its organization's SSO place free for a new one",
-    async ({ store }) => {
-      await store.insert(provider({ id: "idp_c27", org: "acme", slug: "old-sso", issuers: ["https://old-sso.contract.test"], sso: true }));
-      await store.markDeleting("idp_c27");
-      assert.deepEqual(
-        await store.insert(provider({ id: "idp_c28", org: "acme", slug: "new-sso", issuers: ["https://new-sso.contract.test"], sso: true })),
-        { kind: "inserted" },
-      );
-      assert.equal((await store.findSsoProviderByOrg("acme"))?.metadata?.id, "idp_c28");
-    },
-  ],
-  [
     "a swap of a row that is gone is changed, and writes nothing",
     async ({ store }) => {
       assert.deepEqual(
@@ -354,24 +279,17 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
     },
   ],
   [
-    "a provider being deleted leaves the routing and SSO reads and is not live, while every other read still answers it and its routes stay claimed",
+    "a provider being deleted leaves the routing read and is not live, while every other read still answers it and its routes stay claimed",
     async ({ store }) => {
-      const sso = provider({ id: "idp_c18", org: "acme", slug: "leaving", issuers: ["https://leaving.contract.test"] });
-      if (sso.spec !== undefined) {
-        sso.spec.isSsoProvider = true;
-        sso.spec.oidcClientId = "client-leaving";
-      }
-      await store.insert(sso);
+      await store.insert(provider({ id: "idp_c18", org: "acme", slug: "leaving", issuers: ["https://leaving.contract.test"] }));
       await store.insert(provider({ id: "idp_c19", org: "acme", slug: "staying", issuers: ["https://staying.contract.test"] }));
       assert.equal(await store.isLive("idp_c18"), true);
-      assert.equal((await store.findSsoProviderByOrg("acme"))?.metadata?.id, "idp_c18");
 
       await store.markDeleting("idp_c18");
 
       assert.equal(await store.isLive("idp_c18"), false);
       assert.equal(await store.isLive("idp_c19"), true, "the mark is the one provider's");
       assert.deepEqual((await store.findLive()).map((live) => live.metadata?.id), ["idp_c19"]);
-      assert.equal(await store.findSsoProviderByOrg("acme"), undefined, "a provider being deleted answers no SSO discovery");
       assert.deepEqual(
         (await store.findAll()).map((held) => held.metadata?.id).sort(),
         ["idp_c18", "idp_c19"],

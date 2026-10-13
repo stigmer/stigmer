@@ -1,6 +1,6 @@
 # @stigmer/enterprise
 
-Stigmer Enterprise: the Stigmer server with single sign-on through an organization's own identity provider, many organizations, teams and invitations, turned on by a license key.
+Stigmer Enterprise: the Stigmer server with many organizations, federation with the platforms whose tokens it trusts, teams and invitations, turned on by a license key.
 
 This package is the Enterprise half of one server. It runs on `@stigmer/server`, the open-source control plane, and adds to it through the library's own extension points; it changes none of the library's behaviour. Its source is published under the Stigmer Enterprise License (see `LICENSE` in this folder), not under the Apache License that covers the rest of this repository.
 

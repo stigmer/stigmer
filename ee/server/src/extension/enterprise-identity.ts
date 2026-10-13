@@ -1,5 +1,5 @@
 /**
- * The enterprise-identity extension unit: identity providers and SSO
+ * The enterprise-identity extension unit: identity providers and
  * federation, invitations and teams, the identity code an organization
  * brings to Stigmer and the code Stigmer Enterprise ships. It fills:
  *
@@ -309,9 +309,9 @@ export function newEnterpriseIdentityExtension(
   const userInfo = newUserInfoClient(ports.outboundFetch);
 
   // One organization read for the invitation lane, the verifier's index,
-  // SSO discovery, the boot repair and the refusals that name an
-  // organization: the lane's redemption check and preview, the orphan rule
-  // the index and discovery ask, the repair's creation times, and the slug
+  // the boot repair and the refusals that name an organization: the lane's
+  // redemption check and preview, the orphan rule the index asks, the
+  // repair's creation times, and the slug
   // the grant gate's and the provider delete's copy name it by.
   const organizations = newInProcessOrganizationLookup(transportRef);
 

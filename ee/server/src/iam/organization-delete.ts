@@ -33,8 +33,8 @@
  * providers, whose removal ends every sign-in that could write one. It
  * declares the three kinds, so the library's boot check knows who removes
  * them. Until the purge has run, nothing trusts such a row either: the
- * federated verifier and SSO discovery refuse a provider whose
- * organization is gone or younger than it, and redemption refuses such an
+ * federated verifier refuses a provider whose organization is gone or
+ * younger than it, and redemption refuses such an
  * invitation (organization-links.ts `orphanReason`).
  */
 import type { DescMessage } from "@bufbuild/protobuf";

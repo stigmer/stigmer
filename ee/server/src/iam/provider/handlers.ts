@@ -1,7 +1,7 @@
 /**
  * The IdentityProvider RPCs as extension services: the command side's
- * create, update, apply and delete, the query side's get, getByReference,
- * listByOrg and getSsoProvider. IdentityProvider is an enterprise-tier
+ * create, update, apply and delete, the query side's get, getByReference
+ * and listByOrg. IdentityProvider is an enterprise-tier
  * kind open source registers no service for, so these are its only
  * handlers; every one runs the composition's unary chain (Authorize from
  * the proto annotation, then ValidateProto, then the lane's steps and its
@@ -48,11 +48,6 @@
  *                   configuration is what a caller must be allowed to see
  *   listByOrg       the organization's rows, narrowed by the list read
  *                   scope to what the caller could `get`
- *   getSsoProvider  public (the login page asks before anyone signs in);
- *                   the projection carries only what sign-in needs, and a
- *                   provider whose organization is gone or younger than it
- *                   answers as no provider (organization-links.ts
- *                   `orphanReason`): the slug may now be someone else's
  *   rename          the library's rename chain over this table
  *                   (`renameResource`): RefuseServiceAccountCaller,
  *                   LoadForRename, RefuseBeingDeleted, ValidateNewSlug,
@@ -74,7 +69,6 @@
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
 import type { ServiceImpl } from "@connectrpc/connect";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 
@@ -82,10 +76,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import {
-  IdentityProvidersSchema,
-  SsoProviderInfoSchema,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import { IdentityProvidersSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
@@ -121,7 +112,6 @@ import {
 } from "@stigmer/server";
 
 import { runUnaryChain } from "../../rpc/unary-chain.js";
-import { orphanReason } from "../organization-links.js";
 import { deniedCopyOf } from "../reference-miss.js";
 import type { OrganizationLookup } from "../organization-links.js";
 import type { ProviderRemoval } from "./removal.js";
@@ -141,7 +131,7 @@ import {
 } from "./steps.js";
 import { newGrowthGateStep, type GrowthGate } from "../growth-gate.js";
 import type { IdentityProviderStore } from "./store.js";
-import { normalizeIssuers, routeTakenError, ssoTakenError, validateProvider } from "./validation.js";
+import { normalizeIssuers, routeTakenError, validateProvider } from "./validation.js";
 
 export interface IdentityProviderLaneDeps {
   readonly authorizer: Authorizer;
@@ -160,10 +150,7 @@ export interface IdentityProviderLaneDeps {
   readonly listReadScope: ListReadScope;
   /** The federated verifier's issuer-cache invalidation, after every row write. */
   readonly invalidate: () => void;
-  /**
-   * The organization SSO discovery checks its provider still belongs to,
-   * and the slug the delete's refusal names the provider's organization by.
-   */
+  /** The slug the delete's refusal names the provider's organization by. */
   readonly organizations: OrganizationLookup;
   /**
    * The identity-account port: whether the caller is an organization's
@@ -183,9 +170,6 @@ const KIND = ApiResourceKind.identity_provider;
 
 /** Apply's first refusal is create's own copy (the header's apply line says why). */
 const APPLY_DENIED = deniedCopyOf(IdentityProviderCommandController.method.create);
-
-/** The pre-sign-in discovery's refusal when the organization has no SSO provider; it names no organization. */
-export const NO_SSO_PROVIDER_MESSAGE = "This organization does not have an SSO provider configured";
 
 /** The growth gate's step, last in create and update, when the host fills the port. */
 function growthGateOf(
@@ -373,38 +357,6 @@ export function providerQueries(deps: IdentityProviderLaneDeps): Queries {
           return create(IdentityProvidersSchema, { entries: visible });
         },
       ),
-    getSsoProvider: (input, ctx) =>
-      runUnaryChain(
-        { chain: "identity-provider-get-sso-provider", step: "GetSsoProvider" },
-        method.getSsoProvider,
-        input,
-        ctx,
-        deps,
-        async (reqCtx) => {
-          const org = reqCtx.input.org;
-          const found = await deps.store.findSsoProviderByOrg(org);
-          const provider =
-            found === undefined || orphanReason(found, await deps.organizations.find(org)) !== undefined
-              ? undefined
-              : found;
-          if (provider === undefined) {
-            // Asked before sign-in, by anyone: the copy names no
-            // organization, so it reads the same for a name nobody holds
-            // and for one that resolved to an organization's id, and never
-            // tells the caller which names exist.
-            throw new ConnectError(
-              NO_SSO_PROVIDER_MESSAGE,
-              Code.NotFound,
-            );
-          }
-          return create(SsoProviderInfoSchema, {
-            displayName: provider.spec?.displayName ?? "",
-            oidcClientId: provider.spec?.oidcClientId ?? "",
-            issuer: provider.spec?.allowedIssuers[0] ?? "",
-            expectedAudience: provider.spec?.expectedAudience ?? "",
-          });
-        },
-      ),
   };
 }
 
@@ -444,8 +396,6 @@ async function insertProvider(
       );
       throw duplicateProviderError(winner ?? provider);
     }
-    case "sso-taken":
-      throw ssoTakenError(provider.metadata?.org ?? "");
     case "route-taken":
       throw routeTakenError(outcome.route);
     default: {
@@ -486,8 +436,6 @@ async function updateProvider(
   switch (outcome.kind) {
     case "replaced":
       break;
-    case "sso-taken":
-      throw ssoTakenError(provider.metadata?.org ?? "");
     case "route-taken":
       throw routeTakenError(outcome.route);
     case "changed":

@@ -23,7 +23,6 @@ In short:
 | IdentityProviderQueryController.get | config: can_view on identity_provider (field value), error_msg yes | chain-with-Authorize |
 | IdentityProviderQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: newLoadProviderByReferenceStep, then guard: AuthorizeResolvedTarget — the loaded row is authorized as `get`; a missing slug or id is NOT_FOUND only to a caller who holds `can_create_idp` on the organization, and `get`'s denial to anyone else) |
 | IdentityProviderQueryController.listByOrg | config: can_view on organization (field org), error_msg yes | chain-with-Authorize |
-| IdentityProviderQueryController.getSsoProvider | is_public | chain-with-Authorize (by design: the login page's SSO discovery, asked before anyone signs in; it answers only what sign-in needs and never reads the caller; deleting: inert, the delete's pre-delete slot removes every identity provider of the organization before it answers, and the purge any written after) |
 
 ## Invitation
 

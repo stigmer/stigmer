@@ -33,23 +33,17 @@
  *     the update door, never the id the request carried;
  *   - delete goes through the removal; a child organization depends on no
  *     provider, so nothing refuses it;
- *   - an external id claim is refused on an SSO provider and on a provider
- *     of a child organization, and accepted on a parent's;
+ *   - an external id claim is refused on a provider of a child
+ *     organization, and accepted on a parent's;
  *   - getByReference authorizes a found row exactly as `get`, with `get`'s
  *     copy, and answers a missing slug NOT_FOUND only to the
  *     organization's admins, and `get`'s denial to anyone else, a viewer of
  *     the organization included;
  *   - listByOrg offers the organization's rows, newest first, to the list
  *     read scope and answers only what it allows;
- *   - getSsoProvider asks nobody and projects the expected audience, and a
- *     provider whose organization is gone or younger than it, or whose
- *     delete has begun, answers as no provider;
  *   - a provider whose delete did not finish refuses an update and an
  *     apply, FAILED_PRECONDITION, with copy that says to delete it again,
- *     after the caller's authorization and with nothing written; it no
- *     longer counts as its organization's SSO provider, so a replacement
- *     is admitted at once, while a live one still refuses a second (its
- *     mark is never lifted, so only one SSO provider is ever live);
+ *     after the caller's authorization and with nothing written;
  *   - the save-time URL rules: a provider whose issuer
  *     publishes a discovery document naming its JWKS, which serves keys,
  *     is accepted; an issuer at a loopback, link-local, private or mixed
@@ -68,9 +62,7 @@
  *   - the sign-in fields on save: an owner sign-in role is refused by the
  *     contract's rule on create, update and both apply doors with nothing
  *     written and nothing dialed, while admin, member and viewer are
- *     accepted; an SSO provider must create accounts with a role, and may
- *     not carry a tenant claim; a tenant claim that grants nothing is
- *     accepted;
+ *     accepted; a tenant claim that grants nothing is accepted;
  *   - rename asks can_delete on the provider, keeps its id and its routes,
  *     tells the verifier, leaves the old slug leading to it and refused to
  *     a create with SLUG_RESERVED and to an apply without the id with
@@ -113,7 +105,7 @@ import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 import { IamPermission, IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
-import { NO_SSO_PROVIDER_MESSAGE, newIdentityProviderRegistrations, type IdentityProviderLaneDeps } from "../handlers.js";
+import { newIdentityProviderRegistrations, type IdentityProviderLaneDeps } from "../handlers.js";
 import type { ProviderInsertOutcome, ProviderSwapOutcome } from "../store.js";
 import { newLoadProviderByReferenceStep, PROVIDER_BEING_DELETED_MESSAGE } from "../steps.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -134,8 +126,6 @@ const ROUTE_TAKEN =
   `Issuer 'https://idp.acme.test' with audience '${AUDIENCE}' is already registered by another ` +
   "identity provider. Register an audience of your organization's own for Stigmer at this " +
   "issuer, such as an API identifier or a client ID, and use it here.";
-const SSO_TAKEN =
-  "Organization 'acme' already has an SSO identity provider. Only one SSO provider per organization is allowed.";
 
 /** create's own question on the request's organization, which apply and a missing reference ask too. */
 const CREATE_IDP_ON_ACME: AuthzCheck = {
@@ -242,8 +232,6 @@ function rig(
     reservedIssuers?: ReadonlyArray<string>;
     /** The caller's account is an organization's service account. */
     callerIsServiceAccount?: boolean;
-    /** The organizations SSO discovery finds, by id, with their creation times; absent, every organization exists since before any provider. */
-    organizations?: ReadonlyMap<string, Date>;
     /** Each organization's parent, by id; absent from it, an organization has none. */
     parents?: ReadonlyMap<string, string>;
     /** Each organization's slug, by id; absent from it, an organization's slug is its id. */
@@ -316,19 +304,14 @@ function rig(
       invalidated.count += 1;
     },
     organizations: {
-      find: (org) => {
-        const known = options.organizations;
-        if (known !== undefined && !known.has(org)) {
-          return Promise.resolve(undefined);
-        }
-        return Promise.resolve({
-          createdAt: known?.get(org) ?? new Date("2026-09-01T00:00:00Z"),
+      find: (org) =>
+        Promise.resolve({
+          createdAt: new Date("2026-09-01T00:00:00Z"),
           name: org,
           slug: options.slugs?.get(org) ?? org,
           logoUrl: "",
           parentOrg: options.parents?.get(org) ?? "",
-        });
-      },
+        }),
     },
   };
   const transport = createRouterTransport(
@@ -485,22 +468,6 @@ describe("create", () => {
     expect(r.invalidations).toBe(0);
   });
 
-  it("answers the one-SSO copy when a racing create took the organization's SSO place first", async () => {
-    class RacingStore extends InMemoryProviderStore {
-      override async insert(row: IdentityProvider): Promise<ProviderInsertOutcome> {
-        await super.insert(storedProvider({ id: "idp_winner", org: "acme", slug: "winner", isSso: true, issuers: [] }));
-        return super.insert(row);
-      }
-    }
-    const r = rig({ store: new RacingStore() });
-
-    const refused = await failure(r.commands.create(ssoWith({ createAccountsOnSignIn: true, signInRole: IamRole.member })));
-    expect(refused.code).toBe(Code.AlreadyExists);
-    expect(refused.rawMessage).toBe(SSO_TAKEN);
-    expect(r.created).toEqual([]);
-    expect(r.invalidations).toBe(0);
-  });
-
   it("answers the route copy when a racing create claimed the route first", async () => {
     class RacingStore extends InMemoryProviderStore {
       override async insert(row: IdentityProvider): Promise<ProviderInsertOutcome> {
@@ -653,28 +620,6 @@ describe("update", () => {
     const missing = await failure(r.commands.update(provider({}, { id: "idp_a" })));
     expect(missing.code).toBe(Code.NotFound);
     expect(missing.rawMessage).toBe("IdentityProvider not found: idp_a");
-    expect(r.invalidations).toBe(0);
-  });
-
-  it("answers the one-SSO copy when a racing write took the organization's SSO place between the check and the write", async () => {
-    class RacingStore extends InMemoryProviderStore {
-      override async swap(id: string, expectedBytes: Uint8Array, row: IdentityProvider): Promise<ProviderSwapOutcome> {
-        await super.insert(storedProvider({ id: "idp_winner", org: "acme", slug: "winner", isSso: true, issuers: [] }));
-        return super.swap(id, expectedBytes, row);
-      }
-    }
-    const store = new RacingStore();
-    await store.insert(storedProvider({ id: "idp_a", org: "acme", slug: "a" }));
-    const r = rig({ store });
-
-    const sso = ssoWith({ createAccountsOnSignIn: true, signInRole: IamRole.member });
-    if (sso.metadata !== undefined) {
-      sso.metadata.id = "idp_a";
-    }
-    const refused = await failure(r.commands.update(sso));
-    expect(refused.code).toBe(Code.AlreadyExists);
-    expect(refused.rawMessage).toBe(SSO_TAKEN);
-    expect((await store.findById("idp_a"))?.spec?.isSsoProvider).toBe(false);
     expect(r.invalidations).toBe(0);
   });
 
@@ -983,56 +928,6 @@ describe("reads", () => {
     ]);
   });
 
-  it("getSsoProvider asks nobody and projects what sign-in needs, the expected audience included", async () => {
-    const r = rig({ decide: () => "deny" });
-    await r.store.insert(
-      storedProvider({
-        id: "idp_sso",
-        org: "acme",
-        slug: "sso",
-        isSso: true,
-        issuers: ["https://sso.acme.test"],
-        expectedAudience: "https://api.acme.test",
-      }),
-    );
-
-    const info = await r.queries.getSsoProvider({ org: "acme" });
-    expect(info.displayName).toBe("sso");
-    expect(info.oidcClientId).toBe("client-sso");
-    expect(info.issuer).toBe("https://sso.acme.test");
-    expect(info.expectedAudience).toBe("https://api.acme.test");
-    expect(r.checks).toEqual([]);
-
-    const none = await failure(r.queries.getSsoProvider({ org: "other" }));
-    expect(none.code).toBe(Code.NotFound);
-    expect(none.rawMessage).toBe(NO_SSO_PROVIDER_MESSAGE);
-  });
-
-  it("getSsoProvider answers as no provider for one its organization's delete left behind", async () => {
-    const r = rig({
-      // `reborn` was created after its stored provider: the slug was freed
-      // and taken again. `gone` holds no organization at all.
-      organizations: new Map([["reborn", new Date("2026-09-26T00:00:00Z")]]),
-    });
-    await r.store.insert(storedProvider({ id: "idp_reborn", org: "reborn", slug: "sso", isSso: true }));
-    await r.store.insert(storedProvider({ id: "idp_gone", org: "gone", slug: "sso", isSso: true }));
-
-    for (const org of ["reborn", "gone"]) {
-      const none = await failure(r.queries.getSsoProvider({ org }));
-      expect(none.code).toBe(Code.NotFound);
-      expect(none.rawMessage, "the same words whatever the organization, or none").toBe(NO_SSO_PROVIDER_MESSAGE);
-    }
-  });
-
-  it("getSsoProvider answers as no provider for one whose delete has begun", async () => {
-    const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_leaving", org: "acme", slug: "sso", isSso: true }));
-    await r.store.markDeleting("idp_leaving");
-
-    const none = await failure(r.queries.getSsoProvider({ org: "acme" }));
-    expect(none.code).toBe(Code.NotFound);
-    expect(none.rawMessage).toBe(NO_SSO_PROVIDER_MESSAGE);
-  });
 });
 
 describe("a provider whose delete did not finish", () => {
@@ -1087,19 +982,6 @@ describe("a provider whose delete did not finish", () => {
     expect(refused.code).toBe(Code.NotFound);
   });
 
-  it("admits a replacement SSO provider while the old one's delete is unfinished, and refuses a second beside a live one", async () => {
-    const r = rig();
-    await r.store.insert(storedProvider({ id: "idp_old_sso", org: "acme", slug: "old-sso", isSso: true }));
-    const replacement = ssoWith({ createAccountsOnSignIn: true, signInRole: IamRole.viewer });
-
-    const refused = await failure(r.commands.create(replacement));
-    expect(refused.code, "beside a live SSO provider, a second is refused").toBe(Code.AlreadyExists);
-
-    await r.store.markDeleting("idp_old_sso");
-    const created = await r.commands.create(replacement);
-    expect(created.spec?.isSsoProvider).toBe(true);
-    expect((await r.store.findSsoProviderByOrg("acme"))?.metadata?.id).toBe(created.metadata?.id);
-  });
 });
 
 describe("the issuer's endpoints on save, through the egress guard", () => {
@@ -1307,11 +1189,6 @@ const OWNER_SIGN_IN_ROLE_REFUSED =
   "spec: sign_in_role cannot be owner; organization ownership must be assigned explicitly " +
   "[identity_provider.sign_in_role_not_owner]";
 
-/** The contract's refusal of an SSO provider without both sign-in settings. */
-const SSO_WITHOUT_SIGN_IN_SETTINGS =
-  "spec: an SSO provider must set create_accounts_on_sign_in and a sign_in_role " +
-  "[identity_provider.sso_creates_accounts_with_a_role]";
-
 /** The sign-in fields a request may carry, set on a provider the builder made. */
 function withSignIn(
   message: IdentityProvider,
@@ -1331,16 +1208,6 @@ function withSignIn(
   return message;
 }
 
-/** An SSO provider the builder made, with the given sign-in fields. */
-function ssoWith(signIn: Parameters<typeof withSignIn>[1]): IdentityProvider {
-  const sso = withSignIn(provider({}), signIn);
-  if (sso.spec !== undefined) {
-    sso.spec.isSsoProvider = true;
-    sso.spec.oidcClientId = "client";
-  }
-  return sso;
-}
-
 describe("the sign-in fields on save", () => {
   const OWNER_GRANT = {
     createAccountsOnSignIn: true,
@@ -1349,23 +1216,6 @@ describe("the sign-in fields on save", () => {
 
   it.each([
     ["an owner sign-in role", withSignIn(provider({}), OWNER_GRANT), OWNER_SIGN_IN_ROLE_REFUSED],
-    [
-      "an SSO provider that creates no accounts",
-      ssoWith({ signInRole: IamRole.viewer }),
-      SSO_WITHOUT_SIGN_IN_SETTINGS,
-    ],
-    [
-      "an SSO provider with no sign-in role",
-      ssoWith({ createAccountsOnSignIn: true }),
-      SSO_WITHOUT_SIGN_IN_SETTINGS,
-    ],
-    [
-      "an external id claim on an SSO provider",
-      ssoWith({ createAccountsOnSignIn: true, signInRole: IamRole.viewer, externalIdClaim: "org_id" }),
-      "external_id_claim cannot be set when is_sso_provider is true: the claim routes a " +
-        "sign-in to one of this organization's child organizations, and an SSO provider signs " +
-        "people in to its own. Use a separate identity provider for child organizations.",
-    ],
   ])("refuses %s on create, before anything is dialed", async (_case, message, copy) => {
     const r = rig();
     const error = await failure(r.commands.create(message));
@@ -1391,9 +1241,6 @@ describe("the sign-in fields on save", () => {
     expect(created.code).toBe(Code.InvalidArgument);
     expect(created.rawMessage).toBe(copy);
     expect(r.store.size).toBe(0);
-
-    const sso = await failure(r.commands.create(ssoWith({ createAccountsOnSignIn: true, signInRole: role })));
-    expect(sso.rawMessage, "an SSO provider too").toBe(copy);
 
     const stored = storedProvider({ id: "idp_a", org: "acme", slug: "a" });
     await r.store.insert(stored);

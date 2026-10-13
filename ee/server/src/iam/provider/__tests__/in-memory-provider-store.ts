@@ -1,11 +1,10 @@
 /**
  * An in-memory IdentityProviderStore for the unit suites: the same
  * outcomes the Postgres store answers (a slug taken within an
- * organization, the organization's one live SSO place held by another
- * provider, a route, an issuer with an audience, another provider
+ * organization, a route, an issuer with an audience, another provider
  * claims, a replace of a row that is gone; newest first per
- * organization; a provider being deleted skipped by the routing and SSO
- * reads and by `isLive`, and answered by every other read; a provider not
+ * organization; a provider being deleted skipped by the routing read and
+ * by `isLive`, and answered by every other read; a provider not
  * fully shaped by its chain refused), held to
  * the port's contract kit beside the Postgres store
  * (in-memory-provider-store.test.ts), so the chains, the
@@ -76,9 +75,6 @@ export class InMemoryProviderStore implements IdentityProviderStore {
         return Promise.resolve({ kind: "slug-taken" });
       }
     }
-    if (this.ssoHeldByAnother(provider, id)) {
-      return Promise.resolve({ kind: "sso-taken" });
-    }
     const taken = this.routeClaimedByAnother(provider, id);
     if (taken !== undefined) {
       return Promise.resolve({ kind: "route-taken", route: taken });
@@ -109,9 +105,6 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     if ((held.metadata?.slug ?? "") !== (provider.metadata?.slug ?? "")) {
       return Promise.reject(new Error("a swap keeps a provider's slug; a rename changes it"));
     }
-    if (this.ssoHeldByAnother(provider, id)) {
-      return Promise.resolve({ kind: "sso-taken" });
-    }
     const taken = this.routeClaimedByAnother(provider, id);
     if (taken !== undefined) {
       return Promise.resolve({ kind: "route-taken", route: taken });
@@ -130,13 +123,12 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     const claims = (row: IdentityProvider) =>
       JSON.stringify([
         row.metadata?.org ?? "",
-        row.spec?.isSsoProvider === true,
         routesOf(row).map((route) => `${route.issuer} ${route.audience}`).sort(),
       ]);
     if (claims(held) !== claims(provider)) {
       return Promise.reject(
         new Error(
-          "modifyById changes a provider's payload and slug alone; its organization, SSO flag and routes change through replace",
+          "modifyById changes a provider's payload and slug alone; its organization and routes change through replace",
         ),
       );
     }
@@ -170,16 +162,6 @@ export class InMemoryProviderStore implements IdentityProviderStore {
 
   findIdsByOrg(org: string): Promise<ReadonlyArray<string>> {
     return Promise.resolve(this.order.filter((id) => this.rows.get(id)?.metadata?.org === org));
-  }
-
-  findSsoProviderByOrg(org: string): Promise<IdentityProvider | undefined> {
-    return Promise.resolve(
-      this.copy(
-        [...this.rows.entries()].find(
-          ([id, row]) => row.metadata?.org === org && row.spec?.isSsoProvider === true && !this.deleting.has(id),
-        )?.[1],
-      ),
-    );
   }
 
   findProviderIdByRoute(issuer: string, audience: string): Promise<string | undefined> {
@@ -218,24 +200,6 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     return this.rows.size;
   }
 
-  /**
-   * The Postgres store's partial unique index: a live SSO provider holds
-   * its organization's one place, and a provider being deleted holds none.
-   */
-  private ssoHeldByAnother(provider: IdentityProvider, id: string): boolean {
-    if (provider.spec?.isSsoProvider !== true || this.deleting.has(id)) {
-      return false;
-    }
-    const org = provider.metadata?.org ?? "";
-    return [...this.rows.entries()].some(
-      ([heldId, held]) =>
-        heldId !== id &&
-        held.metadata?.org === org &&
-        held.spec?.isSsoProvider === true &&
-        !this.deleting.has(heldId),
-    );
-  }
-
   private routeClaimedByAnother(provider: IdentityProvider, id: string): ProviderRoute | undefined {
     for (const route of routesOf(provider)) {
       for (const [heldId, held] of this.rows) {
@@ -260,7 +224,6 @@ export function storedProvider(fields: {
   id: string;
   org: string;
   slug: string;
-  isSso?: boolean;
   issuers?: ReadonlyArray<string>;
   expectedAudience?: string;
   createdAt?: Date;
@@ -278,8 +241,6 @@ export function storedProvider(fields: {
     spec: create(IdentityProviderSpecSchema, {
       displayName: fields.slug,
       allowedIssuers: [...(fields.issuers ?? [`https://${fields.slug}.idp.test`])],
-      isSsoProvider: fields.isSso === true,
-      oidcClientId: fields.isSso === true ? `client-${fields.slug}` : "",
       expectedAudience: fields.expectedAudience ?? `https://${fields.slug}.idp.test/stigmer`,
     }),
     status: create(ApiResourceAuditStatusSchema, {

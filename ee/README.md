@@ -1,9 +1,8 @@
 # Stigmer Enterprise
 
-This directory holds Stigmer Enterprise: single sign-on through an
-organization's own identity provider, many organizations, teams and
-invitations, added to the open-source Stigmer server through its extension
-points. The package is [`server/`](server/), published to npm as
+This directory holds Stigmer Enterprise: many organizations, federation
+with the platforms whose tokens it trusts, teams and invitations, added to
+the open-source Stigmer server through its extension points. The package is [`server/`](server/), published to npm as
 `@stigmer/enterprise` and as a server image with the web console,
 `ghcr.io/stigmer/stigmer-server-ee`.
 

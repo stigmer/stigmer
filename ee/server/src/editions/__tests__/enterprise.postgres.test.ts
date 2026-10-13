@@ -73,6 +73,7 @@ import {
   type BootedServer,
   type Person,
 } from "./enterprise-harness.js";
+import { ENTERPRISE_SCHEMA_VERSION } from "../../schema/enterprise-migrations.js";
 
 const ISSUED = new Date("2026-10-01T00:00:00Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -225,7 +226,7 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     expect(status.keyId).toBe(signer.keyId);
     expect([LicenseState.valid, LicenseState.expiring, LicenseState.grace, LicenseState.expired]).toContain(status.state);
     const ledger = await db.pool.query<{ version: number }>("SELECT version FROM ee.schema_version");
-    expect(ledger.rows).toEqual([{ version: 1 }]);
+    expect(ledger.rows).toEqual([{ version: ENTERPRISE_SCHEMA_VERSION }]);
   });
 
   it("grows to the license's organization limit and no further", async () => {

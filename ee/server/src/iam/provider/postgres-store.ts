@@ -14,12 +14,6 @@
  *                the list's newest-first sort runs over the
  *                organization's few rows (an organization keeps a few
  *                providers at most).
- *   org, is_sso  the login page's SSO discovery, and the one-SSO rule:
- *                UNIQUE over the live SSO rows
- *                (`iam_identity_provider_one_live_sso`), so the matrix's
- *                check and a racing write cannot leave an organization two
- *                SSO providers. A provider being deleted is outside it and
- *                leaves the place free.
  *   deleting_since  the delete mark: null while the provider is live. Read
  *                with the row, never on its own, so it has no index.
  *   route        the side table's primary key, the pair (canonical issuer,
@@ -59,8 +53,6 @@ const ROUTE_TABLE = "ee.iam_identity_provider_route";
 const ORG_SLUG_CONSTRAINT = "iam_identity_provider_org_slug";
 /** The side table's primary key: a route belongs to one provider. */
 const ROUTE_CONSTRAINT = "iam_identity_provider_route_pkey";
-/** The UNIQUE partial index an organization's one live SSO provider is held by. */
-const ONE_LIVE_SSO_CONSTRAINT = "iam_identity_provider_one_live_sso";
 
 /** Postgres unique-violation SQLSTATE. */
 const UNIQUE_VIOLATION = "23505";
@@ -70,7 +62,7 @@ interface ProviderRow {
 }
 
 /** A claim a unique constraint refused, named by the constraint. */
-type Claim = "slug" | "sso" | "route";
+type Claim = "slug" | "route";
 
 export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
   async function query(
@@ -106,23 +98,13 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
       return inTransaction<ProviderInsertOutcome>(pool, async (client) => {
         const refused = await claiming(() =>
           client.query(
-            `INSERT INTO ${TABLE} (id, data, org, slug, is_sso, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [
-              columns.id,
-              payloadOf(provider),
-              columns.org,
-              columns.slug,
-              columns.isSso,
-              columns.createdAt,
-            ],
+            `INSERT INTO ${TABLE} (id, data, org, slug, created_at)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [columns.id, payloadOf(provider), columns.org, columns.slug, columns.createdAt],
           ),
         );
         if (refused === "slug") {
           return { commit: false, value: { kind: "slug-taken" } };
-        }
-        if (refused === "sso") {
-          return { commit: false, value: { kind: "sso-taken" } };
         }
         const taken = await claimRoutes(client, columns.id, columns.routes);
         return taken === undefined
@@ -155,15 +137,7 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
         }
         refuseSlugChange(rowToProvider(held), provider);
         // The row is locked and held, so the UPDATE writes it.
-        const refused = await claiming(async () => {
-          await client.query(
-            `UPDATE ${TABLE} SET data = $2, is_sso = $3 WHERE id = $1`,
-            [id, payloadOf(provider), columns.isSso],
-          );
-        });
-        if (refused === "sso") {
-          return { commit: false, value: { kind: "sso-taken" } };
-        }
+        await client.query(`UPDATE ${TABLE} SET data = $2 WHERE id = $1`, [id, payloadOf(provider)]);
         await client.query(
           `DELETE FROM ${ROUTE_TABLE} WHERE identity_provider_id = $1`,
           [id],
@@ -224,10 +198,6 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
         [org],
       );
       return result.rows.map((row) => row.id);
-    },
-
-    findSsoProviderByOrg(org) {
-      return queryOne("WHERE org = $1 AND is_sso AND deleting_since IS NULL", [org]);
     },
 
     findProviderIdByRoute(issuer, audience) {
@@ -311,8 +281,6 @@ function claimOf(error: unknown): Claim | undefined {
   switch (constraint) {
     case ORG_SLUG_CONSTRAINT:
       return "slug";
-    case ONE_LIVE_SSO_CONSTRAINT:
-      return "sso";
     case ROUTE_CONSTRAINT:
       return "route";
     default:
@@ -333,18 +301,17 @@ function refuseSlugChange(held: IdentityProvider, next: IdentityProvider): void 
 
 /**
  * Refuses a `modifyById` that moved what only `swap` may: the
- * organization, the SSO flag or a route claim.
+ * organization or a route claim.
  */
 function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): void {
   const routeKey = (routes: ReadonlyArray<ProviderRoute>) =>
     routes.map((route) => `${route.issuer}\u0000${route.audience}`).sort().join("\u0001");
   if (
     before.org !== after.org ||
-    before.isSso !== after.isSso ||
     routeKey(before.routes) !== routeKey(after.routes)
   ) {
     throw new Error(
-      "modifyById changes a provider's payload and slug alone; its organization, SSO flag and routes change through an update",
+      "modifyById changes a provider's payload and slug alone; its organization and routes change through an update",
     );
   }
 }
@@ -362,7 +329,6 @@ interface ProviderColumns {
   readonly id: string;
   readonly org: string;
   readonly slug: string;
-  readonly isSso: boolean;
   readonly createdAt: Date;
   readonly routes: ReadonlyArray<ProviderRoute>;
 }
@@ -387,7 +353,6 @@ function columnsOf(provider: IdentityProvider): ProviderColumns {
     id,
     org,
     slug,
-    isSso: provider.spec?.isSsoProvider === true,
     createdAt: timestampDate(createdAt),
     routes: routesOf(provider),
   };
