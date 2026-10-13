@@ -301,7 +301,9 @@ export const MoveOrgAccessInputSchema: GenMessage<MoveOrgAccessInput> = /*@__PUR
  */
 export type MoveOrgAccessResult = Message<"ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult"> & {
   /**
-   * How many policies moved (or would move).
+   * How many policies the target account was granted (or would be): the
+   * source account's policies inside the organization, and owner on each
+   * resource there the source account created.
    *
    * @generated from field: int32 moved_policies = 1;
    */

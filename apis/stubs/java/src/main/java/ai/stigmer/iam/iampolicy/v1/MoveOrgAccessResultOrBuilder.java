@@ -12,7 +12,9 @@ public interface MoveOrgAccessResultOrBuilder extends
 
   /**
    * <pre>
-   * How many policies moved (or would move).
+   * How many policies the target account was granted (or would be): the
+   * source account's policies inside the organization, and owner on each
+   * resource there the source account created.
    * </pre>
    *
    * <code>int32 moved_policies = 1 [json_name = "movedPolicies"];</code>

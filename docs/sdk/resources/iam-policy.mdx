@@ -896,7 +896,7 @@ MoveOrgAccessResult says what a move moved, or would move, and what stops with t
 
 <TypeTable
   type={{
-    movedPolicies: { type: "number", description: "How many policies moved (or would move)." },
+    movedPolicies: { type: "number", description: "How many policies the target account was granted (or would be): the source account's policies inside the organization, and owner on each resource there the source account created." },
     myVaultEntries: { type: "string[]", description: "The names of the secrets and the addresses of the connections in the source account's My vault in the organization, which the move deletes." },
     automations: { type: "AccountAutomationInput[]", description: "The schedules, evaluators and evals the source account created in the organization." },
   }}

@@ -133,7 +133,9 @@ message MoveOrgAccessInput {
 // MoveOrgAccessResult says what a move moved, or would move, and what
 // stops with the source account's departure from the organization.
 message MoveOrgAccessResult {
-  // How many policies moved (or would move).
+  // How many policies the target account was granted (or would be): the
+  // source account's policies inside the organization, and owner on each
+  // resource there the source account created.
   int32 moved_policies = 1;
 
   // The names of the secrets and the addresses of the connections in the

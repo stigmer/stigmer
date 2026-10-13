@@ -297,9 +297,13 @@ service IamPolicyCommandController {
   // account holds on the organization or on a resource inside it is
   // granted to the target account and then revoked from the source, each
   // recorded as moved: the roles on the organization, team memberships,
-  // shares and the owner relation on resources the source owns. Nothing
+  // shares and the owner relation on resources the source owns. Every
+  // resource inside the organization the source account created is granted
+  // to the target account as owner too, also recorded as moved, so the
+  // person keeps what they made there, their sessions included. Nothing
   // outside the organization moves, and the creation stamps that say who
-  // made a resource are unchanged.
+  // made a resource are unchanged: a session continued after the move still
+  // runs as its creator.
   //
   // An owner of the organization is refused with FAILED_PRECONDITION: an
   // owner keeps their own sign-in as a way back in, so their access is

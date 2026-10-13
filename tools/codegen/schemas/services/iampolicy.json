@@ -346,7 +346,7 @@
           "type": {
             "kind": "int32"
           },
-          "description": "How many policies moved (or would move).",
+          "description": "How many policies the target account was granted (or would be): the\n source account's policies inside the organization, and owner on each\n resource there the source account created.",
           "required": false
         },
         {

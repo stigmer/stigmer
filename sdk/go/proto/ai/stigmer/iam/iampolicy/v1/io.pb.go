@@ -508,7 +508,9 @@ func (x *MoveOrgAccessInput) GetPreviewOnly() bool {
 // stops with the source account's departure from the organization.
 type MoveOrgAccessResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// How many policies moved (or would move).
+	// How many policies the target account was granted (or would be): the
+	// source account's policies inside the organization, and owner on each
+	// resource there the source account created.
 	MovedPolicies int32 `protobuf:"varint,1,opt,name=moved_policies,json=movedPolicies,proto3" json:"moved_policies,omitempty"`
 	// The names of the secrets and the addresses of the connections in the
 	// source account's My vault in the organization, which the move deletes.
