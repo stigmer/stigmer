@@ -37,11 +37,6 @@ export function AccessMovePage() {
   }, [org, createMove]);
 
   const provider = ticket?.provider;
-  const continueToProvider = () => {
-    if (ticket === null || provider === undefined) return;
-    savePendingMove({ ticket: ticket.ticket, org: ticket.org });
-    void startSsoLogin(provider, ticket.org, FINISH_PATH);
-  };
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-4 px-4 py-10">
@@ -70,9 +65,16 @@ export function AccessMovePage() {
               moved={false}
             />
           )}
-          <Button onClick={continueToProvider}>
-            Continue with {provider?.displayName}
-          </Button>
+          {provider && (
+            <Button
+              onClick={() => {
+                savePendingMove({ ticket: ticket.ticket, org: ticket.org });
+                void startSsoLogin(provider, ticket.org, FINISH_PATH);
+              }}
+            >
+              Continue with {provider.displayName}
+            </Button>
+          )}
         </>
       )}
     </div>

@@ -77,9 +77,37 @@ vi.mock("@stigmer/react", async (original) => {
     AccessMoveSummary: () => <div data-testid="summary" />,
     SsoRequiredNotice: ({
       moveHref,
+      onSignIn,
     }: {
       moveHref: (org: string) => string;
-    }) => <a href={moveHref("org_acme")}>Bring my access with me</a>,
+      onSignIn: (
+        provider: {
+          issuer: string;
+          oidcClientId: string;
+          expectedAudience: string;
+        },
+        org: string,
+      ) => void;
+    }) => (
+      <div>
+        <a href={moveHref("org_acme")}>Bring my access with me</a>
+        <button
+          type="button"
+          onClick={() =>
+            onSignIn(
+              {
+                issuer: "https://acme.okta.test",
+                oidcClientId: "client",
+                expectedAudience: "",
+              },
+              "org_acme",
+            )
+          }
+        >
+          Sign in with Acme Okta
+        </button>
+      </div>
+    ),
   };
 });
 
@@ -190,5 +218,14 @@ describe("the error boundaries on an organization's sign-in requirement", () => 
         .getAttribute("href"),
     ).toBe("/sso/move?org=org_acme");
     expect(screen.queryByText("Access denied")).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sign in with Acme Okta" }),
+    );
+    expect(mocks.redirects).toEqual([
+      { issuer: "https://acme.okta.test", extra: {} },
+    ]);
+    expect(sessionStorage.getItem(REDIRECT_PATH_KEY)).toBe(
+      `${window.location.pathname}${window.location.search}`,
+    );
   });
 });

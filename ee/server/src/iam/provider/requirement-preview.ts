@@ -125,15 +125,12 @@ async function membersOf(
   const owners = new Set<string>();
   for (const row of await deps.policies.findByResource(ORGANIZATION_KIND, org)) {
     const principal = row.spec?.principal;
-    if (principal === undefined) {
-      continue;
-    }
-    if (principal.kind === ACCOUNT_KIND && principal.relation === "") {
+    if (principal?.kind === ACCOUNT_KIND && principal.relation === "") {
       members.add(principal.id);
       if (row.spec?.relation === OWNER) {
         owners.add(principal.id);
       }
-    } else if (principal.kind === TEAM_KIND && principal.relation === TEAM_MEMBER) {
+    } else if (principal?.kind === TEAM_KIND && principal.relation === TEAM_MEMBER) {
       for (const membership of await deps.policies.findByResource(TEAM_KIND, principal.id)) {
         const member = membership.spec?.principal;
         if (member?.kind === ACCOUNT_KIND && membership.spec?.relation === TEAM_MEMBER) {
