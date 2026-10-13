@@ -237,6 +237,23 @@ describe("the refusal", () => {
     expect(reads.accounts).toBe(0);
   });
 
+  it("does not remember a failed account read: the next check reads again", async () => {
+    let failures = 1;
+    const signInRule = newSsoSignInRule({
+      providers: { findLive: () => Promise.resolve([ACME_OKTA]) },
+      accounts: {
+        findById: (id) =>
+          failures-- > 0
+            ? Promise.reject(new Error("account store unavailable"))
+            : Promise.resolve(accounts.find((held) => held.metadata?.id === id)),
+      },
+      policies: { findByPrincipalAndResource: () => Promise.resolve([]) },
+    });
+    const caller = person("ida_raj_sso");
+    await expect(signInRule.refusal(caller, ACME)).rejects.toThrow("account store unavailable");
+    expect(await signInRule.refusal(caller, ACME)).toBeUndefined();
+  });
+
   it("reads the caller's account once per caller object", async () => {
     const { signInRule, reads } = rule({ providers: () => [ACME_OKTA], accounts });
     const caller = person("ida_raj_email");

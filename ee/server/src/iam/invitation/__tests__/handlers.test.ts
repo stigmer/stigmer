@@ -701,6 +701,19 @@ describe("redeem", () => {
     expect((await own.commands.redeem({ token: "Go" })).status?.redemptionCount).toBe(1);
   });
 
+  it("answers INTERNAL, granting nothing, when the organization's sign-in rule cannot answer", async () => {
+    const r = rig({
+      decide: outsider,
+      signInRefusal: () => {
+        throw new Error("rule store unavailable");
+      },
+    });
+    await r.store.save(stored({ id: "inv_a", token: "Go" }));
+    const error = await failure(r.commands.redeem({ token: "Go" }));
+    expect(error.code).toBe(Code.Internal);
+    expect(r.granted).toHaveLength(0);
+  });
+
   it("refuses a person the organization's sign-in rule refuses, with its reason, before the membership check, granting nothing", async () => {
     const refusal = {
       reason: "SSO_REQUIRED",

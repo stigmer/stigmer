@@ -21,6 +21,7 @@ import type { DeploymentMode } from "@stigmer/sdk";
 const mocks = vi.hoisted(() => ({
   deployment: { mode: "cloud" as DeploymentMode, resolved: false },
   found: null as { displayName: string; ssoRequired: boolean } | null,
+  redirected: [] as string[],
 }));
 
 vi.mock("next/navigation", () => ({
@@ -41,13 +42,32 @@ vi.mock("@stigmer/react", async () => {
     StigmerProvider: ({ children }: { children: React.ReactNode }) => children,
     SsoLoginPrompt: ({
       onProviderChange,
+      onSsoLogin,
     }: {
       onProviderChange?: (
         provider: { displayName: string; ssoRequired: boolean } | null,
       ) => void;
+      onSsoLogin: (
+        provider: { displayName: string; issuer: string },
+        org: string,
+      ) => void;
     }) => {
       useEffect(() => onProviderChange?.(mocks.found), [onProviderChange]);
-      return <div data-testid="sso-prompt" />;
+      return (
+        <div data-testid="sso-prompt">
+          <button
+            type="button"
+            onClick={() =>
+              onSsoLogin(
+                { displayName: "Acme Okta", issuer: "https://acme.okta.test" },
+                "acme",
+              )
+            }
+          >
+            Sign in with Acme Okta
+          </button>
+        </div>
+      );
     },
   };
 });
@@ -58,7 +78,12 @@ vi.mock("@/auth/config", () => ({
   resolveAuthConfig: () => ({ mode: "disabled" }),
 }));
 vi.mock("@/auth/oidc/oidc-manager", () => ({
-  createUserManager: vi.fn(),
+  createUserManager: (config: { issuer: string }) => ({
+    signinRedirect: () => {
+      mocks.redirected.push(config.issuer);
+      return Promise.resolve();
+    },
+  }),
 }));
 vi.mock("@/domain/_shared/hooks/useDeploymentMode", () => ({
   useDeploymentMode: () => mocks.deployment,
@@ -70,6 +95,7 @@ describe("LoginPageView", () => {
   beforeEach(() => {
     mocks.deployment = { mode: "cloud", resolved: false };
     mocks.found = null;
+    mocks.redirected = [];
   });
 
   afterEach(cleanup);
@@ -123,5 +149,12 @@ describe("LoginPageView", () => {
     expect(
       await screen.findByRole("button", { name: "Sign in with email" }),
     ).toBeTruthy();
+  });
+
+  it("signs in through the organization's provider from the prompt", () => {
+    mocks.deployment = { mode: "enterprise", resolved: true };
+    render(<LoginPageView />);
+    screen.getByRole("button", { name: "Sign in with Acme Okta" }).click();
+    expect(mocks.redirected).toEqual(["https://acme.okta.test"]);
   });
 });

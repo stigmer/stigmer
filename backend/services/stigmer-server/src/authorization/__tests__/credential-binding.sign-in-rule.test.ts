@@ -247,6 +247,15 @@ describe("the sign-in rule on the bound Authorizer", () => {
     });
   });
 
+  it("never refuses an account target when the composition hands the binding no account port", async () => {
+    const f = deps(rule([ACME]));
+    const { identityAccounts: _dropped, ...withoutAccounts } = f.deps;
+    const bound = bindAuthorizer(allowing(), newCredentialBinding(withoutAccounts));
+    expect(
+      await bound.authorize(email, on(ApiResourceKind.identity_account, "ida_acme_robot")),
+    ).toEqual({ kind: "allow" });
+  });
+
   it("asks about people only, whatever the transport", async () => {
     const acme = rule([ACME]);
     const bound = bindAuthorizer(allowing(), newCredentialBinding(deps(acme).deps));

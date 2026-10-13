@@ -112,6 +112,8 @@ describe.each(
     expect(await resources.organizationOf("team", "tm_sre")).toBe("acme");
     expect(await resources.creatorOf("team", "tm_sre")).toBe("ida_bob");
     expect(await resources.organizationOf("team", "tm_gone")).toBe("");
+    // Without the unit's reader the store holds no row of it to read.
+    expect(await newStoredResources(opened.store).organizationOf("team", "tm_sre")).toBe("");
   });
 
   it("organizationOf answers no organization for a row it may not or cannot read", async () => {

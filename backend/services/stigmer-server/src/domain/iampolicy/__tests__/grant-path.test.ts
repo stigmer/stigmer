@@ -262,6 +262,22 @@ describe("the row for a triple is found by triple, so legacy ids converge", () =
     ]);
   });
 
+  it("a refused save with no winner to read back is not a race: the refusal propagates", async () => {
+    const policies = fakeIamPolicyStore();
+    policies.save = async () => {
+      throw new DuplicatePolicyError("refused, and nobody holds it");
+    };
+    const path = newIamPolicyGrantPath({
+      resources: NO_STORED_RESOURCES,
+      policies,
+      lifecycle: undefined,
+      logger: silentLogger,
+    });
+    await expect(path.grant(orgRole(ALICE, "admin", "acme"), alice, "grant")).rejects.toBeInstanceOf(
+      DuplicatePolicyError,
+    );
+  });
+
   it("the loser of a concurrent grant answers the winner's row as a duplicate and still fires the hook", async () => {
     const recorded: RecordedEvent[] = [];
     const policies = fakeIamPolicyStore(recorded);
@@ -1295,6 +1311,18 @@ describe("moveOrgAccess: one account's access inside an organization moves to an
       code: Code.FailedPrecondition,
     });
     expect(policies.changes).toEqual([]);
+  });
+
+  it("passes over a held row that names no resource", async () => {
+    const { policies, path } = await seeded();
+    policies.rows.set(
+      "iamp_malformed",
+      create(IamPolicySchema, {
+        metadata: { id: "iamp_malformed" },
+        spec: { principal: account(EMAIL), relation: "viewer" },
+      }),
+    );
+    expect(await path.moveOrgAccess(EMAIL, "", "acme", sso, true)).toBe(4);
   });
 
   it("refuses a move to the same account", async () => {

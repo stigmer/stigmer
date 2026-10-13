@@ -306,6 +306,13 @@ export interface IamPolicyGrantPathDeps {
   readonly logger: Logger;
 }
 
+/** A row an account holds, with the two refs a move reads, both present. */
+interface HeldRow {
+  readonly policy: IamPolicy;
+  readonly spec: IamPolicySpec;
+  readonly principal: ApiResourceRef;
+}
+
 /** Who made a change and through which door; the organization is resolved per row. */
 interface Change {
   readonly actor: PolicyActor;
@@ -553,23 +560,25 @@ export function newIamPolicyGrantPath(
   async function rowsInsideOrganization(
     accountId: string,
     organizationId: string,
-  ): Promise<ReadonlyArray<IamPolicy>> {
+  ): Promise<ReadonlyArray<HeldRow>> {
     const held = await policies.findByPrincipal(ACCOUNT_KIND, accountId);
-    const onOrganization: IamPolicy[] = [];
-    const below: IamPolicy[] = [];
+    const onOrganization: HeldRow[] = [];
+    const below: HeldRow[] = [];
     for (const policy of held) {
-      const resource = policy.spec?.resource;
-      if (resource === undefined) {
+      const spec = policy.spec;
+      // A row with no principal or resource names nothing to move.
+      if (spec?.principal === undefined || spec.resource === undefined) {
         continue;
       }
-      if (resource.kind === ORGANIZATION_KIND) {
-        if (resource.id === organizationId) {
-          onOrganization.push(policy);
+      const row: HeldRow = { policy, spec, principal: spec.principal };
+      if (spec.resource.kind === ORGANIZATION_KIND) {
+        if (spec.resource.id === organizationId) {
+          onOrganization.push(row);
         }
         continue;
       }
-      if ((await organizationOfResource(resource)) === organizationId) {
-        below.push(policy);
+      if ((await organizationOfResource(spec.resource)) === organizationId) {
+        below.push(row);
       }
     }
     return [...onOrganization, ...below];
@@ -595,9 +604,9 @@ export function newIamPolicyGrantPath(
         organizationId,
       );
       const ownsOrganization = inside.some(
-        (policy) =>
-          policy.spec?.resource?.kind === ORGANIZATION_KIND &&
-          policy.spec.relation === OWNER_RELATION,
+        (row) =>
+          row.spec.resource?.kind === ORGANIZATION_KIND &&
+          row.spec.relation === OWNER_RELATION,
       );
       if (ownsOrganization) {
         throw new ConnectError(
@@ -616,15 +625,11 @@ export function newIamPolicyGrantPath(
       // Every grant first, so a move that stops partway leaves both
       // accounts holding what was moved, never neither; a second run finds
       // the target's rows held and the source's still there, and finishes.
-      for (const policy of inside) {
-        const spec = policy.spec;
-        if (spec?.principal === undefined) {
-          continue;
-        }
+      for (const row of inside) {
         await grantWith(
           create(IamPolicySpecSchema, {
-            ...spec,
-            principal: { ...spec.principal, id: toAccountId },
+            ...row.spec,
+            principal: { ...row.principal, id: toAccountId },
           }),
           caller,
           change,
@@ -632,8 +637,8 @@ export function newIamPolicyGrantPath(
       }
       // Then every revoke, the organization's own rows last, so the source
       // stays affiliated until nothing below depends on it.
-      for (const policy of [...inside].reverse()) {
-        await revokeRow(policy, change, inThisOrganization);
+      for (const row of [...inside].reverse()) {
+        await revokeRow(row.policy, change, inThisOrganization);
       }
       logger.info("iam policy organization access moved", {
         fromIdentityAccountId: fromAccountId,

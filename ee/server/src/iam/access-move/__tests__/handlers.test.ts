@@ -193,6 +193,19 @@ describe("createAccessMove", () => {
     expect(r.tickets.rows.get(hashOf(ticket.ticket))).toMatchObject({ accountId: EMAIL, org: ACME });
   });
 
+  it("issues the ticket when the sweep of expired ones fails, and says so in the log", async () => {
+    const r = await rig();
+    r.deps.tickets.deleteExpired = () => Promise.reject(new Error("tickets table locked"));
+    const warned: string[] = [];
+    const deps = {
+      ...r.deps,
+      logger: createLogger({ level: "warn", pretty: false, write: (line: string) => void warned.push(line) }),
+    };
+    const ticket = await createAccessMove(context(AccessMoveRequestSchema, { org: ACME }, person(EMAIL)), deps);
+    expect(r.tickets.rows.has(hashOf(ticket.ticket))).toBe(true);
+    expect(warned.join("\n")).toContain("expired access move tickets were not swept");
+  });
+
   it("sweeps tickets that expired", async () => {
     const r = await rig();
     await r.tickets.insert({ tokenHash: "old", accountId: EMAIL, org: ACME, expiresAt: new Date(NOW.getTime() - 1) });

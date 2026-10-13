@@ -141,6 +141,20 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("an organization that requires 
     expect(info.displayName).toBe("Acme Okta");
   });
 
+  it("shows the owner who would stop counting: the email account, not the Okta account, and the owner apart", async () => {
+    const preview = await createClient(IdentityProviderQueryController, owner.transport).previewSsoRequirement({
+      org: acme,
+    });
+    const members = preview.members.map((member) => member.identityAccountId);
+    expect(members).toContain(rajEmail.accountId);
+    expect(members).not.toContain(rajOktaId);
+    expect(preview.exemptOwners.map((exempt) => exempt.identityAccountId)).toEqual([owner.accountId]);
+    const refused = await refusalOf(
+      createClient(IdentityProviderQueryController, rajOkta).previewSsoRequirement({ org: acme }),
+    );
+    expect(refused.code).toBe(Code.PermissionDenied);
+  });
+
   it("moves the email account's access to the Okta account, and the email account keeps nothing there", async () => {
     const moves = createClient(IdentityProviderCommandController, rajEmail.transport);
     const ticket = await moves.createAccessMove({ org: acme });

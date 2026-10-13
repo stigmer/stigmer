@@ -32,6 +32,7 @@ const stubs = vi.hoisted(() => ({
   entitlementsEnabled: [] as Array<boolean | undefined>,
   saved: [] as IdentityProviderInput[],
   previewed: [] as Array<string | null>,
+  previewState: "ready" as "ready" | "loading" | "error",
 }));
 
 vi.mock("../../billing/useEntitlements.js", () => ({
@@ -74,6 +75,14 @@ vi.mock("../useUpdateIdentityProvider.js", () => ({
 vi.mock("../usePreviewSsoRequirement.js", () => ({
   usePreviewSsoRequirement: (org: string | null) => {
     stubs.previewed.push(org);
+    if (stubs.previewState !== "ready") {
+      return {
+        preview: null,
+        isLoading: stubs.previewState === "loading",
+        error: stubs.previewState === "error" ? new Error("unauthorized to preview the organization's sign-in requirement") : null,
+        refetch: () => {},
+      };
+    }
     return {
       preview: create(SsoRequirementPreviewSchema, {
         members: [
@@ -126,6 +135,7 @@ afterEach(() => {
   stubs.entitlementsEnabled = [];
   stubs.saved = [];
   stubs.previewed = [];
+  stubs.previewState = "ready";
 });
 
 describe("SsoRequirementSection", () => {
@@ -161,6 +171,34 @@ describe("SsoRequirementSection", () => {
       oidcClientId: "client",
       isSsoProvider: true,
     });
+  });
+
+  it("says while the preview loads, and shows a preview it could not read", () => {
+    stubs.allowed = new Set(["can_assign_roles"]);
+    stubs.previewState = "loading";
+    renderSection(provider());
+    fireEvent.click(screen.getByRole("button", { name: /Require it/ }));
+    expect(screen.getByText(/Finding who would be affected/)).toBeTruthy();
+    cleanup();
+    stubs.previewState = "error";
+    renderSection(provider());
+    fireEvent.click(screen.getByRole("button", { name: /Require it/ }));
+    expect(screen.getByRole("alert").textContent).toContain("unauthorized to preview");
+    expect(screen.queryByRole("button", { name: "Require it" })).toBeNull();
+  });
+
+  it("cancelling either confirmation goes back without saving", () => {
+    stubs.allowed = new Set(["can_assign_roles"]);
+    renderSection(provider());
+    fireEvent.click(screen.getByRole("button", { name: /Require it/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: /Require it…/ })).toBeTruthy();
+    cleanup();
+    renderSection(provider({ required: true }));
+    fireEvent.click(screen.getByRole("button", { name: /Stop requiring it/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: /Stop requiring it/ })).toBeTruthy();
+    expect(stubs.saved).toEqual([]);
   });
 
   it("turns it off after a confirmation", async () => {

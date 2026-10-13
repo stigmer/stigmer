@@ -58,6 +58,7 @@ describe.each(driverFixtures(KINDS))("the automations acting as a person on $nam
       await save(ApiResourceKind.schedule, ScheduleSchema, "sch_old", "acme", SUBJECT, "Old report");
       await save(ApiResourceKind.schedule, ScheduleSchema, "sch_ana", "acme", ANA, "Ana's report");
       await save(ApiResourceKind.schedule, ScheduleSchema, "sch_globex", "globex", RAJ, "Elsewhere");
+      await save(ApiResourceKind.schedule, ScheduleSchema, "sch_unstamped", "acme", "", "Nobody's");
       await save(ApiResourceKind.evaluator, EvaluatorSchema, "evl_raj", "acme", RAJ, "Judge");
       await save(ApiResourceKind.plugin_eval, PluginEvalSchema, "pev_raj", "acme", RAJ, "Plugin check");
       await save(ApiResourceKind.agent_eval, AgentEvalSchema, "aev_raj", "acme", RAJ, "Agent check");
