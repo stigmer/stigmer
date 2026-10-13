@@ -54,6 +54,12 @@
  * keeps the run's undecided sets in the same write when that run is
  * another. No other write pays the read.
  *
+ * The policy keeps (filereview/autokeep.ts) decide from the run's log:
+ * the same write that folds a candidate reads the run's decided events and
+ * answers under the session's lock (filereview/logged.ts), and the keeps
+ * run there and only there, so a set is kept, or left for a person, in
+ * the write that captured it.
+ *
  * Broadcast rides in-memory channels.
  */
 import { create } from "@bufbuild/protobuf";
@@ -113,6 +119,8 @@ import {
   keepOutdatedSets,
 } from "./filereview/autokeep.js";
 import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
+import { RUN_REVIEW_EVENT_TYPES, runReviewLogOf } from "./filereview/logged.js";
+import type { RunReviewLog } from "./filereview/logged.js";
 import { projectFileChangeSets } from "./filereview/project.js";
 import { reconcileFileChangeProgress } from "./filereview/progress.js";
 import {
@@ -132,6 +140,7 @@ import {
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
+import { eventOf } from "../session/events/codec.js";
 import { openAsksOf, updateRunAppendingEvents } from "../session/events/run-writes.js";
 
 export interface UpdateStatusDeps {
@@ -217,9 +226,12 @@ export async function updateStatus(
                 isServerComposedRequest(identity) ? "platform" : "wire",
                 foldsCandidate && isOutdatedTurn(ctx.input.runId, session.runOfNewestType),
                 openAsksOf(session, ctx.input.runId),
+                foldsCandidate ? runReviewLogOf(session.runEvents.map(eventOf)) : undefined,
               );
             },
-            foldsCandidate ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE } : {},
+            foldsCandidate
+              ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE, runEventTypes: RUN_REVIEW_EVENT_TYPES }
+              : {},
           ));
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
@@ -277,6 +289,39 @@ export async function updateStatus(
       signal: RunControlSignal.UNSPECIFIED,
     }),
   );
+}
+
+/**
+ * The policy keeps of a write that folds a candidate, decided from the
+ * run's log (`log`, read under the session's lock): the approved-command
+ * keep, the plugin-eval try's keep, and, for a turn a later message
+ * outdated, the close of its review.
+ */
+function applyPolicyKeeps(
+  execution: Run,
+  runId: string,
+  logger: Logger,
+  outdatedTurn: boolean,
+  log: RunReviewLog,
+): void {
+  const status = execution.status!;
+  // Approved-command auto-keep: a candidate whose provenance verifies
+  // against the person's answers in the log is decided by policy IN THE
+  // SAME WRITE that folded it.
+  autoKeepApprovedCommandSets(status, runId, execution.spec?.autoApproveAll ?? false, logger, log);
+  // A plugin eval's try keeps its edits by policy: nobody reviews a try.
+  autoKeepPluginEvalTrySets(status, runId, isPluginEvalRun(execution), logger, log);
+  // A turn that captured after a later message was sent is closed as it
+  // lands: its undecided edits are kept, as the next turn keeps them.
+  if (outdatedTurn) {
+    const kept = keepOutdatedSets(status, runId, log);
+    if (kept > 0) {
+      logger.info("Kept a turn's undecided file changes: a later message was sent", {
+        executionId: runId,
+        decisions: kept,
+      });
+    }
+  }
 }
 
 /** The event that names the conversation's newest turn: the user message its run was created with. */
@@ -406,8 +451,10 @@ export type StatusWriter = "platform" | "wire";
  * the same snapshot that will be persisted. `writer` defaults to the wire,
  * the side that grants nothing extra. `outdatedTurn` says a later message
  * was sent after this run's, so its file review is closed in this write;
- * `openAsks` are the run's tool uses that wait in the session's log (both
- * read under the session's lock; module header).
+ * `openAsks` are the run's tool uses that wait in the session's log, and
+ * `reviewLog` the run's decisions and answers there, given only to a write
+ * that folds a candidate, which alone runs the policy keeps (all read
+ * under the session's lock; module header).
  */
 export function applyUpdateStatusMerge(
   execution: Run,
@@ -416,6 +463,7 @@ export function applyUpdateStatusMerge(
   writer: StatusWriter = "wire",
   outdatedTurn = false,
   openAsks: ReadonlySet<string> = new Set(),
+  reviewLog?: RunReviewLog,
 ): void {
   if (execution.status === undefined) {
     execution.status = create(RunStatusSchema);
@@ -607,28 +655,10 @@ export function applyUpdateStatusMerge(
   // person's decision or a policy keep, never the runner's).
   appendRunnerEvents(status, input.runId, requestStatus);
 
-  // Approved-command auto-keep: a candidate whose provenance
-  // verifies against the server-authored approval record is decided by
-  // policy IN THE SAME WRITE that folded it, so the gate never arms for a
-  // set the user already consented to via the command approval.
-  autoKeepApprovedCommandSets(
-    status,
-    input.runId,
-    execution.spec?.autoApproveAll ?? false,
-    logger,
-  );
-  // A plugin eval's try keeps its edits by policy: nobody reviews a try.
-  autoKeepPluginEvalTrySets(status, input.runId, isPluginEvalRun(execution), logger);
-  // A turn that captured after a later message was sent is closed as it
-  // lands: its undecided edits are kept, as the next turn keeps them.
-  if (outdatedTurn) {
-    const kept = keepOutdatedSets(status, input.runId);
-    if (kept > 0) {
-      logger.info("Kept a turn's undecided file changes: a later message was sent", {
-        executionId: input.runId,
-        decisions: kept,
-      });
-    }
+  // The policy keeps run in the write that folds a candidate, which reads
+  // the run's log for them (module header).
+  if (reviewLog !== undefined) {
+    applyPolicyKeeps(execution, input.runId, logger, outdatedTurn, reviewLog);
   }
 
   // Recompute file_change_sets from the append-only ledger via its single

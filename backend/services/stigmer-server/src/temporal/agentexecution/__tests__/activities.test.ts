@@ -61,7 +61,7 @@ import { ACTOR_USER, recordFileDecisionEventWithActor } from "../../../domain/ru
 import { projectFileChangeSets } from "../../../domain/run/filereview/project.js";
 import { SessionEventBroker } from "../../../domain/session/events/broker.js";
 import { draftOf } from "../../../domain/session/events/codec.js";
-import { createRunAppendingEvents } from "../../../domain/session/events/run-writes.js";
+import { createRunAppendingEvents, updateRunAppendingEvents } from "../../../domain/session/events/run-writes.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
@@ -532,7 +532,9 @@ describe("CloseFileReview activity", () => {
   it("leaves a previous turn a person already decided as it is", async () => {
     const { store, close, turn, decisions, decidedRuns } = closeFixture();
     await turn("run_a", true);
-    await store.updateResource(ApiResourceKind.run, "run_a", RunSchema, (run) => {
+    // The person's decision, as the decision core writes it: the ledger's
+    // FILE_DECIDED with its decided event in the log.
+    await updateRunAppendingEvents({ store, sessionEventBroker: new SessionEventBroker(silentLogger) }, "run_a", (run) => {
       const decision = create(FileDecisionSchema, {
         id: "run_a:0:run_a:0",
         changeSetId: "run_a:0",
@@ -548,6 +550,30 @@ describe("CloseFileReview activity", () => {
     await close("run_b", SESSION);
 
     expect((await decisions("run_a")).map((d) => d.origin)).toEqual([FileDecisionOrigin.USER]);
-    expect(await decidedRuns()).toEqual([]);
+    expect(await decidedRuns(), "the person's decided event, and no keep").toEqual(["run_a"]);
+  });
+
+  it("reads what is decided from the log: a decision only the ledger holds is closed, one only the log holds is not", async () => {
+    const { store, close, turn, decidedRuns } = closeFixture();
+    await turn("run_a", true);
+    // The ledger alone says decided: the log has nothing, so the close keeps.
+    await store.updateResource(ApiResourceKind.run, "run_a", RunSchema, (run) => {
+      recordFileDecisionEventWithActor(
+        run.status,
+        "run_a",
+        create(FileDecisionSchema, {
+          id: "run_a:0:fc-1",
+          changeSetId: "run_a:0",
+          fileChangeId: "fc-1",
+          scope: FileDecisionScope.FILE,
+          action: FileDecisionAction.REJECT,
+          origin: FileDecisionOrigin.USER,
+        }),
+        ACTOR_USER,
+      );
+    });
+    await turn("run_b", false);
+    await close("run_b", SESSION);
+    expect(await decidedRuns()).toEqual(["run_a"]);
   });
 });

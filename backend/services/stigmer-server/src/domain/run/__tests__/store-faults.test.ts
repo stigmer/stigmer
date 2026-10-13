@@ -85,6 +85,9 @@ import { getRunUsageReport } from "../usage.js";
 import { stubConnectedEngine } from "./engine-stub.js";
 import { fileReviewSeed } from "./file-review-seed.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
+import { draftOf } from "../../session/events/codec.js";
+import type { SessionEventQuery } from "../../../store/session-events.js";
+import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 const silentLogger = createLogger({
   level: "error",
@@ -408,14 +411,35 @@ describe.each([
  * A store whose read answers `run` and whose locked update finds the row
  * gone, the shape of a delete landing between a verb's load and its write.
  */
+/**
+ * A store whose run reads back but is gone at the write; its log holds
+ * `asks` (tool use ids of the run that wait), each open.
+ */
 function deletedBeforeWriteStore(
   run: MessageInitShape<typeof RunSchema>,
+  asks: ReadonlyArray<string> = [],
 ): Store {
+  const runId = run.metadata?.id ?? "";
+  const records = asks.map((id, i) => ({
+    ...draftOf(
+      create(SessionEventSchema, {
+        runId,
+        event: { case: "agentToolUse", value: { id, name: "Write", input: {}, evaluatedPermission: "ask" } },
+      }),
+    ),
+    sessionId: "",
+    seq: i + 1,
+    processedAt: "2026-10-13T00:00:00.000Z",
+  }));
   return {
     getResource: () => Promise.resolve(create(RunSchema, run)),
     updateResource: () => Promise.reject(MISSING()),
     writeResourceAppendingEvents: () => Promise.reject(MISSING()),
-    sessionEvents: { list: () => Promise.resolve([]) },
+    sessionEvents: {
+      list: (_sessionId: string, query: SessionEventQuery) =>
+        Promise.resolve(query.eventIds === undefined ? [] : records.filter((r) => query.eventIds!.includes(r.eventId))),
+      openGates: () => Promise.resolve(asks.map((toolUseId, i) => ({ runId, toolUseId, seq: i + 1 }))),
+    },
   } as unknown as Store;
 }
 
@@ -458,7 +482,7 @@ describe("a run deleted between the load and the locked write", () => {
           },
         ],
       },
-    });
+    }, [`${EXECUTION_ID}.tc-1`]);
     const error = await errorOf(() => approveToolCall(approvalDeps(store)));
 
     expect(error.code).toBe(Code.NotFound);

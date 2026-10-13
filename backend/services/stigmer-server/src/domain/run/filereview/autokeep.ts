@@ -12,9 +12,10 @@
  * TRUST MODEL. The runner asserts the turn FACTS on the candidate event
  * (TurnCommandProvenance) — the same trust level as the captured bytes.
  * The CONSENT is verified HERE against records only the server writes:
- * every cited row's approval_action was authored by SubmitApproval (and
- * is preserved against runner writes), and the auto_approve_all flag is
- * checked against the spec. A runner can therefore never mint
+ * every cited call's tool use has a person's allow in the session's log
+ * (a user.tool_confirmation, which confirmToolUse and grantPermission
+ * write and a runner's append is refused), and the auto_approve_all flag
+ * is checked against the spec. A runner can therefore never mint
  * authorization it was never given.
  *
  * The decision is a REAL FILE_DECIDED event (origin
@@ -28,13 +29,17 @@
  * are kept once a later message is sent (keepOutdatedSets). Every policy
  * decision reaches the session's log as a `stigmer.file_review.decided`
  * event through the run write that records it (session/events/run-writes.ts).
+ *
+ * What is decided is the log's to say (logged.ts): each keep reads the
+ * run's decisions and answers from the session's log, handed in by the
+ * write it runs under (`RunReviewLog`), and the sets and their files from
+ * the ledger's capture. The FILE_DECIDED it records is the ledger's mirror
+ * of the decision, written beside the log's event.
  */
 import { create } from "@bufbuild/protobuf";
 
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionOrigin,
   FileDecisionScope,
@@ -46,9 +51,9 @@ import type {
   TurnCommandProvenance,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { FileDecisionSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
 import type { Logger } from "../../../boot/logger.js";
+import { toolUseEventId } from "../../session/events/ids.js";
 import {
   ACTOR_POLICY,
   approveBlockedReason,
@@ -56,6 +61,8 @@ import {
   findChangeSet,
   recordFileDecisionEventWithActor,
 } from "./author.js";
+import { awaitsReview, decisionsOn, undecidedFileIds } from "./logged.js";
+import type { LoggedDecision, RunReviewLog } from "./logged.js";
 import { projectFileChangeSets } from "./project.js";
 
 /**
@@ -66,26 +73,27 @@ const AUTO_KEEP_REASON =
   "Kept automatically: every change in this turn was produced by a command the user approved";
 
 /**
- * Evaluates every undecided AWAITING_REVIEW change set whose candidate
- * carries TurnCommandProvenance and — when the consent verifies and the
- * set is fully reviewable — authors the policy APPROVE. Returns how many
- * sets were auto-kept.
+ * Evaluates every change set no decision in the log touches whose
+ * candidate carries TurnCommandProvenance and — when the consent verifies
+ * and the set is fully reviewable — authors the policy APPROVE. Returns
+ * how many sets were auto-kept.
  *
- * Idempotent: the deterministic decision/event id makes re-evaluation on
- * every status write a no-op once decided, and a racing human decision
- * wins by first-append. Fail-closed: any verification miss leaves the set
- * awaiting manual review, exactly as if no provenance existed.
+ * Idempotent: a set the log shows decided is passed over, and the
+ * deterministic decision/event id makes a repeat a no-op. Fail-closed: any
+ * verification miss leaves the set awaiting manual review, exactly as if
+ * no provenance existed.
  *
  * Must run inside the store write lock (with appendRunnerEvents, before
- * the projection) so the authored decision lands in the same write as the
- * candidate that qualified it — the workflow's gate check then never sees
- * a transient AWAITING_REVIEW for an auto-kept set.
+ * the projection), with the run's log read under that lock, so the
+ * authored decision lands in the same write as the candidate that
+ * qualified it.
  */
 export function autoKeepApprovedCommandSets(
   status: RunStatus,
   executionId: string,
   autoApproveAll: boolean,
   logger: Logger,
+  log: RunReviewLog,
 ): number {
   const stream = status.fileReviewEventStream;
   if (stream === undefined || stream.events.length === 0) {
@@ -109,13 +117,14 @@ export function autoKeepApprovedCommandSets(
       continue;
     }
     const cs = findChangeSet(changeSets, ev.changeSetId);
-    if (
-      cs === undefined ||
-      cs.status !== FileChangeSetStatus.AWAITING_REVIEW
-    ) {
+    if (cs === undefined) {
       continue;
     }
-    if (cs.decisions.length > 0) {
+    const decisions = decisionsOn(log, cs.id);
+    if (!awaitsReview(cs, decisions)) {
+      continue;
+    }
+    if (decisions.length > 0) {
       // A (possibly partial) human decision exists — the human owns this
       // set.
       continue;
@@ -137,7 +146,7 @@ export function autoKeepApprovedCommandSets(
       });
       continue;
     }
-    if (!verifyCommandConsent(status, provenance, autoApproveAll)) {
+    if (!verifyCommandConsent(executionId, provenance, autoApproveAll, log)) {
       logger.warn(
         "Auto-keep skipped: claimed consent did not verify against server-authored approvals — manual review",
         {
@@ -193,15 +202,18 @@ function buildPolicyAutoKeepDecision(cs: FileChangeSet): FileDecision {
 
 /**
  * Checks the runner's consent claims against the records only the server
- * writes. Every cited tool call must exist and carry a
- * SubmitApproval-authored APPROVE or APPROVE_ALL; the auto_approve_all
- * claim must match the spec-owned flag. At least one consent source is
- * required — an empty claim authorizes nothing.
+ * writes. Every cited call's tool use (the root's or a sub-agent's: the
+ * id is derived the same way, session/events/ids.ts) must have a person's
+ * allow in the log — a confirmation, or the grant's own call, whose
+ * confirmation is an allow too; the auto_approve_all claim must match the
+ * spec-owned flag. At least one consent source is required — an empty
+ * claim authorizes nothing.
  */
 function verifyCommandConsent(
-  status: RunStatus,
+  executionId: string,
   provenance: TurnCommandProvenance,
   autoApproveAll: boolean,
+  log: RunReviewLog,
 ): boolean {
   if (provenance.authorizedByAutoApproveAll && !autoApproveAll) {
     return false;
@@ -210,48 +222,7 @@ function verifyCommandConsent(
   if (ids.length === 0 && !provenance.authorizedByAutoApproveAll) {
     return false;
   }
-  for (const id of ids) {
-    const tc = findToolCall(status, id);
-    if (tc === undefined) {
-      return false;
-    }
-    switch (tc.approvalAction) {
-      case ApprovalAction.APPROVE:
-      case ApprovalAction.APPROVE_ALL:
-        // Server-authored consent — verified.
-        break;
-      default:
-        return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Locates a tool call by id across the transcript and sub-agent
- * transcripts (a lease-granting APPROVE_ALL row may live in either).
- */
-function findToolCall(
-  status: RunStatus,
-  id: string,
-): ToolCall | undefined {
-  for (const msg of status.messages) {
-    for (const tc of msg.toolCalls) {
-      if (tc.id === id) {
-        return tc;
-      }
-    }
-  }
-  for (const sa of status.subAgentRuns) {
-    for (const msg of sa.messages) {
-      for (const tc of msg.toolCalls) {
-        if (tc.id === id) {
-          return tc;
-        }
-      }
-    }
-  }
-  return undefined;
+  return ids.every((id) => log.allowed.has(toolUseEventId(executionId, id)));
 }
 
 /** The audit-trail text on a plugin-eval try's policy decision. */
@@ -274,6 +245,7 @@ export function autoKeepPluginEvalTrySets(
   executionId: string,
   isEvalTry: boolean,
   logger: Logger,
+  log: RunReviewLog,
 ): number {
   const stream = status.fileReviewEventStream;
   if (!isEvalTry || stream === undefined || stream.events.length === 0) {
@@ -281,7 +253,8 @@ export function autoKeepPluginEvalTrySets(
   }
   let kept = 0;
   for (const cs of projectFileChangeSets(stream)) {
-    if (cs.status !== FileChangeSetStatus.AWAITING_REVIEW || cs.decisions.length > 0) {
+    const decisions = decisionsOn(log, cs.id);
+    if (!awaitsReview(cs, decisions) || decisions.length > 0) {
       continue;
     }
     const blockedReason = approveBlockedReason(cs, FileDecisionScope.CHANGE_SET, "", true);
@@ -330,7 +303,7 @@ const NEXT_TURN_KEEP_REASON =
  * Must run inside the run's write lock, before the projection. Returns how
  * many decisions it recorded.
  */
-export function keepOutdatedSets(status: RunStatus, executionId: string): number {
+export function keepOutdatedSets(status: RunStatus, executionId: string, log: RunReviewLog): number {
   const stream = status.fileReviewEventStream;
   if (stream === undefined || stream.events.length === 0) {
     return 0;
@@ -338,10 +311,11 @@ export function keepOutdatedSets(status: RunStatus, executionId: string): number
   const decidedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   let kept = 0;
   for (const cs of projectFileChangeSets(stream)) {
-    if (cs.status !== FileChangeSetStatus.AWAITING_REVIEW) {
+    const decisions = decisionsOn(log, cs.id);
+    if (!awaitsReview(cs, decisions)) {
       continue;
     }
-    for (const decision of nextTurnKeeps(cs, decidedAt)) {
+    for (const decision of nextTurnKeeps(cs, decisions, decidedAt)) {
       recordFileDecisionEventWithActor(status, executionId, decision, ACTOR_POLICY);
       kept++;
     }
@@ -349,8 +323,12 @@ export function keepOutdatedSets(status: RunStatus, executionId: string): number
   return kept;
 }
 
-/** The keeps that close one undecided or partly decided set. */
-function nextTurnKeeps(cs: FileChangeSet, decidedAt: string): FileDecision[] {
+/** The keeps that close one undecided or partly decided set, by the log's decisions on it. */
+function nextTurnKeeps(
+  cs: FileChangeSet,
+  decisions: ReadonlyArray<LoggedDecision>,
+  decidedAt: string,
+): FileDecision[] {
   const keep = (scope: FileDecisionScope, fileChangeId: string, expectedDigest: string): FileDecision => {
     const decision = create(FileDecisionSchema, {
       changeSetId: cs.id,
@@ -366,13 +344,11 @@ function nextTurnKeeps(cs: FileChangeSet, decidedAt: string): FileDecision[] {
     decision.id = `${cs.id}:${decisionScopeId(decision)}`;
     return decision;
   };
-  if (cs.decisions.length === 0) {
+  if (decisions.length === 0) {
     return [keep(FileDecisionScope.CHANGE_SET, "", cs.aggregateDigest)];
   }
-  const decided = new Set(
-    cs.decisions.filter((d) => d.scope === FileDecisionScope.FILE).map((d) => d.fileChangeId),
-  );
+  const undecided = new Set(undecidedFileIds(cs, decisions));
   return cs.changes
-    .filter((change) => !decided.has(change.id))
+    .filter((change) => undecided.has(change.id))
     .map((change) => keep(FileDecisionScope.FILE, change.id, change.fileDigest));
 }
