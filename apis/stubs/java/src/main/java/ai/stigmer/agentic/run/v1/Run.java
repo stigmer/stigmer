@@ -246,7 +246,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed run state and results.
-   * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+   * Contains: phase, timestamps, errors, the file record and what the turn ran
+   * with. What the agent said and did is the session's event log.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -259,7 +260,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed run state and results.
-   * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+   * Contains: phase, timestamps, errors, the file record and what the turn ran
+   * with. What the agent said and did is the session's event log.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -272,7 +274,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed run state and results.
-   * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+   * Contains: phase, timestamps, errors, the file record and what the turn ran
+   * with. What the agent said and did is the session's event log.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1275,7 +1278,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1287,7 +1291,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1303,7 +1308,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1324,7 +1330,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1343,7 +1350,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1369,7 +1377,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1387,7 +1396,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1400,7 +1410,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>
@@ -1416,7 +1427,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed run state and results.
-     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+     * Contains: phase, timestamps, errors, the file record and what the turn ran
+     * with. What the agent said and did is the session's event log.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunStatus status = 5 [json_name = "status"];</code>

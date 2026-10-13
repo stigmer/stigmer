@@ -6,7 +6,7 @@ import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1"
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Run, RunStatus } from "./api_pb.js";
 import { file_ai_stigmer_agentic_run_v1_api } from "./api_pb.js";
-import type { ApprovalAction, FileDecisionAction, FileDecisionScope, RunControlSignal, RunPhase } from "./enum_pb.js";
+import type { RunControlSignal, RunPhase } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_run_v1_enum } from "./enum_pb.js";
 import type { ModelUsage, UsageReportAggregate } from "./usage_pb.js";
 import { file_ai_stigmer_agentic_run_v1_usage } from "./usage_pb.js";
@@ -19,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiJhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2lvLnByb3RvEhlhaS5zdGlnbWVyLmFnZW50aWMucnVuLnYxIh4KBVJ1bklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiaAoHUnVuTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRIvCgdlbnRyaWVzGAIgAygLMh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW4SFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJIpABCg9MaXN0UnVuc1JlcXVlc3QSGgoJcGFnZV9zaXplGAEgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAiABKAkSMgoFcGhhc2UYAyABKA4yIy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blBoYXNlEgwKBHRhZ3MYBCADKAkSCwoDb3JnGAUgASgJImUKGExpc3RSdW5zQnlTZXNzaW9uUmVxdWVzdBIaCgpzZXNzaW9uX2lkGAEgASgJQga6SAPIAQESFQoJcGFnZV9zaXplGAIgASgFQgIYARIWCgpwYWdlX3Rva2VuGAMgASgJQgIYASJtChRSdW5VcGRhdGVTdGF0dXNJbnB1dBIXCgZydW5faWQYASABKAlCB7pIBHICEAESPAoGc3RhdHVzGAIgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5TdGF0dXNCBrpIA8gBASJqChRVcGRhdGVTdGF0dXNSZXNwb25zZRI7CgZzaWduYWwYASABKA4yKy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1bkNvbnRyb2xTaWduYWwSFQoNc2lnbmFsX3JlYXNvbhgCIAEoCSKlAQoTU3VibWl0QXBwcm92YWxJbnB1dBIXCgZydW5faWQYASABKAlCB7pIBHICEAESHQoMdG9vbF9jYWxsX2lkGAIgASgJQge6SARyAhABEkUKBmFjdGlvbhgDIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQXBwcm92YWxBY3Rpb25CCrpIB4IBBBABIAASDwoHY29tbWVudBgEIAEoCSJZChRBcHByb3ZhbERlY2lzaW9uTGlzdBJBCglkZWNpc2lvbnMYASADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlN1Ym1pdEFwcHJvdmFsSW5wdXQi0gIKF1N1Ym1pdEZpbGVEZWNpc2lvbklucHV0EhcKBnJ1bl9pZBgBIAEoCUIHukgEcgIQARIeCg1jaGFuZ2Vfc2V0X2lkGAIgASgJQge6SARyAhABEkcKBXNjb3BlGAMgASgOMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlRGVjaXNpb25TY29wZUIKukgHggEEEAEgABIWCg5maWxlX2NoYW5nZV9pZBgEIAEoCRJJCgZhY3Rpb24YBSABKA4yLS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVEZWNpc2lvbkFjdGlvbkIKukgHggEEEAEgABIgCg9leHBlY3RlZF9kaWdlc3QYBiABKAlCB7pIBHICEAESDgoGcmVhc29uGAcgASgJEiAKGGFja25vd2xlZGdlX3VucmV2aWV3YWJsZRgIIAEoCCI1Cg5DYW5jZWxSdW5JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiOAoRVGVybWluYXRlUnVuSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIiYKD1JlY292ZXJSdW5JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASI0Cg1QYXVzZVJ1bklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSIlCg5SZXN1bWVSdW5JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASKqAgoXVXBsb2FkQXR0YWNobWVudFJlcXVlc3QS3wEKCGZpbGVuYW1lGAEgASgJQswBukjIAboBwAEKInVwbG9hZF9hdHRhY2htZW50LmZpbGVuYW1lLm5vX3BhdGgSTmZpbGVuYW1lIG11c3QgYmUgYSBiYXJlIGZpbGVuYW1lIHdpdGhvdXQgcGF0aCBzZXBhcmF0b3JzIG9yIHRyYXZlcnNhbCBzZWdtZW50cxpKIXRoaXMuY29udGFpbnMoJy8nKSAmJiAhdGhpcy5jb250YWlucygnXFwnKSAmJiB0aGlzICE9ICcuJyAmJiB0aGlzICE9ICcuLidyAhABEhcKB2NvbnRlbnQYAiABKAxCBrpIA8gBARIUCgxjb250ZW50X3R5cGUYAyABKAkiLwoYVXBsb2FkQXR0YWNobWVudFJlc3BvbnNlEhMKC3N0b3JhZ2Vfa2V5GAEgASgJIm0KHUdldEFydGlmYWN0RG93bmxvYWRVcmxSZXF1ZXN0EhcKBnJ1bl9pZBgBIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgCIAEoCUIHukgEcgIQARIVCg1hc19hdHRhY2htZW50GAMgASgIIkoKHkdldEFydGlmYWN0RG93bmxvYWRVcmxSZXNwb25zZRIUCgxkb3dubG9hZF91cmwYASABKAkSEgoKZXhwaXJlc19hdBgCIAEoCSJ5ChlHZXRBcnRpZmFjdENvbnRlbnRSZXF1ZXN0EhcKBnJ1bl9pZBgBIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgCIAEoCUIHukgEcgIQARIRCgltYXhfYnl0ZXMYAyABKAMSEgoKZW50cnlfcGF0aBgEIAEoCSJwChpHZXRBcnRpZmFjdENvbnRlbnRSZXNwb25zZRIPCgdjb250ZW50GAEgASgMEhQKDGNvbnRlbnRfdHlwZRgCIAEoCRIYChB0b3RhbF9zaXplX2J5dGVzGAMgASgDEhEKCXRydW5jYXRlZBgEIAEoCCIxChZHZXRSdW5Vc2FnZVJlcG9ydElucHV0EhcKBnJ1bl9pZBgBIAEoCUIHukgEcgIQASKdAQoXR2V0UnVuVXNhZ2VSZXBvcnRPdXRwdXQSQgoJYWdncmVnYXRlGAEgASgLMi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Vc2FnZVJlcG9ydEFnZ3JlZ2F0ZRI+Cg9tb2RlbF9icmVha2Rvd24YAiADKAsyJS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLk1vZGVsVXNhZ2UiOQoaR2V0U2Vzc2lvblVzYWdlUmVwb3J0SW5wdXQSGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASLFAgobR2V0U2Vzc2lvblVzYWdlUmVwb3J0T3V0cHV0EhIKCnNlc3Npb25faWQYASABKAkSEQoJcnVuX2NvdW50GAIgASgFEkQKC3RvdGFsX3VzYWdlGAMgASgLMi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Vc2FnZVJlcG9ydEFnZ3JlZ2F0ZRI4CgRydW5zGAQgAygLMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Vc2FnZVN1bW1hcnkSPgoPbW9kZWxfYnJlYWtkb3duGAUgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Nb2RlbFVzYWdlEhQKDGZpcnN0X3J1bl9hdBgGIAEoCRITCgtsYXN0X3J1bl9hdBgHIAEoCRIUCgxpc19lc3RpbWF0ZWQYCCABKAgilgEKGEdldEFnZW50VXNhZ2VSZXBvcnRJbnB1dBIZCghhZ2VudF9pZBgBIAEoCUIHukgEcgIQARIRCglmcm9tX2RhdGUYAiABKAkSDwoHdG9fZGF0ZRgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUSEgoKcGFnZV90b2tlbhgFIAEoCRIUCgNvcmcYBiABKAlCB7pIBHICEAEi8AIKGUdldEFnZW50VXNhZ2VSZXBvcnRPdXRwdXQSEAoIYWdlbnRfaWQYASABKAkSEgoKYWdlbnRfbmFtZRgCIAEoCRJECgt0b3RhbF91c2FnZRgDIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VSZXBvcnRBZ2dyZWdhdGUSPgoPbW9kZWxfYnJlYWtkb3duGAQgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Nb2RlbFVzYWdlEkAKCHNlc3Npb25zGAUgAygLMi4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5TZXNzaW9uVXNhZ2VTdW1tYXJ5EhYKDnRvdGFsX3Nlc3Npb25zGAYgASgFEhIKCnRvdGFsX3J1bnMYByABKAUSFwoPbmV4dF9wYWdlX3Rva2VuGAkgASgJSgQICBAJUhp0b3RhbF9iaWxsYWJsZV9jb3N0X21pY3JvcyJkChZHZXRPcmdVc2FnZVJlcG9ydElucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIaCglmcm9tX2RhdGUYAiABKAlCB7pIBHICEAESGAoHdG9fZGF0ZRgDIAEoCUIHukgEcgIQASKUBAoXR2V0T3JnVXNhZ2VSZXBvcnRPdXRwdXQSCwoDb3JnGAEgASgJEhQKDHRvdGFsX2FnZW50cxgCIAEoBRIWCg50b3RhbF9zZXNzaW9ucxgDIAEoBRISCgp0b3RhbF9ydW5zGAQgASgFEj4KD21vZGVsX2JyZWFrZG93bhgGIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuTW9kZWxVc2FnZRJACgp0b3BfYWdlbnRzGAogAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5BZ2VudFVzYWdlU3VtbWFyeRI6CgtkYWlseV91c2FnZRgLIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRGFpbHlVc2FnZRI+Cg1oYXJuZXNzX3VzYWdlGAwgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5IYXJuZXNzVXNhZ2USRAoLdG90YWxfdXNhZ2UYDSABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlVzYWdlUmVwb3J0QWdncmVnYXRlSgQIBRAGSgQIBxAISgQICBAJSgQICRAKUhp0b3RhbF9iaWxsYWJsZV9jb3N0X21pY3Jvc1ISdG9wX2FnZW50c19ieV9jb3N0UgtkYWlseV9jb3N0c1IRaGFybmVzc19icmVha2Rvd24ixQIKD1J1blVzYWdlU3VtbWFyeRIOCgZydW5faWQYASABKAkSEgoKc3RhcnRlZF9hdBgCIAEoCRIUCgxjb21wbGV0ZWRfYXQYAyABKAkSFAoMaW5wdXRfdG9rZW5zGAQgASgDEhUKDW91dHB1dF90b2tlbnMYBSABKAMSHwoXY2FjaGVfcmVhZF9pbnB1dF90b2tlbnMYBiABKAMSFQoNcHJpbWFyeV9tb2RlbBgIIAEoCRIXCg9zdWJfYWdlbnRfY291bnQYCSABKAUSMgoFcGhhc2UYCiABKA4yIy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blBoYXNlEhQKDGlzX2VzdGltYXRlZBgLIAEoCBIUCgx0b3RhbF90b2tlbnMYDCABKANKBAgHEAhSFGJpbGxhYmxlX2Nvc3RfbWljcm9zIpkBChNTZXNzaW9uVXNhZ2VTdW1tYXJ5EhIKCnNlc3Npb25faWQYASABKAkSEQoJcnVuX2NvdW50GAIgASgFEhQKDHRvdGFsX3Rva2VucxgDIAEoAxIUCgxmaXJzdF9ydW5fYXQYBSABKAkSEwoLbGFzdF9ydW5fYXQYBiABKAlKBAgEEAVSFGJpbGxhYmxlX2Nvc3RfbWljcm9zIn4KEUFnZW50VXNhZ2VTdW1tYXJ5EhAKCGFnZW50X2lkGAEgASgJEhIKCmFnZW50X25hbWUYAiABKAkSEQoJcnVuX2NvdW50GAMgASgFEhQKDHRvdGFsX3Rva2VucxgEIAEoA0oECAUQBlIUYmlsbGFibGVfY29zdF9taWNyb3MiWwoKRGFpbHlVc2FnZRIMCgRkYXRlGAEgASgJEhEKCXJ1bl9jb3VudBgCIAEoBRIUCgx0b3RhbF90b2tlbnMYAyABKAMSFgoObGxtX2NhbGxfY291bnQYBCABKAUiXAoMSGFybmVzc1VzYWdlEg8KB2hhcm5lc3MYASABKAkSFAoMdG90YWxfdG9rZW5zGAIgASgDEhIKCmNhbGxfY291bnQYAyABKAUSEQoJcnVuX2NvdW50GAQgASgFInIKFEdldFJ1blN1bW1hcnlSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJECgt0aW1lX3dpbmRvdxgCIAEoDjIvLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuU3VtbWFyeVRpbWVXaW5kb3cingIKClJ1blN1bW1hcnkSFAoMYWN0aXZlX2NvdW50GAEgASgFEkwKDHBoYXNlX2NvdW50cxgCIAMoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuU3VtbWFyeS5QaGFzZUNvdW50c0VudHJ5Ei8KDGF2Z19kdXJhdGlvbhgDIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhJHChJ0b3BfZmFpbGluZ19hZ2VudHMYBCADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkFnZW50RmFpbHVyZVJhbmsaMgoQUGhhc2VDb3VudHNFbnRyeRILCgNrZXkYASABKAUSDQoFdmFsdWUYAiABKAU6AjgBIlEKEEFnZW50RmFpbHVyZVJhbmsSEgoKYWdlbnRfc2x1ZxgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEhUKDWZhaWx1cmVfY291bnQYAyABKAUiwQIKDlVwZGF0ZVJ1bklucHV0EjgKCHJlc291cmNlGAEgASgLMh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5CBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq7AbpItwEatAEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkNyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBydW4gYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJycq1gEKFFJ1blN1bW1hcnlUaW1lV2luZG93EicKI1JVTl9TVU1NQVJZX1RJTUVfV0lORE9XX1VOU1BFQ0lGSUVEEAASJAogUlVOX1NVTU1BUllfVElNRV9XSU5ET1dfTEFTVF8yNEgQARIjCh9SVU5fU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzdEEAISJAogUlVOX1NVTU1BUllfVElNRV9XSU5ET1dfTEFTVF8zMEQQAxIkCiBSVU5fU1VNTUFSWV9USU1FX1dJTkRPV19BTExfVElNRRAEYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_api, file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_usage, file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_field_mask]);
+  fileDesc("CiJhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2lvLnByb3RvEhlhaS5zdGlnbWVyLmFnZW50aWMucnVuLnYxIh4KBVJ1bklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiaAoHUnVuTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRIvCgdlbnRyaWVzGAIgAygLMh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW4SFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJIpABCg9MaXN0UnVuc1JlcXVlc3QSGgoJcGFnZV9zaXplGAEgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAiABKAkSMgoFcGhhc2UYAyABKA4yIy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blBoYXNlEgwKBHRhZ3MYBCADKAkSCwoDb3JnGAUgASgJImUKGExpc3RSdW5zQnlTZXNzaW9uUmVxdWVzdBIaCgpzZXNzaW9uX2lkGAEgASgJQga6SAPIAQESFQoJcGFnZV9zaXplGAIgASgFQgIYARIWCgpwYWdlX3Rva2VuGAMgASgJQgIYASJtChRSdW5VcGRhdGVTdGF0dXNJbnB1dBIXCgZydW5faWQYASABKAlCB7pIBHICEAESPAoGc3RhdHVzGAIgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5TdGF0dXNCBrpIA8gBASJqChRVcGRhdGVTdGF0dXNSZXNwb25zZRI7CgZzaWduYWwYASABKA4yKy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1bkNvbnRyb2xTaWduYWwSFQoNc2lnbmFsX3JlYXNvbhgCIAEoCSI4ChFUZXJtaW5hdGVSdW5JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiJgoPUmVjb3ZlclJ1bklucHV0EhMKAmlkGAEgASgJQge6SARyAhABIjQKDVBhdXNlUnVuSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIiUKDlJlc3VtZVJ1bklucHV0EhMKAmlkGAEgASgJQge6SARyAhABIqoCChdVcGxvYWRBdHRhY2htZW50UmVxdWVzdBLfAQoIZmlsZW5hbWUYASABKAlCzAG6SMgBugHAAQoidXBsb2FkX2F0dGFjaG1lbnQuZmlsZW5hbWUubm9fcGF0aBJOZmlsZW5hbWUgbXVzdCBiZSBhIGJhcmUgZmlsZW5hbWUgd2l0aG91dCBwYXRoIHNlcGFyYXRvcnMgb3IgdHJhdmVyc2FsIHNlZ21lbnRzGkohdGhpcy5jb250YWlucygnLycpICYmICF0aGlzLmNvbnRhaW5zKCdcXCcpICYmIHRoaXMgIT0gJy4nICYmIHRoaXMgIT0gJy4uJ3ICEAESFwoHY29udGVudBgCIAEoDEIGukgDyAEBEhQKDGNvbnRlbnRfdHlwZRgDIAEoCSIvChhVcGxvYWRBdHRhY2htZW50UmVzcG9uc2USEwoLc3RvcmFnZV9rZXkYASABKAkibQodR2V0QXJ0aWZhY3REb3dubG9hZFVybFJlcXVlc3QSFwoGcnVuX2lkGAEgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhUKDWFzX2F0dGFjaG1lbnQYAyABKAgiSgoeR2V0QXJ0aWZhY3REb3dubG9hZFVybFJlc3BvbnNlEhQKDGRvd25sb2FkX3VybBgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgJInkKGUdldEFydGlmYWN0Q29udGVudFJlcXVlc3QSFwoGcnVuX2lkGAEgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhEKCW1heF9ieXRlcxgDIAEoAxISCgplbnRyeV9wYXRoGAQgASgJInAKGkdldEFydGlmYWN0Q29udGVudFJlc3BvbnNlEg8KB2NvbnRlbnQYASABKAwSFAoMY29udGVudF90eXBlGAIgASgJEhgKEHRvdGFsX3NpemVfYnl0ZXMYAyABKAMSEQoJdHJ1bmNhdGVkGAQgASgIIjEKFkdldFJ1blVzYWdlUmVwb3J0SW5wdXQSFwoGcnVuX2lkGAEgASgJQge6SARyAhABIp0BChdHZXRSdW5Vc2FnZVJlcG9ydE91dHB1dBJCCglhZ2dyZWdhdGUYASABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlVzYWdlUmVwb3J0QWdncmVnYXRlEj4KD21vZGVsX2JyZWFrZG93bhgCIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuTW9kZWxVc2FnZSI5ChpHZXRTZXNzaW9uVXNhZ2VSZXBvcnRJbnB1dBIbCgpzZXNzaW9uX2lkGAEgASgJQge6SARyAhABIsUCChtHZXRTZXNzaW9uVXNhZ2VSZXBvcnRPdXRwdXQSEgoKc2Vzc2lvbl9pZBgBIAEoCRIRCglydW5fY291bnQYAiABKAUSRAoLdG90YWxfdXNhZ2UYAyABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlVzYWdlUmVwb3J0QWdncmVnYXRlEjgKBHJ1bnMYBCADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blVzYWdlU3VtbWFyeRI+Cg9tb2RlbF9icmVha2Rvd24YBSADKAsyJS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLk1vZGVsVXNhZ2USFAoMZmlyc3RfcnVuX2F0GAYgASgJEhMKC2xhc3RfcnVuX2F0GAcgASgJEhQKDGlzX2VzdGltYXRlZBgIIAEoCCKWAQoYR2V0QWdlbnRVc2FnZVJlcG9ydElucHV0EhkKCGFnZW50X2lkGAEgASgJQge6SARyAhABEhEKCWZyb21fZGF0ZRgCIAEoCRIPCgd0b19kYXRlGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBRISCgpwYWdlX3Rva2VuGAUgASgJEhQKA29yZxgGIAEoCUIHukgEcgIQASLwAgoZR2V0QWdlbnRVc2FnZVJlcG9ydE91dHB1dBIQCghhZ2VudF9pZBgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEkQKC3RvdGFsX3VzYWdlGAMgASgLMi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Vc2FnZVJlcG9ydEFnZ3JlZ2F0ZRI+Cg9tb2RlbF9icmVha2Rvd24YBCADKAsyJS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLk1vZGVsVXNhZ2USQAoIc2Vzc2lvbnMYBSADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNlc3Npb25Vc2FnZVN1bW1hcnkSFgoOdG90YWxfc2Vzc2lvbnMYBiABKAUSEgoKdG90YWxfcnVucxgHIAEoBRIXCg9uZXh0X3BhZ2VfdG9rZW4YCSABKAlKBAgIEAlSGnRvdGFsX2JpbGxhYmxlX2Nvc3RfbWljcm9zImQKFkdldE9yZ1VzYWdlUmVwb3J0SW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABEhoKCWZyb21fZGF0ZRgCIAEoCUIHukgEcgIQARIYCgd0b19kYXRlGAMgASgJQge6SARyAhABIpQEChdHZXRPcmdVc2FnZVJlcG9ydE91dHB1dBILCgNvcmcYASABKAkSFAoMdG90YWxfYWdlbnRzGAIgASgFEhYKDnRvdGFsX3Nlc3Npb25zGAMgASgFEhIKCnRvdGFsX3J1bnMYBCABKAUSPgoPbW9kZWxfYnJlYWtkb3duGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Nb2RlbFVzYWdlEkAKCnRvcF9hZ2VudHMYCiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkFnZW50VXNhZ2VTdW1tYXJ5EjoKC2RhaWx5X3VzYWdlGAsgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5EYWlseVVzYWdlEj4KDWhhcm5lc3NfdXNhZ2UYDCADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkhhcm5lc3NVc2FnZRJECgt0b3RhbF91c2FnZRgNIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VSZXBvcnRBZ2dyZWdhdGVKBAgFEAZKBAgHEAhKBAgIEAlKBAgJEApSGnRvdGFsX2JpbGxhYmxlX2Nvc3RfbWljcm9zUhJ0b3BfYWdlbnRzX2J5X2Nvc3RSC2RhaWx5X2Nvc3RzUhFoYXJuZXNzX2JyZWFrZG93biLFAgoPUnVuVXNhZ2VTdW1tYXJ5Eg4KBnJ1bl9pZBgBIAEoCRISCgpzdGFydGVkX2F0GAIgASgJEhQKDGNvbXBsZXRlZF9hdBgDIAEoCRIUCgxpbnB1dF90b2tlbnMYBCABKAMSFQoNb3V0cHV0X3Rva2VucxgFIAEoAxIfChdjYWNoZV9yZWFkX2lucHV0X3Rva2VucxgGIAEoAxIVCg1wcmltYXJ5X21vZGVsGAggASgJEhcKD3N1Yl9hZ2VudF9jb3VudBgJIAEoBRIyCgVwaGFzZRgKIAEoDjIjLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuUGhhc2USFAoMaXNfZXN0aW1hdGVkGAsgASgIEhQKDHRvdGFsX3Rva2VucxgMIAEoA0oECAcQCFIUYmlsbGFibGVfY29zdF9taWNyb3MimQEKE1Nlc3Npb25Vc2FnZVN1bW1hcnkSEgoKc2Vzc2lvbl9pZBgBIAEoCRIRCglydW5fY291bnQYAiABKAUSFAoMdG90YWxfdG9rZW5zGAMgASgDEhQKDGZpcnN0X3J1bl9hdBgFIAEoCRITCgtsYXN0X3J1bl9hdBgGIAEoCUoECAQQBVIUYmlsbGFibGVfY29zdF9taWNyb3MifgoRQWdlbnRVc2FnZVN1bW1hcnkSEAoIYWdlbnRfaWQYASABKAkSEgoKYWdlbnRfbmFtZRgCIAEoCRIRCglydW5fY291bnQYAyABKAUSFAoMdG90YWxfdG9rZW5zGAQgASgDSgQIBRAGUhRiaWxsYWJsZV9jb3N0X21pY3JvcyJbCgpEYWlseVVzYWdlEgwKBGRhdGUYASABKAkSEQoJcnVuX2NvdW50GAIgASgFEhQKDHRvdGFsX3Rva2VucxgDIAEoAxIWCg5sbG1fY2FsbF9jb3VudBgEIAEoBSJcCgxIYXJuZXNzVXNhZ2USDwoHaGFybmVzcxgBIAEoCRIUCgx0b3RhbF90b2tlbnMYAiABKAMSEgoKY2FsbF9jb3VudBgDIAEoBRIRCglydW5fY291bnQYBCABKAUicgoUR2V0UnVuU3VtbWFyeVJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEkQKC3RpbWVfd2luZG93GAIgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5TdW1tYXJ5VGltZVdpbmRvdyKeAgoKUnVuU3VtbWFyeRIUCgxhY3RpdmVfY291bnQYASABKAUSTAoMcGhhc2VfY291bnRzGAIgAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5TdW1tYXJ5LlBoYXNlQ291bnRzRW50cnkSLwoMYXZnX2R1cmF0aW9uGAMgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEkcKEnRvcF9mYWlsaW5nX2FnZW50cxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQWdlbnRGYWlsdXJlUmFuaxoyChBQaGFzZUNvdW50c0VudHJ5EgsKA2tleRgBIAEoBRINCgV2YWx1ZRgCIAEoBToCOAEiUQoQQWdlbnRGYWlsdXJlUmFuaxISCgphZ2VudF9zbHVnGAEgASgJEhIKCmFnZW50X25hbWUYAiABKAkSFQoNZmFpbHVyZV9jb3VudBgDIAEoBSLBAgoOVXBkYXRlUnVuSW5wdXQSOAoIcmVzb3VyY2UYASABKAsyHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1bkIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOrsBuki3ARq0AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSQ3Jlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHJ1biBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJyrWAQoUUnVuU3VtbWFyeVRpbWVXaW5kb3cSJwojUlVOX1NVTU1BUllfVElNRV9XSU5ET1dfVU5TUEVDSUZJRUQQABIkCiBSVU5fU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzI0SBABEiMKH1JVTl9TVU1NQVJZX1RJTUVfV0lORE9XX0xBU1RfN0QQAhIkCiBSVU5fU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzMwRBADEiQKIFJVTl9TVU1NQVJZX1RJTUVfV0lORE9XX0FMTF9USU1FEARiBnByb3RvMw", [file_ai_stigmer_agentic_run_v1_api, file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_usage, file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_field_mask]);
 
 /**
  * RunId wraps a run identifier.
@@ -263,274 +263,6 @@ export const UpdateStatusResponseSchema: GenMessage<UpdateStatusResponse> = /*@_
   messageDesc(file_ai_stigmer_agentic_run_v1_io, 6);
 
 /**
- * Input for submitting an approval decision.
- *
- * All required fields must be provided. The handler validates:
- * 1. The run exists and is in RUN_WAITING_FOR_APPROVAL phase
- * 2. The tool_call_id matches status.pending_approval.tool_call_id
- * 3. The action is a valid non-UNSPECIFIED enum value
- *
- * Example:
- *   {
- *     "run_id": "run_abc123xyz456",
- *     "tool_call_id": "call_def789",
- *     "action": "APPROVAL_ACTION_APPROVE",
- *     "comment": "Verified safe to execute"
- *   }
- *
- * @generated from message ai.stigmer.agentic.run.v1.SubmitApprovalInput
- */
-export type SubmitApprovalInput = Message<"ai.stigmer.agentic.run.v1.SubmitApprovalInput"> & {
-  /**
-   * ID of the run.
-   * Format: "run_abc123xyz456"
-   *
-   * @generated from field: string run_id = 1;
-   */
-  runId: string;
-
-  /**
-   * ID of the tool call to approve/skip/reject.
-   * Must match status.pending_approval.tool_call_id exactly.
-   * Format: Tool call ID from agent runtime (e.g., "call_abc123")
-   *
-   * @generated from field: string tool_call_id = 2;
-   */
-  toolCallId: string;
-
-  /**
-   * User's decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
-   * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.ApprovalAction action = 3;
-   */
-  action: ApprovalAction;
-
-  /**
-   * Optional reason/comment for the decision.
-   * Stored in audit trail for compliance and debugging.
-   * Examples:
-   *   - "Verified the target repository is safe to delete" (on APPROVE)
-   *   - "Will handle this operation manually" (on SKIP)
-   *   - "Unexpected target - this looks like the wrong repository" (on REJECT)
-   *
-   * @generated from field: string comment = 4;
-   */
-  comment: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.SubmitApprovalInput.
- * Use `create(SubmitApprovalInputSchema)` to create a new message.
- */
-export const SubmitApprovalInputSchema: GenMessage<SubmitApprovalInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 7);
-
-/**
- * ApprovalDecisionList wraps a batch of approval decisions for Temporal
- * activity transport.
- *
- * Required for polyglot Temporal serialization: a bare repeated field (Go
- * slice / Java List) is NOT a proto.Message, so the SDK falls back to
- * json/plain encoding which the Python worker cannot decode into typed
- * protobuf objects.  Wrapping in a message ensures the SDK uses the
- * json/protobuf payload converter on both sides.
- *
- * @generated from message ai.stigmer.agentic.run.v1.ApprovalDecisionList
- */
-export type ApprovalDecisionList = Message<"ai.stigmer.agentic.run.v1.ApprovalDecisionList"> & {
-  /**
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.SubmitApprovalInput decisions = 1;
-   */
-  decisions: SubmitApprovalInput[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.ApprovalDecisionList.
- * Use `create(ApprovalDecisionListSchema)` to create a new message.
- */
-export const ApprovalDecisionListSchema: GenMessage<ApprovalDecisionList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 8);
-
-/**
- * SubmitFileDecisionInput is a user's keep/discard decision on a file change
- * set or a single file within it.
- *
- * The decision is recorded in the append-only file_review event stream as a
- * FILE_DECIDED event; FileChangeSet.decisions is the derived projection. The
- * runner reconciles approved bytes; this RPC only records the
- * decision and enforces that expected_digest still matches what the user saw.
- *
- * Example:
- *   {
- *     "run_id": "run_abc123xyz456",
- *     "change_set_id": "fcs_def789",
- *     "scope": "FILE_DECISION_SCOPE_FILE",
- *     "file_change_id": "fc_001",
- *     "action": "FILE_DECISION_ACTION_APPROVE",
- *     "expected_digest": "sha256:…",
- *     "reason": "Looks correct"
- *   }
- *
- * @generated from message ai.stigmer.agentic.run.v1.SubmitFileDecisionInput
- */
-export type SubmitFileDecisionInput = Message<"ai.stigmer.agentic.run.v1.SubmitFileDecisionInput"> & {
-  /**
-   * ID of the run.
-   *
-   * @generated from field: string run_id = 1;
-   */
-  runId: string;
-
-  /**
-   * ID of the change set this decision targets. Must match
-   * status.file_change_sets[].id.
-   *
-   * @generated from field: string change_set_id = 2;
-   */
-  changeSetId: string;
-
-  /**
-   * Whether the decision applies to the whole change set or one file.
-   * FILE_DECISION_SCOPE_UNSPECIFIED (0) is rejected by validation.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileDecisionScope scope = 3;
-   */
-  scope: FileDecisionScope;
-
-  /**
-   * ID of the file change to decide; required when scope is FILE, ignored for
-   * CHANGE_SET (the cross-field rule is enforced in the handler). Must match a
-   * CapturedFileChange.id within the change set.
-   *
-   * @generated from field: string file_change_id = 4;
-   */
-  fileChangeId: string;
-
-  /**
-   * Keep (APPROVE) or discard (REJECT). FILE_DECISION_ACTION_UNSPECIFIED (0) is
-   * rejected by validation.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileDecisionAction action = 5;
-   */
-  action: FileDecisionAction;
-
-  /**
-   * Digest of the content the user actually saw — the enforcement gate. The
-   * handler rejects the decision if the target's current digest differs, so a
-   * change captured after the user reviewed cannot be silently decided.
-   *
-   * @generated from field: string expected_digest = 6;
-   */
-  expectedDigest: string;
-
-  /**
-   * Optional reason/comment for the decision (audit trail).
-   *
-   * @generated from field: string reason = 7;
-   */
-  reason: string;
-
-  /**
-   * Set true on an APPROVE to consciously KEEP a change whose diff could not be
-   * fully reviewed. Honored only for a binary file (FileContent.is_binary) at
-   * FILE scope: a binary has no text diff, but its exact bytes are captured and
-   * reconcilable, so a user may acknowledge that and keep it. It NEVER relaxes
-   * the expected_digest gate, and is ignored for CHANGE_SET scope and for any
-   * other incompleteness (secret-withheld / size-elided / uncapturable), which
-   * have no keepable bytes and stay discard-only (fail-closed). Ignored on
-   * REJECT.
-   *
-   * @generated from field: bool acknowledge_unreviewable = 8;
-   */
-  acknowledgeUnreviewable: boolean;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.SubmitFileDecisionInput.
- * Use `create(SubmitFileDecisionInputSchema)` to create a new message.
- */
-export const SubmitFileDecisionInputSchema: GenMessage<SubmitFileDecisionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 9);
-
-/**
- * CancelRunInput requests graceful cancellation of a run.
- *
- * Cancellation sends a signal to the run, allowing it to clean up
- * gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
- * report status) before the run transitions to CANCELLED phase.
- *
- * ## Behavior
- *
- * - Sends cancellation signal to Temporal via CancelWorkflow API
- * - Agent activity receives cancellation and saves checkpoint
- * - Run transitions to RUN_CANCELLED phase after cleanup
- * - LangGraph checkpoint is preserved for potential future recovery
- *
- * ## Preconditions
- *
- * - Run must be in RUN_PENDING or RUN_IN_PROGRESS phase
- * - User must have can_edit permission on the run
- *
- * ## Idempotency
- *
- * If the run is already cancelled (phase == RUN_CANCELLED),
- * the call succeeds as a no-op and returns the current run state.
- *
- * ## Use Cases
- *
- * - User realizes they provided incorrect input to the agent
- * - Business decision to stop a long-running agent task
- * - Graceful shutdown before maintenance window
- * - Cancel agent that is taking too long
- *
- * ## Example
- *
- * {
- *   "id": "run_abc123xyz456",
- *   "reason": "User requested cancellation - task no longer needed"
- * }
- *
- * @generated from message ai.stigmer.agentic.run.v1.CancelRunInput
- */
-export type CancelRunInput = Message<"ai.stigmer.agentic.run.v1.CancelRunInput"> & {
-  /**
-   * Run ID to cancel.
-   *
-   * Format: "run_{ulid}" (auto-generated unique identifier)
-   * Example: "run_abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
-   *
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * Human-readable reason for cancellation.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended for compliance and troubleshooting.
-   *
-   * Examples:
-   * - "User requested cancellation"
-   * - "Incorrect input provided to agent"
-   * - "Superseded by newer run"
-   * - "Pre-maintenance shutdown"
-   *
-   * @generated from field: string reason = 2;
-   */
-  reason: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.CancelRunInput.
- * Use `create(CancelRunInputSchema)` to create a new message.
- */
-export const CancelRunInputSchema: GenMessage<CancelRunInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 10);
-
-/**
  * TerminateRunInput requests immediate termination of a run.
  *
  * Termination forcefully kills the run without allowing cleanup.
@@ -557,7 +289,7 @@ export const CancelRunInputSchema: GenMessage<CancelRunInput> = /*@__PURE__*/
  *
  * ## Terminated vs Cancelled
  *
- * | Aspect | Cancel | Terminate |
+ * | Aspect | Interrupt (session) | Terminate |
  * |--------|--------|-----------|
  * | Signal | Agent receives cancellation signal | No signal sent |
  * | Cleanup | Agent can save checkpoint | No cleanup possible |
@@ -616,7 +348,7 @@ export type TerminateRunInput = Message<"ai.stigmer.agentic.run.v1.TerminateRunI
  * Use `create(TerminateRunInputSchema)` to create a new message.
  */
 export const TerminateRunInputSchema: GenMessage<TerminateRunInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 11);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 7);
 
 /**
  * RecoverRunInput requests recovery of a failed run.
@@ -682,12 +414,12 @@ export type RecoverRunInput = Message<"ai.stigmer.agentic.run.v1.RecoverRunInput
  * Use `create(RecoverRunInputSchema)` to create a new message.
  */
 export const RecoverRunInputSchema: GenMessage<RecoverRunInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 12);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 8);
 
 /**
  * PauseRunInput requests temporarily pausing a run.
  *
- * Pauses the agent at its current checkpoint. Unlike cancel, the run
+ * Pauses the agent at its current checkpoint. Unlike an interrupt, the run
  * is NOT terminal and can be resumed later from where it left off.
  *
  * ## Behavior
@@ -766,7 +498,7 @@ export type PauseRunInput = Message<"ai.stigmer.agentic.run.v1.PauseRunInput"> &
  * Use `create(PauseRunInputSchema)` to create a new message.
  */
 export const PauseRunInputSchema: GenMessage<PauseRunInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 13);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 9);
 
 /**
  * ResumeRunInput requests resuming a paused run.
@@ -824,7 +556,7 @@ export type ResumeRunInput = Message<"ai.stigmer.agentic.run.v1.ResumeRunInput">
  * Use `create(ResumeRunInputSchema)` to create a new message.
  */
 export const ResumeRunInputSchema: GenMessage<ResumeRunInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 14);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 10);
 
 /**
  * UploadAttachmentRequest uploads a file attachment for use in a run.
@@ -915,7 +647,7 @@ export type UploadAttachmentRequest = Message<"ai.stigmer.agentic.run.v1.UploadA
  * Use `create(UploadAttachmentRequestSchema)` to create a new message.
  */
 export const UploadAttachmentRequestSchema: GenMessage<UploadAttachmentRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 15);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 11);
 
 /**
  * UploadAttachmentResponse returns the storage key for the uploaded attachment.
@@ -946,7 +678,7 @@ export type UploadAttachmentResponse = Message<"ai.stigmer.agentic.run.v1.Upload
  * Use `create(UploadAttachmentResponseSchema)` to create a new message.
  */
 export const UploadAttachmentResponseSchema: GenMessage<UploadAttachmentResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 16);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 12);
 
 /**
  * GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
@@ -1049,7 +781,7 @@ export type GetArtifactDownloadUrlRequest = Message<"ai.stigmer.agentic.run.v1.G
  * Use `create(GetArtifactDownloadUrlRequestSchema)` to create a new message.
  */
 export const GetArtifactDownloadUrlRequestSchema: GenMessage<GetArtifactDownloadUrlRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 17);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 13);
 
 /**
  * GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
@@ -1095,7 +827,7 @@ export type GetArtifactDownloadUrlResponse = Message<"ai.stigmer.agentic.run.v1.
  * Use `create(GetArtifactDownloadUrlResponseSchema)` to create a new message.
  */
 export const GetArtifactDownloadUrlResponseSchema: GenMessage<GetArtifactDownloadUrlResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 18);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 14);
 
 /**
  * GetArtifactContentRequest reads the raw content of a run artifact.
@@ -1219,7 +951,7 @@ export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.run.v1.GetAr
  * Use `create(GetArtifactContentRequestSchema)` to create a new message.
  */
 export const GetArtifactContentRequestSchema: GenMessage<GetArtifactContentRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 19);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 15);
 
 /**
  * GetArtifactContentResponse returns the raw content of a run artifact.
@@ -1281,7 +1013,7 @@ export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.run.v1.GetA
  * Use `create(GetArtifactContentResponseSchema)` to create a new message.
  */
 export const GetArtifactContentResponseSchema: GenMessage<GetArtifactContentResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 20);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 16);
 
 /**
  * GetRunUsageReportInput requests a usage report for a single run.
@@ -1302,7 +1034,7 @@ export type GetRunUsageReportInput = Message<"ai.stigmer.agentic.run.v1.GetRunUs
  * Use `create(GetRunUsageReportInputSchema)` to create a new message.
  */
 export const GetRunUsageReportInputSchema: GenMessage<GetRunUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 21);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 17);
 
 /**
  * GetRunUsageReportOutput returns aggregated usage for one run.
@@ -1330,7 +1062,7 @@ export type GetRunUsageReportOutput = Message<"ai.stigmer.agentic.run.v1.GetRunU
  * Use `create(GetRunUsageReportOutputSchema)` to create a new message.
  */
 export const GetRunUsageReportOutputSchema: GenMessage<GetRunUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 22);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 18);
 
 /**
  * GetSessionUsageReportInput requests a usage report for a single session.
@@ -1352,7 +1084,7 @@ export type GetSessionUsageReportInput = Message<"ai.stigmer.agentic.run.v1.GetS
  * Use `create(GetSessionUsageReportInputSchema)` to create a new message.
  */
 export const GetSessionUsageReportInputSchema: GenMessage<GetSessionUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 23);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 19);
 
 /**
  * GetSessionUsageReportOutput returns aggregated usage for a session.
@@ -1427,7 +1159,7 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.run.v1.Get
  * Use `create(GetSessionUsageReportOutputSchema)` to create a new message.
  */
 export const GetSessionUsageReportOutputSchema: GenMessage<GetSessionUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 24);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 20);
 
 /**
  * GetAgentUsageReportInput requests a usage report for a specific agent
@@ -1490,7 +1222,7 @@ export type GetAgentUsageReportInput = Message<"ai.stigmer.agentic.run.v1.GetAge
  * Use `create(GetAgentUsageReportInputSchema)` to create a new message.
  */
 export const GetAgentUsageReportInputSchema: GenMessage<GetAgentUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 25);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 21);
 
 /**
  * GetAgentUsageReportOutput returns aggregated usage for an agent.
@@ -1563,7 +1295,7 @@ export type GetAgentUsageReportOutput = Message<"ai.stigmer.agentic.run.v1.GetAg
  * Use `create(GetAgentUsageReportOutputSchema)` to create a new message.
  */
 export const GetAgentUsageReportOutputSchema: GenMessage<GetAgentUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 26);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 22);
 
 /**
  * GetOrgUsageReportInput requests a usage report for an entire organization.
@@ -1603,7 +1335,7 @@ export type GetOrgUsageReportInput = Message<"ai.stigmer.agentic.run.v1.GetOrgUs
  * Use `create(GetOrgUsageReportInputSchema)` to create a new message.
  */
 export const GetOrgUsageReportInputSchema: GenMessage<GetOrgUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 27);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 23);
 
 /**
  * GetOrgUsageReportOutput returns aggregated usage for an organization.
@@ -1685,7 +1417,7 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.run.v1.GetOrgU
  * Use `create(GetOrgUsageReportOutputSchema)` to create a new message.
  */
 export const GetOrgUsageReportOutputSchema: GenMessage<GetOrgUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 28);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 24);
 
 /**
  * Lightweight view of a single run's usage within a session report.
@@ -1777,7 +1509,7 @@ export type RunUsageSummary = Message<"ai.stigmer.agentic.run.v1.RunUsageSummary
  * Use `create(RunUsageSummarySchema)` to create a new message.
  */
 export const RunUsageSummarySchema: GenMessage<RunUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 29);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 25);
 
 /**
  * Lightweight view of a session's usage within an agent report.
@@ -1827,7 +1559,7 @@ export type SessionUsageSummary = Message<"ai.stigmer.agentic.run.v1.SessionUsag
  * Use `create(SessionUsageSummarySchema)` to create a new message.
  */
 export const SessionUsageSummarySchema: GenMessage<SessionUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 30);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 26);
 
 /**
  * Lightweight view of an agent's usage within an org report.
@@ -1870,7 +1602,7 @@ export type AgentUsageSummary = Message<"ai.stigmer.agentic.run.v1.AgentUsageSum
  * Use `create(AgentUsageSummarySchema)` to create a new message.
  */
 export const AgentUsageSummarySchema: GenMessage<AgentUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 31);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 27);
 
 /**
  * Usage for a single UTC day within an org report.
@@ -1912,7 +1644,7 @@ export type DailyUsage = Message<"ai.stigmer.agentic.run.v1.DailyUsage"> & {
  * Use `create(DailyUsageSchema)` to create a new message.
  */
 export const DailyUsageSchema: GenMessage<DailyUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 32);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 28);
 
 /**
  * Usage split by execution harness within an org report.
@@ -1958,7 +1690,7 @@ export type HarnessUsage = Message<"ai.stigmer.agentic.run.v1.HarnessUsage"> & {
  * Use `create(HarnessUsageSchema)` to create a new message.
  */
 export const HarnessUsageSchema: GenMessage<HarnessUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 33);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 29);
 
 /**
  * GetRunSummaryRequest fetches aggregated run statistics
@@ -1989,7 +1721,7 @@ export type GetRunSummaryRequest = Message<"ai.stigmer.agentic.run.v1.GetRunSumm
  * Use `create(GetRunSummaryRequestSchema)` to create a new message.
  */
 export const GetRunSummaryRequestSchema: GenMessage<GetRunSummaryRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 34);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 30);
 
 /**
  * RunSummary contains aggregated operational statistics for agent
@@ -2044,7 +1776,7 @@ export type RunSummary = Message<"ai.stigmer.agentic.run.v1.RunSummary"> & {
  * Use `create(RunSummarySchema)` to create a new message.
  */
 export const RunSummarySchema: GenMessage<RunSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 35);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 31);
 
 /**
  * AgentFailureRank represents an agent and its failure count within
@@ -2080,7 +1812,7 @@ export type AgentFailureRank = Message<"ai.stigmer.agentic.run.v1.AgentFailureRa
  * Use `create(AgentFailureRankSchema)` to create a new message.
  */
 export const AgentFailureRankSchema: GenMessage<AgentFailureRank> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 36);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 32);
 
 /**
  * The changes an update makes to a run: the fields update_mask names,
@@ -2113,7 +1845,7 @@ export type UpdateRunInput = Message<"ai.stigmer.agentic.run.v1.UpdateRunInput">
  * Use `create(UpdateRunInputSchema)` to create a new message.
  */
 export const UpdateRunInputSchema: GenMessage<UpdateRunInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_io, 37);
+  messageDesc(file_ai_stigmer_agentic_run_v1_io, 33);
 
 /**
  * Controls the time range for run summary queries.

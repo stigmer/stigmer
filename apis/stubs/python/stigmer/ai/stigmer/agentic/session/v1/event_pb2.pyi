@@ -429,7 +429,7 @@ class StigmerFileReviewChange(_message.Message):
     def __init__(self, file_change_id: _Optional[str] = ..., path: _Optional[str] = ..., previous_path: _Optional[str] = ..., change: _Optional[str] = ..., digest: _Optional[str] = ..., lines_added: _Optional[int] = ..., lines_removed: _Optional[int] = ..., reviewable: _Optional[str] = ...) -> None: ...
 
 class StigmerFileReviewDecidedEvent(_message.Message):
-    __slots__ = ("id", "processed_at", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "origin", "reason")
+    __slots__ = ("id", "processed_at", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "origin", "reason", "decided_by")
     ID_FIELD_NUMBER: _ClassVar[int]
     PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
     CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
@@ -439,6 +439,7 @@ class StigmerFileReviewDecidedEvent(_message.Message):
     EXPECTED_DIGEST_FIELD_NUMBER: _ClassVar[int]
     ORIGIN_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
+    DECIDED_BY_FIELD_NUMBER: _ClassVar[int]
     id: str
     processed_at: str
     change_set_id: str
@@ -448,7 +449,8 @@ class StigmerFileReviewDecidedEvent(_message.Message):
     expected_digest: str
     origin: str
     reason: str
-    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[str] = ..., file_change_id: _Optional[str] = ..., action: _Optional[str] = ..., expected_digest: _Optional[str] = ..., origin: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+    decided_by: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[str] = ..., file_change_id: _Optional[str] = ..., action: _Optional[str] = ..., expected_digest: _Optional[str] = ..., origin: _Optional[str] = ..., reason: _Optional[str] = ..., decided_by: _Optional[str] = ...) -> None: ...
 
 class StigmerFileReviewReconciledEvent(_message.Message):
     __slots__ = ("id", "processed_at", "change_set_id", "undone_paths", "failure", "failure_detail")

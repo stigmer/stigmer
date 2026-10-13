@@ -131,21 +131,15 @@ public enum RunPhase
    * <pre>
    * Blocked on tool approval.
    *
-   * The agent has encountered a tool that requires user approval before execution.
-   * When in this phase:
-   * - status.pending_approval contains details about the tool awaiting approval
-   * - User must call SubmitApproval RPC to continue
+   * The agent has encountered a tool that requires a person's answer before
+   * it runs. The waiting call is the session's agent.tool_use event with
+   * evaluated_permission ask, and SessionCommandController.confirmToolUse or
+   * grantPermission answers it.
    *
-   * This is NOT a terminal state - run resumes after approval decision:
-   * - APPROVE: Tool executes, phase returns to RUN_IN_PROGRESS
-   * - SKIP: Tool returns a neutral "skipped" message, phase returns to RUN_IN_PROGRESS
-   * - REJECT: Tool is denied and the user's objection is fed back to the model;
-   * the tool does NOT execute and phase returns to RUN_IN_PROGRESS. REJECT
-   * denies a single tool call, it does NOT fail the run — the model adapts and
-   * the run continues to RUN_COMPLETED. To stop the whole run,
-   * use Cancel (RUN_CANCELLED) or Terminate (RUN_TERMINATED).
-   *
-   * UI should show distinct treatment for this phase (e.g., approval dialog).
+   * This is NOT a terminal state: the run returns to RUN_IN_PROGRESS once
+   * every waiting call is answered. A denied call does not fail the run; the
+   * model reads the denial and adapts. To stop the whole turn, interrupt the
+   * session.
    * </pre>
    *
    * <code>RUN_WAITING_FOR_APPROVAL = 6;</code>
@@ -281,21 +275,15 @@ public enum RunPhase
    * <pre>
    * Blocked on tool approval.
    *
-   * The agent has encountered a tool that requires user approval before execution.
-   * When in this phase:
-   * - status.pending_approval contains details about the tool awaiting approval
-   * - User must call SubmitApproval RPC to continue
+   * The agent has encountered a tool that requires a person's answer before
+   * it runs. The waiting call is the session's agent.tool_use event with
+   * evaluated_permission ask, and SessionCommandController.confirmToolUse or
+   * grantPermission answers it.
    *
-   * This is NOT a terminal state - run resumes after approval decision:
-   * - APPROVE: Tool executes, phase returns to RUN_IN_PROGRESS
-   * - SKIP: Tool returns a neutral "skipped" message, phase returns to RUN_IN_PROGRESS
-   * - REJECT: Tool is denied and the user's objection is fed back to the model;
-   * the tool does NOT execute and phase returns to RUN_IN_PROGRESS. REJECT
-   * denies a single tool call, it does NOT fail the run — the model adapts and
-   * the run continues to RUN_COMPLETED. To stop the whole run,
-   * use Cancel (RUN_CANCELLED) or Terminate (RUN_TERMINATED).
-   *
-   * UI should show distinct treatment for this phase (e.g., approval dialog).
+   * This is NOT a terminal state: the run returns to RUN_IN_PROGRESS once
+   * every waiting call is answered. A denied call does not fail the run; the
+   * model reads the denial and adapts. To stop the whole turn, interrupt the
+   * session.
    * </pre>
    *
    * <code>RUN_WAITING_FOR_APPROVAL = 6;</code>

@@ -12,8 +12,8 @@ public interface FileChangeSetOrBuilder extends
 
   /**
    * <pre>
-   * Stable id of this change set, unique per turn. The correlation key a
-   * FileDecision and every ledger event reference. Never a content hash.
+   * Stable id of this change set, unique per turn. The id the session's
+   * stigmer.file_review.* events name. Never a content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -22,8 +22,8 @@ public interface FileChangeSetOrBuilder extends
   java.lang.String getId();
   /**
    * <pre>
-   * Stable id of this change set, unique per turn. The correlation key a
-   * FileDecision and every ledger event reference. Never a content hash.
+   * Stable id of this change set, unique per turn. The id the session's
+   * stigmer.file_review.* events name. Never a content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -73,27 +73,6 @@ public interface FileChangeSetOrBuilder extends
    */
   com.google.protobuf.ByteString
       getHarnessIdBytes();
-
-  /**
-   * <pre>
-   * Current state of the change set, DERIVED from the file_review ledger (a fold
-   * over the events for this change set). See FileChangeSetStatus.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-   * @return The enum numeric value on the wire for status.
-   */
-  int getStatusValue();
-  /**
-   * <pre>
-   * Current state of the change set, DERIVED from the file_review ledger (a fold
-   * over the events for this change set). See FileChangeSetStatus.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4 [json_name = "status", (.buf.validate.field) = { ... }</code>
-   * @return The status.
-   */
-  ai.stigmer.agentic.run.v1.FileChangeSetStatus getStatus();
 
   /**
    * <pre>
@@ -160,9 +139,9 @@ public interface FileChangeSetOrBuilder extends
 
   /**
    * <pre>
-   * Workspace state derived after decisions (the exact bytes to reconcile to).
-   * Empty until the change set is decided. Reconcile verifies the filesystem
-   * hashes against this snapshot.
+   * Workspace state after an undo put files back (the exact bytes reconciled
+   * to). Empty until files of the set are put back. Reconcile verifies the
+   * filesystem hashes against this snapshot.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
@@ -171,9 +150,9 @@ public interface FileChangeSetOrBuilder extends
   boolean hasApprovedSnapshot();
   /**
    * <pre>
-   * Workspace state derived after decisions (the exact bytes to reconcile to).
-   * Empty until the change set is decided. Reconcile verifies the filesystem
-   * hashes against this snapshot.
+   * Workspace state after an undo put files back (the exact bytes reconciled
+   * to). Empty until files of the set are put back. Reconcile verifies the
+   * filesystem hashes against this snapshot.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
@@ -182,9 +161,9 @@ public interface FileChangeSetOrBuilder extends
   ai.stigmer.agentic.run.v1.SnapshotRef getApprovedSnapshot();
   /**
    * <pre>
-   * Workspace state derived after decisions (the exact bytes to reconcile to).
-   * Empty until the change set is decided. Reconcile verifies the filesystem
-   * hashes against this snapshot.
+   * Workspace state after an undo put files back (the exact bytes reconciled
+   * to). Empty until files of the set are put back. Reconcile verifies the
+   * filesystem hashes against this snapshot.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
@@ -290,50 +269,31 @@ public interface FileChangeSetOrBuilder extends
 
   /**
    * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
+   * The consent the turn's commands ran under, when every change in the set
+   * came from a command a person had allowed. Absent otherwise.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
+   * @return Whether the commandProvenance field is set.
    */
-  java.util.List<ai.stigmer.agentic.run.v1.FileDecision> 
-      getDecisionsList();
+  boolean hasCommandProvenance();
   /**
    * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
+   * The consent the turn's commands ran under, when every change in the set
+   * came from a command a person had allowed. Absent otherwise.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
+   * @return The commandProvenance.
    */
-  ai.stigmer.agentic.run.v1.FileDecision getDecisions(int index);
+  ai.stigmer.agentic.run.v1.TurnCommandProvenance getCommandProvenance();
   /**
    * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
+   * The consent the turn's commands ran under, when every change in the set
+   * came from a command a person had allowed. Absent otherwise.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
+   * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
    */
-  int getDecisionsCount();
-  /**
-   * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.run.v1.FileDecisionOrBuilder> 
-      getDecisionsOrBuilderList();
-  /**
-   * <pre>
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileDecision decisions = 11 [json_name = "decisions"];</code>
-   */
-  ai.stigmer.agentic.run.v1.FileDecisionOrBuilder getDecisionsOrBuilder(
-      int index);
+  ai.stigmer.agentic.run.v1.TurnCommandProvenanceOrBuilder getCommandProvenanceOrBuilder();
 }

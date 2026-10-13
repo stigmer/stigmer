@@ -33,7 +33,7 @@ package ai.stigmer.agentic.run.v1;
  *
  * ## Terminated vs Cancelled
  *
- * | Aspect | Cancel | Terminate |
+ * | Aspect | Interrupt (session) | Terminate |
  * |--------|--------|-----------|
  * | Signal | Agent receives cancellation signal | No signal sent |
  * | Cleanup | Agent can save checkpoint | No cleanup possible |
@@ -417,7 +417,7 @@ private static final long serialVersionUID = 0L;
    *
    * ## Terminated vs Cancelled
    *
-   * | Aspect | Cancel | Terminate |
+   * | Aspect | Interrupt (session) | Terminate |
    * |--------|--------|-----------|
    * | Signal | Agent receives cancellation signal | No signal sent |
    * | Cleanup | Agent can save checkpoint | No cleanup possible |

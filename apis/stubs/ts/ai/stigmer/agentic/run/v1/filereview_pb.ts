@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { DiffCompleteness, FileCaptureClass, FileChangeKind, FileChangeSetStatus, FileDecisionAction, FileDecisionOrigin, FileDecisionScope, FileReviewBlockReason, FileReviewEventType, FileReviewFailureKind, SnapshotKind } from "./enum_pb.js";
+import type { DiffCompleteness, FileCaptureClass, FileChangeKind, FileReviewBlockReason, SnapshotKind } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_run_v1_enum } from "./enum_pb.js";
 import type { FileContent, ToolCallOutputRef } from "./message_pb.js";
 import { file_ai_stigmer_agentic_run_v1_message } from "./message_pb.js";
@@ -15,26 +15,24 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/filereview.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_filereview: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2ZpbGVyZXZpZXcucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEivAQKDUZpbGVDaGFuZ2VTZXQSCgoCaWQYASABKAkSDwoHdHVybl9pZBgCIAEoCRISCgpoYXJuZXNzX2lkGAMgASgJEkgKBnN0YXR1cxgEIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZVNldFN0YXR1c0IIukgFggECEAESQQoRYmFzZWxpbmVfc25hcHNob3QYBSABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNuYXBzaG90UmVmEkIKEmNhbmRpZGF0ZV9zbmFwc2hvdBgGIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU25hcHNob3RSZWYSQQoRYXBwcm92ZWRfc25hcHNob3QYByABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNuYXBzaG90UmVmEj4KB2NoYW5nZXMYCCADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkNhcHR1cmVkRmlsZUNoYW5nZRIYChBhZ2dyZWdhdGVfZGlnZXN0GAkgASgJElAKEWRpZmZfY29tcGxldGVuZXNzGAogASgOMisuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5EaWZmQ29tcGxldGVuZXNzQgi6SAWCAQIQARI6CglkZWNpc2lvbnMYCyADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVEZWNpc2lvbiLmBAoSQ2FwdHVyZWRGaWxlQ2hhbmdlEgoKAmlkGAEgASgJEhMKC3BhdGhfYmVmb3JlGAIgASgJEhIKCnBhdGhfYWZ0ZXIYAyABKAkSQQoEa2luZBgEIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNoYW5nZUtpbmRCCLpIBYIBAhABEkwKDWNhcHR1cmVfY2xhc3MYBSABKA4yKy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVDYXB0dXJlQ2xhc3NCCLpIBYIBAhABEjYKBmJlZm9yZRgGIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNvbnRlbnQSNQoFYWZ0ZXIYByABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVDb250ZW50EhUKDWJlZm9yZV9zaGEyNTYYCCABKAkSFAoMYWZ0ZXJfc2hhMjU2GAkgASgJEkIKDHVuaWZpZWRfZGlmZhgKIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVG9vbENhbGxPdXRwdXRSZWYSFQoNZGlmZl9jb21wbGV0ZRgLIAEoCBITCgtmaWxlX2RpZ2VzdBgMIAEoCRJSCg5ibG9ja2VkX3JlYXNvbhgNIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZVJldmlld0Jsb2NrUmVhc29uQgi6SAWCAQIQARITCgtsaW5lc19hZGRlZBgOIAEoBRIVCg1saW5lc19yZW1vdmVkGA8gASgFIroBCgtTbmFwc2hvdFJlZhI/CgRraW5kGAEgASgOMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5TbmFwc2hvdEtpbmRCCLpIBYIBAhABEjIKA2dpdBgCIAEoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuR2l0VHJlZVJlZhI2CgNjYXMYAyABKAsyKS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkNhc01hbmlmZXN0UmVmIisKCkdpdFRyZWVSZWYSEAoIdHJlZV9vaWQYASABKAkSCwoDcmVmGAIgASgJIj8KDkNhc01hbmlmZXN0UmVmEhcKD21hbmlmZXN0X2RpZ2VzdBgBIAEoCRIUCgxhcnRpZmFjdF91cmkYAiABKAkilgMKDEZpbGVEZWNpc2lvbhIKCgJpZBgBIAEoCRIVCg1jaGFuZ2Vfc2V0X2lkGAIgASgJEkUKBXNjb3BlGAMgASgOMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlRGVjaXNpb25TY29wZUIIukgFggECEAESFgoOZmlsZV9jaGFuZ2VfaWQYBCABKAkSRwoGYWN0aW9uGAUgASgOMi0uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlRGVjaXNpb25BY3Rpb25CCLpIBYIBAhABEhcKD2V4cGVjdGVkX2RpZ2VzdBgGIAEoCRITCgtyZXZpZXdlcl9pZBgHIAEoCRISCgpkZWNpZGVkX2F0GAggASgJEg4KBnJlYXNvbhgJIAEoCRIgChhhY2tub3dsZWRnZV91bnJldmlld2FibGUYCiABKAgSRwoGb3JpZ2luGAsgASgOMi0uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlRGVjaXNpb25PcmlnaW5CCLpIBYIBAhABIpsBChpGaWxlUmV2aWV3QmFzZWxpbmVDYXB0dXJlZBIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEg8KB3R1cm5faWQYAiABKAkSEgoKaGFybmVzc19pZBgDIAEoCRJBChFiYXNlbGluZV9zbmFwc2hvdBgEIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU25hcHNob3RSZWYiXgoVVHVybkNvbW1hbmRQcm92ZW5hbmNlEh0KFWNvbnNlbnRfdG9vbF9jYWxsX2lkcxgBIAMoCRImCh5hdXRob3JpemVkX2J5X2F1dG9fYXBwcm92ZV9hbGwYAiABKAgi8gIKG0ZpbGVSZXZpZXdDYW5kaWRhdGVDYXB0dXJlZBIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEkIKEmNhbmRpZGF0ZV9zbmFwc2hvdBgCIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU25hcHNob3RSZWYSPgoHY2hhbmdlcxgDIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQ2FwdHVyZWRGaWxlQ2hhbmdlEhgKEGFnZ3JlZ2F0ZV9kaWdlc3QYBCABKAkSUAoRZGlmZl9jb21wbGV0ZW5lc3MYBSABKA4yKy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkRpZmZDb21wbGV0ZW5lc3NCCLpIBYIBAhABEkwKEmNvbW1hbmRfcHJvdmVuYW5jZRgGIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVHVybkNvbW1hbmRQcm92ZW5hbmNlInAKFEZpbGVSZXZpZXdSZWNvbmNpbGVkEhUKDWNoYW5nZV9zZXRfaWQYASABKAkSQQoRYXBwcm92ZWRfc25hcHNob3QYAiABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNuYXBzaG90UmVmIoQBChFGaWxlUmV2aWV3RmFpbHVyZRIVCg1jaGFuZ2Vfc2V0X2lkGAEgASgJEkgKBGtpbmQYAiABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVSZXZpZXdGYWlsdXJlS2luZEIIukgFggECEAESDgoGZGV0YWlsGAMgASgJIqcECg9GaWxlUmV2aWV3RXZlbnQSEAoIZXZlbnRfaWQYASABKAkSFQoNY2hhbmdlX3NldF9pZBgCIAEoCRJMCgpldmVudF90eXBlGAMgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlUmV2aWV3RXZlbnRUeXBlQgi6SAWCAQIQARIRCgl0aW1lc3RhbXAYBCABKAkSDQoFYWN0b3IYBSABKAkSUgoRYmFzZWxpbmVfY2FwdHVyZWQYBiABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVSZXZpZXdCYXNlbGluZUNhcHR1cmVkSAASVAoSY2FuZGlkYXRlX2NhcHR1cmVkGAcgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlUmV2aWV3Q2FuZGlkYXRlQ2FwdHVyZWRIABI/CgxmaWxlX2RlY2lkZWQYCCABKAsyJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVEZWNpc2lvbkgAEkUKCnJlY29uY2lsZWQYCSABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVSZXZpZXdSZWNvbmNpbGVkSAASPgoGZmFpbGVkGAogASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlUmV2aWV3RmFpbHVyZUgAQgkKB3BheWxvYWQiYwoVRmlsZVJldmlld0V2ZW50U3RyZWFtEg4KBnJ1bl9pZBgBIAEoCRI6CgZldmVudHMYAiADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVSZXZpZXdFdmVudCLIAQoSRmlsZUNoYW5nZVByb2dyZXNzEhUKDWNoYW5nZV9zZXRfaWQYASABKAkSFQoNZmlsZXNfY2hhbmdlZBgCIAEoBRITCgtsaW5lc19hZGRlZBgDIAEoBRIVCg1saW5lc19yZW1vdmVkGAQgASgFEkMKB2VudHJpZXMYBSADKAsyMi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVDaGFuZ2VQcm9ncmVzc0VudHJ5EhMKC2NhcHR1cmVkX2F0GAYgASgJIrEBChdGaWxlQ2hhbmdlUHJvZ3Jlc3NFbnRyeRITCgtwYXRoX2JlZm9yZRgBIAEoCRISCgpwYXRoX2FmdGVyGAIgASgJEkEKBGtpbmQYAyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVDaGFuZ2VLaW5kQgi6SAWCAQIQARITCgtsaW5lc19hZGRlZBgEIAEoBRIVCg1saW5lc19yZW1vdmVkGAUgASgFYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_message, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2ZpbGVyZXZpZXcucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEiowQKDUZpbGVDaGFuZ2VTZXQSCgoCaWQYASABKAkSDwoHdHVybl9pZBgCIAEoCRISCgpoYXJuZXNzX2lkGAMgASgJEkEKEWJhc2VsaW5lX3NuYXBzaG90GAUgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5TbmFwc2hvdFJlZhJCChJjYW5kaWRhdGVfc25hcHNob3QYBiABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNuYXBzaG90UmVmEkEKEWFwcHJvdmVkX3NuYXBzaG90GAcgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5TbmFwc2hvdFJlZhI+CgdjaGFuZ2VzGAggAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5DYXB0dXJlZEZpbGVDaGFuZ2USGAoQYWdncmVnYXRlX2RpZ2VzdBgJIAEoCRJQChFkaWZmX2NvbXBsZXRlbmVzcxgKIAEoDjIrLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRGlmZkNvbXBsZXRlbmVzc0IIukgFggECEAESTAoSY29tbWFuZF9wcm92ZW5hbmNlGAwgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UdXJuQ29tbWFuZFByb3ZlbmFuY2VKBAgEEAVKBAgLEAxSBnN0YXR1c1IJZGVjaXNpb25zIuYEChJDYXB0dXJlZEZpbGVDaGFuZ2USCgoCaWQYASABKAkSEwoLcGF0aF9iZWZvcmUYAiABKAkSEgoKcGF0aF9hZnRlchgDIAEoCRJBCgRraW5kGAQgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlQ2hhbmdlS2luZEIIukgFggECEAESTAoNY2FwdHVyZV9jbGFzcxgFIAEoDjIrLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNhcHR1cmVDbGFzc0IIukgFggECEAESNgoGYmVmb3JlGAYgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlQ29udGVudBI1CgVhZnRlchgHIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRmlsZUNvbnRlbnQSFQoNYmVmb3JlX3NoYTI1NhgIIAEoCRIUCgxhZnRlcl9zaGEyNTYYCSABKAkSQgoMdW5pZmllZF9kaWZmGAogASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Ub29sQ2FsbE91dHB1dFJlZhIVCg1kaWZmX2NvbXBsZXRlGAsgASgIEhMKC2ZpbGVfZGlnZXN0GAwgASgJElIKDmJsb2NrZWRfcmVhc29uGA0gASgOMjAuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5GaWxlUmV2aWV3QmxvY2tSZWFzb25CCLpIBYIBAhABEhMKC2xpbmVzX2FkZGVkGA4gASgFEhUKDWxpbmVzX3JlbW92ZWQYDyABKAUiugEKC1NuYXBzaG90UmVmEj8KBGtpbmQYASABKA4yJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNuYXBzaG90S2luZEIIukgFggECEAESMgoDZ2l0GAIgASgLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5HaXRUcmVlUmVmEjYKA2NhcxgDIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQ2FzTWFuaWZlc3RSZWYiKwoKR2l0VHJlZVJlZhIQCgh0cmVlX29pZBgBIAEoCRILCgNyZWYYAiABKAkiPwoOQ2FzTWFuaWZlc3RSZWYSFwoPbWFuaWZlc3RfZGlnZXN0GAEgASgJEhQKDGFydGlmYWN0X3VyaRgCIAEoCSJeChVUdXJuQ29tbWFuZFByb3ZlbmFuY2USHQoVY29uc2VudF90b29sX2NhbGxfaWRzGAEgAygJEiYKHmF1dGhvcml6ZWRfYnlfYXV0b19hcHByb3ZlX2FsbBgCIAEoCCLIAQoSRmlsZUNoYW5nZVByb2dyZXNzEhUKDWNoYW5nZV9zZXRfaWQYASABKAkSFQoNZmlsZXNfY2hhbmdlZBgCIAEoBRITCgtsaW5lc19hZGRlZBgDIAEoBRIVCg1saW5lc19yZW1vdmVkGAQgASgFEkMKB2VudHJpZXMYBSADKAsyMi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVDaGFuZ2VQcm9ncmVzc0VudHJ5EhMKC2NhcHR1cmVkX2F0GAYgASgJIrEBChdGaWxlQ2hhbmdlUHJvZ3Jlc3NFbnRyeRITCgtwYXRoX2JlZm9yZRgBIAEoCRISCgpwYXRoX2FmdGVyGAIgASgJEkEKBGtpbmQYAyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkZpbGVDaGFuZ2VLaW5kQgi6SAWCAQIQARITCgtsaW5lc19hZGRlZBgEIAEoBRIVCg1saW5lc19yZW1vdmVkGAUgASgFYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_message, file_buf_validate_validate]);
 
 /**
  * The set of file deltas produced by one agent turn, reviewed and reconciled
  * as a unit.
  *
- * A FileChangeSet has no identity or lifecycle independent of the turn that
- * produced it: it is born when the turn captures its baseline and dies when its
- * decisions are reconciled into the workspace. It is therefore a computed
- * projection on RunStatus (field file_change_sets), mirroring
- * pending_approvals — recomputed on every status write from the file_review
- * event ledger, never merged, so it is always consistent with the authoritative
- * stream.
+ * A record of what the turn changed: the files' contents before and after,
+ * the snapshots they were read from and the consent the turn's commands ran
+ * under. It carries no state and no decisions; the session's
+ * stigmer.file_review.* events say what was kept, what was undone and what is
+ * still open.
  *
  * @generated from message ai.stigmer.agentic.run.v1.FileChangeSet
  */
 export type FileChangeSet = Message<"ai.stigmer.agentic.run.v1.FileChangeSet"> & {
   /**
-   * Stable id of this change set, unique per turn. The correlation key a
-   * FileDecision and every ledger event reference. Never a content hash.
+   * Stable id of this change set, unique per turn. The id the session's
+   * stigmer.file_review.* events name. Never a content hash.
    *
    * @generated from field: string id = 1;
    */
@@ -56,14 +54,6 @@ export type FileChangeSet = Message<"ai.stigmer.agentic.run.v1.FileChangeSet"> &
   harnessId: string;
 
   /**
-   * Current state of the change set, DERIVED from the file_review ledger (a fold
-   * over the events for this change set). See FileChangeSetStatus.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileChangeSetStatus status = 4;
-   */
-  status: FileChangeSetStatus;
-
-  /**
    * Workspace state captured at turn start — the "before" the authoritative
    * diff is computed against.
    *
@@ -81,9 +71,9 @@ export type FileChangeSet = Message<"ai.stigmer.agentic.run.v1.FileChangeSet"> &
   candidateSnapshot?: SnapshotRef;
 
   /**
-   * Workspace state derived after decisions (the exact bytes to reconcile to).
-   * Empty until the change set is decided. Reconcile verifies the filesystem
-   * hashes against this snapshot.
+   * Workspace state after an undo put files back (the exact bytes reconciled
+   * to). Empty until files of the set are put back. Reconcile verifies the
+   * filesystem hashes against this snapshot.
    *
    * @generated from field: ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7;
    */
@@ -118,12 +108,12 @@ export type FileChangeSet = Message<"ai.stigmer.agentic.run.v1.FileChangeSet"> &
   diffCompleteness: DiffCompleteness;
 
   /**
-   * Human decisions on this change set, a DERIVED fold over the FILE_DECIDED
-   * events in the ledger (never stored-mutable). Ordered by decision time.
+   * The consent the turn's commands ran under, when every change in the set
+   * came from a command a person had allowed. Absent otherwise.
    *
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.FileDecision decisions = 11;
+   * @generated from field: ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12;
    */
-  decisions: FileDecision[];
+  commandProvenance?: TurnCommandProvenance;
 };
 
 /**
@@ -137,17 +127,14 @@ export const FileChangeSetSchema: GenMessage<FileChangeSet> = /*@__PURE__*/
  * One file's delta within a FileChangeSet.
  *
  * Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
- * for the offloadable unified diff — no parallel blob/artifact types. This is
- * the apply-then-review successor to the tool-call-coupled FileChange in
- * message.proto; the two coexist until the legacy file-change coupling is
- * deleted, at which point this message takes the canonical FileChange name.
+ * for the offloadable unified diff — no parallel blob/artifact types.
  *
  * @generated from message ai.stigmer.agentic.run.v1.CapturedFileChange
  */
 export type CapturedFileChange = Message<"ai.stigmer.agentic.run.v1.CapturedFileChange"> & {
   /**
-   * Stable id of this file change within its set. The correlation key a
-   * FILE-scoped FileDecision references. Never a content hash.
+   * Stable id of this file change within its set. The id a file-scoped
+   * stigmer.file_review.decided event names. Never a content hash.
    *
    * @generated from field: string id = 1;
    */
@@ -379,156 +366,6 @@ export const CasManifestRefSchema: GenMessage<CasManifestRef> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 4);
 
 /**
- * One human decision on a change set or a single file within it.
- *
- * Bound to content by expected_digest: the runner's reconcile applies the
- * decision only when the target's current digest still matches what the user
- * saw, so "what you approve is what gets applied". expected_digest is an
- * ENFORCEMENT gate, never a correlation key — correlation is by change_set_id
- * (+ file_change_id for FILE scope).
- *
- * @generated from message ai.stigmer.agentic.run.v1.FileDecision
- */
-export type FileDecision = Message<"ai.stigmer.agentic.run.v1.FileDecision"> & {
-  /**
-   * Stable id of this decision.
-   *
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * The change set this decision targets (correlation key).
-   *
-   * @generated from field: string change_set_id = 2;
-   */
-  changeSetId: string;
-
-  /**
-   * Whether the decision applies to the whole change set or one file. HUNK is
-   * intentionally deferred. See FileDecisionScope.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileDecisionScope scope = 3;
-   */
-  scope: FileDecisionScope;
-
-  /**
-   * The CapturedFileChange this decision targets; set only when scope is FILE
-   * (correlation key). Empty for CHANGE_SET scope.
-   *
-   * @generated from field: string file_change_id = 4;
-   */
-  fileChangeId: string;
-
-  /**
-   * Approve or reject. See FileDecisionAction.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileDecisionAction action = 5;
-   */
-  action: FileDecisionAction;
-
-  /**
-   * The digest of the content the reviewer actually saw. ENFORCEMENT gate: the
-   * reconcile refuses to apply if the target's current digest differs. Never a
-   * correlation key.
-   *
-   * @generated from field: string expected_digest = 6;
-   */
-  expectedDigest: string;
-
-  /**
-   * Identity of the reviewer (principal). Empty when not attributed.
-   *
-   * @generated from field: string reviewer_id = 7;
-   */
-  reviewerId: string;
-
-  /**
-   * ISO 8601 timestamp when the decision was made.
-   *
-   * @generated from field: string decided_at = 8;
-   */
-  decidedAt: string;
-
-  /**
-   * Optional free-text comment supplied with the decision (audit trail).
-   *
-   * @generated from field: string reason = 9;
-   */
-  reason: string;
-
-  /**
-   * True when this APPROVE consciously kept a change whose diff could not be
-   * fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
-   * Audit provenance only: it records that a human explicitly acknowledged the
-   * limitation. Never an enforcement input or a correlation key, and never
-   * folded into any digest.
-   *
-   * @generated from field: bool acknowledge_unreviewable = 10;
-   */
-  acknowledgeUnreviewable: boolean;
-
-  /**
-   * Which authority authored this decision: a human reviewer (USER; also the
-   * reading for UNSPECIFIED pre-origin records) or the approved-command
-   * auto-keep policy. Audit provenance only — never enforcement, never
-   * correlation, never folded into any digest. See FileDecisionOrigin.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileDecisionOrigin origin = 11;
-   */
-  origin: FileDecisionOrigin;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.FileDecision.
- * Use `create(FileDecisionSchema)` to create a new message.
- */
-export const FileDecisionSchema: GenMessage<FileDecision> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 5);
-
-/**
- * The baseline workspace state captured at turn start.
- *
- * @generated from message ai.stigmer.agentic.run.v1.FileReviewBaselineCaptured
- */
-export type FileReviewBaselineCaptured = Message<"ai.stigmer.agentic.run.v1.FileReviewBaselineCaptured"> & {
-  /**
-   * Stable id of the change set this baseline opens.
-   *
-   * @generated from field: string change_set_id = 1;
-   */
-  changeSetId: string;
-
-  /**
-   * The turn that produced it.
-   *
-   * @generated from field: string turn_id = 2;
-   */
-  turnId: string;
-
-  /**
-   * The harness that produced it ("cursor" | "deep-agent").
-   *
-   * @generated from field: string harness_id = 3;
-   */
-  harnessId: string;
-
-  /**
-   * The captured baseline state.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.SnapshotRef baseline_snapshot = 4;
-   */
-  baselineSnapshot?: SnapshotRef;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.FileReviewBaselineCaptured.
- * Use `create(FileReviewBaselineCapturedSchema)` to create a new message.
- */
-export const FileReviewBaselineCapturedSchema: GenMessage<FileReviewBaselineCaptured> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 6);
-
-/**
  * The runner's turn facts backing the approved-command auto-keep policy:
  * its assertion that EVERY mutation in the candidate was produced by
  * executed shell commands the human had already authorized, with the consent
@@ -538,12 +375,11 @@ export const FileReviewBaselineCapturedSchema: GenMessage<FileReviewBaselineCapt
  */
 export type TurnCommandProvenance = Message<"ai.stigmer.agentic.run.v1.TurnCommandProvenance"> & {
   /**
-   * Ids of the transcript tool calls whose SERVER-AUTHORED approval_action
-   * (written only by SubmitApproval, preserved against runner writes)
-   * authorizes this turn's executed commands: the approved gate row for a
-   * per-command grant, or the APPROVE_ALL row whose category lease covered the
-   * command. Exact-id lookup — never a content or fuzzy match. Empty only when
-   * authorized_by_auto_approve_all carries the consent instead.
+   * Ids of the tool calls whose answers in the session's log authorize this
+   * turn's executed commands: the call a person allowed, or the call whose
+   * grant for its class covered the command. Exact-id lookup — never a content
+   * or fuzzy match. Empty only when authorized_by_auto_approve_all carries the
+   * consent instead.
    *
    * @generated from field: repeated string consent_tool_call_ids = 1;
    */
@@ -564,269 +400,7 @@ export type TurnCommandProvenance = Message<"ai.stigmer.agentic.run.v1.TurnComma
  * Use `create(TurnCommandProvenanceSchema)` to create a new message.
  */
 export const TurnCommandProvenanceSchema: GenMessage<TurnCommandProvenance> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 7);
-
-/**
- * The candidate workspace state captured at the turn boundary, carrying the
- * computed authoritative diff.
- *
- * @generated from message ai.stigmer.agentic.run.v1.FileReviewCandidateCaptured
- */
-export type FileReviewCandidateCaptured = Message<"ai.stigmer.agentic.run.v1.FileReviewCandidateCaptured"> & {
-  /**
-   * The change set this candidate closes.
-   *
-   * @generated from field: string change_set_id = 1;
-   */
-  changeSetId: string;
-
-  /**
-   * The captured candidate state.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.SnapshotRef candidate_snapshot = 2;
-   */
-  candidateSnapshot?: SnapshotRef;
-
-  /**
-   * The authoritative per-file diff (diff of baseline → candidate).
-   *
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.CapturedFileChange changes = 3;
-   */
-  changes: CapturedFileChange[];
-
-  /**
-   * Canonical digest over the ordered manifest (enforcement).
-   *
-   * @generated from field: string aggregate_digest = 4;
-   */
-  aggregateDigest: string;
-
-  /**
-   * The runner-derived completeness rollup for this candidate: COMPLETE when
-   * every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
-   * blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.DiffCompleteness diff_completeness = 5;
-   */
-  diffCompleteness: DiffCompleteness;
-
-  /**
-   * The runner's approved-command turn facts. When present AND the
-   * backend's verification passes, the set is auto-kept by a policy-origin
-   * FILE_DECIDED instead of arming the review gate. Absent → manual review.
-   * See TurnCommandProvenance.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 6;
-   */
-  commandProvenance?: TurnCommandProvenance;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.FileReviewCandidateCaptured.
- * Use `create(FileReviewCandidateCapturedSchema)` to create a new message.
- */
-export const FileReviewCandidateCapturedSchema: GenMessage<FileReviewCandidateCaptured> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 8);
-
-/**
- * The result of reconciling approved decisions into the workspace.
- *
- * @generated from message ai.stigmer.agentic.run.v1.FileReviewReconciled
- */
-export type FileReviewReconciled = Message<"ai.stigmer.agentic.run.v1.FileReviewReconciled"> & {
-  /**
-   * The change set that was reconciled.
-   *
-   * @generated from field: string change_set_id = 1;
-   */
-  changeSetId: string;
-
-  /**
-   * The exact workspace state reconciled to and hash-verified.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 2;
-   */
-  approvedSnapshot?: SnapshotRef;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.FileReviewReconciled.
- * Use `create(FileReviewReconciledSchema)` to create a new message.
- */
-export const FileReviewReconciledSchema: GenMessage<FileReviewReconciled> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 9);
-
-/**
- * A terminal failure in the file-review lifecycle.
- *
- * @generated from message ai.stigmer.agentic.run.v1.FileReviewFailure
- */
-export type FileReviewFailure = Message<"ai.stigmer.agentic.run.v1.FileReviewFailure"> & {
-  /**
-   * The change set the failure pertains to.
-   *
-   * @generated from field: string change_set_id = 1;
-   */
-  changeSetId: string;
-
-  /**
-   * The precise failure mode. event_type buckets this as FAILED; this carries
-   * the fidelity. See FileReviewFailureKind.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileReviewFailureKind kind = 2;
-   */
-  kind: FileReviewFailureKind;
-
-  /**
-   * Human-readable detail for the audit trail. Never affects control flow.
-   *
-   * @generated from field: string detail = 3;
-   */
-  detail: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.FileReviewFailure.
- * Use `create(FileReviewFailureSchema)` to create a new message.
- */
-export const FileReviewFailureSchema: GenMessage<FileReviewFailure> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 10);
-
-/**
- * An immutable event in the file-review lifecycle.
- *
- * The payload is a closed oneof so each event type is type-safe and
- * self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;
- * the payload carries fidelity.
- *
- * @generated from message ai.stigmer.agentic.run.v1.FileReviewEvent
- */
-export type FileReviewEvent = Message<"ai.stigmer.agentic.run.v1.FileReviewEvent"> & {
-  /**
-   * Unique id of this event, deterministic by design: derived from
-   * change_set_id + scope id + event_type. The permanent idempotency key for
-   * append-only authoring, so re-deriving or re-authoring never duplicates an
-   * event.
-   *
-   * @generated from field: string event_id = 1;
-   */
-  eventId: string;
-
-  /**
-   * Correlation id shared by every event for one change set.
-   *
-   * @generated from field: string change_set_id = 2;
-   */
-  changeSetId: string;
-
-  /**
-   * Coarse lifecycle bucket of this event. See FileReviewEventType.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.FileReviewEventType event_type = 3;
-   */
-  eventType: FileReviewEventType;
-
-  /**
-   * ISO 8601 timestamp of the event.
-   *
-   * @generated from field: string timestamp = 4;
-   */
-  timestamp: string;
-
-  /**
-   * Who produced the event: "system"/"runner" for capture and reconcile,
-   * "user" for decisions.
-   *
-   * @generated from field: string actor = 5;
-   */
-  actor: string;
-
-  /**
-   * Typed payload, selected by event_type.
-   *
-   * @generated from oneof ai.stigmer.agentic.run.v1.FileReviewEvent.payload
-   */
-  payload: {
-    /**
-     * Set when event_type == BASELINE_CAPTURED.
-     *
-     * @generated from field: ai.stigmer.agentic.run.v1.FileReviewBaselineCaptured baseline_captured = 6;
-     */
-    value: FileReviewBaselineCaptured;
-    case: "baselineCaptured";
-  } | {
-    /**
-     * Set when event_type == CANDIDATE_CAPTURED.
-     *
-     * @generated from field: ai.stigmer.agentic.run.v1.FileReviewCandidateCaptured candidate_captured = 7;
-     */
-    value: FileReviewCandidateCaptured;
-    case: "candidateCaptured";
-  } | {
-    /**
-     * Set when event_type == FILE_DECIDED — authored by SubmitFileDecision.
-     *
-     * @generated from field: ai.stigmer.agentic.run.v1.FileDecision file_decided = 8;
-     */
-    value: FileDecision;
-    case: "fileDecided";
-  } | {
-    /**
-     * Set when event_type == RECONCILED.
-     *
-     * @generated from field: ai.stigmer.agentic.run.v1.FileReviewReconciled reconciled = 9;
-     */
-    value: FileReviewReconciled;
-    case: "reconciled";
-  } | {
-    /**
-     * Set when event_type == FAILED.
-     *
-     * @generated from field: ai.stigmer.agentic.run.v1.FileReviewFailure failed = 10;
-     */
-    value: FileReviewFailure;
-    case: "failed";
-  } | { case: undefined; value?: undefined };
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.FileReviewEvent.
- * Use `create(FileReviewEventSchema)` to create a new message.
- */
-export const FileReviewEventSchema: GenMessage<FileReviewEvent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 11);
-
-/**
- * The ordered sequence of file-review events for a single run.
- *
- * Persisted on RunStatus.file_review_event_stream as a
- * server-authored, append-only record. FileChangeSet is the projection of this
- * stream; the stream is the source of truth.
- *
- * @generated from message ai.stigmer.agentic.run.v1.FileReviewEventStream
- */
-export type FileReviewEventStream = Message<"ai.stigmer.agentic.run.v1.FileReviewEventStream"> & {
-  /**
-   * Run.metadata.id this stream belongs to.
-   *
-   * @generated from field: string run_id = 1;
-   */
-  runId: string;
-
-  /**
-   * Events in lifecycle order.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.FileReviewEvent events = 2;
-   */
-  events: FileReviewEvent[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.FileReviewEventStream.
- * Use `create(FileReviewEventStreamSchema)` to create a new message.
- */
-export const FileReviewEventStreamSchema: GenMessage<FileReviewEventStream> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 12);
+  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 5);
 
 /**
  * A transient, non-authoritative snapshot of the workspace delta accumulating
@@ -836,10 +410,9 @@ export const FileReviewEventStreamSchema: GenMessage<FileReviewEventStream> = /*
  */
 export type FileChangeProgress = Message<"ai.stigmer.agentic.run.v1.FileChangeProgress"> & {
   /**
-   * Id of the CAPTURING change set this progress previews ("${executionId}:${turnSeq}").
-   * The server keeps this snapshot only while a CAPTURING FileChangeSet with this
-   * id exists, so a stale prior-turn snapshot is cleared once the next turn pins a
-   * new baseline.
+   * Id of the change set this progress previews ("${executionId}:${turnSeq}"),
+   * before it is captured. A stale prior-turn snapshot is cleared once the next
+   * turn pins a new baseline.
    *
    * @generated from field: string change_set_id = 1;
    */
@@ -888,7 +461,7 @@ export type FileChangeProgress = Message<"ai.stigmer.agentic.run.v1.FileChangePr
  * Use `create(FileChangeProgressSchema)` to create a new message.
  */
 export const FileChangeProgressSchema: GenMessage<FileChangeProgress> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 13);
+  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 6);
 
 /**
  * One file within a FileChangeProgress snapshot — a slim, non-authoritative row.
@@ -939,5 +512,5 @@ export type FileChangeProgressEntry = Message<"ai.stigmer.agentic.run.v1.FileCha
  * Use `create(FileChangeProgressEntrySchema)` to create a new message.
  */
 export const FileChangeProgressEntrySchema: GenMessage<FileChangeProgressEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 14);
+  messageDesc(file_ai_stigmer_agentic_run_v1_filereview, 7);
 

@@ -10,10 +10,7 @@ package ai.stigmer.agentic.run.v1;
  * One file's delta within a FileChangeSet.
  *
  * Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
- * for the offloadable unified diff — no parallel blob/artifact types. This is
- * the apply-then-review successor to the tool-call-coupled FileChange in
- * message.proto; the two coexist until the legacy file-change coupling is
- * deleted, at which point this message takes the canonical FileChange name.
+ * for the offloadable unified diff — no parallel blob/artifact types.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.CapturedFileChange}
@@ -73,8 +70,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object id_ = "";
   /**
    * <pre>
-   * Stable id of this file change within its set. The correlation key a
-   * FILE-scoped FileDecision references. Never a content hash.
+   * Stable id of this file change within its set. The id a file-scoped
+   * stigmer.file_review.decided event names. Never a content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -95,8 +92,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stable id of this file change within its set. The correlation key a
-   * FILE-scoped FileDecision references. Never a content hash.
+   * Stable id of this file change within its set. The id a file-scoped
+   * stigmer.file_review.decided event names. Never a content hash.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -943,10 +940,7 @@ private static final long serialVersionUID = 0L;
    * One file's delta within a FileChangeSet.
    *
    * Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
-   * for the offloadable unified diff — no parallel blob/artifact types. This is
-   * the apply-then-review successor to the tool-call-coupled FileChange in
-   * message.proto; the two coexist until the legacy file-change coupling is
-   * deleted, at which point this message takes the canonical FileChange name.
+   * for the offloadable unified diff — no parallel blob/artifact types.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.CapturedFileChange}
@@ -1304,8 +1298,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object id_ = "";
     /**
      * <pre>
-     * Stable id of this file change within its set. The correlation key a
-     * FILE-scoped FileDecision references. Never a content hash.
+     * Stable id of this file change within its set. The id a file-scoped
+     * stigmer.file_review.decided event names. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1325,8 +1319,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable id of this file change within its set. The correlation key a
-     * FILE-scoped FileDecision references. Never a content hash.
+     * Stable id of this file change within its set. The id a file-scoped
+     * stigmer.file_review.decided event names. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1347,8 +1341,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable id of this file change within its set. The correlation key a
-     * FILE-scoped FileDecision references. Never a content hash.
+     * Stable id of this file change within its set. The id a file-scoped
+     * stigmer.file_review.decided event names. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1365,8 +1359,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable id of this file change within its set. The correlation key a
-     * FILE-scoped FileDecision references. Never a content hash.
+     * Stable id of this file change within its set. The id a file-scoped
+     * stigmer.file_review.decided event names. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -1380,8 +1374,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable id of this file change within its set. The correlation key a
-     * FILE-scoped FileDecision references. Never a content hash.
+     * Stable id of this file change within its set. The id a file-scoped
+     * stigmer.file_review.decided event names. Never a content hash.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>

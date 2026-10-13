@@ -39,60 +39,6 @@ public interface RunStatusOrBuilder extends
 
   /**
    * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.run.v1.AgentMessage> 
-      getMessagesList();
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  ai.stigmer.agentic.run.v1.AgentMessage getMessages(int index);
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  int getMessagesCount();
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.run.v1.AgentMessageOrBuilder> 
-      getMessagesOrBuilderList();
-  /**
-   * <pre>
-   * Sequential stream of run events: AI messages, tool calls, and system notifications.
-   * Ordered chronologically to reconstruct the complete run flow.
-   * Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentMessage messages = 1 [json_name = "messages"];</code>
-   */
-  ai.stigmer.agentic.run.v1.AgentMessageOrBuilder getMessagesOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Current run lifecycle phase.
    * Tracks the run state from creation (PENDING) through active processing (IN_PROGRESS)
    * to terminal states (COMPLETED/FAILED/CANCELLED).
@@ -113,60 +59,6 @@ public interface RunStatusOrBuilder extends
    * @return The phase.
    */
   ai.stigmer.agentic.run.v1.RunPhase getPhase();
-
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.run.v1.SubAgentRun> 
-      getSubAgentRunsList();
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  ai.stigmer.agentic.run.v1.SubAgentRun getSubAgentRuns(int index);
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  int getSubAgentRunsCount();
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder> 
-      getSubAgentRunsOrBuilderList();
-  /**
-   * <pre>
-   * Sub-agent runs invoked during this run.
-   * Tracks when the main agent delegates work to specialized sub-agents.
-   * Ordered chronologically by invocation time.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.SubAgentRun sub_agent_runs = 4 [json_name = "subAgentRuns"];</code>
-   */
-  ai.stigmer.agentic.run.v1.SubAgentRunOrBuilder getSubAgentRunsOrBuilder(
-      int index);
 
   /**
    * <pre>
@@ -233,235 +125,6 @@ public interface RunStatusOrBuilder extends
    */
   com.google.protobuf.ByteString
       getCompletedAtBytes();
-
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  int getTodosCount();
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  boolean containsTodos(
-      java.lang.String key);
-  /**
-   * Use {@link #getTodosMap()} instead.
-   */
-  @java.lang.Deprecated
-  java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem>
-  getTodos();
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  java.util.Map<java.lang.String, ai.stigmer.agentic.run.v1.TodoItem>
-  getTodosMap();
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  /* nullable */
-ai.stigmer.agentic.run.v1.TodoItem getTodosOrDefault(
-      java.lang.String key,
-      /* nullable */
-ai.stigmer.agentic.run.v1.TodoItem defaultValue);
-  /**
-   * <pre>
-   * Todo list tracking multi-step tasks and progress for this run.
-   * Updated via write_todos tool (if TodoListMiddleware is enabled).
-   * Each run maintains its own snapshot of todos at run time.
-   * Key: todo item ID, Value: todo item details
-   * </pre>
-   *
-   * <code>map&lt;string, .ai.stigmer.agentic.run.v1.TodoItem&gt; todos = 9 [json_name = "todos"];</code>
-   */
-  ai.stigmer.agentic.run.v1.TodoItem getTodosOrThrow(
-      java.lang.String key);
-
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.run.v1.PendingApproval> 
-      getPendingApprovalsList();
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  ai.stigmer.agentic.run.v1.PendingApproval getPendingApprovals(int index);
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  int getPendingApprovalsCount();
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder> 
-      getPendingApprovalsOrBuilderList();
-  /**
-   * <pre>
-   * Active pending approval requests for this run.
-   *
-   * Contains one entry per tool call that requires user approval before
-   * it can proceed. Sub-agent approvals are included with from_sub_agent
-   * set to true. Empty when no approvals are pending.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.PendingApproval pending_approvals = 16 [json_name = "pendingApprovals"];</code>
-   */
-  ai.stigmer.agentic.run.v1.PendingApprovalOrBuilder getPendingApprovalsOrBuilder(
-      int index);
-
-  /**
-   * <pre>
-   * No longer written: approvals and their answers are the session's events
-   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-   * stigmer.permission.grant). Runs written before then keep their entries.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-   * @return Whether the approvalEventStream field is set.
-   */
-  boolean hasApprovalEventStream();
-  /**
-   * <pre>
-   * No longer written: approvals and their answers are the session's events
-   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-   * stigmer.permission.grant). Runs written before then keep their entries.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-   * @return The approvalEventStream.
-   */
-  ai.stigmer.agentic.run.v1.ApprovalEventStream getApprovalEventStream();
-  /**
-   * <pre>
-   * No longer written: approvals and their answers are the session's events
-   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-   * stigmer.permission.grant). Runs written before then keep their entries.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22 [json_name = "approvalEventStream"];</code>
-   */
-  ai.stigmer.agentic.run.v1.ApprovalEventStreamOrBuilder getApprovalEventStreamOrBuilder();
-
-  /**
-   * <pre>
-   * Context window utilization and summarization tracking.
-   *
-   * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during the run.
-   *
-   * Populated when context management is active (not disabled via config).
-   * Updated progressively during streaming as token counts change.
-   *
-   * Use cases:
-   * - **Monitoring**: Track context utilization across runs
-   * - **Debugging**: Understand why a run hit context limits
-   * - **Cost optimization**: Identify runs with excessive summarization
-   * - **UX**: Show users their context window health
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-   * @return Whether the contextInfo field is set.
-   */
-  boolean hasContextInfo();
-  /**
-   * <pre>
-   * Context window utilization and summarization tracking.
-   *
-   * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during the run.
-   *
-   * Populated when context management is active (not disabled via config).
-   * Updated progressively during streaming as token counts change.
-   *
-   * Use cases:
-   * - **Monitoring**: Track context utilization across runs
-   * - **Debugging**: Understand why a run hit context limits
-   * - **Cost optimization**: Identify runs with excessive summarization
-   * - **UX**: Show users their context window health
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-   * @return The contextInfo.
-   */
-  ai.stigmer.agentic.run.v1.ContextInfo getContextInfo();
-  /**
-   * <pre>
-   * Context window utilization and summarization tracking.
-   *
-   * Provides visibility into how the agent is using its context window and
-   * any summarization events that occurred during the run.
-   *
-   * Populated when context management is active (not disabled via config).
-   * Updated progressively during streaming as token counts change.
-   *
-   * Use cases:
-   * - **Monitoring**: Track context utilization across runs
-   * - **Debugging**: Understand why a run hit context limits
-   * - **Cost optimization**: Identify runs with excessive summarization
-   * - **UX**: Show users their context window health
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
-   */
-  ai.stigmer.agentic.run.v1.ContextInfoOrBuilder getContextInfoOrBuilder();
 
   /**
    * <pre>
@@ -709,145 +372,6 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * Structured output extracted from the agent's final response.
-   *
-   * Populated when spec.structured_output_schema was set and the
-   * runner successfully extracted schema-conforming data. Only meaningful
-   * when phase is RUN_COMPLETED.
-   *
-   * For native harness: populated from LangGraph graphState.structuredResponse
-   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-   *
-   * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages.
-   * </pre>
-   *
-   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-   * @return Whether the structuredOutput field is set.
-   */
-  boolean hasStructuredOutput();
-  /**
-   * <pre>
-   * Structured output extracted from the agent's final response.
-   *
-   * Populated when spec.structured_output_schema was set and the
-   * runner successfully extracted schema-conforming data. Only meaningful
-   * when phase is RUN_COMPLETED.
-   *
-   * For native harness: populated from LangGraph graphState.structuredResponse
-   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-   *
-   * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages.
-   * </pre>
-   *
-   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-   * @return The structuredOutput.
-   */
-  com.google.protobuf.Struct getStructuredOutput();
-  /**
-   * <pre>
-   * Structured output extracted from the agent's final response.
-   *
-   * Populated when spec.structured_output_schema was set and the
-   * runner successfully extracted schema-conforming data. Only meaningful
-   * when phase is RUN_COMPLETED.
-   *
-   * For native harness: populated from LangGraph graphState.structuredResponse
-   * (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-   * extraction (JSON.parse → fence extraction → extraction LLM fallback).
-   *
-   * Consumers: frontend architect/refine hooks read this instead of parsing
-   * YAML from messages.
-   * </pre>
-   *
-   * <code>.google.protobuf.Struct structured_output = 21 [json_name = "structuredOutput"];</code>
-   */
-  com.google.protobuf.StructOrBuilder getStructuredOutputOrBuilder();
-
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> 
-      getFileChangeSetsList();
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  ai.stigmer.agentic.run.v1.FileChangeSet getFileChangeSets(int index);
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  int getFileChangeSetsCount();
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> 
-      getFileChangeSetsOrBuilderList();
-  /**
-   * <pre>
-   * Server-computed projection of file change sets awaiting or completing
-   * review for this run.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_change_sets = 23 [json_name = "fileChangeSets"];</code>
-   */
-  ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder getFileChangeSetsOrBuilder(
-      int index);
-
-  /**
-   * <pre>
-   * Server-owned, append-only record of every file-review event (baseline /
-   * candidate capture, file decisions, reconcile, failures).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-   * @return Whether the fileReviewEventStream field is set.
-   */
-  boolean hasFileReviewEventStream();
-  /**
-   * <pre>
-   * Server-owned, append-only record of every file-review event (baseline /
-   * candidate capture, file decisions, reconcile, failures).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-   * @return The fileReviewEventStream.
-   */
-  ai.stigmer.agentic.run.v1.FileReviewEventStream getFileReviewEventStream();
-  /**
-   * <pre>
-   * Server-owned, append-only record of every file-review event (baseline /
-   * candidate capture, file decisions, reconcile, failures).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.FileReviewEventStream file_review_event_stream = 24 [json_name = "fileReviewEventStream"];</code>
-   */
-  ai.stigmer.agentic.run.v1.FileReviewEventStreamOrBuilder getFileReviewEventStreamOrBuilder();
-
-  /**
-   * <pre>
    * Transient, non-authoritative snapshot of the workspace delta accumulating
    * during the current turn — the live "N files changed so far" surface, shown
    * before any review is possible.
@@ -881,42 +405,82 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * Report of which recalled memories were injected into this run's
-   * prompt.
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
    *
-   * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the status.recalled_memories snapshot was injected.
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-   * @return Whether the recalledMemoriesReport field is set.
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
    */
-  boolean hasRecalledMemoriesReport();
+  java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> 
+      getFileChangesList();
   /**
    * <pre>
-   * Report of which recalled memories were injected into this run's
-   * prompt.
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
    *
-   * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the status.recalled_memories snapshot was injected.
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
-   * @return The recalledMemoriesReport.
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
    */
-  ai.stigmer.agentic.run.v1.RecalledMemoriesReport getRecalledMemoriesReport();
+  ai.stigmer.agentic.run.v1.FileChangeSet getFileChanges(int index);
   /**
    * <pre>
-   * Report of which recalled memories were injected into this run's
-   * prompt.
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
    *
-   * Absent, or present with selection_active=false, means wholesale: every
-   * fact in the status.recalled_memories snapshot was injected.
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.RecalledMemoriesReport recalled_memories_report = 26 [json_name = "recalledMemoriesReport"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
    */
-  ai.stigmer.agentic.run.v1.RecalledMemoriesReportOrBuilder getRecalledMemoriesReportOrBuilder();
+  int getFileChangesCount();
+  /**
+   * <pre>
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
+   *
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder> 
+      getFileChangesOrBuilderList();
+  /**
+   * <pre>
+   * The run's file record: the change sets its turns captured, each with the
+   * files' contents before and after (inline or by storage key), the diff, the
+   * snapshots they were read from and the consent the turn's commands ran
+   * under. Empty for a run that changed no file or ran without file review.
+   *
+   * A record only: it carries no status and no decisions. What was decided,
+   * what is still undecided and what was put back are the session's
+   * stigmer.file_review.* events.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.FileChangeSet file_changes = 37 [json_name = "fileChanges"];</code>
+   */
+  ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder getFileChangesOrBuilder(
+      int index);
 
   /**
    * <pre>
