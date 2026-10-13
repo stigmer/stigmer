@@ -20,6 +20,7 @@ import { create } from "@bufbuild/protobuf";
 import type { HandlerContext } from "@connectrpc/connect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
@@ -40,7 +41,8 @@ import {
 import { parseBearerToken } from "../../pipeline/interceptors/auth.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { admitLive, mayAppend } from "./events/append.js";
+import { isTerminalExecutionPhase } from "../run/phases.js";
+import { mayAppend } from "./events/append.js";
 import type { AppendSessionEventsDeps } from "./events/append.js";
 import { sessionIdOfRun } from "./events/transitions.js";
 import { recordHarnessState } from "./steps.js";
@@ -71,7 +73,11 @@ export async function bindHarnessState(
   }
 
   const run = await loadRun(deps.store, input.runId);
-  admitLive(run);
+  if (isTerminalExecutionPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED)) {
+    throw failedPreconditionError(
+      `run '${input.runId}' is finished; it records no more harness state`,
+    );
+  }
   const sessionId = sessionIdOfRun(run);
   if (sessionId === "") {
     throw failedPreconditionError(

@@ -225,7 +225,7 @@ async function loadRun(store: Store, runId: string): Promise<Run> {
 }
 
 /** Refuses a finished run: its turn is over and takes no more events. */
-export function admitLive(run: Run): void {
+function admitLive(run: Run): void {
   const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (isTerminalExecutionPhase(phase)) {
     throw failedPreconditionError(
