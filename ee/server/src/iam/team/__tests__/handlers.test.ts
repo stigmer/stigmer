@@ -350,15 +350,17 @@ describe("rename", () => {
     expect((await r.teams.findById(created.metadata?.id ?? ""))?.metadata?.slug).toBe("sre");
   });
 
-  it("an update that loaded the team before a rename keeps the new slug", async () => {
+  it("an update that loaded the team before a rename loses its swap, runs again, and keeps the new slug", async () => {
     const teams = new InMemoryTeamStore();
     let renameMidWrite: (() => Promise<unknown>) | undefined;
+    let swaps = 0;
     const racing = Object.assign(Object.create(teams) as InMemoryTeamStore, {
-      replace: async (team: Team) => {
+      swap: async (id: string, expectedBytes: Uint8Array, team: Team) => {
+        swaps += 1;
         const rename = renameMidWrite;
         renameMidWrite = undefined;
         await rename?.();
-        return teams.replace(team);
+        return teams.swap(id, expectedBytes, team);
       },
     });
     const r = rig({ teams: racing });
@@ -376,6 +378,7 @@ describe("rename", () => {
     );
 
     expect(renameMidWrite, "the rename landed mid-write").toBeUndefined();
+    expect(swaps, "the lost swap ran again from a fresh read").toBe(2);
     expect(updated.metadata?.slug).toBe("site-reliability");
     const row = await teams.findById(id);
     expect(row?.metadata?.slug).toBe("site-reliability");

@@ -118,6 +118,7 @@ import {
 } from "../../pipeline/steps/load-target.js";
 import { newClaimNameStep, releaseNameAfterFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import {
@@ -327,31 +328,33 @@ async function updateVault(
   vault: Vault,
   ctx: HandlerContext,
 ): Promise<Vault> {
-  const reqCtx = new RequestContext(
-    VaultSchema,
-    vault,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  try {
-    await newPipeline<typeof VaultSchema>("vault-update", deps.logger)
-      .addStep(newAuthorizeStep(VaultCommandController.method.update, deps.authorizer))
-      .addStep(newValidateProtoStep())
-      .addStep(newResolveSlugStep({ update: true }))
-      .addStep(newLoadExistingStep(deps.store))
-      .addStep(newBuildUpdateStateStep())
-      .addStep(newGuardReservedLabelsStep(deps.authorizer))
-      .addStep(newKeepStoredOwnerAndEntriesStep())
-      .addStep(newClaimExternalIdStep(deps.store))
-      .addStep(newPersistVaultUpdateStep(deps.store))
-      .addStep(newReleaseClearedExternalIdStep(deps.store, deps.logger))
-      .build()
-      .execute(reqCtx);
-  } catch (error) {
-    await undoExternalIdMoveAfterFailure(deps.store, deps.logger, reqCtx);
-    throw error;
-  }
-  return respond(reqCtx.newState);
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      VaultSchema,
+      vault,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    try {
+      await newPipeline<typeof VaultSchema>("vault-update", deps.logger)
+        .addStep(newAuthorizeStep(VaultCommandController.method.update, deps.authorizer))
+        .addStep(newValidateProtoStep())
+        .addStep(newResolveSlugStep({ update: true }))
+        .addStep(newLoadExistingStep(deps.store))
+        .addStep(newBuildUpdateStateStep())
+        .addStep(newGuardReservedLabelsStep(deps.authorizer))
+        .addStep(newKeepStoredOwnerAndEntriesStep())
+        .addStep(newClaimExternalIdStep(deps.store))
+        .addStep(newPersistVaultUpdateStep(deps.store))
+        .addStep(newReleaseClearedExternalIdStep(deps.store, deps.logger))
+        .build()
+        .execute(reqCtx);
+    } catch (error) {
+      await undoExternalIdMoveAfterFailure(deps.store, deps.logger, reqCtx);
+      throw error;
+    }
+    return respond(reqCtx.newState);
+  });
 }
 
 type DeleteDesc = typeof VaultCommandController.method.delete.input;

@@ -101,6 +101,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import {
   newNormalizeReferencesStep,
   newValidateReferencesStep,
@@ -280,33 +281,35 @@ async function update(
   schedule: Schedule,
   ctx: HandlerContext,
 ): Promise<Schedule> {
-  const reqCtx = new RequestContext(
-    ScheduleSchema,
-    schedule,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof ScheduleSchema>("schedule-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(
-        ScheduleCommandController.method.update,
-        deps.authorizer,
-      ),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newNormalizeReferencesStep(deps.store))
-    .addStep(newValidateScheduleUpdateStep(deps))
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
-    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SCHEDULE_VAULT_ATTACHMENTS))
-    .addStep(newPersistScheduleUpdateStep(deps.store))
-    .addStep(newArmScheduleStep(deps.clock, deps.logger))
-    .build()
-    .execute(reqCtx);
-  return reqCtx.newState;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      ScheduleSchema,
+      schedule,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof ScheduleSchema>("schedule-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(
+          ScheduleCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newValidateScheduleUpdateStep(deps))
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SCHEDULE_VAULT_ATTACHMENTS))
+      .addStep(newPersistScheduleUpdateStep(deps.store))
+      .addStep(newArmScheduleStep(deps.clock, deps.logger))
+      .build()
+      .execute(reqCtx);
+    return reqCtx.newState;
+  });
 }
 
 /**

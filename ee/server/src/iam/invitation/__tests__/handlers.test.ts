@@ -24,7 +24,7 @@
  *     it reads the row, with the lane's copy, so a caller who may not
  *     revoke it is refused alike whether or not the id exists; it is
  *     idempotent, and an unknown id is NOT_FOUND to a caller who may
- *     revoke;
+ *     revoke, as is one deleted between the load and the revoke;
  *   - create refuses an organization's service account, writing nothing;
  *   - redeem admits a person only: every other caller class, a service
  *     account's included, is refused PERMISSION_DENIED before the token is
@@ -597,6 +597,21 @@ describe("revoke", () => {
     expect((await r.commands.revoke({ value: "inv_a" })).status?.state).toBe(InvitationState.revoked);
     const missing = await failure(r.commands.revoke({ value: "inv_missing" }));
     expect(missing.code).toBe(Code.NotFound);
+  });
+});
+
+describe("revoke, racing a delete", () => {
+  it("is NOT_FOUND when the invitation is deleted between the load and the revoke", async () => {
+    const r = rig();
+    await r.store.save(stored({ id: "inv_a" }));
+    const revoke = r.store.revoke.bind(r.store);
+    r.store.revoke = async (id: string) => {
+      await r.store.deleteById(id);
+      return revoke(id);
+    };
+    const missing = await failure(r.commands.revoke({ value: "inv_a" }));
+    expect(missing.code).toBe(Code.NotFound);
+    expect(missing.rawMessage).toBe("Invitation not found: inv_a");
   });
 });
 

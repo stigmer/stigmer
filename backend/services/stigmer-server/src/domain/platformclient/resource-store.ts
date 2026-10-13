@@ -12,14 +12,15 @@
  * per-request path. A lookup by slug reads the name table, then this
  * store by id (steps.ts findClientByName).
  *
- * `save` and `update` are read-then-write because the generic Store's
- * saveResource is an upsert with neither a create-only nor an update-only
- * form — the identity-account adapter's posture, with its reasoning
- * (domain/identityaccount/resource-store.ts): `save` refuses a held id or
- * client_id; `update` writes nothing for an unknown id. A held slug is the
- * name table's refusal, taken by the create chain before this write.
- * `modifyById` has no such window: it IS Store.updateResource, the generic
- * store's own atomic read-modify-write, its not-found read as `undefined`.
+ * `save` is read-then-write because the generic Store's saveResource is an
+ * upsert with no create-only form — the identity-account adapter's
+ * posture, with its reasoning (domain/identityaccount/resource-store.ts):
+ * it refuses a held id or client_id. A held slug is the name table's
+ * refusal, taken by the create chain before this write. `modifyById` has
+ * no such window: it IS Store.updateResource, the generic store's own
+ * atomic read-modify-write, its not-found read as `undefined`; and
+ * `readForWrite` and `swap` ARE Store.readResourceForWrite and
+ * Store.swapResource.
  *
  * Store faults follow the store-fault mapping: a typed ResourceNotFoundError
  * reads as `undefined`; anything else propagates — an outage must never
@@ -33,6 +34,7 @@ import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclie
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
 import { ResourceNotFoundError } from "../../store/interface.js";
+import type { GuardedRead } from "../../store/guarded-port.js";
 import type { Store } from "../../store/interface.js";
 import { DuplicatePlatformClientError } from "./store.js";
 import type { PlatformClientStore } from "./store.js";
@@ -107,12 +109,30 @@ export function newResourcePlatformClientStore(
       await store.saveResource(KIND, id, PlatformClientSchema, client);
     },
 
-    async update(client): Promise<void> {
-      const id = client.metadata?.id ?? "";
-      if ((await readById(id)) === undefined) {
-        return;
+    async readForWrite(id): Promise<GuardedRead<PlatformClient> | undefined> {
+      try {
+        const read = await store.readResourceForWrite(
+          KIND,
+          id,
+          PlatformClientSchema,
+        );
+        return { row: read.resource, bytes: read.bytes };
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          return undefined;
+        }
+        throw error;
       }
-      await store.saveResource(KIND, id, PlatformClientSchema, client);
+    },
+
+    swap(id, expectedBytes, next): Promise<boolean> {
+      return store.swapResource(
+        KIND,
+        id,
+        PlatformClientSchema,
+        expectedBytes,
+        next,
+      );
     },
 
     async modifyById(id, modify): Promise<PlatformClient | undefined> {

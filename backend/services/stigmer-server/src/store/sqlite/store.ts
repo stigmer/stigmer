@@ -59,6 +59,7 @@ import type {
   OrganizationDeletionStore,
   PendingOAuthStateStore,
   RawResourceDocument,
+  ResourceReadForWrite,
   ScheduleFireRecord,
   SearchIndexEntry,
   SearchIndexHit,
@@ -326,6 +327,37 @@ export class SqliteStore implements Store {
       throw new ResourceNotFoundError(`${kindName}/${id}`);
     }
     return fromBinary(schema, row.data);
+  }
+
+  async readResourceForWrite<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+  ): Promise<ResourceReadForWrite<Desc>> {
+    const db = this.open();
+    const kindName = apiResourceKindName(kind);
+    const row = db
+      .prepare(`SELECT data FROM resources WHERE kind = ? AND id = ?`)
+      .get(kindName, id) as { data: Uint8Array } | undefined;
+    if (row === undefined) {
+      throw new ResourceNotFoundError(`${kindName}/${id}`);
+    }
+    return { resource: fromBinary(schema, row.data), bytes: row.data };
+  }
+
+  async swapResource<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    expectedBytes: Uint8Array,
+    resource: MessageShape<Desc>,
+  ): Promise<boolean> {
+    return this.replaceResourceDataIfUnchanged(
+      kind,
+      id,
+      expectedBytes,
+      toBinary(schema, resource),
+    );
   }
 
   async updateResource<Desc extends DescMessage>(

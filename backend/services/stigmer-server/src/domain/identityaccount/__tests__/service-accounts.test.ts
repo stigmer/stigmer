@@ -15,7 +15,10 @@
  *   - the name is unique among one organization's service accounts, by
  *     its slug (ALREADY_EXISTS, reason SERVICE_ACCOUNT_NAME_TAKEN), while
  *     another organization may reuse it; a rename onto a held name is
- *     refused the same way and the slug follows an accepted rename;
+ *     refused the same way and the slug follows an accepted rename; a
+ *     rename whose write loses once to a write landing on the row ends with
+ *     one current name, the new one, the row's slug equal to it and the old
+ *     name held only as the previous name the rename keeps;
  *   - the owner role is INVALID_ARGUMENT; a member is PERMISSION_DENIED;
  *     a service account's own key is refused with the refusal copy, even
  *     an admin service account the model would admit;
@@ -36,6 +39,7 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
@@ -55,6 +59,11 @@ import type {
   ResourceAuthorizationLifecycle,
   ServiceAccountLinkedEvent,
 } from "../../../extensions/resource-authorization.js";
+import { kindEnumName } from "../../../pipeline/apiresource-meta.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import { serviceAccountRefusedMessage } from "../../../pipeline/steps/refuse-service-account.js";
 import {
   resetOperatorIdentityForTests,
@@ -309,6 +318,69 @@ describe("service accounts with sign-in on (built-in Authorizer)", () => {
     expect((await query.get({ value: id })).metadata?.slug).toBe(
       "after-rename",
     );
+  });
+
+  it("a service account rename whose write loses once ends with one current name", async () => {
+    const command = createClient(
+      IdentityAccountCommandController,
+      at.as(ADMIN),
+    );
+    const query = createClient(IdentityAccountQueryController, at.as(ADMIN));
+    const account = await createServiceAccount(
+      at.as(ADMIN),
+      acme,
+      "raced-before",
+      IamRole.member,
+    );
+    const id = account.metadata?.id ?? "";
+    expect(account.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const renamed = clone(
+      IdentityAccountSchema,
+      await query.get({ value: id }),
+    );
+    if (renamed.metadata === undefined)
+      throw new Error("account has no metadata");
+    renamed.metadata.name = "Raced After";
+    const beforeRename = new Date(Date.now() - 1).toISOString();
+
+    const { result, writes } = await writeLandsMidUpdate(
+      at.server.store,
+      ApiResourceKind.identity_account,
+      id,
+      visibilityWrite(
+        at.server.store,
+        ApiResourceKind.identity_account,
+        IdentityAccountSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => command.update(renamed),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    expect(result.metadata?.slug).toBe("raced-after");
+    expect(result.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const kind = kindEnumName(ApiResourceKind.identity_account);
+    const names = at.server.store.resourceNames;
+    const current = await names.currentMany([{ kind, org: acme, id }]);
+    expect(current.map((entry) => entry.name)).toEqual(["raced-after"]);
+    expect((await names.current(kind, acme, id))?.name).toBe("raced-after");
+    const stored = (await serviceAccountRowsIn(at.server)).find(
+      (row) => row.metadata?.id === id,
+    );
+    expect(stored?.metadata?.slug).toBe("raced-after");
+    expect(stored?.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const old = await names.resolve(
+      { kind, org: acme, name: "raced-before" },
+      beforeRename,
+    );
+    expect(old).toMatchObject({ id, state: "previous" });
   });
 
   it("refuses the owner role with INVALID_ARGUMENT and writes no account", async () => {

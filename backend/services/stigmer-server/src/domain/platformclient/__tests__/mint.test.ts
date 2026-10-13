@@ -149,8 +149,13 @@ function harness(
       save: async () => {
         clientWrites.push("save");
       },
-      update: async () => {
-        clientWrites.push("update");
+      readForWrite: async () => {
+        clientWrites.push("readForWrite");
+        return undefined;
+      },
+      swap: async () => {
+        clientWrites.push("swap");
+        return false;
       },
       modifyById: async (id, modify) => {
         clientWrites.push("modifyById");

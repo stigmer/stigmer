@@ -14,6 +14,11 @@
  * reads. The staging port (domain/skill/transfer/staging.ts) hides which
  * blob driver holds the bytes: the step never sees a slot or a bucket.
  *
+ * A push whose write lost its compare-and-swap runs again from a fresh
+ * read (pipeline/guarded-write.ts) with the bytes its first attempt
+ * consumed already under ARTIFACT_BYTES_KEY: a reference is single-use, so
+ * the step leaves them as they are rather than consume it twice.
+ *
  * The unusable-reference arm is INVALID_ARGUMENT, not a server fault: an
  * unknown, expired, already consumed, or never-uploaded reference all mean
  * the client must re-mint and re-upload. Any other failure reading the
@@ -48,6 +53,9 @@ export function newResolveArtifactSourceStep<Desc extends DescMessage>(
   return {
     name: "ResolveArtifactSource",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
+      if (ctx.get(ARTIFACT_BYTES_KEY) instanceof Uint8Array) {
+        return;
+      }
       const { artifact, artifactUploadRef } = binding.source(ctx.input);
       if (artifactUploadRef === "") {
         ctx.set(ARTIFACT_BYTES_KEY, artifact);

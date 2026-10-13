@@ -94,7 +94,8 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
-import { newPersistOntoLiveRowStep, newPersistStep } from "../../pipeline/steps/persist.js";
+import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -206,33 +207,35 @@ async function update(
   app: ChannelApp,
   ctx: HandlerContext,
 ): Promise<ChannelApp> {
-  const reqCtx = new RequestContext(
-    ChannelAppSchema,
-    app,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof ChannelAppSchema>("channelapp-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(
-        ChannelAppCommandController.method.update,
-        deps.authorizer,
-      ),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newValidateProviderImmutableStep())
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(
-      newEncryptChannelAppSecretsForUpdateStep(deps.secretService, deps.logger),
-    )
-    .addStep(newPersistOntoLiveRowStep(deps.store))
-    .build()
-    .execute(reqCtx);
-  redactChannelApp(reqCtx.newState);
-  return reqCtx.newState;
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      ChannelAppSchema,
+      app,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof ChannelAppSchema>("channelapp-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(
+          ChannelAppCommandController.method.update,
+          deps.authorizer,
+        ),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newValidateProviderImmutableStep())
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(
+        newEncryptChannelAppSecretsForUpdateStep(deps.secretService, deps.logger),
+      )
+      .addStep(newPersistStep(deps.store))
+      .build()
+      .execute(reqCtx);
+    redactChannelApp(reqCtx.newState);
+    return reqCtx.newState;
+  });
 }
 
 /**

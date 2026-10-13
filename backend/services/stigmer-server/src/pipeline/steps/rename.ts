@@ -30,8 +30,9 @@
  * edit that landed between its load and its write, and the write is
  * followed by a read of the table's current name, so two renames that
  * interleave still leave the row on the name the table holds; every other writer of a
- * renamable kind keeps the live row's slug in the same way (persist.ts
- * newPersistOntoLiveRowStep), so the row and the table agree.
+ * renamable kind writes by compare-and-swap on the row it read and runs
+ * again when a rename lands in between (pipeline/guarded-write.ts), so the
+ * row and the table agree.
  *
  * No search entry holds a slug (a result is built from the live row at
  * query time), and a version's hash covers its spec alone, so a rename

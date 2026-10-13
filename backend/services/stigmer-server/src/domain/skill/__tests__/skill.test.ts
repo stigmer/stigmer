@@ -11,6 +11,16 @@
  * now), audit-slot preservation across pushes (#540), and delete's archive
  * cleanup. Also the refusal of a frontmatter name whose derived slug no
  * reference could hold (stigmer#1283), with its exact copy.
+ *
+ * A re-push whose write loses once runs again, keeps the write that
+ * landed, and archives only the version that went live: an
+ * updateVisibility that lands between the push's read and its swap makes
+ * the push run again from a fresh read, so the stored skill carries the
+ * new content and the status_audit stamp the landed write made, and the
+ * history holds the first push and the re-push, each once. The same race
+ * over a single-use upload reference lands: the retried push reuses the
+ * bytes the first attempt consumed. A re-push keeps the level
+ * updateVisibility set, since a push names no visibility.
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import http2 from "node:http2";
@@ -23,6 +33,8 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { buildZip } from "@stigmer/zip-structure/testing";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -32,6 +44,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import {
   organizationId,
   seedOrganizations,
@@ -237,6 +250,100 @@ describe("push — identity and versioning", () => {
     expect(inOther.metadata?.id).not.toBe(inAcme.metadata?.id);
     expect(inAcme.metadata?.org).toBe(ORG_ID);
     expect(inOther.metadata?.org).toBe(OTHER_ORG_ID);
+  });
+});
+
+describe("push — a write that lands mid-push", () => {
+  /**
+   * Pushes a skill, then re-pushes changed content through `rePush` while
+   * an updateVisibility lands on its row between the re-push's read and
+   * its swap. A re-push keeps the stored status_audit slot (#540), so the
+   * stamp the landed write made survives only a push that read again.
+   */
+  async function rePushWithLandingWrite(
+    rePush: (artifact: Uint8Array) => Promise<Skill>,
+  ) {
+    const name = uniqueName();
+    const first = await command.push({
+      org: ORG,
+      artifact: makeArtifact(name, { body: "# v1" }),
+    });
+    const id = first.metadata!.id;
+    let landed: Skill | undefined;
+    const race = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.skill,
+      id,
+      async () => {
+        landed = await command.updateVisibility({
+          resourceId: id,
+          visibility: ApiResourceVisibility.visibility_private,
+        });
+      },
+      () => rePush(makeArtifact(name, { body: "# v2" })),
+    );
+    expect(landed?.status?.audit?.statusAudit).toBeDefined();
+    expect(landed?.status?.audit?.statusAudit).not.toEqual(
+      first.status?.audit?.statusAudit,
+    );
+    return { id, first, landed: landed!, ...race };
+  }
+
+  /** The stored head is the re-push over the landed write; the history holds each version once. */
+  async function expectLiveAndArchived(
+    id: string,
+    first: Skill,
+    landed: Skill,
+    pushed: Skill,
+  ): Promise<void> {
+    const firstHash = first.status!.versionHash;
+    const stored = await server.store.getResource(ApiResourceKind.skill, id, SkillSchema);
+    const liveHash = stored.status!.versionHash;
+    expect(liveHash).not.toBe(firstHash);
+    expect(pushed.status?.versionHash).toBe(liveHash);
+    expect(stored.spec?.skillMd).toContain("# v2");
+    for (const skill of [stored, pushed]) {
+      expect(skill.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_private,
+      );
+      expect(skill.status?.audit?.statusAudit).toEqual(
+        landed.status?.audit?.statusAudit,
+      );
+      expect(skill.status?.audit?.specAudit?.createdAt).toEqual(
+        first.status?.audit?.specAudit?.createdAt,
+      );
+    }
+
+    const archived = await server.store.listAuditRecords(ApiResourceKind.skill, id);
+    expect(archived.map((record) => record.versionHash)).toEqual([liveHash, firstHash]);
+  }
+
+  it("a re-push whose write loses once runs again, keeps the write that landed, and archives only the version that went live", async () => {
+    const { id, first, landed, result, writes } = await rePushWithLandingWrite(
+      (artifact) => command.push({ org: ORG, artifact }),
+    );
+    expect(writes).toBeGreaterThanOrEqual(2);
+    await expectLiveAndArchived(id, first, landed, result);
+  });
+
+  it("a re-push through an upload reference whose write loses once lands on the bytes its first attempt consumed", async () => {
+    const { id, first, landed, result, writes } = await rePushWithLandingWrite(
+      async (artifact) => {
+        const minted = await command.createArtifactUploadUrl({
+          org: ORG,
+          sizeBytes: BigInt(artifact.length),
+        });
+        const put = await fetch(minted.url, {
+          method: "PUT",
+          body: Buffer.from(artifact),
+          headers: { "content-type": "application/zip" },
+        });
+        expect(put.status).toBe(204);
+        return command.push({ org: ORG, artifactUploadRef: minted.artifactUploadRef });
+      },
+    );
+    expect(writes).toBeGreaterThanOrEqual(2);
+    await expectLiveAndArchived(id, first, landed, result);
   });
 });
 
@@ -592,6 +699,22 @@ describe("updateVisibility", () => {
     expect(updated.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
     expect(updated.spec?.skillMd).toBe(pushed.spec?.skillMd);
     expect(updated.status?.versionHash).toBe(pushed.status?.versionHash);
+  });
+
+  it("a re-push keeps the level updateVisibility set: a push names no visibility", async () => {
+    const name = uniqueName();
+    const pushed = await command.push({ org: ORG, artifact: makeArtifact(name, { body: "# v1" }) });
+    const id = pushed.metadata!.id;
+    await command.updateVisibility({
+      resourceId: id,
+      visibility: ApiResourceVisibility.visibility_private,
+    });
+    const rePushed = await command.push({ org: ORG, artifact: makeArtifact(name, { body: "# v2" }) });
+    const stored = await server.store.getResource(ApiResourceKind.skill, id, SkillSchema);
+    expect([rePushed.metadata?.visibility, stored.metadata?.visibility]).toEqual([
+      ApiResourceVisibility.visibility_private,
+      ApiResourceVisibility.visibility_private,
+    ]);
   });
 
   it("NOT_FOUND wins over level validation (load-before-validate, the cloud-parity ordering)", async () => {

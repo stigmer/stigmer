@@ -111,6 +111,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -361,48 +362,50 @@ async function update(
   session: Session,
   ctx: HandlerContext,
 ): Promise<Session> {
-  const reqCtx = new RequestContext(
-    SessionSchema,
-    session,
-    callerIdentityOf(ctx),
-    kindOf(ctx),
-  );
-  await newPipeline<typeof SessionSchema>("session-update", deps.logger)
-    .addStep(
-      newAuthorizeStep(SessionCommandController.method.update, deps.authorizer),
-    )
-    .addStep(newValidateProtoStep())
-    .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingStep(deps.store))
-    .addStep(newValidateHarnessImmutabilityStep())
-    .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
-    .addStep(newBuildUpdateStateStep())
-    .addStep(newNormalizeReferencesStep(deps.store))
-    .addStep(newKeepStoredVaultChoiceOnStaleWriteStep())
-    .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(
-      newValidateReferencesStep(deps.store, deps.authorizer, {
-        judge: "introduced",
-      }),
-    )
-    .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SESSION_VAULT_ATTACHMENTS))
-    .addStep(newPreserveSessionValuesStep())
-    .addStep(
-      newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
-    )
-    .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
-    .addStep(newRecordHarnessStateHistoryStep())
-    .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
-    .addStep(newPersistStep(deps.store))
-    .addStep(
-      newDestroyDroppedSessionValuesStep(deps.secretService, deps.logger),
-    )
-    .addStep(
-      newIndexSearchStep(deps.store, sessionSearchExtractor, deps.logger),
-    )
-    .build()
-    .execute(reqCtx);
-  return redacted(reqCtx.newState);
+  return runGuardedWrite(async () => {
+    const reqCtx = new RequestContext(
+      SessionSchema,
+      session,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    );
+    await newPipeline<typeof SessionSchema>("session-update", deps.logger)
+      .addStep(
+        newAuthorizeStep(SessionCommandController.method.update, deps.authorizer),
+      )
+      .addStep(newValidateProtoStep())
+      .addStep(newResolveSlugStep({ update: true }))
+      .addStep(newLoadExistingStep(deps.store))
+      .addStep(newValidateHarnessImmutabilityStep())
+      .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newKeepStoredVaultChoiceOnStaleWriteStep())
+      .addStep(newGuardReservedLabelsStep(deps.authorizer))
+      .addStep(
+        newValidateReferencesStep(deps.store, deps.authorizer, {
+          judge: "introduced",
+        }),
+      )
+      .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SESSION_VAULT_ATTACHMENTS))
+      .addStep(newPreserveSessionValuesStep())
+      .addStep(
+        newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
+      )
+      .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
+      .addStep(newRecordHarnessStateHistoryStep())
+      .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
+      .addStep(newPersistStep(deps.store))
+      .addStep(
+        newDestroyDroppedSessionValuesStep(deps.secretService, deps.logger),
+      )
+      .addStep(
+        newIndexSearchStep(deps.store, sessionSearchExtractor, deps.logger),
+      )
+      .build()
+      .execute(reqCtx);
+    return redacted(reqCtx.newState);
+  });
 }
 
 /**
@@ -558,16 +561,24 @@ async function updateSubject(
     req,
   );
 
-  if (session.spec === undefined) {
-    session.spec = create(SessionSpecSchema, {});
-  }
-  session.spec.subject = req.subject;
-
-  setAuditFieldsForUpdate(SessionSchema, session, "spec_audit", identity);
-
+  // The subject and its audit stamp, written onto the live row inside the
+  // store's atomic write: the row read above was read to answer NOT_FOUND
+  // and to authorize, and a turn may have written the session since.
   try {
-    await deps.store.saveResource(kind, req.id, SessionSchema, session);
+    session = await deps.store.updateResource(
+      kind,
+      req.id,
+      SessionSchema,
+      (live) => {
+        live.spec ??= create(SessionSpecSchema, {});
+        live.spec.subject = req.subject;
+        setAuditFieldsForUpdate(SessionSchema, live, "spec_audit", identity);
+      },
+    );
   } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("session", req.id);
+    }
     throw internalError(error, "failed to persist session");
   }
 

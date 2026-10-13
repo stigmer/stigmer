@@ -6,7 +6,8 @@
  * install reads it (skills, agents, server entries, variables, hooks, the
  * eval suite's summary, warnings, and the sign-in probe completing a
  * URL-only server that answers an OAuth challenge) and saved once under
- * the same id and digest,
+ * the same id and digest, by a compare-and-swap on the bytes it listed,
+ * so a push that lands meanwhile is never undone,
  * the retired fields dropped, so a second refresh finds nothing to do; a
  * current plugin is never touched; and a plugin whose archive is missing
  * from the status, cannot be fetched or no longer reads is left as it is,
@@ -182,7 +183,7 @@ function currentRow(id: string): Uint8Array {
   );
 }
 
-/** Plugin rows by id; listResources and saveResource only, any other member throws. */
+/** Plugin rows by id; listResources and swapResource only, any other member throws. */
 class PluginRows {
   readonly rows = new Map<string, Uint8Array>();
   readonly saved: string[] = [];
@@ -195,17 +196,22 @@ class PluginRows {
         expect(kind).toBe(ApiResourceKind.plugin);
         return Promise.resolve([...this.rows.values()]);
       },
-      saveResource: (<Desc extends DescMessage>(
+      swapResource: (<Desc extends DescMessage>(
         kind: ApiResourceKind,
         id: string,
         schema: Desc,
+        expectedBytes: Uint8Array,
         message: MessageShape<Desc>,
       ) => {
         expect(kind).toBe(ApiResourceKind.plugin);
+        const held = this.rows.get(id);
+        if (held === undefined || Buffer.compare(Buffer.from(held), Buffer.from(expectedBytes)) !== 0) {
+          return Promise.resolve(false);
+        }
         this.saved.push(id);
         this.rows.set(id, toBinary(schema, message));
-        return Promise.resolve();
-      }) as Store["saveResource"],
+        return Promise.resolve(true);
+      }) as Store["swapResource"],
     };
     return new Proxy(answers as Store, {
       get(target, prop) {
@@ -301,6 +307,27 @@ describe("isLegacyStatus", () => {
 });
 
 describe("refreshLegacyPluginStatuses", () => {
+  it("never undoes a push that lands while a plugin is read again, and counts it as not refreshed", async () => {
+    const rows = new PluginRows({ plg_old: legacyRow({ id: "plg_old" }) });
+    const pushed = currentRow("plg_old");
+    const { logger } = capturingLogger();
+    const pushingDuringRead = archives(async (key) => {
+      rows.rows.set("plg_old", pushed);
+      return holding.get(key);
+    });
+
+    const refreshed = await refreshLegacyPluginStatuses({
+      store: rows.store(),
+      artifactStorage: pushingDuringRead,
+      outboundFetch: oauthFetch,
+      logger,
+    });
+
+    expect(refreshed).toBe(0);
+    expect(rows.saved).toEqual([]);
+    expect(rows.rows.get("plg_old")).toBe(pushed);
+  });
+
   it("reads each legacy plugin again from its archive, saves it once under the same id and digest, and leaves current plugins alone", async () => {
     const rows = new PluginRows({
       plg_old: legacyRow({ id: "plg_old" }),

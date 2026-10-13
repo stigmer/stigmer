@@ -10,7 +10,9 @@
  * version, nothing else touched.
  *
  * It runs once per plugin: the rewrite drops the retired fields that mark
- * it. A plugin whose archive cannot be read or no longer reads is left as
+ * it. The rewrite is a compare-and-swap on the bytes the listing read, so
+ * a push that lands while the archive is read again is never undone; the
+ * pushed row needs no refresh. A plugin whose archive cannot be read or no longer reads is left as
  * it is and logged; a turn that lists it gets none of its parts, and a
  * push of the archive repairs it. Boot never fails on it.
  *
@@ -80,8 +82,9 @@ export async function refreshLegacyPluginStatuses(deps: LegacyStatusDeps): Promi
       continue;
     }
     try {
-      await refreshOne(deps, plugin);
-      refreshed++;
+      if (await refreshOne(deps, plugin, raw)) {
+        refreshed++;
+      }
     } catch (error) {
       deps.logger.warn("A plugin installed before plugins were whole could not be read again; push it again to use it", {
         plugin: `${plugin.metadata?.org ?? ""}/${plugin.metadata?.slug ?? ""}`,
@@ -95,7 +98,8 @@ export async function refreshLegacyPluginStatuses(deps: LegacyStatusDeps): Promi
   return refreshed;
 }
 
-async function refreshOne(deps: LegacyStatusDeps, plugin: Plugin): Promise<void> {
+/** Rewrites one plugin's status; false when a write landed on the row since `raw` was read. */
+async function refreshOne(deps: LegacyStatusDeps, plugin: Plugin, raw: Uint8Array): Promise<boolean> {
   const status = plugin.status;
   if (status === undefined || status.artifactStorageKey === "") {
     throw new Error("it records no archive");
@@ -120,5 +124,5 @@ async function refreshOne(deps: LegacyStatusDeps, plugin: Plugin): Promise<void>
     ),
     ...plan.warnings,
   ];
-  await deps.store.saveResource(ApiResourceKind.plugin, plugin.metadata?.id ?? "", PluginSchema, plugin);
+  return deps.store.swapResource(ApiResourceKind.plugin, plugin.metadata?.id ?? "", PluginSchema, raw, plugin);
 }

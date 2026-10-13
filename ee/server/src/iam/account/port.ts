@@ -21,8 +21,10 @@
  *     already held (by its id or its natural key), so each lane resolves a
  *     lost race by reading the winner back (`resolveCreateRace`), however
  *     the host's create path reports a duplicate;
- *   - `updateAccount` writes the profile as given, email included: a
- *     person's changed email at their provider reaches Stigmer;
+ *   - `updateAccount` applies the change to the stored account and writes
+ *     it through the store's guarded write, so a write that lands between
+ *     its read and its write is never undone, email included: a person's
+ *     changed email at their provider reaches Stigmer;
  *   - `deleteAccount` removes the account's keys, every policy row naming
  *     it (acting for `actingFor`, so the permission history names who
  *     caused it) and its row, failing closed, so an account provisioned
@@ -58,12 +60,19 @@ export interface IdentityAccountService {
    */
   createAccount(request: NewAccountRequest, actingFor?: string): Promise<IdentityAccount>;
   /**
-   * Full-row profile update (the update pipeline's persist half; the
-   * identity keys — idp_id, provider ref, provisioning mode — are the
-   * caller's to keep immutable, since the account's identity rests on
-   * them).
+   * A profile update: `change` is applied to the stored account, its spec
+   * audit stamped, and the result written by compare-and-swap, read again
+   * and re-applied while another write lands in between
+   * (`@stigmer/server`'s changeThroughGuardedPort). `change` is synchronous
+   * and may run more than once; the identity keys (idp_id, provider ref,
+   * provisioning mode) are the caller's to leave alone, since the account's
+   * identity rests on them. Answers the written account, or undefined when
+   * the account is gone.
    */
-  updateAccount(account: IdentityAccount): Promise<IdentityAccount>;
+  updateAccount(
+    id: string,
+    change: (account: IdentityAccount) => void,
+  ): Promise<IdentityAccount | undefined>;
   /**
    * The delete pipeline: the account's keys, the policy cleanup
    * (bidirectional: the account as principal AND as resource), then the

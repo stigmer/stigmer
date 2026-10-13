@@ -5,7 +5,7 @@
  * without a database. A host's adapter is pinned over its real table in
  * its own suites.
  */
-import { clone, create } from "@bufbuild/protobuf";
+import { clone, create, toBinary } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -17,7 +17,14 @@ import {
 import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 
+import type { GuardedRead } from "@stigmer/server";
+
 import type { TeamInsertOutcome, TeamStore } from "../store.js";
+
+/** Whether two stored forms are the same bytes, as the Postgres swap compares them. */
+function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
+  return left.length === right.length && left.every((byte, index) => byte === right[index]);
+}
 
 export class InMemoryTeamStore implements TeamStore {
   private readonly rows = new Map<string, Team>();
@@ -38,17 +45,22 @@ export class InMemoryTeamStore implements TeamStore {
     return Promise.resolve({ kind: "inserted" });
   }
 
-  replace(team: Team): Promise<void> {
-    const id = team.metadata?.id ?? "";
+  readForWrite(id: string): Promise<GuardedRead<Team> | undefined> {
     const held = this.rows.get(id);
-    if (held !== undefined) {
-      const storedSlug = held.metadata?.slug;
-      if (team.metadata !== undefined && storedSlug !== undefined) {
-        team.metadata.slug = storedSlug;
-      }
-      this.rows.set(id, clone(TeamSchema, team));
+    return Promise.resolve(
+      held === undefined
+        ? undefined
+        : { row: clone(TeamSchema, held), bytes: toBinary(TeamSchema, held) },
+    );
+  }
+
+  swap(id: string, expectedBytes: Uint8Array, next: Team): Promise<boolean> {
+    const held = this.rows.get(id);
+    if (held === undefined || !sameBytes(toBinary(TeamSchema, held), expectedBytes)) {
+      return Promise.resolve(false);
     }
-    return Promise.resolve();
+    this.rows.set(id, clone(TeamSchema, next));
+    return Promise.resolve(true);
   }
 
   modifyById(id: string, modify: (team: Team) => void): Promise<Team | undefined> {

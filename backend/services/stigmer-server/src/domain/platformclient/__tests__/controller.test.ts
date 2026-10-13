@@ -8,6 +8,9 @@
  *     or by org-scoped slug;
  *   - rotateSecret replaces the secret and fingerprint under the same
  *     client_id, and the row's hash follows;
+ *   - an update keeps a secret rotation that lands between its read and
+ *     its write: the lost swap runs the chain again from a fresh read, so
+ *     the row and the answer carry the rotated fingerprint and the update;
  *   - the reserved slug is refused, the two sign-in role rules are refused on
  *     the contract, and a system-managed client refuses update, delete and
  *     rotate with the cloud's copy;
@@ -66,6 +69,7 @@ import { hashClientSecret } from "../credentials.js";
 import { newResourcePlatformClientStore } from "../resource-store.js";
 import type { PlatformClientStore } from "../store.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 
 let cleanup: () => void;
 let store: Store;
@@ -234,6 +238,37 @@ describe("PlatformClient chains", () => {
     expect((await clients.findById(id))?.spec?.clientSecretHash).toBe(
       hashClientSecret(rotated.clientSecret),
     );
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const created = await command.create(input("Dashboard"));
+    const stored = created.platformClient;
+    if (stored?.spec === undefined) throw new Error("create answered no spec");
+    const id = stored.metadata?.id ?? "";
+    const edit = clone(PlatformClientSchema, stored);
+    edit.spec = clone(PlatformClientSpecSchema, stored.spec);
+    edit.spec.allowedOrigins = ["https://a.example"];
+
+    let rotatedSecret = "";
+    const { result, writes } = await writeLandsMidUpdate(
+      store,
+      ApiResourceKind.platform_client,
+      id,
+      async () => {
+        rotatedSecret = (await command.rotateSecret({ value: id })).clientSecret;
+      },
+      () => command.update(edit),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    expect(rotatedSecret).not.toBe(created.clientSecret);
+    expect(result.spec?.allowedOrigins).toEqual(["https://a.example"]);
+    expect(result.spec?.secretFingerprint).toBe(rotatedSecret.slice(-6));
+    expect(result.spec?.clientSecretHash).toBe("");
+    const row = await clients.findById(id);
+    expect(row?.spec?.allowedOrigins).toEqual(["https://a.example"]);
+    expect(row?.spec?.secretFingerprint).toBe(rotatedSecret.slice(-6));
+    expect(row?.spec?.clientSecretHash).toBe(hashClientSecret(rotatedSecret));
   });
 
   it("refuses the reserved slug and the two sign-in role rules", async () => {

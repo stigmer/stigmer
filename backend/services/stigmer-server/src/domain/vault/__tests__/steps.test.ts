@@ -5,18 +5,18 @@
  * write undoes its external id move whichever way it made it (a rename
  * reverted, an update's first claim released, a create's unstored claim
  * freed), logging, never throwing, when the undo itself fails. And the
- * update and visibility writes land inside the store's atomic
- * read-modify-write, so an entry saved after the chain loaded the vault
- * survives them, and a visibility change made after an update loaded the
- * vault is not reverted by the update's write; neither write reverts the
- * spec audit such an entry write stamped. Each of update's two
+ * update's write is a compare-and-swap on the row the chain read, so an
+ * entry saved or a visibility change made after the load makes it lose
+ * (the chain then runs again from a fresh read, pinned in
+ * controller.test.ts) and stands; the visibility write lands inside the
+ * store's atomic read-modify-write; neither write reverts the spec audit
+ * an entry write stamped. Each of update's two
  * layers, on its own, keeps the stored entries over the ones a request
  * carries: KeepStoredOwnerAndEntries puts the loaded row's back, and
  * PersistVaultUpdate writes the row's.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { timestampFromMs, timestampMs } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
 
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -33,7 +33,11 @@ import type { Logger } from "../../../boot/logger.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { setAuditFieldsForUpdate } from "../../../pipeline/steps/defaults.js";
-import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
+import { isWriteConflict } from "../../../pipeline/guarded-write.js";
+import {
+  EXISTING_RESOURCE_BYTES_KEY,
+  EXISTING_RESOURCE_KEY,
+} from "../../../pipeline/steps/load-existing.js";
 import type { ResourceNameRename, Store } from "../../../store/interface.js";
 
 import { OWNER_IMMUTABLE_REFUSAL } from "../constants.js";
@@ -71,6 +75,29 @@ function ctxOf(next: Vault, existing?: Vault): RequestContext<typeof VaultSchema
     ctx.set(EXISTING_RESOURCE_KEY, existing);
   }
   return ctx;
+}
+
+/** An update's context over the stored row as LoadExisting reads it: the row and its bytes. */
+async function updateCtxOf(store: Store, id: string, edit: (next: Vault) => void): Promise<RequestContext<typeof VaultSchema>> {
+  const read = await store.readResourceForWrite(ApiResourceKind.vault, id, VaultSchema);
+  const next = clone(VaultSchema, read.resource);
+  edit(next);
+  const ctx = ctxOf(next, read.resource);
+  ctx.set(EXISTING_RESOURCE_BYTES_KEY, read.bytes);
+  return ctx;
+}
+
+/** The ConnectError a step fails with, or undefined when it lands. */
+async function failureOf(run: () => Promise<void> | void): Promise<ConnectError | undefined> {
+  try {
+    await run();
+    return undefined;
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      return error;
+    }
+    throw error;
+  }
 }
 
 /** A name table that records what it is asked, or fails every call. */
@@ -182,46 +209,45 @@ describe("undoExternalIdMoveAfterFailure", () => {
 describe("writes that keep entries saved since the load", () => {
   const admin = testCallerIdentity({ identityId: "ida_admin" });
 
-  it("an update keeps an entry saved after the chain loaded the vault", async () => {
+  it("an update loses its swap to an entry saved after the chain loaded the vault, and the entry stands", async () => {
     const rig = openVaultRig();
     try {
       const seeded = await seedSharedVault(rig.store, "acme", "team");
       const id = seeded.metadata!.id;
-      const loaded = (await loadVault(rig.store, id))!;
-      const next = clone(VaultSchema, loaded);
-      next.metadata!.name = "Renamed";
-      const ctx = ctxOf(next, loaded);
+      const ctx = await updateCtxOf(rig.store, id, (next) => {
+        next.metadata!.name = "Renamed";
+      });
       await rig.vaults.setSecrets(id, { LATE: { value: "saved-meanwhile", description: "" } }, admin);
       newKeepStoredOwnerAndEntriesStep().execute(ctx);
-      await newPersistVaultUpdateStep(rig.store).execute(ctx);
+      const conflict = await failureOf(() => newPersistVaultUpdateStep(rig.store).execute(ctx));
+      expect(conflict !== undefined && isWriteConflict(conflict)).toBe(true);
       const stored = (await loadVault(rig.store, id))!;
-      expect(stored.metadata?.name).toBe("Renamed");
+      expect(stored.metadata?.name).not.toBe("Renamed");
       expect(Object.keys(stored.spec?.secrets ?? {})).toEqual(["LATE"]);
-      expect(Object.keys(ctx.newState.spec?.secrets ?? {})).toEqual(["LATE"]);
     } finally {
       rig.close();
     }
   });
 
-  it("an update keeps a visibility change made after the chain loaded the vault", async () => {
+  it("an update loses its swap to a visibility change made after the chain loaded the vault, and the change stands", async () => {
     const rig = openVaultRig();
     try {
       const seeded = await seedSharedVault(rig.store, "acme", "team");
       const id = seeded.metadata!.id;
-      const loaded = (await loadVault(rig.store, id))!;
+      const ctx = await updateCtxOf(rig.store, id, (next) => {
+        next.metadata!.name = "Renamed";
+      });
+      const loaded = ctx.get(EXISTING_RESOURCE_KEY) as Vault;
       expect(loaded.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
-      const next = clone(VaultSchema, loaded);
-      next.metadata!.name = "Renamed";
-      const ctx = ctxOf(next, loaded);
       const changed = clone(VaultSchema, loaded);
       changed.metadata!.visibility = ApiResourceVisibility.visibility_org;
       await newPersistVaultVisibilityStep(rig.store).execute(ctxOf(changed, changed));
       newKeepStoredOwnerAndEntriesStep().execute(ctx);
-      await newPersistVaultUpdateStep(rig.store).execute(ctx);
+      const conflict = await failureOf(() => newPersistVaultUpdateStep(rig.store).execute(ctx));
+      expect(conflict !== undefined && isWriteConflict(conflict)).toBe(true);
       const stored = (await loadVault(rig.store, id))!;
-      expect(stored.metadata?.name).toBe("Renamed");
+      expect(stored.metadata?.name).not.toBe("Renamed");
       expect(stored.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
-      expect(ctx.newState.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
     } finally {
       rig.close();
     }
@@ -230,22 +256,18 @@ describe("writes that keep entries saved since the load", () => {
   it("an update and a visibility change never revert the spec audit of an entry saved after the chain loaded the vault", async () => {
     const rig = openVaultRig();
     const writer = testCallerIdentity({ identityId: "ida_writer" });
-    const millisOf = (vault: Vault | undefined) =>
-      timestampMs(vault?.status?.audit?.specAudit?.updatedAt ?? timestampFromMs(0));
     try {
       const seeded = await seedSharedVault(rig.store, "acme", "team");
       const id = seeded.metadata!.id;
 
-      const loaded = (await loadVault(rig.store, id))!;
-      const next = clone(VaultSchema, loaded);
-      next.metadata!.name = "Renamed";
-      const update = ctxOf(next, loaded);
+      const update = await updateCtxOf(rig.store, id, (next) => {
+        next.metadata!.name = "Renamed";
+      });
       const entry = await rig.vaults.setSecrets(id, { LATE: { value: "saved-meanwhile", description: "" } }, writer);
       newKeepStoredOwnerAndEntriesStep().execute(update);
-      await newPersistVaultUpdateStep(rig.store).execute(update);
+      await failureOf(() => newPersistVaultUpdateStep(rig.store).execute(update));
       const updated = (await loadVault(rig.store, id))!;
-      expect(updated.status?.audit?.specAudit?.updatedBy?.id).toBe("ida_admin");
-      expect(millisOf(updated)).toBeGreaterThanOrEqual(millisOf(entry));
+      expect(updated.status?.audit?.specAudit).toEqual(entry.status?.audit?.specAudit);
 
       const beforeVisibility = (await loadVault(rig.store, id))!;
       const visibility = ctxOf(beforeVisibility, beforeVisibility);
@@ -284,11 +306,12 @@ describe("writes that keep entries saved since the load", () => {
       });
       const id = seeded.metadata!.id;
       const before = (await loadVault(rig.store, id))!;
-      const next = clone(VaultSchema, before);
-      next.spec!.secrets["API_KEY"] = create(VaultSecretSchema, { value: "sent-plain" });
-      next.spec!.secrets["NEW_KEY"] = create(VaultSecretSchema, { value: "sent-new" });
-      next.spec!.connections["github.com"] = create(VaultConnectionSchema, { token: "sent-token" });
-      await newPersistVaultUpdateStep(rig.store).execute(ctxOf(next, before));
+      const ctx = await updateCtxOf(rig.store, id, (next) => {
+        next.spec!.secrets["API_KEY"] = create(VaultSecretSchema, { value: "sent-plain" });
+        next.spec!.secrets["NEW_KEY"] = create(VaultSecretSchema, { value: "sent-new" });
+        next.spec!.connections["github.com"] = create(VaultConnectionSchema, { token: "sent-token" });
+      });
+      await newPersistVaultUpdateStep(rig.store).execute(ctx);
       const stored = (await loadVault(rig.store, id))!;
       expect(stored.spec?.secrets).toEqual(before.spec?.secrets);
       expect(stored.spec?.connections).toEqual(before.spec?.connections);
@@ -318,27 +341,29 @@ describe("writes that keep entries saved since the load", () => {
     }
   });
 
-  it("a vault deleted mid-chain is NOT_FOUND to both writes, and a store fault INTERNAL", async () => {
+  it("a vault deleted mid-chain loses the update's swap and is NOT_FOUND to visibility, and a store fault INTERNAL", async () => {
     const rig = openVaultRig();
     try {
+      const seeded = await seedSharedVault(rig.store, "acme", "doomed");
+      const doomed = await updateCtxOf(rig.store, seeded.metadata!.id, () => {});
+      await rig.store.deleteResource(ApiResourceKind.vault, seeded.metadata!.id);
+      const update = await failureOf(() => newPersistVaultUpdateStep(rig.store).execute(doomed));
+      expect(update !== undefined && isWriteConflict(update)).toBe(true);
       const gone = vault({ id: "vlt_gone" });
       gone.metadata!.org = "acme";
-      const update = await Promise.resolve(newPersistVaultUpdateStep(rig.store).execute(ctxOf(gone, gone))).then(
-        () => undefined,
-        (e: unknown) => e,
-      );
-      expect((update as ConnectError).code).toBe(Code.NotFound);
       const visibility = await Promise.resolve(newPersistVaultVisibilityStep(rig.store).execute(ctxOf(gone, gone))).then(
         () => undefined,
         (e: unknown) => e,
       );
       expect((visibility as ConnectError).code).toBe(Code.NotFound);
       const faulty = {
-        updateResource: async () => {
+        swapResource: async () => {
           throw new Error("disk gone");
         },
       } as unknown as Store;
-      const fault = await Promise.resolve(newPersistVaultUpdateStep(faulty).execute(ctxOf(gone, gone))).then(
+      const faultCtx = ctxOf(gone, gone);
+      faultCtx.set(EXISTING_RESOURCE_BYTES_KEY, new Uint8Array([1]));
+      const fault = await Promise.resolve(newPersistVaultUpdateStep(faulty).execute(faultCtx)).then(
         () => undefined,
         (e: unknown) => e,
       );

@@ -207,14 +207,23 @@ export function newIdentityFederation(
         input.externalSub,
         () => idpName(ref),
       );
-      const spec = existing.spec;
-      if (spec !== undefined) {
-        spec.email = input.email;
-        spec.firstName = input.firstName;
-        spec.lastName = input.lastName;
-        spec.pictureUrl = input.pictureUrl;
+      const updated = await accounts.updateAccount(existing.metadata?.id ?? "", (account) => {
+        const spec = account.spec;
+        if (spec !== undefined) {
+          spec.email = input.email;
+          spec.firstName = input.firstName;
+          spec.lastName = input.lastName;
+          spec.pictureUrl = input.pictureUrl;
+        }
+      });
+      if (updated === undefined) {
+        throw new ConnectError(
+          `No federated account found for IdP '${await idpName(ref)}' ` +
+            `with external_sub '${input.externalSub}'`,
+          Code.NotFound,
+        );
       }
-      return accounts.updateAccount(existing);
+      return updated;
     },
 
     async deprovisionFederatedAccount(input, ref): Promise<IdentityAccount> {

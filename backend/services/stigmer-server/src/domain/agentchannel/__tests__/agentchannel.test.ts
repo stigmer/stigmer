@@ -14,6 +14,11 @@
  * the camelCased localName and would silently diverge from Go's pinned
  * error copy on a future snake_case arm.
  *
+ * One arm beyond the Go file: an update keeps a write that lands between
+ * its read and its write (pipeline/guarded-write.ts) — the lost swap reruns
+ * from a fresh read, so the stored channel and the answer carry both the
+ * landed visibility and the update's spec.
+ *
  * Go tests run one store per test function; this file shares ONE server,
  * so count-sensitive assertions use dedicated orgs and every agent /
  * channel name is unique per test.
@@ -48,6 +53,10 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import { providerFieldName } from "../steps.js";
 import {
   APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE,
@@ -580,6 +589,46 @@ describe("agentchannel update", () => {
     const err = await grpcError(() => channels.update(flipped));
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(providerImmutableMessage("slack"));
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const agent = await createTestAgent(uniqueName("Race Agent"));
+    const created = await channels.create(
+      channelFor(agent, uniqueName("Race Slack"), true),
+    );
+    const id = created.metadata!.id;
+    expect(created.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+
+    created.spec!.enabled = false;
+    created.status = undefined;
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.agent_channel,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.agent_channel,
+        AgentChannelSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => channels.update(created),
+    );
+
+    const stored = await server.store.getResource(
+      ApiResourceKind.agent_channel,
+      id,
+      AgentChannelSchema,
+    );
+    for (const channel of [updated, stored]) {
+      expect(channel.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_org,
+      );
+      expect(channel.spec?.enabled).toBe(false);
+    }
+    expect(writes).toBeGreaterThanOrEqual(2);
   });
 });
 

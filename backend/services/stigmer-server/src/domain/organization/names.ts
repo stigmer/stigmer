@@ -331,13 +331,15 @@ export function newOrganizationNameResolver(
 
 /**
  * Brings an organization's row to the name the table holds as its current
- * one. The names move under their own lock and the row is written after,
- * so overlapping renames, or an update that copied the slug it loaded, can
- * land the row with a name the table has already moved past. Each write is
- * therefore followed by this: read the current name, and write the row
- * again with it while they differ. The last writer always settles, so the
- * row converges on the table. Best-effort: a fault is logged, and the next
- * write settles it.
+ * one, after a rename's write. The names move under their own lock and the
+ * row is written after, so overlapping renames can land the row with a
+ * name the table has already moved past. Each rename is therefore followed
+ * by this: read the current name, and while the row differs, write that
+ * name, and only the name, onto the live row inside the store's atomic
+ * write, so nothing else written to the row since is undone. The last
+ * writer always settles, so the row converges on the table. Best-effort: a
+ * fault is logged, and the next rename settles it. `organization`, the
+ * rename's answer, carries the settled name.
  */
 export async function settleOrganizationSlug(
   store: Store,
@@ -355,31 +357,22 @@ export async function settleOrganizationSlug(
         return;
       }
       metadata.slug = current.name;
-      await store.saveResource(ApiResourceKind.organization, metadata.id, OrganizationSchema, organization);
+      await store.updateResource(ApiResourceKind.organization, metadata.id, OrganizationSchema, (row) => {
+        if (row.metadata !== undefined) {
+          row.metadata.slug = current.name;
+        }
+      });
     }
   } catch (error) {
-    logger.warn("organization row left behind its current name; the next write settles it", {
+    logger.warn("organization row left behind its current name; the next rename settles it", {
       org: metadata.id,
       error: error instanceof Error ? error.message : String(error),
     });
   }
 }
 
-/** How many rewrites a settle makes before leaving the rest to the next write. */
+/** How many rewrites a settle makes before leaving the rest to the next rename. */
 const SETTLE_ATTEMPTS = 3;
-
-/** SettleOrganizationSlug: after an update's Persist (settleOrganizationSlug). */
-export function newSettleOrganizationSlugStep(
-  store: Store,
-  logger: Logger,
-): PipelineStep<typeof OrganizationSchema> {
-  return {
-    name: "SettleOrganizationSlug",
-    async execute(ctx: RequestContext<typeof OrganizationSchema>): Promise<void> {
-      await settleOrganizationSlug(store, ctx.newState, logger);
-    },
-  };
-}
 
 /**
  * How copy a person reads names an organization: its current slug, or the

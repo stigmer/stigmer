@@ -30,6 +30,7 @@ import { create, equals } from "@bufbuild/protobuf";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
+import { guardedPortDeclarations } from "../../store/guarded-port.js";
 import { portContractCases } from "../../store/port-contract.js";
 import type {
   PortContractCase,
@@ -176,41 +177,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
         await store.findById("pcl_contract_globex_dashboard"),
         globex,
         "each organization keeps its own client for the shared slug",
-      );
-    },
-  ],
-  [
-    "update replaces the row in place",
-    async ({ store }) => {
-      await store.save(ACME_DASHBOARD);
-      const edited = platformClient({
-        id: "pcl_contract_acme_dashboard",
-        org: "acme",
-        slug: "dashboard",
-        clientId: "stgm_cid_contract_acme_dashboard",
-        allowedOrigins: ["https://app.acme.example"],
-      });
-      await store.update(edited);
-      assertSameClient(
-        await store.findById("pcl_contract_acme_dashboard"),
-        edited,
-        "findById must answer the replaced row",
-      );
-      assertSameClient(
-        await store.findByClientId("stgm_cid_contract_acme_dashboard"),
-        edited,
-        "findByClientId must answer the replaced row",
-      );
-    },
-  ],
-  [
-    "update of an unknown id writes nothing",
-    async ({ store }) => {
-      await store.update(ACME_DASHBOARD);
-      assert.equal(
-        await store.findById("pcl_contract_acme_dashboard"),
-        undefined,
-        "update must replace, never create",
       );
     },
   ],
@@ -371,6 +337,29 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
       );
     },
   ],
+  ...guardedPortDeclarations<PlatformClientStore, PlatformClient>({
+    async seed(store) {
+      await store.save(ACME_DASHBOARD);
+      return ACME_DASHBOARD;
+    },
+    idOf: (client) => client.metadata?.id ?? "",
+    change(client, value) {
+      assert.ok(client.spec, "the saved client carries a spec");
+      client.spec.allowedOrigins = [`https://${value}.acme.example`];
+    },
+    changedValueOf: (client) =>
+      (client.spec?.allowedOrigins[0] ?? "")
+        .replace("https://", "")
+        .replace(".acme.example", ""),
+    async interleave(store, id, value) {
+      await store.modifyById(id, (client) => {
+        assert.ok(client.spec, "the saved client carries a spec");
+        client.spec.allowedOrigins = [`https://${value}.acme.example`];
+      });
+    },
+    read: (store, id) => store.findById(id),
+    remove: (store, id) => store.deleteById(id),
+  }),
 ];
 
 /** The port's cases over `makeFixture`, one fresh fixture per case. */

@@ -21,7 +21,13 @@
  *     untouched;
  *   - the server assigns a new agent's id (stigmer#1266): an id the
  *     request carries is replaced, on create and on an apply that
- *     creates, and the chosen id addresses nothing.
+ *     creates, and the chosen id addresses nothing;
+ *   - an update keeps a write that lands between its read and its write:
+ *     the lost swap reruns from a fresh read, so the stored row and the
+ *     answer carry both the landed visibility and the update's spec;
+ *   - an agent update whose write loses once archives only the version
+ *     that went live: the original and the head as stored, landing write
+ *     included, and nothing for content that never became the head.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -35,6 +41,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -45,6 +52,10 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import {
   organizationId,
@@ -485,5 +496,88 @@ describe("agent create — the server assigns the id (stigmer#1266)", () => {
     });
     await expectMintedNotChosen(applied);
     await command.delete({ value: applied.metadata?.id ?? "" });
+  });
+});
+
+describe("agent update — a write that lands mid-update", () => {
+  const UPDATED_INSTRUCTIONS =
+    "You are a helpful agent, updated while another write landed.";
+
+  /** Creates a private agent and updates its instructions while an org-visibility write lands. */
+  async function updateWithLandingWrite() {
+    const created = await command.create(
+      agentInput({ visibility: ApiResourceVisibility.visibility_private }),
+    );
+    const id = created.metadata!.id;
+    const originalHash = created.status!.versionHash;
+    created.spec!.instructions = UPDATED_INSTRUCTIONS;
+    const race = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.agent,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.agent,
+        AgentSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => command.update(created),
+    );
+    return { id, originalHash, ...race };
+  }
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const { id, result: updated, writes } = await updateWithLandingWrite();
+
+    const stored = await server.store.getResource(
+      ApiResourceKind.agent,
+      id,
+      AgentSchema,
+    );
+    for (const agent of [updated, stored]) {
+      expect(agent.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_org,
+      );
+      expect(agent.spec?.instructions).toBe(UPDATED_INSTRUCTIONS);
+    }
+    expect(writes).toBeGreaterThanOrEqual(2);
+  });
+
+  it("an agent update whose write loses once archives only the version that went live", async () => {
+    const { id, originalHash, result: updated, writes } =
+      await updateWithLandingWrite();
+    expect(writes).toBeGreaterThanOrEqual(2);
+
+    const head = await server.store.getResource(
+      ApiResourceKind.agent,
+      id,
+      AgentSchema,
+    );
+    const liveHash = head.status!.versionHash;
+    expect(liveHash).not.toBe(originalHash);
+    expect(updated.status?.versionHash).toBe(liveHash);
+
+    const archived = await server.store.listAuditRecords(
+      ApiResourceKind.agent,
+      id,
+    );
+    expect(archived.map((record) => record.versionHash)).toEqual([
+      liveHash,
+      originalHash,
+    ]);
+
+    // The archived head is the row as it went live: the landed visibility
+    // with the update's spec, never the copy the lost attempt built.
+    const live = await server.store.getAuditByHash(
+      ApiResourceKind.agent,
+      id,
+      liveHash,
+      AgentSchema,
+    );
+    expect(live.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    expect(live.spec?.instructions).toBe(UPDATED_INSTRUCTIONS);
   });
 });

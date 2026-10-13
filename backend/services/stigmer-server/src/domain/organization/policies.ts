@@ -209,21 +209,32 @@ export function newChangeOrganizationPoliciesStep(
       if (closesAgentCreation(before, after)) {
         await announce(lifecycle, id, before, after);
       }
-      (organization.spec ??= create(OrganizationSpecSchema)).policies = after;
-      setAuditFieldsForUpdate(
-        OrganizationSchema,
-        organization,
-        "spec_audit",
-        ctx.callerIdentity,
-      );
+      // The policies and their audit stamp, written onto the live row
+      // inside the store's atomic write: the row loaded above may have
+      // been updated or renamed since, and none of that is undone.
       try {
-        await store.saveResource(
+        const written = await store.updateResource(
           ApiResourceKind.organization,
           id,
           OrganizationSchema,
-          organization,
+          (live) => {
+            (live.spec ??= create(OrganizationSpecSchema)).policies = clone(
+              OrganizationPoliciesSchema,
+              after,
+            );
+            setAuditFieldsForUpdate(
+              OrganizationSchema,
+              live,
+              "spec_audit",
+              ctx.callerIdentity,
+            );
+          },
         );
+        ctx.set(POLICIES_ORGANIZATION_KEY, written);
       } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("Organization", id);
+        }
         throw internalError(error, "failed to save organization");
       }
       if (opensAgentCreation(before, after)) {
