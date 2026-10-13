@@ -263,6 +263,37 @@ public final class IamPolicyQueryControllerGrpc {
     return getGetPrincipalsCountMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput,
+      ai.stigmer.iam.iampolicy.v1.AccessHistoryPage> getListAccessHistoryMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listAccessHistory",
+      requestType = ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput.class,
+      responseType = ai.stigmer.iam.iampolicy.v1.AccessHistoryPage.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput,
+      ai.stigmer.iam.iampolicy.v1.AccessHistoryPage> getListAccessHistoryMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput, ai.stigmer.iam.iampolicy.v1.AccessHistoryPage> getListAccessHistoryMethod;
+    if ((getListAccessHistoryMethod = IamPolicyQueryControllerGrpc.getListAccessHistoryMethod) == null) {
+      synchronized (IamPolicyQueryControllerGrpc.class) {
+        if ((getListAccessHistoryMethod = IamPolicyQueryControllerGrpc.getListAccessHistoryMethod) == null) {
+          IamPolicyQueryControllerGrpc.getListAccessHistoryMethod = getListAccessHistoryMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput, ai.stigmer.iam.iampolicy.v1.AccessHistoryPage>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listAccessHistory"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.iampolicy.v1.AccessHistoryPage.getDefaultInstance()))
+              .setSchemaDescriptor(new IamPolicyQueryControllerMethodDescriptorSupplier("listAccessHistory"))
+              .build();
+        }
+      }
+    }
+    return getListAccessHistoryMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -473,6 +504,29 @@ public final class IamPolicyQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.PrincipalsCount> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetPrincipalsCountMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List an organization's access history: every time someone was given
+     * or lost access to the organization or to a resource in it, who did it,
+     * why, and when.
+     * Without after_sequence the entries come newest first, for people
+     * reading what happened lately. With after_sequence they come oldest
+     * first, starting just after that entry, for a tool that keeps its own
+     * copy: it asks for what came after the last entry it holds. Each
+     * organization numbers its entries from 1 in the order they happened,
+     * with no gaps, so a reader that resumes after entry N never misses one.
+     * Only the organization's owners and administrators may read it, and a
+     * parent organization's administrators for a child. The Enterprise and
+     * Cloud editions keep the history; an open-source server keeps none and
+     * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+     * such as a plan that does not include it.
+     * </pre>
+     */
+    default void listAccessHistory(ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.AccessHistoryPage> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListAccessHistoryMethod(), responseObserver);
+    }
   }
 
   /**
@@ -660,6 +714,30 @@ public final class IamPolicyQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetPrincipalsCountMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List an organization's access history: every time someone was given
+     * or lost access to the organization or to a resource in it, who did it,
+     * why, and when.
+     * Without after_sequence the entries come newest first, for people
+     * reading what happened lately. With after_sequence they come oldest
+     * first, starting just after that entry, for a tool that keeps its own
+     * copy: it asks for what came after the last entry it holds. Each
+     * organization numbers its entries from 1 in the order they happened,
+     * with no gaps, so a reader that resumes after entry N never misses one.
+     * Only the organization's owners and administrators may read it, and a
+     * parent organization's administrators for a child. The Enterprise and
+     * Cloud editions keep the history; an open-source server keeps none and
+     * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+     * such as a plan that does not include it.
+     * </pre>
+     */
+    public void listAccessHistory(ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.AccessHistoryPage> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListAccessHistoryMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -825,6 +903,29 @@ public final class IamPolicyQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetPrincipalsCountMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List an organization's access history: every time someone was given
+     * or lost access to the organization or to a resource in it, who did it,
+     * why, and when.
+     * Without after_sequence the entries come newest first, for people
+     * reading what happened lately. With after_sequence they come oldest
+     * first, starting just after that entry, for a tool that keeps its own
+     * copy: it asks for what came after the last entry it holds. Each
+     * organization numbers its entries from 1 in the order they happened,
+     * with no gaps, so a reader that resumes after entry N never misses one.
+     * Only the organization's owners and administrators may read it, and a
+     * parent organization's administrators for a child. The Enterprise and
+     * Cloud editions keep the history; an open-source server keeps none and
+     * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+     * such as a plan that does not include it.
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.AccessHistoryPage listAccessHistory(ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListAccessHistoryMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -989,6 +1090,29 @@ public final class IamPolicyQueryControllerGrpc {
     public ai.stigmer.iam.iampolicy.v1.PrincipalsCount getPrincipalsCount(ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetPrincipalsCountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List an organization's access history: every time someone was given
+     * or lost access to the organization or to a resource in it, who did it,
+     * why, and when.
+     * Without after_sequence the entries come newest first, for people
+     * reading what happened lately. With after_sequence they come oldest
+     * first, starting just after that entry, for a tool that keeps its own
+     * copy: it asks for what came after the last entry it holds. Each
+     * organization numbers its entries from 1 in the order they happened,
+     * with no gaps, so a reader that resumes after entry N never misses one.
+     * Only the organization's owners and administrators may read it, and a
+     * parent organization's administrators for a child. The Enterprise and
+     * Cloud editions keep the history; an open-source server keeps none and
+     * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+     * such as a plan that does not include it.
+     * </pre>
+     */
+    public ai.stigmer.iam.iampolicy.v1.AccessHistoryPage listAccessHistory(ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListAccessHistoryMethod(), getCallOptions(), request);
     }
   }
 
@@ -1163,6 +1287,30 @@ public final class IamPolicyQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetPrincipalsCountMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List an organization's access history: every time someone was given
+     * or lost access to the organization or to a resource in it, who did it,
+     * why, and when.
+     * Without after_sequence the entries come newest first, for people
+     * reading what happened lately. With after_sequence they come oldest
+     * first, starting just after that entry, for a tool that keeps its own
+     * copy: it asks for what came after the last entry it holds. Each
+     * organization numbers its entries from 1 in the order they happened,
+     * with no gaps, so a reader that resumes after entry N never misses one.
+     * Only the organization's owners and administrators may read it, and a
+     * parent organization's administrators for a child. The Enterprise and
+     * Cloud editions keep the history; an open-source server keeps none and
+     * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+     * such as a plan that does not include it.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.AccessHistoryPage> listAccessHistory(
+        ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListAccessHistoryMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
@@ -1173,6 +1321,7 @@ public final class IamPolicyQueryControllerGrpc {
   private static final int METHODID_LIST_RESOURCE_ACCESS_BY_PRINCIPAL = 5;
   private static final int METHODID_GET_PRINCIPAL_RESOURCE_ROLES = 6;
   private static final int METHODID_GET_PRINCIPALS_COUNT = 7;
+  private static final int METHODID_LIST_ACCESS_HISTORY = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1222,6 +1371,10 @@ public final class IamPolicyQueryControllerGrpc {
         case METHODID_GET_PRINCIPALS_COUNT:
           serviceImpl.getPrincipalsCount((ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.PrincipalsCount>) responseObserver);
+          break;
+        case METHODID_LIST_ACCESS_HISTORY:
+          serviceImpl.listAccessHistory((ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.AccessHistoryPage>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1297,6 +1450,13 @@ public final class IamPolicyQueryControllerGrpc {
               ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput,
               ai.stigmer.iam.iampolicy.v1.PrincipalsCount>(
                 service, METHODID_GET_PRINCIPALS_COUNT)))
+        .addMethod(
+          getListAccessHistoryMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.iampolicy.v1.ListAccessHistoryInput,
+              ai.stigmer.iam.iampolicy.v1.AccessHistoryPage>(
+                service, METHODID_LIST_ACCESS_HISTORY)))
         .build();
   }
 
@@ -1353,6 +1513,7 @@ public final class IamPolicyQueryControllerGrpc {
               .addMethod(getListResourceAccessByPrincipalMethod())
               .addMethod(getGetPrincipalResourceRolesMethod())
               .addMethod(getGetPrincipalsCountMethod())
+              .addMethod(getListAccessHistoryMethod())
               .build();
         }
       }

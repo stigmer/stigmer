@@ -27,6 +27,7 @@ const (
 	IamPolicyQueryController_ListResourceAccessByPrincipal_FullMethodName = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listResourceAccessByPrincipal"
 	IamPolicyQueryController_GetPrincipalResourceRoles_FullMethodName     = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalResourceRoles"
 	IamPolicyQueryController_GetPrincipalsCount_FullMethodName            = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/getPrincipalsCount"
+	IamPolicyQueryController_ListAccessHistory_FullMethodName             = "/ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController/listAccessHistory"
 )
 
 // IamPolicyQueryControllerClient is the client API for IamPolicyQueryController service.
@@ -141,6 +142,23 @@ type IamPolicyQueryControllerClient interface {
 	// Input: GetPrincipalsCountInput with org and principal_kind
 	// Output: PrincipalsCount with integer count
 	GetPrincipalsCount(ctx context.Context, in *GetPrincipalsCountInput, opts ...grpc.CallOption) (*PrincipalsCount, error)
+	// List an organization's access history: every time someone was given
+	// or lost access to the organization or to a resource in it, who did it,
+	// why, and when.
+	//
+	// Without after_sequence the entries come newest first, for people
+	// reading what happened lately. With after_sequence they come oldest
+	// first, starting just after that entry, for a tool that keeps its own
+	// copy: it asks for what came after the last entry it holds. Each
+	// organization numbers its entries from 1 in the order they happened,
+	// with no gaps, so a reader that resumes after entry N never misses one.
+	//
+	// Only the organization's owners and administrators may read it, and a
+	// parent organization's administrators for a child. The Enterprise and
+	// Cloud editions keep the history; an open-source server keeps none and
+	// answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+	// such as a plan that does not include it.
+	ListAccessHistory(ctx context.Context, in *ListAccessHistoryInput, opts ...grpc.CallOption) (*AccessHistoryPage, error)
 }
 
 type iamPolicyQueryControllerClient struct {
@@ -225,6 +243,16 @@ func (c *iamPolicyQueryControllerClient) GetPrincipalsCount(ctx context.Context,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PrincipalsCount)
 	err := c.cc.Invoke(ctx, IamPolicyQueryController_GetPrincipalsCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iamPolicyQueryControllerClient) ListAccessHistory(ctx context.Context, in *ListAccessHistoryInput, opts ...grpc.CallOption) (*AccessHistoryPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccessHistoryPage)
+	err := c.cc.Invoke(ctx, IamPolicyQueryController_ListAccessHistory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -343,6 +371,23 @@ type IamPolicyQueryControllerServer interface {
 	// Input: GetPrincipalsCountInput with org and principal_kind
 	// Output: PrincipalsCount with integer count
 	GetPrincipalsCount(context.Context, *GetPrincipalsCountInput) (*PrincipalsCount, error)
+	// List an organization's access history: every time someone was given
+	// or lost access to the organization or to a resource in it, who did it,
+	// why, and when.
+	//
+	// Without after_sequence the entries come newest first, for people
+	// reading what happened lately. With after_sequence they come oldest
+	// first, starting just after that entry, for a tool that keeps its own
+	// copy: it asks for what came after the last entry it holds. Each
+	// organization numbers its entries from 1 in the order they happened,
+	// with no gaps, so a reader that resumes after entry N never misses one.
+	//
+	// Only the organization's owners and administrators may read it, and a
+	// parent organization's administrators for a child. The Enterprise and
+	// Cloud editions keep the history; an open-source server keeps none and
+	// answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+	// such as a plan that does not include it.
+	ListAccessHistory(context.Context, *ListAccessHistoryInput) (*AccessHistoryPage, error)
 }
 
 // UnimplementedIamPolicyQueryControllerServer should be embedded to have
@@ -375,6 +420,9 @@ func (UnimplementedIamPolicyQueryControllerServer) GetPrincipalResourceRoles(con
 }
 func (UnimplementedIamPolicyQueryControllerServer) GetPrincipalsCount(context.Context, *GetPrincipalsCountInput) (*PrincipalsCount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPrincipalsCount not implemented")
+}
+func (UnimplementedIamPolicyQueryControllerServer) ListAccessHistory(context.Context, *ListAccessHistoryInput) (*AccessHistoryPage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAccessHistory not implemented")
 }
 func (UnimplementedIamPolicyQueryControllerServer) testEmbeddedByValue() {}
 
@@ -540,6 +588,24 @@ func _IamPolicyQueryController_GetPrincipalsCount_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IamPolicyQueryController_ListAccessHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAccessHistoryInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IamPolicyQueryControllerServer).ListAccessHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IamPolicyQueryController_ListAccessHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IamPolicyQueryControllerServer).ListAccessHistory(ctx, req.(*ListAccessHistoryInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IamPolicyQueryController_ServiceDesc is the grpc.ServiceDesc for IamPolicyQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -578,6 +644,10 @@ var IamPolicyQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getPrincipalsCount",
 			Handler:    _IamPolicyQueryController_GetPrincipalsCount_Handler,
+		},
+		{
+			MethodName: "listAccessHistory",
+			Handler:    _IamPolicyQueryController_ListAccessHistory_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

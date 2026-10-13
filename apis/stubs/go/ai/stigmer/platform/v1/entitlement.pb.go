@@ -76,6 +76,13 @@ const (
 	// admitted. It tiers the Cloud runtime and is not an edition gate; a
 	// license never lists it.
 	Feature_child_orgs Feature = 7
+	// Reading an organization's access history: who gave whom access to
+	// what, and when. Every Cloud organization's history is recorded; this
+	// feature tiers reading and exporting it inside Cloud plans, so an
+	// organization that gains it reads its whole past. It is not an edition
+	// gate: a licensed self-hosted server serves the history by its edition,
+	// and a license never lists it.
+	Feature_access_history Feature = 8
 )
 
 // Enum value maps for Feature.
@@ -89,6 +96,7 @@ var (
 		5: "sharing",
 		6: "teams",
 		7: "child_orgs",
+		8: "access_history",
 	}
 	Feature_value = map[string]int32{
 		"feature_unspecified": 0,
@@ -99,6 +107,7 @@ var (
 		"sharing":             5,
 		"teams":               6,
 		"child_orgs":          7,
+		"access_history":      8,
 	}
 )
 
@@ -335,7 +344,7 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"\x14_included_child_orgsB\x1f\n" +
 	"\x1d_max_active_session_sandboxesB$\n" +
 	"\"_archived_workspace_retention_daysB\x17\n" +
-	"\x15_included_agent_hoursJ\x04\b\x05\x10\x06R\x1dmax_active_workflow_sandboxes*\x99\x01\n" +
+	"\x15_included_agent_hoursJ\x04\b\x05\x10\x06R\x1dmax_active_workflow_sandboxes*\xad\x01\n" +
 	"\aFeature\x12\x17\n" +
 	"\x13feature_unspecified\x10\x00\x12\x13\n" +
 	"\x0fsso_enforcement\x10\x01\x12\x13\n" +
@@ -345,7 +354,8 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"\asharing\x10\x05\x12\t\n" +
 	"\x05teams\x10\x06\x12\x0e\n" +
 	"\n" +
-	"child_orgs\x10\aB\xf5\x01\n" +
+	"child_orgs\x10\a\x12\x12\n" +
+	"\x0eaccess_history\x10\bB\xf5\x01\n" +
 	"\x1acom.ai.stigmer.platform.v1B\x10EntitlementProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
 
 var (

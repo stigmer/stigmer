@@ -110,6 +110,19 @@ public enum Feature
    * <code>child_orgs = 7;</code>
    */
   child_orgs(7),
+  /**
+   * <pre>
+   * Reading an organization's access history: who gave whom access to
+   * what, and when. Every Cloud organization's history is recorded; this
+   * feature tiers reading and exporting it inside Cloud plans, so an
+   * organization that gains it reads its whole past. It is not an edition
+   * gate: a licensed self-hosted server serves the history by its edition,
+   * and a license never lists it.
+   * </pre>
+   *
+   * <code>access_history = 8;</code>
+   */
+  access_history(8),
   UNRECOGNIZED(-1),
   ;
 
@@ -212,6 +225,19 @@ public enum Feature
    * <code>child_orgs = 7;</code>
    */
   public static final int child_orgs_VALUE = 7;
+  /**
+   * <pre>
+   * Reading an organization's access history: who gave whom access to
+   * what, and when. Every Cloud organization's history is recorded; this
+   * feature tiers reading and exporting it inside Cloud plans, so an
+   * organization that gains it reads its whole past. It is not an edition
+   * gate: a licensed self-hosted server serves the history by its edition,
+   * and a license never lists it.
+   * </pre>
+   *
+   * <code>access_history = 8;</code>
+   */
+  public static final int access_history_VALUE = 8;
 
 
   public final int getNumber() {
@@ -246,6 +272,7 @@ public enum Feature
       case 5: return sharing;
       case 6: return teams;
       case 7: return child_orgs;
+      case 8: return access_history;
       default: return null;
     }
   }

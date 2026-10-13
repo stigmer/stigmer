@@ -1,0 +1,108 @@
+# Store tests for reading an organization's access history.
+#
+# Verifies who holds can_view_access_history on an organization: those who
+# manage its access (owner and admin, an owner being an admin) and a
+# parent's admins on a child, never a member, a viewer or a guest, and
+# never a child's admin on the parent.
+#
+# Run with:
+#   fga model test --tests access-history.fga.yaml
+#
+# Scenario: "acme" is a parent with one child, "acme-eu". "beta" is an
+# unrelated organization.
+name: access-history
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- The parent and child edges ---
+  - {user: organization:acme, relation: parent_org, object: organization:acme-eu}
+  - {user: organization:acme-eu, relation: child_org, object: organization:acme}
+
+  # --- acme's people: ana owns it, raj administers it, mia is a member,
+  #     vic a viewer, gus a guest ---
+  - {user: identity_account:ana, relation: owner, object: organization:acme}
+  - {user: identity_account:ana, relation: affiliated, object: organization:acme}
+  - {user: identity_account:raj, relation: admin, object: organization:acme}
+  - {user: identity_account:raj, relation: affiliated, object: organization:acme}
+  - {user: identity_account:mia, relation: member, object: organization:acme}
+  - {user: identity_account:mia, relation: affiliated, object: organization:acme}
+  - {user: identity_account:vic, relation: viewer, object: organization:acme}
+  - {user: identity_account:vic, relation: affiliated, object: organization:acme}
+  - {user: identity_account:gus, relation: guest, object: organization:acme}
+  - {user: identity_account:gus, relation: affiliated, object: organization:acme}
+
+  # --- the child's admin, and beta's owner ---
+  - {user: identity_account:eva, relation: admin, object: organization:acme-eu}
+  - {user: identity_account:eva, relation: affiliated, object: organization:acme-eu}
+  - {user: identity_account:bo, relation: owner, object: organization:beta}
+  - {user: identity_account:bo, relation: affiliated, object: organization:beta}
+
+tests:
+  - name: those who manage access read its history
+    check:
+      - user: identity_account:ana
+        object: organization:acme
+        assertions:
+          can_view_access_history: true
+      - user: identity_account:raj
+        object: organization:acme
+        assertions:
+          can_view_access_history: true
+
+  - name: seeing who has access is not reading how it changed
+    check:
+      - user: identity_account:mia
+        object: organization:acme
+        assertions:
+          can_view_access: true
+          can_view_access_history: false
+      - user: identity_account:vic
+        object: organization:acme
+        assertions:
+          can_view_access: true
+          can_view_access_history: false
+      - user: identity_account:gus
+        object: organization:acme
+        assertions:
+          can_view_access_history: false
+
+  - name: a parent's admins read a child's history, never the reverse
+    check:
+      - user: identity_account:ana
+        object: organization:acme-eu
+        assertions:
+          can_view_access_history: true
+      - user: identity_account:raj
+        object: organization:acme-eu
+        assertions:
+          can_view_access_history: true
+      - user: identity_account:mia
+        object: organization:acme-eu
+        assertions:
+          can_view_access_history: false
+      - user: identity_account:eva
+        object: organization:acme-eu
+        assertions:
+          can_view_access_history: true
+      - user: identity_account:eva
+        object: organization:acme
+        assertions:
+          can_view_access_history: false
+
+  - name: another organization's owner reads nothing here
+    check:
+      - user: identity_account:bo
+        object: organization:acme
+        assertions:
+          can_view_access_history: false
+      - user: identity_account:bo
+        object: organization:beta
+        assertions:
+          can_view_access_history: true
+    list_objects:
+      - user: identity_account:raj
+        type: organization
+        assertions:
+          can_view_access_history:
+            - organization:acme
+            - organization:acme-eu

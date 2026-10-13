@@ -161,6 +161,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_iampolicy_v1_PrincipalsCount_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_iampolicy_v1_ListAccessHistoryInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_iampolicy_v1_ListAccessHistoryInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryPage_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryPage_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -171,131 +186,168 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n$ai/stigmer/iam/iampolicy/v1/io.proto\022\033" +
-      "ai.stigmer.iam.iampolicy.v1\032%ai/stigmer/" +
-      "iam/iampolicy/v1/api.proto\032&ai/stigmer/i" +
-      "am/iampolicy/v1/spec.proto\032,ai/stigmer/i" +
-      "am/identityaccount/v1/enum.proto\032\033buf/va" +
-      "lidate/validate.proto\"\222\003\n\022ApiResourceRef" +
-      "View\022\022\n\004kind\030\001 \001(\tR\004kind\022\016\n\002id\030\002 \001(\tR\002id" +
-      "\022\032\n\010relation\030\003 \001(\tR\010relation\022\022\n\004name\030\004 \001" +
-      "(\tR\004name\022\024\n\005email\030\005 \001(\tR\005email\022\022\n\004slug\030\006" +
-      " \001(\tR\004slug\022\026\n\006avatar\030\007 \001(\tR\006avatar\022I\n\007me" +
-      "mbers\030\010 \003(\0132/.ai.stigmer.iam.iampolicy.v" +
-      "1.ApiResourceRefViewR\007members\022E\n\005teams\030\t" +
-      " \003(\0132/.ai.stigmer.iam.iampolicy.v1.ApiRe" +
-      "sourceRefViewR\005teams\022T\n\017identity_origin\030" +
-      "\n \001(\0132+.ai.stigmer.iam.iampolicy.v1.Iden" +
-      "tityOriginR\016identityOrigin\"\265\001\n\016IdentityO" +
-      "rigin\022o\n\021provisioning_mode\030\001 \001(\0162B.ai.st" +
-      "igmer.iam.identityaccount.v1.IdentityAcc" +
-      "ountProvisioningModeR\020provisioningMode\0222" +
-      "\n\025provider_display_name\030\002 \001(\tR\023providerD" +
-      "isplayName\"+\n\013IamPolicyId\022\034\n\005value\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\005value\"\274\001\n\026PrincipalResourceInp" +
-      "ut\022Q\n\tprincipal\030\001 \001(\0132+.ai.stigmer.iam.i" +
-      "ampolicy.v1.ApiResourceRefB\006\272H\003\310\001\001R\tprin" +
-      "cipal\022O\n\010resource\030\002 \001(\0132+.ai.stigmer.iam" +
-      ".iampolicy.v1.ApiResourceRefB\006\272H\003\310\001\001R\010re" +
-      "source\"\277\001\n\027ResourcePrincipalsInput\022O\n\010re" +
-      "source\030\001 \001(\0132+.ai.stigmer.iam.iampolicy." +
-      "v1.ApiResourceRefB\006\272H\003\310\001\001R\010resource\022S\n\np" +
-      "rincipals\030\002 \003(\0132+.ai.stigmer.iam.iampoli" +
-      "cy.v1.ApiResourceRefB\006\272H\003\310\001\001R\nprincipals" +
-      "\"p\n\024RevokeOrgAccessInput\022:\n\023identity_acc" +
-      "ount_id\030\001 \001(\tB\n\272H\007r\002\020\001\310\001\001R\021identityAccou" +
-      "ntId\022\034\n\003org\030\002 \001(\tB\n\272H\007r\002\020\001\310\001\001R\003org\"\361\002\n\022M" +
-      "oveOrgAccessInput\022C\n\030from_identity_accou" +
-      "nt_id\030\001 \001(\tB\n\272H\007r\002\020\001\310\001\001R\025fromIdentityAcc" +
-      "ountId\0223\n\026to_identity_account_id\030\002 \001(\tR\023" +
-      "toIdentityAccountId\022\034\n\003org\030\003 \001(\tB\n\272H\007r\002\020" +
-      "\001\310\001\001R\003org\022!\n\014preview_only\030\004 \001(\010R\013preview" +
-      "Only:\237\001\272H\233\001\032\230\001\n\037move_org_access.target_r" +
-      "equired\022=to_identity_account_id is requi" +
-      "red unless preview_only is set\0326this.pre" +
-      "view_only || this.to_identity_account_id" +
-      " != \'\'\"\270\001\n\023MoveOrgAccessResult\022%\n\016moved_" +
-      "policies\030\001 \001(\005R\rmovedPolicies\022(\n\020my_vaul" +
-      "t_entries\030\002 \003(\tR\016myVaultEntries\022P\n\013autom" +
-      "ations\030\003 \003(\0132..ai.stigmer.iam.iampolicy." +
-      "v1.AccountAutomationR\013automations\"_\n\021Acc" +
-      "ountAutomation\022\022\n\004kind\030\001 \001(\tR\004kind\022\016\n\002id" +
-      "\030\002 \001(\tR\002id\022\022\n\004slug\030\003 \001(\tR\004slug\022\022\n\004name\030\004" +
-      " \001(\tR\004name\"S\n\017IamPoliciesList\022@\n\007entries" +
-      "\030\001 \003(\0132&.ai.stigmer.iam.iampolicy.v1.Iam" +
-      "PolicyR\007entries\"\227\001\n\027ListResourceAccessIn" +
-      "put\022O\n\010resource\030\001 \001(\0132+.ai.stigmer.iam.i" +
-      "ampolicy.v1.ApiResourceRefB\006\272H\003\310\001\001R\010reso" +
-      "urce\022+\n\021include_inherited\030\002 \001(\010R\020include" +
-      "Inherited\"g\n\035ResourceAccessByPrincipalLi" +
-      "st\022F\n\007entries\030\001 \003(\0132,.ai.stigmer.iam.iam" +
-      "policy.v1.PrincipalAccessR\007entries\"\236\001\n\017P" +
-      "rincipalAccess\022M\n\tprincipal\030\001 \001(\0132/.ai.s" +
-      "tigmer.iam.iampolicy.v1.ApiResourceRefVi" +
-      "ewR\tprincipal\022<\n\005roles\030\002 \003(\0132&.ai.stigme" +
-      "r.iam.iampolicy.v1.RoleGrantR\005roles\"\275\001\n\t" +
-      "RoleGrant\0229\n\004role\030\001 \001(\0132%.ai.stigmer.iam" +
-      ".iampolicy.v1.RoleInfoR\004role\022R\n\016owner_re" +
-      "source\030\002 \001(\0132+.ai.stigmer.iam.iampolicy." +
-      "v1.ApiResourceRefR\rownerResource\022!\n\014is_i" +
-      "nherited\030\003 \001(\010R\013isInherited\"]\n\030ResourceA" +
-      "ccessByRoleList\022A\n\007entries\030\001 \003(\0132\'.ai.st" +
-      "igmer.iam.iampolicy.v1.RoleAccessR\007entri" +
-      "es\"\231\001\n\nRoleAccess\022:\n\004role\030\001 \001(\0132&.ai.sti" +
-      "gmer.iam.iampolicy.v1.RoleGrantR\004role\022O\n" +
-      "\nprincipals\030\002 \003(\0132/.ai.stigmer.iam.iampo" +
-      "licy.v1.ApiResourceRefViewR\nprincipals\"d" +
-      "\n\010RoleInfo\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004code\030\002 \001(\t" +
-      "R\004code\022\022\n\004name\030\003 \001(\tR\004name\022 \n\013descriptio" +
-      "n\030\004 \001(\tR\013description\"U\n\026PrincipalResourc" +
-      "eRoles\022;\n\005roles\030\001 \003(\0132%.ai.stigmer.iam.i" +
-      "ampolicy.v1.RoleInfoR\005roles\"\302\001\n\027CheckAut" +
-      "horizationInput\022J\n\006policy\030\001 \001(\0132*.ai.sti" +
-      "gmer.iam.iampolicy.v1.IamPolicySpecB\006\272H\003" +
-      "\310\001\001R\006policy\022[\n\023contextual_policies\030\002 \003(\013" +
-      "2*.ai.stigmer.iam.iampolicy.v1.IamPolicy" +
-      "SpecR\022contextualPolicies\"?\n\030CheckAuthori" +
-      "zationResult\022#\n\ris_authorized\030\001 \001(\010R\014isA" +
-      "uthorized\"\360\001\n\026CheckMyPermissionInput\022O\n\010" +
-      "resource\030\001 \001(\0132+.ai.stigmer.iam.iampolic" +
-      "y.v1.ApiResourceRefB\006\272H\003\310\001\001R\010resource\022(\n" +
-      "\010relation\030\002 \001(\tB\014\272H\tr\004\020\001\030@\310\001\001R\010relation\022" +
-      "[\n\023contextual_policies\030\003 \003(\0132*.ai.stigme" +
-      "r.iam.iampolicy.v1.IamPolicySpecR\022contex" +
-      "tualPolicies\"\251\002\n\036ListAuthorizedResourceI" +
-      "dsInput\022Q\n\tprincipal\030\001 \001(\0132+.ai.stigmer." +
-      "iam.iampolicy.v1.ApiResourceRefB\006\272H\003\310\001\001R" +
-      "\tprincipal\022/\n\rresource_kind\030\002 \001(\tB\n\272H\007r\002" +
-      "\020\001\310\001\001R\014resourceKind\022&\n\010relation\030\003 \001(\tB\n\272" +
-      "H\007r\002\020\001\310\001\001R\010relation\022[\n\023contextual_polici" +
-      "es\030\004 \003(\0132*.ai.stigmer.iam.iampolicy.v1.I" +
-      "amPolicySpecR\022contextualPolicies\">\n\031Auth" +
-      "orizedResourceIdsList\022!\n\014resource_ids\030\001 " +
-      "\003(\tR\013resourceIds\"\252\002\n\037ListAuthorizedPrinc" +
-      "ipalIdsInput\022O\n\010resource\030\001 \001(\0132+.ai.stig" +
-      "mer.iam.iampolicy.v1.ApiResourceRefB\006\272H\003" +
-      "\310\001\001R\010resource\0221\n\016principal_kind\030\002 \001(\tB\n\272" +
-      "H\007r\002\020\001\310\001\001R\rprincipalKind\022&\n\010relation\030\003 \001" +
-      "(\tB\n\272H\007r\002\020\001\310\001\001R\010relation\022[\n\023contextual_p" +
-      "olicies\030\004 \003(\0132*.ai.stigmer.iam.iampolicy" +
-      ".v1.IamPolicySpecR\022contextualPolicies\"A\n" +
-      "\032AuthorizedPrincipalIdsList\022#\n\rprincipal" +
-      "_ids\030\001 \003(\tR\014principalIds\"j\n\027GetPrincipal" +
-      "sCountInput\022\034\n\003org\030\001 \001(\tB\n\272H\007r\002\020\001\310\001\001R\003or" +
-      "g\0221\n\016principal_kind\030\002 \001(\tB\n\272H\007r\002\020\001\310\001\001R\rp" +
-      "rincipalKind\"\'\n\017PrincipalsCount\022\024\n\005count" +
-      "\030\001 \001(\005R\005countB\232\001B\007IoProtoP\001\242\002\004ASII\252\002\033Ai." +
-      "Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Stigmer\\Ia" +
-      "m\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampolic" +
-      "y\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Iam::Iam" +
-      "policy::V1b\006proto3"
+      "ai.stigmer.iam.iampolicy.v1\032\'ai/stigmer/" +
+      "commons/apiresource/io.proto\032%ai/stigmer" +
+      "/iam/iampolicy/v1/api.proto\032&ai/stigmer/" +
+      "iam/iampolicy/v1/spec.proto\032,ai/stigmer/" +
+      "iam/identityaccount/v1/enum.proto\032\033buf/v" +
+      "alidate/validate.proto\032\037google/protobuf/" +
+      "timestamp.proto\"\222\003\n\022ApiResourceRefView\022\022" +
+      "\n\004kind\030\001 \001(\tR\004kind\022\016\n\002id\030\002 \001(\tR\002id\022\032\n\010re" +
+      "lation\030\003 \001(\tR\010relation\022\022\n\004name\030\004 \001(\tR\004na" +
+      "me\022\024\n\005email\030\005 \001(\tR\005email\022\022\n\004slug\030\006 \001(\tR\004" +
+      "slug\022\026\n\006avatar\030\007 \001(\tR\006avatar\022I\n\007members\030" +
+      "\010 \003(\0132/.ai.stigmer.iam.iampolicy.v1.ApiR" +
+      "esourceRefViewR\007members\022E\n\005teams\030\t \003(\0132/" +
+      ".ai.stigmer.iam.iampolicy.v1.ApiResource" +
+      "RefViewR\005teams\022T\n\017identity_origin\030\n \001(\0132" +
+      "+.ai.stigmer.iam.iampolicy.v1.IdentityOr" +
+      "iginR\016identityOrigin\"\265\001\n\016IdentityOrigin\022" +
+      "o\n\021provisioning_mode\030\001 \001(\0162B.ai.stigmer." +
+      "iam.identityaccount.v1.IdentityAccountPr" +
+      "ovisioningModeR\020provisioningMode\0222\n\025prov" +
+      "ider_display_name\030\002 \001(\tR\023providerDisplay" +
+      "Name\"+\n\013IamPolicyId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310" +
+      "\001\001R\005value\"\274\001\n\026PrincipalResourceInput\022Q\n\t" +
+      "principal\030\001 \001(\0132+.ai.stigmer.iam.iampoli" +
+      "cy.v1.ApiResourceRefB\006\272H\003\310\001\001R\tprincipal\022" +
+      "O\n\010resource\030\002 \001(\0132+.ai.stigmer.iam.iampo" +
+      "licy.v1.ApiResourceRefB\006\272H\003\310\001\001R\010resource" +
+      "\"\277\001\n\027ResourcePrincipalsInput\022O\n\010resource" +
+      "\030\001 \001(\0132+.ai.stigmer.iam.iampolicy.v1.Api" +
+      "ResourceRefB\006\272H\003\310\001\001R\010resource\022S\n\nprincip" +
+      "als\030\002 \003(\0132+.ai.stigmer.iam.iampolicy.v1." +
+      "ApiResourceRefB\006\272H\003\310\001\001R\nprincipals\"p\n\024Re" +
+      "vokeOrgAccessInput\022:\n\023identity_account_i" +
+      "d\030\001 \001(\tB\n\272H\007r\002\020\001\310\001\001R\021identityAccountId\022\034" +
+      "\n\003org\030\002 \001(\tB\n\272H\007r\002\020\001\310\001\001R\003org\"\361\002\n\022MoveOrg" +
+      "AccessInput\022C\n\030from_identity_account_id\030" +
+      "\001 \001(\tB\n\272H\007r\002\020\001\310\001\001R\025fromIdentityAccountId" +
+      "\0223\n\026to_identity_account_id\030\002 \001(\tR\023toIden" +
+      "tityAccountId\022\034\n\003org\030\003 \001(\tB\n\272H\007r\002\020\001\310\001\001R\003" +
+      "org\022!\n\014preview_only\030\004 \001(\010R\013previewOnly:\237" +
+      "\001\272H\233\001\032\230\001\n\037move_org_access.target_require" +
+      "d\022=to_identity_account_id is required un" +
+      "less preview_only is set\0326this.preview_o" +
+      "nly || this.to_identity_account_id != \'\'" +
+      "\"\270\001\n\023MoveOrgAccessResult\022%\n\016moved_polici" +
+      "es\030\001 \001(\005R\rmovedPolicies\022(\n\020my_vault_entr" +
+      "ies\030\002 \003(\tR\016myVaultEntries\022P\n\013automations" +
+      "\030\003 \003(\0132..ai.stigmer.iam.iampolicy.v1.Acc" +
+      "ountAutomationR\013automations\"_\n\021AccountAu" +
+      "tomation\022\022\n\004kind\030\001 \001(\tR\004kind\022\016\n\002id\030\002 \001(\t" +
+      "R\002id\022\022\n\004slug\030\003 \001(\tR\004slug\022\022\n\004name\030\004 \001(\tR\004" +
+      "name\"S\n\017IamPoliciesList\022@\n\007entries\030\001 \003(\013" +
+      "2&.ai.stigmer.iam.iampolicy.v1.IamPolicy" +
+      "R\007entries\"\227\001\n\027ListResourceAccessInput\022O\n" +
+      "\010resource\030\001 \001(\0132+.ai.stigmer.iam.iampoli" +
+      "cy.v1.ApiResourceRefB\006\272H\003\310\001\001R\010resource\022+" +
+      "\n\021include_inherited\030\002 \001(\010R\020includeInheri" +
+      "ted\"g\n\035ResourceAccessByPrincipalList\022F\n\007" +
+      "entries\030\001 \003(\0132,.ai.stigmer.iam.iampolicy" +
+      ".v1.PrincipalAccessR\007entries\"\236\001\n\017Princip" +
+      "alAccess\022M\n\tprincipal\030\001 \001(\0132/.ai.stigmer" +
+      ".iam.iampolicy.v1.ApiResourceRefViewR\tpr" +
+      "incipal\022<\n\005roles\030\002 \003(\0132&.ai.stigmer.iam." +
+      "iampolicy.v1.RoleGrantR\005roles\"\275\001\n\tRoleGr" +
+      "ant\0229\n\004role\030\001 \001(\0132%.ai.stigmer.iam.iampo" +
+      "licy.v1.RoleInfoR\004role\022R\n\016owner_resource" +
+      "\030\002 \001(\0132+.ai.stigmer.iam.iampolicy.v1.Api" +
+      "ResourceRefR\rownerResource\022!\n\014is_inherit" +
+      "ed\030\003 \001(\010R\013isInherited\"]\n\030ResourceAccessB" +
+      "yRoleList\022A\n\007entries\030\001 \003(\0132\'.ai.stigmer." +
+      "iam.iampolicy.v1.RoleAccessR\007entries\"\231\001\n" +
+      "\nRoleAccess\022:\n\004role\030\001 \001(\0132&.ai.stigmer.i" +
+      "am.iampolicy.v1.RoleGrantR\004role\022O\n\nprinc" +
+      "ipals\030\002 \003(\0132/.ai.stigmer.iam.iampolicy.v" +
+      "1.ApiResourceRefViewR\nprincipals\"d\n\010Role" +
+      "Info\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004code\030\002 \001(\tR\004code" +
+      "\022\022\n\004name\030\003 \001(\tR\004name\022 \n\013description\030\004 \001(" +
+      "\tR\013description\"U\n\026PrincipalResourceRoles" +
+      "\022;\n\005roles\030\001 \003(\0132%.ai.stigmer.iam.iampoli" +
+      "cy.v1.RoleInfoR\005roles\"\302\001\n\027CheckAuthoriza" +
+      "tionInput\022J\n\006policy\030\001 \001(\0132*.ai.stigmer.i" +
+      "am.iampolicy.v1.IamPolicySpecB\006\272H\003\310\001\001R\006p" +
+      "olicy\022[\n\023contextual_policies\030\002 \003(\0132*.ai." +
+      "stigmer.iam.iampolicy.v1.IamPolicySpecR\022" +
+      "contextualPolicies\"?\n\030CheckAuthorization" +
+      "Result\022#\n\ris_authorized\030\001 \001(\010R\014isAuthori" +
+      "zed\"\360\001\n\026CheckMyPermissionInput\022O\n\010resour" +
+      "ce\030\001 \001(\0132+.ai.stigmer.iam.iampolicy.v1.A" +
+      "piResourceRefB\006\272H\003\310\001\001R\010resource\022(\n\010relat" +
+      "ion\030\002 \001(\tB\014\272H\tr\004\020\001\030@\310\001\001R\010relation\022[\n\023con" +
+      "textual_policies\030\003 \003(\0132*.ai.stigmer.iam." +
+      "iampolicy.v1.IamPolicySpecR\022contextualPo" +
+      "licies\"\251\002\n\036ListAuthorizedResourceIdsInpu" +
+      "t\022Q\n\tprincipal\030\001 \001(\0132+.ai.stigmer.iam.ia" +
+      "mpolicy.v1.ApiResourceRefB\006\272H\003\310\001\001R\tprinc" +
+      "ipal\022/\n\rresource_kind\030\002 \001(\tB\n\272H\007r\002\020\001\310\001\001R" +
+      "\014resourceKind\022&\n\010relation\030\003 \001(\tB\n\272H\007r\002\020\001" +
+      "\310\001\001R\010relation\022[\n\023contextual_policies\030\004 \003" +
+      "(\0132*.ai.stigmer.iam.iampolicy.v1.IamPoli" +
+      "cySpecR\022contextualPolicies\">\n\031Authorized" +
+      "ResourceIdsList\022!\n\014resource_ids\030\001 \003(\tR\013r" +
+      "esourceIds\"\252\002\n\037ListAuthorizedPrincipalId" +
+      "sInput\022O\n\010resource\030\001 \001(\0132+.ai.stigmer.ia" +
+      "m.iampolicy.v1.ApiResourceRefB\006\272H\003\310\001\001R\010r" +
+      "esource\0221\n\016principal_kind\030\002 \001(\tB\n\272H\007r\002\020\001" +
+      "\310\001\001R\rprincipalKind\022&\n\010relation\030\003 \001(\tB\n\272H" +
+      "\007r\002\020\001\310\001\001R\010relation\022[\n\023contextual_policie" +
+      "s\030\004 \003(\0132*.ai.stigmer.iam.iampolicy.v1.Ia" +
+      "mPolicySpecR\022contextualPolicies\"A\n\032Autho" +
+      "rizedPrincipalIdsList\022#\n\rprincipal_ids\030\001" +
+      " \003(\tR\014principalIds\"j\n\027GetPrincipalsCount" +
+      "Input\022\034\n\003org\030\001 \001(\tB\n\272H\007r\002\020\001\310\001\001R\003org\0221\n\016p" +
+      "rincipal_kind\030\002 \001(\tB\n\272H\007r\002\020\001\310\001\001R\rprincip" +
+      "alKind\"\'\n\017PrincipalsCount\022\024\n\005count\030\001 \001(\005" +
+      "R\005count\"\317\001\n\026ListAccessHistoryInput\022\034\n\003or" +
+      "g\030\001 \001(\tB\n\272H\007r\002\020\001\310\001\001R\003org\022&\n\tpage_size\030\002 " +
+      "\001(\005B\t\272H\006\032\004\030d(\000R\010pageSize\022\'\n\npage_token\030\003" +
+      " \001(\tB\010\272H\005r\003\030\200\010R\tpageToken\0223\n\016after_seque" +
+      "nce\030\004 \001(\003B\007\272H\004\"\002(\000H\000R\rafterSequence\210\001\001B\021" +
+      "\n\017_after_sequence\"\206\001\n\021AccessHistoryPage\022" +
+      "I\n\007entries\030\001 \003(\0132/.ai.stigmer.iam.iampol" +
+      "icy.v1.AccessHistoryEntryR\007entries\022&\n\017ne" +
+      "xt_page_token\030\002 \001(\tR\rnextPageToken\"\272\004\n\022A" +
+      "ccessHistoryEntry\022\032\n\010sequence\030\001 \001(\003R\010seq" +
+      "uence\022;\n\013occurred_at\030\002 \001(\0132\032.google.prot" +
+      "obuf.TimestampR\noccurredAt\022A\n\006change\030\003 \001" +
+      "(\0162).ai.stigmer.iam.iampolicy.v1.AccessC" +
+      "hangeR\006change\022D\n\005cause\030\004 \001(\0162..ai.stigme" +
+      "r.iam.iampolicy.v1.AccessChangeCauseR\005ca" +
+      "use\022E\n\005actor\030\005 \001(\0132/.ai.stigmer.iam.iamp" +
+      "olicy.v1.ApiResourceRefViewR\005actor\022\037\n\013ac" +
+      "tor_class\030\006 \001(\tR\nactorClass\022M\n\tprincipal" +
+      "\030\007 \001(\0132/.ai.stigmer.iam.iampolicy.v1.Api" +
+      "ResourceRefViewR\tprincipal\0229\n\004role\030\010 \001(\013" +
+      "2%.ai.stigmer.iam.iampolicy.v1.RoleInfoR" +
+      "\004role\022P\n\010resource\030\t \001(\01324.ai.stigmer.com" +
+      "mons.apiresource.ApiResourceReferenceR\010r" +
+      "esource*G\n\014AccessChange\022\035\n\031access_change" +
+      "_unspecified\020\000\022\013\n\007granted\020\001\022\013\n\007revoked\020\002" +
+      "*\303\002\n\021AccessChangeCause\022#\n\037access_change_" +
+      "cause_unspecified\020\000\022\t\n\005grant\020\001\022\n\n\006revoke" +
+      "\020\002\022\016\n\nstructural\020\003\022\037\n\033organization_acces" +
+      "s_revoked\020\004\022\025\n\021left_organization\020\005\022\024\n\020re" +
+      "source_deleted\020\006\022\030\n\024organization_created" +
+      "\020\007\022\021\n\rfirst_sign_in\020\010\022\027\n\023role_reconcilia" +
+      "tion\020\t\022\026\n\022operator_ownership\020\n\022\031\n\025platfo" +
+      "rm_client_grant\020\013\022\033\n\027service_account_cre" +
+      "ated\020\014B\232\001B\007IoProtoP\001\242\002\004ASII\252\002\033Ai.Stigmer" +
+      ".Iam.Iampolicy.V1\312\002\033Ai\\Stigmer\\Iam\\Iampo" +
+      "licy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GP" +
+      "BMetadata\352\002\037Ai::Stigmer::Iam::Iampolicy:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.ApiProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.SpecProto.getDescriptor(),
           ai.stigmer.iam.identityaccount.v1.EnumProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_iampolicy_v1_ApiResourceRefView_descriptor =
       getDescriptor().getMessageType(0);
@@ -459,11 +511,31 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_iampolicy_v1_PrincipalsCount_descriptor,
         new java.lang.String[] { "Count", });
+    internal_static_ai_stigmer_iam_iampolicy_v1_ListAccessHistoryInput_descriptor =
+      getDescriptor().getMessageType(27);
+    internal_static_ai_stigmer_iam_iampolicy_v1_ListAccessHistoryInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_iampolicy_v1_ListAccessHistoryInput_descriptor,
+        new java.lang.String[] { "Org", "PageSize", "PageToken", "AfterSequence", });
+    internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryPage_descriptor =
+      getDescriptor().getMessageType(28);
+    internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryPage_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryPage_descriptor,
+        new java.lang.String[] { "Entries", "NextPageToken", });
+    internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryEntry_descriptor =
+      getDescriptor().getMessageType(29);
+    internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_iampolicy_v1_AccessHistoryEntry_descriptor,
+        new java.lang.String[] { "Sequence", "OccurredAt", "Change", "Cause", "Actor", "ActorClass", "Principal", "Role", "Resource", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.SpecProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);

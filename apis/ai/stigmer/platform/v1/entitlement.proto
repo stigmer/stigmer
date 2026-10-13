@@ -149,4 +149,12 @@ enum Feature {
   // admitted. It tiers the Cloud runtime and is not an edition gate; a
   // license never lists it.
   child_orgs = 7;
+
+  // Reading an organization's access history: who gave whom access to
+  // what, and when. Every Cloud organization's history is recorded; this
+  // feature tiers reading and exporting it inside Cloud plans, so an
+  // organization that gains it reads its whole past. It is not an edition
+  // gate: a licensed self-hosted server serves the history by its edition,
+  // and a license never lists it.
+  access_history = 8;
 }

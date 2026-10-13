@@ -1,14 +1,57 @@
+import datetime
+
+from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.iam.iampolicy.v1 import api_pb2 as _api_pb2
 from ai.stigmer.iam.iampolicy.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.iam.identityaccount.v1 import enum_pb2 as _enum_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class AccessChange(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    access_change_unspecified: _ClassVar[AccessChange]
+    granted: _ClassVar[AccessChange]
+    revoked: _ClassVar[AccessChange]
+
+class AccessChangeCause(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    access_change_cause_unspecified: _ClassVar[AccessChangeCause]
+    grant: _ClassVar[AccessChangeCause]
+    revoke: _ClassVar[AccessChangeCause]
+    structural: _ClassVar[AccessChangeCause]
+    organization_access_revoked: _ClassVar[AccessChangeCause]
+    left_organization: _ClassVar[AccessChangeCause]
+    resource_deleted: _ClassVar[AccessChangeCause]
+    organization_created: _ClassVar[AccessChangeCause]
+    first_sign_in: _ClassVar[AccessChangeCause]
+    role_reconciliation: _ClassVar[AccessChangeCause]
+    operator_ownership: _ClassVar[AccessChangeCause]
+    platform_client_grant: _ClassVar[AccessChangeCause]
+    service_account_created: _ClassVar[AccessChangeCause]
+access_change_unspecified: AccessChange
+granted: AccessChange
+revoked: AccessChange
+access_change_cause_unspecified: AccessChangeCause
+grant: AccessChangeCause
+revoke: AccessChangeCause
+structural: AccessChangeCause
+organization_access_revoked: AccessChangeCause
+left_organization: AccessChangeCause
+resource_deleted: AccessChangeCause
+organization_created: AccessChangeCause
+first_sign_in: AccessChangeCause
+role_reconciliation: AccessChangeCause
+operator_ownership: AccessChangeCause
+platform_client_grant: AccessChangeCause
+service_account_created: AccessChangeCause
 
 class ApiResourceRefView(_message.Message):
     __slots__ = ("kind", "id", "relation", "name", "email", "slug", "avatar", "members", "teams", "identity_origin")
@@ -249,3 +292,45 @@ class PrincipalsCount(_message.Message):
     COUNT_FIELD_NUMBER: _ClassVar[int]
     count: int
     def __init__(self, count: _Optional[int] = ...) -> None: ...
+
+class ListAccessHistoryInput(_message.Message):
+    __slots__ = ("org", "page_size", "page_token", "after_sequence")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    AFTER_SEQUENCE_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    page_size: int
+    page_token: str
+    after_sequence: int
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., after_sequence: _Optional[int] = ...) -> None: ...
+
+class AccessHistoryPage(_message.Message):
+    __slots__ = ("entries", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[AccessHistoryEntry]
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[AccessHistoryEntry, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+
+class AccessHistoryEntry(_message.Message):
+    __slots__ = ("sequence", "occurred_at", "change", "cause", "actor", "actor_class", "principal", "role", "resource")
+    SEQUENCE_FIELD_NUMBER: _ClassVar[int]
+    OCCURRED_AT_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_FIELD_NUMBER: _ClassVar[int]
+    CAUSE_FIELD_NUMBER: _ClassVar[int]
+    ACTOR_FIELD_NUMBER: _ClassVar[int]
+    ACTOR_CLASS_FIELD_NUMBER: _ClassVar[int]
+    PRINCIPAL_FIELD_NUMBER: _ClassVar[int]
+    ROLE_FIELD_NUMBER: _ClassVar[int]
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    sequence: int
+    occurred_at: _timestamp_pb2.Timestamp
+    change: AccessChange
+    cause: AccessChangeCause
+    actor: ApiResourceRefView
+    actor_class: str
+    principal: ApiResourceRefView
+    role: RoleInfo
+    resource: _io_pb2.ApiResourceReference
+    def __init__(self, sequence: _Optional[int] = ..., occurred_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., change: _Optional[_Union[AccessChange, str]] = ..., cause: _Optional[_Union[AccessChangeCause, str]] = ..., actor: _Optional[_Union[ApiResourceRefView, _Mapping]] = ..., actor_class: _Optional[str] = ..., principal: _Optional[_Union[ApiResourceRefView, _Mapping]] = ..., role: _Optional[_Union[RoleInfo, _Mapping]] = ..., resource: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...

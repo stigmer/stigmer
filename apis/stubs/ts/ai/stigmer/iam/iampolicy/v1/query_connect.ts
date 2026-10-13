@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AuthorizedPrincipalIdsList, AuthorizedResourceIdsList, CheckAuthorizationInput, CheckAuthorizationResult, CheckMyPermissionInput, GetPrincipalsCountInput, IamPolicyId, ListAuthorizedPrincipalIdsInput, ListAuthorizedResourceIdsInput, ListResourceAccessInput, PrincipalResourceInput, PrincipalResourceRoles, PrincipalsCount, ResourceAccessByPrincipalList } from "./io_pbjs";
+import { AccessHistoryPage, AuthorizedPrincipalIdsList, AuthorizedResourceIdsList, CheckAuthorizationInput, CheckAuthorizationResult, CheckMyPermissionInput, GetPrincipalsCountInput, IamPolicyId, ListAccessHistoryInput, ListAuthorizedPrincipalIdsInput, ListAuthorizedResourceIdsInput, ListResourceAccessInput, PrincipalResourceInput, PrincipalResourceRoles, PrincipalsCount, ResourceAccessByPrincipalList } from "./io_pbjs";
 import { IamPolicy } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -191,6 +191,32 @@ export const IamPolicyQueryController = {
       name: "getPrincipalsCount",
       I: GetPrincipalsCountInput,
       O: PrincipalsCount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List an organization's access history: every time someone was given
+     * or lost access to the organization or to a resource in it, who did it,
+     * why, and when.
+     *
+     * Without after_sequence the entries come newest first, for people
+     * reading what happened lately. With after_sequence they come oldest
+     * first, starting just after that entry, for a tool that keeps its own
+     * copy: it asks for what came after the last entry it holds. Each
+     * organization numbers its entries from 1 in the order they happened,
+     * with no gaps, so a reader that resumes after entry N never misses one.
+     *
+     * Only the organization's owners and administrators may read it, and a
+     * parent organization's administrators for a child. The Enterprise and
+     * Cloud editions keep the history; an open-source server keeps none and
+     * answers UNIMPLEMENTED. A host may refuse the read for its own reasons,
+     * such as a plan that does not include it.
+     *
+     * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.listAccessHistory
+     */
+    listAccessHistory: {
+      name: "listAccessHistory",
+      I: ListAccessHistoryInput,
+      O: AccessHistoryPage,
       kind: MethodKind.Unary,
     },
   }

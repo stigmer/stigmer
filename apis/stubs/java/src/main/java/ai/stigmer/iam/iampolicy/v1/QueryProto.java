@@ -41,7 +41,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
       "options.proto\032%ai/stigmer/iam/iampolicy/" +
       "v1/api.proto\032$ai/stigmer/iam/iampolicy/v" +
-      "1/io.proto2\235\013\n\030IamPolicyQueryController\022" +
+      "1/io.proto2\320\014\n\030IamPolicyQueryController\022" +
       "\205\001\n\003get\022(.ai.stigmer.iam.iampolicy.v1.Ia" +
       "mPolicyId\032&.ai.stigmer.iam.iampolicy.v1." +
       "IamPolicy\",\302\270\030(\010\005*$unauthorized to view " +
@@ -77,11 +77,15 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       ".GetPrincipalsCountInput\032,.ai.stigmer.ia" +
       "m.iampolicy.v1.PrincipalsCount\"4\302\270\0300\010\005\020\036" +
       "\"\003org*%unauthorized to view principals c" +
-      "ount\032\004\240\377+\nB\235\001B\nQueryProtoP\001\242\002\004ASII\252\002\033Ai." +
-      "Stigmer.Iam.Iampolicy.V1\312\002\033Ai\\Stigmer\\Ia" +
-      "m\\Iampolicy\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampolic" +
-      "y\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Iam::Iam" +
-      "policy::V1b\006proto3"
+      "ount\022\260\001\n\021listAccessHistory\0223.ai.stigmer." +
+      "iam.iampolicy.v1.ListAccessHistoryInput\032" +
+      "..ai.stigmer.iam.iampolicy.v1.AccessHist" +
+      "oryPage\"6\302\270\0302\0108\020\036\"\003org*\'unauthorized to " +
+      "view the access history\032\004\240\377+\nB\235\001B\nQueryP" +
+      "rotoP\001\242\002\004ASII\252\002\033Ai.Stigmer.Iam.Iampolicy" +
+      ".V1\312\002\033Ai\\Stigmer\\Iam\\Iampolicy\\V1\342\002\'Ai\\S" +
+      "tigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\352\002\037Ai" +
+      "::Stigmer::Iam::Iampolicy::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
