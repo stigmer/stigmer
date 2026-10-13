@@ -2,7 +2,7 @@
  * The fold (../fold.ts) over every hermetic event golden of both harnesses
  * (backend/services/runner/src/activities/execute-{deep-agent,cursor}/
  * __tests__/hermetic/goldens): each golden's fold names the same items as
- * the status golden the same turn wrote beside it. The runner writes its
+ * the rows golden the same turn wrote beside it. The runner writes its
  * events from those rows (harness/events/emitter.ts), so a client folding
  * the log must see what the rows held:
  *
@@ -14,23 +14,25 @@
  *     name and the message it was sent;
  *   - the to-do list, the structured output and every captured change set.
  *
+ * The rows are the runner's own working record, kept in a runner-private
+ * proto package; this package never imports it. A rows golden is read as
+ * the plain protojson it is (camelCase fields, enum values by name, zero
+ * values omitted), through the few fields below.
+ *
  * A golden of a resumed turn (`.turnN.`) holds only what that invocation
- * wrote while its status holds the whole run, so for those the fold is
- * checked to be contained in the status, item for item; a single-turn
+ * wrote while its rows hold the whole run, so for those the fold is
+ * checked to be contained in the rows, item for item; a single-turn
  * golden is checked both ways. A golden that spans two runs (the turn that
  * changed a file, then the reconcile turn that put it back) holds the
- * status of the run that wrote last, and its own block pins the outcome.
+ * rows of the run that wrote last, and its own block pins the outcome.
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, ToolCallStatus, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { foldSession } from "../fold.js";
@@ -40,11 +42,64 @@ const here = dirname(fileURLToPath(import.meta.url));
 const RUNNER = join(here, "../../../../../services/runner/src/activities");
 const HARNESSES = ["execute-deep-agent", "execute-cursor"] as const;
 
+/** A tool call row, as protojson. */
+interface ToolCallJson {
+  readonly id?: string;
+  readonly name?: string;
+  readonly status?: string;
+  readonly requiresApproval?: boolean;
+  readonly args?: JsonValue;
+  readonly result?: string;
+  readonly error?: string;
+}
+
+/** A message row, as protojson. */
+interface MessageJson {
+  readonly type?: string;
+  readonly content?: string;
+  readonly toolCalls?: ReadonlyArray<ToolCallJson>;
+}
+
+/** A sub-agent row, as protojson. */
+interface SubAgentJson {
+  readonly id?: string;
+  readonly name?: string;
+  readonly input?: string;
+  readonly messages?: ReadonlyArray<MessageJson>;
+}
+
+/** A to-do row, as protojson. */
+interface TodoJson {
+  readonly id?: string;
+  readonly content?: string;
+  readonly status?: string;
+}
+
+/** A file-review ledger event, as protojson: only the candidate's set id is read. */
+interface LedgerEventJson {
+  readonly candidateCaptured?: { readonly changeSetId?: string };
+}
+
+/** The turn's rows, as protojson: the fields this test compares. */
+interface RowsJson {
+  readonly messages?: ReadonlyArray<MessageJson>;
+  readonly subAgentRuns?: ReadonlyArray<SubAgentJson>;
+  readonly todos?: Readonly<Record<string, TodoJson>>;
+  readonly structuredOutput?: JsonValue;
+  readonly fileReviewEventStream?: { readonly events?: ReadonlyArray<LedgerEventJson> };
+}
+
 interface Golden {
   readonly harness: string;
   readonly name: string;
   readonly eventsPath: string;
-  readonly statusPath: string;
+  readonly rowsPath: string;
+}
+
+/** The rows golden beside an events golden: `<name>.rows.json`, or the older `<name>.status.json`. */
+function rowsPathOf(dir: string, name: string): string {
+  const rows = join(dir, `${name}.rows.json`);
+  return existsSync(rows) ? rows : join(dir, `${name}.status.json`);
 }
 
 function goldens(): Golden[] {
@@ -54,44 +109,49 @@ function goldens(): Golden[] {
       .filter((file) => file.endsWith(".events.json"))
       .map((file) => {
         const name = file.slice(0, -".events.json".length);
-        return { harness, name, eventsPath: join(dir, file), statusPath: join(dir, `${name}.status.json`) };
+        return { harness, name, eventsPath: join(dir, file), rowsPath: rowsPathOf(dir, name) };
       });
   });
 }
 
 const ALL = goldens();
 
+const MESSAGE_AI = "MESSAGE_AI";
+const MESSAGE_THINKING = "MESSAGE_THINKING";
+const COMPLETED = "TOOL_CALL_COMPLETED";
+const FAILED = "TOOL_CALL_FAILED";
+const SKIPPED = "TOOL_CALL_SKIPPED";
+const INTERRUPTED = "TOOL_CALL_INTERRUPTED";
+
 /** The runner's collapsed row: written as nothing (shared/tool-row.ts `isToolCallRowHidden`). */
-function hidden(row: ToolCall): boolean {
-  return row.status === ToolCallStatus.TOOL_CALL_SKIPPED && !row.requiresApproval && row.args === undefined && !row.result && !row.error;
+function hidden(row: ToolCallJson): boolean {
+  return row.status === SKIPPED && !row.requiresApproval && row.args === undefined && !row.result && !row.error;
 }
 
-function settled(row: ToolCall): boolean {
-  return [ToolCallStatus.TOOL_CALL_COMPLETED, ToolCallStatus.TOOL_CALL_FAILED, ToolCallStatus.TOOL_CALL_SKIPPED].includes(row.status);
+function settled(row: ToolCallJson): boolean {
+  return row.status === COMPLETED || row.status === FAILED || row.status === SKIPPED;
 }
 
-const TODO_WORDS: Record<number, string> = {
-  [TodoStatus.TODO_PENDING]: "pending",
-  [TodoStatus.TODO_IN_PROGRESS]: "in_progress",
-  [TodoStatus.TODO_COMPLETED]: "completed",
-  [TodoStatus.TODO_CANCELLED]: "cancelled",
-};
+/** A to-do status by name, as the fold words it: TODO_IN_PROGRESS is in_progress. */
+function todoWord(status: string | undefined): string {
+  return (status ?? "").replace(/^TODO_/, "").toLowerCase();
+}
 
 function tools(items: ReadonlyArray<TurnItem>): ToolUse[] {
   return items.filter((item): item is ToolUse => item.kind === "tool_use");
 }
 
 /** A row's tool use in the fold: by the derived id `<run>.<call id>` (ids.ts; the goldens' call ids fit the pattern). */
-function useOf(uses: ReadonlyArray<ToolUse>, runId: string, row: ToolCall): ToolUse | undefined {
-  return uses.find((use) => use.id === `${runId}.${row.id}`);
+function useOf(uses: ReadonlyArray<ToolUse>, runId: string, row: ToolCallJson): ToolUse | undefined {
+  return uses.find((use) => use.id === `${runId}.${row.id ?? ""}`);
 }
 
-/** Checks one scope (the root, or a sub-agent) of the status against one thread of the fold. */
+/** Checks one scope (the root, or a sub-agent) of the rows against one thread of the fold. */
 function checkScope(
   label: string,
   runId: string,
   scope: string,
-  rows: ReadonlyArray<AgentMessage>,
+  rows: ReadonlyArray<MessageJson>,
   items: ReadonlyArray<TurnItem>,
   both: boolean,
 ): void {
@@ -102,17 +162,17 @@ function checkScope(
       const index = Number(item.id.slice(prefix.length + 2));
       const row = rows[index];
       expect(row, `${label}: ${item.id} names a row`).toBeDefined();
-      expect(row!.type, `${label}: ${item.id}`).toBe(item.kind === "message" ? MessageType.MESSAGE_AI : MessageType.MESSAGE_THINKING);
-      expect(item.text, `${label}: ${item.id}`).toBe(row!.content);
+      expect(row!.type, `${label}: ${item.id}`).toBe(item.kind === "message" ? MESSAGE_AI : MESSAGE_THINKING);
+      expect(item.text, `${label}: ${item.id}`).toBe(row!.content ?? "");
     }
   }
   const uses = tools(items);
   for (const use of uses) {
-    const row = rows.flatMap((m) => m.toolCalls).find((r) => use.id === `${runId}.${r.id}`);
+    const row = rows.flatMap((m) => m.toolCalls ?? []).find((r) => use.id === `${runId}.${r.id ?? ""}`);
     expect(row, `${label}: ${use.id} names a row`).toBeDefined();
     expect(use.name, `${label}: ${use.id}`).toBe(row!.name);
     if (use.result !== undefined) {
-      expect(settled(row!) || row!.status === ToolCallStatus.TOOL_CALL_INTERRUPTED, `${label}: ${use.id} settled`).toBe(true);
+      expect(settled(row!) || row!.status === INTERRUPTED, `${label}: ${use.id} settled`).toBe(true);
     }
   }
   if (!both) {
@@ -120,26 +180,27 @@ function checkScope(
   }
   // Every row the runner writes is in the fold.
   rows.forEach((row, index) => {
-    if (row.type === MessageType.MESSAGE_AI && row.content !== "") {
+    if (row.type === MESSAGE_AI && (row.content ?? "") !== "") {
       expect(
         items.some((item) => item.kind === "message" && item.id === `${prefix}.m${index}` && item.text === row.content),
         `${label}: message ${index}`,
       ).toBe(true);
     }
-    if (row.type === MessageType.MESSAGE_THINKING) {
+    if (row.type === MESSAGE_THINKING) {
       expect(items.some((item) => item.kind === "thinking" && item.id === `${prefix}.t${index}`), `${label}: thinking ${index}`).toBe(true);
     }
-    for (const call of row.toolCalls) {
+    for (const call of row.toolCalls ?? []) {
       if (hidden(call)) {
         continue;
       }
       const use = useOf(uses, runId, call);
-      expect(use, `${label}: tool call ${call.id} (${call.name})`).toBeDefined();
+      expect(use, `${label}: tool call ${call.id ?? ""} (${call.name ?? ""})`).toBeDefined();
       if (settled(call)) {
-        expect(use!.result, `${label}: result of ${call.id}`).toBeDefined();
-        const text = call.status === ToolCallStatus.TOOL_CALL_COMPLETED ? call.result : call.error || call.result;
-        expect(use!.result!.text, `${label}: result of ${call.id}`).toBe(text);
-        expect(use!.result!.isError, `${label}: result of ${call.id}`).toBe(call.status !== ToolCallStatus.TOOL_CALL_COMPLETED);
+        const id = call.id ?? "";
+        expect(use!.result, `${label}: result of ${id}`).toBeDefined();
+        const text = call.status === COMPLETED ? call.result ?? "" : call.error || call.result || "";
+        expect(use!.result!.text, `${label}: result of ${id}`).toBe(text);
+        expect(use!.result!.isError, `${label}: result of ${id}`).toBe(call.status !== COMPLETED);
       }
     }
   });
@@ -150,14 +211,14 @@ const emptyTurn = foldSession([
   fromJson(SessionEventSchema, { run_id: "run_empty", user_message: { id: "run_empty.user" } }),
 ]).turns[0]!;
 
-/** How many rows of the status the runner writes as events: messages with text, thinking, and uncollapsed tool calls. */
-function writtenRows(status: RunStatus): number {
-  return status.messages.reduce(
+/** How many of the rows the runner writes as events: messages with text, thinking, and uncollapsed tool calls. */
+function writtenRows(rows: RowsJson): number {
+  return (rows.messages ?? []).reduce(
     (count, row) =>
       count +
-      (row.type === MessageType.MESSAGE_AI && row.content !== "" ? 1 : 0) +
-      (row.type === MessageType.MESSAGE_THINKING ? 1 : 0) +
-      row.toolCalls.filter((call) => !hidden(call)).length,
+      (row.type === MESSAGE_AI && (row.content ?? "") !== "" ? 1 : 0) +
+      (row.type === MESSAGE_THINKING ? 1 : 0) +
+      (row.toolCalls ?? []).filter((call) => !hidden(call)).length,
     0,
   );
 }
@@ -170,7 +231,7 @@ describe.each(ALL)("$harness $name", (golden) => {
   const events = (JSON.parse(readFileSync(golden.eventsPath, "utf8")) as JsonValue[]).map((json) =>
     fromJson(SessionEventSchema, json),
   );
-  const status: RunStatus = fromJson(RunStatusSchema, JSON.parse(readFileSync(golden.statusPath, "utf8")) as JsonValue);
+  const rows = JSON.parse(readFileSync(golden.rowsPath, "utf8")) as RowsJson;
   const fold = foldSession(events);
   const runIds = [...new Set(events.map((event) => event.runId))];
   const both = !/\.turn\d+$/.test(golden.name) && runIds.length === 1;
@@ -180,13 +241,13 @@ describe.each(ALL)("$harness $name", (golden) => {
     expect(fold.turns.map((turn) => turn.runId)).toEqual(runIds);
   });
 
-  it("names the same items as the status golden", () => {
-    // The status is the run that wrote last; a golden whose turn wrote no
+  it("names the same items as the rows golden", () => {
+    // The rows are the run that wrote last; a golden whose turn wrote no
     // event (it failed before its engine ran) folds to no turn, and its
-    // status holds nothing the runner writes.
+    // rows hold nothing the runner writes.
     const turn = fold.turns.at(-1) ?? emptyTurn;
-    expect(fold.turns.length > 0 || writtenRows(status) === 0, `${label}: a turn, or nothing to write`).toBe(true);
-    checkScope(label, turn.runId, "root", status.messages, turn.items, both);
+    expect(fold.turns.length > 0 || writtenRows(rows) === 0, `${label}: a turn, or nothing to write`).toBe(true);
+    checkScope(label, turn.runId, "root", rows.messages ?? [], turn.items, both);
 
     const threads = new Map<string, Thread>();
     const collect = (items: ReadonlyArray<TurnItem>): void => {
@@ -198,36 +259,38 @@ describe.each(ALL)("$harness $name", (golden) => {
       }
     };
     collect(turn.items);
-    for (const sub of status.subAgentRuns) {
-      const thread = threads.get(`${turn.runId}.${sub.id}`);
+    const subAgents = rows.subAgentRuns ?? [];
+    for (const sub of subAgents) {
+      const id = sub.id ?? "";
+      const thread = threads.get(`${turn.runId}.${id}`);
       if (thread === undefined) {
-        expect(both, `${label}: sub-agent ${sub.id} has a thread`).toBe(false);
+        expect(both, `${label}: sub-agent ${id} has a thread`).toBe(false);
         continue;
       }
-      expect(thread.agentName).toBe(sub.name);
-      expect(thread.input).toBe(sub.input);
-      checkScope(`${label} ${sub.id}`, turn.runId, sub.id, sub.messages, thread.items, both);
+      expect(thread.agentName).toBe(sub.name ?? "");
+      expect(thread.input).toBe(sub.input ?? "");
+      checkScope(`${label} ${id}`, turn.runId, id, sub.messages ?? [], thread.items, both);
     }
-    expect(threads.size, `${label}: every thread is a sub-agent of the status`).toBeLessThanOrEqual(status.subAgentRuns.length);
+    expect(threads.size, `${label}: every thread is a sub-agent of the rows`).toBeLessThanOrEqual(subAgents.length);
   });
 
   it("holds the turn's to-do list, structured output and change sets", () => {
     const turn = fold.turns.at(-1) ?? emptyTurn;
     const todos = turn.todos.map((todo) => [todo.id, todo.content, todo.status]);
-    const statusTodos = Object.values(status.todos).map((todo) => [todo.id, todo.content, TODO_WORDS[todo.status]]);
-    const captured = (status.fileReviewEventStream?.events ?? []).flatMap((event) =>
-      event.payload.case === "candidateCaptured" ? [event.payload.value.changeSetId] : [],
+    const rowTodos = Object.values(rows.todos ?? {}).map((todo) => [todo.id ?? "", todo.content ?? "", todoWord(todo.status)]);
+    const captured = (rows.fileReviewEventStream?.events ?? []).flatMap((event) =>
+      event.candidateCaptured === undefined ? [] : [event.candidateCaptured.changeSetId ?? ""],
     );
     const sets = turn.fileReview.map((set) => set.changeSetId);
     if (both) {
-      expect(todos).toEqual(statusTodos);
+      expect(todos).toEqual(rowTodos);
       expect(sets).toEqual(captured);
     } else {
       // A resumed invocation's golden holds only what it wrote.
-      expect(statusTodos).toEqual(expect.arrayContaining(todos));
+      expect(rowTodos).toEqual(expect.arrayContaining(todos));
       expect(captured).toEqual(expect.arrayContaining(sets));
     }
-    expect(turn.structuredOutput === undefined || equalJson(turn.structuredOutput, status.structuredOutput), `${label}: structured output`).toBe(true);
+    expect(turn.structuredOutput === undefined || equalJson(turn.structuredOutput, rows.structuredOutput), `${label}: structured output`).toBe(true);
   });
 });
 
