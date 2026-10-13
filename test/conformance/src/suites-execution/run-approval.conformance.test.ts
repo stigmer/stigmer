@@ -1,8 +1,7 @@
 // Conformance suite for Run HITL tool approval (Class B).
 // Domain: agentic / agentexecution and session — the session's answers
-// (confirmToolUse, grantPermission), its stop (interrupt), the run-scoped
-// submitApproval adapter, and the approval-gate lifecycle a tool-using run
-// goes through.
+// (confirmToolUse, grantPermission), its stop (interrupt), and the
+// approval-gate lifecycle a tool-using run goes through.
 //
 // This is the first suite that exercises a real *tool*: the engine can only
 // reach RUN_WAITING_FOR_APPROVAL when an agent lists a plugin whose MCP
@@ -18,23 +17,18 @@
 // tool_use turn drives the agent to the gate, and a terminating text turn lets
 // it finish once the gate resolves.
 //
-// Contract facts asserted here (sourced from submit_approval.go + the HITL
-// integration tests). The suite asserts the *server-owned, deterministic*
-// surface. It still does not assert the per-tool-call final status of an
-// APPROVED tool (its id = a langchain run_id re-emitted by the resumed stream,
-// not preserved consistently) or ToolCall.args_preview (empty for MCP-wrapped
-// tools, whose args are absent from the on_tool_start event). It DOES assert the
-// terminal status of a REJECTED tool: as of issue #197 the runner terminalizes a
-// non-executing decision from the recorded ToolCall.approval_action
-// (reconcileNonExecutingDecisions), which is decision-derived and therefore
-// stable across resume regardless of run_id instability.
+// A turn's transcript is the session's log, read as a client reads it
+// (support/turn.ts folds it): what a call asked, how it was answered and how
+// it ended are tool uses, asks, confirmations and results, never a run's
+// rows.
 //
 // Asserted contract:
 // - What waits is the session's log: a call that asks is an
-//   agent.mcp_tool_use with evaluated_permission ask, and the session goes
-//   idle with stop_reason requires_action whose event_ids name every call
-//   still waiting, oldest first; answering one of two re-states the idle
-//   with the remainder.
+//   agent.mcp_tool_use with evaluated_permission ask and a
+//   stigmer.permission.asked naming why (policy_source, the plugin whose hook
+//   asked, the message), and the session goes idle with stop_reason
+//   requires_action whose event_ids name every call still waiting, oldest
+//   first; answering one of two re-states the idle with the remainder.
 // - SessionCommandController.confirmToolUse answers a call by that id with
 //   allow or deny, recorded as one user.tool_confirmation; a deny's
 //   deny_message is what the agent reads on its next request, and the
@@ -42,46 +36,26 @@
 //   success with nothing new; a contrary one is FAILED_PRECONDITION.
 // - grantPermission allows the call and every waiting call of its class
 //   (here, its MCP server) in one answer: the call's confirmation, one
-//   stigmer.permission.grant, then a confirmation per co-pending call.
+//   stigmer.permission.grant, then a confirmation per co-pending call; a
+//   later call of the class in the same turn runs without asking.
+// - An approved call survives the resume: it runs under its original id and
+//   records its result, and the model gets its next request exactly once.
 // - interrupt stops every unfinished turn of the session: at the gate, a
 //   paused turn, and a second turn queued while an earlier one waits (the
 //   session reads running while that turn is unfinished); each ends
 //   CANCELLED with stop_cause user, and the session idle with end_turn.
-// - submitApproval is on the Command controller, an adapter onto the same
-//   answers; SubmitApprovalInput is
-//   {run_id, tool_call_id, ApprovalAction action, comment}, and the
-//   response is the Run with the decision recorded and
-//   pending_approvals recomputed synchronously.
-// - APPROVE / SKIP / REJECT each resolve the single gate (response
-//   pending_approvals empty) and the execution reaches RUN_COMPLETED.
-//   REJECT denies the tool and continues the run — it does NOT fail the
-//   execution; the rejected tool call resolves to TOOL_CALL_SKIPPED with
-//   approval_action=REJECT. This is the proto contract as of issue #197 — the
-//   enum doc, the native runner, and the Go integration test now all agree.
-// - APPROVE_ALL resolves every co-pending gate in one decision (response
-//   pending_approvals empty) and the run completes without re-gating.
-// - spec.auto_approve_all bypasses the gate entirely (no submit needed).
-// - pending_approvals is the read model (no list-pending RPC): each entry
-//   carries tool_call_id, tool_name, mcp_server_slug (the plugin server's
-//   segment, `plugin_<plugin>_<server>`), and the provenance
-//   ANNOTATION_DESTRUCTIVE_TIGHTEN (the default asked because the server
-//   marks the tool destructive).
+// - spec.auto_approve_all bypasses the gate entirely (no answer needed).
 // - An agent's own hooks block decides before the default: a hook's deny
-//   fails the call's row (provenance HOOK) and the run completes; a hook's ask
-//   parks the run on a pending approval with provenance HOOK and the hook's
-//   reason as its message, and approving it completes the run. A plugin the
-//   agent lists brings its hooks with it, and they do the same, in Claude
-//   Code's format or Cursor's.
+//   fails the call (its result is an error carrying the hook's reason) and
+//   the run completes; a hook's ask parks the run on an ask whose
+//   policy_source is hook, with the hook's reason as its message, and
+//   allowing it completes the run. A plugin the agent lists brings its hooks
+//   with it, and they do the same, in Claude Code's format or Cursor's, the
+//   ask naming the plugin.
 // - A real plugin, Anthropic's hookify vendored unchanged, refuses through
 //   its own rule with its own text, under trust and without; its "no opinion"
-//   falls to the default's card; and an edit the agent's own shell makes to
+//   falls to the default's ask; and an edit the agent's own shell makes to
 //   the plugin's installed files does not survive to the next hook run.
-// - Idempotency: re-submitting the same {tool_call_id, action} before the gate
-//   resolves is a benign no-op that returns the current state.
-// - Negatives: UNSPECIFIED action / empty ids -> InvalidArgument (proto
-//   validation); unknown tool_call_id on a gated execution -> InvalidArgument;
-//   missing execution -> NotFound; submit on a terminal execution ->
-//   FailedPrecondition.
 //
 // Out of scope: a server whose tool listing fails asks before every one of
 // its tools (fail closed). On the native engine, which every arm here runs
@@ -92,19 +66,14 @@
 // (it needs Cursor's own service), so that arm is the runner's unit
 // contract (runner shared/mcp-tool-listing.ts, shared/approval-policy.ts).
 //
-// Every gate-resolving submit goes through submitApprovalPerContract (the seam
-// in support/agentexecutions.ts): the synchronous
-// contract above is asserted there once, so a decision the server failed to
-// record is red at the submit that made it, never a timeout later in the arm.
+// Every gate-resolving answer goes through confirmPerContract
+// (support/answers.ts): what the answer leaves waiting is asserted there
+// once, so an answer the server failed to record is red at the answer that
+// made it, never a timeout later in the arm.
 import { Code } from "@connectrpc/connect";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  ApprovalAction,
-  ApprovalPolicySource,
-  RunPhase,
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolUse, Turn } from "@stigmer/sdk";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
@@ -115,7 +84,6 @@ import type { AnthropicMessageBody, MockLlmProxy, ToolUseBlock } from "@stigmer/
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
-  allToolCalls,
   awaitPhase,
   awaitTerminal,
   makeAgentExecution,
@@ -123,10 +91,10 @@ import {
   requireMcpFixture,
   pushFixturePlugin,
   sessionIdOf,
-  submitApprovalPerContract,
 } from "../support/runs";
 import { toolServerSegment } from "../support/plugins";
 import { answersOf, awaitIdleWith, awaitRequiresAction, confirmPerContract, newestIdle, sessionLog } from "../support/answers";
+import { toolUseByCallId, toolUsesOf, turnById, turnOfRun } from "../support/turn";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import { zipFiles } from "../support/skills";
@@ -158,7 +126,7 @@ afterAll(async () => {
 
 // Provision an agent that lists a plugin whose one server is the HTTP MCP
 // fixture's destructive echo, so the default asks before the tool. Returns
-// the agent reference and the server segment a pending approval names.
+// the agent reference and the server segment an ask names.
 async function provisionGatedAgent(org: string): Promise<{ agentRef: AgentRefInit; mcpSlug: string }> {
   const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
     org,
@@ -177,13 +145,13 @@ async function provisionGatedAgent(org: string): Promise<{ agentRef: AgentRefIni
 // Run an execution to its approval gate. Scripts the given echo tool_use blocks
 // (one assistant turn) followed by a terminating text turn, creates the
 // execution, and awaits RUN_WAITING_FOR_APPROVAL. Returns the gated
-// execution and its id.
+// execution, its id and its session's id.
 async function runToGate(
   org: string,
   agentRef: AgentRefInit,
   blocks: ToolUseBlock[],
   opts: { autoApproveAll?: boolean; turnsBeforeDone?: AnthropicMessageBody[]; done?: boolean } = {},
-): Promise<{ executionId: string; gated: Run }> {
+): Promise<{ executionId: string; gated: Run; sessionId: string }> {
   mock.enqueue(anthropicToolUses(blocks));
   // Further assistant turns between the gated one and the terminating text —
   // the lever for a SECOND tool turn on the same server (the lease arm).
@@ -200,7 +168,7 @@ async function runToGate(
   const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
     label: "WAITING_FOR_APPROVAL",
   });
-  return { executionId, gated };
+  return { executionId, gated, sessionId: sessionIdOf(gated) };
 }
 
 // A single gated echo tool_use block (the destructive echo).
@@ -208,149 +176,34 @@ function echoBlock(toolCallId: string, text: string): ToolUseBlock {
   return { toolCallId, toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text } };
 }
 
-describe("Run submitApproval — gate resolution", () => {
-  it("[rpc:RunCommandController.submitApproval] APPROVE resolves the gate and completes the execution", async () => {
-    const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_approve", "hello")]);
+// The turn's tool use for the scripted call `callId`; red when the log has none.
+function requireToolUse(turn: Turn, callId: string): ToolUse {
+  const use = toolUseByCallId(turn, callId);
+  expect(use, `turn ${turn.runId}: the call ${callId} is in the log`).toBeDefined();
+  return use!;
+}
 
-    const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    // The gate is the session's before it is decided: the session is idle
-    // with requires_action naming exactly this call's tool use.
-    const sessionId = sessionIdOf(gated);
-    expect(
-      await awaitRequiresAction(clients, sessionId, 1),
-      "a parked gate is the session's requires_action naming the call",
-    ).toEqual([`${executionId}.${toolCallId}`]);
+// The turn's one waiting call: the log's only ask.
+function requireOneAsk(turn: Turn): ToolUse {
+  expect(turn.asks.map((ask) => ask.id), `turn ${turn.runId}: exactly one call waits`).toHaveLength(1);
+  return turn.asks[0]!;
+}
 
-    // The single gate is fully resolved synchronously: the approved entry is gone.
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "approve clears the pending gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
-
-    const final = await awaitTerminal(clients, executionId);
-    expect(
-      final.status?.phase,
-      `approved execution should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
-    ).toBe(RunPhase.RUN_COMPLETED);
-    // And the answer is the session's, on the same tool use: the adapter
-    // records an allow.
-    expect(await answersOf(clients, sessionId, executionId), "the APPROVE is an allow in the session's log").toEqual([
-      `${executionId}.${toolCallId} allow`,
-    ]);
-    // The caller that created the run is the caller that approved it,
-    // recorded as the same principal (#1385). The tool call carries it
-    // (#1417): approved_by is what a transcript reader sees.
-    const creator = final.status?.audit?.specAudit?.createdBy?.id ?? "";
-    expect(creator, "the execution records its creator").not.toBe("");
-    const approvedTc = allToolCalls(final).find((tc) => tc.id === toolCallId);
-    expect(approvedTc, `execution ${executionId}: the approved tool call ${toolCallId} is in the transcript`).toBeDefined();
-    expect(approvedTc!.approvedBy, `execution ${executionId}: the approved tool call names the approving caller`).toBe(
-      creator,
-    );
+// Allows the turn's one waiting call through the session, per the contract.
+async function allowOnlyAsk(sessionId: string, runId: string, label: string): Promise<void> {
+  const ask = requireOneAsk(await turnById(clients, sessionId, runId));
+  await confirmPerContract({
+    clients,
+    sessionId,
+    runId,
+    expectedRemaining: 0,
+    label,
+    answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: ask.id, result: "allow" }),
   });
+}
 
-  it("[rpc:RunCommandController.submitApproval] SKIP resolves the gate and completes the execution", async () => {
-    const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_skip", "hello")]);
-
-    const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "skip clears the pending gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId,
-          action: ApprovalAction.SKIP,
-        }),
-    });
-
-    const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "skipped execution should COMPLETE").toBe(RunPhase.RUN_COMPLETED);
-  });
-
-  it("[rpc:RunCommandController.submitApproval] REJECT resolves the gate; the agent continues to completion", async () => {
-    const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_reject", "hello")]);
-
-    const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "reject clears the pending gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId,
-          action: ApprovalAction.REJECT,
-          comment: "not this time",
-        }),
-    });
-
-    // REJECT denies the tool and continues: the objection is fed back to the LLM,
-    // which adapts, and the execution COMPLETES (issue #197 — the proto enum, the
-    // native runner, and this suite agree).
-    const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "rejected execution still COMPLETES").toBe(RunPhase.RUN_COMPLETED);
-
-    // The rejected tool call is terminalized deterministically — never left stuck
-    // at WAITING_APPROVAL — carrying the REJECT decision for audit. This is stable
-    // across resume because it is derived from the recorded approval_action, not
-    // from the resumed stream's (unstable) run_id.
-    const rejectedTc = allToolCalls(final).find((tc) => tc.id === toolCallId);
-    expect(rejectedTc, "the rejected echo tool call is present in the transcript").toBeDefined();
-    expect(rejectedTc!.status, "rejected tool call resolves to SKIPPED, not WAITING").toBe(
-      ToolCallStatus.TOOL_CALL_SKIPPED,
-    );
-    expect(rejectedTc!.approvalAction, "the REJECT decision is preserved for audit").toBe(
-      ApprovalAction.REJECT,
-    );
-  });
-
-  it("[rpc:RunCommandController.submitApproval] APPROVE_ALL resolves every co-pending gate in a single decision", async () => {
-    const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    // Two echo calls in one assistant turn -> two co-pending approvals.
-    const { executionId, gated } = await runToGate(org, agentRef, [
-      echoBlock("call_echo_all_1", "one"),
-      echoBlock("call_echo_all_2", "two"),
-    ]);
-
-    expect(gated.status?.pendingApprovals.length, "both echo calls are co-pending").toBe(2);
-
-    // One APPROVE_ALL on the first resolves the whole gate — no second submit.
-    // One decision empties the read model: the co-pending entry was resolved too.
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "APPROVE_ALL resolves both gates at once",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
-          action: ApprovalAction.APPROVE_ALL,
-        }),
-    });
-
-    // Reaching COMPLETED proves the second tool call was auto-approved (a plain
-    // APPROVE would have re-gated and this would never settle).
-    const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "APPROVE_ALL completes the execution un-gated").toBe(
-      RunPhase.RUN_COMPLETED,
-    );
-  });
-});
-
-describe("Run submitApproval — spec bypass and read model", () => {
-  it("auto_approve_all bypasses the gate entirely (no submit needed)", async () => {
+describe("Run approval — spec bypass and what an ask names", () => {
+  it("auto_approve_all bypasses the gate entirely (no answer needed)", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
 
@@ -368,160 +221,99 @@ describe("Run submitApproval — spec bypass and read model", () => {
     expect(final.status?.phase, "auto_approve_all completes without a gate").toBe(
       RunPhase.RUN_COMPLETED,
     );
+    const use = requireToolUse(await turnOfRun(clients, final), "call_echo_bypass");
+    expect(use.ask, "nothing asked").toBeUndefined();
+    expect(use.state, "the call ran").toBe("completed");
   });
 
-  it("exposes pending-approval details (tool_call_id, tool_name, mcp_server_slug, approval_policy_source)", async () => {
+  it("an ask names the tool, its MCP server, and why it asked", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef, mcpSlug } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_details", "peek")]);
+    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock("call_echo_details", "peek")]);
+    await awaitRequiresAction(clients, sessionId, 1);
 
-    expect(gated.status?.pendingApprovals.length, "exactly one pending approval").toBe(1);
-    const pending = gated.status!.pendingApprovals[0]!;
-    expect(pending.toolCallId, "pending approval carries the tool call id").toBeTruthy();
-    expect(pending.toolName, "pending approval names the tool").toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
-    expect(pending.mcpServerSlug, "pending approval names the plugin server").toBe(mcpSlug);
-    expect(
-      ApprovalPolicySource[pending.approvalPolicySource],
-      "the default asked because the server marks the tool destructive",
-    ).toBe(ApprovalPolicySource[ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN]);
-
-    // Settle so the run terminates cleanly. Through the seam even though this
-    // arm is about the read model, not the decision: a decision the server
-    // failed to record would otherwise surface as awaitTerminal timing out, a
-    // red with a misleading face.
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "the settling approve clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: pending.toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
-    await awaitTerminal(clients, executionId);
-  });
-
-  it("[rpc:RunCommandController.submitApproval] is idempotent: re-submitting the same decision before the gate resolves is benign", async () => {
-    const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    // Two co-pending calls: approving only the first leaves the gate open (the
-    // second is still pending), so no resume races the second submit — making the
-    // idempotent re-submit deterministic.
-    const { executionId, gated } = await runToGate(org, agentRef, [
-      echoBlock("call_idem_1", "one"),
-      echoBlock("call_idem_2", "two"),
-    ]);
-    const [firstId, secondId] = gated.status!.pendingApprovals.map((p) => p.toolCallId);
-
-    const approveFirst = () =>
-      clients.agentExecutionCommand.submitApproval({
-        runId: executionId,
-        toolCallId: firstId,
-        action: ApprovalAction.APPROVE,
-      });
-    // One of two co-pending gates resolved: the other is still pending.
-    await submitApprovalPerContract({
-      expectedRemaining: 1,
-      label: "one gate remains after first approve",
-      submit: approveFirst,
-    });
-
-    // Same {tool_call_id, action} again while the gate is still open: a no-op
-    // that returns the current state (still one pending), not an error.
-    const secondResp = await approveFirst();
-    expect(secondResp.status?.pendingApprovals.length, "idempotent re-submit is a no-op").toBe(1);
-    expect(secondResp.status?.pendingApprovals[0]?.toolCallId, "the remaining gate is unchanged").toBe(secondId);
-
-    // Resolve the rest of the gate and confirm the run still completes.
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "the second approve clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: secondId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
-    const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "execution completes after idempotent + final approval").toBe(
-      RunPhase.RUN_COMPLETED,
+    const ask = requireOneAsk(await turnById(clients, sessionId, executionId));
+    expect(ask.id, "the ask is the call's tool use").toBe(`${executionId}.call_echo_details`);
+    expect(ask.name, "the ask names the tool").toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
+    expect(ask.mcpServerName, "the ask names the plugin server").toBe(mcpSlug);
+    expect(ask.evaluatedPermission).toBe("ask");
+    expect(ask.input, "the ask carries the call's input").toEqual({ text: "peek" });
+    expect(ask.ask?.policySource, "the default asked because the server marks the tool destructive").toBe(
+      "annotation_destructive_tighten",
     );
+
+    // Settle through the contract so the run terminates cleanly: an answer the
+    // server failed to record would otherwise surface as awaitTerminal timing
+    // out, a red with a misleading face.
+    await allowOnlyAsk(sessionId, executionId, "the settling allow clears the gate");
+    await awaitTerminal(clients, executionId);
   });
 });
 
-// The three arms below came from the Go offline suite (hitl_offline_test.go)
-// and assert what the arms above deliberately left
-// out: the lease APPROVE_ALL grants across TURNS, the ledger's shape on a
-// cancel at the gate, and the resumed transcript under the runner's durable
-// checkpointer.
-describe("Run submitApproval — lease, cancel at the gate, durable resume", () => {
-  it("[rpc:RunCommandController.submitApproval] APPROVE_ALL leases the MCP server: a later turn's tool on the same server is not re-gated", async () => {
+// The two arms below came from the Go offline suite (hitl_offline_test.go)
+// and assert what the answer arms leave out: the lease a grant gives across
+// the turn's model requests, and the resumed transcript under the runner's
+// durable checkpointer.
+describe("Run approval — the grant's lease, durable resume", () => {
+  it("[rpc:SessionCommandController.grantPermission] a grant leases the MCP server: a later call on the same server in the turn is not asked", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
-    // Turn 1 gates on echo; turn 2 is a SECOND echo in its own assistant turn;
-    // turn 3 ends the loop. A plain APPROVE at turn 1 would re-gate turn 2.
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_lease_first", "first")], {
+    // Request 1 gates on echo; request 2 is a SECOND echo in its own assistant
+    // turn; request 3 ends the loop. A plain allow at request 1 would ask again.
+    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock("call_lease_first", "first")], {
       turnsBeforeDone: [anthropicToolUses([echoBlock("call_lease_second", "second")])],
     });
-    expect(gated.status?.pendingApprovals.map((p) => p.toolName)).toEqual([DESTRUCTIVE_ECHO_TOOL_NAME]);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    expect(toolUseId).toBe(`${executionId}.call_lease_first`);
 
-    await submitApprovalPerContract({
+    await confirmPerContract({
+      clients,
+      sessionId,
+      runId: executionId,
       expectedRemaining: 0,
-      label: "APPROVE_ALL resolves the first gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
-          action: ApprovalAction.APPROVE_ALL,
-        }),
+      label: "the grant answers the first call",
+      answer: () => clients.sessionCommand.grantPermission({ sessionId, toolUseId: toolUseId! }),
     });
 
-    // Reaching COMPLETED with all three turns consumed and nothing pending is the
-    // proof: the second echo ran under the lease instead of parking the run.
+    // Reaching COMPLETED with all three requests consumed and nothing asked is
+    // the proof: the second echo ran under the lease instead of parking the run.
     const final = await awaitTerminal(clients, executionId);
-    expect(final.status?.phase, "the leased second call never re-gated").toBe(RunPhase.RUN_COMPLETED);
-    expect(final.status?.pendingApprovals).toHaveLength(0);
-    expect(mock.remaining(), "all three scripted turns were consumed").toBe(0);
+    expect(final.status?.phase, "the leased second call never asked").toBe(RunPhase.RUN_COMPLETED);
+    const turn = await turnOfRun(clients, final);
+    const second = requireToolUse(turn, "call_lease_second");
+    expect(second.ask, "the second call ran under the lease").toBeUndefined();
+    expect(second.state).toBe("completed");
+    expect(turn.asks).toHaveLength(0);
+    expect(mock.remaining(), "all three scripted requests were consumed").toBe(0);
   });
 
   // Cancel AT THE GATE (the Go arm TestOffline_HITL_CancelAtGate) is the
   // session's interrupt arm below: a parked gate is abandoned by stopping
   // the session's unfinished turns.
 
-  it("[rpc:RunCommandController.submitApproval] the approved ToolCall survives the resume with TOOL_CALL_COMPLETED and a result — a true resume, not a replay", async () => {
+  it("[rpc:SessionCommandController.confirmToolUse] the allowed call survives the resume, completed with a result — a true resume, not a replay", async () => {
     // Under the runner's durable checkpointer (its OSS default) the resumed
     // invocation continues the SAME graph state: the
     // gated call keeps its id, runs, and records its result; the model then
-    // gets its second turn. A replay would re-emit the tool call under a fresh
-    // id and consume the script out of order.
+    // gets its second request. A replay would re-emit the tool call under a
+    // fresh id and consume the script out of order.
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_durable", "durable")]);
-    const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
+    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock("call_durable", "durable")]);
+    await awaitRequiresAction(clients, sessionId, 1);
 
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "approve clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
+    await allowOnlyAsk(sessionId, executionId, "the allow clears the gate");
 
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const resumed = allToolCalls(final).find((tc) => tc.id === toolCallId);
-    expect(resumed, "the gated call is in the final transcript under its original id").toBeDefined();
-    expect(resumed!.name).toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
-    expect(resumed!.status, "the approved call ran on resume").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(resumed!.result, "and recorded its result").not.toBe("");
-    const finalAi = [...(final.status?.messages ?? [])].reverse().find((m) => m.type === MessageType.MESSAGE_AI);
-    expect(finalAi?.content, "the resumed run appended the model's final message").not.toBe("");
-    expect(mock.remaining(), "both scripted turns were consumed exactly once").toBe(0);
+    const turn = await turnOfRun(clients, final);
+    const resumed = requireToolUse(turn, "call_durable");
+    expect(resumed.name).toBe(DESTRUCTIVE_ECHO_TOOL_NAME);
+    expect(resumed.state, "the allowed call ran on resume").toBe("completed");
+    expect(resumed.result?.text, "and recorded its result").not.toBe("");
+    expect(toolUsesOf(turn), "the call is in the log once, under its original id").toHaveLength(1);
+    expect(turn.answer, "the resumed run appended the model's final message").not.toBe("");
+    expect(mock.remaining(), "both scripted requests were consumed exactly once").toBe(0);
     expect(mock.consumed()).toBe(2);
   });
 });
@@ -540,6 +332,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
     await confirmPerContract({
       clients,
+      sessionId,
       runId: executionId,
       expectedRemaining: 0,
       label: "the allow clears the gate",
@@ -549,9 +342,9 @@ describe("the session answers a waiting call, and stops its turns", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "the allowed turn completes").toBe(RunPhase.RUN_COMPLETED);
     expect(await answersOf(clients, sessionId, executionId)).toEqual([`${toolUseId} allow`]);
-    const allowed = allToolCalls(final).find((tc) => tc.id === "call_confirm_allow");
-    expect(allowed?.status, "the allowed call ran").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(allowed?.approvedBy, "and names the person who answered").toBe(final.status?.audit?.specAudit?.createdBy?.id);
+    const allowed = requireToolUse(await turnOfRun(clients, final), "call_confirm_allow");
+    expect(allowed.state, "the allowed call ran").toBe("completed");
+    expect(allowed.confirmation?.result, "on the person's allow").toBe("allow");
     await awaitIdleWith(clients, sessionId, "end_turn");
   });
 
@@ -568,6 +361,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
     await confirmPerContract({
       clients,
+      sessionId,
       runId: executionId,
       expectedRemaining: 1,
       label: "one call still waits",
@@ -577,6 +371,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
     await confirmPerContract({
       clients,
+      sessionId,
       runId: executionId,
       expectedRemaining: 0,
       label: "nothing waits",
@@ -595,6 +390,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
     await confirmPerContract({
       clients,
+      sessionId,
       runId: executionId,
       expectedRemaining: 0,
       label: "the deny clears the gate",
@@ -604,8 +400,9 @@ describe("the session answers a waiting call, and stops its turns", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "a deny never fails the run").toBe(RunPhase.RUN_COMPLETED);
     expect(await answersOf(clients, sessionId, executionId)).toEqual([`${toolUseId} deny "${reason}"`]);
-    const denied = allToolCalls(final).find((tc) => tc.id === "call_confirm_deny");
-    expect(denied?.status, "the denied call never ran").not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    const denied = requireToolUse(await turnOfRun(clients, final), "call_confirm_deny");
+    expect(denied.state, "the denied call never ran").toBe("denied");
+    expect(denied.confirmation?.denyMessage).toBe(reason);
     const scripted = mock.scriptedRequests();
     expect(scripted.length, "the gated turn and the one after the answer").toBe(2);
     expect(JSON.stringify(scripted[1]!.body), "the model reads the person's reason").toContain(reason);
@@ -641,6 +438,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
 
     await confirmPerContract({
       clients,
+      sessionId,
       runId: executionId,
       expectedRemaining: 0,
       label: "the second answer clears the gate",
@@ -667,6 +465,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
     );
     await confirmPerContract({
       clients,
+      sessionId,
       runId: executionId,
       expectedRemaining: 0,
       label: "the settling allow clears the gate",
@@ -688,6 +487,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
     let granted: Awaited<ReturnType<typeof clients.sessionCommand.grantPermission>> | undefined;
     await confirmPerContract({
       clients,
+      sessionId,
       runId: executionId,
       expectedRemaining: 0,
       label: "the grant answers both calls",
@@ -719,7 +519,7 @@ describe("the session answers a waiting call, and stops its turns", () => {
     const final = await awaitTerminal(clients, executionId);
     expect(RunPhase[final.status?.phase ?? 0]).toBe(RunPhase[RunPhase.RUN_CANCELLED]);
     expect(final.status?.stopCause).toBe("user");
-    expect(final.status?.pendingApprovals).toEqual([]);
+    expect((await turnOfRun(clients, final)).asks, "nothing waits once the turn is stopped").toEqual([]);
     await awaitIdleWith(clients, sessionId, "end_turn");
   });
 
@@ -791,117 +591,6 @@ describe("the session answers a waiting call, and stops its turns", () => {
   });
 });
 
-describe("Run submitApproval — negatives", () => {
-  it("[rpc:RunCommandController.submitApproval] rejects an UNSPECIFIED action with InvalidArgument", async () => {
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: "aex_whatever",
-          toolCallId: "call_x",
-          action: ApprovalAction.UNSPECIFIED,
-        }),
-      Code.InvalidArgument,
-      "UNSPECIFIED action",
-    );
-  });
-
-  it("[rpc:RunCommandController.submitApproval] rejects an empty run_id with InvalidArgument", async () => {
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: "",
-          toolCallId: "call_x",
-          action: ApprovalAction.APPROVE,
-        }),
-      Code.InvalidArgument,
-      "empty run_id",
-    );
-  });
-
-  it("[rpc:RunCommandController.submitApproval] rejects an empty tool_call_id with InvalidArgument", async () => {
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: "aex_whatever",
-          toolCallId: "",
-          action: ApprovalAction.APPROVE,
-        }),
-      Code.InvalidArgument,
-      "empty tool_call_id",
-    );
-  });
-
-  it("[rpc:RunCommandController.submitApproval] returns NotFound for a missing execution", async () => {
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: "aex_does_not_exist_000000",
-          toolCallId: "call_x",
-          action: ApprovalAction.APPROVE,
-        }),
-      Code.NotFound,
-      "missing execution",
-    );
-  });
-
-  it("[rpc:RunCommandController.submitApproval] returns InvalidArgument for an unknown tool_call_id on a gated execution", async () => {
-    const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_unknown", "hello")]);
-
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: "call_not_a_real_id",
-          action: ApprovalAction.APPROVE,
-        }),
-      Code.InvalidArgument,
-      "unknown tool_call_id",
-    );
-
-    // Settle the real gate so the run terminates cleanly (through the seam, so
-    // an unrecorded decision is red here, not a timeout downstream).
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "the settling approve clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
-    await awaitTerminal(clients, executionId);
-  });
-
-  it("[rpc:RunCommandController.submitApproval] returns FailedPrecondition for a submit on a terminal execution", async () => {
-    const { org } = await target.provisionTenancy();
-    const { agentRef } = await provisionGatedAgent(org);
-
-    // Drive a run to COMPLETED via the bypass, then submit against it.
-    mock.enqueue(anthropicToolUses([echoBlock("call_echo_terminal", "hello")]));
-    mock.enqueue(anthropicText("Done."));
-    const execution = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-terminal"), agentRef, autoApproveAll: true }),
-    );
-    const executionId = execution.metadata!.id;
-    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
-    await awaitTerminal(clients, executionId);
-
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: "call_echo_terminal",
-          action: ApprovalAction.APPROVE,
-        }),
-      Code.FailedPrecondition,
-      "submit on terminal execution",
-    );
-  });
-});
-
 // An agent's own hooks block, in Claude Code's format, over the same
 // destructive echo: the hook decides before the default does. Shell-form
 // commands run in bash on the runner, as Claude Code's do.
@@ -929,7 +618,7 @@ describe("Run — an agent's hooks decide at the gate", () => {
     return agentRefOf(agent);
   }
 
-  it("a hook's deny: the call never runs, the run completes, and the row names the hook", async () => {
+  it("a hook's deny: the call never runs, the run completes, and its result carries the hook's reason", async () => {
     const { org } = await target.provisionTenancy();
     const agentRef = await provisionHookedAgent(org, "echo 'echoes are not allowed' >&2; exit 2");
     mock.enqueue(anthropicToolUses([echoBlock("call_echo_hook_deny", "hello")]));
@@ -942,44 +631,33 @@ describe("Run — an agent's hooks decide at the gate", () => {
 
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, "a refused call does not stop the run").toBe(RunPhase.RUN_COMPLETED);
-    const row = allToolCalls(final).find((tc) => tc.id === "call_echo_hook_deny");
-    expect(row, `execution ${executionId}: the refused call has a row`).toBeDefined();
-    expect(ToolCallStatus[row!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
-    expect(row!.error).toContain("echoes are not allowed");
-    expect(ApprovalPolicySource[row!.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
-    expect(row!.approvalPolicyHook, "the agent's own block decided").toBe("");
+    const refused = requireToolUse(await turnOfRun(clients, final), "call_echo_hook_deny");
+    expect(refused.state).toBe("failed");
+    expect(refused.ask, "a hook's deny asks no one").toBeUndefined();
+    expect(refused.result?.isError).toBe(true);
+    expect(refused.result?.text).toContain("echoes are not allowed");
   });
 
-  it("a hook's ask: the run waits on a card naming the hook, and completes once approved", async () => {
+  it("a hook's ask: the run waits on an ask naming the hook, and completes once allowed", async () => {
     const { org } = await target.provisionTenancy();
     const agentRef = await provisionHookedAgent(
       org,
       `printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"echoes need a person"}}'`,
     );
-    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_hook_ask", "hello")]);
+    const { executionId, sessionId } = await runToGate(org, agentRef, [echoBlock("call_echo_hook_ask", "hello")]);
+    await awaitRequiresAction(clients, sessionId, 1);
 
-    expect(gated.status?.pendingApprovals.length).toBe(1);
-    const pending = gated.status!.pendingApprovals[0]!;
-    expect(ApprovalPolicySource[pending.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
-    expect(pending.approvalPolicyHook).toBe("");
-    expect(pending.message).toBe("echoes need a person");
+    const ask = requireOneAsk(await turnById(clients, sessionId, executionId));
+    expect(ask.ask?.policySource).toBe("hook");
+    expect(ask.ask?.policyHook, "the agent's own block asked").toBe("");
+    expect(ask.ask?.message).toBe("echoes need a person");
 
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "approving the hook's ask clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: pending.toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
+    await allowOnlyAsk(sessionId, executionId, "allowing the hook's ask clears the gate");
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const row = allToolCalls(final).find((tc) => tc.id === pending.toolCallId);
-    expect(ApprovalPolicySource[row!.approvalPolicySource], "the row says the hook decided").toBe(
-      ApprovalPolicySource[ApprovalPolicySource.HOOK],
-    );
+    const allowed = requireToolUse(await turnOfRun(clients, final), "call_echo_hook_ask");
+    expect(allowed.ask?.policySource, "the log keeps that the hook asked").toBe("hook");
+    expect(allowed.state).toBe("completed");
   });
 });
 
@@ -999,7 +677,7 @@ describe("Run — a pushed plugin's hooks decide at the gate", () => {
     "",
   ].join("\n");
 
-  it("refuses the delete, holds the publish for a person, and names the plugin on both", async () => {
+  it("refuses the delete with the plugin's reason, and holds the publish on an ask naming the plugin", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("safety");
     const plugin = await clients.pluginCommand.push({
@@ -1036,31 +714,23 @@ describe("Run — a pushed plugin's hooks decide at the gate", () => {
     const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
       label: "WAITING_FOR_APPROVAL on the plugin's ask",
     });
-    const refused = allToolCalls(gated).find((tc) => tc.id === "call_hook_rm");
-    expect(refused, `execution ${executionId}: the refused delete has a row`).toBeDefined();
-    expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
-    expect(refused!.error).toContain("recursive deletes are not allowed");
-    expect(refused!.approvalPolicyHook).toBe(slug);
-    const pending = gated.status!.pendingApprovals[0]!;
-    expect(pending.toolCallId).toBe("call_hook_publish");
-    expect(pending.message).toBe("publishing needs a person");
-    expect(ApprovalPolicySource[pending.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
-    expect(pending.approvalPolicyHook).toBe(slug);
+    const sessionId = sessionIdOf(gated);
+    await awaitRequiresAction(clients, sessionId, 1);
+    const turn = await turnById(clients, sessionId, executionId);
+    const refused = requireToolUse(turn, "call_hook_rm");
+    expect(refused.state).toBe("failed");
+    expect(refused.result?.text).toContain("recursive deletes are not allowed");
+    const ask = requireOneAsk(turn);
+    expect(ask.id).toBe(`${executionId}.call_hook_publish`);
+    expect(ask.ask?.message).toBe("publishing needs a person");
+    expect(ask.ask?.policySource).toBe("hook");
+    expect(ask.ask?.policyHook, "the ask names the plugin").toBe(slug);
 
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "approving the plugin's ask clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: pending.toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
+    await allowOnlyAsk(sessionId, executionId, "allowing the plugin's ask clears the gate");
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const published = allToolCalls(final).find((tc) => tc.id === "call_hook_publish");
-    expect(published?.result).toContain("published");
+    const published = requireToolUse(await turnOfRun(clients, final), "call_hook_publish");
+    expect(published.result?.text).toContain("published");
   });
 });
 
@@ -1081,7 +751,7 @@ describe("Run — a pushed Cursor-format plugin's hooks decide at the gate", () 
     "",
   ].join("\n");
 
-  it("refuses the delete, holds the publish for a person, and names the plugin on both", async () => {
+  it("refuses the delete with the plugin's reason, and holds the publish on an ask naming the plugin", async () => {
     const { org } = await target.provisionTenancy();
     const name = uniqueName("cursor-safety");
     const plugin = await clients.pluginCommand.push({
@@ -1119,31 +789,23 @@ describe("Run — a pushed Cursor-format plugin's hooks decide at the gate", () 
     const gated = await awaitPhase(clients, executionId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
       label: "WAITING_FOR_APPROVAL on the Cursor plugin's ask",
     });
-    const refused = allToolCalls(gated).find((tc) => tc.id === "call_cursor_hook_rm");
-    expect(refused, `execution ${executionId}: the refused delete has a row`).toBeDefined();
-    expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
-    expect(refused!.error).toContain("recursive deletes are not allowed");
-    expect(refused!.approvalPolicyHook).toBe(slug);
-    const pending = gated.status!.pendingApprovals[0]!;
-    expect(pending.toolCallId).toBe("call_cursor_hook_publish");
-    expect(pending.message).toBe("publishing needs a person");
-    expect(ApprovalPolicySource[pending.approvalPolicySource]).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
-    expect(pending.approvalPolicyHook).toBe(slug);
+    const sessionId = sessionIdOf(gated);
+    await awaitRequiresAction(clients, sessionId, 1);
+    const turn = await turnById(clients, sessionId, executionId);
+    const refused = requireToolUse(turn, "call_cursor_hook_rm");
+    expect(refused.state).toBe("failed");
+    expect(refused.result?.text).toContain("recursive deletes are not allowed");
+    const ask = requireOneAsk(turn);
+    expect(ask.id).toBe(`${executionId}.call_cursor_hook_publish`);
+    expect(ask.ask?.message).toBe("publishing needs a person");
+    expect(ask.ask?.policySource).toBe("hook");
+    expect(ask.ask?.policyHook, "the ask names the plugin").toBe(slug);
 
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "approving the Cursor plugin's ask clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: pending.toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
+    await allowOnlyAsk(sessionId, executionId, "allowing the Cursor plugin's ask clears the gate");
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const published = allToolCalls(final).find((tc) => tc.id === "call_cursor_hook_publish");
-    expect(published?.result).toContain("published");
+    const published = requireToolUse(await turnOfRun(clients, final), "call_cursor_hook_publish");
+    expect(published.result?.text).toContain("published");
   });
 });
 
@@ -1220,30 +882,26 @@ describe("Run — a real plugin, unchanged, refuses at the gate and survives a t
 
     const trusted = await awaitTerminal(clients, firstId);
     expect(trusted.status?.phase, "refused calls do not stop the run").toBe(RunPhase.RUN_COMPLETED);
-    expect(trusted.status?.fileChangeSets, "review is off: the rule file lands with nothing to review").toHaveLength(0);
-    const rows = allToolCalls(trusted);
-    const row = (id: string) => {
-      const found = rows.find((tc) => tc.id === id);
-      expect(found, `execution ${firstId}: ${id} has a row`).toBeDefined();
-      return found!;
-    };
+    expect(trusted.status?.fileChanges, "review is off: the rule file lands with nothing to review").toHaveLength(0);
+    const trustedTurn = await turnOfRun(clients, trusted);
+    const row = (id: string) => requireToolUse(trustedTurn, id);
     const refusedByHookify = (id: string): void => {
       const refused = row(id);
-      expect(ToolCallStatus[refused.status], id).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
-      expect(ApprovalPolicySource[refused.approvalPolicySource], id).toBe(ApprovalPolicySource[ApprovalPolicySource.HOOK]);
-      expect(refused.approvalPolicyHook, id).toBe(slug);
-      expect(refused.error, `${id}: hookify's own text is the reason`).toContain("Dangerous rm command detected!");
+      expect(refused.state, id).toBe("failed");
+      expect(refused.ask, `${id}: a refusal asks no one`).toBeUndefined();
+      expect(refused.result?.text, `${id}: hookify's own text is the reason`).toContain("Dangerous rm command detected!");
     };
 
-    expect(ToolCallStatus[row("call_hookify_rule").status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
+    expect(row("call_hookify_rule").state).toBe("completed");
     refusedByHookify("call_hookify_rm");
     const tamper = row("call_hookify_tamper");
-    expect(ToolCallStatus[tamper.status], "the agent's shell may write the mounted files").toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
-    const tamperedBlob = /\b[0-9a-f]{40}\b/.exec(tamper.result)?.[0];
-    expect(tamperedBlob, `the tamper printed the edited file's blob SHA: ${tamper.result}`).toBeDefined();
+    expect(tamper.state, "the agent's shell may write the mounted files").toBe("completed");
+    const tamperText = tamper.result?.text ?? "";
+    const tamperedBlob = /\b[0-9a-f]{40}\b/.exec(tamperText)?.[0];
+    expect(tamperedBlob, `the tamper printed the edited file's blob SHA: ${tamperText}`).toBeDefined();
     expect(tamperedBlob, "the edit changed the mounted rule engine").not.toBe(RULE_ENGINE_BLOB);
     refusedByHookify("call_hookify_rm_after_tamper");
-    expect(row("call_hookify_restored").result, "the mounted rule engine is upstream's again").toContain(RULE_ENGINE_BLOB);
+    expect(row("call_hookify_restored").result?.text, "the mounted rule engine is upstream's again").toContain(RULE_ENGINE_BLOB);
 
     // Turn 2, the same conversation, not trusted: the rule still refuses,
     // and a call hookify has no opinion on falls to the default's card.
@@ -1256,34 +914,24 @@ describe("Run — a real plugin, unchanged, refuses at the gate and survives a t
     const secondId = second.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: secondId }));
 
-    const gated = await awaitPhase(clients, secondId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
-      label: "WAITING_FOR_APPROVAL on the default's card for a call hookify let pass",
+    await awaitPhase(clients, secondId, RunPhase.RUN_WAITING_FOR_APPROVAL, {
+      label: "WAITING_FOR_APPROVAL on the default's ask for a call hookify let pass",
     });
-    const refused = allToolCalls(gated).find((tc) => tc.id === "call_hookify_rm_untrusted");
-    expect(refused, `execution ${secondId}: the refused delete has a row`).toBeDefined();
-    expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
-    expect(refused!.approvalPolicyHook).toBe(slug);
-    expect(refused!.error).toContain("Dangerous rm command detected!");
-    const pending = gated.status!.pendingApprovals[0]!;
-    expect(pending.toolCallId).toBe("call_hookify_quiet");
-    expect(ApprovalPolicySource[pending.approvalPolicySource], "hookify decided nothing, so the default asked").toBe(
-      ApprovalPolicySource[ApprovalPolicySource.BUILTIN_CATEGORY],
-    );
+    const sessionId = sessionIdOf(trusted);
+    await awaitRequiresAction(clients, sessionId, 1);
+    const gatedTurn = await turnById(clients, sessionId, secondId);
+    const refused = requireToolUse(gatedTurn, "call_hookify_rm_untrusted");
+    expect(refused.state).toBe("failed");
+    expect(refused.result?.text).toContain("Dangerous rm command detected!");
+    const ask = requireOneAsk(gatedTurn);
+    expect(ask.id).toBe(`${secondId}.call_hookify_quiet`);
+    expect(ask.ask?.policySource, "hookify decided nothing, so the default asked").toBe("builtin_category");
 
-    await submitApprovalPerContract({
-      expectedRemaining: 0,
-      label: "approving the default's card clears the gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: secondId,
-          toolCallId: pending.toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
-    });
+    await allowOnlyAsk(sessionId, secondId, "allowing the default's ask clears the gate");
     const final = await awaitTerminal(clients, secondId);
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const quiet = allToolCalls(final).find((tc) => tc.id === "call_hookify_quiet");
-    expect(ToolCallStatus[quiet!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
-    expect(quiet!.result).toContain("built");
+    const quiet = requireToolUse(await turnOfRun(clients, final), "call_hookify_quiet");
+    expect(quiet.state).toBe("completed");
+    expect(quiet.result?.text).toContain("built");
   });
 });

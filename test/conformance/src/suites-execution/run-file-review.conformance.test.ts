@@ -3,19 +3,19 @@
 // for review, every edit lands, the turn ends, and its delta is offered as one
 // FileChangeSet; a person keeps or undoes it per file or as a set, and an undo
 // puts exactly the undone files back.
-// Domain: agentic / agentexecution and session — status.file_change_sets, the
-// file_review_event_stream ledger, the stigmer.file_review.* events,
-// SessionCommandController.reviewFileChanges and its adapter
-// RunCommandController.submitFileDecision.
+// Domain: agentic / agentexecution and session — the run's file record
+// (status.file_changes), the stigmer.file_review.* events and
+// SessionCommandController.reviewFileChanges.
 //
 // The loop under test (filereview.proto, event.proto):
 //   - review is the session's choice (spec.file_review, off unless set). With
 //     it off a write simply lands and the turn ends with no change set, an
 //     unattended turn included (stigmer#1471);
 //   - with it on, a git-tracked edit FLOWS during the turn; at the boundary the
-//     runner snapshots baseline and candidate and authors the diff as a
-//     FileChangeSet AWAITING_REVIEW on a turn that ends COMPLETED with ZERO
-//     pending_approvals, and the log gains stigmer.file_review.changes;
+//     runner snapshots baseline and candidate and records the diff as a
+//     FileChangeSet on the run's file record, on a turn that ends COMPLETED
+//     with no call waiting, and the log gains stigmer.file_review.changes;
+//     what is decided and what is still undecided is the log's alone;
 //   - every decision binds to the digest the reviewer saw; a keep only records
 //     it, an undo on a finished turn starts a reconcile turn (no message, no
 //     model call) that puts the files back from the pinned refs or the
@@ -34,14 +34,13 @@
 // spawned by this harness on this host, operates in place. The secret rules
 // are exercised through paths the fixture ignores (.env) or that carry
 // secret-like content on a tracked path (config/credentials.json): a secret's
-// bytes must never enter the ledger, the status JSON, or the artifact store,
+// bytes must never enter the file record, the status JSON, or the artifact store,
 // and such an entry can only be undone. Binary changes are kept only by an
 // explicit acknowledgement. Gitignored NON-secret paths are captured through
 // the content-addressed store and put back from it.
 //
-// Most arms decide through reviewFileChanges; the adapter arms decide through
-// submitFileDecision, which keeps every older caller working. Reads of the
-// workspace are the suite's own fixture, not a runner internal.
+// Every arm decides through reviewFileChanges. Reads of the workspace are the
+// suite's own fixture, not a runner internal.
 import { Code } from "@connectrpc/connect";
 import { create, toJson } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -51,13 +50,7 @@ import {
   RunPhase,
   FileCaptureClass,
   FileChangeKind,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionOrigin,
-  FileDecisionScope,
   FileReviewBlockReason,
-  FileReviewEventType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CapturedFileChange, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { StigmerFileReviewReconciledEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
@@ -74,25 +67,25 @@ import { GitWorkspace, requireGit } from "../harness/git-workspace";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import {
   awaitFileReview,
   awaitReconciled,
   fileReviewersOf,
-  fileReviewStreamHas,
-  findChangeSet,
   readFileReviewLog,
+  recordedSet,
   requireChangeByPath,
   requireReviewSet,
   reviewChangeSet,
   reviewFileByPath,
-  submitChangeSetDecision,
-  submitFileDecisionByPath,
+  reviewSetNow,
+  reviewStatesOf,
 } from "../support/file-review";
 import { pollUntil } from "../support/run-poll";
 import { uniqueName } from "../support/naming";
 import { makeSchedule } from "../support/schedules";
 import { makeSession } from "../support/sessions";
+import { toolUsesOf, turnById, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 
 // Read once at collection time to gate the edition-specific describes
@@ -214,9 +207,9 @@ interface Reviewed extends ReviewSession {
 }
 
 // Runs the scripted turn in a fresh review session to its end and returns the
-// ended turn and its one AWAITING_REVIEW set. Asserts the facts every arm
-// shares: the turn COMPLETED rather than waiting, and no tool approval was
-// ever asked (the edits flowed).
+// ended turn and the one set its file record captured. Asserts the facts every
+// arm shares: the turn COMPLETED rather than waiting, no tool approval was
+// ever asked (the edits flowed), and the log offers the set undecided.
 async function runToReview(
   workspace: GitWorkspace,
   turns: AnthropicMessageBody[],
@@ -226,8 +219,11 @@ async function runToReview(
   const executionId = await sendTurn(session, turns, opts);
   const ended = await awaitFileReview(clients, executionId);
   expect(ended.status?.phase, "a turn never waits on review").toBe(RunPhase.RUN_COMPLETED);
-  expect(ended.status?.pendingApprovals, "the edits flowed; no tool approval").toHaveLength(0);
-  return { ...session, executionId, ended, set: requireReviewSet(ended) };
+  const turn = await turnById(clients, session.sessionId, executionId);
+  expect(toolUsesOf(turn).filter((use) => use.ask !== undefined), "the edits flowed; no tool approval").toHaveLength(0);
+  const set = requireReviewSet(ended);
+  await expectUndecided(session.sessionId, set.id);
+  return { ...session, executionId, ended, set };
 }
 
 // The turn's run as it reads now.
@@ -235,11 +231,18 @@ function getRun(executionId: string): Promise<Run> {
   return clients.agentExecutionQuery.get({ value: executionId });
 }
 
-// The change set `id` as the run now projects it.
-async function changeSetNow(executionId: string, id: string): Promise<FileChangeSet> {
-  const set = (await getRun(executionId)).status?.fileChangeSets.find((s) => s.id === id);
-  if (set === undefined) throw new Error(`execution ${executionId} no longer projects change set ${id}`);
-  return set;
+// The log still offers set `changeSetId` with nothing decided: what a refused
+// decision must leave behind.
+async function expectUndecided(sessionId: string, changeSetId: string): Promise<void> {
+  const set = await reviewSetNow(clients, sessionId, changeSetId);
+  expect(set.undecided, `change set ${changeSetId} is still undecided`).toBe(true);
+  expect(set.decisions, `change set ${changeSetId} holds no decision`).toHaveLength(0);
+}
+
+// The log reads every file of set `changeSetId` decided.
+async function expectDecided(sessionId: string, changeSetId: string): Promise<void> {
+  const set = await reviewSetNow(clients, sessionId, changeSetId);
+  expect(set.undecided, `change set ${changeSetId} is decided: ${JSON.stringify(reviewStatesOf(set))}`).toBe(false);
 }
 
 // The session's runs, in no particular order.
@@ -304,12 +307,12 @@ describe("Run file review — the session's choice", () => {
 
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, `the write never asked: ${final.status?.error ?? ""}`).toBe(RunPhase.RUN_COMPLETED);
-    expect(final.status?.pendingApprovals).toHaveLength(0);
-    expect(allToolCalls(final).find((tc) => tc.name === WRITE_FILE_TOOL)?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    const uses = toolUsesOf(await turnOfRun(clients, final));
+    expect(uses.filter((use) => use.ask !== undefined), "nothing asked").toHaveLength(0);
+    expect(uses.find((use) => use.name === WRITE_FILE_TOOL)?.state).toBe("completed");
     expect(await workspace.readFile("plain.txt"), "the write landed").toBe("just written\n");
     expect(await workspace.headSha(), "nothing commits the write").toBe(headBefore);
-    expect(final.status?.fileChangeSets, "nothing was captured for review").toHaveLength(0);
-    expect(final.status?.fileReviewEventStream?.events ?? [], "the ledger holds nothing").toHaveLength(0);
+    expect(final.status?.fileChanges, "nothing was captured for review").toHaveLength(0);
     const log = await readFileReviewLog(clients, session.sessionId);
     expect([...log.changes, ...log.decided, ...log.reconciled], "no review event in the log").toHaveLength(0);
     expectNoModelCallLeft();
@@ -333,27 +336,30 @@ describe("Run file review — the session's choice", () => {
     expect(change.before, "an ADD has no before side").toBeUndefined();
     expect(change.after?.body, "an ADD carries the new content inline").toEqual({ case: "inline", value: content });
     expect(change.afterSha256, "the reconcile enforcement digest").not.toBe("");
-    expect(fileReviewStreamHas(ended, FileReviewEventType.BASELINE_CAPTURED, set.id)).toBe(true);
-    expect(fileReviewStreamHas(ended, FileReviewEventType.CANDIDATE_CAPTURED, set.id)).toBe(true);
     expect(await workspace.readFile(path), "the edit is applied before anyone decides").toBe(content);
     const offered = (await readFileReviewLog(clients, reviewed.sessionId)).changes;
     expect(offered.map((e) => e.changeSetId), "the log offers the turn's set").toEqual([set.id]);
+    expect(
+      offered[0]!.files.map((file) => [file.fileChangeId, file.path, file.change, file.digest]),
+      "the offer names the recorded file by its id and digest",
+    ).toEqual([[change.id, path, "added", change.fileDigest]]);
 
-    // The flowed file-edit row stays visible in the transcript, stamped with the
-    // set it contributed to — file_change_sets remains the one DECISION surface.
-    const row = allToolCalls(ended).find((tc) => tc.name === WRITE_FILE_TOOL);
-    expect(row, "the flowed edit row remains in the transcript").toBeDefined();
-    expect(row!.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(row!.fileChangeSetId, "the row names the projected set").toBe(set.id);
-    expect(row!.args, "an observational row keeps its args").toBeDefined();
+    // The flowed file edit stays visible in the turn's log.
+    const use = toolUsesOf(await turnById(clients, reviewed.sessionId, executionId)).find(
+      (candidate) => candidate.name === WRITE_FILE_TOOL,
+    );
+    expect(use, "the flowed edit remains in the turn's log").toBeDefined();
+    expect(use!.state).toBe("completed");
+    expect(use!.input, "an observational tool use keeps its input").toMatchObject({ file_path: path });
 
     const kept = await reviewFileByPath(clients, reviewed.sessionId, set, path, "keep");
     expect(kept.reconcileRunId, "a keep has nothing to put back").toBe("");
 
     const after = await getRun(executionId);
     expect(after.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    expect(findChangeSet(after, FileChangeSetStatus.AWAITING_REVIEW), "the keep settled the set").toBeUndefined();
-    expect((await changeSetNow(executionId, set.id)).status).toBe(FileChangeSetStatus.DECIDED);
+    expect(reviewStatesOf(await reviewSetNow(clients, reviewed.sessionId, set.id)), "the keep settled the set").toEqual([
+      [path, "kept", "person"],
+    ]);
     expect(await workspace.readFile(path), "the kept bytes are on disk verbatim").toBe(content);
     expect(await workspace.headSha(), "capture never commits").toBe(headBefore);
     expect(await sessionRuns(reviewed.sessionId), "a keep starts no turn").toHaveLength(1);
@@ -361,7 +367,10 @@ describe("Run file review — the session's choice", () => {
     // caller that kept the file, recorded as the same principal (#1385).
     const creator = after.status?.audit?.specAudit?.createdBy?.id ?? "";
     expect(creator, "the execution records its creator").not.toBe("");
-    expect(fileReviewersOf(after, set.id), "the decision names the reviewing caller").toEqual([creator]);
+    expect(
+      fileReviewersOf(await readFileReviewLog(clients, reviewed.sessionId), set.id),
+      "the decision names the reviewing caller",
+    ).toEqual([creator]);
     expectNoModelCallLeft();
   });
 
@@ -388,19 +397,17 @@ describe("Run file review — the session's choice", () => {
     expect(reconciled.undonePaths).toEqual([path]);
     expect(await workspace.readFile(path), "an undo snaps the file back byte for byte").toBe(original);
     expect(await workspace.headSha()).toBe(headBefore);
-    const after = await getRun(executionId);
-    expect((await changeSetNow(executionId, set.id)).status, "the change set's own run reads it decided").toBe(
-      FileChangeSetStatus.DECIDED,
-    );
+    expect(reviewStatesOf(await reviewSetNow(clients, reviewed.sessionId, set.id)), "the log reads the file undone").toEqual([
+      [path, "undone", "person"],
+    ]);
     expect(
-      fileReviewStreamHas(after, FileReviewEventType.RECONCILED, set.id),
-      "the reconcile after the turn is the log's alone",
-    ).toBe(false);
-    const row = allToolCalls(after).find((tc) => tc.name === EDIT_FILE_TOOL);
-    expect(row?.status, "the edit row stays COMPLETED even though its file was undone").toBe(
-      ToolCallStatus.TOOL_CALL_COMPLETED,
+      recordedSet(await getRun(executionId), set.id).changes.map((c) => c.id),
+      "the file record keeps what was captured",
+    ).toEqual([change.id]);
+    const use = toolUsesOf(await turnById(clients, reviewed.sessionId, executionId)).find(
+      (candidate) => candidate.name === EDIT_FILE_TOOL,
     );
-    expect(row?.fileChangeSetId).toBe(set.id);
+    expect(use?.state, "the edit stays completed even though its file was undone").toBe("completed");
   });
 
   it("[rpc:SessionCommandController.reviewFileChanges] undoing two files one at a time puts each back, each undo answered by its own reconcile", async () => {
@@ -437,54 +444,14 @@ describe("Run file review — the session's choice", () => {
     expectNoModelCallLeft();
   });
 
-  it("[rpc:RunCommandController.submitFileDecision] a per-file split through the adapter keeps one file and puts the other back", async () => {
-    const workspace = await freshWorkspace();
-    const reviewed = await runToReview(workspace, [
-      writeFileTurn("toolu_w_keep", "keep.txt", "keep me\n"),
-      writeFileTurn("toolu_w_drop", "drop.txt", "drop me\n"),
-      anthropicText("Created both files."),
-    ]);
-    const { executionId, set } = reviewed;
-    expect(set.changes).toHaveLength(2);
-    expectChange(set, "keep.txt", FileChangeKind.ADD);
-    expectChange(set, "drop.txt", FileChangeKind.ADD);
-
-    await submitFileDecisionByPath(clients, executionId, set, "keep.txt", FileDecisionAction.APPROVE);
-    await submitFileDecisionByPath(clients, executionId, set, "drop.txt", FileDecisionAction.REJECT);
-    const reconcileRun = (await sessionRuns(reviewed.sessionId)).find((run) => run.spec?.reconcileFileReview === true);
-    await awaitUndone(reviewed, set.id, reconcileRun?.metadata?.id ?? "");
-
-    expect(await workspace.readFile("keep.txt")).toBe("keep me\n");
-    expect(await workspace.exists("drop.txt"), "the undone create is gone").toBe(false);
-  });
-
-  it("[rpc:RunCommandController.submitFileDecision] a change-set APPROVE through the adapter keeps every file", async () => {
-    const workspace = await freshWorkspace();
-    const reviewed = await runToReview(workspace, [
-      writeFileTurn("toolu_w_a", "alpha.txt", "alpha\n"),
-      writeFileTurn("toolu_w_b", "beta.txt", "beta\n"),
-      anthropicText("Created both files."),
-    ]);
-    const { executionId, set } = reviewed;
-    expect(set.changes).toHaveLength(2);
-
-    await submitChangeSetDecision(clients, executionId, set, FileDecisionAction.APPROVE);
-
-    expect((await changeSetNow(executionId, set.id)).status).toBe(FileChangeSetStatus.DECIDED);
-    expect(await workspace.readFile("alpha.txt")).toBe("alpha\n");
-    expect(await workspace.readFile("beta.txt")).toBe("beta\n");
-    expect(await sessionRuns(reviewed.sessionId), "a keep starts no turn").toHaveLength(1);
-    expectNoModelCallLeft();
-  });
-
-  it("[rpc:SessionCommandController.reviewFileChanges] a stale expected_digest is InvalidArgument and leaves the set AWAITING_REVIEW", async () => {
+  it("[rpc:SessionCommandController.reviewFileChanges] a stale expected_digest is InvalidArgument and leaves the set undecided", async () => {
     const workspace = await freshWorkspace();
     const path = "config.txt";
     const reviewed = await runToReview(workspace, [
       writeFileTurn("toolu_w_cfg", path, "key=value\n"),
       anthropicText("Created the file."),
     ]);
-    const { executionId, set } = reviewed;
+    const { set } = reviewed;
 
     await expectGrpcCode(
       () =>
@@ -494,10 +461,10 @@ describe("Run file review — the session's choice", () => {
       Code.InvalidArgument,
       "a decision bound to a digest the reviewer did not see is refused",
     );
-    requireReviewSet(await getRun(executionId));
+    await expectUndecided(reviewed.sessionId, set.id);
 
     await reviewFileByPath(clients, reviewed.sessionId, set, path, "keep");
-    expect((await changeSetNow(executionId, set.id)).status).toBe(FileChangeSetStatus.DECIDED);
+    await expectDecided(reviewed.sessionId, set.id);
     expect(await workspace.readFile(path)).toBe("key=value\n");
     expectNoModelCallLeft();
   });
@@ -529,7 +496,7 @@ describe("Run file review — the session's choice", () => {
       Code.InvalidArgument,
       "a file decision with no file_change_id",
     );
-    requireReviewSet(await getRun(reviewed.executionId));
+    await expectUndecided(sessionId, set.id);
     expect(await sessionRuns(sessionId), "no refused decision started a turn").toHaveLength(1);
   });
 });
@@ -542,7 +509,7 @@ describe("Run file review — binary changes", () => {
       writeFileTurn("toolu_bin", path, "\u0000binary\u0000payload\n"),
       anthropicText("Wrote the binary asset."),
     ]);
-    const { executionId, set } = reviewed;
+    const { set } = reviewed;
 
     expect(set.diffCompleteness, "binary is the set's only blocker").toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
     const change = requireChangeByPath(set, path);
@@ -556,14 +523,14 @@ describe("Run file review — binary changes", () => {
       Code.FailedPrecondition,
       "an unreviewable diff cannot be kept as-is",
     );
-    requireReviewSet(await getRun(executionId));
+    await expectUndecided(reviewed.sessionId, set.id);
 
     const undone = await reviewFileByPath(clients, reviewed.sessionId, set, path, "undo");
     await awaitUndone(reviewed, set.id, undone.reconcileRunId);
     expect(await workspace.exists(path), "the undone binary is gone").toBe(false);
   });
 
-  it("[rpc:RunCommandController.submitFileDecision] acknowledge_unreviewable with the right digest keeps binary bytes verbatim", async () => {
+  it("[rpc:SessionCommandController.reviewFileChanges] acknowledge_unreviewable with the right digest keeps binary bytes verbatim", async () => {
     const workspace = await freshWorkspace();
     const headBefore = await workspace.headSha();
     const path = "assets/logo.bin";
@@ -572,30 +539,29 @@ describe("Run file review — binary changes", () => {
       writeFileTurn("toolu_bin", path, content),
       anthropicText("Wrote the binary asset."),
     ]);
-    const { executionId, set } = reviewed;
+    const { sessionId, set } = reviewed;
     expect(set.diffCompleteness).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
     expect(requireChangeByPath(set, path).after?.isBinary).toBe(true);
 
     await expectGrpcCode(
-      () => submitFileDecisionByPath(clients, executionId, set, path, FileDecisionAction.APPROVE),
+      () => reviewFileByPath(clients, sessionId, set, path, "keep"),
       Code.FailedPrecondition,
-      "a binary approve without the acknowledgement is refused",
+      "a binary keep without the acknowledgement is refused",
     );
     await expectGrpcCode(
       () =>
-        submitFileDecisionByPath(clients, executionId, set, path, FileDecisionAction.APPROVE, {
+        reviewFileByPath(clients, sessionId, set, path, "keep", {
           acknowledgeUnreviewable: true,
           expectedDigest: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
         }),
       Code.InvalidArgument,
       "the acknowledgement never relaxes the digest gate",
     );
+    await expectUndecided(sessionId, set.id);
 
-    await submitFileDecisionByPath(clients, executionId, set, path, FileDecisionAction.APPROVE, {
-      acknowledgeUnreviewable: true,
-    });
+    await reviewFileByPath(clients, sessionId, set, path, "keep", { acknowledgeUnreviewable: true });
 
-    expect((await changeSetNow(executionId, set.id)).status).toBe(FileChangeSetStatus.DECIDED);
+    await expectDecided(sessionId, set.id);
     expect((await workspace.readBytes(path)).toString("utf8"), "the exact bytes stay").toBe(content);
     expect(await workspace.headSha()).toBe(headBefore);
     expectNoModelCallLeft();
@@ -612,7 +578,7 @@ describe("Run file review — binary changes", () => {
       writeFileTurn("toolu_bin", binPath, binBody),
       anthropicText("Wrote a text file and a binary asset."),
     ]);
-    const { executionId, set } = reviewed;
+    const { set } = reviewed;
     expect(set.diffCompleteness).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
     expect(expectChange(set, textPath, FileChangeKind.ADD).diffComplete, "the text file is reviewable").toBe(true);
     expect(requireChangeByPath(set, binPath).after?.isBinary).toBe(true);
@@ -624,7 +590,10 @@ describe("Run file review — binary changes", () => {
     );
     await reviewChangeSet(clients, reviewed.sessionId, set, "keep", { acknowledgeUnreviewable: true });
 
-    expect((await changeSetNow(executionId, set.id)).status).toBe(FileChangeSetStatus.DECIDED);
+    expect(reviewStatesOf(await reviewSetNow(clients, reviewed.sessionId, set.id))).toEqual([
+      [textPath, "kept", "person"],
+      [binPath, "kept", "person"],
+    ].sort((a, b) => a[0]!.localeCompare(b[0]!)));
     expect(await workspace.readFile(textPath)).toBe(textBody);
     expect((await workspace.readBytes(binPath)).toString("utf8")).toBe(binBody);
     expectNoModelCallLeft();
@@ -671,13 +640,13 @@ describe("Run file review — secrets never persist", () => {
       writeFileTurn("toolu_w_env", path, "SECRET=1\n"),
       anthropicText("Wrote the env file."),
     ]);
-    const { executionId, set } = reviewed;
+    const { set } = reviewed;
 
     expect(set.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
     const change = requireChangeByPath(set, path);
     expect(change.diffComplete).toBe(false);
     expect(change.captureClass).toBe(FileCaptureClass.GIT_IGNORED_CAPTURED);
-    expect(change.after, "the secret's content never enters the ledger").toBeUndefined();
+    expect(change.after, "the secret's content never enters the file record").toBeUndefined();
     expect(await workspace.exists(path), "the write was blocked at the tool, not just reviewed").toBe(false);
 
     await expectGrpcCode(
@@ -685,7 +654,7 @@ describe("Run file review — secrets never persist", () => {
       Code.FailedPrecondition,
       "a secret entry has no keepable bytes",
     );
-    requireReviewSet(await getRun(executionId));
+    await expectUndecided(reviewed.sessionId, set.id);
 
     const undone = await reviewFileByPath(clients, reviewed.sessionId, set, path, "undo");
     await awaitUndone(reviewed, set.id, undone.reconcileRunId);
@@ -734,8 +703,8 @@ describe("Run file review — secrets never persist", () => {
     expect(change.diffComplete).toBe(false);
     expect(change.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
     expect(change.captureClass, "a tracked path, withheld for its content").toBe(FileCaptureClass.GIT_TRACKED);
-    expect(change.before, "the baseline secret's bytes never enter the ledger").toBeUndefined();
-    expect(change.after, "the new secret's bytes never enter the ledger").toBeUndefined();
+    expect(change.before, "the baseline secret's bytes never enter the file record").toBeUndefined();
+    expect(change.after, "the new secret's bytes never enter the file record").toBeUndefined();
 
     const statusJson = JSON.stringify(toJson(RunSchema, ended));
     expect(statusJson, "the old token is nowhere on the wire").not.toContain(oldToken);
@@ -864,28 +833,23 @@ describe("Run file review — the next message closes the review", () => {
       writeFileTurn("toolu_w_left", "left.txt", "left open\n"),
       anthropicText("Created both files."),
     ]);
-    const { executionId, set } = reviewed;
+    const { set } = reviewed;
     await reviewFileByPath(clients, reviewed.sessionId, set, "decided.txt", "keep");
 
     const next = await sendTurn(reviewed, [anthropicText("Noted.")], { message: "Thanks." });
     expect((await awaitTerminal(clients, next)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
 
-    const closed = await changeSetNow(executionId, set.id);
-    expect(closed.status, "the earlier turn's set is settled").toBe(FileChangeSetStatus.DECIDED);
-    const left = requireChangeByPath(closed, "left.txt");
-    const decided = requireChangeByPath(closed, "decided.txt");
-    const byFile = (fileChangeId: string) =>
-      closed.decisions.filter((d) => d.scope === FileDecisionScope.FILE && d.fileChangeId === fileChangeId);
-    expect(byFile(decided.id).map((d) => [d.action, d.origin])).toEqual([
-      [FileDecisionAction.APPROVE, FileDecisionOrigin.USER],
-    ]);
-    expect(byFile(left.id).map((d) => [d.action, d.origin]), "the undecided file is kept for the person").toEqual([
-      [FileDecisionAction.APPROVE, FileDecisionOrigin.POLICY_NEXT_TURN],
+    const closed = await reviewSetNow(clients, reviewed.sessionId, set.id);
+    expect(reviewStatesOf(closed), "the earlier turn's set is settled; the undecided file is kept for the person").toEqual([
+      ["decided.txt", "kept", "person"],
+      ["left.txt", "kept", "next_turn"],
     ]);
     expect(
-      closed.decisions.filter((d) => d.scope === FileDecisionScope.CHANGE_SET),
+      closed.decisions.filter((d) => d.scope === "change_set"),
       "a partly decided set is closed file by file",
     ).toHaveLength(0);
+    const left = requireChangeByPath(set, "left.txt");
+    const decided = requireChangeByPath(set, "decided.txt");
     const log = await readFileReviewLog(clients, reviewed.sessionId);
     expect(
       log.decided.filter((e) => e.changeSetId === set.id).map((e) => [e.scope, e.fileChangeId, e.action, e.origin]),
@@ -925,12 +889,11 @@ describe("Run file review — the next message closes the review", () => {
     const ended = await awaitTerminal(clients, first);
     expect(ended.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     expect((await awaitTerminal(clients, second)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const set = (await getRun(first)).status?.fileChangeSets[0];
+    const set = (await getRun(first)).status?.fileChanges[0];
     expect(set, `execution ${first} captured its edit`).toBeDefined();
-    expect(set!.status, "the set is settled the moment it lands").toBe(FileChangeSetStatus.DECIDED);
-    expect(set!.decisions.map((d) => [d.scope, d.action, d.origin])).toEqual([
-      [FileDecisionScope.CHANGE_SET, FileDecisionAction.APPROVE, FileDecisionOrigin.POLICY_NEXT_TURN],
-    ]);
+    const review = await reviewSetNow(clients, session.sessionId, set!.id);
+    expect(review.undecided, "the set is settled the moment it lands").toBe(false);
+    expect(review.decisions.map((d) => [d.scope, d.action, d.origin])).toEqual([["change_set", "keep", "next_turn"]]);
     const log = await readFileReviewLog(clients, session.sessionId);
     expect(log.decided.filter((e) => e.changeSetId === set!.id).map((e) => [e.scope, e.action, e.origin])).toEqual([
       ["change_set", "keep", "next_turn"],
@@ -958,9 +921,9 @@ describe("Run file review — the next message closes the review", () => {
     });
     const nextEnded = await awaitTerminal(clients, next);
     expect(nextEnded.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const read = allToolCalls(nextEnded).find((tc) => tc.name === READ_FILE_TOOL);
-    expect(read?.result, "the next turn's agent reads the restored file").toContain("first draft");
-    expect(read?.result).not.toContain("second draft");
+    const read = toolUsesOf(await turnOfRun(clients, nextEnded)).find((use) => use.name === READ_FILE_TOOL);
+    expect(read?.result?.text, "the next turn's agent reads the restored file").toContain("first draft");
+    expect(read?.result?.text).not.toContain("second draft");
 
     const reconciled = await awaitUndone(reviewed, set.id, undone.reconcileRunId);
     expect(reconciled.undonePaths).toEqual([path]);
@@ -1008,14 +971,12 @@ describe.skipIf(
       const final = await awaitTerminal(clients, fired.runId);
       expect(final.status?.approvalMode, "nobody is present at a fire").toBe(ApprovalMode.UNATTENDED);
       expect(final.status?.phase, `the turn ends: ${final.status?.error ?? ""}`).toBe(RunPhase.RUN_COMPLETED);
-      const rows = allToolCalls(final);
-      expect(rows.find((tc) => tc.name === WRITE_FILE_TOOL)?.status, "the write ran, not skipped").toBe(
-        ToolCallStatus.TOOL_CALL_COMPLETED,
-      );
-      expect(rows.find((tc) => tc.name === READ_FILE_TOOL)?.result, "and its bytes are there to read").toContain(
+      const uses = toolUsesOf(await turnOfRun(clients, final));
+      expect(uses.find((use) => use.name === WRITE_FILE_TOOL)?.state, "the write ran, not skipped").toBe("completed");
+      expect(uses.find((use) => use.name === READ_FILE_TOOL)?.result?.text, "and its bytes are there to read").toContain(
         "nightly report",
       );
-      expect(final.status?.fileChangeSets, "a fired conversation has review off").toHaveLength(0);
+      expect(final.status?.fileChanges, "a fired conversation has review off").toHaveLength(0);
       expectNoModelCallLeft();
     });
   },
