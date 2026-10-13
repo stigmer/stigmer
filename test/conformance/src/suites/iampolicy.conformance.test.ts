@@ -137,8 +137,6 @@ import {
 import { makeAgent } from "../support/agents";
 import { freshSubject } from "../support/identityaccounts";
 import {
-  ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE,
-  VIEW_ACCESS_HISTORY_DENIED_MESSAGE,
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
   BOOTSTRAP_POLICY_DENIED_MESSAGE,
   BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE,
@@ -192,6 +190,12 @@ const ABSENT_AGENT_EXECUTION = "aex_01hzzzzzzzzzzzzzzzzzzzzzzz";
 let target: TargetProfile;
 let clients: ConformanceClients;
 const capabilities = createTarget().capabilities;
+
+// listAccessHistory's pinned copies: its annotation's refusal for a caller
+// who may not read it, and open source's, which keeps no history.
+const VIEW_ACCESS_HISTORY_DENIED_MESSAGE = "unauthorized to view the access history";
+const ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE =
+  "the access history is served by the Enterprise and Cloud editions";
 const fixtures = new FixtureTracker();
 
 beforeAll(async () => {
