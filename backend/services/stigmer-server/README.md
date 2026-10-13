@@ -38,6 +38,8 @@ The console is on `http://localhost:7234`, the API on the same port (gRPC, gRPC-
 
 Tags: one per release (`vX.Y.Z`); `latest` moves only to stable releases, and only after the pushed image has boot-smoked on native runners of both architectures (`release.npm-libs.yaml`). Local build + smoke: `make smoke-docker-image`.
 
+The same Dockerfile builds `ghcr.io/stigmer/stigmer-server-ee`, Stigmer Enterprise, from a tree the same bundler makes with Enterprise's entry (`bundle-slim.mjs --entry-package`); `ee/server/README.md` describes that image.
+
 ## Two artifacts, one server
 
 Every release publishes this directory twice, for two different readers:

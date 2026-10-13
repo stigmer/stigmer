@@ -203,13 +203,13 @@ Every lane triggers on the `v*` tag; the list is
 short: protos to the Buf registry; CLI binaries and the GitHub release; desktop
 installers as a draft; the `@stigmer/*` npm packages including `@stigmer/server`
 (the library the cloud composition pins) and `@stigmer/server-slim`, with the
-server, runner and all-in-one images pushed to GHCR and the Helm chart to its
-OCI registry, each smoked before promotion; the Go SDK through the module proxy;
-the Python packages to PyPI; the Java SDK to Maven; the MCP server image; the
-Rust crate; the sandbox cloud image, whose `runner:v<version>` tag and `prod`
-appear only after its smoke test passes. When the npm release succeeds for a
-release tag (a prerelease tag ends the run green with nothing run),
-`ci.live.yaml` runs the tagged commit's live suites and the published CLI
+server, Enterprise server, runner and all-in-one images pushed to GHCR and the
+Helm chart to its OCI registry, each smoked before promotion; the Go SDK through
+the module proxy; the Python packages to PyPI; the Java SDK to Maven; the MCP
+server image; the Rust crate; the sandbox cloud image, whose `runner:v<version>`
+tag and `prod` appear only after its smoke test passes. When the npm release
+succeeds for a release tag (a prerelease tag ends the run green with nothing
+run), `ci.live.yaml` runs the tagged commit's live suites and the published CLI
 against the real model providers. A red run files a `live-failure` issue: a
 broken provider path is fixed like any defect, an outage is waited out, and a
 person closes the issue once a dispatch of the workflow runs green. A dispatch

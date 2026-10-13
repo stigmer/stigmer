@@ -1,11 +1,17 @@
 # =============================================================================
-# Stigmer Enterprise — build, vitest suite, dist boot and consumer install
+# Stigmer Enterprise — build, vitest suite, dist boot, consumer install, image
 # =============================================================================
 # Runs the gate of `@stigmer/enterprise` (ee/server), the Enterprise package
 # under the Stigmer Enterprise License (ee/LICENSE): build, typecheck, the
 # boot check of its compiled entry, the exports-map compile proof of its
 # consumer, its vitest suite against a real Postgres, and the consumer-install
-# check from its packed tarball against a real Temporal.
+# check from its packed tarball against a real Temporal (`Enterprise Gate`).
+# In parallel, `Enterprise Image` proves the stigmer-server-ee image on amd64:
+# the slim tree bundled from Enterprise's entry, deep-verified against a real
+# Temporal, then the image built from the server's Dockerfile and smoked on
+# SQLite and on Postgres (no key boots as open source; a bad key refuses).
+# The arm64 image is proven at every release, natively, by the same smoke;
+# the arm64 bundler and native bridge are the server lane's to prove here.
 #
 # A lane of its own, not steps in ci.stigmer-server.yaml: the package has its
 # own license, lockfile and suite, and the open-source server's result must
@@ -16,8 +22,10 @@
 #
 # The build order is the server lane's: the root install, the server's and
 # then this package's own install from their lockfiles, then `make build-ee`
-# (the libraries, the server, then this package). It builds no console and no
-# slim bundle: the package ships neither.
+# (the libraries, the server, then this package). The package ships neither
+# the console nor a slim bundle, so only the image job builds them: the image
+# is the one artifact through which a self-hosted Enterprise server gets the
+# console.
 #
 # When it runs (its list in scripts/ci-lanes.mjs): ee/, everything the server
 # lane runs on (scripts/lane-triggers.test.mjs fails when a linked package is
@@ -150,3 +158,86 @@ jobs:
           # The last hour's publishes are ignored (#1669;
           # scripts/lib/resolve-before.mjs). A release resolves live.
           npm run verify:consumer -- --resolve-before=1
+
+  # The stigmer-server-ee image, amd64. The tree is the server's bundler over
+  # Enterprise's compiled entry (`make bundle-ee-slim`: build-ee, build-web,
+  # then bundle-slim.mjs --entry-package, whose imports resolve from the server's
+  # tree and which fails on any second copy); the image is the server's
+  # Dockerfile with Enterprise's labels; the smoke is
+  # ee/server/scripts/smoke-image.mjs, which the release lane runs on the
+  # pushed tag.
+  ee-image:
+    name: Enterprise Image
+    runs-on: ubuntu-latest
+    # The server gate's budget: its own image steps run about as long.
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore the Turbo cache
+        uses: ./.github/actions/turbo-cache
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Install Enterprise dependencies
+        working-directory: ee/server
+        run: npm ci
+
+      - name: Build and bundle the Enterprise slim tree (linux-x64)
+        run: make bundle-ee-slim
+
+      # The tree as an artifact: an isolated copy against a real Temporal must
+      # start every worker from the pre-built bundles, serve the console and
+      # answer the artifact lane, as the server's own tree must.
+      - name: Set up Temporal CLI
+        uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
+
+      - name: Deep-verify the Enterprise slim tree (isolated copy + Temporal workers)
+        working-directory: backend/services/stigmer-server
+        run: |
+          temporal server start-dev --headless --log-level error &
+          TEMPORAL_PID=$!
+          trap "kill $TEMPORAL_PID" EXIT
+          for i in $(seq 1 30); do
+            temporal operator cluster health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/verify-slim-artifact.mjs --dir="$GITHUB_WORKSPACE/ee/server/dist-slim"
+
+      - name: Smoke the Enterprise image (sqlite + volume)
+        working-directory: ee/server
+        run: node scripts/smoke-image.mjs
+
+      # The image the step above built, against this job's Postgres, reached
+      # from the container through the host gateway.
+      - name: Smoke the Enterprise image (Postgres)
+        working-directory: ee/server
+        run: |
+          node scripts/smoke-image.mjs \
+            --image=stigmer-server-ee:smoke-local \
+            --database-url=postgres://postgres:postgres@host.docker.internal:5432/postgres

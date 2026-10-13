@@ -1,0 +1,12 @@
+# Whitelist: the image consumes ONLY the staged per-arch slim trees.
+# Everything else in the build context (node_modules, src, dist, the npm
+# package staging) would bloat it by hundreds of MB and invalidate layer
+# caching on every source edit.
+#
+# Named after the Dockerfile, not .dockerignore at the context root:
+# BuildKit reads <Dockerfile>.dockerignore beside the Dockerfile whatever the
+# context, so the same whitelist holds for every image this file builds,
+# including stigmer-server-ee, whose context is ee/server.
+*
+!dist-slim-amd64
+!dist-slim-arm64
