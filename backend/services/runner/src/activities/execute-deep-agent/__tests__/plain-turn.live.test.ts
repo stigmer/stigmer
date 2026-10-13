@@ -77,7 +77,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a p
     const rows = record.toolCalls().map((r) => `${r.name}:${ToolCallStatus[r.status]}`).join(", ");
     expect(invocation.outcome.kind, final?.error).toBe("returned");
     expect(record.persistedPhases.at(-1), `${final?.error ?? ""} tool rows: [${rows}]`).toBe(RunPhase.RUN_COMPLETED);
-    const ai = (final?.messages ?? []).filter((m) => m.type === MessageType.MESSAGE_AI);
+    const ai = (record.lastFullRows?.messages ?? []).filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai.length, "at least one assistant message").toBeGreaterThan(0);
     expect(ai.at(-1)?.content.trim().length, "the last assistant message carries text").toBeGreaterThan(0);
     expect(final?.streamingUsage?.inputTokens ?? 0n).toBeGreaterThan(0n);

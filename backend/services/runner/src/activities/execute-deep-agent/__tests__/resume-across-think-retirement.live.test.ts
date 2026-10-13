@@ -90,8 +90,8 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a s
     expect(executed[0]?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(rows.filter((r) => r.id === THINK_CALL_ID), "the old think row stays").toHaveLength(1);
     expect(rows.filter((r) => r.name === "think" && r.id !== THINK_CALL_ID), "the model calls no new think").toHaveLength(0);
-    expect(final?.messages.at(-1)?.content, "the model answered after the command").not.toBe("I will run the command.");
-    expect(final?.messages.at(-1)?.content.length).toBeGreaterThan(0);
+    expect(record.lastFullRows?.messages.at(-1)?.content, "the model answered after the command").not.toBe("I will run the command.");
+    expect(record.lastFullRows?.messages.at(-1)?.content.length).toBeGreaterThan(0);
     expect(cost).toBeGreaterThan(0);
     expect(cost).toBeLessThan(MAX_COST_USD);
   });

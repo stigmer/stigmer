@@ -27,11 +27,12 @@ import { create } from "@bufbuild/protobuf";
 import { RunSchema, RunStatusSchema, type Run, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import { decideCapturedFileChanges } from "../../__test-utils__/file-review-projection.js";
 import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";
 import { captureBaselineToLedger, captureCandidateToLedger } from "../../shared/filereview/capture.js";
 import { fileReviewReconciledEventId } from "../events/ids.js";
-import { owedUndos, readOwedUndos, reconcileOwedUndos, type OwedUndoDeps, type ReconciledUndo } from "../owed-undos.js";
+import { decisionsBySet, owedUndos, readOwedUndos, reconcileOwedUndos, type OwedUndoDeps, type ReconciledUndo } from "../owed-undos.js";
+import { fileRecordOf } from "../../shared/filereview/record.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const SESSION = "ses_owed";
 const EARLIER = "run_earlier";
@@ -107,6 +108,20 @@ describe("owedUndos", () => {
   });
 });
 
+describe("decisionsBySet", () => {
+  it("is every decision the slice holds, by change set, oldest first, keeps included", () => {
+    const keepB = decided(CHANGE_SET, "keep", EARLIER, "b.md");
+    const undoA = decided(CHANGE_SET, "undo", EARLIER, "a.md");
+    const other = decided("run_other:0", "undo");
+    const bySet = decisionsBySet([other, undoA, userMessage(EARLIER), keepB]);
+    expect(bySet.get(CHANGE_SET)).toEqual([
+      { scope: "file", fileChangeId: `${CHANGE_SET}:b.md`, action: "keep" },
+      { scope: "file", fileChangeId: `${CHANGE_SET}:a.md`, action: "undo" },
+    ]);
+    expect(bySet.get("run_other:0")).toEqual([{ scope: "change_set", fileChangeId: "", action: "undo" }]);
+  });
+});
+
 describe("readOwedUndos", () => {
   it("pages newest first back to the newest user.message that is not this run's, that event included, and reads no further", async () => {
     const log = logClient(
@@ -147,17 +162,14 @@ describe("reconcileOwedUndos", () => {
   const git = (args: string[]): string => execFileSync("git", args, { cwd: repo, encoding: "utf-8" });
   const read = (rel: string): string => readFileSync(join(repo, rel), "utf-8");
 
-  /** The earlier turn: it captured edits to a.md and b.md; by default the person undoes a.md and keeps b.md. */
-  async function earlierTurnCaptured(
-    verdicts: { readonly reject: readonly string[]; readonly approve?: readonly string[] } = { reject: ["a.md"], approve: ["b.md"] },
-  ): Promise<RunStatus> {
-    const status = create(RunStatusSchema, {});
-    const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EARLIER, changeSetId: CHANGE_SET, harnessId: "unit" });
+  /** The earlier turn: it captured edits to a.md and b.md, and its run holds the change set on its file record. */
+  async function earlierTurnCaptured(): Promise<RunStatus> {
+    const rows = create(TurnRowsSchema, {});
+    const baseline = await captureBaselineToLedger({ rows, gitRoot: repo, executionId: EARLIER, changeSetId: CHANGE_SET, harnessId: "unit" });
     writeFileSync(join(repo, "a.md"), "a after\n");
     writeFileSync(join(repo, "b.md"), "b after\n");
-    await captureCandidateToLedger({ status, gitRoot: repo, executionId: EARLIER, changeSetId: CHANGE_SET, baselineTree: baseline, harnessId: "unit" });
-    decideCapturedFileChanges(status, verdicts, "2026-10-12T00:00:00Z");
-    return status;
+    await captureCandidateToLedger({ rows, gitRoot: repo, executionId: EARLIER, changeSetId: CHANGE_SET, baselineTree: baseline, harnessId: "unit" });
+    return create(RunStatusSchema, { fileChanges: fileRecordOf(rows) });
   }
 
   function deps(log: ReturnType<typeof logClient>, overrides: Partial<OwedUndoDeps> = {}): OwedUndoDeps & { readonly recorded: ReconciledUndo[][] } {
@@ -188,8 +200,8 @@ describe("reconcileOwedUndos", () => {
   });
 
   it("a message turn puts back only the undone file, records it at once, then drops the previous turn's refs", async () => {
-    const undo = decided(CHANGE_SET, "undo");
-    const log = logClient([userMessage(EARLIER), undo, userMessage(THIS)], new Map([[EARLIER, earlier]]));
+    const undo = decided(CHANGE_SET, "undo", EARLIER, "a.md");
+    const log = logClient([userMessage(EARLIER), decided(CHANGE_SET, "keep", EARLIER, "b.md"), undo, userMessage(THIS)], new Map([[EARLIER, earlier]]));
     const d = deps(log);
 
     const outcomes = await reconcileOwedUndos(d);
@@ -203,12 +215,13 @@ describe("reconcileOwedUndos", () => {
   });
 
   it("a reconcile turn puts the file back and drops nothing: its turn's window is still open", async () => {
-    const log = logClient([userMessage(EARLIER), decided(CHANGE_SET, "undo")], new Map([[EARLIER, earlier]]));
+    const log = logClient([userMessage(EARLIER), decided(CHANGE_SET, "undo", EARLIER, "a.md")], new Map([[EARLIER, earlier]]));
     const d = deps(log, { runId: "run_reconcile", reconcileTurn: true });
 
     await reconcileOwedUndos(d);
 
     expect(read("a.md")).toBe("a before\n");
+    expect(read("b.md"), "a file no decision undoes is left as it is").toBe("b after\n");
     expect(git(["for-each-ref", `refs/stigmer/`]).trim()).not.toBe("");
   });
 
@@ -224,7 +237,7 @@ describe("reconcileOwedUndos", () => {
   });
 
   it("a capture that no longer matches what was reviewed restores nothing and is recorded as hash_mismatch", async () => {
-    earlier.status!.fileChangeSets[0]!.changes.find((c) => c.pathAfter === "a.md")!.beforeSha256 = "deadbeef".repeat(8);
+    earlier.status!.fileChanges[0]!.changes.find((c) => c.pathAfter === "a.md")!.beforeSha256 = "deadbeef".repeat(8);
     const log = logClient([userMessage(EARLIER), decided(CHANGE_SET, "undo")], new Map([[EARLIER, earlier]]));
     const d = deps(log, { runId: "run_reconcile", reconcileTurn: true });
 
@@ -256,11 +269,8 @@ describe("reconcileOwedUndos", () => {
 
   it("a second file's undo after the first was put back is put back too, answered under its own id", async () => {
     // Both files undone one at a time: a.md's undo already answered, b.md's
-    // decided after it on the same set (the ledger holds both). a.md is back
+    // decided after it on the same set (the slice holds both). a.md is back
     // at its baseline already, as the first reconcile left it.
-    writeFileSync(join(repo, "a.md"), "a before\n");
-    writeFileSync(join(repo, "b.md"), "b before\n");
-    earlier = create(RunSchema, { metadata: { id: EARLIER }, status: await earlierTurnCaptured({ reject: ["a.md", "b.md"] }) });
     writeFileSync(join(repo, "a.md"), "a before\n");
     const undoA = decided(CHANGE_SET, "undo", EARLIER, "a.md");
     const undoB = decided(CHANGE_SET, "undo", EARLIER, "b.md");
