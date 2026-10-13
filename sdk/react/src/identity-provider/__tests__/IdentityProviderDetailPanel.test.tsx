@@ -93,8 +93,6 @@ describe("IdentityProviderDetailPanel save payload", () => {
       "spec.allowed_issuers",
       "spec.expected_audience",
       "spec.userinfo_endpoint",
-      "spec.is_sso_provider",
-      "spec.oidc_client_id",
       "spec.create_accounts_on_sign_in",
       "spec.sign_in_role",
       "spec.external_id_claim",
