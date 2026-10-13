@@ -39,7 +39,10 @@ export interface TeamStore {
    * column are written together. Answers the written team; an unknown id
    * answers undefined and writes nothing.
    */
-  modifyById(id: string, modify: (team: Team) => void): Promise<Team | undefined>;
+  modifyById(
+    id: string,
+    modify: (team: Team) => void,
+  ): Promise<Team | undefined>;
   findById(id: string): Promise<Team | undefined>;
   /** The teams of these ids that exist, in no particular order. */
   findByIds(ids: ReadonlyArray<string>): Promise<ReadonlyArray<Team>>;
