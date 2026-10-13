@@ -75,9 +75,10 @@ export const ChannelAppCommandController: GenService<{
    * Sending the redaction marker for a secret field preserves the
    * stored value; the provider arm is immutable.
    *
-   * The slug changes only through rename. An update that names the channel app
-   * by a slug it was renamed away from, without its id, is refused with
-   * SLUG_RENAMED (see apply).
+   * The slug changes only through rename. An update authorizes the id it names,
+   * so wherever the server authorizes requests, an update without an id is
+   * refused before its slug is read; where it reads one, a slug the channel app
+   * was renamed away from is refused with SLUG_RENAMED (see apply).
    *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.update
    */

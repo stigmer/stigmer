@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Update an existing channel app.\n\n Sending the redaction marker for a secret field preserves the\n stored value; the provider arm is immutable.\n\n The slug changes only through rename. An update that names the channel app\n by a slug it was renamed away from, without its id, is refused with\n SLUG_RENAMED (see apply)."
+          "description": "Update an existing channel app.\n\n Sending the redaction marker for a secret field preserves the\n stored value; the provider arm is immutable.\n\n The slug changes only through rename. An update authorizes the id it names,\n so wherever the server authorizes requests, an update without an id is\n refused before its slug is read; where it reads one, a slug the channel app\n was renamed away from is refused with SLUG_RENAMED (see apply)."
         },
         {
           "name": "Rename",

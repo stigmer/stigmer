@@ -109,8 +109,11 @@ class VaultCommandControllerServicer(object):
         Entries are kept as stored: change them with setSecrets, removeSecrets,
         setConnection and removeConnections.
 
-        The slug changes only through rename. A slug the vault was renamed away
-        from, named without the vault's id, is refused with FAILED_PRECONDITION
+        The slug changes only through rename. An update authorizes the id it
+        names, so wherever the server authorizes requests, an update without an
+        id is refused before its slug is read. Where it reads one (a server that
+        admits every caller), a slug the vault was renamed away from, named
+        without the vault's id, is refused with FAILED_PRECONDITION
         carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
         write by a name that stops resolving after 30 days would later make a
         second vault:

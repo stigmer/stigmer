@@ -116,8 +116,10 @@ type OrganizationCommandControllerClient interface {
 	// Update an existing organization.
 	//
 	// The slug is not changed by an update; rename changes it. An update
-	// that names the organization by a slug it was renamed away from,
-	// without its id, is refused with SLUG_RENAMED (see apply).
+	// authorizes the id it names, so wherever the server authorizes
+	// requests, an update without an id is refused before its slug is read;
+	// where it reads one, a slug the organization was renamed away from is
+	// refused with SLUG_RENAMED (see apply).
 	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Change what the organization lets its members do (OrganizationPolicies),
 	// the one way to change a policy: update and apply keep the stored
@@ -324,8 +326,10 @@ type OrganizationCommandControllerServer interface {
 	// Update an existing organization.
 	//
 	// The slug is not changed by an update; rename changes it. An update
-	// that names the organization by a slug it was renamed away from,
-	// without its id, is refused with SLUG_RENAMED (see apply).
+	// authorizes the id it names, so wherever the server authorizes
+	// requests, an update without an id is refused before its slug is read;
+	// where it reads one, a slug the organization was renamed away from is
+	// refused with SLUG_RENAMED (see apply).
 	Update(context.Context, *Organization) (*Organization, error)
 	// Change what the organization lets its members do (OrganizationPolicies),
 	// the one way to change a policy: update and apply keep the stored

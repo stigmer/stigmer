@@ -275,8 +275,11 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. A slug the platform client was
-     * renamed away from, named without the platform client's id, is refused with
+     * The slug changes only through rename. An update authorizes the id it
+     * names, so wherever the server authorizes requests, an update without an
+     * id is refused before its slug is read. Where it reads one (a server that
+     * admits every caller), a slug the platform client was renamed away from,
+     * named without the platform client's id, is refused with
      * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
      * "stigmer.ai"), because a write by a name that stops resolving after 30 days
      * would later make a second platform client:
@@ -419,8 +422,11 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. A slug the platform client was
-     * renamed away from, named without the platform client's id, is refused with
+     * The slug changes only through rename. An update authorizes the id it
+     * names, so wherever the server authorizes requests, an update without an
+     * id is refused before its slug is read. Where it reads one (a server that
+     * admits every caller), a slug the platform client was renamed away from,
+     * named without the platform client's id, is refused with
      * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
      * "stigmer.ai"), because a write by a name that stops resolving after 30 days
      * would later make a second platform client:
@@ -548,8 +554,11 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. A slug the platform client was
-     * renamed away from, named without the platform client's id, is refused with
+     * The slug changes only through rename. An update authorizes the id it
+     * names, so wherever the server authorizes requests, an update without an
+     * id is refused before its slug is read. Where it reads one (a server that
+     * admits every caller), a slug the platform client was renamed away from,
+     * named without the platform client's id, is refused with
      * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
      * "stigmer.ai"), because a write by a name that stops resolving after 30 days
      * would later make a second platform client:
@@ -673,8 +682,11 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. A slug the platform client was
-     * renamed away from, named without the platform client's id, is refused with
+     * The slug changes only through rename. An update authorizes the id it
+     * names, so wherever the server authorizes requests, an update without an
+     * id is refused before its slug is read. Where it reads one (a server that
+     * admits every caller), a slug the platform client was renamed away from,
+     * named without the platform client's id, is refused with
      * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
      * "stigmer.ai"), because a write by a name that stops resolving after 30 days
      * would later make a second platform client:
@@ -799,8 +811,11 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. A slug the platform client was
-     * renamed away from, named without the platform client's id, is refused with
+     * The slug changes only through rename. An update authorizes the id it
+     * names, so wherever the server authorizes requests, an update without an
+     * id is refused before its slug is read. Where it reads one (a server that
+     * admits every caller), a slug the platform client was renamed away from,
+     * named without the platform client's id, is refused with
      * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
      * "stigmer.ai"), because a write by a name that stops resolving after 30 days
      * would later make a second platform client:

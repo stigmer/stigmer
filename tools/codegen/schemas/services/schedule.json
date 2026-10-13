@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Update an existing schedule.\n\n Replaces the spec wholesale. The referenced agent and the target arm\n are immutable; cron, time zone, enablement, and the message may all\n change. Status (firing observations, the platform\n pause) is never touched by updates — use resume to clear a platform\n pause.\n\n The slug changes only through rename. An update that names the schedule by\n a slug it was renamed away from, without its id, is refused with\n SLUG_RENAMED (see apply)."
+          "description": "Update an existing schedule.\n\n Replaces the spec wholesale. The referenced agent and the target arm\n are immutable; cron, time zone, enablement, and the message may all\n change. Status (firing observations, the platform\n pause) is never touched by updates — use resume to clear a platform\n pause.\n\n The slug changes only through rename. An update authorizes the id it names,\n so wherever the server authorizes requests, an update without an id is\n refused before its slug is read; where it reads one, a slug the schedule\n was renamed away from is refused with SLUG_RENAMED (see apply)."
         },
         {
           "name": "Rename",

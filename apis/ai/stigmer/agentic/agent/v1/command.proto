@@ -54,9 +54,10 @@ service AgentCommandController {
 
   // Update an existing agent.
   //
-  // The slug changes only through rename. An update that names the agent by a
-  // slug it was renamed away from, without its id, is refused with SLUG_RENAMED
-  // (see apply).
+  // The slug changes only through rename. An update authorizes the id it names,
+  // so wherever the server authorizes requests, an update without an id is
+  // refused before its slug is read; where it reads one, a slug the agent was
+  // renamed away from is refused with SLUG_RENAMED (see apply).
   rpc update(Agent) returns (Agent) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;

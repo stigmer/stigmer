@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Update an existing agent.\n\n The slug changes only through rename. An update that names the agent by a\n slug it was renamed away from, without its id, is refused with SLUG_RENAMED\n (see apply)."
+          "description": "Update an existing agent.\n\n The slug changes only through rename. An update authorizes the id it names,\n so wherever the server authorizes requests, an update without an id is\n refused before its slug is read; where it reads one, a slug the agent was\n renamed away from is refused with SLUG_RENAMED (see apply)."
         },
         {
           "name": "UpdateVisibility",
