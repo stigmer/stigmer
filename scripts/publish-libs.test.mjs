@@ -223,13 +223,16 @@ test("the checked-in @stigmer/cli closure is exactly what the compose-runner ima
   // installs this set from tarballs in one `npm install`; the release lane
   // stages it with `--only @stigmer/cli`. Pinned so a new @stigmer/* dep on
   // the CLI's path is a visible change here, not a silent registry fetch in
-  // the image build. plugins, embed and temporal-codecs are NOT on the
-  // CLI's path and stay out of the image.
+  // the image build. The SDK folds a session's events with session-log,
+  // which reads the tool vocabulary. plugins, embed and temporal-codecs are
+  // NOT on the CLI's path and stay out of the image.
   assert.deepEqual(packageClosure("@stigmer/cli"), [
     "apis/stubs/ts",
     "backend/libs/ts/zip-structure",
     "backend/libs/ts/eval-runtime",
     "backend/libs/ts/plugin-package",
+    "backend/libs/ts/tool-vocabulary",
+    "backend/libs/ts/session-log",
     "sdk/typescript",
     "sdk/theme",
     "sdk/react",
