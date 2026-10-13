@@ -72,9 +72,10 @@ message PeriodEstimate {
 
   // 4 and 5 held provider_cost_micros and commission_collected_micros: the
   // period's provider cost and the commission collected on it, which fed a
-  // usage-share plan cost. A plan is a flat fee and usage is never part of
-  // its price, so the numbers and the names are reserved so neither is
-  // ever reused for a different field.
+  // usage-share plan cost. A plan is a fee plus what it bills past its
+  // allowances, and model usage is never part of its price, so the numbers
+  // and the names are reserved so neither is ever reused for a different
+  // field.
   reserved 4, 5;
   reserved "provider_cost_micros", "commission_collected_micros";
 
@@ -86,6 +87,11 @@ message PeriodEstimate {
 
   // The estimated invoice total: the sum of the lines.
   int64 total_micros = 8;
+
+  // The working agent seconds counted against the plan this period so
+  // far: the organization's and its child organizations', never an
+  // automatic grade's.
+  int64 working_seconds = 9;
 }
 
 // PeriodEstimateLine is one line of an estimated invoice.
@@ -105,13 +111,18 @@ enum PeriodEstimateLineKind {
   plan = 1;
 
   // 2 was commission_credit, the commission collected on the period's
-  // usage credited against a usage-share plan cost. A plan is a flat fee,
-  // so no line credits usage; the number and the name are reserved so
-  // neither is ever reused for a different line.
+  // usage credited against a usage-share plan cost. Model usage is never
+  // part of a plan's price, so no line credits it; the number and the name
+  // are reserved so neither is ever reused for a different line.
   reserved 2;
   reserved "commission_credit";
 
   // The child organizations beyond those the plan includes, at the
   // plan's fee for each.
   child_orgs = 3;
+
+  // The working agent hours beyond those the plan includes, at the plan's
+  // hourly price; the period's allowance is prorated when the period is
+  // cut short.
+  agent_hours = 4;
 }

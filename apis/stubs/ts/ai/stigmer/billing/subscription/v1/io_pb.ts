@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/subscription/v1/io.proto.
  */
 export const file_ai_stigmer_billing_subscription_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASK4AgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD2NoaWxkX29yZ19jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoA0oECAQQBUoECAUQBlIUcHJvdmlkZXJfY29zdF9taWNyb3NSG2NvbW1pc3Npb25fY29sbGVjdGVkX21pY3JvcyJ1ChJQZXJpb2RFc3RpbWF0ZUxpbmUSSAoEa2luZBgBIAEoDjI6LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lS2luZBIVCg1hbW91bnRfbWljcm9zGAIgASgDKnYKFlBlcmlvZEVzdGltYXRlTGluZUtpbmQSKQolcGVyaW9kX2VzdGltYXRlX2xpbmVfa2luZF91bnNwZWNpZmllZBAAEggKBHBsYW4QARIOCgpjaGlsZF9vcmdzEAMiBAgCEAIqEWNvbW1pc3Npb25fY3JlZGl0YgZwcm90bzM", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASLRAgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD2NoaWxkX29yZ19jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoAxIXCg93b3JraW5nX3NlY29uZHMYCSABKANKBAgEEAVKBAgFEAZSFHByb3ZpZGVyX2Nvc3RfbWljcm9zUhtjb21taXNzaW9uX2NvbGxlY3RlZF9taWNyb3MidQoSUGVyaW9kRXN0aW1hdGVMaW5lEkgKBGtpbmQYASABKA4yOi5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlBlcmlvZEVzdGltYXRlTGluZUtpbmQSFQoNYW1vdW50X21pY3JvcxgCIAEoAyqHAQoWUGVyaW9kRXN0aW1hdGVMaW5lS2luZBIpCiVwZXJpb2RfZXN0aW1hdGVfbGluZV9raW5kX3Vuc3BlY2lmaWVkEAASCAoEcGxhbhABEg4KCmNoaWxkX29yZ3MQAxIPCgthZ2VudF9ob3VycxAEIgQIAhACKhFjb21taXNzaW9uX2NyZWRpdGIGcHJvdG8z", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * GetSubscriptionForOrgInput names the organization whose
@@ -215,6 +215,15 @@ export type PeriodEstimate = Message<"ai.stigmer.billing.subscription.v1.PeriodE
    * @generated from field: int64 total_micros = 8;
    */
   totalMicros: bigint;
+
+  /**
+   * The working agent seconds counted against the plan this period so
+   * far: the organization's and its child organizations', never an
+   * automatic grade's.
+   *
+   * @generated from field: int64 working_seconds = 9;
+   */
+  workingSeconds: bigint;
 };
 
 /**
@@ -277,6 +286,15 @@ export enum PeriodEstimateLineKind {
    * @generated from enum value: child_orgs = 3;
    */
   child_orgs = 3,
+
+  /**
+   * The working agent hours beyond those the plan includes, at the plan's
+   * hourly price; the period's allowance is prorated when the period is
+   * cut short.
+   *
+   * @generated from enum value: agent_hours = 4;
+   */
+  agent_hours = 4,
 }
 
 /**

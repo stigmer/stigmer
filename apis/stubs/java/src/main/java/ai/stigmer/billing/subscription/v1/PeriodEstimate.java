@@ -274,6 +274,23 @@ private static final long serialVersionUID = 0L;
     return totalMicros_;
   }
 
+  public static final int WORKING_SECONDS_FIELD_NUMBER = 9;
+  private long workingSeconds_ = 0L;
+  /**
+   * <pre>
+   * The working agent seconds counted against the plan this period so
+   * far: the organization's and its child organizations', never an
+   * automatic grade's.
+   * </pre>
+   *
+   * <code>int64 working_seconds = 9 [json_name = "workingSeconds"];</code>
+   * @return The workingSeconds.
+   */
+  @java.lang.Override
+  public long getWorkingSeconds() {
+    return workingSeconds_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -305,6 +322,9 @@ private static final long serialVersionUID = 0L;
     }
     if (totalMicros_ != 0L) {
       output.writeInt64(8, totalMicros_);
+    }
+    if (workingSeconds_ != 0L) {
+      output.writeInt64(9, workingSeconds_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -343,6 +363,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(8, totalMicros_);
     }
+    if (workingSeconds_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(9, workingSeconds_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -376,6 +400,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getLinesList())) return false;
     if (getTotalMicros()
         != other.getTotalMicros()) return false;
+    if (getWorkingSeconds()
+        != other.getWorkingSeconds()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -406,6 +432,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + TOTAL_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getTotalMicros());
+    hash = (37 * hash) + WORKING_SECONDS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getWorkingSeconds());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -574,6 +603,7 @@ private static final long serialVersionUID = 0L;
       }
       bitField0_ = (bitField0_ & ~0x00000010);
       totalMicros_ = 0L;
+      workingSeconds_ = 0L;
       return this;
     }
 
@@ -642,6 +672,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.totalMicros_ = totalMicros_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.workingSeconds_ = workingSeconds_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -699,6 +732,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getTotalMicros() != 0L) {
         setTotalMicros(other.getTotalMicros());
+      }
+      if (other.getWorkingSeconds() != 0L) {
+        setWorkingSeconds(other.getWorkingSeconds());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -768,6 +804,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 64
+            case 72: {
+              workingSeconds_ = input.readInt64();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 72
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1587,6 +1628,56 @@ private static final long serialVersionUID = 0L;
     public Builder clearTotalMicros() {
       bitField0_ = (bitField0_ & ~0x00000020);
       totalMicros_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long workingSeconds_ ;
+    /**
+     * <pre>
+     * The working agent seconds counted against the plan this period so
+     * far: the organization's and its child organizations', never an
+     * automatic grade's.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 9 [json_name = "workingSeconds"];</code>
+     * @return The workingSeconds.
+     */
+    @java.lang.Override
+    public long getWorkingSeconds() {
+      return workingSeconds_;
+    }
+    /**
+     * <pre>
+     * The working agent seconds counted against the plan this period so
+     * far: the organization's and its child organizations', never an
+     * automatic grade's.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 9 [json_name = "workingSeconds"];</code>
+     * @param value The workingSeconds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWorkingSeconds(long value) {
+
+      workingSeconds_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The working agent seconds counted against the plan this period so
+     * far: the organization's and its child organizations', never an
+     * automatic grade's.
+     * </pre>
+     *
+     * <code>int64 working_seconds = 9 [json_name = "workingSeconds"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearWorkingSeconds() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      workingSeconds_ = 0L;
       onChanged();
       return this;
     }

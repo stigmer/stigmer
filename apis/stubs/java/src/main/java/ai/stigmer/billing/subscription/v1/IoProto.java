@@ -89,28 +89,30 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "g\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\037\n\007plan_id\030\002 \001(\tB\006\272" +
       "H\003\310\001\001R\006planId\"3\n\027CancelSubscriptionInput" +
       "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"2\n\026GetPeriodE" +
-      "stimateInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"\373" +
-      "\002\n\016PeriodEstimate\022\027\n\007plan_id\030\001 \001(\tR\006plan" +
+      "stimateInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"\244" +
+      "\003\n\016PeriodEstimate\022\027\n\007plan_id\030\001 \001(\tR\006plan" +
       "Id\022=\n\014period_start\030\002 \001(\0132\032.google.protob" +
       "uf.TimestampR\013periodStart\0229\n\nperiod_end\030" +
       "\003 \001(\0132\032.google.protobuf.TimestampR\tperio" +
       "dEnd\022&\n\017child_org_count\030\006 \001(\005R\rchildOrgC" +
       "ount\022L\n\005lines\030\007 \003(\01326.ai.stigmer.billing" +
       ".subscription.v1.PeriodEstimateLineR\005lin" +
-      "es\022!\n\014total_micros\030\010 \001(\003R\013totalMicrosJ\004\010" +
-      "\004\020\005J\004\010\005\020\006R\024provider_cost_microsR\033commiss" +
-      "ion_collected_micros\"\211\001\n\022PeriodEstimateL" +
-      "ine\022N\n\004kind\030\001 \001(\0162:.ai.stigmer.billing.s" +
-      "ubscription.v1.PeriodEstimateLineKindR\004k" +
-      "ind\022#\n\ramount_micros\030\002 \001(\003R\014amountMicros" +
-      "*v\n\026PeriodEstimateLineKind\022)\n%period_est" +
-      "imate_line_kind_unspecified\020\000\022\010\n\004plan\020\001\022" +
-      "\016\n\nchild_orgs\020\003\"\004\010\002\020\002*\021commission_credit" +
-      "B\266\001B\007IoProtoP\001\242\002\004ASBS\252\002\"Ai.Stigmer.Billi" +
-      "ng.Subscription.V1\312\002\"Ai\\Stigmer\\Billing\\" +
-      "Subscription\\V1\342\002.Ai\\Stigmer\\Billing\\Sub" +
-      "scription\\V1\\GPBMetadata\352\002&Ai::Stigmer::" +
-      "Billing::Subscription::V1b\006proto3"
+      "es\022!\n\014total_micros\030\010 \001(\003R\013totalMicros\022\'\n" +
+      "\017working_seconds\030\t \001(\003R\016workingSecondsJ\004" +
+      "\010\004\020\005J\004\010\005\020\006R\024provider_cost_microsR\033commis" +
+      "sion_collected_micros\"\211\001\n\022PeriodEstimate" +
+      "Line\022N\n\004kind\030\001 \001(\0162:.ai.stigmer.billing." +
+      "subscription.v1.PeriodEstimateLineKindR\004" +
+      "kind\022#\n\ramount_micros\030\002 \001(\003R\014amountMicro" +
+      "s*\207\001\n\026PeriodEstimateLineKind\022)\n%period_e" +
+      "stimate_line_kind_unspecified\020\000\022\010\n\004plan\020" +
+      "\001\022\016\n\nchild_orgs\020\003\022\017\n\013agent_hours\020\004\"\004\010\002\020\002" +
+      "*\021commission_creditB\266\001B\007IoProtoP\001\242\002\004ASBS" +
+      "\252\002\"Ai.Stigmer.Billing.Subscription.V1\312\002\"" +
+      "Ai\\Stigmer\\Billing\\Subscription\\V1\342\002.Ai\\" +
+      "Stigmer\\Billing\\Subscription\\V1\\GPBMetad" +
+      "ata\352\002&Ai::Stigmer::Billing::Subscription" +
+      "::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -160,7 +162,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimate_descriptor,
-        new java.lang.String[] { "PlanId", "PeriodStart", "PeriodEnd", "ChildOrgCount", "Lines", "TotalMicros", });
+        new java.lang.String[] { "PlanId", "PeriodStart", "PeriodEnd", "ChildOrgCount", "Lines", "TotalMicros", "WorkingSeconds", });
     internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_descriptor =
       getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_billing_subscription_v1_PeriodEstimateLine_fieldAccessorTable = new
