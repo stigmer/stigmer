@@ -12,7 +12,11 @@
  *   - an insert whose id is already held is never answered `slug-taken`:
  *     only the organization's slug is a claim another team can hold;
  *   - replace changes a held team's payload, and the team keeps its
- *     organization and slug;
+ *     organization and slug, a slug the replace carries included (rename's
+ *     door is modifyById); a replace of an unknown id writes nothing;
+ *   - modifyById changes the payload and the slug together and answers the
+ *     written team, so the old slug is free in the table and the new one
+ *     taken; an unknown id answers undefined and writes nothing;
  *   - findByIds answers the teams of the ids that exist, skips the unknown,
  *     and an empty list reads nothing;
  *   - an organization's list is its teams, newest first, and no other
@@ -112,6 +116,46 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
         idsOf((await store.listByOrg("acme")).filter((held) => held.metadata?.slug === "rp")),
         ["tm_c6"],
       );
+    },
+  ],
+  [
+    "replace keeps the stored slug, and writes it onto the team it was handed",
+    async ({ store }) => {
+      await store.insert(team({ id: "tm_c6s", org: "acme", slug: "kept", name: "Before" }));
+      const stale = team({ id: "tm_c6s", org: "acme", slug: "stale", name: "After" });
+      await store.replace(stale);
+      const held = await store.findById("tm_c6s");
+      assert.equal(held?.metadata?.name, "After");
+      assert.equal(held?.metadata?.slug, "kept");
+      assert.equal(stale.metadata?.slug, "kept", "the handed team answers the stored slug");
+      await store.replace(team({ id: "tm_c6u", org: "acme", slug: "unknown" }));
+      assert.equal(await store.findById("tm_c6u"), undefined, "a replace of an unknown id writes nothing");
+    },
+  ],
+  [
+    "modifyById changes the payload and the slug together, and an unknown id writes nothing",
+    async ({ store }) => {
+      await store.insert(team({ id: "tm_c6m", org: "acme", slug: "before-move", name: "Moved" }));
+      const moveTo = (slug: string) => (held: Team) => {
+        if (held.metadata !== undefined) {
+          held.metadata.slug = slug;
+        }
+      };
+      const written = await store.modifyById("tm_c6m", moveTo("after-move"));
+      assert.equal(written?.metadata?.slug, "after-move");
+      assert.equal((await store.findById("tm_c6m"))?.metadata?.slug, "after-move");
+      assert.deepEqual(
+        await store.insert(team({ id: "tm_c6n", org: "acme", slug: "after-move" })),
+        { kind: "slug-taken" },
+        "the new slug is held",
+      );
+      assert.deepEqual(
+        await store.insert(team({ id: "tm_c6o", org: "acme", slug: "before-move" })),
+        { kind: "inserted" },
+        "the old slug is free in the table",
+      );
+      assert.equal(await store.modifyById("tm_unknown", moveTo("anything")), undefined);
+      assert.equal(await store.findById("tm_unknown"), undefined);
     },
   ],
   [

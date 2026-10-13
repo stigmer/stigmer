@@ -53,6 +53,13 @@
  *                   provider whose organization is gone or younger than it
  *                   answers as no provider (organization-links.ts
  *                   `orphanReason`): the slug may now be someone else's
+ *   rename          the library's rename chain over this table
+ *                   (`renameResource`): RefuseServiceAccountCaller,
+ *                   LoadForRename, RefuseBeingDeleted, ValidateNewSlug,
+ *                   RenameName, PersistRenamed through `modifyById`, then
+ *                   the verifier's invalidation; sign-in routes by issuer
+ *                   and audience and federated accounts hold the
+ *                   provider's id, so nobody's sign-in moves
  *   delete          LoadTarget, then the removal (removal.ts)
  *
  * Create follows the lifecycle contract every create chain follows: the
@@ -72,10 +79,8 @@ import type { ServiceImpl } from "@connectrpc/connect";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type {
-  IdentityProvider,
-  IdentityProviderSchema,
-} from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
+import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
 import {
   IdentityProvidersSchema,
@@ -95,6 +100,7 @@ import type {
 } from "@stigmer/server";
 import type { ServiceAccountLookup } from "@stigmer/server";
 import {
+  callerIdentityOf,
   internalError,
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
@@ -102,7 +108,9 @@ import {
   newBuildUpdateStateStep,
   newClaimNameStep,
   newResolveSlugStep,
+  portRenameRows,
   releaseNameOnFailure,
+  renameResource,
   resolveResourceCreatedEvent,
   restrictListByReadScope,
   TARGET_RESOURCE_KEY,
@@ -117,6 +125,7 @@ import type { ProviderRemoval } from "./removal.js";
 import {
   duplicateProviderError,
   findProviderByName,
+  newRefuseRenamingDeletedProviderStep,
   newCheckDuplicateProviderStep,
   providerNameHolder,
   newLoadExistingProviderStep,
@@ -263,6 +272,24 @@ export function providerCommands(deps: IdentityProviderLaneDeps): Commands {
       return existing === undefined
         ? commands.create(input, ctx)
         : commands.update(withResolvedProviderId(input, existing), ctx);
+    },
+    rename: async (input, ctx) => {
+      const renamed = await renameResource(
+        {
+          method: method.rename,
+          names: deps.names,
+          rows: portRenameRows(IdentityProviderSchema, deps.store),
+          authorizer: deps.authorizer,
+          logger: deps.logger,
+          beforeLoad: [refuseServiceAccount()],
+          afterLoad: [newRefuseRenamingDeletedProviderStep(deps.store)],
+        },
+        input,
+        callerIdentityOf(ctx),
+        KIND,
+      );
+      deps.invalidate();
+      return renamed;
     },
     delete: (input, ctx) =>
       runUnaryChain(

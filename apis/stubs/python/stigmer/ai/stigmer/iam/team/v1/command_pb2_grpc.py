@@ -29,6 +29,11 @@ class TeamCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
                 _registered_method=True)
+        self.rename = channel.unary_unary(
+                '/ai.stigmer.iam.team.v1.TeamCommandController/rename',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.iam.team.v1.TeamCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
@@ -60,6 +65,14 @@ class TeamCommandControllerServicer(object):
 
         - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
         team that exists keeps working. No metadata.
+
+        A slug another team of the organization holds is refused with
+        ALREADY_EXISTS. A slug another team was renamed away from, which still
+        leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - SLUG_RESERVED — another team held the slug until a recent rename, and
+        it still leads there. Metadata: slug.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -67,6 +80,25 @@ class TeamCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update a team's name or description.
+
+        An update names the team by its id, and the slug changes only through
+        rename.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def rename(self, request, context):
+        """Rename a team: change its slug, the name people type.
+
+        The team keeps its id, so everything that names it keeps working, and every
+        answer names it by the new slug. The old slug keeps leading to the team for
+        reading for 30 days, during which no other team of the organization can
+        take it and this one can take it back; then it is released. A slug
+        another team holds is refused with ALREADY_EXISTS, and one another team was
+        recently renamed away from with SLUG_RESERVED (see create).
+
+        Its memberships and shares name its id and are unchanged.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -92,6 +124,11 @@ def add_TeamCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.SerializeToString,
+            ),
+            'rename': grpc.unary_unary_rpc_method_handler(
+                    servicer.rename,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -157,6 +194,33 @@ class TeamCommandController(object):
             target,
             '/ai.stigmer.iam.team.v1.TeamCommandController/update',
             ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def rename(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.team.v1.TeamCommandController/rename',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2.Team.FromString,
             options,
             channel_credentials,

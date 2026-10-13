@@ -21,6 +21,17 @@ service OAuthAppCommandController {
   // If the resource does not exist, creates a new OAuth app.
   // If the resource exists, updates the existing OAuth app.
   //
+  // A request that carries metadata.id of an OAuth app in its organization
+  // updates that OAuth app, and its slug changes only through rename. A slug
+  // the OAuth app was renamed away from, named without the OAuth app's id, is
+  // refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+  // (domain "stigmer.ai"), because a write by a name that stops resolving after
+  // 30 days would later make a second OAuth app:
+  //
+  //   - SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth
+  //     app for reading, but a write names its current slug. Metadata: slug
+  //     (the one the request named).
+  //
   // @internal
   // The authorization and state-operation are determined depending on whether the
   // OAuth app is going to be created or updated, which is determined as
@@ -31,6 +42,14 @@ service OAuthAppCommandController {
   //
   // The creator's organization owns the OAuth app, and the organization's
   // current admins manage it.
+  //
+  // A slug another OAuth app of the organization holds is refused with
+  // ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still
+  // leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+  // google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+  //
+  //   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
+  //     and it still leads there. Metadata: slug.
   //
   // @internal
   // Authorization: Requires can_create_oauth_app permission in the organization.
@@ -43,6 +62,10 @@ service OAuthAppCommandController {
 
   // Update an existing OAuth app.
   //
+  // The slug changes only through rename. An update that names the OAuth app by
+  // a slug it was renamed away from, without its id, is refused with
+  // SLUG_RENAMED (see apply).
+  //
   // @internal
   // Authorization: Requires can_edit permission on the oauth_app resource.
   rpc update(OAuthApp) returns (OAuthApp) {
@@ -50,6 +73,30 @@ service OAuthAppCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update oauth app";
+  }
+
+  // Rename an OAuth app: change its slug, the name people type.
+  //
+  // The OAuth app keeps its id, so everything that names it keeps working, and
+  // every answer names it by the new slug. The old slug keeps leading to the
+  // OAuth app for reading for 30 days, during which no other OAuth app of the
+  // organization can take it and this one can take it back; then it is
+  // released. A write that names the old slug is refused with SLUG_RENAMED (see
+  // apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and
+  // one another OAuth app was recently renamed away from with SLUG_RESERVED
+  // (see create).
+  //
+  // Its addresses and its redirect URI do not name its slug, so sign-ins
+  // through it are unchanged.
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the OAuth app: whoever may
+  // delete it may rename it.
+  rpc rename(ai.stigmer.commons.apiresource.RenameInput) returns (OAuthApp) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = oauth_app;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rename OAuth app";
   }
 
   // Delete an OAuth app.

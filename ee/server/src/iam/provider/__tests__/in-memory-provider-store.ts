@@ -87,8 +87,13 @@ export class InMemoryProviderStore implements IdentityProviderStore {
       return Promise.reject(refused);
     }
     const id = provider.metadata?.id ?? "";
-    if (!this.rows.has(id)) {
+    const held = this.rows.get(id);
+    if (held === undefined) {
       return Promise.resolve({ kind: "missing" });
+    }
+    const storedSlug = held.metadata?.slug;
+    if (provider.metadata !== undefined && storedSlug !== undefined) {
+      provider.metadata.slug = storedSlug;
     }
     if (this.ssoHeldByAnother(provider, id)) {
       return Promise.resolve({ kind: "sso-taken" });
@@ -99,6 +104,30 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     }
     this.rows.set(id, clone(IdentityProviderSchema, provider));
     return Promise.resolve({ kind: "replaced" });
+  }
+
+  modifyById(id: string, modify: (provider: IdentityProvider) => void): Promise<IdentityProvider | undefined> {
+    const held = this.rows.get(id);
+    if (held === undefined) {
+      return Promise.resolve(undefined);
+    }
+    const provider = clone(IdentityProviderSchema, held);
+    modify(provider);
+    const claims = (row: IdentityProvider) =>
+      JSON.stringify([
+        row.metadata?.org ?? "",
+        row.spec?.isSsoProvider === true,
+        routesOf(row).map((route) => `${route.issuer} ${route.audience}`).sort(),
+      ]);
+    if (claims(held) !== claims(provider)) {
+      return Promise.reject(
+        new Error(
+          "modifyById changes a provider's payload and slug alone; its organization, SSO flag and routes change through replace",
+        ),
+      );
+    }
+    this.rows.set(id, clone(IdentityProviderSchema, provider));
+    return Promise.resolve(provider);
   }
 
   deleteById(id: string): Promise<void> {

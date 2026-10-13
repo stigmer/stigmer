@@ -5,7 +5,7 @@
 
 import { OAuthApp } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pbjs";
+import { ApiResourceDeleteInput, RenameInput } from "../../../commons/apiresource/io_pbjs";
 
 /**
  * OAuthAppCommandController provides write operations for OAuth app resources.
@@ -21,6 +21,17 @@ export const OAuthAppCommandController = {
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
      *
+     * A request that carries metadata.id of an OAuth app in its organization
+     * updates that OAuth app, and its slug changes only through rename. A slug
+     * the OAuth app was renamed away from, named without the OAuth app's id, is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second OAuth app:
+     *
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
+     *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.apply
      */
     apply: {
@@ -35,6 +46,14 @@ export const OAuthAppCommandController = {
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
      *
+     * A slug another OAuth app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     *   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
+     *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.create
      */
     create: {
@@ -46,11 +65,38 @@ export const OAuthAppCommandController = {
     /**
      * Update an existing OAuth app.
      *
+     * The slug changes only through rename. An update that names the OAuth app by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
+     *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.update
      */
     update: {
       name: "update",
       I: OAuthApp,
+      O: OAuthApp,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Rename an OAuth app: change its slug, the name people type.
+     *
+     * The OAuth app keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * OAuth app for reading for 30 days, during which no other OAuth app of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and
+     * one another OAuth app was recently renamed away from with SLUG_RESERVED
+     * (see create).
+     *
+     * Its addresses and its redirect URI do not name its slug, so sign-ins
+     * through it are unchanged.
+     *
+     * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.rename
+     */
+    rename: {
+      name: "rename",
+      I: RenameInput,
       O: OAuthApp,
       kind: MethodKind.Unary,
     },

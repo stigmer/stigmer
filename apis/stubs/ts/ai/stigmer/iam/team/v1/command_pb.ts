@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApiResourceDeleteInputSchema } from "../../../commons/apiresource/io_pb.js";
+import type { ApiResourceDeleteInputSchema, RenameInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_iam_team_v1_api } from "./api_pb.js";
  * Describes the file ai/stigmer/iam/team/v1/command.proto.
  */
 export const file_ai_stigmer_iam_team_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2lhbS90ZWFtL3YxL2NvbW1hbmQucHJvdG8SFmFpLnN0aWdtZXIuaWFtLnRlYW0udjEyvQMKFVRlYW1Db21tYW5kQ29udHJvbGxlchKOAQoGY3JlYXRlEhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIkjCuBhECC0QHiIMbWV0YWRhdGEub3JnKjB1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHRlYW0gaW4gdGhpcyBvcmdhbml6YXRpb24SeAoGdXBkYXRlEhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIjLCuBguCAIQGCILbWV0YWRhdGEuaWQqG3VuYXV0aG9yaXplZCB0byB1cGRhdGUgdGVhbRKSAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iMsK4GC4IAxAYIgtyZXNvdXJjZV9pZCobdW5hdXRob3JpemVkIHRvIGRlbGV0ZSB0ZWFtGgSg/ysYYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_team_v1_api]);
+  fileDesc("CiRhaS9zdGlnbWVyL2lhbS90ZWFtL3YxL2NvbW1hbmQucHJvdG8SFmFpLnN0aWdtZXIuaWFtLnRlYW0udjEyxwQKFVRlYW1Db21tYW5kQ29udHJvbGxlchKOAQoGY3JlYXRlEhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIkjCuBhECC0QHiIMbWV0YWRhdGEub3JnKjB1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHRlYW0gaW4gdGhpcyBvcmdhbml6YXRpb24SeAoGdXBkYXRlEhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtGhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIjLCuBguCAIQGCILbWV0YWRhdGEuaWQqG3VuYXV0aG9yaXplZCB0byB1cGRhdGUgdGVhbRKHAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GhwuYWkuc3RpZ21lci5pYW0udGVhbS52MS5UZWFtIjLCuBguCAMQGCILcmVzb3VyY2VfaWQqG3VuYXV0aG9yaXplZCB0byByZW5hbWUgdGVhbRKSAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iMsK4GC4IAxAYIgtyZXNvdXJjZV9pZCobdW5hdXRob3JpemVkIHRvIGRlbGV0ZSB0ZWFtGgSg/ysYYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_team_v1_api]);
 
 /**
  * TeamCommandController provides write operations for teams.
@@ -44,6 +44,14 @@ export const TeamCommandController: GenService<{
    *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
    *     team that exists keeps working. No metadata.
    *
+   * A slug another team of the organization holds is refused with
+   * ALREADY_EXISTS. A slug another team was renamed away from, which still
+   * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+   * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   *   - SLUG_RESERVED — another team held the slug until a recent rename, and
+   *     it still leads there. Metadata: slug.
+   *
    * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.create
    */
   create: {
@@ -54,11 +62,33 @@ export const TeamCommandController: GenService<{
   /**
    * Update a team's name or description.
    *
+   * An update names the team by its id, and the slug changes only through
+   * rename.
+   *
    * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.update
    */
   update: {
     methodKind: "unary";
     input: typeof TeamSchema;
+    output: typeof TeamSchema;
+  },
+  /**
+   * Rename a team: change its slug, the name people type.
+   *
+   * The team keeps its id, so everything that names it keeps working, and every
+   * answer names it by the new slug. The old slug keeps leading to the team for
+   * reading for 30 days, during which no other team of the organization can
+   * take it and this one can take it back; then it is released. A slug
+   * another team holds is refused with ALREADY_EXISTS, and one another team was
+   * recently renamed away from with SLUG_RESERVED (see create).
+   *
+   * Its memberships and shares name its id and are unchanged.
+   *
+   * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.rename
+   */
+  rename: {
+    methodKind: "unary";
+    input: typeof RenameInputSchema;
     output: typeof TeamSchema;
   },
   /**

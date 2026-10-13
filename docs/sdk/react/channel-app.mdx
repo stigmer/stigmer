@@ -188,8 +188,10 @@ re-entering the others). Deletion is refused server-side while any
 agent channel still installs through this app.
 
 The credentials form is offered to a caller who may edit the app
-(`can_edit`) and the deletion section to one who may delete it
-(`can_delete`): the organization's admins. Someone granted viewer on an
+(`can_edit`), and the slug field (rename) and the deletion section to
+one who may delete it (`can_delete`): the organization's admins. A
+rename fires `onUpdated` with the renamed app; its webhook URLs name its
+id, so nothing registered with the provider changes. Someone granted viewer on an
 app sees its setup values with no actions.
 
 **Props** — `ChannelAppDetailPanelProps`

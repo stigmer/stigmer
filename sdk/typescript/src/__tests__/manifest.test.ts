@@ -16,7 +16,8 @@ import {
 } from "../manifest/parse";
 import { serializeManifest } from "../manifest/serialize";
 import { manifestDocumentForResource } from "../manifest/document";
-import { manifestKinds, manifestHandlerForYamlKind } from "../manifest/registry";
+import { manifestKinds, manifestHandlerForYamlKind, type ServiceClientFn } from "../manifest/registry";
+import { RenameInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 /**
  * Manifest engine contract tests.
@@ -476,5 +477,22 @@ describe("manifest registry", () => {
       .map((h) => h.yamlKind)
       .sort();
     expect(withBinding).toEqual(["Agent"]);
+  });
+
+  it("binds rename on every manifest kind whose service has one, each through its own command service", async () => {
+    const services: string[] = [];
+    const recording = ((service: { readonly typeName: string }) => {
+      services.push(service.typeName);
+      return { rename: (input: RenameInput) => Promise.resolve(input) };
+    }) as unknown as ServiceClientFn;
+    const input = create(RenameInputSchema, { resourceId: "id-1", slug: "renamed" });
+
+    const renamable = manifestKinds().filter((h) => h.rename !== undefined);
+    for (const handler of renamable) {
+      expect(await handler.rename?.(recording, input)).toBe(input);
+    }
+
+    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "ChannelApp", "IdentityProvider", "OAuthApp", "Schedule"]);
+    expect(services).toEqual(renamable.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
   });
 });

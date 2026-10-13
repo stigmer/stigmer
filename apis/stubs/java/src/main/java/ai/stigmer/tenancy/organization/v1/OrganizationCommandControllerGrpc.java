@@ -272,6 +272,15 @@ public final class OrganizationCommandControllerGrpc {
      * Create or update an organization.
      * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
      * LICENSE_RENEWAL_REQUIRED included.
+     * A request that carries metadata.id updates that organization, and its
+     * slug changes only through rename. A slug the organization was renamed
+     * away from, named without its id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because
+     * a write by a name that stops resolving after 30 days would later make a
+     * second organization:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     organization for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     default void apply(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -341,8 +350,9 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * The slug is not changed by an update (it is ignored, as for every
-     * kind); rename changes it.
+     * The slug is not changed by an update; rename changes it. An update
+     * that names the organization by a slug it was renamed away from,
+     * without its id, is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     default void update(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -453,6 +463,15 @@ public final class OrganizationCommandControllerGrpc {
      * Create or update an organization.
      * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
      * LICENSE_RENEWAL_REQUIRED included.
+     * A request that carries metadata.id updates that organization, and its
+     * slug changes only through rename. A slug the organization was renamed
+     * away from, named without its id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because
+     * a write by a name that stops resolving after 30 days would later make a
+     * second organization:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     organization for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     public void apply(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -524,8 +543,9 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * The slug is not changed by an update (it is ignored, as for every
-     * kind); rename changes it.
+     * The slug is not changed by an update; rename changes it. An update
+     * that names the organization by a slug it was renamed away from,
+     * without its id, is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public void update(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -626,6 +646,15 @@ public final class OrganizationCommandControllerGrpc {
      * Create or update an organization.
      * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
      * LICENSE_RENEWAL_REQUIRED included.
+     * A request that carries metadata.id updates that organization, and its
+     * slug changes only through rename. A slug the organization was renamed
+     * away from, named without its id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because
+     * a write by a name that stops resolving after 30 days would later make a
+     * second organization:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     organization for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization apply(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -695,8 +724,9 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * The slug is not changed by an update (it is ignored, as for every
-     * kind); rename changes it.
+     * The slug is not changed by an update; rename changes it. An update
+     * that names the organization by a slug it was renamed away from,
+     * without its id, is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -793,6 +823,15 @@ public final class OrganizationCommandControllerGrpc {
      * Create or update an organization.
      * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
      * LICENSE_RENEWAL_REQUIRED included.
+     * A request that carries metadata.id updates that organization, and its
+     * slug changes only through rename. A slug the organization was renamed
+     * away from, named without its id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because
+     * a write by a name that stops resolving after 30 days would later make a
+     * second organization:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     organization for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization apply(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -862,8 +901,9 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * The slug is not changed by an update (it is ignored, as for every
-     * kind); rename changes it.
+     * The slug is not changed by an update; rename changes it. An update
+     * that names the organization by a slug it was renamed away from,
+     * without its id, is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -960,6 +1000,15 @@ public final class OrganizationCommandControllerGrpc {
      * Create or update an organization.
      * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
      * LICENSE_RENEWAL_REQUIRED included.
+     * A request that carries metadata.id updates that organization, and its
+     * slug changes only through rename. A slug the organization was renamed
+     * away from, named without its id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because
+     * a write by a name that stops resolving after 30 days would later make a
+     * second organization:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     organization for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> apply(
@@ -1031,8 +1080,9 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing organization.
-     * The slug is not changed by an update (it is ignored, as for every
-     * kind); rename changes it.
+     * The slug is not changed by an update; rename changes it. An update
+     * that names the organization by a slug it was renamed away from,
+     * without its id, is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> update(

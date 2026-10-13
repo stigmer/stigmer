@@ -24,6 +24,7 @@ const (
 	AgentCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/create"
 	AgentCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/update"
 	AgentCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentCommandController/updateVisibility"
+	AgentCommandController_Rename_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/rename"
 	AgentCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/delete"
 	AgentCommandController_TagVersion_FullMethodName       = "/ai.stigmer.agentic.agent.v1.AgentCommandController/tagVersion"
 )
@@ -35,10 +36,33 @@ const (
 // AgentCommandController handles write operations for AI agents.
 type AgentCommandControllerClient interface {
 	// Create or update an agent.
+	//
+	// A request that carries metadata.id of an agent in its organization updates
+	// that agent, and its slug changes only through rename. A slug the agent was
+	// renamed away from, named without the agent's id, is refused with
+	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"), because a write by a name that stops resolving after 30 days
+	// would later make a second agent:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+	//     for reading, but a write names its current slug. Metadata: slug (the
+	//     one the request named).
 	Apply(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
 	// Create an agent.
+	//
+	// A slug another agent of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another agent was renamed away from, which still
+	// leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+	//     it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
 	// Update an existing agent.
+	//
+	// The slug changes only through rename. An update that names the agent by a
+	// slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+	// (see apply).
 	Update(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
 	// Update the visibility of an existing agent.
 	//
@@ -51,6 +75,20 @@ type AgentCommandControllerClient interface {
 	// agent references is less visible than the requested level: what a
 	// person can run they must also be able to read.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Agent, error)
+	// Rename an agent: change its slug, the name people type.
+	//
+	// The agent keeps its id, so everything that names it keeps working, and
+	// every answer names it by the new slug. The old slug keeps leading to the
+	// agent for reading for 30 days, during which no other agent of the
+	// organization can take it and this one can take it back; then it is
+	// released. A write that names the old slug is refused with SLUG_RENAMED (see
+	// apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+	// another agent was recently renamed away from with SLUG_RESERVED (see
+	// create).
+	//
+	// Its schedules, channels, conversations and the agents that hand work to it
+	// name it by id; a parent agent's turns call it by its new slug.
+	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
 	//
 	// Deletion also removes the agent's version history and every
@@ -116,6 +154,16 @@ func (c *agentCommandControllerClient) UpdateVisibility(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *agentCommandControllerClient) Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Agent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Agent)
+	err := c.cc.Invoke(ctx, AgentCommandController_Rename_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentCommandControllerClient) Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Agent)
@@ -143,10 +191,33 @@ func (c *agentCommandControllerClient) TagVersion(ctx context.Context, in *TagAg
 // AgentCommandController handles write operations for AI agents.
 type AgentCommandControllerServer interface {
 	// Create or update an agent.
+	//
+	// A request that carries metadata.id of an agent in its organization updates
+	// that agent, and its slug changes only through rename. A slug the agent was
+	// renamed away from, named without the agent's id, is refused with
+	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"), because a write by a name that stops resolving after 30 days
+	// would later make a second agent:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+	//     for reading, but a write names its current slug. Metadata: slug (the
+	//     one the request named).
 	Apply(context.Context, *Agent) (*Agent, error)
 	// Create an agent.
+	//
+	// A slug another agent of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another agent was renamed away from, which still
+	// leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+	//     it still leads there. Metadata: slug.
 	Create(context.Context, *Agent) (*Agent, error)
 	// Update an existing agent.
+	//
+	// The slug changes only through rename. An update that names the agent by a
+	// slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+	// (see apply).
 	Update(context.Context, *Agent) (*Agent, error)
 	// Update the visibility of an existing agent.
 	//
@@ -159,6 +230,20 @@ type AgentCommandControllerServer interface {
 	// agent references is less visible than the requested level: what a
 	// person can run they must also be able to read.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error)
+	// Rename an agent: change its slug, the name people type.
+	//
+	// The agent keeps its id, so everything that names it keeps working, and
+	// every answer names it by the new slug. The old slug keeps leading to the
+	// agent for reading for 30 days, during which no other agent of the
+	// organization can take it and this one can take it back; then it is
+	// released. A write that names the old slug is refused with SLUG_RENAMED (see
+	// apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+	// another agent was recently renamed away from with SLUG_RESERVED (see
+	// create).
+	//
+	// Its schedules, channels, conversations and the agents that hand work to it
+	// name it by id; a parent agent's turns call it by its new slug.
+	Rename(context.Context, *apiresource.RenameInput) (*Agent, error)
 	// Delete an agent.
 	//
 	// Deletion also removes the agent's version history and every
@@ -194,6 +279,9 @@ func (UnimplementedAgentCommandControllerServer) Update(context.Context, *Agent)
 }
 func (UnimplementedAgentCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
+}
+func (UnimplementedAgentCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*Agent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
 }
 func (UnimplementedAgentCommandControllerServer) Delete(context.Context, *AgentId) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -293,6 +381,24 @@ func _AgentCommandController_UpdateVisibility_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentCommandController_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.RenameInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentCommandControllerServer).Rename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentCommandController_Rename_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentCommandControllerServer).Rename(ctx, req.(*apiresource.RenameInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AgentId)
 	if err := dec(in); err != nil {
@@ -351,6 +457,10 @@ var AgentCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateVisibility",
 			Handler:    _AgentCommandController_UpdateVisibility_Handler,
+		},
+		{
+			MethodName: "rename",
+			Handler:    _AgentCommandController_Rename_Handler,
 		},
 		{
 			MethodName: "delete",

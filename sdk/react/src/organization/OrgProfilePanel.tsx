@@ -16,6 +16,7 @@ import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { RenameSlugField } from "../resource-detail/RenameSlugField.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -246,7 +247,7 @@ export function OrgProfilePanel({
       {/* -- Identifiers: the slug is renamable by owners, the ID never changes -- */}
       <div className="stg:space-y-3">
         {canRename ? (
-          <RenameSlugField
+          <OrganizationSlugField
             orgId={serverOrgId}
             currentSlug={serverSlug}
             onRenamed={(renamed) => {
@@ -500,19 +501,14 @@ function ShieldSmallIcon() {
 }
 
 // ---------------------------------------------------------------------------
-// RenameSlugField — the owners' slug editor
+// OrganizationSlugField — the owners' slug editor
 // ---------------------------------------------------------------------------
 
 /**
- * The slug as an editable field with its own Rename action, apart from the
- * profile's Save: a rename changes the name in every link to the
- * organization, so it is a deliberate act of its own. It sits inside the
- * profile form, so Enter in the field renames rather than submitting the
- * profile. After a rename lands, `currentSlug` is the old slug until the
- * panel's refetch returns, so the field stays settling (disabled) until
- * `currentSlug` moves: a second click cannot send the same rename again.
+ * The shared slug field (resource-detail/RenameSlugField.tsx) over the
+ * organization's rename, with the organization's own copy.
  */
-function RenameSlugField({
+function OrganizationSlugField({
   orgId,
   currentSlug,
   onRenamed,
@@ -521,91 +517,18 @@ function RenameSlugField({
   currentSlug: string;
   onRenamed: (org: Organization) => void;
 }) {
-  const inputId = useId();
   const { rename, isRenaming, error, clearError } = useRenameOrganization();
-  const [slug, setSlug] = useState(currentSlug);
-  // The slug a landed rename left behind, until the panel shows another.
-  const [renamedFrom, setRenamedFrom] = useState<string | null>(null);
-
-  useEffect(() => {
-    setSlug(currentSlug);
-    setRenamedFrom(null);
-  }, [currentSlug]);
-
-  const settling = renamedFrom !== null;
-  const busy = isRenaming || settling;
-  const next = slug.trim();
-  const canRename = next.length > 0 && next !== currentSlug && !busy;
-
-  const submit = useCallback(async () => {
-    if (!canRename) return;
-    clearError();
-    try {
-      const renamed = await rename(orgId, next);
-      setRenamedFrom(currentSlug);
-      onRenamed(renamed);
-    } catch {
-      // error state is managed by useRenameOrganization
-    }
-  }, [canRename, clearError, rename, orgId, next, currentSlug, onRenamed]);
-
+  const renameThis = useCallback((slug: string) => rename(orgId, slug), [rename, orgId]);
   return (
-    <div className="stg:space-y-1">
-      <label
-        htmlFor={inputId}
-        className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground stg:uppercase stg:tracking-wider"
-      >
-        Slug
-      </label>
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <input
-          id={inputId}
-          type="text"
-          value={slug}
-          onChange={(e) => {
-            setSlug(e.target.value);
-            clearError();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void submit();
-            }
-          }}
-          disabled={busy}
-          spellCheck={false}
-          autoComplete="off"
-          className={cn(
-            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
-            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        />
-        <button
-          type="button"
-          onClick={() => void submit()}
-          disabled={!canRename}
-          className={cn(
-            "stg:inline-flex stg:shrink-0 stg:items-center stg:gap-1.5 stg:rounded-md stg:px-3 stg:py-1.5 stg:text-xs stg:font-medium",
-            "stg:border stg:border-input stg:text-foreground stg:hover:bg-accent-hover",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-40",
-          )}
-        >
-          {busy && <SpinnerIcon size={12} />}
-          Rename
-        </button>
-      </div>
-      {error ? (
-        <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-          {getUserMessage(error)}
-        </p>
-      ) : (
-        <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-          The name in links to this organization. Links with the old slug keep
-          working for 30 days after a rename.
-        </p>
-      )}
-    </div>
+    <RenameSlugField
+      currentSlug={currentSlug}
+      rename={renameThis}
+      isRenaming={isRenaming}
+      error={error}
+      clearError={clearError}
+      onRenamed={onRenamed}
+      hint="The name in links to this organization. Links with the old slug keep working for 30 days after a rename."
+    />
   );
 }
 

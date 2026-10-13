@@ -281,3 +281,90 @@ describe("AgentDetailView subagents", () => {
     expect(screen.queryByRole("list", { name: "Subagents" })).toBeNull();
   });
 });
+
+describe("AgentDetailView sends stored references back by id (stigmer#2172)", () => {
+  it("a removal sends the subagents it keeps by their ids, pins kept", async () => {
+    const { update } = renderView(
+      parentWith({
+        subagents: [
+          { org: ACME_ID, slug: "changelog", id: "agt_changelog", version: PIN_CHANGELOG },
+          { org: ACME_ID, slug: "release-notes", id: "agt_notes", version: PIN_NOTES },
+        ],
+      }),
+      [listed("changelog", PIN_CHANGELOG), listed("release-notes", PIN_NOTES)],
+      { editable: true },
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit subagents" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove release-notes" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(update.mock.calls[0]![0].subagents).toEqual([
+      { org: ACME_ID, slug: "", id: "agt_changelog", version: PIN_CHANGELOG },
+    ]);
+  });
+
+  it("a skills save sends the skills it read by their ids", async () => {
+    const { update } = renderView(
+      parentWith({ skillRefs: [{ org: ACME_ID, slug: "triage-guide", id: "skl_1" }] }),
+      [],
+      { editable: true },
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit skills" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(update.mock.calls[0]![0].skillRefs).toEqual([{ org: ACME_ID, slug: "", id: "skl_1" }]);
+  });
+});
+
+describe("AgentDetailView rename", () => {
+  function renderRenamable(allowed: boolean, editable: boolean) {
+    const parent = parentWith({});
+    const onRenamed = vi.fn();
+    const rename = vi.fn(async ({ slug }: { slug: string }) => {
+      const renamed = parentWith({});
+      renamed.metadata!.slug = slug;
+      return renamed;
+    });
+    render(<AgentDetailView org="acme" slug="pr-bot" editable={editable} onRenamed={onRenamed} />, {
+      wrapper: orgWrapper(
+        {
+          agent: { getByReference: vi.fn(async () => parent), update: vi.fn(), rename },
+          platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
+          iamPolicy: {
+            checkMyPermission: vi.fn(async (input: { relation: string }) => ({
+              isAuthorized: allowed && input.relation === "can_delete",
+            })),
+          },
+        },
+        undefined,
+        true,
+      ),
+    });
+    return { rename, onRenamed };
+  }
+
+  it("offers the slug field on the Overview to whoever may delete the agent, and reports the rename", async () => {
+    const { rename, onRenamed } = renderRenamable(true, true);
+    const field = await screen.findByLabelText("Slug");
+    fireEvent.change(field, { target: { value: "pr-reviewer" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce());
+    expect(rename.mock.calls[0]![0]).toMatchObject({ slug: "pr-reviewer" });
+    expect(onRenamed.mock.calls[0]![0].metadata.slug).toBe("pr-reviewer");
+  });
+
+  it("offers no slug field to a caller who may not delete the agent, nor on a read-only view", async () => {
+    renderRenamable(false, true);
+    await screen.findByText("Review pull requests.");
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
+    cleanup();
+
+    renderRenamable(true, false);
+    await screen.findByText("Review pull requests.");
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
+  });
+});

@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mer/commons/apiresource/rpc_service_opti" +
       "ons.proto\032+ai/stigmer/commons/rpc/method" +
       "_options.proto\032$ai/stigmer/iam/oauthapp/" +
-      "v1/api.proto2\316\004\n\031OAuthAppCommandControll" +
+      "v1/api.proto2\345\005\n\031OAuthAppCommandControll" +
       "er\022S\n\005apply\022$.ai.stigmer.iam.oauthapp.v1" +
       ".OAuthApp\032$.ai.stigmer.iam.oauthapp.v1.O" +
       "AuthApp\022\243\001\n\006create\022$.ai.stigmer.iam.oaut" +
@@ -51,16 +51,20 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       " organization\022\215\001\n\006update\022$.ai.stigmer.ia" +
       "m.oauthapp.v1.OAuthApp\032$.ai.stigmer.iam." +
       "oauthapp.v1.OAuthApp\"7\302\270\0303\010\002\020\026\"\013metadata" +
-      ".id* unauthorized to update oauth app\022\237\001" +
-      "\n\006delete\0226.ai.stigmer.commons.apiresourc" +
-      "e.ApiResourceDeleteInput\032$.ai.stigmer.ia" +
-      "m.oauthapp.v1.OAuthApp\"7\302\270\0303\010\003\020\026\"\013resour" +
-      "ce_id* unauthorized to delete oauth app\032" +
-      "\004\240\377+\026B\233\001B\014CommandProtoP\001\242\002\004ASIO\252\002\032Ai.Sti" +
-      "gmer.Iam.Oauthapp.V1\312\002\032Ai\\Stigmer\\Iam\\Oa" +
-      "uthapp\\V1\342\002&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\G" +
-      "PBMetadata\352\002\036Ai::Stigmer::Iam::Oauthapp:" +
-      ":V1b\006proto3"
+      ".id* unauthorized to update oauth app\022\224\001" +
+      "\n\006rename\022+.ai.stigmer.commons.apiresourc" +
+      "e.RenameInput\032$.ai.stigmer.iam.oauthapp." +
+      "v1.OAuthApp\"7\302\270\0303\010\003\020\026\"\013resource_id* unau" +
+      "thorized to rename OAuth app\022\237\001\n\006delete\022" +
+      "6.ai.stigmer.commons.apiresource.ApiReso" +
+      "urceDeleteInput\032$.ai.stigmer.iam.oauthap" +
+      "p.v1.OAuthApp\"7\302\270\0303\010\003\020\026\"\013resource_id* un" +
+      "authorized to delete oauth app\032\004\240\377+\026B\233\001B" +
+      "\014CommandProtoP\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam." +
+      "Oauthapp.V1\312\002\032Ai\\Stigmer\\Iam\\Oauthapp\\V1" +
+      "\342\002&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadat" +
+      "a\352\002\036Ai::Stigmer::Iam::Oauthapp::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

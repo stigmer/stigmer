@@ -14,8 +14,9 @@
  *   - a rename keeps the organization's id, leaves the old slug leading to
  *     it and refused to others, takes back its own old slug, is refused a
  *     slug another organization holds, and changes nothing when the slug is
- *     already its own; get, apply and update find a renamed organization by
- *     its old slug, and an apply carrying the id leaves the slug to rename.
+ *     already its own; get finds a renamed organization by its old slug,
+ *     apply and update by it are refused with SLUG_RENAMED, and an apply
+ *     carrying the id leaves the slug to rename.
  *
  * And, over store doubles, the two failure paths: the release a failed
  * create runs (it frees the claim only when the organization was never
@@ -519,19 +520,28 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(same.metadata?.slug).toBe("initech");
   });
 
-  it("apply and update find a renamed organization by its old slug; an apply carrying the id keeps the slug", async () => {
+  it("apply and update by a renamed organization's old slug are refused with SLUG_RENAMED; an apply carrying the id keeps the slug", async () => {
     const made = await organizations.create(organizationInput("hooli"));
     const id = made.metadata?.id ?? "";
     await organizations.rename(
       create(RenameInputSchema, { resourceId: id, slug: "hooli-xyz" }),
     );
 
-    const applied = await organizations.apply({
-      ...organizationInput("hooli"),
-      spec: { description: "applied by the old slug" },
-    });
-    expect(applied.metadata?.id).toBe(id);
-    expect(applied.metadata?.slug).toBe("hooli-xyz");
+    for (const write of [
+      () => organizations.apply({ ...organizationInput("hooli"), spec: { description: "applied by the old slug" } }),
+      () => organizations.update({ ...organizationInput("hooli"), spec: { description: "updated by the old slug" } }),
+    ]) {
+      const refusal = await grpcError(write);
+      expect(refusal.code).toBe(Code.FailedPrecondition);
+      expect(refusal.rawMessage).toBe(
+        "Organization 'hooli' was renamed; it still leads to the same organization for reading. Write to it by its current slug or its id",
+      );
+      expect(reasonOf(refusal)).toBe("SLUG_RENAMED");
+    }
+    expect(
+      (await organizationQuery.get({ value: "hooli" })).metadata?.slug,
+      "a read by the old slug still leads to it",
+    ).toBe("hooli-xyz");
 
     const withId = await organizations.apply({
       ...organizationInput("hooli-new"),
@@ -542,11 +552,11 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(await resolve("hooli-new")).toBeUndefined();
 
     const updated = await organizations.update({
-      ...organizationInput("hooli"),
-      spec: { description: "updated by the old slug" },
+      ...organizationInput("hooli-xyz"),
+      spec: { description: "updated by the current slug" },
     });
     expect(updated.metadata?.id).toBe(id);
-    expect(updated.spec?.description).toBe("updated by the old slug");
+    expect(updated.spec?.description).toBe("updated by the current slug");
   });
 });
 

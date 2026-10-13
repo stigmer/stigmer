@@ -20,6 +20,7 @@ import {
 import { buildChatUrl } from "@stigmer/sdk";
 import { CONSOLE_URL } from "../../config";
 import { AGENT_DELETE_DESCRIPTION } from "./agent-delete-confirmation";
+import { useCanonicalDetailSlug } from "./canonical-slug";
 
 /**
  * Share links must be reachable by anyone, so they point at the public
@@ -114,6 +115,8 @@ export default function AgentDetailPage() {
   );
 
   useEffect(() => () => setLabel(null), [setLabel]);
+
+  const moveToSlug = useCanonicalDetailSlug("agents", org, slug, agent?.metadata?.slug);
 
   const handleResourceLoad = useCallback(
     ({ name, id }: { name: string; id: string }) => {
@@ -238,6 +241,7 @@ export default function AgentDetailPage() {
           navigate(`/library/agents/${slugForOrg(ref.org)}/${ref.slug}`)
         }
         onNavigateToRun={setPendingRunId}
+        onRenamed={(renamed) => moveToSlug(renamed.metadata?.slug ?? "")}
         primaryAction={primaryAction}
         actions={actions}
         buildShareUrl={buildShareUrl}

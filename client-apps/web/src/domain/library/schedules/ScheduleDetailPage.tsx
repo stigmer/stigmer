@@ -42,7 +42,7 @@ export function ScheduleDetailPageInner({
 }: ScheduleDetailPageInnerProps) {
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
-  const { navigateToDetail } = useLibraryNavigation();
+  const { navigateToDetail, canonicalSlug } = useLibraryNavigation();
   const { navigateToRun } = useRunNavigation();
 
   // Controlled tab state seeded from the ?tab= deep link so cross-surface
@@ -56,8 +56,11 @@ export function ScheduleDetailPageInner({
   const handleResourceLoad = useCallback(
     (loaded: Schedule) => {
       setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Schedule");
+      // The read answers the schedule's current slug: a URL naming one it
+      // was renamed away from (which still leads to it) moves to it in place.
+      if (loaded.metadata?.slug) canonicalSlug(loaded.metadata.slug);
     },
-    [setLabel],
+    [setLabel, canonicalSlug],
   );
 
   return (
@@ -73,6 +76,9 @@ export function ScheduleDetailPageInner({
       }
       onNavigateToRun={navigateToRun}
       onDeleted={() => router.push("/library/schedules")}
+      onRenamed={(renamed) => {
+        if (renamed.metadata?.slug) canonicalSlug(renamed.metadata.slug);
+      }}
     />
   );
 }

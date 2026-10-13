@@ -14,7 +14,11 @@
 import type { DescMessage, DescService, Message } from "@bufbuild/protobuf";
 import type { Client } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReference, UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type {
+  ApiResourceReference,
+  RenameInput,
+  UpdateVisibilityInput,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
@@ -82,6 +86,14 @@ export interface ManifestKindHandler {
    * be surfaced to the user, not swallowed.
    */
   updateVisibility?(clientFor: ServiceClientFn, input: UpdateVisibilityInput): Promise<Message>;
+  /**
+   * Drive the command controller's `rename` RPC — the ONLY door for a slug
+   * change (an apply or update keeps the stored slug). Declared only on
+   * kinds whose controller has the RPC; a manifest engine that finds the
+   * resource by the manifest's id and a different slug declared follows up
+   * through this binding.
+   */
+  rename?(clientFor: ServiceClientFn, input: RenameInput): Promise<Message>;
 }
 
 const AGENTIC_V1 = "agentic.stigmer.ai/v1";
@@ -98,6 +110,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     apply: (c, m) => c(AgentCommandController).apply(m as Agent),
     getByReference: (c, ref) => c(AgentQueryController).getByReference(ref),
     updateVisibility: (c, i) => c(AgentCommandController).updateVisibility(i),
+    rename: (c, i) => c(AgentCommandController).rename(i),
   },
   {
     kind: ApiResourceKind.identity_provider,
@@ -108,6 +121,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 6,
     apply: (c, m) => c(IdentityProviderCommandController).apply(m as IdentityProvider),
     getByReference: (c, ref) => c(IdentityProviderQueryController).getByReference(ref),
+    rename: (c, i) => c(IdentityProviderCommandController).rename(i),
   },
   {
     kind: ApiResourceKind.oauth_app,
@@ -118,6 +132,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 7,
     apply: (c, m) => c(OAuthAppCommandController).apply(m as OAuthApp),
     getByReference: (c, ref) => c(OAuthAppQueryController).getByReference(ref),
+    rename: (c, i) => c(OAuthAppCommandController).rename(i),
   },
   {
     kind: ApiResourceKind.channel_app,
@@ -128,6 +143,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 8,
     apply: (c, m) => c(ChannelAppCommandController).apply(m as ChannelApp),
     getByReference: (c, ref) => c(ChannelAppQueryController).getByReference(ref),
+    rename: (c, i) => c(ChannelAppCommandController).rename(i),
   },
   {
     kind: ApiResourceKind.agent_share,
@@ -161,6 +177,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 12,
     apply: (c, m) => c(ScheduleCommandController).apply(m as Schedule),
     getByReference: (c, ref) => c(ScheduleQueryController).getByReference(ref),
+    rename: (c, i) => c(ScheduleCommandController).rename(i),
   },
 ];
 

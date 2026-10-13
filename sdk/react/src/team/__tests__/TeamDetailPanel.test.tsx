@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { TeamSchema, type Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import type { TeamInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
@@ -38,7 +38,9 @@ describe("TeamDetailPanel save payload", () => {
   it("keeps the id, slug and labels when only the description is edited", async () => {
     const update = vi.fn(async (_input: TeamInput) => TEAM);
     render(
-      <StigmerContext.Provider value={{ team: { update } } as never}>
+      <StigmerContext.Provider
+        value={{ team: { update }, iamPolicy: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
+      >
         <TeamDetailPanel team={TEAM} org="org_acme" />
       </StigmerContext.Provider>,
     );
@@ -57,5 +59,36 @@ describe("TeamDetailPanel save payload", () => {
       visibility: undefined,
       description: "Pages at night",
     });
+  });
+});
+
+describe("TeamDetailPanel rename", () => {
+  it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
+    const renamed = clone(TeamSchema, TEAM);
+    if (renamed.metadata !== undefined) {
+      renamed.metadata.slug = "renamed-slug";
+    }
+    const rename = vi.fn(async () => renamed);
+    const onUpdated = vi.fn();
+    const client = {
+      team: { rename },
+      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <TeamDetailPanel team={TEAM} org="org_acme" onUpdated={onUpdated} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Slug", undefined, { timeout: 5000 }), {
+      target: { value: "renamed-slug" },
+    });
+    const button = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
+    // The field settles before it takes the rename, however slow the runner.
+    await waitFor(() => expect(button.disabled).toBe(false), { timeout: 5000 });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
+    expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: TEAM.metadata?.id, slug: "renamed-slug" })]);
   });
 });

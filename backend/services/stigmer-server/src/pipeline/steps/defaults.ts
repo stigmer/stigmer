@@ -206,22 +206,21 @@ export type AuditSlot = "spec_audit" | "status_audit";
  * rewritten. The write SETS a newly allocated slot message — never mutates
  * the existing slot in place (skill push copies slot pointers onto a new
  * wrapper; in-place assignment would corrupt the in-memory original, #540).
+ * A write that names what it did passes its own event ("renamed").
  */
 export function setAuditFieldsForUpdate(
   schema: DescMessage,
   resource: Message,
   slot: AuditSlot,
   identity: CallerIdentity,
+  event = "updated",
 ): void {
   const now = timestampNow();
   const actor = auditActorFor(identity);
   const { createdBy, createdAt } = creationAuditOf(schema, resource, slot);
-  setAuditSlotReflect(
-    schema,
-    resource,
-    slot,
-    updatedAuditInfo(createdBy, createdAt, actor, now),
-  );
+  const info = updatedAuditInfo(createdBy, createdAt, actor, now);
+  info.event = event;
+  setAuditSlotReflect(schema, resource, slot, info);
 }
 
 /**

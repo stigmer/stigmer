@@ -25,7 +25,11 @@
  *     with `get`'s copy on a denial, and answers a missing slug NOT_FOUND
  *     only to a viewer of the organization and `get`'s denial to anyone
  *     else, after asking only the organization's `can_view`;
- *   - listByOrg answers the organization's teams, newest first.
+ *   - listByOrg answers the organization's teams, newest first;
+ *   - rename asks can_delete on the team, keeps its id, moves its name so
+ *     the old slug still leads to it and is refused to a create with
+ *     SLUG_RESERVED, takes its old slug back, and stamps the audit; an
+ *     update that loaded the team before a rename keeps the new slug.
  */
 import { create } from "@bufbuild/protobuf";
 import {
@@ -310,6 +314,73 @@ describe("create", () => {
     expect(denied.rawMessage).toBe("unauthorized to create team in this organization");
     expect(await r.teams.listByOrg("acme")).toEqual([]);
     expect(r.created).toEqual([]);
+  });
+});
+
+describe("rename", () => {
+  it("asks can_delete on the team, keeps its id, and leaves the old slug leading to it", async () => {
+    const r = rig();
+    const created = await r.commands.create(newTeam("SRE"));
+    const id = created.metadata?.id ?? "";
+
+    const renamed = await r.commands.rename({ resourceId: id, slug: "site-reliability" });
+    expect(renamed.metadata?.id).toBe(id);
+    expect(renamed.metadata?.slug).toBe("site-reliability");
+    expect(renamed.status?.audit?.specAudit?.event).toBe("renamed");
+    expect(r.checks.at(-1)).toEqual({ permission: IamPermission.can_delete, resourceKind: ApiResourceKind.team, resourceId: id });
+    expect((await r.teams.findById(id))?.metadata?.slug).toBe("site-reliability");
+
+    const byOld = await r.queries.getByReference(create(ApiResourceReferenceSchema, { org: "acme", slug: "sre" }));
+    expect(byOld.metadata?.id).toBe(id);
+    expect(byOld.metadata?.slug).toBe("site-reliability");
+
+    const reserved = await failure(r.commands.create(newTeam("SRE")));
+    expect(reserved.code).toBe(Code.AlreadyExists);
+    expect(reserved.findDetails(ErrorInfoSchema)[0]?.reason).toBe("SLUG_RESERVED");
+
+    const back = await r.commands.rename({ resourceId: id, slug: "sre" });
+    expect(back.metadata?.slug).toBe("sre");
+  });
+
+  it("is refused to a caller who may not delete the team, moving nothing", async () => {
+    const r = rig({ decide: (check) => (check.permission === IamPermission.can_delete ? "deny" : "allow") });
+    const created = await r.commands.create(newTeam("SRE"));
+    const refused = await failure(r.commands.rename({ resourceId: created.metadata?.id ?? "", slug: "other" }));
+    expect(refused.code).toBe(Code.PermissionDenied);
+    expect((await r.teams.findById(created.metadata?.id ?? ""))?.metadata?.slug).toBe("sre");
+  });
+
+  it("an update that loaded the team before a rename keeps the new slug", async () => {
+    const teams = new InMemoryTeamStore();
+    let renameMidWrite: (() => Promise<unknown>) | undefined;
+    const racing = Object.assign(Object.create(teams) as InMemoryTeamStore, {
+      replace: async (team: Team) => {
+        const rename = renameMidWrite;
+        renameMidWrite = undefined;
+        await rename?.();
+        return teams.replace(team);
+      },
+    });
+    const r = rig({ teams: racing });
+    const created = await r.commands.create(newTeam("SRE"));
+    const id = created.metadata?.id ?? "";
+    renameMidWrite = () => r.commands.rename({ resourceId: id, slug: "site-reliability" });
+
+    const updated = await r.commands.update(
+      create(TeamSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "Team",
+        metadata: create(ApiResourceMetadataSchema, { id, name: "SRE", slug: "sre", org: "acme" }),
+        spec: create(TeamSpecSchema, { description: "edited mid-rename" }),
+      }),
+    );
+
+    expect(renameMidWrite, "the rename landed mid-write").toBeUndefined();
+    expect(updated.metadata?.slug).toBe("site-reliability");
+    const row = await teams.findById(id);
+    expect(row?.metadata?.slug).toBe("site-reliability");
+    expect(row?.spec?.description).toBe("edited mid-rename");
+    expect((await r.names.resourceNames.current("team", "acme", id))?.name).toBe("site-reliability");
   });
 });
 

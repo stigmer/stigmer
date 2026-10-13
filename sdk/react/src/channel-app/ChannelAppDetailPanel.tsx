@@ -20,6 +20,7 @@ import {
 import { CopyBlock, CopyRow, FormField, UnknownAddressRow } from "./internal.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -69,8 +70,10 @@ export interface ChannelAppDetailPanelProps {
  * agent channel still installs through this app.
  *
  * The credentials form is offered to a caller who may edit the app
- * (`can_edit`) and the deletion section to one who may delete it
- * (`can_delete`): the organization's admins. Someone granted viewer on an
+ * (`can_edit`), and the slug field (rename) and the deletion section to
+ * one who may delete it (`can_delete`): the organization's admins. A
+ * rename fires `onUpdated` with the renamed app; its webhook URLs name its
+ * id, so nothing registered with the provider changes. Someone granted viewer on an
  * app sees its setup values with no actions.
  */
 export function ChannelAppDetailPanel({
@@ -117,6 +120,14 @@ export function ChannelAppDetailPanel({
           </button>
         )}
       </div>
+
+      <ResourceSlugField
+        kind="channel_app"
+        resourceId={appId || null}
+        currentSlug={channelApp.metadata?.slug ?? ""}
+        onRenamed={(renamed) => onUpdated?.(renamed as ChannelApp)}
+        className="stg:max-w-md"
+      />
 
       {providerCase === "slack" ? (
         <SlackAppDetail

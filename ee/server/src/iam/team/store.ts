@@ -8,6 +8,11 @@
  * here: it is IamPolicy rows on the team, so a team row is only what
  * describes the team.
  *
+ * A team's slug is rename's alone (`@stigmer/server`'s rename chain over
+ * `modifyById`): `replace` keeps the stored slug, under the row's lock, so
+ * an update that loaded the team before a rename never writes the old slug
+ * back.
+ *
  * `findAll` is a deliberate full-table read for the boot's
  * organization-link reconcile, which must see every row an organization's
  * admins manage; teams are few per organization and die with it.
@@ -22,8 +27,22 @@ export type TeamInsertOutcome =
 export interface TeamStore {
   /** Adds a team; `slug-taken` when the organization already holds the slug. */
   insert(team: Team): Promise<TeamInsertOutcome>;
-  /** Replaces a held team's payload; the lookup columns never change after create. */
+  /**
+   * Replaces a held team's payload, keeping the stored slug, which it
+   * writes onto `team` too, all under the row's lock; an unknown id writes
+   * nothing. The lookup columns do not change.
+   */
   replace(team: Team): Promise<void>;
+  /**
+   * Atomic read-modify-write by id under the row's lock: `modify` mutates
+   * the stored team in place (synchronously), and the payload and the slug
+   * column are written together. Answers the written team; an unknown id
+   * answers undefined and writes nothing.
+   */
+  modifyById(
+    id: string,
+    modify: (team: Team) => void,
+  ): Promise<Team | undefined>;
   findById(id: string): Promise<Team | undefined>;
   /** The teams of these ids that exist, in no particular order. */
   findByIds(ids: ReadonlyArray<string>): Promise<ReadonlyArray<Team>>;

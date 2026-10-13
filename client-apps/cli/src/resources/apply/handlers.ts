@@ -24,12 +24,17 @@
 
 import type { DescMessage, DescService, Message } from "@bufbuild/protobuf";
 import type { Client } from "@connectrpc/connect";
-import type { RenameInput, UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type {
+  ApiResourceReference,
+  RenameInput,
+  UpdateVisibilityInput,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { type Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { type Organization, OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import type { UpdateOrganizationPoliciesInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { manifestKinds } from "@stigmer/sdk";
 
@@ -67,6 +72,13 @@ export interface ApplyHandler {
    */
   rename?(controller: ControllerFn, input: RenameInput): Promise<Message>;
   /**
+   * Read the resource a reference names, as the caller: present on every
+   * kind with a rename, so a write the server refuses for naming a
+   * renamed-away slug can be answered with the slug it has now, when the
+   * caller may read it.
+   */
+  getByReference?(controller: ControllerFn, ref: ApiResourceReference): Promise<Message>;
+  /**
    * Drive the organization's `updatePolicies` RPC, the only door for a
    * policy change (update and apply keep the stored policies). Present only
    * on the organization; the apply core follows up through it when a
@@ -85,6 +97,7 @@ const CLI_EXTRA_HANDLERS: readonly ApplyHandler[] = [
     applyOrder: 0,
     apply: (c, m) => c(OrganizationCommandController).apply(m as Organization),
     rename: (c, i) => c(OrganizationCommandController).rename(i),
+    getByReference: (c, ref) => c(OrganizationQueryController).get({ value: ref.slug }),
     updatePolicies: (c, i) => c(OrganizationCommandController).updatePolicies(i),
   },
   {

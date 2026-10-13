@@ -43,6 +43,7 @@ import type {
   ApiResourceDeleteInput,
   ApiResourceId,
   ApiResourceReference,
+  RenameInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -64,12 +65,13 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
-import { internalError } from "../../pipeline/errors.js";
+import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { portRenameRows, renameResource } from "../../pipeline/steps/rename.js";
 import { newRefuseServiceAccountCallerStep } from "../../pipeline/steps/refuse-service-account.js";
 import type { ServiceAccountLookup } from "../../pipeline/steps/refuse-service-account.js";
 import {
@@ -122,6 +124,7 @@ import {
   storedClientOf,
 } from "./steps.js";
 import type { PlatformClientStore } from "./store.js";
+import { RESERVED_PLATFORM_CLIENT_SLUGS, reservedSlugMessage } from "./constants.js";
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import { PlatformClientStatusSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -169,6 +172,7 @@ export function registerPlatformClientServices(
   router.service(PlatformClientCommandController, {
     create: (client, ctx) => createClient(deps, client, ctx),
     update: (client, ctx) => updateClient(deps, client, ctx),
+    rename: (input, ctx) => renameClient(deps, input, ctx),
     delete: (input, ctx) => deleteClient(deps, input, ctx),
     rotateSecret: (id, ctx) => rotateSecret(deps, id, ctx),
   });
@@ -294,6 +298,43 @@ async function updateClient(
     .build()
     .execute(reqCtx);
   return redactPlatformClient(reqCtx.newState);
+}
+
+/**
+ * Rename — the only writer of a platform client's slug
+ * (pipeline/steps/rename.ts), through the port, so the cloud's own table
+ * moves its slug column in the same atomic write. Refused to a service
+ * account, as every change of a client is; refused for the platform's own
+ * clients, as their update is; and the reserved slug is refused, as on
+ * create. The client_id and every token minted by the client name its id,
+ * so nothing outside moves.
+ */
+async function renameClient(
+  deps: PlatformClientControllerDeps,
+  input: RenameInput,
+  ctx: HandlerContext,
+): Promise<PlatformClient> {
+  type RenameDesc = typeof PlatformClientCommandController.method.rename.input;
+  const renamed = await renameResource(
+    {
+      method: PlatformClientCommandController.method.rename,
+      names: deps.store,
+      rows: portRenameRows(PlatformClientSchema, deps.clients),
+      authorizer: deps.authorizer,
+      logger: deps.logger,
+      beforeLoad: [newRefuseServiceAccountCallerStep<RenameDesc>(PLATFORM_CLIENT_ACT, deps.accounts)],
+      afterLoad: [newRefuseSystemManagedStep<RenameDesc>("renamed", EXISTING_RESOURCE_KEY)],
+      newSlugRule: (_client, slug) => {
+        if (RESERVED_PLATFORM_CLIENT_SLUGS.has(slug)) {
+          throw invalidArgumentError(reservedSlugMessage(slug));
+        }
+      },
+    },
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  return redactPlatformClient(renamed);
 }
 
 /**

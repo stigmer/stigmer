@@ -10,7 +10,11 @@ import { create, equals, fromJson, type JsonValue, type Message } from "@bufbuil
 import { Code } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { RenameInputSchema, UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import {
+  ApiResourceReferenceSchema,
+  RenameInputSchema,
+  UpdateVisibilityInputSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { UpdateOrganizationPoliciesInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
@@ -27,7 +31,7 @@ import {
   organizationLabel,
   organizationNamed,
 } from "../../client/organizations.js";
-import { retiredShapeWayForward } from "@stigmer/sdk";
+import { getErrorReason, retiredShapeWayForward } from "@stigmer/sdk";
 import { classify, UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 import { defaultRegistry, unknownKindError, Verb } from "../../registry/index.js";
@@ -147,7 +151,7 @@ export async function applyMessage(
     return { result: await buildDryRunResult(controller, handler, message), warning: orgWarning };
   }
 
-  const applied = await handler.apply(controller, message);
+  const applied = await applyNamingCurrentSlug(controller, handler, message);
   // Visibility and policies land before the slug: a refused rename stops
   // the command, so everything else the manifest asked for has landed by
   // then, and the refusal reports it.
@@ -273,7 +277,8 @@ function storedPolicies(organization: Organization): OrganizationPolicies {
  * says what landed and carries the visibility follow-up's warning. Its advice
  * follows the refusal: a slug that is taken or reserved (AlreadyExists) asks
  * for another slug, a caller who may not rename (PermissionDenied: renaming
- * needs the organization's owner) is told so, anything else gets none.
+ * needs what deleting needs, an organization's owner for an organization)
+ * is told so, anything else gets none.
  */
 async function applyDeclaredSlug(
   controller: ControllerFn,
@@ -308,20 +313,70 @@ async function applyDeclaredSlug(
     const warning = visibilityWarning === undefined ? "" : ` (${visibilityWarning})`;
     throw new UsageError(
       `${handler.displayName} ${landed} applied${warning}, but the manifest's slug change was rejected: ` +
-        `${(err as Error).message}. The slug stays '${appliedMeta.slug}'${renameAdvice(err)}.`,
+        `${(err as Error).message}. The slug stays '${appliedMeta.slug}'${renameAdvice(err, handler)}.`,
     );
   }
 }
 
 /** What to do after a refused rename, by the refusal's code; "" when there is nothing to add. */
-function renameAdvice(err: unknown): string {
+function renameAdvice(err: unknown, handler: ApplyHandler): string {
   switch (classify(err)?.code) {
     case Code.AlreadyExists:
       return "; choose another slug and apply again";
     case Code.PermissionDenied:
-      return "; renaming needs the organization's owner";
+      return handler.kind === ApiResourceKind.organization
+        ? "; renaming needs the organization's owner"
+        : `; renaming needs the permission to delete the ${handler.displayName.toLowerCase()}`;
     default:
       return "";
+  }
+}
+
+/**
+ * The server's reason for a write that names a resource by a slug it was
+ * renamed away from (each renamable kind's apply documents it). The
+ * refusal never names the current slug, because the server answers it
+ * before it authorizes the target.
+ */
+const REASON_SLUG_RENAMED = "SLUG_RENAMED";
+
+/**
+ * Applies the message; a refusal for a renamed-away slug is answered with
+ * the slug the resource has now, read as the caller by the old slug (which
+ * still leads to it for reading), so the file can be corrected. A caller
+ * who may not read the resource, or a kind with no read by reference,
+ * gets the server's own words.
+ */
+async function applyNamingCurrentSlug(
+  controller: ControllerFn,
+  handler: ApplyHandler,
+  message: Message,
+): Promise<Message> {
+  try {
+    return await handler.apply(controller, message);
+  } catch (err) {
+    const reason = getErrorReason(err);
+    if (reason?.reason !== REASON_SLUG_RENAMED || handler.getByReference === undefined) {
+      throw err;
+    }
+    const meta = metaOf(message);
+    const slug = reason.metadata.slug ?? meta?.slug ?? "";
+    let current = "";
+    try {
+      const found = await handler.getByReference(
+        controller,
+        create(ApiResourceReferenceSchema, { kind: handler.kind, org: meta?.org ?? "", slug }),
+      );
+      current = metaOf(found)?.slug ?? "";
+    } catch {
+      throw err;
+    }
+    if (current === "" || current === slug) {
+      throw err;
+    }
+    throw new UsageError(
+      `${handler.displayName} '${slug}' was renamed to '${current}'; update the file's metadata.slug to '${current}' and apply again`,
+    );
   }
 }
 

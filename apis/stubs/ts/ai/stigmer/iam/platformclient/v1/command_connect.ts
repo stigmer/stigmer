@@ -6,7 +6,7 @@
 import { PlatformClient } from "./api_pbjs";
 import { PlatformClientCreateResponse, PlatformClientId } from "./io_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pbjs";
+import { ApiResourceDeleteInput, RenameInput } from "../../../commons/apiresource/io_pbjs";
 
 /**
  * PlatformClientCommandController provides write operations for platform client resources.
@@ -35,6 +35,14 @@ export const PlatformClientCommandController = {
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
      *
+     * A slug another platform client of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another platform client was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     *   - SLUG_RESERVED — another platform client held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
+     *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create
      */
     create: {
@@ -51,11 +59,46 @@ export const PlatformClientCommandController = {
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
      *
+     * The slug changes only through rename. A slug the platform client was
+     * renamed away from, named without the platform client's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second platform client:
+     *
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     platform client for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
+     *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update
      */
     update: {
       name: "update",
       I: PlatformClient,
+      O: PlatformClient,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Rename a platform client: change its slug, the name people type.
+     *
+     * The platform client keeps its id, so everything that names it keeps
+     * working, and every answer names it by the new slug. The old slug keeps
+     * leading to the platform client for reading for 30 days, during which no
+     * other platform client of the organization can take it and this one can take
+     * it back; then it is released. A write that names the old slug is refused
+     * with SLUG_RENAMED (see update). A slug another platform client holds is
+     * refused with ALREADY_EXISTS, and one another platform client was recently
+     * renamed away from with SLUG_RESERVED (see create).
+     *
+     * Its client_id and its tokens do not name its slug, so the platforms that
+     * use it keep working. A system-managed client cannot be renamed, as it
+     * cannot be updated, and the slug system-share-client is refused with
+     * INVALID_ARGUMENT, as on create.
+     *
+     * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rename
+     */
+    rename: {
+      name: "rename",
+      I: RenameInput,
       O: PlatformClient,
       kind: MethodKind.Unary,
     },

@@ -38,6 +38,8 @@ import {
 } from "../../pipeline/errors.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
 import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewhere.js";
+import { storedRowHolder } from "../../pipeline/steps/names.js";
+import { moveName } from "../../pipeline/steps/rename.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
@@ -199,7 +201,7 @@ export function newClaimExternalIdStep(store: Store): PipelineStep<VaultDesc> {
         fromExpiresAt: now,
         now,
       };
-      const moved = await store.resourceNames.rename(rename);
+      const moved = await moveName(store, rename, storedRowHolder(store, ApiResourceKind.vault, VaultSchema));
       if (!moved.claimed) {
         taken(moved.entry.id);
       }
@@ -278,8 +280,9 @@ function persistFailure(error: unknown, id: string): Error {
 }
 
 /**
- * Update's persist: the vault's own fields from the request, its entries
- * and its visibility as the row holds them at the moment of the write,
+ * Update's persist: the vault's own fields from the request, its entries,
+ * its visibility and its slug (rename's alone, pipeline/steps/rename.ts)
+ * as the row holds them at the moment of the write,
  * inside the store's atomic read-modify-write, so an entry saved or a
  * visibility change made after the chain loaded the vault is never undone
  * (an update never changes visibility, and a reverted row would disagree
@@ -302,6 +305,7 @@ export function newPersistVaultUpdateStep(store: Store): PipelineStep<VaultDesc>
           const metadata = next.metadata;
           if (metadata !== undefined && row.metadata !== undefined) {
             metadata.visibility = row.metadata.visibility;
+            metadata.slug = row.metadata.slug;
           }
           row.apiVersion = next.apiVersion;
           row.kind = next.kind;

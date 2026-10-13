@@ -8,6 +8,8 @@ import type { ScheduleSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_api } from "./api_pb.js";
 import type { ScheduleIdSchema, ScheduleTriggerResultSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_io } from "./io_pb.js";
+import type { RenameInputSchema } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 
@@ -15,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/schedule/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxMsEGChlTY2hlZHVsZUNvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlEmIKBmNyZWF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIE0LgYARKUAQoGdXBkYXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjbCuBgyCAIQOCILbWV0YWRhdGEuaWQqH3VuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NoZWR1bGUSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAMQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgc2NoZWR1bGUSkAEKBnJlc3VtZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAIQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byByZXN1bWUgc2NoZWR1bGUSnwEKB3RyaWdnZXISKi5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVJZBo1LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZVRyaWdnZXJSZXN1bHQiMcK4GC0IAhA4IgV2YWx1ZSogdW5hdXRob3JpemVkIHRvIHRyaWdnZXIgc2NoZWR1bGUaBKD/KzhiBnByb3RvMw", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxMtsHChlTY2hlZHVsZUNvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlEmIKBmNyZWF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIE0LgYARKUAQoGdXBkYXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjbCuBgyCAIQOCILbWV0YWRhdGEuaWQqH3VuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NoZWR1bGUSlwEKBnJlbmFtZRIrLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5SZW5hbWVJbnB1dBooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSI2wrgYMggDEDgiC3Jlc291cmNlX2lkKh91bmF1dGhvcml6ZWQgdG8gcmVuYW1lIHNjaGVkdWxlEpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIwwrgYLAgDEDgiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHNjaGVkdWxlEpABCgZyZXN1bWUSKi5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIwwrgYLAgCEDgiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gcmVzdW1lIHNjaGVkdWxlEp8BCgd0cmlnZ2VyEiouYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlSWQaNS5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVUcmlnZ2VyUmVzdWx0IjHCuBgtCAIQOCIFdmFsdWUqIHVuYXV0aG9yaXplZCB0byB0cmlnZ2VyIHNjaGVkdWxlGgSg/ys4YgZwcm90bzM", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ScheduleCommandController handles write operations for schedules.
@@ -25,6 +27,17 @@ export const file_ai_stigmer_agentic_schedule_v1_command: GenFile = /*@__PURE__*
 export const ScheduleCommandController: GenService<{
   /**
    * Create or update a schedule.
+   *
+   * A request that carries metadata.id of a schedule in its organization
+   * updates that schedule, and its slug changes only through rename. A slug the
+   * schedule was renamed away from, named without the schedule's id, is refused
+   * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+   * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+   * would later make a second schedule:
+   *
+   *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+   *     schedule for reading, but a write names its current slug. Metadata:
+   *     slug (the one the request named).
    *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.apply
    */
@@ -40,6 +53,14 @@ export const ScheduleCommandController: GenService<{
    * that calls models on the schedule-owning organization's own provider
    * keys, unattended, and the providers bill the organization for them.
    *
+   * A slug another schedule of the organization holds is refused with
+   * ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+   * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+   * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   *   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+   *     and it still leads there. Metadata: slug.
+   *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.create
    */
   create: {
@@ -50,17 +71,43 @@ export const ScheduleCommandController: GenService<{
   /**
    * Update an existing schedule.
    *
-   * Replaces the spec wholesale. The slug, the referenced agent, and the
-   * target arm are immutable; cron, time zone, enablement, and the
-   * message may all change. Status (firing observations, the platform
+   * Replaces the spec wholesale. The referenced agent and the target arm
+   * are immutable; cron, time zone, enablement, and the message may all
+   * change. Status (firing observations, the platform
    * pause) is never touched by updates — use resume to clear a platform
    * pause.
+   *
+   * The slug changes only through rename. An update that names the schedule by
+   * a slug it was renamed away from, without its id, is refused with
+   * SLUG_RENAMED (see apply).
    *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.update
    */
   update: {
     methodKind: "unary";
     input: typeof ScheduleSchema;
+    output: typeof ScheduleSchema;
+  },
+  /**
+   * Rename a schedule: change its slug, the name people type.
+   *
+   * The schedule keeps its id, so everything that names it keeps working, and
+   * every answer names it by the new slug. The old slug keeps leading to the
+   * schedule for reading for 30 days, during which no other schedule of the
+   * organization can take it and this one can take it back; then it is
+   * released. A write that names the old slug is refused with SLUG_RENAMED (see
+   * apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+   * one another schedule was recently renamed away from with SLUG_RESERVED (see
+   * create).
+   *
+   * Its fires keep their times; a conversation an earlier fire started keeps
+   * the name it was given then.
+   *
+   * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.rename
+   */
+  rename: {
+    methodKind: "unary";
+    input: typeof RenameInputSchema;
     output: typeof ScheduleSchema;
   },
   /**

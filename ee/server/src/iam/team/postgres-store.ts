@@ -12,12 +12,18 @@
  *   org,         the organization's list, newest first like every list,
  *   created_at   and the organization delete's sweep
  *
+ * A slug changes only through `modifyById` (the rename chain's write),
+ * which writes the payload and the slug column together under the row's
+ * lock; `replace` takes the same lock and keeps the stored slug.
+ *
  * A slug collision is `uq_iam_team_org_slug` refusing the insert. The
  * insert names the refusing constraint: a unique violation on any other
  * (the id's primary key, which the create chain's server-minted ids make
  * unreachable) is not a taken slug, and stays an infrastructure fault.
  */
 import type { Pool } from "pg";
+
+import { inTransaction } from "../../postgres/transaction.js";
 import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
@@ -74,11 +80,48 @@ export function newTeamStore(pool: Pool): TeamStore {
       }
     },
 
-    async replace(team): Promise<void> {
-      await pool.query(`UPDATE ${TABLE} SET data = $2 WHERE id = $1`, [
-        columnsOf(team).id,
-        Buffer.from(toBinary(TeamSchema, team)),
-      ]);
+    replace(team): Promise<void> {
+      const id = columnsOf(team).id;
+      return inTransaction(pool, async (client) => {
+        const locked = await client.query<TeamRow>(
+          `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
+          [id],
+        );
+        const row = locked.rows[0];
+        if (row === undefined) {
+          return { commit: false, value: undefined };
+        }
+        const storedSlug = rowToTeam(row).metadata?.slug;
+        if (team.metadata !== undefined && storedSlug !== undefined) {
+          team.metadata.slug = storedSlug;
+        }
+        await client.query(`UPDATE ${TABLE} SET data = $2 WHERE id = $1`, [
+          id,
+          Buffer.from(toBinary(TeamSchema, team)),
+        ]);
+        return { commit: true, value: undefined };
+      });
+    },
+
+    modifyById(id, modify): Promise<Team | undefined> {
+      return inTransaction(pool, async (client) => {
+        const locked = await client.query<TeamRow>(
+          `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
+          [id],
+        );
+        const row = locked.rows[0];
+        if (row === undefined) {
+          return { commit: false, value: undefined };
+        }
+        const team = rowToTeam(row);
+        modify(team);
+        await client.query(`UPDATE ${TABLE} SET data = $2, slug = $3 WHERE id = $1`, [
+          id,
+          Buffer.from(toBinary(TeamSchema, team)),
+          columnsOf(team).slug,
+        ]);
+        return { commit: true, value: team };
+      });
     },
 
     async findById(id): Promise<Team | undefined> {

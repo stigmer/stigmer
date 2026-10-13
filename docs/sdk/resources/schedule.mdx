@@ -84,6 +84,7 @@ Schedule schedule = client.schedules().get("sch_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update an existing schedule. |
 | [`delete`](#delete) | Delete a schedule. |
 | [`resume`](#resume) | Resume a schedule the platform paused after repeated run failures. |
+| [`rename`](#rename) | Rename a schedule: change its slug, the name people type. |
 | [`trigger`](#trigger) | Trigger a schedule to fire once, immediately, and answer with the run's real outcome. |
 
 ### get
@@ -321,6 +322,10 @@ ScheduleFireList result = client.schedules().listFires(ListScheduleFiresRequest.
 
 Create or update a schedule.
 
+A request that carries metadata.id of a schedule in its organization updates that schedule, and its slug changes only through rename. A slug the schedule was renamed away from, named without the schedule's id, is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a write by a name that stops resolving after 30 days would later make a second schedule:
+
+- SLUG_RENAMED — the slug was renamed: it still leads to the same schedule for reading, but a write names its current slug. Metadata: slug (the one the request named).
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -390,6 +395,10 @@ Create a schedule.
 
 Scheduling an agent is a spending decision: every fire creates a run that calls models on the schedule-owning organization's own provider keys, unattended, and the providers bill the organization for them.
 
+A slug another schedule of the organization holds is refused with ALREADY_EXISTS. A slug another schedule was renamed away from, which still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- SLUG_RESERVED — another schedule held the slug until a recent rename, and it still leads there. Metadata: slug.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -457,7 +466,9 @@ Schedule schedule = client.schedules().create(ScheduleInput.builder()
 
 Update an existing schedule.
 
-Replaces the spec wholesale. The slug, the referenced agent, and the target arm are immutable; cron, time zone, enablement, and the message may all change. Status (firing observations, the platform pause) is never touched by updates — use resume to clear a platform pause.
+Replaces the spec wholesale. The referenced agent and the target arm are immutable; cron, time zone, enablement, and the message may all change. Status (firing observations, the platform pause) is never touched by updates — use resume to clear a platform pause.
+
+The slug changes only through rename. An update that names the schedule by a slug it was renamed away from, without its id, is refused with SLUG_RENAMED (see apply).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -593,6 +604,53 @@ Schedule schedule = client.schedules().resume(id);
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `id` | `string` | Schedule identifier. |
+
+**Returns**: [`Schedule`](#schedule)
+
+### rename
+
+Rename a schedule: change its slug, the name people type.
+
+The schedule keeps its id, so everything that names it keeps working, and every answer names it by the new slug. The old slug keeps leading to the schedule for reading for 30 days, during which no other schedule of the organization can take it and this one can take it back; then it is released. A write that names the old slug is refused with SLUG_RENAMED (see apply). A slug another schedule holds is refused with ALREADY_EXISTS, and one another schedule was recently renamed away from with SLUG_RESERVED (see create).
+
+Its fires keep their times; a conversation an earlier fire started keeps the name it was given then.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const schedule = await stigmer.schedule.rename({
+  resourceId: "...",
+  slug: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+schedule, err := client.Schedule.Rename(ctx, &stigmer.RenameInput{
+  ResourceId: "...",
+  Slug:       "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+schedule = client.schedules.rename(RenameInput(
+    resource_id="...",
+    slug="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Schedule schedule = client.schedules().rename(RenameInput.builder()
+    .resourceId("...")
+    .slug("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RenameInput`](#renameinput)
 
 **Returns**: [`Schedule`](#schedule)
 
@@ -742,6 +800,17 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
+### RenameInput
+
+Input for renaming any API resource: changing its slug.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource being renamed.", required: true },
+    slug: { type: "string", description: "The new slug.", required: true },
   }}
 />
 

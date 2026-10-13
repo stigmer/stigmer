@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Create or update an agent."
+          "description": "Create or update an agent.\n\n A request that carries metadata.id of an agent in its organization updates\n that agent, and its slug changes only through rename. A slug the agent was\n renamed away from, named without the agent's id, is refused with\n FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"), because a write by a name that stops resolving after 30 days\n would later make a second agent:\n\n   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent\n     for reading, but a write names its current slug. Metadata: slug (the\n     one the request named)."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Create an agent."
+          "description": "Create an agent.\n\n A slug another agent of the organization holds is refused with\n ALREADY_EXISTS. A slug another agent was renamed away from, which still\n leads to it for 30 days, is refused with ALREADY_EXISTS carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another agent held the slug until a recent rename, and\n     it still leads there. Metadata: slug."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Update an existing agent."
+          "description": "Update an existing agent.\n\n The slug changes only through rename. An update that names the agent by a\n slug it was renamed away from, without its id, is refused with SLUG_RENAMED\n (see apply)."
         },
         {
           "name": "UpdateVisibility",
@@ -39,6 +39,14 @@
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n widen or narrow who can read the agent without sending the entire agent\n resource (avoiding read-modify-write races).\n\n Raising the level is refused while a skill, plugin or agent the\n agent references is less visible than the requested level: what a\n person can run they must also be able to read."
+        },
+        {
+          "name": "Rename",
+          "inputType": "RenameInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Rename an agent: change its slug, the name people type.\n\n The agent keeps its id, so everything that names it keeps working, and\n every answer names it by the new slug. The old slug keeps leading to the\n agent for reading for 30 days, during which no other agent of the\n organization can take it and this one can take it back; then it is\n released. A write that names the old slug is refused with SLUG_RENAMED (see\n apply). A slug another agent holds is refused with ALREADY_EXISTS, and one\n another agent was recently renamed away from with SLUG_RESERVED (see\n create).\n\n Its schedules, channels, conversations and the agents that hand work to it\n name it by id; a parent agent's turns call it by its new slug."
         },
         {
           "name": "Delete",
@@ -135,6 +143,43 @@
           },
           "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "RenameInput",
+      "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",
+      "protoType": "ai.stigmer.commons.apiresource.RenameInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource being renamed.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The new slug. Same format as metadata.slug, at most 63 characters: the\n longest a reference's org takes.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
         }
       ]
     },

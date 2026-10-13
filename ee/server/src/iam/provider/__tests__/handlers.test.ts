@@ -70,9 +70,16 @@
  *     written and nothing dialed, while admin, member and viewer are
  *     accepted; an SSO provider must create accounts with a role, and may
  *     not carry a tenant claim; a tenant claim that grants nothing is
- *     accepted.
+ *     accepted;
+ *   - rename asks can_delete on the provider, keeps its id and its routes,
+ *     tells the verifier, leaves the old slug leading to it and refused to
+ *     a create with SLUG_RESERVED and to an apply without the id with
+ *     SLUG_RENAMED; an apply carrying the id finds the provider by it; an
+ *     update that loaded the provider before a rename keeps the new slug;
+ *     a provider being deleted and a service account's call are refused.
  */
 import { create } from "@bufbuild/protobuf";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import {
   Code,
   ConnectError,
@@ -671,6 +678,82 @@ describe("update", () => {
     expect(r.invalidations).toBe(0);
   });
 
+});
+
+describe("rename", () => {
+  it("asks can_delete, keeps the id and the routes, tells the verifier, and leaves the old slug leading to the provider", async () => {
+    const r = rig();
+    const created = await r.commands.create(provider());
+    const id = created.metadata?.id ?? "";
+    const before = r.invalidations;
+
+    const renamed = await r.commands.rename({ resourceId: id, slug: "acme-sso" });
+    expect(renamed.metadata?.id).toBe(id);
+    expect(renamed.metadata?.slug).toBe("acme-sso");
+    expect(renamed.status?.audit?.specAudit?.event).toBe("renamed");
+    expect(r.checks.at(-1)).toEqual({ permission: IamPermission.can_delete, resourceKind: ApiResourceKind.identity_provider, resourceId: id });
+    expect(r.invalidations).toBe(before + 1);
+    expect(await r.store.findProviderIdByRoute("https://idp.acme.test", AUDIENCE), "the route is unchanged").toBe(id);
+
+    const byOld = await r.queries.getByReference(create(ApiResourceReferenceSchema, { org: "acme", slug: "acme-platform" }));
+    expect(byOld.metadata?.slug).toBe("acme-sso");
+
+    const reserved = await failure(r.commands.create(provider({ issuers: ["https://other.acme.test/"] })));
+    expect(reserved.code).toBe(Code.AlreadyExists);
+    expect(reserved.findDetails(ErrorInfoSchema)[0]?.reason).toBe("SLUG_RESERVED");
+
+    const stale = await failure(r.commands.apply(provider()));
+    expect(stale.code).toBe(Code.FailedPrecondition);
+    expect(stale.findDetails(ErrorInfoSchema)[0]?.reason).toBe("SLUG_RENAMED");
+    expect(stale.rawMessage).not.toContain("acme-sso");
+
+    const byId = await r.commands.apply(provider({}, { id }));
+    expect(byId.metadata?.id, "an apply carrying the id finds it").toBe(id);
+    expect(byId.metadata?.slug).toBe("acme-sso");
+  });
+
+  it("an update that loaded the provider before a rename keeps the new slug", async () => {
+    let renameMidWrite: (() => Promise<unknown>) | undefined;
+    class RacingStore extends InMemoryProviderStore {
+      override async replace(row: IdentityProvider): Promise<ProviderReplaceOutcome> {
+        const rename = renameMidWrite;
+        renameMidWrite = undefined;
+        await rename?.();
+        return super.replace(row);
+      }
+    }
+    const store = new RacingStore();
+    const r = rig({ store });
+    const created = await r.commands.create(provider());
+    const id = created.metadata?.id ?? "";
+    renameMidWrite = () => r.commands.rename({ resourceId: id, slug: "acme-sso" });
+
+    const updated = await r.commands.update(provider({}, { id, name: "Edited mid-rename", slug: "acme-platform" }));
+
+    expect(renameMidWrite, "the rename landed mid-write").toBeUndefined();
+    expect(updated.metadata?.slug).toBe("acme-sso");
+    const row = await store.findById(id);
+    expect(row?.metadata?.slug).toBe("acme-sso");
+    expect(row?.metadata?.name).toBe("Edited mid-rename");
+  });
+
+  it("is refused for a provider being deleted and for a service account, moving nothing", async () => {
+    const marked = rig();
+    const created = await marked.commands.create(provider());
+    const id = created.metadata?.id ?? "";
+    await marked.store.markDeleting(id);
+    const deleting = await failure(marked.commands.rename({ resourceId: id, slug: "acme-sso" }));
+    expect(deleting.code).toBe(Code.FailedPrecondition);
+    expect(deleting.rawMessage).toBe(PROVIDER_BEING_DELETED_MESSAGE);
+    expect((await marked.store.findById(id))?.metadata?.slug).toBe("acme-platform");
+
+    const store = new InMemoryProviderStore();
+    await store.insert(storedProvider({ id: "idp_sa", org: "acme", slug: "sa", issuers: [] }));
+    const serviceAccount = rig({ store, callerIsServiceAccount: true });
+    const refused = await failure(serviceAccount.commands.rename({ resourceId: "idp_sa", slug: "sa-renamed" }));
+    expect(refused.code).toBe(Code.PermissionDenied);
+    expect((await store.findById("idp_sa"))?.metadata?.slug).toBe("sa");
+  });
 });
 
 describe("apply", () => {

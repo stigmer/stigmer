@@ -167,6 +167,7 @@ PlatformClient platformClient = client.platformclients().get("pcl_01j5q3k7m8r2s4
 | [`delete`](#delete) | Delete a platform client. |
 | [`mintGuestToken`](#mintguesttoken) | Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page. |
 | [`mintUserToken`](#mintusertoken) | Mint a user-scoped JWT for browser-based access to Stigmer resources. |
+| [`rename`](#rename) | Rename a platform client: change its slug, the name people type. |
 | [`rotateSecret`](#rotatesecret) | Rotate the client secret. |
 
 ### get
@@ -312,6 +313,10 @@ The creator's organization owns the platform client, and the organization's curr
 
 The slug `system-share-client` is platform-reserved (it identifies the org's system-managed share client) and is rejected with INVALID_ARGUMENT — including when derived from the resource name.
 
+A slug another platform client of the organization holds is refused with ALREADY_EXISTS. A slug another platform client was renamed away from, which still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- SLUG_RESERVED — another platform client held the slug until a recent rename, and it still leads there. Metadata: slug.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -400,6 +405,10 @@ PlatformClient platformClientCreateResponse = client.platformclients().create(Pl
 Update an existing platform client.
 
 The name, labels and every spec field can be changed except the credential fields (client_id, client_secret_hash, secret_fingerprint), which are kept from the stored client. Use rotateSecret to change the client secret. A system-managed client cannot be updated.
+
+The slug changes only through rename. A slug the platform client was renamed away from, named without the platform client's id, is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a write by a name that stops resolving after 30 days would later make a second platform client:
+
+- SLUG_RENAMED — the slug was renamed: it still leads to the same platform client for reading, but a write names its current slug. Metadata: slug (the one the request named).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -649,6 +658,53 @@ MintUserTokenResponse mintUserTokenResponse = client.platformclients().mintUserT
 
 **Returns**: [`MintUserTokenResponse`](#mintusertokenresponse)
 
+### rename
+
+Rename a platform client: change its slug, the name people type.
+
+The platform client keeps its id, so everything that names it keeps working, and every answer names it by the new slug. The old slug keeps leading to the platform client for reading for 30 days, during which no other platform client of the organization can take it and this one can take it back; then it is released. A write that names the old slug is refused with SLUG_RENAMED (see update). A slug another platform client holds is refused with ALREADY_EXISTS, and one another platform client was recently renamed away from with SLUG_RESERVED (see create).
+
+Its client_id and its tokens do not name its slug, so the platforms that use it keep working. A system-managed client cannot be renamed, as it cannot be updated, and the slug system-share-client is refused with INVALID_ARGUMENT, as on create.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const platformClient = await stigmer.platformclient.rename({
+  resourceId: "...",
+  slug: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+platformClient, err := client.PlatformClient.Rename(ctx, &stigmer.RenameInput{
+  ResourceId: "...",
+  Slug:       "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+platform_client = client.platformclients.rename(RenameInput(
+    resource_id="...",
+    slug="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+PlatformClient platformClient = client.platformclients().rename(RenameInput.builder()
+    .resourceId("...")
+    .slug("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RenameInput`](#renameinput)
+
+**Returns**: [`PlatformClient`](#platformclient)
+
 ### rotateSecret
 
 Rotate the client secret.
@@ -732,6 +788,17 @@ PlatformClientCreateResponse wraps a PlatformClient resource with the one-time r
   type={{
     platformClient: { type: "PlatformClientInput", description: "The created or updated platform client resource.", typeDescriptionLink: "#platformclientinput" },
     clientSecret: { type: "string", description: "The raw client secret." },
+  }}
+/>
+
+### RenameInput
+
+Input for renaming any API resource: changing its slug.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource being renamed.", required: true },
+    slug: { type: "string", description: "The new slug.", required: true },
   }}
 />
 

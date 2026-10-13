@@ -48,7 +48,7 @@ interface AgentDetailPageInnerProps {
 export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
-  const { navigateToDetail } = useLibraryNavigation();
+  const { navigateToDetail, canonicalSlug } = useLibraryNavigation();
   const { navigateToRun } = useRunNavigation();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Agent");
@@ -91,6 +91,13 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   );
 
   useEffect(() => () => setLabel(null), [setLabel]);
+
+  // The agent's read answers its current slug: a URL naming one it was
+  // renamed away from (which still leads to it) moves to it in place.
+  const currentSlug = agent?.metadata?.slug ?? "";
+  useEffect(() => {
+    if (currentSlug !== "" && currentSlug !== slug) canonicalSlug(currentSlug);
+  }, [currentSlug, slug, canonicalSlug]);
 
   const handleResourceLoad = useCallback(
     ({ name, id }: { name: string; id: string }) => {
@@ -198,6 +205,10 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
           navigateToDetail("agents", o, s)
         }
         onNavigateToRun={navigateToRun}
+        onRenamed={(renamed) => {
+          if (renamed.metadata?.slug) canonicalSlug(renamed.metadata.slug);
+          refetchAgent();
+        }}
         editable
         primaryAction={primaryAction}
         actions={actions}

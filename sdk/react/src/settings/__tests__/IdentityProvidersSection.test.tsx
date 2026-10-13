@@ -78,6 +78,17 @@ vi.mock("../../identity-provider/useUpdateIdentityProvider.js", () => ({
     clearError: () => {},
   }),
 }));
+// The detail panel's slug field renames through the client; not under test here.
+vi.mock("../../resource-detail/useRenameResource.js", () => ({
+  useRenameResource: () => ({
+    rename: async () => {
+      throw new Error("not under test");
+    },
+    isRenaming: false,
+    error: null,
+    clearError: () => {},
+  }),
+}));
 vi.mock("../../iam-policy/useCheckPermission.js", () => ({
   useCheckPermission: (
     resource: { kind: string; id: string } | null,

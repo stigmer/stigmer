@@ -14,7 +14,8 @@
  *     the Enterprise schema is made current by the identity unit's start;
  *     organizations grow to the license's limit and no further; an identity
  *     provider is saved (its documents dialed through the guarded fetch)
- *     and signs a federated person in; an invitation is redeemed and its
+ *     and signs a federated person in, the same person once the provider
+ *     is renamed; an invitation is redeemed and its
  *     person joins a team; a federated account's changed email reaches
  *     the server; two concurrent creates of one federated account answer
  *     one account; and a deleted federated account's key does not come back
@@ -242,6 +243,26 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("licensed", () => {
     const dana = await createClient(IdentityAccountQueryController, transportTo(booted.port, token)).whoAmI({});
     expect(dana.spec?.email).toBe("dana@acme.example");
     expect(dana.spec?.identityProviderRef?.slug).toBe("acme-okta");
+  });
+
+  it("a renamed identity provider signs the same person in, and the account names it by its new slug", async () => {
+    const asDana = () =>
+      createClient(
+        IdentityAccountQueryController,
+        transportTo(booted.port, federatedToken(issuer, "acme-okta", "okta|dana", "dana@acme.example")),
+      ).whoAmI({});
+    const before = await asDana();
+    const providerId = before.spec?.identityProviderRef?.id ?? "";
+    expect(providerId).toMatch(/^idp_/);
+    const providers = createClient(IdentityProviderCommandController, owner.transport);
+
+    const renamed = await providers.rename({ resourceId: providerId, slug: "acme-sso" });
+    expect(renamed.metadata?.id).toBe(providerId);
+    const after = await asDana();
+    expect(after.metadata?.id, "the same account").toBe(before.metadata?.id);
+    expect(after.spec?.identityProviderRef).toMatchObject({ id: providerId, slug: "acme-sso" });
+
+    await providers.rename({ resourceId: providerId, slug: "acme-okta" });
   });
 
   it("redeems an invitation, and its person joins a team", async () => {

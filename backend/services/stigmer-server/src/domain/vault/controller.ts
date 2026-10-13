@@ -57,6 +57,7 @@ import type {
   ApiResourceDeleteInput,
   ApiResourceId,
   ApiResourceReference,
+  RenameInput,
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -134,7 +135,13 @@ import {
 } from "./connect-link.js";
 import type { ConnectLinkDeps } from "./connect-link.js";
 import { completePersonSignIn, startPersonSignIn } from "./sign-in/person.js";
-import { MY_VAULT_VISIBILITY_REFUSAL } from "./constants.js";
+import {
+  MY_VAULT_RENAME_REFUSAL,
+  MY_VAULT_SLUG_REFUSAL,
+  MY_VAULT_VISIBILITY_REFUSAL,
+  isMyVaultSlug,
+} from "./constants.js";
+import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import {
   forgedCiphertextMessage,
   markerRejectionMessage,
@@ -181,6 +188,7 @@ export function registerVaultServices(
     create: (vault, ctx) => createVault(deps, vault, ctx),
     update: (vault, ctx) => updateVault(deps, vault, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
+    rename: (input, ctx) => rename(deps, input, ctx),
     delete: (input, ctx) => deleteVault(deps, input, ctx),
     setSecrets: (input, ctx) => setSecrets(deps, input, ctx),
     removeSecrets: (input, ctx) => removeSecrets(deps, input, ctx),
@@ -234,6 +242,42 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
 function respond(vault: Vault): Vault {
   redactVault(vault);
   return vault;
+}
+
+/**
+ * Rename — the only writer of a shared vault's slug
+ * (pipeline/steps/rename.ts): the name moves, then the live row's slug;
+ * the old slug keeps leading to it for reading for 30 days. My vault is
+ * named after its person and keeps its name, and no vault takes My vault's
+ * prefix, as on create.
+ */
+async function rename(
+  deps: VaultControllerDeps,
+  input: RenameInput,
+  ctx: HandlerContext,
+): Promise<Vault> {
+  return respond(
+    await renameResource(
+      {
+        method: VaultCommandController.method.rename,
+        names: deps.store,
+        rows: storeRenameRows(deps.store, ApiResourceKind.vault, VaultSchema),
+        authorizer: deps.authorizer,
+        logger: deps.logger,
+        newSlugRule: (vault, slug) => {
+          if (isMyVault(vault)) {
+            throw invalidArgumentError(MY_VAULT_RENAME_REFUSAL);
+          }
+          if (isMyVaultSlug(slug)) {
+            throw invalidArgumentError(MY_VAULT_SLUG_REFUSAL);
+          }
+        },
+      },
+      input,
+      callerIdentityOf(ctx),
+      kindOf(ctx),
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------

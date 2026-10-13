@@ -40,10 +40,26 @@ export class InMemoryTeamStore implements TeamStore {
 
   replace(team: Team): Promise<void> {
     const id = team.metadata?.id ?? "";
-    if (this.rows.has(id)) {
+    const held = this.rows.get(id);
+    if (held !== undefined) {
+      const storedSlug = held.metadata?.slug;
+      if (team.metadata !== undefined && storedSlug !== undefined) {
+        team.metadata.slug = storedSlug;
+      }
       this.rows.set(id, clone(TeamSchema, team));
     }
     return Promise.resolve();
+  }
+
+  modifyById(id: string, modify: (team: Team) => void): Promise<Team | undefined> {
+    const held = this.rows.get(id);
+    if (held === undefined) {
+      return Promise.resolve(undefined);
+    }
+    const team = clone(TeamSchema, held);
+    modify(team);
+    this.rows.set(id, clone(TeamSchema, team));
+    return Promise.resolve(team);
   }
 
   findById(id: string): Promise<Team | undefined> {

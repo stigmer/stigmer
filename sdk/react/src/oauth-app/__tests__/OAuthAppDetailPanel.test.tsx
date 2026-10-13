@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import {
   OAuthAppSchema,
   type OAuthApp,
@@ -121,10 +121,12 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
       ([input]) =>
         `${input.resource?.kind}:${input.resource?.id}:${input.relation}`,
     );
-    expect(asked.sort()).toEqual([
+    // can_delete gates both Delete and the slug field (rename).
+    expect([...new Set(asked)].sort()).toEqual([
       "oauth_app:oa-1:can_delete",
       "oauth_app:oa-1:can_edit",
     ]);
+    expect(await screen.findByRole("button", { name: "Rename" })).toBeTruthy();
   });
 
   it("an admin who did not create the app reads it with neither control", async () => {
@@ -133,12 +135,48 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
     }));
     renderPanel(vi.fn(), checkMyPermission);
 
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(new Set(checkMyPermission.mock.calls.map(([input]) => input.relation))).toEqual(
+        new Set(["can_edit", "can_delete"]),
+      ),
+    );
     // The configuration stays readable; only the change affordances are withheld.
     expect(screen.getByRole("heading", { name: "github" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Edit" })).toBeNull(),
     );
     expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+  });
+});
+
+describe("OAuthAppDetailPanel rename", () => {
+  it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
+    const renamed = clone(OAuthAppSchema, APP);
+    if (renamed.metadata !== undefined) {
+      renamed.metadata.slug = "renamed-slug";
+    }
+    const rename = vi.fn(async () => renamed);
+    const onUpdated = vi.fn();
+    const client = {
+      oauthapp: { rename },
+      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <OAuthAppDetailPanel oauthApp={APP} onUpdated={onUpdated} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Slug", undefined, { timeout: 5000 }), {
+      target: { value: "renamed-slug" },
+    });
+    const button = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
+    // The field settles before it takes the rename, however slow the runner.
+    await waitFor(() => expect(button.disabled).toBe(false), { timeout: 5000 });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
+    expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: APP.metadata?.id, slug: "renamed-slug" })]);
   });
 });

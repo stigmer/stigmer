@@ -61,6 +61,7 @@ interface DetailProps {
   onAgentClick: (ref: { org: string; slug: string }) => void;
   buildShareUrl: (shareId: string) => string;
   onNavigateToRun: (runId: string) => void;
+  onRenamed: (agent: { metadata?: { slug: string } }) => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -304,5 +305,16 @@ describe("desktop AgentDetailPage — an eval try's run", () => {
 
     expect(page.resolving).toContain("run_unresolved");
     expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/helper");
+  });
+});
+
+describe("desktop AgentDetailPage — its own slug", () => {
+  it("moves the route to the slug a rename from the page gave the agent", () => {
+    page.agent = AGENT;
+    renderAgent();
+
+    act(() => page.detail.at(-1)?.onRenamed({ metadata: { slug: "helper-renamed" } }));
+
+    expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/helper-renamed");
   });
 });
