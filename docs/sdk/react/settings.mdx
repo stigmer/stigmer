@@ -48,6 +48,11 @@ return groups.map((group) => <NavGroup key={group.label} group={group} />);
 
 ## Components
 
+### AccessHistorySection
+
+Settings section for an organization's access history.
+
+
 ### AccountPreferencesSection
 
 Settings section for editing the current user's declared preferences.
@@ -221,7 +226,9 @@ General on a server that holds one) after Teams.
 
 Kept out of [`SETTINGS_NAV_GROUPS`](#settings_nav_groups) for the reason the platform group
 is: that constant is what every signed-in user sees. Service accounts are
-managed by the organization's admins (`can_create_identity_account`), and a
+managed by the organization's admins (`can_create_identity_account`), the
+access history is read by its owners and admins
+(`can_view_access_history`), and a
 page a member could only be told about is discoverability, not capability,
 so it stays hidden until the server says yes. Use
 [`useSettingsNavGroups`](#usesettingsnavgroups) for the permission-aware list.
