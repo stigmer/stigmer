@@ -5,8 +5,7 @@
 // wrote, the agent and versions it ran); what the agent did is the
 // session's event log (Claude Managed Agents events), read with
 // SessionQueryController.listEvents filtered to the run. So get_run reads
-// both: the run for its lifecycle, with every transcript field the record
-// still carries dropped, and the run's events.
+// both: the run for its lifecycle, and the run's events.
 //
 // The events reach the model in one of two shapes:
 //   - compact (the default): the turn as the shared fold (`foldSession`
@@ -50,23 +49,6 @@ export const DEFAULT_ITEM_LIMIT = 5;
 /** The most events one listEvents page returns. */
 const EVENT_PAGE_SIZE = 1000;
 
-/**
- * The run status fields a client no longer reads: the transcript the run
- * record used to carry, which the session's events now hold (each one
- * comes back as a turn of the fold, or as the raw events in view=full).
- */
-const TRANSCRIPT_STATUS_FIELDS = [
-  "messages",
-  "sub_agent_runs",
-  "todos",
-  "pending_approvals",
-  "approval_event_stream",
-  "context_info",
-  "structured_output",
-  "recalled_memories_report",
-  "file_review_event_stream",
-] as const;
-
 /** Fetch a run and its events, shaped for the requested view. */
 export async function fetchRun(
   serverAddress: string,
@@ -108,16 +90,9 @@ export function sessionIdOf(run: Run): string {
   throw new Error(`run "${run.metadata?.id ?? ""}" names no session`);
 }
 
-/** The run's record as protojson, without the transcript fields (module header). */
+/** The run's record as protojson: its lifecycle (module header). */
 export function runLifecycle(run: Run): JsonObject {
-  const data = toJson(RunSchema, run, { useProtoFieldName: true }) as JsonObject;
-  const status = data["status"] as JsonObject | undefined;
-  if (status !== undefined) {
-    for (const field of TRANSCRIPT_STATUS_FIELDS) {
-      delete status[field];
-    }
-  }
-  return data;
+  return toJson(RunSchema, run, { useProtoFieldName: true }) as JsonObject;
 }
 
 /** Every event of one run, oldest first, walking every page. */

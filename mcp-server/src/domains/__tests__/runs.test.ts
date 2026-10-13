@@ -68,7 +68,7 @@ const knownAgent = create(AgentSchema, {
   metadata: { name: "Code Reviewer", slug: "code-reviewer", org: "acme", id: "agt_1" },
 });
 
-/** A run with a scriptable phase, still carrying transcript fields the tools must drop. */
+/** A run with a scriptable phase. */
 function runFixture(phase: RunPhase): Run {
   return create(RunSchema, {
     apiVersion: "v1",
@@ -79,9 +79,6 @@ function runFixture(phase: RunPhase): Run {
       agentId: "agt_1",
       phase,
       startedAt: "2026-10-13T10:00:00Z",
-      messages: Array.from({ length: 8 }, (_, i) => ({ content: `msg-${i}` })),
-      subAgentRuns: [{ name: "researcher", input: "dig into the logs" }],
-      pendingApprovals: [{ toolCallId: "call_7" }],
     },
   });
 }
@@ -624,13 +621,10 @@ describe("run tools integration", () => {
 
     const body = parseText(result);
     expect(body.view).toBe("compact");
-    // The run is its lifecycle: the transcript fields it still carries are dropped.
+    // The run is its lifecycle record.
     const status = ((body.run as Record<string, unknown>).status ?? {}) as Record<string, unknown>;
     expect(status.phase).toBe("RUN_IN_PROGRESS");
     expect(status.started_at).toBe("2026-10-13T10:00:00Z");
-    expect(status.messages).toBeUndefined();
-    expect(status.sub_agent_runs).toBeUndefined();
-    expect(status.pending_approvals).toBeUndefined();
 
     const turn = body.turn as Record<string, unknown>;
     expect(turn).toMatchObject({
@@ -837,7 +831,6 @@ describe("run tools integration", () => {
     expect(body.already_terminal).toBe(true);
     const status = (body.run as Record<string, unknown>).status as Record<string, unknown>;
     expect(status.phase).toBe("RUN_COMPLETED");
-    expect(status.messages).toBeUndefined();
   });
 
   it("cancel_run reports an interrupt the backend refuses", async () => {
