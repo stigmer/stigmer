@@ -21,7 +21,6 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
@@ -42,7 +41,7 @@ import {
   makeToolOutputDelta,
 } from "../__test-utils__/v3-event-fixtures.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
-import { AgentMessageSchema, ToolCallSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalAction,
   ApprovalPolicySource,
@@ -51,6 +50,7 @@ import {
   ToolKind,
   TodoStatus,
 } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 
 /**
  * A builder over an empty status. Usage never reaches the builder:
@@ -59,10 +59,15 @@ import {
  * `usageOf` reads. The `usage:` fields the sequences below still
  * carry are the wire's real shape and are ignored by everything here.
  */
-/** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
-function makeBuilder(): { sb: TranscriptBuilder; status: RunStatus } {
-  const status = create(RunStatusSchema, {});
-  return { sb: new TranscriptBuilder("exec-test", status), status };
+/**
+ * A builder, the rows it builds into and the run's status beside them: the
+ * test writes through `sb` and reads `status` (the rows), as production reads
+ * `TurnSink.rows`, and `run` for what the builder registers on the status.
+ */
+function makeBuilder(): { sb: TranscriptBuilder; status: TurnRows; run: RunStatus } {
+  const status = create(TurnRowsSchema, {});
+  const run = create(RunStatusSchema);
+  return { sb: new TranscriptBuilder("exec-test", status, run), status, run };
 }
 
 /**
@@ -86,9 +91,9 @@ describe("the native translator through the builder", () => {
 
   describe("initialization", () => {
     it("writes neither phase nor startedAt (the turn runtime owns both)", () => {
-      const { sb, status } = makeBuilder();
-      expect(status.phase).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
-      expect(status.startedAt).toBe("");
+      const { sb, run } = makeBuilder();
+      expect(run.phase).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
+      expect(run.startedAt).toBe("");
       expect(sb.awaitingApproval).toBe(false);
     });
 
@@ -136,8 +141,6 @@ describe("the native translator through the builder", () => {
         expect(status.messages[1].type).toBe(MessageType.MESSAGE_AI);
         expect(status.messages[1].content).toBe("Here is more detail.");
         expect(status.messages[1].isStreaming).toBe(false);
-
-        expect(status.streamingUsage, "the runtime owns streamingUsage; the builder never touches it").toBeUndefined();
       });
     });
 
@@ -312,7 +315,6 @@ describe("the native translator through the builder", () => {
         ], gate);
 
         expect(sb.awaitingApproval, "no tool_started parks a row").toBe(false);
-        expect(status.phase).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
 
         const tc = status.messages[0].toolCalls[0];
         expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
@@ -740,8 +742,7 @@ describe("the native translator through the builder", () => {
     const GATED_ID = "toolu_seeded_01";
 
     it("resolves the seeded gated row in place — no duplicate, history kept, no re-gate", () => {
-      const status = create(RunStatusSchema, {
-        phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
+      const status = create(TurnRowsSchema, {
         messages: [
           create(AgentMessageSchema, {
             type: MessageType.MESSAGE_AI,
@@ -759,7 +760,7 @@ describe("the native translator through the builder", () => {
           }),
         ],
       });
-      const sb = new TranscriptBuilder("exec-resume", status);
+      const sb = new TranscriptBuilder("exec-resume", status, create(RunStatusSchema));
       const key = mcpToolKey("my-server", "dangerous_tool");
       const gate = gateWith({ mcpDefault: destructiveDefault(key), toolServerMap: new Map([["dangerous_tool", "my-server"]]) });
 
@@ -789,14 +790,14 @@ describe("the native translator through the builder", () => {
       create(RunArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
 
     it("appends a new artifact and forces the next persist", () => {
-      const { sb, status } = makeBuilder();
+      const { sb, run: status } = makeBuilder();
       sb.addArtifact(artifact("out/a.txt", "h1"));
       expect(status.artifacts).toHaveLength(1);
       expect(sb.dirty).toBe(true);
     });
 
     it("deduplicates by sandboxPath: the same contentHash is a no-op that does not force a persist", () => {
-      const { sb, status } = makeBuilder();
+      const { sb, run: status } = makeBuilder();
       sb.addArtifact(artifact("out/a.txt", "h1"));
       sb.markPersisted();
       sb.addArtifact(artifact("out/a.txt", "h1"));
@@ -805,7 +806,7 @@ describe("the native translator through the builder", () => {
     });
 
     it("replaces the artifact in place when its contentHash changes", () => {
-      const { sb, status } = makeBuilder();
+      const { sb, run: status } = makeBuilder();
       sb.addArtifact(artifact("out/a.txt", "h1"));
       sb.markPersisted();
       sb.addArtifact(artifact("out/a.txt", "h2"));
@@ -815,7 +816,7 @@ describe("the native translator through the builder", () => {
     });
 
     it("upserts write-backs by workspaceEntryName, tracking entries independently", () => {
-      const { sb, status } = makeBuilder();
+      const { sb, run: status } = makeBuilder();
       sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo-a", branchName: "stigmer/s1" }));
       sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo-b", branchName: "stigmer/s1" }));
       sb.markPersisted();
