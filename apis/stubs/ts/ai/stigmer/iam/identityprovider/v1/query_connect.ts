@@ -6,7 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 import { IdentityProvider } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { IdentityProviders, ListIdentityProvidersByOrgInput, OrganizationSsoLookup, SsoProviderInfo } from "./io_pbjs";
+import { IdentityProviders, ListIdentityProvidersByOrgInput } from "./io_pbjs";
 
 /**
  * IdentityProviderQueryController provides read operations for identity providers.
@@ -54,26 +54,6 @@ export const IdentityProviderQueryController = {
       name: "listByOrg",
       I: ListIdentityProvidersByOrgInput,
       O: IdentityProviders,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Look up the SSO identity provider for an organization.
-     *
-     * Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
-     * expected audience) of the IdentityProvider where is_sso_provider is true
-     * for the given org. Returns NOT_FOUND if the organization has no SSO
-     * provider configured.
-     *
-     * This endpoint is called by the web app's login page before the user has
-     * signed in, so it requires no credential. The response intentionally omits
-     * internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
-     *
-     * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getSsoProvider
-     */
-    getSsoProvider: {
-      name: "getSsoProvider",
-      I: OrganizationSsoLookup,
-      O: SsoProviderInfo,
       kind: MethodKind.Unary,
     },
   }

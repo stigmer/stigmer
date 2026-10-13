@@ -82,11 +82,6 @@ func (i *IdentityProviderClient) ListByOrg(ctx context.Context, input *identityp
 	return resp, wrapErr(err)
 }
 
-func (i *IdentityProviderClient) GetSsoProvider(ctx context.Context, input *identityproviderv1.OrganizationSsoLookup) (*identityproviderv1.SsoProviderInfo, error) {
-	resp, err := i.query.GetSsoProvider(ctx, input)
-	return resp, wrapErr(err)
-}
-
 // IdentityProviderInput holds the fields for creating/updating a IdentityProvider.
 type IdentityProviderInput struct {
 	// Id is the resource's metadata.id, for exact update addressing when
@@ -104,8 +99,6 @@ type IdentityProviderInput struct {
 	AllowedIssuers         []string
 	ExpectedAudience       string
 	UserinfoEndpoint       string
-	IsSsoProvider          bool
-	OidcClientId           string
 	ExternalIdClaim        string
 	CreateAccountsOnSignIn bool
 	SignInRole             iamv1.IamRole
@@ -130,8 +123,6 @@ func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider,
 	resource.Spec.AllowedIssuers = i.AllowedIssuers
 	resource.Spec.ExpectedAudience = i.ExpectedAudience
 	resource.Spec.UserinfoEndpoint = i.UserinfoEndpoint
-	resource.Spec.IsSsoProvider = i.IsSsoProvider
-	resource.Spec.OidcClientId = i.OidcClientId
 	resource.Spec.ExternalIdClaim = i.ExternalIdClaim
 	resource.Spec.CreateAccountsOnSignIn = i.CreateAccountsOnSignIn
 	resource.Spec.SignInRole = i.SignInRole
@@ -158,8 +149,6 @@ func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *Ide
 		input.AllowedIssuers = s.GetAllowedIssuers()
 		input.ExpectedAudience = s.GetExpectedAudience()
 		input.UserinfoEndpoint = s.GetUserinfoEndpoint()
-		input.IsSsoProvider = s.GetIsSsoProvider()
-		input.OidcClientId = s.GetOidcClientId()
 		input.ExternalIdClaim = s.GetExternalIdClaim()
 		input.CreateAccountsOnSignIn = s.GetCreateAccountsOnSignIn()
 		input.SignInRole = s.GetSignInRole()

@@ -76,12 +76,6 @@ class IdentityProviderClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_sso_provider(self, input: io_pb2.OrganizationSsoLookup) -> io_pb2.SsoProviderInfo:
-        try:
-            return self._query.getSsoProvider(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
 
 @dataclass
 class IdentityProviderInput:
@@ -98,8 +92,6 @@ class IdentityProviderInput:
     allowed_issuers: list[str] = field(default_factory=list)
     expected_audience: str = ""
     userinfo_endpoint: str = ""
-    is_sso_provider: bool = False
-    oidc_client_id: str = ""
     external_id_claim: str = ""
     create_accounts_on_sign_in: bool = False
     sign_in_role: int = 0
@@ -110,8 +102,6 @@ class IdentityProviderInput:
             jwks_uri=self.jwks_uri,
             expected_audience=self.expected_audience,
             userinfo_endpoint=self.userinfo_endpoint,
-            is_sso_provider=self.is_sso_provider,
-            oidc_client_id=self.oidc_client_id,
             external_id_claim=self.external_id_claim,
             create_accounts_on_sign_in=self.create_accounts_on_sign_in,
             sign_in_role=self.sign_in_role,

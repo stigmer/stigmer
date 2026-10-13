@@ -13,104 +13,9 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEihAgKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEioKD2FsbG93ZWRfaXNzdWVycxgDIAMoCUIRukgOkgELEAoiB3IFEAEYgBASJQoRZXhwZWN0ZWRfYXVkaWVuY2UYBCABKAlCCrpIB3IFEAEYyAESIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISIwoRZXh0ZXJuYWxfaWRfY2xhaW0YDCABKAlCCLpIBXIDGIACEiIKGmNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luGA0gASgIEjAKDHNpZ25faW5fcm9sZRgOIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGU6mQS6SJUEGpQBCihpZGVudGl0eV9wcm92aWRlci5zaWduX2luX3JvbGVfbm90X293bmVyElBzaWduX2luX3JvbGUgY2Fubm90IGJlIG93bmVyOyBvcmdhbml6YXRpb24gb3duZXJzaGlwIG11c3QgYmUgYXNzaWduZWQgZXhwbGljaXRseRoWdGhpcy5zaWduX2luX3JvbGUgIT0gMRrSAQoyaWRlbnRpdHlfcHJvdmlkZXIuc3NvX2NyZWF0ZXNfYWNjb3VudHNfd2l0aF9hX3JvbGUSRmFuIFNTTyBwcm92aWRlciBtdXN0IHNldCBjcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbiBhbmQgYSBzaWduX2luX3JvbGUaVCF0aGlzLmlzX3Nzb19wcm92aWRlciB8fCAodGhpcy5jcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbiAmJiB0aGlzLnNpZ25faW5fcm9sZSAhPSAwKRqmAQowaWRlbnRpdHlfcHJvdmlkZXIuandrc191cmlfcmVxdWlyZWRfd2l0aF9pc3N1ZXJzEjlqd2tzX3VyaSBpcyByZXF1aXJlZCB3aGVuIGFsbG93ZWRfaXNzdWVycyBuYW1lcyBhbiBpc3N1ZXIaN3RoaXMuYWxsb3dlZF9pc3N1ZXJzLnNpemUoKSA9PSAwIHx8IHRoaXMuandrc191cmkgIT0gJydKBAgFEAZKBAgJEApKBAgKEAtKBAgLEAxSEXJhdGVfbGltaXRfYnVkZ2V0UhdhdXRvX3Byb3Zpc2lvbl9hY2NvdW50c1IRYXV0b19ncmFudF9vbl9vcmdSD2F1dG9fZ3JhbnRfcm9sZWIGcHJvdG8z", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEitQYKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEioKD2FsbG93ZWRfaXNzdWVycxgDIAMoCUIRukgOkgELEAoiB3IFEAEYgBASJQoRZXhwZWN0ZWRfYXVkaWVuY2UYBCABKAlCCrpIB3IFEAEYyAESIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEiMKEWV4dGVybmFsX2lkX2NsYWltGAwgASgJQgi6SAVyAxiAAhIiChpjcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbhgNIAEoCBIwCgxzaWduX2luX3JvbGUYDiABKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlOsQCukjAAhqUAQooaWRlbnRpdHlfcHJvdmlkZXIuc2lnbl9pbl9yb2xlX25vdF9vd25lchJQc2lnbl9pbl9yb2xlIGNhbm5vdCBiZSBvd25lcjsgb3JnYW5pemF0aW9uIG93bmVyc2hpcCBtdXN0IGJlIGFzc2lnbmVkIGV4cGxpY2l0bHkaFnRoaXMuc2lnbl9pbl9yb2xlICE9IDEapgEKMGlkZW50aXR5X3Byb3ZpZGVyLmp3a3NfdXJpX3JlcXVpcmVkX3dpdGhfaXNzdWVycxI5andrc191cmkgaXMgcmVxdWlyZWQgd2hlbiBhbGxvd2VkX2lzc3VlcnMgbmFtZXMgYW4gaXNzdWVyGjd0aGlzLmFsbG93ZWRfaXNzdWVycy5zaXplKCkgPT0gMCB8fCB0aGlzLmp3a3NfdXJpICE9ICcnSgQIBRAGSgQICRAKSgQIChALSgQICxAMSgQIBxAISgQICBAJSgQIDxAQUhFyYXRlX2xpbWl0X2J1ZGdldFIXYXV0b19wcm92aXNpb25fYWNjb3VudHNSEWF1dG9fZ3JhbnRfb25fb3JnUg9hdXRvX2dyYW50X3JvbGVSD2lzX3Nzb19wcm92aWRlclIOb2lkY19jbGllbnRfaWRSDHNzb19yZXF1aXJlZGIGcHJvdG8z", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
 
 /**
- * IdentityProviderSpec defines the configuration for an external identity provider.
- *
- * An IdentityProvider represents an external platform's trust relationship with Stigmer.
- * It is owned by an organization (e.g., "planton") and configures how Stigmer validates
- * tokens from that platform. Each request presents the provider's own JWT: Stigmer routes
- * it by its issuer and audience, validates the token signature against the configured
- * JWKS, and resolves the user's federated identity account by the JWT's sub claim and
- * this provider's reference.
- *
- * Every token this provider vouches for is bound to one organization: the
- * child organization external_id_claim names when it is set, otherwise the
- * provider's own. A bound token works in that organization only.
- *
- * Two settings control what happens when someone signs in:
- *
- *   1. create_accounts_on_sign_in: whether Stigmer creates a federated
- *      identity account from the token's claims the first time it sees a
- *      user. When false (the default), the platform creates accounts through
- *      CreateFederatedAccount before its users can sign in.
- *
- *   2. sign_in_role: the role an account receives the first time it signs in
- *      to an organization through this provider. Unspecified means none: the
- *      platform grants roles itself through IAM policies.
- *
- * An SSO provider (is_sso_provider) sets both, which also enables the OIDC
- * browser login flow via oidc_client_id.
- *
- * The spec contains only public validation configuration — no secrets are stored.
- * For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
- * point to the OIDC provider's standard endpoints.
- *
- * Example YAML (platform delegation):
- *   apiVersion: iam.stigmer.ai/v1
- *   kind: IdentityProvider
- *   metadata:
- *     name: Planton
- *     slug: planton
- *     org: planton
- *   spec:
- *     display_name: "Planton"
- *     jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
- *     allowed_issuers: ["https://planton-prod.us.auth0.com/"]
- *     expected_audience: "https://api.planton.ai/"
- *     userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
- *
- * Example YAML (JIT provisioning, single-org):
- *   apiVersion: iam.stigmer.ai/v1
- *   kind: IdentityProvider
- *   metadata:
- *     name: Acme Platform
- *     slug: acme-platform
- *     org: acme
- *   spec:
- *     display_name: "Acme Platform"
- *     jwks_uri: "https://auth.acme.com/.well-known/jwks.json"
- *     allowed_issuers: ["https://auth.acme.com/"]
- *     expected_audience: "https://api.acme.com/stigmer"
- *     userinfo_endpoint: "https://auth.acme.com/userinfo"
- *     create_accounts_on_sign_in: true
- *     sign_in_role: viewer
- *
- * Example YAML (JIT provisioning, multi-tenant):
- *   apiVersion: iam.stigmer.ai/v1
- *   kind: IdentityProvider
- *   metadata:
- *     name: SaaS Platform
- *     slug: saas-platform
- *     org: saas-co
- *   spec:
- *     display_name: "SaaS Platform"
- *     jwks_uri: "https://auth.saas.co/.well-known/jwks.json"
- *     allowed_issuers: ["https://auth.saas.co/"]
- *     expected_audience: "https://api.saas.co/stigmer"
- *     userinfo_endpoint: "https://auth.saas.co/userinfo"
- *     create_accounts_on_sign_in: true
- *     sign_in_role: member
- *     external_id_claim: "org_id"
- *
- * Example YAML (self-managed SSO):
- *   apiVersion: iam.stigmer.ai/v1
- *   kind: IdentityProvider
- *   metadata:
- *     name: Acme Corp Okta
- *     slug: acme-okta
- *     org: acme
- *   spec:
- *     display_name: "Acme Corp Okta"
- *     jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
- *     allowed_issuers: ["https://acme.okta.com/oauth2/default"]
- *     expected_audience: "api://acme-stigmer"
- *     is_sso_provider: true
- *     oidc_client_id: "0oa1bcdef2ghijk3lmno"
- *     create_accounts_on_sign_in: true
- *     sign_in_role: viewer
- *
  * @generated from message ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec
  */
 export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec"> & {
@@ -196,44 +101,6 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    * @generated from field: string userinfo_endpoint = 6;
    */
   userinfoEndpoint: string;
-
-  /**
-   * Whether this identity provider serves as the SSO login provider for its
-   * owning organization.
-   *
-   * When true, the Stigmer web app offers a "Sign in with [display_name]"
-   * option on the organization's login page and initiates the OIDC
-   * Authorization Code flow with PKCE using the configured oidc_client_id.
-   *
-   * An SSO provider sets create_accounts_on_sign_in and a sign_in_role, so
-   * a person's first sign-in creates their federated identity account from
-   * the JWT's OIDC claims and grants them sign_in_role on the organization.
-   *
-   * Constraints:
-   * - At most one IdentityProvider per organization can be the SSO provider.
-   * - An SSO provider cannot set external_id_claim (different trust
-   *   models: SSO signs people in to the provider's own organization).
-   *
-   * @generated from field: bool is_sso_provider = 7;
-   */
-  isSsoProvider: boolean;
-
-  /**
-   * OIDC client identifier for browser-based SSO login.
-   *
-   * This is the client_id registered with the external IdP (e.g., Okta,
-   * Azure AD) for Stigmer's web application. The web app uses this to
-   * build the OIDC Authorization Code request with PKCE.
-   *
-   * No client_secret is stored — the web app is a public client using PKCE
-   * (Proof Key for Code Exchange), which is the recommended approach for
-   * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
-   *
-   * Required when is_sso_provider is true; must be empty otherwise.
-   *
-   * @generated from field: string oidc_client_id = 8;
-   */
-  oidcClientId: string;
 
   /**
    * Name of the JWT claim that names the child organization a token works

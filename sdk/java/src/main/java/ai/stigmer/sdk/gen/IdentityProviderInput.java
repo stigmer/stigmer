@@ -21,8 +21,6 @@ public final class IdentityProviderInput {
     private final java.util.List<String> allowedIssuers;
     private final String expectedAudience;
     private final String userinfoEndpoint;
-    private final boolean isSsoProvider;
-    private final String oidcClientId;
     private final String externalIdClaim;
     private final boolean createAccountsOnSignIn;
     private final IamRole signInRole;
@@ -39,8 +37,6 @@ public final class IdentityProviderInput {
         this.allowedIssuers = builder.allowedIssuers;
         this.expectedAudience = builder.expectedAudience;
         this.userinfoEndpoint = builder.userinfoEndpoint;
-        this.isSsoProvider = builder.isSsoProvider;
-        this.oidcClientId = builder.oidcClientId;
         this.externalIdClaim = builder.externalIdClaim;
         this.createAccountsOnSignIn = builder.createAccountsOnSignIn;
         this.signInRole = builder.signInRole;
@@ -62,10 +58,6 @@ public final class IdentityProviderInput {
         }
         if (this.userinfoEndpoint != null) {
             spec.setUserinfoEndpoint(this.userinfoEndpoint);
-        }
-        spec.setIsSsoProvider(this.isSsoProvider);
-        if (this.oidcClientId != null) {
-            spec.setOidcClientId(this.oidcClientId);
         }
         if (this.externalIdClaim != null) {
             spec.setExternalIdClaim(this.externalIdClaim);
@@ -113,8 +105,6 @@ public final class IdentityProviderInput {
         private java.util.List<String> allowedIssuers;
         private String expectedAudience;
         private String userinfoEndpoint;
-        private boolean isSsoProvider;
-        private String oidcClientId;
         private String externalIdClaim;
         private boolean createAccountsOnSignIn;
         private IamRole signInRole;
@@ -137,8 +127,6 @@ public final class IdentityProviderInput {
         public Builder allowedIssuers(java.util.List<String> allowedIssuers) { this.allowedIssuers = allowedIssuers; return this; }
         public Builder expectedAudience(String expectedAudience) { this.expectedAudience = expectedAudience; return this; }
         public Builder userinfoEndpoint(String userinfoEndpoint) { this.userinfoEndpoint = userinfoEndpoint; return this; }
-        public Builder isSsoProvider(boolean isSsoProvider) { this.isSsoProvider = isSsoProvider; return this; }
-        public Builder oidcClientId(String oidcClientId) { this.oidcClientId = oidcClientId; return this; }
         public Builder externalIdClaim(String externalIdClaim) { this.externalIdClaim = externalIdClaim; return this; }
         public Builder createAccountsOnSignIn(boolean createAccountsOnSignIn) { this.createAccountsOnSignIn = createAccountsOnSignIn; return this; }
         public Builder signInRole(IamRole signInRole) { this.signInRole = signInRole; return this; }

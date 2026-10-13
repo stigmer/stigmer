@@ -43,7 +43,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ons/rpc/method_options.proto\032,ai/stigmer" +
       "/iam/identityprovider/v1/api.proto\032+ai/s" +
       "tigmer/iam/identityprovider/v1/io.proto2" +
-      "\262\005\n\037IdentityProviderQueryController\022\243\001\n\003" +
+      "\251\004\n\037IdentityProviderQueryController\022\243\001\n\003" +
       "get\022-.ai.stigmer.commons.apiresource.Api" +
       "ResourceId\0324.ai.stigmer.iam.identityprov" +
       "ider.v1.IdentityProvider\"7\302\270\0303\010\001\020\025\"\005valu" +
@@ -56,16 +56,12 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ovidersByOrgInput\0325.ai.stigmer.iam.ident" +
       "ityprovider.v1.IdentityProviders\"K\302\270\030G\010\001" +
       "\020\036\"\003org*<unauthorized to list identity p" +
-      "roviders in this organization\022\206\001\n\016getSso" +
-      "Provider\0229.ai.stigmer.iam.identityprovid" +
-      "er.v1.OrganizationSsoLookup\0323.ai.stigmer" +
-      ".iam.identityprovider.v1.SsoProviderInfo" +
-      "\"\004\310\270\030\001\032\004\240\377+\025B\271\001B\nQueryProtoP\001\242\002\004ASII\252\002\"A" +
-      "i.Stigmer.Iam.Identityprovider.V1\312\002\"Ai\\S" +
-      "tigmer\\Iam\\Identityprovider\\V1\342\002.Ai\\Stig" +
-      "mer\\Iam\\Identityprovider\\V1\\GPBMetadata\352" +
-      "\002&Ai::Stigmer::Iam::Identityprovider::V1" +
-      "b\006proto3"
+      "roviders in this organization\032\004\240\377+\025B\271\001B\n" +
+      "QueryProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Ide" +
+      "ntityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Identi" +
+      "typrovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityp" +
+      "rovider\\V1\\GPBMetadata\352\002&Ai::Stigmer::Ia" +
+      "m::Identityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -86,7 +82,6 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
-    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isPublic);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

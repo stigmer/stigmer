@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASItChVPcmdhbml6YXRpb25Tc29Mb29rdXASFAoDb3JnGAEgASgJQge6SARyAhABImoKD1Nzb1Byb3ZpZGVySW5mbxIUCgxkaXNwbGF5X25hbWUYASABKAkSFgoOb2lkY19jbGllbnRfaWQYAiABKAkSDgoGaXNzdWVyGAMgASgJEhkKEWV4cGVjdGVkX2F1ZGllbmNlGAQgASgJYgZwcm90bzM", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQAWIGcHJvdG8z", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate]);
 
 /**
  * IdentityProviderId identifies an identity provider by its unique identifier.
@@ -106,83 +106,4 @@ export type ListIdentityProvidersByOrgInput = Message<"ai.stigmer.iam.identitypr
  */
 export const ListIdentityProvidersByOrgInputSchema: GenMessage<ListIdentityProvidersByOrgInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 3);
-
-/**
- * OrganizationSsoLookup identifies an organization for SSO provider discovery.
- * Used by the web app's login page to determine whether an organization has
- * SSO enabled and to retrieve the OIDC configuration needed to initiate login.
- *
- * @generated from message ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup
- */
-export type OrganizationSsoLookup = Message<"ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup"> & {
-  /**
-   * Organization to look up SSO configuration for: its id, as the shared
-   * SSO sign-in link carries it, or its slug, as a person types it.
-   *
-   * @generated from field: string org = 1;
-   */
-  org: string;
-};
-
-/**
- * Describes the message ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup.
- * Use `create(OrganizationSsoLookupSchema)` to create a new message.
- */
-export const OrganizationSsoLookupSchema: GenMessage<OrganizationSsoLookup> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 4);
-
-/**
- * SsoProviderInfo contains the minimal OIDC configuration the web app needs
- * to render an SSO login button and initiate the Authorization Code flow.
- *
- * This is a projection of the full IdentityProvider resource, exposing only
- * the fields safe for unauthenticated access. Internal configuration such as
- * JWKS URI, rate limits, and userinfo endpoint is intentionally excluded.
- *
- * @generated from message ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
- */
-export type SsoProviderInfo = Message<"ai.stigmer.iam.identityprovider.v1.SsoProviderInfo"> & {
-  /**
-   * Display name of the SSO provider (e.g., "Acme Corp Okta").
-   * Shown on the login button: "Sign in with [display_name]".
-   *
-   * @generated from field: string display_name = 1;
-   */
-  displayName: string;
-
-  /**
-   * OIDC client ID for initiating the Authorization Code flow with PKCE.
-   *
-   * @generated from field: string oidc_client_id = 2;
-   */
-  oidcClientId: string;
-
-  /**
-   * OIDC issuer URL. The web app appends /.well-known/openid-configuration
-   * to discover the authorization_endpoint, token_endpoint, and other
-   * OIDC metadata required for the login flow.
-   *
-   * @generated from field: string issuer = 3;
-   */
-  issuer: string;
-
-  /**
-   * Expected JWT audience value for the OIDC token request.
-   * The web app passes this as the audience parameter when initiating the
-   * Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
-   * a JWT access token with the correct aud claim; others determine the
-   * audience from server-side configuration and ignore this parameter.
-   * Empty means the web app should omit the audience parameter.
-   *
-   * @generated from field: string expected_audience = 4;
-   */
-  expectedAudience: string;
-};
-
-/**
- * Describes the message ai.stigmer.iam.identityprovider.v1.SsoProviderInfo.
- * Use `create(SsoProviderInfoSchema)` to create a new message.
- */
-export const SsoProviderInfoSchema: GenMessage<SsoProviderInfo> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 5);
 

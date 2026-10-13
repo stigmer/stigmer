@@ -29,8 +29,10 @@ import "buf/validate/validate.proto";
 //      to an organization through this provider. Unspecified means none: the
 //      platform grants roles itself through IAM policies.
 //
-// An SSO provider (is_sso_provider) sets both, which also enables the OIDC
-// browser login flow via oidc_client_id.
+// An identity provider is trust in another platform's tokens, never a way
+// to sign in to the Stigmer console: a company that wants its people to sign
+// in with its own identity provider makes it the deployment's own sign-in
+// (on a self-hosted server, STIGMER_OIDC_ISSUER).
 //
 // The spec contains only public validation configuration — no secrets are stored.
 // For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
@@ -82,33 +84,12 @@ import "buf/validate/validate.proto";
 //     create_accounts_on_sign_in: true
 //     sign_in_role: member
 //     external_id_claim: "org_id"
-//
-// Example YAML (self-managed SSO):
-//   apiVersion: iam.stigmer.ai/v1
-//   kind: IdentityProvider
-//   metadata:
-//     name: Acme Corp Okta
-//     slug: acme-okta
-//     org: acme
-//   spec:
-//     display_name: "Acme Corp Okta"
-//     jwks_uri: "https://acme.okta.com/oauth2/default/v1/keys"
-//     allowed_issuers: ["https://acme.okta.com/oauth2/default"]
-//     expected_audience: "api://acme-stigmer"
-//     is_sso_provider: true
-//     oidc_client_id: "0oa1bcdef2ghijk3lmno"
-//     create_accounts_on_sign_in: true
-//     sign_in_role: viewer
+
 message IdentityProviderSpec {
   option (buf.validate.message).cel = {
     id: "identity_provider.sign_in_role_not_owner"
     message: "sign_in_role cannot be owner; organization ownership must be assigned explicitly"
     expression: "this.sign_in_role != 1"
-  };
-  option (buf.validate.message).cel = {
-    id: "identity_provider.sso_creates_accounts_with_a_role"
-    message: "an SSO provider must set create_accounts_on_sign_in and a sign_in_role"
-    expression: "!this.is_sso_provider || (this.create_accounts_on_sign_in && this.sign_in_role != 0)"
   };
   option (buf.validate.message).cel = {
     id: "identity_provider.jwks_uri_required_with_issuers"
@@ -185,12 +166,13 @@ message IdentityProviderSpec {
   reserved 9, 10, 11;
   reserved "auto_provision_accounts", "auto_grant_on_org", "auto_grant_role";
 
-  // Field 15 required people to act in the organization only through its
-  // single sign-on provider. Stigmer has no single sign-on of its own, so it
-  // was removed, and is reserved so the number and name cannot return with
-  // another meaning.
-  reserved 15;
-  reserved "sso_required";
+  // Fields 7, 8 and 15 made a provider its organization's single sign-on:
+  // the console's "Sign in with" button, the browser client it used, and the
+  // requirement that people act in the organization only through it.
+  // Stigmer has no single sign-on of its own, so they were removed, and are
+  // reserved so the numbers and names cannot return with another meaning.
+  reserved 7, 8, 15;
+  reserved "is_sso_provider", "oidc_client_id", "sso_required";
 
   // OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account.
   // When Stigmer auto-provisions a federated account from a token that carries
@@ -207,36 +189,6 @@ message IdentityProviderSpec {
   // When set, it must be the userinfo_endpoint that the discovery document of
   // every allowed issuer names.
   string userinfo_endpoint = 6 [(buf.validate.field).string.max_len = 2048];
-
-  // Whether this identity provider serves as the SSO login provider for its
-  // owning organization.
-  //
-  // When true, the Stigmer web app offers a "Sign in with [display_name]"
-  // option on the organization's login page and initiates the OIDC
-  // Authorization Code flow with PKCE using the configured oidc_client_id.
-  //
-  // An SSO provider sets create_accounts_on_sign_in and a sign_in_role, so
-  // a person's first sign-in creates their federated identity account from
-  // the JWT's OIDC claims and grants them sign_in_role on the organization.
-  //
-  // Constraints:
-  // - At most one IdentityProvider per organization can be the SSO provider.
-  // - An SSO provider cannot set external_id_claim (different trust
-  //   models: SSO signs people in to the provider's own organization).
-  bool is_sso_provider = 7;
-
-  // OIDC client identifier for browser-based SSO login.
-  //
-  // This is the client_id registered with the external IdP (e.g., Okta,
-  // Azure AD) for Stigmer's web application. The web app uses this to
-  // build the OIDC Authorization Code request with PKCE.
-  //
-  // No client_secret is stored — the web app is a public client using PKCE
-  // (Proof Key for Code Exchange), which is the recommended approach for
-  // SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
-  //
-  // Required when is_sso_provider is true; must be empty otherwise.
-  string oidc_client_id = 8 [(buf.validate.field).string.max_len = 256];
 
   // Name of the JWT claim that names the child organization a token works
   // in, by the identifier the provider's organization keeps for it.

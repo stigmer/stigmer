@@ -11,7 +11,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IdentityProviderSchema, type IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders, type OrganizationSsoLookup, type SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import { ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -77,12 +77,6 @@ export class IdentityProviderClient {
       return await this.query.listByOrg(input);
     } catch (e) { throw wrapError(e); }
   }
-
-  async getSsoProvider(input: OrganizationSsoLookup): Promise<SsoProviderInfo> {
-    try {
-      return await this.query.getSsoProvider(input);
-    } catch (e) { throw wrapError(e); }
-  }
 }
 
 /** Input for creating/updating an IdentityProvider. */
@@ -104,8 +98,6 @@ export interface IdentityProviderInput {
   allowedIssuers?: string[];
   expectedAudience?: string;
   userinfoEndpoint?: string;
-  isSsoProvider?: boolean;
-  oidcClientId?: string;
   externalIdClaim?: string;
   createAccountsOnSignIn?: boolean;
   signInRole?: IamRole;
@@ -129,8 +121,6 @@ export function buildIdentityProviderProto(input: IdentityProviderInput): Identi
       allowedIssuers: input.allowedIssuers,
       expectedAudience: input.expectedAudience,
       userinfoEndpoint: input.userinfoEndpoint,
-      isSsoProvider: input.isSsoProvider,
-      oidcClientId: input.oidcClientId,
       externalIdClaim: input.externalIdClaim,
       createAccountsOnSignIn: input.createAccountsOnSignIn,
       signInRole: input.signInRole,
@@ -168,8 +158,6 @@ export function toIdentityProviderUpdateInput(resource: IdentityProvider): Ident
     allowedIssuers: spec.allowedIssuers?.length ? [...spec.allowedIssuers] : undefined,
     expectedAudience: spec.expectedAudience || undefined,
     userinfoEndpoint: spec.userinfoEndpoint || undefined,
-    isSsoProvider: spec.isSsoProvider || undefined,
-    oidcClientId: spec.oidcClientId || undefined,
     externalIdClaim: spec.externalIdClaim || undefined,
     createAccountsOnSignIn: spec.createAccountsOnSignIn || undefined,
     signInRole: spec.signInRole || undefined,

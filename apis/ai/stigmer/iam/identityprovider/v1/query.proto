@@ -53,24 +53,4 @@ service IdentityProviderQueryController {
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list identity providers in this organization";
   }
-
-  // Look up the SSO identity provider for an organization.
-  //
-  // Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
-  // expected audience) of the IdentityProvider where is_sso_provider is true
-  // for the given org. Returns NOT_FOUND if the organization has no SSO
-  // provider configured.
-  //
-  // This endpoint is called by the web app's login page before the user has
-  // signed in, so it requires no credential. The response intentionally omits
-  // internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
-  //
-  // @internal
-  // Authorization: none. Marked is_public so the authentication interceptor
-  // admits a tokenless caller on a server that requires authentication; a
-  // tokenless call is stamped with the trusted-local identity, so the handler
-  // never reads the caller.
-  rpc getSsoProvider(OrganizationSsoLookup) returns (SsoProviderInfo) {
-    option (ai.stigmer.commons.rpc.is_public) = true;
-  }
 }

@@ -22,8 +22,9 @@ spec:
     contact_email: platform@acme.example
   plan_id: pln_01j5q3k7m8r2s4tnz2hfp0q0c3
   entitlements:
-    features:
-      - sso_enforcement
+    limits:
+      max_orgs: 5
+      max_users: 250
   term: paid
   expires_at: "2027-09-01T00:00:00Z"
   grace_until: "2027-10-01T00:00:00Z"

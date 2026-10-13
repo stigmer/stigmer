@@ -32,11 +32,6 @@ class IdentityProviderQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersByOrgInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.IdentityProviders.FromString,
                 _registered_method=True)
-        self.getSsoProvider = channel.unary_unary(
-                '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getSsoProvider',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.OrganizationSsoLookup.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoProviderInfo.FromString,
-                _registered_method=True)
 
 
 class IdentityProviderQueryControllerServicer(object):
@@ -71,22 +66,6 @@ class IdentityProviderQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getSsoProvider(self, request, context):
-        """Look up the SSO identity provider for an organization.
-
-        Returns the SSO-relevant projection (display name, OIDC client ID, issuer,
-        expected audience) of the IdentityProvider where is_sso_provider is true
-        for the given org. Returns NOT_FOUND if the organization has no SSO
-        provider configured.
-
-        This endpoint is called by the web app's login page before the user has
-        signed in, so it requires no credential. The response intentionally omits
-        internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_IdentityProviderQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -104,11 +83,6 @@ def add_IdentityProviderQueryControllerServicer_to_server(servicer, server):
                     servicer.listByOrg,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersByOrgInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.IdentityProviders.SerializeToString,
-            ),
-            'getSsoProvider': grpc.unary_unary_rpc_method_handler(
-                    servicer.getSsoProvider,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.OrganizationSsoLookup.FromString,
-                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoProviderInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -193,33 +167,6 @@ class IdentityProviderQueryController(object):
             '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/listByOrg',
             ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.ListIdentityProvidersByOrgInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.IdentityProviders.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def getSsoProvider(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getSsoProvider',
-            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.OrganizationSsoLookup.SerializeToString,
-            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoProviderInfo.FromString,
             options,
             channel_credentials,
             insecure,
