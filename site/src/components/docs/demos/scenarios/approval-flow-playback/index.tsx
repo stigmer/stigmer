@@ -1,24 +1,28 @@
 "use client";
 
+/**
+ * The approval-flow demo: a return request, the agent's call waiting on the
+ * real inline gate, and the turn completing once the cursor presses Approve.
+ * The press is the real button calling the demo's answer handler, which
+ * swaps the waiting frame for the completed one; a step change resets it.
+ */
+
 import { useCallback, useRef, useState } from "react";
 import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor } from "@scenar/react";
+import type { MessageThreadProps } from "@stigmer/react";
 import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   type ApprovalFlowStep,
   approvalFlowSteps,
-  completedExecution,
+  completedConversation,
 } from "./steps";
 
-type ApprovalSubmitHandler = (
-  toolCallId: string,
-  action: ApprovalAction,
-  comment?: string,
-) => void;
+/** The gate's answer handler, as `MessageThread` calls it. */
+type AnswerHandler = NonNullable<MessageThreadProps["onAnswerToolUse"]>;
 
 export function ApprovalFlowPlayback() {
   const narrationManifest = useNarrationManifest("approval-flow-playback");
@@ -36,8 +40,10 @@ export function ApprovalFlowPlayback() {
     [],
   );
 
-  const handleApprovalSubmit: ApprovalSubmitHandler = useCallback(() => {
-    setApproved(true);
+  // An approval (Approve, or Approve all) lands the completed frame; a
+  // Deny leaves the gate waiting, as the demo has no denied ending.
+  const handleAnswer: AnswerHandler = useCallback((_toolUseId, answer) => {
+    if (answer !== "deny") setApproved(true);
   }, []);
 
   useStepInteractions({
@@ -56,7 +62,7 @@ export function ApprovalFlowPlayback() {
           narrationManifest={narrationManifest}
           onStepChange={handleStepChange}
         >
-          {(step) => renderStep(step, approved, handleApprovalSubmit)}
+          {(step) => renderStep(step, approved, handleAnswer)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
@@ -67,7 +73,7 @@ export function ApprovalFlowPlayback() {
 function renderStep(
   step: ApprovalFlowStep,
   approved: boolean,
-  onApprovalSubmit: ApprovalSubmitHandler,
+  onAnswer: AnswerHandler,
 ) {
   switch (step.view) {
     case "composer-typing":
@@ -86,9 +92,9 @@ function renderStep(
           <AppShell
             activeNav="new-session"
             contentKey="session"
-            aside={renderWidgetsSidebar(completedExecution)}
+            aside={renderWidgetsSidebar(completedConversation)}
           >
-            <ComposerView execution={completedExecution} />
+            <ComposerView conversation={completedConversation} />
           </AppShell>
         );
       }
@@ -96,11 +102,11 @@ function renderStep(
         <AppShell
           activeNav="new-session"
           contentKey="session"
-          aside={renderWidgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.conversation)}
         >
           <ComposerView
-            execution={step.execution}
-            onApprovalSubmit={onApprovalSubmit}
+            conversation={step.conversation}
+            onAnswerToolUse={onAnswer}
           />
         </AppShell>
       );
@@ -111,9 +117,9 @@ function renderStep(
         <AppShell
           activeNav="new-session"
           contentKey="session"
-          aside={renderWidgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.conversation)}
         >
-          <ComposerView execution={step.execution} />
+          <ComposerView conversation={step.conversation} />
         </AppShell>
       );
   }

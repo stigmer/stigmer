@@ -1,7 +1,8 @@
 /**
  * The theming playground on the theming docs page: the real `MessageThread`
- * rendering one fixed run (a prompt, a thinking card, a reply with a tool
- * call, and a pending approval) inside a `.stgm` scope the reader restyles.
+ * rendering one fixed turn, folded from its session events (a prompt, a
+ * thinking card, a tool call, a reply, and a call waiting on its approval
+ * gate inline on its row) inside a `.stgm` scope the reader restyles.
  *
  * Pins the contract the page's prose makes: the conversation and its
  * approval gate are there to look at; picking a preset swaps only the scope's
@@ -30,7 +31,9 @@ describe("ThemingPlayground", () => {
     expect(within(thread).getByRole("article", { name: "User message" }).textContent).toContain(
       "Can you clean up the stale feature flags in the billing service?",
     );
-    expect(screen.getByRole("alert", { name: "Approval required for delete_file" })).toBeTruthy();
+    expect(within(thread).getByText("I found 3 stale flags.", { exact: false })).toBeTruthy();
+    expect(within(thread).getByRole("button", { name: "Approve" })).toBeTruthy();
+    expect(within(thread).getByRole("button", { name: "Deny" })).toBeTruthy();
   });
 
   it("swaps the scope's preset class when the reader picks a preset", () => {
@@ -56,10 +59,9 @@ describe("ThemingPlayground", () => {
 
   it("keeps the approval gate on screen when the reader approves", () => {
     render(<ThemingPlayground />);
-    const gate = screen.getByRole("alert", { name: "Approval required for delete_file" });
 
-    fireEvent.click(within(gate).getByRole("button", { name: /^Approve$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
 
-    expect(screen.getByRole("alert", { name: "Approval required for delete_file" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeTruthy();
   });
 });

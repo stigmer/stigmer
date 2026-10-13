@@ -25,9 +25,9 @@ function renderStep(step: ToolCallStep) {
         <AppShell
           activeNav="new-session"
           contentKey="session"
-          aside={renderWidgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.conversation)}
         >
-          <ComposerView execution={step.execution} />
+          <ComposerView conversation={step.conversation} />
         </AppShell>
       );
   }
