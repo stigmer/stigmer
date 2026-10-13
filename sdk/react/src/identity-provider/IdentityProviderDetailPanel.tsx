@@ -149,8 +149,9 @@ export function IdentityProviderDetailPanel({
           isSsoProvider: isSso,
           oidcClientId: isSso ? oidcClientId.trim() : undefined,
           // Only an SSO provider can require its sign-in: a provider that
-          // stops being one stops requiring it (its owners' decision).
-          ssoRequired: isSso ? spec?.ssoRequired : false,
+          // stops being one stops requiring it (its owners' decision). The
+          // requirement is named only then; otherwise it keeps its value.
+          ...(!isSso && spec?.ssoRequired === true ? { ssoRequired: false } : {}),
           ...toSignInInput(signIn, isSso),
         });
         const updated = await update(resource, paths);

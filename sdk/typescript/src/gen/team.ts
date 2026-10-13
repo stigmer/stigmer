@@ -106,3 +106,30 @@ export function buildTeamProto(input: TeamInput): Team {
     })),
   }) as Team;
 }
+
+/**
+ * Maps a fetched {@link Team} to the complete {@link TeamInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toTeamInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toTeamInput(resource: Team): TeamInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(TeamSpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    description: spec.description || undefined,
+  };
+}

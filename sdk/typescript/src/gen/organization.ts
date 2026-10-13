@@ -12,7 +12,7 @@ import { OrganizationSchema, type Organization } from "@stigmer/protos/ai/stigme
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationIdSchema, UpdateOrganizationInputSchema, UpdateOrganizationPoliciesInputSchema, OrganizationListSchema, OrganizationsSchema, OrganizationExternalLookupSchema, ListChildOrgsInputSchema, ChildOrgListSchema, type UpdateOrganizationPoliciesInput, type OrganizationList, type Organizations, type OrganizationExternalLookup, type ListChildOrgsInput, type ChildOrgList } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import { OrganizationSpecSchema, OrganizationPreferencesSchema, OrganizationPoliciesSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { OrganizationSpecSchema, OrganizationPreferencesSchema, OrganizationPoliciesSchema, type OrganizationPreferences, type OrganizationPolicies } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 /** Provides operations on organization resources. */
 export class OrganizationClient {
@@ -164,4 +164,48 @@ export function buildOrganizationProto(input: OrganizationInput): Organization {
       policies,
     })),
   }) as Organization;
+}
+
+function toOrganizationPreferencesInput(msg: OrganizationPreferences): OrganizationPreferencesInput {
+  return {
+    standingContext: msg.standingContext || undefined,
+    memoryEnabled: msg.memoryEnabled || undefined,
+  };
+}
+
+function toOrganizationPoliciesInput(msg: OrganizationPolicies): OrganizationPoliciesInput {
+  return {
+    membersCanCreateAgents: msg.membersCanCreateAgents || undefined,
+  };
+}
+
+/**
+ * Maps a fetched {@link Organization} to the complete {@link OrganizationInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toOrganizationInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toOrganizationInput(resource: Organization): OrganizationInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(OrganizationSpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    description: spec.description || undefined,
+    logoUrl: spec.logoUrl || undefined,
+    externalId: spec.externalId || undefined,
+    preferences: spec.preferences ? toOrganizationPreferencesInput(spec.preferences) : undefined,
+    parentOrg: spec.parentOrg || undefined,
+    policies: spec.policies ? toOrganizationPoliciesInput(spec.policies) : undefined,
+  };
 }

@@ -134,3 +134,41 @@ export function buildOAuthAppProto(input: OAuthAppInput): OAuthApp {
     })),
   }) as OAuthApp;
 }
+
+/**
+ * Maps a fetched {@link OAuthApp} to the complete {@link OAuthAppInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toOAuthAppInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toOAuthAppInput(resource: OAuthApp): OAuthAppInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(OAuthAppSpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    provider: spec.provider || undefined,
+    clientId: spec.clientId || undefined,
+    clientSecret: spec.clientSecret || undefined,
+    authorizationUrl: spec.authorizationUrl || undefined,
+    tokenUrl: spec.tokenUrl || undefined,
+    scopes: spec.scopes?.length ? [...spec.scopes] : undefined,
+    userinfoUrl: spec.userinfoUrl || undefined,
+    scopeParameterName: spec.scopeParameterName || undefined,
+    vendorApprovalStatus: spec.vendorApprovalStatus || undefined,
+    vendorApprovalDocsUrl: spec.vendorApprovalDocsUrl || undefined,
+    tokenEndpointAuthMethod: spec.tokenEndpointAuthMethod || undefined,
+    addresses: spec.addresses?.length ? [...spec.addresses] : undefined,
+  };
+}

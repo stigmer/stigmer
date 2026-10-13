@@ -8,7 +8,7 @@ import { MemorySchema, type Memory } from "@stigmer/protos/ai/stigmer/agentic/me
 import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
 import { MemoryIdSchema, UpdateMemoryInputSchema, ListMemoriesRequestSchema, MemoryListSchema, type ListMemoriesRequest, type MemoryList } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/io_pb";
 import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
-import { MemorySpecSchema, MemoryProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
+import { MemorySpecSchema, MemoryProvenanceSchema, type MemoryProvenance } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -120,4 +120,42 @@ export function buildMemoryProto(input: MemoryInput): Memory {
       provenance,
     })),
   }) as Memory;
+}
+
+function toMemoryProvenanceInput(msg: MemoryProvenance): MemoryProvenanceInput {
+  return {
+    agentId: msg.agentId || undefined,
+    sessionId: msg.sessionId || undefined,
+    runId: msg.runId || undefined,
+    toolCallId: msg.toolCallId || undefined,
+  };
+}
+
+/**
+ * Maps a fetched {@link Memory} to the complete {@link MemoryInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toMemoryInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toMemoryInput(resource: Memory): MemoryInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(MemorySpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    content: spec.content || undefined,
+    subjectIdentityAccountId: spec.subjectIdentityAccountId || undefined,
+    provenance: spec.provenance ? toMemoryProvenanceInput(spec.provenance) : undefined,
+  };
 }

@@ -4,13 +4,14 @@ import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { ConnectLinkController, ConnectLinkTokenInputSchema, ConnectLinkInfoSchema, StartConnectLinkOutputSchema, CompleteConnectLinkInputSchema, CompleteConnectLinkOutputSchema, type ConnectLinkTokenInput, type ConnectLinkInfo, type StartConnectLinkOutput, type CompleteConnectLinkInput, type CompleteConnectLinkOutput } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
 import { UpdateVaultInputSchema, SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnectionSignInSchema, VaultConnectionSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
+import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnectionSignInSchema, VaultConnectionSchema, type VaultSecret, type VaultConnectionSignIn, type VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { VaultValueController, FetchExecutionValuesInputSchema, ExecutionValuesSchema, type FetchExecutionValuesInput, type ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -273,4 +274,66 @@ export function buildVaultProto(input: VaultInput): Vault {
     }),
     spec,
   }) as Vault;
+}
+
+function toVaultSecretInput(msg: VaultSecret): VaultSecretInput {
+  return {
+    value: msg.value || undefined,
+    description: msg.description || undefined,
+    savedBy: msg.savedBy || undefined,
+    savedAt: msg.savedAt ? timestampDate(msg.savedAt) : undefined,
+  };
+}
+
+function toVaultConnectionSignInInput(msg: VaultConnectionSignIn): VaultConnectionSignInInput {
+  return {
+    expiresAt: msg.expiresAt || undefined,
+    clientId: msg.clientId || undefined,
+    authMethod: msg.authMethod || undefined,
+    tokenEndpoint: msg.tokenEndpoint || undefined,
+    refreshToken: msg.refreshToken || undefined,
+    loginApp: msg.loginApp || undefined,
+  };
+}
+
+function toVaultConnectionInput(msg: VaultConnection): VaultConnectionInput {
+  return {
+    token: msg.token || undefined,
+    source: msg.source || undefined,
+    signIn: msg.signIn ? toVaultConnectionSignInInput(msg.signIn) : undefined,
+    description: msg.description || undefined,
+    savedBy: msg.savedBy || undefined,
+    savedAt: msg.savedAt ? timestampDate(msg.savedAt) : undefined,
+  };
+}
+
+/**
+ * Maps a fetched {@link Vault} to the complete {@link VaultInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toVaultInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toVaultInput(resource: Vault): VaultInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(VaultSpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    person: spec.owner?.case === "person" ? spec.owner.value : undefined,
+    description: spec.description || undefined,
+    externalId: spec.externalId || undefined,
+    secrets: Object.keys(spec.secrets ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.secrets).map(([k, v]) => [k, toVaultSecretInput(v)])) : undefined,
+    connections: Object.keys(spec.connections ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.connections).map(([k, v]) => [k, toVaultConnectionInput(v)])) : undefined,
+  };
 }

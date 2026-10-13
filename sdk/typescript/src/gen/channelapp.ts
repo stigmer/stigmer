@@ -9,7 +9,7 @@ import { ChannelAppSchema, type ChannelApp } from "@stigmer/protos/ai/stigmer/ag
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { UpdateChannelAppInputSchema, ListChannelAppsByOrgInputSchema, ChannelAppsSchema, type ListChannelAppsByOrgInput, type ChannelApps } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { ChannelAppSpecSchema, SlackChannelAppConfigSchema, WhatsAppChannelAppConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
+import { ChannelAppSpecSchema, SlackChannelAppConfigSchema, WhatsAppChannelAppConfigSchema, type SlackChannelAppConfig, type WhatsAppChannelAppConfig } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -149,4 +149,49 @@ export function buildChannelAppProto(input: ChannelAppInput): ChannelApp {
     }),
     spec,
   }) as ChannelApp;
+}
+
+function toSlackChannelAppConfigInput(msg: SlackChannelAppConfig): SlackChannelAppConfigInput {
+  return {
+    clientId: msg.clientId || undefined,
+    clientSecret: msg.clientSecret || undefined,
+    signingSecret: msg.signingSecret || undefined,
+  };
+}
+
+function toWhatsAppChannelAppConfigInput(msg: WhatsAppChannelAppConfig): WhatsAppChannelAppConfigInput {
+  return {
+    appId: msg.appId || undefined,
+    appSecret: msg.appSecret || undefined,
+    accessToken: msg.accessToken || undefined,
+    verifyToken: msg.verifyToken || undefined,
+  };
+}
+
+/**
+ * Maps a fetched {@link ChannelApp} to the complete {@link ChannelAppInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toChannelAppInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toChannelAppInput(resource: ChannelApp): ChannelAppInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(ChannelAppSpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    slack: spec.providerConfig?.case === "slack" ? toSlackChannelAppConfigInput(spec.providerConfig.value) : undefined,
+    whatsapp: spec.providerConfig?.case === "whatsapp" ? toWhatsAppChannelAppConfigInput(spec.providerConfig.value) : undefined,
+  };
 }

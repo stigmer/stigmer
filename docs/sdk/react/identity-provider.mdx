@@ -354,12 +354,15 @@ function LoginPage({ org }: { org: string }) {
 
 ### useUpdateIdentityProvider
 
-Mutation hook that wraps `identityProvider.update()` with loading
-and error state.
+Mutation hook that wraps `identityProvider.update(resource, paths)` with
+loading and error state.
 
-Updates an existing identity provider. The input must include the
-`slug` field to identify the target resource, along with the updated
-spec fields.
+`resource` names the identity provider by `metadata.id`, and `paths` names the
+fields the update changes (proto field paths such as
+`spec.display_name`). Every field it does not name keeps its stored value, so
+a teammate's change to another field survives the save. A identity provider read
+carries `metadata.etag`: sent back, the update is refused (ABORTED,
+reason `ETAG_MISMATCH`) if the identity provider changed since it was read.
 
 **Signature**
 
@@ -371,27 +374,23 @@ function useUpdateIdentityProvider(): UseUpdateIdentityProviderReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
     error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
-    isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
-    update: { type: "(input: IdentityProviderInput) => Promise<IdentityProvider>", description: "Submit an IdentityProviderInput to update an existing identity provider. Resolves with the updated resource." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(resource: MessageInit<IdentityProvider>, paths: string[]) => Promise<IdentityProvider>", description: "Update an identity provider: the fields `paths` names take their values from `resource`, and every other field keeps its stored value. Resolves with the updated resource." },
   }}
 />
 
 ```tsx
 const { update, isUpdating, error } = useUpdateIdentityProvider();
 
-await update({
-  name: "Acme Corp SSO",
-  slug: "acme-sso",
-  org: "acme",
-  displayName: "Acme Corp SSO",
-  isSsoProvider: true,
-  oidcClientId: "abc123",
-  createAccountsOnSignIn: true,
-  signInRole: IamRole.viewer,
-});
-refetch(); // refresh detail view
+await update(
+  {
+    metadata: { id: provider.metadata!.id, etag: provider.metadata!.etag },
+    spec: { displayName: "Acme Corp SSO" },
+  },
+  ["spec.display_name"],
+);
 ```
 
 

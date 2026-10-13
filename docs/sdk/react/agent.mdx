@@ -444,13 +444,15 @@ const { spec } = useRunAgentSpec(agentRef, session.status?.agentVersionHash);
 
 ### useUpdateAgent
 
-Mutation hook that updates an existing Agent resource.
+Mutation hook that wraps `agent.update(resource, paths)` with
+loading and error state.
 
-Wraps `stigmer.agent.update(input)` with loading and error state.
-The caller must provide a **complete** `AgentInput` — the backend
-performs full spec replacement. Use `toAgentUpdateInput()` (from
-`@stigmer/sdk`) to reconstruct the input from a fetched agent, modify
-the desired field, and pass the result here.
+`resource` names the agent by `metadata.id`, and `paths` names the
+fields the update changes (proto field paths such as
+`spec.description`). Every field it does not name keeps its stored value, so
+a teammate's change to another field survives the save. A agent read
+carries `metadata.etag`: sent back, the update is refused (ABORTED,
+reason `ETAG_MISMATCH`) if the agent changed since it was read.
 
 **Signature**
 
@@ -462,12 +464,24 @@ function useUpdateAgent(): UseUpdateAgentReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Clear the error state." },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
     error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
     isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
-    update: { type: "(input: AgentInput) => Promise<Agent>", description: "Update an existing agent with a full input. Returns the updated resource." },
+    update: { type: "(resource: MessageInit<Agent>, paths: string[]) => Promise<Agent>", description: "Update an agent: the fields `paths` names take their values from `resource`, and every other field keeps its stored value. Resolves with the updated resource." },
   }}
 />
+
+```tsx
+const { update, isUpdating, error } = useUpdateAgent();
+
+await update(
+  {
+    metadata: { id: agent.metadata!.id, etag: agent.metadata!.etag },
+    spec: { description: "Reviews pull requests" },
+  },
+  ["spec.description"],
+);
+```
 
 
 ## Components
@@ -565,7 +579,7 @@ All visual properties flow through `--stgm-*` design tokens.
     buildShareUrl: { type: "(shareId: string) => string", description: "Builds the absolute public chat URL for shares in the Shares tab. The host application owns URL construction — its configured public origin may differ from the rendering origin (e.g. the desktop app). It receives the share's id (`metadata.id`), the one identity a link carries. When omitted, share links fall back to the relative `/chat/<share id>` path." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
-    editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`." },
+    editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`, naming only that field and carrying the etag the agent was loaded at." },
     onAgentClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when an agent this agent lists as a subagent is selected, in its Subagents section or its dependency graph. The host owns the route to that agent's page; without it the rows are not links." },
     onNavigateToRun: { type: "(runId: string) => void", description: "Called with a run id when the user opens one of an eval's tries from the Evals tab, or a flagged run from the Quality tab; the host owns the route. Tries and flagged runs are listed without links when omitted." },
     onPluginClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when a plugin is selected: one the agent lists in its Plugins section or its dependency graph, or the one named in the \"installed by a plugin\" notice. The host owns the route to the plugin's page. The notice shows when this resource carries a live plugin's label, and `editable` is then narrowed to `false`: the server refuses a client edit of a plugin's resource, so no edit form is offered." },

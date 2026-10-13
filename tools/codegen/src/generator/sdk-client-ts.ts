@@ -1,7 +1,8 @@
 // sdk-client-ts target: typed resource clients for the TypeScript SDK
 // (sdk/typescript/src/gen). Byte-parity port of sdk_client_ts.go — per
 // resource: the client class over the Connect service stubs, the flattened
-// XxxInput interfaces and the buildXxxProto builders; plus the aggregate
+// XxxInput interfaces, the buildXxxProto builders and the toXxxInput
+// mappers that restate a fetched resource for a copy; plus the aggregate
 // client.ts and the kind-meta files. An update takes the resource and the
 // paths it changes (Update<Kind>Input).
 
@@ -9,6 +10,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
+import { generateTSResourceInputMapper, tsHasUpdateRPC } from "./sdk-client-ts-input.js";
 import {
   deriveTSImportBase,
   goQuote,
@@ -272,6 +274,11 @@ function generateTSResourceClient(
 
     body.push("\n");
     generateTSBuildProto(body, schema, cfg, specSchema, typeMap, imports);
+
+    if (tsHasUpdateRPC(schema, cfg)) {
+      body.push("\n");
+      generateTSResourceInputMapper(body, schema, cfg, specSchema, typeMap, imports);
+    }
   }
 
   const buf: string[] = [];

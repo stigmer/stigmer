@@ -25,7 +25,7 @@ import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { AccountAutomation } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
-import { toEvaluatorUpdateInput, toScheduleUpdateInput } from "@stigmer/sdk";
+import { toEvaluatorInput, toScheduleInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -61,7 +61,7 @@ export function useRemakeAutomation(): UseRemakeAutomationReturn {
             const old = await stigmer.schedule.get(automation.id);
             const slug = old.metadata?.slug ?? "";
             const copy = await stigmer.schedule.create({
-              ...toScheduleUpdateInput(old),
+              ...toScheduleInput(old),
               id: undefined,
               slug: `${slug}-${Date.now().toString(36)}`.slice(0, 63),
             });
@@ -75,7 +75,7 @@ export function useRemakeAutomation(): UseRemakeAutomationReturn {
           case "evaluator": {
             const old = await stigmer.evaluator.get(automation.id);
             await stigmer.evaluator.delete(automation.id);
-            const copy = await stigmer.evaluator.create({ ...toEvaluatorUpdateInput(old), id: undefined });
+            const copy = await stigmer.evaluator.create({ ...toEvaluatorInput(old), id: undefined });
             return copy.metadata?.id ?? "";
           }
           default:

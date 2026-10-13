@@ -483,3 +483,25 @@ export { SkillClient, type SkillInput } from "./gen/skill.js";
 export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export { PluginClient, type PluginInput, type PluginAuthorInput } from "./gen/plugin.js";
 export { RoutedPluginClient } from "./plugin.js";
+
+// The input a loaded resource restates, for copying it into a new resource
+// (`create({ ...toScheduleInput(res), id: undefined })`). An update never
+// needs one: it takes the resource itself and the paths it changes.
+export { toAgentInput } from "./gen/agent.js";
+export { toAgentChannelInput } from "./gen/agentchannel.js";
+export { toAgentShareInput } from "./gen/agentshare.js";
+export { toApiKeyInput } from "./gen/apikey.js";
+export { toChannelAppInput } from "./gen/channelapp.js";
+export { toEvaluatorInput } from "./gen/evaluator.js";
+export { toIdentityAccountInput } from "./gen/identityaccount.js";
+export { toIdentityProviderInput } from "./gen/identityprovider.js";
+export { toMemoryInput } from "./gen/memory.js";
+export { toOAuthAppInput } from "./gen/oauthapp.js";
+export { toOrganizationInput } from "./gen/organization.js";
+export { toPlatformClientInput } from "./gen/platformclient.js";
+export { toRunInput } from "./gen/run.js";
+export { toScheduleInput } from "./gen/schedule.js";
+export { toScoreInput } from "./gen/score.js";
+export { toSessionInput } from "./gen/session.js";
+export { toTeamInput } from "./gen/team.js";
+export { toVaultInput } from "./gen/vault.js";

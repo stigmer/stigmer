@@ -376,16 +376,19 @@ refresh(renamed.metadata?.id);
 
 ### useUpdateOrganization
 
-Mutation hook that wraps `organization.update()` with loading and
-error state.
+Mutation hook that wraps `organization.update(resource, paths)` with
+loading and error state.
 
-Updates an existing Organization resource. The input must include
-`name`, `org`, and `slug` to identify the target resource, along
-with the spec fields to update (`description`, `logoUrl`).
+`resource` names the organization by `metadata.id`, and `paths` names the
+fields the update changes (proto field paths such as
+`spec.description`). Every field it does not name keeps its stored value, so
+a teammate's change to another field survives the save. A organization read
+carries `metadata.etag`: sent back, the update is refused (ABORTED,
+reason `ETAG_MISMATCH`) if the organization changed since it was read.
 
-Returns the full `Organization` proto including
-server-updated metadata (version, timestamps) so callers can
-immediately reference the latest state.
+An organization's policies have their own door (`updatePolicies`), and
+its parent and external id are fixed at create: an update that names
+them is refused.
 
 **Signature**
 
@@ -397,23 +400,23 @@ function useUpdateOrganization(): UseUpdateOrganizationReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
     error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
-    isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
-    update: { type: "(input: OrganizationInput) => Promise<Organization>", description: "Submit an OrganizationInput to update an existing organization. Resolves with the updated resource." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(resource: MessageInit<Organization>, paths: string[]) => Promise<Organization>", description: "Update an organization: the fields `paths` names take their values from `resource`, and every other field keeps its stored value. Resolves with the updated resource." },
   }}
 />
 
 ```tsx
 const { update, isUpdating, error } = useUpdateOrganization();
 
-const updated = await update({
-  name: "Acme Corp",
-  slug: "acme-corp",
-  org: "acme-corp",
-  description: "Updated description",
-});
-refetch(); // refresh profile view
+await update(
+  {
+    metadata: { id: organization.metadata!.id, etag: organization.metadata!.etag },
+    spec: { description: "Updated description" },
+  },
+  ["spec.description"],
+);
 ```
 
 
@@ -537,8 +540,9 @@ The declared text is snapshotted into every eligible run
 run by the organization's members (first-party human operators only)
 and delivered to the agent as background context. Editing requires
 `can_edit` on the organization; viewers without it get a read-only
-rendering. On save, calls `organization.update()` with the complete
-mapped input (full-spec-replace safety) and fires `onUpdated`.
+rendering. On save, calls `organization.update()` naming only the
+preference it edits, with the etag the organization was loaded at, and
+fires `onUpdated`.
 
 All visual properties flow through `--stgm-*` design tokens. Zero
 dependencies on Console routing, auth context, or layout — platform

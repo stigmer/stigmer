@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
-import { EmptySchema } from "@bufbuild/protobuf/wkt";
+import { EmptySchema, timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -114,4 +114,35 @@ export function buildApiKeyProto(input: ApiKeyInput): ApiKey {
       boundOrg: input.boundOrg,
     })),
   }) as ApiKey;
+}
+
+/**
+ * Maps a fetched {@link ApiKey} to the complete {@link ApiKeyInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toApiKeyInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toApiKeyInput(resource: ApiKey): ApiKeyInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(ApiKeySpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    keyHash: spec.keyHash || undefined,
+    fingerprint: spec.fingerprint || undefined,
+    expiresAt: spec.expiresAt ? timestampDate(spec.expiresAt) : undefined,
+    neverExpires: spec.neverExpires || undefined,
+    boundOrg: spec.boundOrg || undefined,
+  };
 }

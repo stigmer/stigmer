@@ -9,7 +9,7 @@ import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score
 import { ScoreSource, CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { ScoreIdSchema, UpdateScoreInputSchema, ListScoresByRunRequestSchema, ScoreListSchema, ListScoresBySessionRequestSchema, GetAgentQualityReportRequestSchema, AgentQualityReportSchema, ListFlaggedScoresByAgentRequestSchema, type ListScoresByRunRequest, type ScoreList, type ListScoresBySessionRequest, type GetAgentQualityReportRequest, type AgentQualityReport, type ListFlaggedScoresByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
-import { ScoreSpecSchema, ScoreCriterionSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/spec_pb";
+import { ScoreSpecSchema, ScoreCriterionSchema, type ScoreCriterion } from "@stigmer/protos/ai/stigmer/agentic/score/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -140,4 +140,47 @@ export function buildScoreProto(input: ScoreInput): Score {
     }),
     spec,
   }) as Score;
+}
+
+function toScoreCriterionInput(msg: ScoreCriterion): ScoreCriterionInput {
+  return {
+    name: msg.name || undefined,
+    result: msg.result || undefined,
+    reason: msg.reason || undefined,
+  };
+}
+
+/**
+ * Maps a fetched {@link Score} to the complete {@link ScoreInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toScoreInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toScoreInput(resource: Score): ScoreInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(ScoreSpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    runId: spec.runId || undefined,
+    sessionId: spec.sessionId || undefined,
+    metric: spec.metric || undefined,
+    source: spec.source || undefined,
+    evaluatorVersion: spec.evaluatorVersion || undefined,
+    passed: spec.value?.case === "passed" ? spec.value.value : undefined,
+    criteria: spec.criteria?.length ? spec.criteria.map(toScoreCriterionInput) : undefined,
+    comment: spec.comment || undefined,
+    judgeModel: spec.judgeModel || undefined,
+  };
 }

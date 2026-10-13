@@ -95,3 +95,34 @@ export function buildEvaluatorProto(input: EvaluatorInput): Evaluator {
     })),
   }) as Evaluator;
 }
+
+/**
+ * Maps a fetched {@link Evaluator} to the complete {@link EvaluatorInput} that
+ * restates it, for copying it into a new resource:
+ *
+ *   await client.create({ ...toEvaluatorInput(res), id: undefined, slug: next });
+ *
+ * An update never needs it: it takes the resource and the paths it changes.
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toEvaluatorInput(resource: Evaluator): EvaluatorInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(EvaluatorSpecSchema);
+  return {
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    agentId: spec.agentId || undefined,
+    enabled: spec.enabled || undefined,
+    sampleRate: spec.sampleRate || undefined,
+    monthlyLimitUsd: spec.monthlyLimitUsd || undefined,
+    modelName: spec.modelName || undefined,
+  };
+}
