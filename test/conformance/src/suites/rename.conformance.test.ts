@@ -83,10 +83,10 @@ interface RenamableKind {
   readByReference(org: string, slug: string): Promise<Named>;
   // A write naming `slug` and no id: apply where the kind has one, else update.
   writeBySlug(org: string, slug: string): Promise<unknown>;
-  // Which RPC writeBySlug sends. An update authorizes its metadata.id, so a
-  // target whose authorizer enforces refuses one without an id at
-  // Authorize, before its slug is read; only a server that admits every
-  // caller reads it and answers SLUG_RENAMED.
+  // Which RPC writeBySlug sends. An update names its target by
+  // resource.metadata.id, so one without an id is refused with
+  // INVALID_ARGUMENT before anything is read, on every target; apply finds
+  // its target by slug and answers SLUG_RENAMED.
   readonly writeVerb: "apply" | "update";
 }
 
@@ -305,24 +305,19 @@ describe("a renamed resource keeps its id, and its old slug leads to it", () => 
       ).toEqual(before);
     });
 
-    it(`${kind.writeTitle} old slug, named by a write without the id, is refused with SLUG_RENAMED, whose words never name the new slug`, async () => {
+    it(`${kind.writeTitle} old slug, named by a write without the id, is refused ${kind.writeVerb === "update" ? "as an update with no id" : "with SLUG_RENAMED, whose words never name the new slug"}`, async () => {
       const { org } = await target.provisionTenancy();
       const before = await kind.create(org, uniqueName("stale-file"));
       const after = uniqueName("fresh-name");
       await kind.rename(before.id, after);
 
-      if (
-        kind.writeVerb === "update" &&
-        target.capabilities.enforcingAuthorizer
-      ) {
-        const denied = await expectGrpcCode(
+      if (kind.writeVerb === "update") {
+        const refused = await expectGrpcCode(
           () => kind.writeBySlug(org, before.slug),
-          Code.PermissionDenied,
-          "an update without an id, refused at Authorize before its slug is read",
+          Code.InvalidArgument,
+          "an update without an id, refused before its slug is read",
         );
-        expect(denied.rawMessage).toBe(
-          `unauthorized to update ${kind.noun.toLowerCase()}`,
-        );
+        expect(refused.rawMessage).toContain("resource.metadata.id is required");
         expect(
           await kind.readByReference(org, after),
           "nothing was written",

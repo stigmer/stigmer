@@ -266,10 +266,10 @@ export const PLATFORM_CLIENT_REFUSED_UPDATE_PATHS: ReadonlyArray<RefusedUpdatePa
 ];
 
 /**
- * Update — full spec replacement from the request (BuildUpdateState),
- * addressed by id or org-scoped slug; the platform's own clients refused
+ * Update — the paths the mask names, merged onto the stored row
+ * (BuildUpdateState), addressed by id; the platform's own clients refused
  * before any state is built; the reference rule as on create; the
- * credential fields kept from the row.
+ * credential fields refused by name and kept from the row.
  */
 async function updateClient(
   deps: PlatformClientControllerDeps,

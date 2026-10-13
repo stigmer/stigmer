@@ -148,19 +148,16 @@ describe("ApiKey conformance", () => {
         org: created.metadata?.org ?? "",
       },
       spec: {
-        // The stored hash echoed back unchanged — full-spec-replacement
-        // update semantics without touching key material (see header).
-        keyHash: storageHash(created.spec?.keyHash ?? ""),
-        fingerprint: created.spec?.fingerprint ?? "",
         expiresAt: timestampFromDate(expiry),
         neverExpires: true,
       },
-    }, updateMask: { paths: ["*"] } });
+    }, updateMask: { paths: ["spec.expires_at", "spec.never_expires"] } });
 
     expect(updated.spec?.expiresAt?.seconds).toBe(
       BigInt(Math.floor(expiry.getTime() / 1000)),
     );
     expect(updated.spec?.neverExpires).toBe(true);
+    expect(updated.spec?.keyHash, "the key material it does not name stays").toBe(storageHash(created.spec?.keyHash ?? ""));
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 

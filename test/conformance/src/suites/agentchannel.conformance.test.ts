@@ -384,13 +384,15 @@ describe("AgentChannel conformance — update immutability", () => {
       ...makeSlackAgentChannel(org, created.metadata!.name, agent.metadata!.slug, {
         appRefSlug: app.metadata!.slug,
       }),
-      metadata: created.metadata,
+      // No etag: the first rebind moved the row since this read.
+      metadata: { id: created.metadata!.id, name: created.metadata!.name, org: created.metadata!.org },
     }, updateMask: { paths: ["*"] } });
     expect(bound.spec?.appRef?.slug).toBe(app.metadata?.slug);
 
     const unbound = await clients.agentChannelCommand.update({ resource: {
       ...makeSlackAgentChannel(org, created.metadata!.name, agent.metadata!.slug),
-      metadata: created.metadata,
+      // No etag: the first rebind moved the row since this read.
+      metadata: { id: created.metadata!.id, name: created.metadata!.name, org: created.metadata!.org },
     }, updateMask: { paths: ["*"] } });
     expect(unbound.spec?.appRef?.slug ?? "").toBe("");
   });

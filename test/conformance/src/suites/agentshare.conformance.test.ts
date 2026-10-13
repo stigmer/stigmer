@@ -186,7 +186,8 @@ describe("AgentShare conformance — CRUD & identity", () => {
       () =>
         clients.agentShareCommand.update({ resource: {
           ...makeAgentShare(org, otherAgent.metadata!.slug, { name: created.metadata!.name }),
-          metadata: created.metadata,
+          // No etag: the refusal under test is the immutable agent_ref.
+          metadata: { id: created.metadata!.id, name: created.metadata!.name, org: created.metadata!.org },
         }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update re-pointing the share at a different agent",

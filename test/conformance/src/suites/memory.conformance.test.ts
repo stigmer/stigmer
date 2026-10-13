@@ -305,7 +305,8 @@ describe("Memory conformance", () => {
         clients.memoryCommand.update({ resource: {
           apiVersion: memory.apiVersion,
           kind: memory.kind,
-          metadata: memory.metadata,
+          // No etag: the edit above moved the row since this read.
+          metadata: { id: memory.metadata!.id, name: memory.metadata!.name, org: memory.metadata!.org },
           spec: { content: "x", subjectIdentityAccountId: "ida_someone_else" },
         }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
@@ -319,7 +320,8 @@ describe("Memory conformance", () => {
         clients.memoryCommand.update({ resource: {
           apiVersion: memory.apiVersion,
           kind: memory.kind,
-          metadata: memory.metadata,
+          // No etag: the edit above moved the row since this read.
+          metadata: { id: memory.metadata!.id, name: memory.metadata!.name, org: memory.metadata!.org },
           spec: {
             content: "x",
             subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,

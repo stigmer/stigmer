@@ -250,7 +250,7 @@ describe("Schedule update contract", () => {
     const missing = makeSchedule(org, name, agentSlug);
     missing.metadata = { name, org, id: "sch_01conformancemissing" };
     await expectGrpcCode(
-      () => clients.scheduleCommand.update(missing),
+      () => clients.scheduleCommand.update({ resource: missing, updateMask: { paths: ["*"] } }),
       Code.NotFound,
       "update a missing schedule",
     );
