@@ -6,7 +6,7 @@
 // runner's "view full output" marker.
 
 import { describe, it, expect } from "vitest";
-import { normalizeToolResult } from "../tool-view";
+import { normalizeToolResult, withoutOffloadTail } from "../tool-view";
 import { toolUseOf } from "./tool-use.js";
 
 describe("normalizeToolResult — offloaded output ref", () => {
@@ -61,5 +61,15 @@ describe("normalizeToolResult — offloaded output ref", () => {
     // A reference with no storageKey is not a usable offload pointer; fall back to text.
     const view = normalizeToolResult(toolUseOf({ name: "some_tool", result: "plain result", outputRef: { sizeBytes: 10n } }));
     expect(view.type).not.toBe("outputRef");
+  });
+
+  it("drops only a closing marker: one with a stray bracket, one not at the end, or none leaves the text whole", () => {
+    const marker = "\n\n[output truncated — 9 KB total; view full output]";
+    expect(withoutOffloadTail(`head${marker}`)).toBe("head");
+    expect(withoutOffloadTail(`a${marker}b${marker}`)).toBe(`a${marker}b`);
+    expect(withoutOffloadTail("head\n\n[output truncated — x] y]")).toBe("head\n\n[output truncated — x] y]");
+    expect(withoutOffloadTail(`head${marker} tail`)).toBe(`head${marker} tail`);
+    expect(withoutOffloadTail("plain]")).toBe("plain]");
+    expect(withoutOffloadTail("x".repeat(100_000) + "\n\n[output truncated — ".repeat(10_000))).toHaveLength(100_000 + 22 * 10_000);
   });
 });

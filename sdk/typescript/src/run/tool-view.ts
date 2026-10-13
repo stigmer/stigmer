@@ -352,11 +352,24 @@ const WRITE_CONTENT_FIELDS = ["contents", "content", "file_content"] as const;
 export type ToolViewInput = Pick<ToolUse, "name" | "mcpServerName" | "input" | "result" | "fullOutput">;
 
 /**
- * The marker the runner appends to an offloaded output's head
- * (backend/services/runner/src/shared/status-offload.ts `collapsedResultFor`);
- * the outputRef view's `preview` is the head without it.
+ * The start of the marker the runner appends to an offloaded output's head
+ * (backend/services/runner/src/shared/status-offload.ts `collapsedResultFor`):
+ * `\n\n[output truncated — <size> total; view full output]`.
  */
-const OFFLOAD_TAIL = /\n\n\[output truncated — [^\]]*\]$/;
+const OFFLOAD_TAIL_START = "\n\n[output truncated — ";
+
+/**
+ * An offloaded output's head without the runner's marker: the text up to
+ * the last marker, when that marker closes the text with no other `]`
+ * inside it; the text unchanged otherwise. String scans only, so a head of
+ * any shape reads in linear time.
+ */
+export function withoutOffloadTail(text: string): string {
+  const at = text.lastIndexOf(OFFLOAD_TAIL_START);
+  if (at < 0 || !text.endsWith("]")) return text;
+  const inside = text.slice(at + OFFLOAD_TAIL_START.length, -1);
+  return inside.includes("]") ? text : text.slice(0, at);
+}
 
 /**
  * Normalizes a tool use into a typed ToolResultView for rendering.
@@ -385,7 +398,7 @@ export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
       isImage: ref.isImage,
       mimeType: ref.mimeType,
       sizeBytes: Number(ref.sizeBytes),
-      preview: ref.isImage ? "" : result.replace(OFFLOAD_TAIL, ""),
+      preview: ref.isImage ? "" : withoutOffloadTail(result),
     };
   }
 
