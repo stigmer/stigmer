@@ -343,6 +343,8 @@ export const LANES = {
       "sdk/theme/**",
       "backend/libs/ts/plugin-package/**",
       "backend/libs/ts/eval-runtime/**",
+      "backend/libs/ts/session-log/**",
+      "backend/libs/ts/tool-vocabulary/**",
       ".vale.ini",
       ".prettierrc",
       ".lychee.toml",
