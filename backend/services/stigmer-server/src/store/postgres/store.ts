@@ -2654,11 +2654,6 @@ function sessionEventOf(row: SessionEventRow): SessionEventRecord {
 }
 
 /**
- * Serializes the writers of one session's log for the transaction: numbers
- * and times are assigned one writer at a time, and a write's count of the
- * session's working rows cannot race another's.
- */
-/**
  * The organization's permission-history lock, held to the end of the
  * transaction, so its entries are numbered in commit order. Taken before
  * the row the entry records (../permission-history.ts).
@@ -2716,6 +2711,11 @@ async function appendPermissionHistory(
   );
 }
 
+/**
+ * Serializes the writers of one session's log for the transaction: numbers
+ * and times are assigned one writer at a time, and a write's count of the
+ * session's working rows cannot race another's.
+ */
 async function lockSession(client: PoolClient, sessionId: string): Promise<void> {
   await client.query(
     `SELECT pg_advisory_xact_lock(hashtextextended('session_events/' || $1, 0))`,
