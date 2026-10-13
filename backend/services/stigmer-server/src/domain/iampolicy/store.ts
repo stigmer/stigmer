@@ -55,7 +55,9 @@
  * raises DuplicatePolicyError before anything is written, and deleting an
  * id that is not held records nothing. History equals the row changes
  * exactly, with nothing to filter or heal. An implementation may keep no
- * history and ignore the record; open source's adapter does. A driver
+ * history and ignore the record; the library's adapter keeps one only when
+ * the composition opens it to (resource-store.ts), and on open source it
+ * does not. A driver
  * written against the one-argument methods still satisfies this interface.
  */
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";

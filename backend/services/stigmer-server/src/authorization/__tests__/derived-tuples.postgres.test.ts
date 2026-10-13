@@ -287,7 +287,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       beforeEach(async () => {
         opened = await fixture.open();
-        counted = countingPolicies(newResourceIamPolicyStore(opened.store));
+        counted = countingPolicies(newResourceIamPolicyStore(opened.store, { keepsHistory: false }));
         accounts = newResourceIdentityAccountStore(opened.store);
         const organization = storedDeclaration("organization");
         await opened.store.saveResource(
@@ -720,7 +720,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       beforeEach(async () => {
         opened = await fixture.open();
-        counted = countingPolicies(newResourceIamPolicyStore(opened.store));
+        counted = countingPolicies(newResourceIamPolicyStore(opened.store, { keepsHistory: false }));
         await seed(storedDeclaration("organization"), {
           id: "acme",
           org: "",

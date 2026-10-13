@@ -4,9 +4,11 @@
  * (grant-path.ts) builds one for every row it writes or deletes that
  * grants access, and hands it to the store beside the row
  * (`IamPolicyStore.save` and `deleteById`), so an edition that keeps a
- * permission history writes it in the same atomic unit as the row. Open
- * source keeps no history table; the same facts ride the path's grant and
- * revoke log lines.
+ * permission history writes it in the same atomic unit as the row: the
+ * Cloud's own policy store, and the library's adapter in every edition
+ * above open source (resource-store.ts, store/permission-history.ts). Open
+ * source keeps none; the same facts ride the path's grant and revoke log
+ * lines.
  *
  * The cause names a door the grant path already has, never an edition's
  * business reason: an edition that grants on a person's behalf (an

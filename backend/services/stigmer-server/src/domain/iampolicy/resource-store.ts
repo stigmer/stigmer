@@ -23,18 +23,21 @@
  * Writes. `save` refuses a policy whose id is not its triple's derived id
  * (constants.ts policyIdFor): open source has no legacy random ids, and a
  * stray id would break the primary key's promise of one row per triple.
- * It is then read-then-write refusing a held id with DuplicatePolicyError,
- * because the generic Store's saveResource is an upsert with no
- * create-only form — the 2a adapter's shape and its recorded residual
- * window (two concurrent saves of one triple may both fulfil; the primary
- * key still guarantees ONE row, which is the invariant that matters, and
- * the grant path treats a same-triple winner as the duplicate arm either
- * way). Conditional store writes are a platform-wide follow-up, not this
- * adapter's to invent.
+ * It then stores the row through the Store's create-only
+ * `insertResource`, whose answer decides a held id: false raises
+ * DuplicatePolicyError. The store's key decides a race, so of two
+ * concurrent saves of one triple exactly one fulfils and the other is the
+ * duplicate the grant path already answers. `deleteById` is
+ * `deleteResource`.
  *
- * History. Open source keeps no permission history: the change record the
- * grant path hands `save` and `deleteById` (store.ts) is not read here, and
- * the same facts ride the grant path's log lines.
+ * History. A composition that keeps a permission history opens this
+ * adapter with `keepsHistory` (boot/compose.ts: every edition above open
+ * source). Then the change record the grant path hands `save` and
+ * `deleteById` (store.ts) rides the store write, and the store appends one
+ * entry in the row's own transaction, reading the row's triple and bytes
+ * itself (store/permission-history.ts): none for a held id or an id not
+ * held. Open source keeps none: the record is not passed, and the same
+ * facts ride the grant path's log lines.
  *
  * Store faults follow the store-fault mapping (domain/apikey/lookup.ts): a
  * typed ResourceNotFoundError reads as `undefined`; anything else
@@ -53,6 +56,8 @@ import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api
 import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import type { PermissionChange } from "../../store/permission-history.js";
+import type { PolicyChangeRecord } from "./change.js";
 import { USER_GRANT_PRINCIPAL_KINDS, policyIdFor } from "./constants.js";
 import { iamPolicyListIndex } from "./list-index.js";
 import { DuplicatePolicyError } from "./store.js";
@@ -72,7 +77,32 @@ const NON_STRUCTURAL_PRINCIPAL_KINDS: ReadonlyArray<string> =
   USER_GRANT_PRINCIPAL_KINDS.map((kind) => kindEnumName(kind));
 const NON_STRUCTURAL_RELATIONS: ReadonlyArray<string> = ["owner", "creator"];
 
-export function newResourceIamPolicyStore(store: Store): IamPolicyStore {
+/** How the composition opens the adapter. */
+export interface ResourceIamPolicyStoreOptions {
+  /** Record every access row change in the store's permission history (an edition above open source). */
+  readonly keepsHistory: boolean;
+}
+
+/** The store's change for a grant path record, when the composition keeps a history and the row grants access. */
+function permissionChangeOf(
+  options: ResourceIamPolicyStoreOptions,
+  record: PolicyChangeRecord | undefined,
+): PermissionChange | undefined {
+  if (!options.keepsHistory || record === undefined) {
+    return undefined;
+  }
+  return {
+    cause: record.cause,
+    actorId: record.actor.id,
+    actorClass: record.actor.callerClass,
+    org: record.organizationId,
+  };
+}
+
+export function newResourceIamPolicyStore(
+  store: Store,
+  options: ResourceIamPolicyStoreOptions,
+): IamPolicyStore {
   async function readById(id: string): Promise<IamPolicy | undefined> {
     try {
       return await store.getResource(KIND, id, IamPolicySchema);
@@ -97,19 +127,25 @@ export function newResourceIamPolicyStore(store: Store): IamPolicyStore {
   }
 
   return {
-    async save(policy): Promise<void> {
+    async save(policy, record): Promise<void> {
       const id = policy.metadata?.id ?? "";
       if (policy.spec === undefined || id !== policyIdFor(policy.spec)) {
         throw new Error("policy id must be derived from its triple");
       }
-      if ((await readById(id)) !== undefined) {
+      const inserted = await store.insertResource(
+        KIND,
+        id,
+        IamPolicySchema,
+        policy,
+        permissionChangeOf(options, record),
+      );
+      if (!inserted) {
         throw new DuplicatePolicyError(`IAM policy '${id}' already exists`);
       }
-      await store.saveResource(KIND, id, IamPolicySchema, policy);
     },
 
-    async deleteById(id): Promise<void> {
-      await store.deleteResource(KIND, id);
+    async deleteById(id, record): Promise<void> {
+      await store.deleteResource(KIND, id, permissionChangeOf(options, record));
     },
 
     findById: readById,

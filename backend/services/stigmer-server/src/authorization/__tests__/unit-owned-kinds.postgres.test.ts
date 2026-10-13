@@ -133,7 +133,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
 
       beforeEach(async () => {
         opened = await fixture.open();
-        policies = newResourceIamPolicyStore(opened.store);
+        policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
         accounts = newResourceIdentityAccountStore(opened.store);
         const organization = storedDeclaration("organization");
         for (const id of ["acme", "globex"]) {
