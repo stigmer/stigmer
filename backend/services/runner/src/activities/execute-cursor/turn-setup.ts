@@ -442,14 +442,23 @@ export function resolveTimeoutMessage(facts: { readonly resuming: boolean; reado
 
 /**
  * The adapter's own read of the adjudicated rows the runtime already turned
- * into verdicts. Create-vs-resume is the adapter's fact about its ENGINE: a
- * bound agent id (`threadId`, engine-minted) means the Cursor agent already
- * holds this session's conversation, so this turn resumes it — the runtime's
- * `isReinvocation` answers its own question and is not consulted here.
+ * into verdicts, with what each was asked under: both from the log, as the
+ * runtime read it (`input.approvalDecisions`, `input.approvalAsks`); the
+ * rows give only the set and the calls. Create-vs-resume is the adapter's
+ * fact about its ENGINE: a bound agent id (`threadId`, engine-minted) means
+ * the Cursor agent already holds this session's conversation, so this turn
+ * resumes it — the runtime's `isReinvocation` answers its own question and
+ * is not consulted here.
  */
 export function readAdjudicatedRows(input: TurnInput, status: RunStatus): AdjudicatedRows {
   const reinvoked = input.threadId !== "";
-  const adjudicated = reinvoked ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? []) : undefined;
+  const adjudicated = reinvoked
+    ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? [], {
+        runId: input.executionId,
+        decisions: input.approvalDecisions,
+        asks: input.approvalAsks,
+      })
+    : undefined;
   return {
     isReinvocation: reinvoked,
     adjudicatedApprovals: adjudicated?.pendingApprovals ?? [],

@@ -55,7 +55,7 @@ import { existsSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { create, toJson } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { RunSchema, RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ApprovalAction,
@@ -84,6 +84,7 @@ import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } fr
 import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
 import { deriveActiveLeases, hookLeaseKey } from "../../../../shared/approval-policy.js";
+import { approvalAnswersOf } from "../../../../harness/approval-answers.js";
 
 const GUARD = `#!/usr/bin/env bash
 input=$(cat)
@@ -282,7 +283,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(held.approvalPolicySource).toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
 
-    const leases = deriveActiveLeases(create(RunSchema, { status }));
+    const leases = deriveActiveLeases(approvalAnswersOf(record.executionId, status, record.sessionEvents).grants.values(), false);
     expect([...leases.categories]).toEqual([]);
     expect([...leases.servers]).toEqual([]);
     expect([...leases.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);

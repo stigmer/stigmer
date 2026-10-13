@@ -118,6 +118,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     sessionId,
     approvalDecisions: overrides.approvalDecisions ?? new Map(),
     approvalDenyMessages: overrides.approvalDenyMessages ?? new Map(),
+    approvalAsks: overrides.approvalAsks ?? new Map(),
     execution,
     session,
     blueprint,

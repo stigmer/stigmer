@@ -69,6 +69,7 @@ import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
+import type { ApprovalAsk } from "../harness/approval-answers.js";
 import type { TurnInput, TurnHookSource, TurnSubagent } from "../harness/types.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
@@ -140,6 +141,7 @@ export interface WireTurnInput {
   readonly sessionId: string;
   readonly approvalDecisions: readonly (readonly [string, ApprovalAction])[];
   readonly approvalDenyMessages: readonly (readonly [string, string])[];
+  readonly approvalAsks: readonly (readonly [string, ApprovalAsk])[];
   readonly execution: string;
   readonly session: string;
   readonly blueprint: {
@@ -239,6 +241,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
     sessionId: input.sessionId,
     approvalDecisions: [...input.approvalDecisions],
     approvalDenyMessages: [...input.approvalDenyMessages],
+    approvalAsks: [...input.approvalAsks],
     execution: encodeMessage(RunSchema, input.execution),
     session: encodeMessage(SessionSchema, input.session),
     blueprint: {
@@ -356,6 +359,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
     sessionId: wire.sessionId,
     approvalDecisions: new Map(wire.approvalDecisions),
     approvalDenyMessages: new Map(wire.approvalDenyMessages),
+    approvalAsks: new Map(wire.approvalAsks),
     execution: decodeMessage(RunSchema, wire.execution),
     session,
     blueprint: {

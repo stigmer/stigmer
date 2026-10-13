@@ -309,8 +309,10 @@ export function collectSettledToolCallIds(
 }
 
 /**
- * Whether the server has already adjudicated this row — the user decided its
- * gate (`approval_action`, the server's field; the runner never writes it).
+ * Whether a person has already adjudicated this row — they answered its gate
+ * (`approval_action`: the answer the session's log holds for the call, which
+ * the runtime's seed copies onto the row, `harness/approval-answers.ts`; no
+ * adapter writes it).
  *
  * Such a row belongs to a gate that is CLOSED: approved and executed, or
  * declined, in an earlier invocation of this execution. No reconciliation of

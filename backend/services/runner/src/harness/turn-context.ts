@@ -74,7 +74,7 @@ import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { scopedRunnerCredential } from "../client/token-claims.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
-import { readApprovalAnswers, NO_APPROVAL_ANSWERS } from "./approval-answers.js";
+import { copyAnswersOntoRows, readApprovalAnswers, NO_APPROVAL_ANSWERS, type ApprovalAsk } from "./approval-answers.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
@@ -102,7 +102,7 @@ import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared
 import { readChannelConversationId, synthesizeConversationAttachment } from "../shared/conversation-attachment.js";
 import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
-import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED } from "../shared/approval-policy.js";
+import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED, type LeaseGrant } from "../shared/approval-policy.js";
 import { listTurnTools, type McpToolListing } from "../shared/mcp-tool-listing.js";
 import { ToolScope } from "../shared/tool-lists.js";
 import { resolveAttachments } from "../shared/attachment-resolver.js";
@@ -231,16 +231,27 @@ export interface ResolutionDeps {
  * `TurnInput`: `isReinvocation` is the adapter's own derivation from
  * `threadId` (the contract carries no flag by design, `types.ts` header) and
  * the runtime reads it only inside {@link resolveTurnContext}; the decisions
- * ARE on the input. The seeded rows of every kind are on `sink.status`
- * ({@link seedFromPersistedStatus}); an adapter wraps them by reference.
+ * and the asks ARE on the input. The seeded rows of every kind are on
+ * `sink.status` ({@link seedFromPersistedStatus}), each carrying the log's
+ * answer to its call; an adapter wraps them by reference.
  */
 export interface TurnReinvocation {
   /** The engine already holds state for this execution (derived per {@link isReinvocation}). */
   readonly isReinvocation: boolean;
+  /**
+   * The log holds what an earlier invocation of this run's engine did
+   * ({@link runWroteEngineEvents}): the emitter's `resumed`, which reads
+   * back what the run already wrote before writing on.
+   */
+  readonly runWroteEvents: boolean;
   /** The answered WAITING rows, keyed by tool-call id; empty when nothing was answered. */
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
   /** The reason a person gave with each deny that carries one, by tool-call id. */
   readonly approvalDenyMessages: ReadonlyMap<string, string>;
+  /** What each of the run's asked calls was asked under, by tool use id (`approval-answers.ts`). */
+  readonly approvalAsks: ReadonlyMap<string, ApprovalAsk>;
+  /** The run's grants, by the tool use id each was given on: the leases phase 4b arms. */
+  readonly grants: ReadonlyMap<string, LeaseGrant>;
 }
 
 // ---------------------------------------------------------------------------
@@ -321,15 +332,18 @@ export type WorkspaceLockOutcome =
  *    and the legacy positional wire shape yields 0, so `turnSeq` cannot be
  *    the signal.
  *  - `deterministic` (native: the runtime-minted thread id): the id exists
- *    on the FIRST turn too, so the evidence is the persisted transcript.
- *    Whether the execution already has committed history is the ONE signal
- *    that behaves identically across the engine's checkpointer backends:
- *    a durable saver (sqlite locally, http in cloud) keeps the checkpoint
- *    and resumes from it, while the test-only memory saver recreates it
- *    empty and replays from scratch — so the live checkpoint cannot be the
- *    signal (native's `shouldSeedFromPersistedTranscript`, retired with its
- *    orchestrator). A first run has no persisted messages and starts from
- *    empty, as it always did.
+ *    on the FIRST turn too, so the evidence is the session's log: whether it
+ *    holds an event the runner wrote from this run's engine
+ *    ({@link runWroteEngineEvents}). Whether the execution already has
+ *    committed history is the ONE signal that behaves identically across
+ *    the engine's checkpointer backends: a durable saver (sqlite locally,
+ *    http in cloud) keeps the checkpoint and resumes from it, while the
+ *    test-only memory saver recreates it empty and replays from scratch —
+ *    so the live checkpoint cannot be the signal (native's
+ *    `shouldSeedFromPersistedTranscript`, retired with its orchestrator).
+ *    Any event of the run cannot be it either: the server writes the run's
+ *    `user.message` when it creates the run. A first run's engine has
+ *    written nothing and starts from empty, as it always did.
  *
  * This is the runtime's own reading, for its phases (the seed, the
  * exact-apply). An adapter that needs create-vs-resume for its ENGINE
@@ -340,18 +354,49 @@ export type WorkspaceLockOutcome =
 export function isReinvocation(
   stateIdSource: StateIdSource,
   input: NormalizedActivityInput,
-  execution: Run,
+  runWroteEvents: boolean,
 ): boolean {
   switch (stateIdSource) {
     case "engine-minted":
       return input.threadId !== "";
     case "deterministic":
-      return (execution.status?.messages.length ?? 0) > 0;
+      return runWroteEvents;
     default: {
       const exhaustive: never = stateIdSource;
       throw new Error(`isReinvocation: unknown state id source ${String(exhaustive)}`);
     }
   }
+}
+
+/**
+ * The event types the runner writes from the rows its engine produced
+ * (`events/emitter.ts` `writeMessage`, `writeToolUse`): a message, a
+ * thinking, a tool use, a harness note. The other types a runner may write
+ * say nothing about the engine: `stigmer.memory.recalled` is written at the
+ * turn's first write whatever the engine did, and
+ * `stigmer.file_review.reconciled` at the turn's start, before any engine;
+ * the rest follow one of these.
+ */
+export const ENGINE_EVENT_TYPES = [
+  "agent.message",
+  "agent.thinking",
+  "agent.tool_use",
+  "agent.mcp_tool_use",
+  "stigmer.harness.note",
+] as const;
+
+/**
+ * Whether the session's log holds an event an earlier invocation of this
+ * run wrote from its engine ({@link ENGINE_EVENT_TYPES}): one read of at
+ * most one event. Throws when the log cannot be read, as the turn's other
+ * control-plane reads do.
+ */
+export async function runWroteEngineEvents(
+  client: Pick<StigmerClient, "hasRunSessionEvent">,
+  sessionId: string,
+  runId: string,
+): Promise<boolean> {
+  return client.hasRunSessionEvent(sessionId, runId, ENGINE_EVENT_TYPES);
 }
 
 /**
@@ -736,12 +781,20 @@ export async function startEvalMocks(
 /**
  * Phase 3: what the previous invocation left.
  *
- * On a reinvocation, seed the in-progress status from the persisted
- * execution ({@link seedFromPersistedStatus}), BEFORE the harness's
- * transcript builder wraps `status.messages`. Tool approvals (shell / MCP /
- * a gated write) resolve from the answers the server appended to the
- * session's log, read here through the one door, `approval-answers.ts`
- * `readApprovalAnswers`, onto the seeded rows. Any answer runs the agent: an
+ * Whether this invocation resumes is read first ({@link isReinvocation},
+ * with the log's {@link runWroteEngineEvents}). On a reinvocation, seed the
+ * in-progress status from the persisted execution
+ * ({@link seedFromPersistedStatus}), BEFORE the harness's transcript
+ * builder wraps `status.messages`. Tool approvals (shell / MCP / a gated
+ * write) resolve from the answers the server appended to the session's log,
+ * read here through the one door, `approval-answers.ts`
+ * `readApprovalAnswers`, on every reinvocation. The seeded rows are the
+ * runtime's working memory of the transcript, so the seed then copies each
+ * call's answer from the log onto its row (`copyAnswersOntoRows`, clearing
+ * whatever the fetched row carried): every later reader of a row's
+ * `approval_action` reads the log's answer, never a server stamp.
+ *
+ * Any answer runs the agent: an
  * allowed call proceeds; a denied one is refused with the reason given, and
  * the run continues without it (the row is settled SKIPPED after the turn,
  * `approval-decisions.ts`). Until #1096 a REJECT failed the turn here with
@@ -762,16 +815,22 @@ export async function reconcileReinvocation(
   },
 ): Promise<TurnReinvocation> {
   deps.enterPhase("reconcile_reinvocation");
-  const reinvoked = isReinvocation(args.stateIdSource, deps.input, args.execution);
+  const runId = deps.input.executionId;
+  const runWroteEvents = await runWroteEngineEvents(deps.client, args.sessionId, runId);
+  const reinvoked = isReinvocation(args.stateIdSource, deps.input, runWroteEvents);
   if (reinvoked) seedFromPersistedStatus(deps.status, deps.transcript, args.execution);
   const answers = reinvoked
-    ? await readApprovalAnswers(deps.client, {
-        sessionId: args.sessionId,
-        runId: deps.input.executionId,
-        status: deps.status,
-      })
+    ? await readApprovalAnswers(deps.client, { sessionId: args.sessionId, runId, status: deps.status })
     : NO_APPROVAL_ANSWERS;
-  return { isReinvocation: reinvoked, approvalDecisions: answers.decisions, approvalDenyMessages: answers.denyMessages };
+  if (reinvoked) copyAnswersOntoRows(runId, deps.status, answers);
+  return {
+    isReinvocation: reinvoked,
+    runWroteEvents,
+    approvalDecisions: answers.decisions,
+    approvalDenyMessages: answers.denyMessages,
+    approvalAsks: answers.asks,
+    grants: answers.grants,
+  };
 }
 
 /**
@@ -848,7 +907,9 @@ export const PLATFORM_TOOLS_OFF_NOTICE =
  * mark destructive, read live), with two bypasses shared with the native
  * harness (`shared/approval-policy.ts` `ActiveLeases`): the pre-armed
  * spec.auto_approve_all is the one whole-run global bypass; an interactive
- * APPROVE_ALL grants a run-lifetime lease scoped to that action's class. An
+ * APPROVE_ALL grants a run-lifetime lease scoped to that action's class,
+ * read from the run's `stigmer.permission.grant` events (`grants`, the
+ * reinvocation phase's read; none on a fresh turn). An
  * engine that loads the tools itself reads their marks from what it loaded
  * (`capabilities.readsToolMarks`), so the default carries only the leases
  * here and the engine completes it; for any other engine each plugin server
@@ -868,6 +929,8 @@ export async function resolveMcpServersAndPolicies(
     readonly blueprint: ResolvedBlueprint;
     readonly values: RunValues;
     readonly readsToolMarks: boolean;
+    /** The run's grants, from the reinvocation phase: the interactive leases. */
+    readonly grants: ReadonlyMap<string, LeaseGrant>;
   },
 ): Promise<TurnMcp> {
   const { client, config } = deps;
@@ -984,7 +1047,7 @@ export async function resolveMcpServersAndPolicies(
 
   // Phase 4b: the approval default's MCP half, over the servers the turn
   // connects.
-  const leases = deriveActiveLeases(execution);
+  const leases = deriveActiveLeases(args.grants.values(), execution.spec?.autoApproveAll ?? false);
   const mcpDefault = buildMcpApprovalDefault(listing ?? NOTHING_LISTED, leases);
 
 
@@ -1634,6 +1697,12 @@ export interface TurnFrame {
   evalMocks: MockEndpoint | undefined;
   /** The files a plugin-eval try's graders read, returned on the run as the turn leaves them (`read-files.ts`); set once its case is prepared. */
   evalReadFiles: readonly string[] | undefined;
+  /**
+   * The log holds what an earlier invocation of this run's engine did
+   * (`TurnReinvocation.runWroteEvents`), set by the reinvocation phase: the
+   * session event emitter's `resumed`.
+   */
+  runWroteEvents: boolean;
 }
 
 /** What the composer answers: the whole record, or a settlement the caller writes and returns. */
@@ -1703,6 +1772,7 @@ export async function resolveTurnContext(
     execution,
     sessionId,
   });
+  frame.runWroteEvents = reinvocation.runWroteEvents;
 
   const resolvedMcp = await resolveMcpServersAndPolicies(deps, {
     execution,
@@ -1711,6 +1781,7 @@ export async function resolveTurnContext(
     blueprint,
     values,
     readsToolMarks: capabilities.readsToolMarks,
+    grants: reinvocation.grants,
   });
   const mcp =
     prepared === undefined ? resolvedMcp : await startEvalMocks(deps, { spec, archive: prepared.archive, mcp: resolvedMcp, frame });
@@ -1775,6 +1846,7 @@ export async function resolveTurnContext(
       sessionId,
       approvalDecisions: reinvocation.approvalDecisions,
       approvalDenyMessages: reinvocation.approvalDenyMessages,
+      approvalAsks: reinvocation.approvalAsks,
       execution,
       session,
       blueprint,

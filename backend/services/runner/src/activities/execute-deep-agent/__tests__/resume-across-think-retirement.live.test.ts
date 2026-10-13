@@ -69,7 +69,7 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a s
     // live posture's default is the in-memory saver.
     const scenario = beginLiveDeepAgentScenario({ env, record, config: { checkpointerType: "sqlite" } });
     await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-    record.applyStatusUpdate(fromJson(RunStatusSchema, fixture.status));
+    await record.restorePausedTurn(fromJson(RunStatusSchema, fixture.status));
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, new Date().toISOString())).toBe(1);
 

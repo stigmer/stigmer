@@ -112,13 +112,15 @@ import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { ExecutionValuesSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
+import { eventTypeOf } from "@stigmer/session-log";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   registerWorkerShutdownSignal,
   signalWorkerShutdown,
   unregisterWorkerShutdownSignal,
 } from "../shared/worker-shutdown.js";
-import { answerEventsFor, stampedActionOf } from "./approval-log.js";
+import { SessionEventEmitter } from "../harness/events/emitter.js";
+import { answerEventsFor } from "./approval-log.js";
 import { decideCapturedFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
 import { mockStigmerClient } from "./mock-client.js";
 
@@ -166,10 +168,9 @@ export interface ExecutionRecordInput {
  *    (`reportSetupProgress`): the server keeps `setup_progress` and leaves the
  *    phase and transcript alone. Modelled as: record the label, change nothing else.
  *  - Any other status replaces the held status wholesale (the runner is the
- *    writer of the transcript; the server's own field-ownership merge — approval
- *    fields it owns — is exercised by the test answering on the record between
- *    invocations, the answer on the log and the stamp on the row, exactly as
- *    the server's answer core does: `decideWaitingToolCalls`).
+ *    writer of the transcript; a person's answer is the test answering on the
+ *    record between invocations, on the log only, as the server's answer
+ *    core writes it: `decideWaitingToolCalls`).
  *  - The fields the server stamps at create and the runner never sends — the
  *    agent and version the turn runs, the declared preferences and recalled
  *    memories — survive every runner write, as they do in the server's
@@ -200,15 +201,10 @@ export interface ExecutionRecordInput {
  * session (`RunSpec.reconcile_file_review`, no message) that the client
  * answers by its id.
  */
-/** The log's type name of each event the hermetic log can hold that a typed read asks for (`event.proto`'s `event_type`). */
-const LOG_TYPES: Partial<Record<NonNullable<SessionEvent["event"]["case"]>, string>> = {
-  userMessage: "user.message",
-  userToolConfirmation: "user.tool_confirmation",
-  stigmerPermissionGrant: "stigmer.permission.grant",
-  stigmerFileReviewChanges: "stigmer.file_review.changes",
-  stigmerFileReviewDecided: "stigmer.file_review.decided",
-  stigmerFileReviewReconciled: "stigmer.file_review.reconciled",
-};
+/** The log's type name of an event (`event.proto`'s `event_type`, read through `@stigmer/session-log`'s catalog), what a typed read filters by. */
+function logTypeOf(event: SessionEvent): string {
+  return event.event.case === undefined ? "" : eventTypeOf(event);
+}
 
 /** The phases the server treats as finished: an append for such a run is refused. */
 const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
@@ -396,6 +392,27 @@ export class ExecutionRecord {
     return out;
   }
 
+  /**
+   * What a turn recorded on an older runner left on the server, restored in
+   * one act: the status it persisted, and the events its session event
+   * emitter wrote for that status into the log (`harness/events/emitter.ts`,
+   * the terminal write). A resumed turn learns from the log that the run's
+   * engine already worked (`turn-context.ts` `runWroteEngineEvents`) and
+   * where the calls it answers were asked, so a status restored without its
+   * events would read as a first turn.
+   */
+  async restorePausedTurn(status: RunStatus): Promise<void> {
+    this.applyStatusUpdate(status);
+    const emitter = new SessionEventEmitter({
+      client: this.client(),
+      runId: this.executionId,
+      credential: async () => undefined,
+      delay: async () => {},
+    });
+    await emitter.begin({ sessionId: this.session.metadata?.id ?? "", resumed: false, status: create(RunStatusSchema) });
+    await emitter.flush(status, { final: true });
+  }
+
   /** The tool calls currently paused for a decision. */
   waitingToolCalls(): ToolCall[] {
     return this.toolCalls().filter((tc) => tc.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
@@ -404,11 +421,14 @@ export class ExecutionRecord {
   /**
    * What the server's answer core does when a person answers the calls that
    * asked (`confirmToolUse`, `grantPermission`): append the answer to the
-   * session's log and stamp the row in the same act (`approval-log.ts`). The
-   * runner owns `status`; the server owns `approval_action` — so this is the
-   * ONE place a test answers, and the status stays WAITING_APPROVAL until the
-   * resumed turn runs the tool, exactly as in production. The resumed turn
-   * reads the answer from the log (`harness/approval-answers.ts`). `onlyId`
+   * session's log (`approval-log.ts`). The row's `approval_action` is not
+   * stamped: the resumed turn reads the answer from the log and its seed
+   * copies it onto the row (`harness/approval-answers.ts`), so a kit that
+   * answered on the row would prove nothing. The decision time is the one
+   * server field still set on the row, which no runner code reads; the
+   * status goldens carry it as production's rows do. This is the ONE place
+   * a test answers, and the status stays WAITING_APPROVAL until the resumed
+   * turn runs the tool, exactly as in production. `onlyId`
    * answers one of several calls paused in the same round and leaves the
    * rest waiting, as a person answering them one at a time does; a deny may
    * carry `denyMessage`, the reason the model reads.
@@ -419,7 +439,6 @@ export class ExecutionRecord {
       this.sessionEvents.push(
         ...answerEventsFor({ sessionId: this.session.metadata?.id ?? "", runId: this.executionId }, tc, action, denyMessage),
       );
-      tc.approvalAction = stampedActionOf(action);
       tc.approvalDecidedAt = decidedAt;
     }
     return waiting.length;
@@ -508,7 +527,7 @@ export class ExecutionRecord {
    */
   listSessionEventsPage(types: readonly string[], order: "asc" | "desc"): SessionEvent[] {
     const wanted = new Set(types);
-    const matching = this.sessionEvents.filter((e) => e.event.case !== undefined && wanted.has(LOG_TYPES[e.event.case] ?? ""));
+    const matching = this.sessionEvents.filter((e) => e.event.case !== undefined && wanted.has(logTypeOf(e)));
     const ordered = order === "desc" ? [...matching].reverse() : matching;
     return ordered.map((e) => clone(SessionEventSchema, e));
   }
@@ -645,8 +664,11 @@ export class ExecutionRecord {
       listRunSessionEvents: vi.fn(async (_sessionId: string, runId: string, types: readonly string[] = []) =>
         this.sessionEvents
           .filter((e) => e.runId === runId)
-          .filter((e) => types.length === 0 || (e.event.case !== undefined && types.includes(LOG_TYPES[e.event.case] ?? "")))
+          .filter((e) => types.length === 0 || types.includes(logTypeOf(e)))
           .map((e) => clone(SessionEventSchema, e)),
+      ),
+      hasRunSessionEvent: vi.fn(async (_sessionId: string, runId: string, types: readonly string[]) =>
+        this.sessionEvents.some((e) => e.runId === runId && types.includes(logTypeOf(e))),
       ),
       listSessionEvents: vi.fn(async (_sessionId: string, query: { readonly types: readonly string[]; readonly order: "asc" | "desc" }) => ({
         events: this.listSessionEventsPage(query.types, query.order),

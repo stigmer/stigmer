@@ -45,7 +45,7 @@ import type { SDKMessage } from "@cursor/sdk";
 
 import { reconcileDeniedToolCalls } from "../boundary-rows.js";
 import { builderOver, foldCursorEvents } from "../__test-utils__/fold.js";
-import { toolCallIdentityToken } from "../approval-state.js";
+import { toolCallArgs, toolCallIdentityToken } from "../approval-state.js";
 import {
   buildApprovalGrants,
   buildApprovalState,
@@ -55,6 +55,10 @@ import {
   type DeniedLedgerEntry,
 } from "../approval-state.js";
 import { NO_MCP_DEFAULT } from "../__test-utils__/cursor-hook-harness.js";
+import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
+
+/** The run the logged answers belong to. */
+const RUN_ID = "run_resume_grant";
 
 /** A built-in (non-MCP) stream tool_call event, as `@cursor/sdk` emits it. */
 function builtInEvent(
@@ -97,7 +101,7 @@ function mcpEvent(
  * when it denied the gated call, and the grant token a resume mints after the
  * user approves it. Mirrors the activity's real sequence:
  *   translator + builder (stream) -> deny overlay (reconcileDeniedToolCalls) ->
- *   persist APPROVE -> reconstructAdjudicatedApprovals -> buildApprovalGrants.
+ *   APPROVE on the log -> reconstructAdjudicatedApprovals -> buildApprovalGrants.
  */
 async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Promise<{
   denialToken: string;
@@ -119,19 +123,24 @@ async function roundTrip(event: Extract<SDKMessage, { type: "tool_call" }>): Pro
     content: "working",
     toolCalls: [tc],
   });
-  const ledger: DeniedLedgerEntry[] = [{ toolName: tc.name, token: denialToken }];
+  // The hook records an approval with the call's captured input, as the gate
+  // script does; the overlay takes the content digest the ask is written
+  // under from it.
+  const ledger: DeniedLedgerEntry[] = [{ toolName: tc.name, token: denialToken, kind: "approval", input: toolCallArgs(tc) }];
   const messages: AgentMessage[] = [msg];
   const denied = await reconcileDeniedToolCalls(messages, builderOver(messages), ledger);
   expect(denied, "the overlay must match the denial token and surface the gate").toHaveLength(1);
 
-  // The user approves; the backend persists the decision on the tool call.
+  // The user approves: the answer lands on the session's log (the shorthand
+  // below), beside the ask the emitter wrote from the gated row.
   tc.approvalAction = ApprovalAction.APPROVE;
 
-  // The resume: reconstruct the adjudicated approvals from the persisted
-  // transcript (pending_approvals is already cleared by this point) and mint the
-  // grants the next turn's hook reads. The content digest threads through so the
-  // grant reproduces the content-exact denial identity.
-  const { pendingApprovals, decisions, contentDigests } = reconstructAdjudicatedApprovals(messages);
+  // The resume: reconstruct the adjudicated approvals from the seeded
+  // transcript and the log (pending_approvals is already cleared by this point)
+  // and mint the grants the next turn's hook reads. The content digest the ask
+  // was written under threads through so the grant reproduces the
+  // content-exact denial identity.
+  const { pendingApprovals, decisions, contentDigests } = reconstructAdjudicatedApprovals(messages, loggedApprovalsFor(RUN_ID, messages));
   const grants = buildApprovalGrants(pendingApprovals, decisions, contentDigests);
   expect(grants, "an approved tool must yield exactly one grant").toHaveLength(1);
 
@@ -252,7 +261,7 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
     expect(toolCallIdentityToken(renameAgain)).toBe(renameToken);
   });
 
-  /** A decided-but-not-yet-resumed gated call, exactly as the backend persists it. */
+  /** A decided-but-not-yet-resumed gated call; its `approvalAction` is the answer `loggedApprovalsFor` writes to the log. */
   function decidedToolCall(
     event: Extract<SDKMessage, { type: "tool_call" }>,
     action: ApprovalAction,
@@ -271,7 +280,7 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
   it("REJECT and SKIP mint no grant (a denied-again tool must never be auto-allowed)", () => {
     for (const decision of [ApprovalAction.REJECT, ApprovalAction.SKIP]) {
       const msg = decidedToolCall(builtInEvent("c1", "edit", { path: "/work/x.txt" }), decision);
-      const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals([msg]);
+      const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals([msg], loggedApprovalsFor(RUN_ID, [msg]));
       expect(pendingApprovals, "the decided call must be reconstructed").toHaveLength(1);
       expect(buildApprovalGrants(pendingApprovals, decisions)).toEqual([]);
     }
@@ -279,7 +288,7 @@ describe("Cursor resume-grant identity round-trip (H1 lock)", () => {
 
   it("APPROVE_ALL also mints the clicked tool's grant (the lease covers the class separately)", () => {
     const msg = decidedToolCall(builtInEvent("c1", "shell", { command: "make build" }), ApprovalAction.APPROVE_ALL);
-    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals([msg]);
+    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals([msg], loggedApprovalsFor(RUN_ID, [msg]));
     const grants = buildApprovalGrants(pendingApprovals, decisions);
     expect(grants).toEqual([{ toolName: "shell", mcpServerSlug: "", key: "shell", salient: "make build", contentDigest: "", sourceToolCallId: "c1" }]);
   });

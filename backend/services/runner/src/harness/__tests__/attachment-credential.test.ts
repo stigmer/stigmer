@@ -73,6 +73,7 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     blueprint,
     values: NO_RUN_VALUES,
     readsToolMarks: true,
+    grants: new Map(),
   });
   return { mcp, status };
 }

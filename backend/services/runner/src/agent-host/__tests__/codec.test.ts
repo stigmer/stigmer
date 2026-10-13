@@ -95,6 +95,7 @@ describe("the turn input across the pipe", () => {
     const input = turnInputFixture({
       approvalDecisions: new Map([["call-1", ApprovalAction.APPROVE], ["call-2", ApprovalAction.REJECT]]),
       approvalDenyMessages: new Map([["call-2", "use make clean instead"]]),
+      approvalAsks: new Map([["run_1.call-2", { policySource: "hook", policyHook: "safety", contentDigest: "args:abc" }]]),
       values: {
         agent: { API_TOKEN: "value" },
         tools: new Map([[toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
@@ -127,6 +128,9 @@ describe("the turn input across the pipe", () => {
     expect(decoded.mcp.mcpDefault.leasedServers, "one Set of leased servers").toBe(decoded.mcp.leases.servers);
     expect([...decoded.approvalDecisions]).toEqual([["call-1", ApprovalAction.APPROVE], ["call-2", ApprovalAction.REJECT]]);
     expect([...decoded.approvalDenyMessages], "a deny's reason crosses to the host's engine").toEqual([["call-2", "use make clean instead"]]);
+    expect([...decoded.approvalAsks], "what each call was asked under crosses with it").toEqual([
+      ["run_1.call-2", { policySource: "hook", policyHook: "safety", contentDigest: "args:abc" }],
+    ]);
     expect(decoded.values.agent).toEqual({ API_TOKEN: "value" });
     expect([...decoded.values.tools]).toEqual([
       [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],

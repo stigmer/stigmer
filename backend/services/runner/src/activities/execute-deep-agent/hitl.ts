@@ -196,8 +196,9 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
  * - a result backfilled from {@link unattendedSkipMessage} when the stream
  *   delivered none, so the transcript row is never blank.
  *
- * `approval_action` / `approved_by` are deliberately NOT touched — those are
- * server-owned fields recording HUMAN decisions only. No
+ * `approval_action` / `approved_by` are deliberately NOT touched — those
+ * record HUMAN decisions only (the runtime's seed copies the answer from the
+ * session's log). No
  * approval-request event exists for these calls, so the pending-approvals
  * projection stays empty by construction. Idempotent: re-running re-resolves
  * identically. Covers sub-agent transcripts because sub-agent gates inherit

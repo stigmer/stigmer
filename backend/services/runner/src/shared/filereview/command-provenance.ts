@@ -20,11 +20,11 @@
  * TRUST BOUNDARY. This module asserts turn FACTS (which tools ran this turn),
  * the same trust level as the captured bytes themselves. It never asserts
  * CONSENT: a resolved consent id merely POINTS at a transcript row whose
- * `approval_action` was stamped by the server's answer core with the person's
- * answer (and is
- * preserved against runner writes) — the backend re-verifies every claimed row
- * against that server-owned record before authoring the policy decision, so a
- * runner cannot mint authorization it was never given.
+ * `approval_action` carries the person's answer, copied onto the row from the
+ * session's log at the seed (`harness/approval-answers.ts`) — the backend
+ * re-verifies every claimed row against its own record of the answer before
+ * authoring the policy decision, so a runner cannot mint authorization it was
+ * never given.
  *
  * FAIL-CLOSED. Every uncertainty disqualifies (returns undefined → the set
  * reviews manually, exactly as before auto-keep existed): a file-tool call, an
@@ -82,11 +82,11 @@ export interface CommandProvenanceCoreInputs {
    */
   readonly isExecutedCommand: (tc: ToolCall) => boolean;
   /**
-   * The tool-call id of the row whose server-authored `approval_action` DIRECTLY
+   * The tool-call id of the row whose `approval_action` (the log's answer) DIRECTLY
    * authorized this executed command, or undefined when none does (then the lease
    * / global-bypass fallbacks apply). Cursor maps a reinvocation grant token back
    * to its consent row; the deep-agent's gated command IS its own consent row
-   * (same id, `approval_action` written in place).
+   * (same id, its answer copied onto it at the seed).
    */
   readonly resolveDirectConsent: (tc: ToolCall) => string | undefined;
   /** True when the pre-armed spec.auto_approve_all bypassed the gate. */

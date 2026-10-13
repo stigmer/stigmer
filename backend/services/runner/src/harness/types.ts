@@ -99,6 +99,7 @@ import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { RunValues } from "../shared/run-values.js";
 import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
 import type { HarnessCapabilities } from "./capabilities.js";
+import type { ApprovalAsk } from "./approval-answers.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 
 /**
@@ -396,8 +397,9 @@ export interface TurnInput extends NormalizedActivityInput {
    * The answers a person gave this execution's WAITING rows, keyed by
    * tool-call id: read by the runtime from the session's log on every
    * reinvocation (`approval-answers.ts`), never stored. An adapter reads the
-   * ROW for anything else it needs (args, content digest) and this map for
-   * the verdict; it never re-derives the verdict from the rows itself.
+   * ROW for the call itself (its args), this map for the verdict and
+   * {@link approvalAsks} for what the call was asked under; it never
+   * re-derives the verdict from the rows itself.
    */
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
   /**
@@ -406,6 +408,14 @@ export interface TurnInput extends NormalizedActivityInput {
    * (`shared/hooks/messages.ts` `personDecisionSentence`).
    */
   readonly approvalDenyMessages: ReadonlyMap<string, string>;
+  /**
+   * What each of the run's asked calls was asked under, by tool use id
+   * (`events/ids.ts` `toolUseEventId` of the run and the row): the rule that
+   * asked and the content digest of an edit identified by its content, read
+   * from the run's `stigmer.permission.asked` events with the answers
+   * (`approval-answers.ts`). Empty on a fresh turn.
+   */
+  readonly approvalAsks: ReadonlyMap<string, ApprovalAsk>;
   readonly execution: Run;
   /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
   readonly session: Session;
