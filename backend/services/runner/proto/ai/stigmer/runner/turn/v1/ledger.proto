@@ -1,0 +1,217 @@
+syntax = "proto3";
+
+package ai.stigmer.runner.turn.v1;
+
+import "ai/stigmer/agentic/run/v1/enum.proto";
+import "ai/stigmer/agentic/run/v1/filereview.proto";
+import "ai/stigmer/runner/turn/v1/enum.proto";
+
+// The runner's file-review ledger for a turn: the baseline and candidate it
+// captured, the decisions it reconciles and what it put back. The runner
+// writes the session's stigmer.file_review.* events and the run's
+// file_changes from it. Runner-private: never part of the public contract
+// (apis/), compiled only for the runner and its in-process agent host.
+//
+// Field comments are carried over from the public contract these types came
+// from; where one names a retired run method or server projection, the
+// session's events now carry that role.
+
+// One human decision on a change set or a single file within it.
+//
+// Bound to content by expected_digest: the runner's reconcile applies the
+// decision only when the target's current digest still matches what the user
+// saw, so "what you approve is what gets applied". expected_digest is an
+// ENFORCEMENT gate, never a correlation key — correlation is by change_set_id
+// (+ file_change_id for FILE scope).
+message FileDecision {
+  // Stable id of this decision.
+  string id = 1;
+
+  // The change set this decision targets (correlation key).
+  string change_set_id = 2;
+
+  // Whether the decision applies to the whole change set or one file. HUNK is
+  // intentionally deferred. See FileDecisionScope.
+  FileDecisionScope scope = 3;
+
+  // The CapturedFileChange this decision targets; set only when scope is FILE
+  // (correlation key). Empty for CHANGE_SET scope.
+  string file_change_id = 4;
+
+  // Approve or reject. See FileDecisionAction.
+  FileDecisionAction action = 5;
+
+  // The digest of the content the reviewer actually saw. ENFORCEMENT gate: the
+  // reconcile refuses to apply if the target's current digest differs. Never a
+  // correlation key.
+  string expected_digest = 6;
+
+  // Identity of the reviewer (principal). Empty when not attributed.
+  string reviewer_id = 7;
+
+  // ISO 8601 timestamp when the decision was made.
+  string decided_at = 8;
+
+  // Optional free-text comment supplied with the decision (audit trail).
+  string reason = 9;
+
+  // True when this APPROVE consciously kept a change whose diff could not be
+  // fully reviewed (a binary file — no text diff, but exact reconcilable bytes).
+  // Audit provenance only: it records that a human explicitly acknowledged the
+  // limitation. Never an enforcement input or a correlation key, and never
+  // folded into any digest.
+  bool acknowledge_unreviewable = 10;
+
+  // Which authority authored this decision: a human reviewer (USER; also the
+  // reading for UNSPECIFIED pre-origin records) or the approved-command
+  // auto-keep policy. Audit provenance only — never enforcement, never
+  // correlation, never folded into any digest. See FileDecisionOrigin.
+  FileDecisionOrigin origin = 11;
+}
+
+// The baseline workspace state captured at turn start.
+//
+// @internal
+// Authored by the runner's turn-begin capture activity. The first event of a
+// change set's lifecycle; carries the change set's stable identity so the
+// projection can materialize the set before any candidate exists.
+message FileReviewBaselineCaptured {
+  // Stable id of the change set this baseline opens.
+  string change_set_id = 1;
+
+  // The turn that produced it.
+  string turn_id = 2;
+
+  // The harness that produced it ("cursor" | "deep-agent").
+  string harness_id = 3;
+
+  // The captured baseline state.
+  ai.stigmer.agentic.run.v1.SnapshotRef baseline_snapshot = 4;
+}
+
+// The candidate workspace state captured at the turn boundary, carrying the
+// computed authoritative diff.
+//
+// @internal
+// Authored by the runner's turn-boundary capture activity. Large before/after
+// bodies are offloaded (FileContent.ref) before this event is persisted.
+message FileReviewCandidateCaptured {
+  // The change set this candidate closes.
+  string change_set_id = 1;
+
+  // The captured candidate state.
+  ai.stigmer.agentic.run.v1.SnapshotRef candidate_snapshot = 2;
+
+  // The authoritative per-file diff (diff of baseline → candidate).
+  repeated ai.stigmer.agentic.run.v1.CapturedFileChange changes = 3;
+
+  // Canonical digest over the ordered manifest (enforcement).
+  string aggregate_digest = 4;
+
+  // The runner-derived completeness rollup for this candidate: COMPLETE when
+  // every file is reviewable, BINARY_SUMMARY_ONLY when binary files are the only
+  // blocker, else PARTIAL_BLOCKED. See DiffCompleteness.
+  ai.stigmer.agentic.run.v1.DiffCompleteness diff_completeness = 5;
+
+  // The runner's approved-command turn facts. When present AND the
+  // backend's verification passes, the set is auto-kept by a policy-origin
+  // FILE_DECIDED instead of arming the review gate. Absent → manual review.
+  // See TurnCommandProvenance.
+  ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 6;
+}
+
+// The result of reconciling approved decisions into the workspace.
+//
+// @internal
+// Authored by the runner's reconcile activity after decisions land. Idempotent:
+// it reconciles to an exact approved snapshot and verifies hashes, so re-running
+// converges.
+message FileReviewReconciled {
+  // The change set that was reconciled.
+  string change_set_id = 1;
+
+  // The exact workspace state reconciled to and hash-verified.
+  ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 2;
+}
+
+// A terminal failure in the file-review lifecycle.
+//
+// @internal
+// Authored by the runner. A DIFF_UNREVIEWABLE failure blocks the change set
+// from becoming approvable (the diff cannot be shown completely); the others
+// record capture/reconcile/verification failures for audit and resume.
+message FileReviewFailure {
+  // The change set the failure pertains to.
+  string change_set_id = 1;
+
+  // The precise failure mode. event_type buckets this as FAILED; this carries
+  // the fidelity. See FileReviewFailureKind.
+  FileReviewFailureKind kind = 2;
+
+  // Human-readable detail for the audit trail. Never affects control flow.
+  string detail = 3;
+}
+
+// An immutable event in the file-review lifecycle.
+//
+// The payload is a closed oneof so each event type is type-safe and
+// self-documenting, mirroring ApprovalEvent. event_type is the coarse bucket;
+// the payload carries fidelity.
+//
+// @internal
+message FileReviewEvent {
+  // Unique id of this event, deterministic by design: derived from
+  // change_set_id + scope id + event_type. The permanent idempotency key for
+  // append-only authoring, so re-deriving or re-authoring never duplicates an
+  // event.
+  string event_id = 1;
+
+  // Correlation id shared by every event for one change set.
+  string change_set_id = 2;
+
+  // Coarse lifecycle bucket of this event. See FileReviewEventType.
+  FileReviewEventType event_type = 3;
+
+  // ISO 8601 timestamp of the event.
+  string timestamp = 4;
+
+  // Who produced the event: "system"/"runner" for capture and reconcile,
+  // "user" for decisions.
+  string actor = 5;
+
+  // Typed payload, selected by event_type.
+  oneof payload {
+    // Set when event_type == BASELINE_CAPTURED.
+    FileReviewBaselineCaptured baseline_captured = 6;
+
+    // Set when event_type == CANDIDATE_CAPTURED.
+    FileReviewCandidateCaptured candidate_captured = 7;
+
+    // Set when event_type == FILE_DECIDED: a decision the runner read from the
+    // session's stigmer.file_review.decided event.
+    FileDecision file_decided = 8;
+
+    // Set when event_type == RECONCILED.
+    FileReviewReconciled reconciled = 9;
+
+    // Set when event_type == FAILED.
+    FileReviewFailure failed = 10;
+  }
+}
+
+// The ordered sequence of file-review events for a single run.
+//
+// Held in TurnRows.file_review_event_stream, the runner's own record of a
+// turn's file review. BASELINE_CAPTURED / CANDIDATE_CAPTURED / RECONCILED /
+// FAILED events are authored by the runner's capture and reconcile
+// activities; a FILE_DECIDED event only mirrors a decision the session's log
+// already holds. Every append is keyed by the deterministic
+// FileReviewEvent.event_id, so the stream is idempotent under retries and an
+// existing event is never overwritten.
+message FileReviewEventStream {
+  // Run.metadata.id this stream belongs to.
+  string run_id = 1;
+
+  // Events in lifecycle order.
+  repeated FileReviewEvent events = 2;
+}
