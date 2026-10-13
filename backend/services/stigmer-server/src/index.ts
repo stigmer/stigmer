@@ -672,6 +672,9 @@ export { TARGET_RESOURCE_KEY } from "./pipeline/steps/load-target.js";
 // keys on (typed not-found → NotFound; anything else rethrows as an
 // infrastructure fault — the guidelines' instanceof idiom).
 export type { Store, StoreOpenOptions } from "./store/interface.js";
+// What a write hands `Store.insertResource` and `Store.deleteResource` to
+// record a change to an access row in the permission history.
+export type { PermissionChange } from "./store/permission-history.js";
 export {
   AuditNotFoundError,
   ResourceNotFoundError,

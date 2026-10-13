@@ -302,6 +302,8 @@ describe("fresh database", () => {
       "pending_oauth_state",
       "resource_names",
       "organization_deletions",
+      "iam_policy_history",
+      "iam_policy_history_heads",
     ]) {
       expect(tables, `table ${expected} should exist`).toContain(expected);
     }

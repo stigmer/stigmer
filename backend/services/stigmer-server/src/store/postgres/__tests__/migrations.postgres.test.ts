@@ -357,6 +357,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "bootstrap_state",
           "connect_attempt",
           "connect_link",
+          "iam_policy_history",
+          "iam_policy_history_heads",
           "oauth_client_registration",
           "organization_deletions",
           "pending_oauth_state",

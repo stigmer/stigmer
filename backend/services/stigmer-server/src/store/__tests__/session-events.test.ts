@@ -13,8 +13,8 @@ import {
   assertSessionEventLimit,
   dedupeSessionEventDrafts,
   sameBytes,
-  sessionEventInstant,
 } from "../session-events.js";
+import { instantNotBefore } from "../rfc3339.js";
 import type { SessionEventDraft } from "../session-events.js";
 
 function draft(eventId: string, body: string, type = "agent.message"): SessionEventDraft {
@@ -48,9 +48,9 @@ describe("the helpers", () => {
 
   it("stamps fixed-width UTC milliseconds, never before the session's newest event", () => {
     const at = Date.parse("2026-10-11T09:30:00.123Z");
-    expect(sessionEventInstant(at, undefined)).toBe("2026-10-11T09:30:00.123Z");
-    expect(sessionEventInstant(at, "2026-10-11T09:31:00.000Z")).toBe("2026-10-11T09:31:00.000Z");
-    expect(sessionEventInstant(at, "2026-10-11T09:29:00.000Z")).toBe("2026-10-11T09:30:00.123Z");
+    expect(instantNotBefore(at, undefined)).toBe("2026-10-11T09:30:00.123Z");
+    expect(instantNotBefore(at, "2026-10-11T09:31:00.000Z")).toBe("2026-10-11T09:31:00.000Z");
+    expect(instantNotBefore(at, "2026-10-11T09:29:00.000Z")).toBe("2026-10-11T09:30:00.123Z");
   });
 
   it("refuses a limit a caller cannot mean", () => {

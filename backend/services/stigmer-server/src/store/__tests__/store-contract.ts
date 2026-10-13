@@ -33,7 +33,13 @@
  * wrote the row — a row written the way a binary that does not know the
  * index writes it is read from its bytes and repaired, the reconciliation
  * at open leaves nothing unproven, a row written under another revision
- * of a declaration is re-derived, and an undecodable one is skipped.
+ * of a declaration is re-derived, and an undecodable one is skipped; and
+ * the create-only insert and the reporting delete with the permission
+ * history they can append (../permission-history.ts): one winner of
+ * concurrent inserts, one entry per row change read from the row itself,
+ * none for a refused insert or an empty delete, per-organization numbers
+ * in order with times that never go back, and an entry the table refuses
+ * rolling its row back.
  *
  * Driver-physical behavior (column layouts, FTS5/tsvector internals,
  * migration chains, the repair's lock ordering) stays in each driver's own
@@ -45,6 +51,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { AuditNotFoundError, ResourceNotFoundError } from "../interface.js";
@@ -56,6 +64,7 @@ import type {
 } from "../interface.js";
 import { declareListIndex, field, label } from "../list-index.js";
 import type { ListIndexRow } from "../list-index.js";
+import type { PermissionChange } from "../permission-history.js";
 import { makeOrganization } from "./support.js";
 
 /** The kit's own declaration, so the arms do not depend on the server's list. */
@@ -69,10 +78,39 @@ export const CONTRACT_SESSION_INDEX = declareListIndex({
   },
 });
 
+/** The kit's access-row declaration, so the history arms prove the list keys ride the door. */
+export const CONTRACT_POLICY_INDEX = declareListIndex({
+  kind: ApiResourceKind.iam_policy,
+  schema: IamPolicySchema,
+  revision: 1,
+  keys: {
+    principal: field("spec.principal.id"),
+  },
+});
+
 /** What every contract store opens with. */
 export const CONTRACT_STORE_OPTIONS: StoreOpenOptions = {
-  listIndexes: [CONTRACT_SESSION_INDEX],
+  listIndexes: [CONTRACT_SESSION_INDEX, CONTRACT_POLICY_INDEX],
 };
+
+/** One permission-history entry as the driver stored it, read raw by the fixture. */
+export interface PermissionHistoryRow {
+  readonly org: string;
+  readonly sequence: number;
+  readonly occurredAt: string;
+  readonly change: string;
+  readonly cause: string;
+  readonly actorId: string;
+  readonly actorClass: string;
+  readonly policyId: string;
+  readonly principalKind: string;
+  readonly principalId: string;
+  readonly principalRelation: string;
+  readonly relation: string;
+  readonly resourceKind: string;
+  readonly resourceId: string;
+  readonly data: Uint8Array;
+}
 
 /** One fresh, isolated store per test, plus the driver escape hatches. */
 export interface StoreContractFixture {
@@ -103,10 +141,39 @@ export interface StoreContractFixture {
    * prove the row is DELETED, not merely unredeemable).
    */
   countPendingOAuthStates(): Promise<number>;
+  /**
+   * Every iam_policy_history row, by organization then number (no Store
+   * member reads the history; the arms prove what was written).
+   */
+  permissionHistory(): Promise<PermissionHistoryRow[]>;
   cleanup(): Promise<void>;
 }
 
 const KIND = ApiResourceKind.organization;
+
+/** A raw iam_policy_history row, as either driver's client returns it, in the kit's shape. */
+export function permissionHistoryRowOf(
+  row: Record<string, string | number | Uint8Array>,
+): PermissionHistoryRow {
+  const text = (column: string): string => String(row[column]);
+  return {
+    org: text("org"),
+    sequence: Number(row.sequence),
+    occurredAt: text("occurred_at"),
+    change: text("change"),
+    cause: text("cause"),
+    actorId: text("actor_id"),
+    actorClass: text("actor_class"),
+    policyId: text("policy_id"),
+    principalKind: text("principal_kind"),
+    principalId: text("principal_id"),
+    principalRelation: text("principal_relation"),
+    relation: text("relation"),
+    resourceKind: text("resource_kind"),
+    resourceId: text("resource_id"),
+    data: new Uint8Array(row.data as Uint8Array),
+  };
+}
 
 /**
  * Every driver passes its fixture factory; the factory opens its store
@@ -170,9 +237,7 @@ export function describeStoreContract(
     });
 
     it("deleteResource is a silent no-op for a missing resource", async () => {
-      await expect(
-        fx.store.deleteResource(KIND, "ghost"),
-      ).resolves.toBeUndefined();
+      await expect(fx.store.deleteResource(KIND, "ghost")).resolves.toBe(false);
     });
 
     it("listResources returns an empty array (never undefined) for an empty kind", async () => {
@@ -2390,6 +2455,261 @@ export function describeStoreContract(
       await expect(
         fx.store.queryResources(CONTRACT_SESSION_INDEX, { limit: 0 }),
       ).rejects.toThrow("list index limit must be a positive integer, got 0");
+    });
+  });
+
+  describe("create-only insert, reporting delete and the permission history", () => {
+    const POLICY = ApiResourceKind.iam_policy;
+    const FIXED_WIDTH_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+    function policy(
+      id: string,
+      principalId: string,
+      org: string,
+      relation = "member",
+      principalRelation = "",
+    ): IamPolicy {
+      return create(IamPolicySchema, {
+        metadata: { id },
+        spec: {
+          principal: {
+            kind: "identity_account",
+            id: principalId,
+            relation: principalRelation,
+          },
+          relation,
+          resource: { kind: "organization", id: org },
+        },
+      });
+    }
+
+    function change(org: string, cause = "grant"): PermissionChange {
+      return { cause, actorId: "ida_actor", actorClass: "user", org };
+    }
+
+    async function principalRows(principalId: string): Promise<string[]> {
+      const rows = await fx.store.queryResources(CONTRACT_POLICY_INDEX, {
+        anyKey: [{ name: "principal", value: principalId }],
+      });
+      return rows.map((row) => row.id);
+    }
+
+    it("insertResource stores a new row; a held id answers false, writes nothing and leaves the first row", async () => {
+      await expect(
+        fx.store.insertResource(KIND, "acme", OrganizationSchema, makeOrganization({ id: "acme" })),
+      ).resolves.toBe(true);
+      await expect(
+        fx.store.insertResource(
+          KIND,
+          "acme",
+          OrganizationSchema,
+          makeOrganization({ id: "acme", description: "second write" }),
+        ),
+      ).resolves.toBe(false);
+      const loaded = await fx.store.getResource(KIND, "acme", OrganizationSchema);
+      expect(loaded.spec?.description).not.toBe("second write");
+      expect(await fx.store.listResources(KIND)).toHaveLength(1);
+
+      await expect(
+        fx.store.insertResource(POLICY, "iamp_1", IamPolicySchema, policy("iamp_1", "ida_ana", "acme")),
+      ).resolves.toBe(true);
+      await expect(
+        fx.store.insertResource(
+          POLICY,
+          "iamp_1",
+          IamPolicySchema,
+          policy("iamp_1", "ida_raj", "acme"),
+          change("acme"),
+        ),
+      ).resolves.toBe(false);
+      const kept = await fx.store.getResource(POLICY, "iamp_1", IamPolicySchema);
+      expect(kept.spec?.principal?.id).toBe("ida_ana");
+      expect(await principalRows("ida_raj")).toEqual([]);
+      expect(await fx.permissionHistory()).toEqual([]);
+    });
+
+    it("of concurrent inserts of one id exactly one answers true, with one row and one entry", async () => {
+      const unrecorded = await Promise.all(
+        Array.from({ length: 8 }, (_, n) =>
+          fx.store.insertResource(
+            KIND,
+            "acme",
+            OrganizationSchema,
+            makeOrganization({ id: "acme", description: `writer ${n}` }),
+          ),
+        ),
+      );
+      expect(unrecorded.filter(Boolean)).toHaveLength(1);
+      expect(await fx.store.listResources(KIND)).toHaveLength(1);
+
+      const recorded = await Promise.all(
+        Array.from({ length: 8 }, () =>
+          fx.store.insertResource(
+            POLICY,
+            "iamp_1",
+            IamPolicySchema,
+            policy("iamp_1", "ida_ana", "acme"),
+            change("acme"),
+          ),
+        ),
+      );
+      expect(recorded.filter(Boolean)).toHaveLength(1);
+      expect(await fx.store.listResources(POLICY)).toHaveLength(1);
+      expect(await fx.permissionHistory()).toHaveLength(1);
+    });
+
+    it("deleteResource answers whether it removed a row, with a change or without", async () => {
+      await fx.store.insertResource(KIND, "acme", OrganizationSchema, makeOrganization({ id: "acme" }));
+      await expect(fx.store.deleteResource(KIND, "acme")).resolves.toBe(true);
+      await expect(fx.store.deleteResource(KIND, "acme")).resolves.toBe(false);
+
+      await fx.store.insertResource(POLICY, "iamp_1", IamPolicySchema, policy("iamp_1", "ida_ana", "acme"));
+      await expect(fx.store.deleteResource(POLICY, "iamp_1", change("acme", "revoke"))).resolves.toBe(true);
+      await expect(fx.store.deleteResource(POLICY, "iamp_1", change("acme", "revoke"))).resolves.toBe(false);
+      await expect(fx.store.getResource(POLICY, "iamp_1", IamPolicySchema)).rejects.toThrow(
+        ResourceNotFoundError,
+      );
+    });
+
+    it("writes a row's list keys with the insert and removes them with the delete", async () => {
+      await fx.store.insertResource(
+        POLICY,
+        "iamp_1",
+        IamPolicySchema,
+        policy("iamp_1", "ida_ana", "acme"),
+        change("acme"),
+      );
+      await fx.store.insertResource(POLICY, "iamp_2", IamPolicySchema, policy("iamp_2", "ida_ana", "beta"));
+      expect((await principalRows("ida_ana")).sort()).toEqual(["iamp_1", "iamp_2"]);
+
+      await fx.store.deleteResource(POLICY, "iamp_1", change("acme", "revoke"));
+      await fx.store.deleteResource(POLICY, "iamp_2");
+      expect(await principalRows("ida_ana")).toEqual([]);
+    });
+
+    it("appends one entry per row change, its triple and bytes read from the row", async () => {
+      const granted = policy("iamp_1", "tm_core", "acme", "viewer", "member");
+      await fx.store.insertResource(POLICY, "iamp_1", IamPolicySchema, granted, {
+        cause: "grant",
+        actorId: "ida_ana",
+        actorClass: "user",
+        org: "acme",
+      });
+      await fx.store.deleteResource(POLICY, "iamp_1", {
+        cause: "left_organization",
+        actorId: "ida_ana",
+        actorClass: "internal",
+        org: "acme",
+      });
+
+      const entries = await fx.permissionHistory();
+      const row = {
+        org: "acme",
+        policyId: "iamp_1",
+        principalKind: "identity_account",
+        principalId: "tm_core",
+        principalRelation: "member",
+        relation: "viewer",
+        resourceKind: "organization",
+        resourceId: "acme",
+        actorId: "ida_ana",
+      };
+      expect(entries).toMatchObject([
+        { ...row, sequence: 1, change: "granted", cause: "grant", actorClass: "user" },
+        { ...row, sequence: 2, change: "revoked", cause: "left_organization", actorClass: "internal" },
+      ]);
+      for (const entry of entries) {
+        expect(fromBinary(IamPolicySchema, entry.data)).toEqual(granted);
+        expect(entry.occurredAt).toMatch(FIXED_WIDTH_UTC);
+      }
+    });
+
+    it("records nothing for a refused insert or an empty delete, and refuses a change on another kind", async () => {
+      await fx.store.insertResource(
+        POLICY,
+        "iamp_1",
+        IamPolicySchema,
+        policy("iamp_1", "ida_ana", "acme"),
+        change("acme"),
+      );
+      await fx.store.insertResource(
+        POLICY,
+        "iamp_1",
+        IamPolicySchema,
+        policy("iamp_1", "ida_ana", "acme"),
+        change("acme"),
+      );
+      await fx.store.deleteResource(POLICY, "iamp_ghost", change("acme", "revoke"));
+      expect((await fx.permissionHistory()).map((entry) => entry.change)).toEqual(["granted"]);
+
+      await expect(
+        fx.store.insertResource(
+          KIND,
+          "acme",
+          OrganizationSchema,
+          makeOrganization({ id: "acme" }),
+          change("acme"),
+        ),
+      ).rejects.toThrow("a permission change is recorded only with an iam_policy row, not organization");
+      expect(await fx.store.listResources(KIND)).toEqual([]);
+      await fx.store.insertResource(KIND, "acme", OrganizationSchema, makeOrganization({ id: "acme" }));
+      await expect(fx.store.deleteResource(KIND, "acme", change("acme"))).rejects.toThrow(
+        "a permission change is recorded only with an iam_policy row, not organization",
+      );
+      expect(await fx.store.listResources(KIND)).toHaveLength(1);
+      expect(await fx.permissionHistory()).toHaveLength(1);
+    });
+
+    it("numbers each organization's entries from one in commit order, with times that never go back", async () => {
+      const writes: Array<readonly [string, string]> = [
+        ["iamp_a1", "acme"],
+        ["iamp_b1", "beta"],
+        ["iamp_a2", "acme"],
+        ["iamp_n1", ""],
+        ["iamp_a3", "acme"],
+      ];
+      for (const [id, org] of writes) {
+        await fx.store.insertResource(POLICY, id, IamPolicySchema, policy(id, "ida_ana", org || "acme"), change(org));
+      }
+      await fx.store.deleteResource(POLICY, "iamp_a1", change("acme", "revoke"));
+
+      const entries = await fx.permissionHistory();
+      expect(entries.map((entry) => [entry.org, entry.sequence, entry.policyId])).toEqual([
+        ["", 1, "iamp_n1"],
+        ["acme", 1, "iamp_a1"],
+        ["acme", 2, "iamp_a2"],
+        ["acme", 3, "iamp_a3"],
+        ["acme", 4, "iamp_a1"],
+        ["beta", 1, "iamp_b1"],
+      ]);
+      const acme = entries.filter((entry) => entry.org === "acme").map((entry) => entry.occurredAt);
+      expect([...acme].sort()).toEqual(acme);
+    });
+
+    it("rolls the row back when the table refuses its entry", async () => {
+      await expect(
+        fx.store.insertResource(
+          POLICY,
+          "iamp_1",
+          IamPolicySchema,
+          policy("iamp_1", "ida_ana", "acme"),
+          change("acme", ""),
+        ),
+      ).rejects.toThrow();
+      expect(await fx.store.listResources(POLICY)).toEqual([]);
+      expect(await principalRows("ida_ana")).toEqual([]);
+
+      await fx.store.insertResource(
+        POLICY,
+        "iamp_1",
+        IamPolicySchema,
+        policy("iamp_1", "ida_ana", "acme"),
+        change("acme"),
+      );
+      await expect(fx.store.deleteResource(POLICY, "iamp_1", change("acme", ""))).rejects.toThrow();
+      expect(await fx.store.listResources(POLICY)).toHaveLength(1);
+      expect(await principalRows("ida_ana")).toEqual(["iamp_1"]);
+      expect((await fx.permissionHistory()).map((entry) => entry.change)).toEqual(["granted"]);
     });
   });
 
