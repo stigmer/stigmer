@@ -2,7 +2,8 @@
  * Pins the catalog (../catalog.ts) and the codec (../codec.ts): every event
  * the contract carries declares its Managed Agents type once, on its oneof
  * member; a runner's types are a subset that leaves the user's turn, the
- * session's status and every file-review decision to the server; a
+ * session's status, a turn's status and every file-review decision to
+ * the server; a
  * draft's bytes carry no seq, session or accepted time, so a resent event
  * encodes to the stored bytes; an ask's policy source admits the word of
  * every source a run records; and every file-review word the server maps
@@ -55,7 +56,7 @@ describe("the catalog", () => {
     }
   });
 
-  it("every Stigmer event but a file-review decision and a permission grant is the runner's to append", () => {
+  it("every Stigmer event but a file-review decision, a permission grant and a turn's status is the runner's to append", () => {
     const own = SESSION_EVENT_TYPES.filter(isStigmerEventType);
     expect(own).toEqual([
       "stigmer.agent.thinking",
@@ -67,11 +68,12 @@ describe("the catalog", () => {
       "stigmer.file_review.decided",
       "stigmer.file_review.reconciled",
       "stigmer.permission.grant",
+      "stigmer.run.status",
+      "stigmer.tool_result.full_output",
     ]);
+    const serverOnly = ["stigmer.file_review.decided", "stigmer.permission.grant", "stigmer.run.status"];
     for (const type of own) {
-      expect(RUNNER_EVENT_TYPES.has(type), type).toBe(
-        type !== "stigmer.file_review.decided" && type !== "stigmer.permission.grant",
-      );
+      expect(RUNNER_EVENT_TYPES.has(type), type).toBe(!serverOnly.includes(type));
     }
   });
 

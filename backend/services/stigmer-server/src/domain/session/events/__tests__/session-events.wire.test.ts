@@ -130,15 +130,22 @@ describe("listEvents", () => {
       pageToken = page.nextPageToken;
       pages += 1;
     } while (pageToken !== "");
-    expect(seen).toEqual([1n, 2n, 3n, 4n, 5n, 6n]);
-    expect(pages).toBe(3);
+    // Each turn: its message, its pending status, running, its completed status, idle.
+    expect(seen).toEqual(Array.from({ length: 10 }, (_, i) => BigInt(i + 1)));
+    expect(pages).toBe(5);
   });
 
   it("reads newest first with desc, and by type", async () => {
     const sessionId = await newSession();
     await turn(sessionId, `run_${counter}_a`);
     const desc = await query.listEvents({ sessionId, order: "desc" });
-    expect(desc.events.map(eventTypeOf)).toEqual(["session.status_idle", "session.status_running", "user.message"]);
+    expect(desc.events.map(eventTypeOf)).toEqual([
+      "session.status_idle",
+      "stigmer.run.status",
+      "session.status_running",
+      "stigmer.run.status",
+      "user.message",
+    ]);
     const idle = await query.listEvents({ sessionId, types: ["session.status_idle", "session.status_running"], order: "desc", pageSize: 1 });
     expect(idle.events.map(eventTypeOf)).toEqual(["session.status_idle"]);
     expect(desc.events.every((e) => e.sessionId === sessionId && e.runId === `run_${counter}_a`)).toBe(true);
@@ -201,7 +208,7 @@ describe("streamEvents", () => {
       try {
         for await (const frame of stream) {
           frames.push(frame.frame.case === "event" ? eventTypeOf(frame.frame.value) : String(frame.frame.case));
-          if (frames.length === 4) {
+          if (frames.length === 6) {
             controller.abort();
           }
         }
@@ -223,7 +230,14 @@ describe("streamEvents", () => {
     ]);
     await turn(sessionId, `run_${counter}_after`);
     await reading;
-    expect(frames).toEqual(["eventStart", "user.message", "session.status_running", "session.status_idle"]);
+    expect(frames).toEqual([
+      "eventStart",
+      "user.message",
+      "stigmer.run.status",
+      "session.status_running",
+      "stigmer.run.status",
+      "session.status_idle",
+    ]);
   });
 });
 

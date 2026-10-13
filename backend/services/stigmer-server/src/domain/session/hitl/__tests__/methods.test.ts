@@ -189,6 +189,9 @@ async function logAfterAsks(): Promise<string[]> {
   return records.map(eventOf).flatMap((event) => {
     const type = eventTypeOf(event);
     switch (event.event.case) {
+      // Each turn's own phase is pinned in domain/session/events; these pins read the session's.
+      case "stigmerRunStatus":
+        return [];
       case "userToolConfirmation":
         return [`${type} ${event.event.value.toolUseId} ${event.event.value.result}${event.event.value.denyMessage === "" ? "" : ` "${event.event.value.denyMessage}"`}`];
       case "stigmerPermissionGrant":

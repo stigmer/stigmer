@@ -543,6 +543,33 @@ describe("Stigmer's own events render by the same three rules, under their stigm
         failure_detail: "diverged",
       },
     },
+    {
+      proto: { case: "stigmerRunStatus", value: { id: "s11", processedAt: AT, phase: "terminated", stopCause: "budget_reached", error: "Cost limit exceeded" } },
+      json: {
+        id: "s11",
+        type: "stigmer.run.status",
+        processed_at: AT,
+        phase: "terminated",
+        stop_cause: "budget_reached",
+        error: "Cost limit exceeded",
+      },
+    },
+    {
+      proto: {
+        case: "stigmerToolResultFullOutput",
+        value: { id: "s12", processedAt: AT, toolUseId: "u1", storageKey: "artifacts/run_1/toolcalls/c1.txt", sizeBytes: 900000n, contentHash: "ab12", mimeType: "text/plain" },
+      },
+      json: {
+        id: "s12",
+        type: "stigmer.tool_result.full_output",
+        processed_at: AT,
+        tool_use_id: "u1",
+        storage_key: "artifacts/run_1/toolcalls/c1.txt",
+        size_bytes: "900000",
+        content_hash: "ab12",
+        mime_type: "text/plain",
+      },
+    },
   ];
 
   it.each(own)("$json.type", ({ proto, json }) => {
