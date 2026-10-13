@@ -144,6 +144,13 @@
         "$TURBO_ROOT$/test/fixtures/tool-view/**"
       ]
     },
+    // The fold's golden check reads every hermetic event and status golden
+    // of both harnesses, which live beside the runner's activities.
+    "@stigmer/session-log#test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/backend/services/runner/src/activities/**"]
+    },
     "@stigmer/react#test": {
       "dependsOn": ["^build"],
       "outputs": [],
