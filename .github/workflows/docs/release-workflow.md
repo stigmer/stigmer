@@ -12,6 +12,8 @@ Every product artifact is an npm package, published by `release.npm-libs.yaml` o
 - `@stigmer/enterprise` — Stigmer Enterprise (`ee/server`, under the Stigmer Enterprise License in `ee/LICENSE`, which its tarball carries), in lockstep with `@stigmer/server`: the same version on the same train. Published by `publish-enterprise`, which needs `publish-server` so Enterprise never ships at a version whose server failed to, through the same `scripts/publish-standalone.mjs` sequence; its `file:` links pin to that release's `@stigmer/server`, `@stigmer/protos` and `@stigmer/outbound`.
 - The runner and library packages.
 
+Beside the npm packages, the same workflow pushes the container images to GHCR, each smoked on native runners of both architectures before `latest` moves to a stable release. Among them, `ghcr.io/stigmer/stigmer-server-ee` is Stigmer Enterprise as a server image: the server image's Dockerfile over a slim tree bundled from `ee/server`'s entry, with the console. `stage-enterprise-image-trees` bundles and verifies the two trees, `publish-enterprise-image` pushes the version tag once `publish-enterprise` has published the package, `smoke-enterprise-image-amd64` and `-arm64` run `ee/server/scripts/smoke-image.mjs` on the pushed tag, and `promote-enterprise-image-latest` moves `latest`.
+
 `release.cli.yaml` no longer builds or attaches any binaries: the Go `stigmer-server` tarballs it used to cross-compile for three platforms retired with the Go server. What remains is the GitHub Release itself.
 
 ## What release.cli.yaml does

@@ -1045,6 +1045,7 @@ test("the make rule still finds the Makefiles, scripts and lanes it exists for",
   assert.deepEqual(readers("backend/services/stigmer-server/scripts/bundle-slim.mjs"), [
     "cli-up",
     "compose-stack",
+    "ee",
     "helm-chart",
     "upgrade-rehearsal",
   ]);

@@ -19,6 +19,15 @@
 #   docker run -d -p 7234:7234 -p 7235:7235 -v stigmer-data:/data \
 #     ghcr.io/stigmer/stigmer-server:latest
 #
+# The same file builds ghcr.io/stigmer/stigmer-server-ee, Stigmer Enterprise
+# (ee/server/README.md): a tree bundled from Enterprise's entry
+# (bundle-slim.mjs --entry-package), the build context ee/server, and the
+# IMAGE_TITLE, IMAGE_DESCRIPTION and IMAGE_LICENSES arguments naming it. One
+# file keeps the two images' runtime posture (the /data home, the user, the
+# volume, the health check, PID 1) from drifting. The build context's
+# whitelist is Dockerfile.dockerignore, which BuildKit reads beside this file
+# whatever the context.
+#
 # node:22-slim, not alpine/distroless: the Temporal core-bridge prebuilds
 # are gnu-triple (glibc) binaries, and 22 is the engines floor.
 FROM node:22-slim
@@ -35,10 +44,13 @@ ARG TARGETARCH
 # on every upstream tag move).
 ARG IMAGE_VERSION=dev
 ARG IMAGE_REVISION=unknown
+ARG IMAGE_TITLE=stigmer-server
+ARG IMAGE_DESCRIPTION="Stigmer control plane: unified gRPC/Connect/REST port with the bundled web console"
+ARG IMAGE_LICENSES=Apache-2.0
 LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer" \
-      org.opencontainers.image.title="stigmer-server" \
-      org.opencontainers.image.description="Stigmer control plane: unified gRPC/Connect/REST port with the bundled web console" \
-      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.title="${IMAGE_TITLE}" \
+      org.opencontainers.image.description="${IMAGE_DESCRIPTION}" \
+      org.opencontainers.image.licenses="${IMAGE_LICENSES}" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
       org.opencontainers.image.revision="${IMAGE_REVISION}"
 

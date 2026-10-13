@@ -20,7 +20,10 @@
  *   3. the console is served: /config.json is the trusted-local document
  *      (the shared probe in test/install/lib/stigmer-smoke.mjs; #1087) and /
  *      answers HTML — the bundled console must survive packaging;
- *   4. the server made its one organization at its first start, and a CRUD
+ *   4. the server made its one organization at its first start, it answers
+ *      as the open-source edition holding no license (getServerInfo's
+ *      edition `oss`, getLicenseStatus's state `absent`: true of this
+ *      server's image, and of the Enterprise image given no key), and a CRUD
  *      round-trip (an Agent create naming no organization → get) through the
  *      Connect JSON lane lands in it;
  *   5. state survives `docker restart` — the /data volume story is
@@ -204,6 +207,23 @@ async function main() {
     // curl user gets, naming no organization: the server fills its one.
     const orgId = await readSingleOrganization(baseUrl);
     log(`organization '${orgId}' made by the server at its first start`);
+    const info = await connectJson(
+      baseUrl,
+      "ai.stigmer.platform.v1.PlatformQueryController/getServerInfo",
+      {},
+    );
+    if (info.edition !== "oss") {
+      throw new Error(`getServerInfo answered edition ${JSON.stringify(info.edition)} — want "oss"`);
+    }
+    const license = await connectJson(
+      baseUrl,
+      "ai.stigmer.platform.v1.PlatformQueryController/getLicenseStatus",
+      {},
+    );
+    if (license.state !== "absent") {
+      throw new Error(`getLicenseStatus answered state ${JSON.stringify(license.state)} — want "absent"`);
+    }
+    log("edition: oss, license: absent (the open-source server, no key)");
     const agentName = `smoke-agent-${suffix}`;
     const created = await connectJson(
       baseUrl,
