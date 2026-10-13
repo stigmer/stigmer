@@ -207,7 +207,7 @@ describe("consumeDeepAgentStream — what each event becomes", () => {
     expect(result.reason).toBe("completed");
     expect(result.eventsProcessed).toBe(5);
     expect(result.runOutput?.structuredResponse).toEqual({ ok: true });
-    const [message] = h.sink.status.messages;
+    const [message] = h.sink.rows.messages;
     expect(message.type).toBe(MessageType.MESSAGE_AI);
     expect(message.content).toBe("Reading the file.");
     expect(message.toolCalls[0].name).toBe("read_file");
@@ -288,7 +288,7 @@ describe("consumeDeepAgentStream — how the loop ends", () => {
     expect(result.eventsProcessed, "start and delta were folded; finish arrived after the stop").toBe(2);
     const [, config] = h.streamEvents.mock.calls[0] as [unknown, { signal: AbortSignal }];
     expect(config.signal.aborted, "the graph run itself is aborted when the stop is taken").toBe(true);
-    expect(h.sink.status.messages[0].content, "what streamed before the stop is on the transcript").toBe("partial");
+    expect(h.sink.rows.messages[0].content, "what streamed before the stop is on the transcript").toBe("partial");
   });
 
   it("the engine's own error propagates when the runtime did not stop the turn", async () => {

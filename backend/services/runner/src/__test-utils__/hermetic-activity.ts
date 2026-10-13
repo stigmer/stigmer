@@ -621,16 +621,18 @@ export class ExecutionRecord {
 
   /**
    * Apply one `UpdateStatus` write and answer the control signal the server
-   * would. A write with no phase never carries a signal (the runner ignores
+   * would. The rows it was made from are the ones the emitter last read for
+   * this run, or `written` when a test hands them in itself. A write with no phase never carries a signal (the runner ignores
    * the response there). It is a setup-progress report, or the write an
    * orchestrator stop settles (the runtime writes no phase for it; the
    * workflow does, stigmer#980): the server's merge applies it and leaves
    * the phase to its writers, so the double keeps the held phase.
    */
-  applyStatusUpdate(status: RunStatus): RunControlSignal {
+  applyStatusUpdate(status: RunStatus, written?: TurnRows): RunControlSignal {
     const snapshot = clone(RunStatusSchema, status);
     this.persisted.push(snapshot);
-    const rows = takeFlushedRows(this.executionId) ?? create(TurnRowsSchema);
+    const flushed = takeFlushedRows(this.executionId);
+    const rows = written === undefined ? flushed ?? create(TurnRowsSchema) : clone(TurnRowsSchema, written);
     this.persistedRows.push(rows);
     if (snapshot.phase === RunPhase.RUN_PHASE_UNSPECIFIED) {
       if (snapshot.setupProgress?.currentPhase) {

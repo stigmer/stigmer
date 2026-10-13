@@ -20,6 +20,7 @@ import { WorkspaceLockTimeoutError } from "../../shared/workspace/workspace-lock
 import * as table from "../terminal-table.js";
 import type { StopCause, TerminalArm } from "../terminal-table.js";
 import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const ARMS: ReadonlyArray<{ readonly name: string; readonly arm: TerminalArm; readonly cause: StopCause | null }> = [
   { name: "stallArm", arm: table.stallArm(new StallTimeoutError(1_000)), cause: "timeout" },
@@ -64,19 +65,17 @@ describe("the stop cause of every terminal arm", () => {
 
 describe("applying an arm", () => {
   it("writes the stop cause and reports the root positions of the rows it appended", () => {
-    const status = create(RunStatusSchema, {
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [{ type: MessageType.MESSAGE_AI, content: "working" }],
-    });
-    const rows = table.applyTerminalArm(status, table.failedArm("boom", "internal"));
+    const status = create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS });
+    const turn = create(TurnRowsSchema, { messages: [{ type: MessageType.MESSAGE_AI, content: "working" }] });
+    const rows = table.applyTerminalArm(status, turn, table.failedArm("boom", "internal"));
     expect(status.stopCause).toBe("failed");
     expect(rows).toEqual([1, 2]);
-    expect(rows.map((index) => status.messages[index]!.type)).toEqual([MessageType.MESSAGE_SYSTEM, MessageType.MESSAGE_SYSTEM]);
+    expect(rows.map((index) => turn.messages[index]!.type)).toEqual([MessageType.MESSAGE_SYSTEM, MessageType.MESSAGE_SYSTEM]);
   });
 
   it("a waiting arm leaves the stop cause as it was and appends nothing of its own", () => {
     const status = create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS });
-    expect(table.applyTerminalArm(status, table.awaitingApprovalArm())).toEqual([]);
+    expect(table.applyTerminalArm(status, create(TurnRowsSchema), table.awaitingApprovalArm())).toEqual([]);
     expect(status.stopCause).toBe("");
   });
 });

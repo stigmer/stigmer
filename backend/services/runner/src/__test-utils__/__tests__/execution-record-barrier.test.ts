@@ -11,15 +11,16 @@ import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_p
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { deepAgentExecutionRecord } from "../../activities/execute-deep-agent/__test-utils__/hermetic-deep-agent.js";
 import { MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
-function statusWith(rows: Array<{ id: string; status: ToolCallStatus; subAgent?: boolean }>) {
+/** The rows of one write, with the given tool rows. */
+function rowsWith(rows: Array<{ id: string; status: ToolCallStatus; subAgent?: boolean }>) {
   const message = (ids: typeof rows) => ({
     type: MessageType.MESSAGE_AI,
     content: "",
     toolCalls: ids.map((r) => ({ id: r.id, name: "probe", status: r.status })),
   });
-  return create(RunStatusSchema, {
-    phase: RunPhase.RUN_IN_PROGRESS,
+  return create(TurnRowsSchema, {
     messages: [message(rows.filter((r) => !r.subAgent))],
     subAgentRuns: rows.some((r) => r.subAgent)
       ? [{ id: "task-1", name: "helper", messages: [message(rows.filter((r) => r.subAgent))] }]
@@ -27,12 +28,16 @@ function statusWith(rows: Array<{ id: string; status: ToolCallStatus; subAgent?:
   });
 }
 
+function inProgress() {
+  return create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS });
+}
+
 describe("ExecutionRecord.whenToolCallsSettled", () => {
   it("resolves at once for no ids, and for ids already persisted settled", async () => {
     const record = deepAgentExecutionRecord({ message: "go" });
     await expect(record.whenToolCallsSettled([])).resolves.toBeUndefined();
 
-    record.applyStatusUpdate(statusWith([{ id: "c-1", status: ToolCallStatus.TOOL_CALL_COMPLETED }]));
+    record.applyStatusUpdate(inProgress(), rowsWith([{ id: "c-1", status: ToolCallStatus.TOOL_CALL_COMPLETED }]));
     await expect(record.whenToolCallsSettled(["c-1"])).resolves.toBeUndefined();
   });
 
@@ -43,19 +48,18 @@ describe("ExecutionRecord.whenToolCallsSettled", () => {
       released = true;
     });
 
-    record.applyStatusUpdate(statusWith([{ id: "c-1", status: ToolCallStatus.TOOL_CALL_RUNNING }]));
+    record.applyStatusUpdate(inProgress(), rowsWith([{ id: "c-1", status: ToolCallStatus.TOOL_CALL_RUNNING }]));
     await Promise.resolve();
     expect(released, "a RUNNING row is not settled").toBe(false);
 
-    record.applyStatusUpdate(statusWith([{ id: "c-1", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL }]));
+    record.applyStatusUpdate(inProgress(), rowsWith([{ id: "c-1", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL }]));
     await barrier;
     expect(released).toBe(true);
   });
 
   it("finds a sub-agent's rows in its own transcript", async () => {
     const record = deepAgentExecutionRecord({ message: "go" });
-    record.applyStatusUpdate(
-      statusWith([
+    record.applyStatusUpdate(inProgress(), rowsWith([
         { id: "task-1", status: ToolCallStatus.TOOL_CALL_RUNNING },
         { id: "sub-1", status: ToolCallStatus.TOOL_CALL_COMPLETED, subAgent: true },
       ]),
@@ -65,7 +69,7 @@ describe("ExecutionRecord.whenToolCallsSettled", () => {
 
   it("fails naming the ids still open when no persist ever settles them, instead of hanging", async () => {
     const record = deepAgentExecutionRecord({ message: "go" });
-    record.applyStatusUpdate(statusWith([{ id: "c-1", status: ToolCallStatus.TOOL_CALL_RUNNING }]));
+    record.applyStatusUpdate(inProgress(), rowsWith([{ id: "c-1", status: ToolCallStatus.TOOL_CALL_RUNNING }]));
     await expect(record.whenToolCallsSettled(["c-1", "c-2"], 20)).rejects.toThrow(/c-1, c-2 never settled/);
   });
 });
