@@ -29,7 +29,7 @@ const WORD_OF: ReadonlyMap<TodoStatus, Todo["status"]> = new Map(
 );
 
 /**
- * Project a to-do tool call's payload into a `status.todos` map, in place.
+ * Project a to-do tool call's payload into a `rows.todos` map, in place.
  * Returns whether the map changed — the caller's "dirty" / force-persist
  * signal. The rule is `@stigmer/session-log`'s (module header); `now`
  * defaults to the current UTC instant.

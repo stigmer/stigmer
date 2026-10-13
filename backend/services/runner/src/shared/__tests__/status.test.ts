@@ -24,7 +24,7 @@ describe("utcTimestamp", () => {
 });
 
 describe("slimStatus", () => {
-  it("preserves phase, error, timestamps, and pendingApprovals", () => {
+  it("preserves phase, error and timestamps", () => {
     const full = create(RunStatusSchema, {
       phase: RunPhase.RUN_COMPLETED,
       error: "test error",
