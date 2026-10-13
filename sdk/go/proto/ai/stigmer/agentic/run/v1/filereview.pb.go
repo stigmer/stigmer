@@ -47,10 +47,6 @@ type FileChangeSet struct {
 	// diff is diff(baseline_snapshot, candidate_snapshot); no streamed args, no
 	// pre-execution proposal is ever authoritative.
 	CandidateSnapshot *SnapshotRef `protobuf:"bytes,6,opt,name=candidate_snapshot,json=candidateSnapshot,proto3" json:"candidate_snapshot,omitempty"`
-	// Workspace state after an undo put files back (the exact bytes reconciled
-	// to). Empty until files of the set are put back. Reconcile verifies the
-	// filesystem hashes against this snapshot.
-	ApprovedSnapshot *SnapshotRef `protobuf:"bytes,7,opt,name=approved_snapshot,json=approvedSnapshot,proto3" json:"approved_snapshot,omitempty"`
 	// The per-file deltas in this change set (the rendered review surface).
 	Changes []*CapturedFileChange `protobuf:"bytes,8,rep,name=changes,proto3" json:"changes,omitempty"`
 	// Canonical digest over the ordered change manifest. ENFORCEMENT only: lets
@@ -132,13 +128,6 @@ func (x *FileChangeSet) GetBaselineSnapshot() *SnapshotRef {
 func (x *FileChangeSet) GetCandidateSnapshot() *SnapshotRef {
 	if x != nil {
 		return x.CandidateSnapshot
-	}
-	return nil
-}
-
-func (x *FileChangeSet) GetApprovedSnapshot() *SnapshotRef {
-	if x != nil {
-		return x.ApprovedSnapshot
 	}
 	return nil
 }
@@ -798,20 +787,19 @@ var File_ai_stigmer_agentic_run_v1_filereview_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_filereview_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/filereview.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a'ai/stigmer/agentic/run/v1/message.proto\x1a\x1bbuf/validate/validate.proto\"\xb0\x05\n" +
+	"*ai/stigmer/agentic/run/v1/filereview.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a'ai/stigmer/agentic/run/v1/message.proto\x1a\x1bbuf/validate/validate.proto\"\xf4\x04\n" +
 	"\rFileChangeSet\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\aturn_id\x18\x02 \x01(\tR\x06turnId\x12\x1d\n" +
 	"\n" +
 	"harness_id\x18\x03 \x01(\tR\tharnessId\x12S\n" +
 	"\x11baseline_snapshot\x18\x05 \x01(\v2&.ai.stigmer.agentic.run.v1.SnapshotRefR\x10baselineSnapshot\x12U\n" +
-	"\x12candidate_snapshot\x18\x06 \x01(\v2&.ai.stigmer.agentic.run.v1.SnapshotRefR\x11candidateSnapshot\x12S\n" +
-	"\x11approved_snapshot\x18\a \x01(\v2&.ai.stigmer.agentic.run.v1.SnapshotRefR\x10approvedSnapshot\x12G\n" +
+	"\x12candidate_snapshot\x18\x06 \x01(\v2&.ai.stigmer.agentic.run.v1.SnapshotRefR\x11candidateSnapshot\x12G\n" +
 	"\achanges\x18\b \x03(\v2-.ai.stigmer.agentic.run.v1.CapturedFileChangeR\achanges\x12)\n" +
 	"\x10aggregate_digest\x18\t \x01(\tR\x0faggregateDigest\x12b\n" +
 	"\x11diff_completeness\x18\n" +
 	" \x01(\x0e2+.ai.stigmer.agentic.run.v1.DiffCompletenessB\b\xbaH\x05\x82\x01\x02\x10\x01R\x10diffCompleteness\x12_\n" +
-	"\x12command_provenance\x18\f \x01(\v20.ai.stigmer.agentic.run.v1.TurnCommandProvenanceR\x11commandProvenanceJ\x04\b\x04\x10\x05J\x04\b\v\x10\fR\x06statusR\tdecisions\"\x8f\x06\n" +
+	"\x12command_provenance\x18\f \x01(\v20.ai.stigmer.agentic.run.v1.TurnCommandProvenanceR\x11commandProvenanceJ\x04\b\x04\x10\x05J\x04\b\a\x10\bJ\x04\b\v\x10\fR\x06statusR\x11approved_snapshotR\tdecisions\"\x8f\x06\n" +
 	"\x12CapturedFileChange\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vpath_before\x18\x02 \x01(\tR\n" +
@@ -900,26 +888,25 @@ var file_ai_stigmer_agentic_run_v1_filereview_proto_goTypes = []any{
 var file_ai_stigmer_agentic_run_v1_filereview_proto_depIdxs = []int32{
 	2,  // 0: ai.stigmer.agentic.run.v1.FileChangeSet.baseline_snapshot:type_name -> ai.stigmer.agentic.run.v1.SnapshotRef
 	2,  // 1: ai.stigmer.agentic.run.v1.FileChangeSet.candidate_snapshot:type_name -> ai.stigmer.agentic.run.v1.SnapshotRef
-	2,  // 2: ai.stigmer.agentic.run.v1.FileChangeSet.approved_snapshot:type_name -> ai.stigmer.agentic.run.v1.SnapshotRef
-	1,  // 3: ai.stigmer.agentic.run.v1.FileChangeSet.changes:type_name -> ai.stigmer.agentic.run.v1.CapturedFileChange
-	8,  // 4: ai.stigmer.agentic.run.v1.FileChangeSet.diff_completeness:type_name -> ai.stigmer.agentic.run.v1.DiffCompleteness
-	5,  // 5: ai.stigmer.agentic.run.v1.FileChangeSet.command_provenance:type_name -> ai.stigmer.agentic.run.v1.TurnCommandProvenance
-	9,  // 6: ai.stigmer.agentic.run.v1.CapturedFileChange.kind:type_name -> ai.stigmer.agentic.run.v1.FileChangeKind
-	10, // 7: ai.stigmer.agentic.run.v1.CapturedFileChange.capture_class:type_name -> ai.stigmer.agentic.run.v1.FileCaptureClass
-	11, // 8: ai.stigmer.agentic.run.v1.CapturedFileChange.before:type_name -> ai.stigmer.agentic.run.v1.FileContent
-	11, // 9: ai.stigmer.agentic.run.v1.CapturedFileChange.after:type_name -> ai.stigmer.agentic.run.v1.FileContent
-	12, // 10: ai.stigmer.agentic.run.v1.CapturedFileChange.unified_diff:type_name -> ai.stigmer.agentic.run.v1.ToolCallOutputRef
-	13, // 11: ai.stigmer.agentic.run.v1.CapturedFileChange.blocked_reason:type_name -> ai.stigmer.agentic.run.v1.FileReviewBlockReason
-	14, // 12: ai.stigmer.agentic.run.v1.SnapshotRef.kind:type_name -> ai.stigmer.agentic.run.v1.SnapshotKind
-	3,  // 13: ai.stigmer.agentic.run.v1.SnapshotRef.git:type_name -> ai.stigmer.agentic.run.v1.GitTreeRef
-	4,  // 14: ai.stigmer.agentic.run.v1.SnapshotRef.cas:type_name -> ai.stigmer.agentic.run.v1.CasManifestRef
-	7,  // 15: ai.stigmer.agentic.run.v1.FileChangeProgress.entries:type_name -> ai.stigmer.agentic.run.v1.FileChangeProgressEntry
-	9,  // 16: ai.stigmer.agentic.run.v1.FileChangeProgressEntry.kind:type_name -> ai.stigmer.agentic.run.v1.FileChangeKind
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	1,  // 2: ai.stigmer.agentic.run.v1.FileChangeSet.changes:type_name -> ai.stigmer.agentic.run.v1.CapturedFileChange
+	8,  // 3: ai.stigmer.agentic.run.v1.FileChangeSet.diff_completeness:type_name -> ai.stigmer.agentic.run.v1.DiffCompleteness
+	5,  // 4: ai.stigmer.agentic.run.v1.FileChangeSet.command_provenance:type_name -> ai.stigmer.agentic.run.v1.TurnCommandProvenance
+	9,  // 5: ai.stigmer.agentic.run.v1.CapturedFileChange.kind:type_name -> ai.stigmer.agentic.run.v1.FileChangeKind
+	10, // 6: ai.stigmer.agentic.run.v1.CapturedFileChange.capture_class:type_name -> ai.stigmer.agentic.run.v1.FileCaptureClass
+	11, // 7: ai.stigmer.agentic.run.v1.CapturedFileChange.before:type_name -> ai.stigmer.agentic.run.v1.FileContent
+	11, // 8: ai.stigmer.agentic.run.v1.CapturedFileChange.after:type_name -> ai.stigmer.agentic.run.v1.FileContent
+	12, // 9: ai.stigmer.agentic.run.v1.CapturedFileChange.unified_diff:type_name -> ai.stigmer.agentic.run.v1.ToolCallOutputRef
+	13, // 10: ai.stigmer.agentic.run.v1.CapturedFileChange.blocked_reason:type_name -> ai.stigmer.agentic.run.v1.FileReviewBlockReason
+	14, // 11: ai.stigmer.agentic.run.v1.SnapshotRef.kind:type_name -> ai.stigmer.agentic.run.v1.SnapshotKind
+	3,  // 12: ai.stigmer.agentic.run.v1.SnapshotRef.git:type_name -> ai.stigmer.agentic.run.v1.GitTreeRef
+	4,  // 13: ai.stigmer.agentic.run.v1.SnapshotRef.cas:type_name -> ai.stigmer.agentic.run.v1.CasManifestRef
+	7,  // 14: ai.stigmer.agentic.run.v1.FileChangeProgress.entries:type_name -> ai.stigmer.agentic.run.v1.FileChangeProgressEntry
+	9,  // 15: ai.stigmer.agentic.run.v1.FileChangeProgressEntry.kind:type_name -> ai.stigmer.agentic.run.v1.FileChangeKind
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_filereview_proto_init() }

@@ -139,39 +139,6 @@ public interface FileChangeSetOrBuilder extends
 
   /**
    * <pre>
-   * Workspace state after an undo put files back (the exact bytes reconciled
-   * to). Empty until files of the set are put back. Reconcile verifies the
-   * filesystem hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   * @return Whether the approvedSnapshot field is set.
-   */
-  boolean hasApprovedSnapshot();
-  /**
-   * <pre>
-   * Workspace state after an undo put files back (the exact bytes reconciled
-   * to). Empty until files of the set are put back. Reconcile verifies the
-   * filesystem hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   * @return The approvedSnapshot.
-   */
-  ai.stigmer.agentic.run.v1.SnapshotRef getApprovedSnapshot();
-  /**
-   * <pre>
-   * Workspace state after an undo put files back (the exact bytes reconciled
-   * to). Empty until files of the set are put back. Reconcile verifies the
-   * filesystem hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   */
-  ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder getApprovedSnapshotOrBuilder();
-
-  /**
-   * <pre>
    * The per-file deltas in this change set (the rendered review surface).
    * </pre>
    *

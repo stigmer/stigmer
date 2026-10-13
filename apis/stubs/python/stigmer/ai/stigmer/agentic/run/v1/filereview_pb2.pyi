@@ -10,13 +10,12 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class FileChangeSet(_message.Message):
-    __slots__ = ("id", "turn_id", "harness_id", "baseline_snapshot", "candidate_snapshot", "approved_snapshot", "changes", "aggregate_digest", "diff_completeness", "command_provenance")
+    __slots__ = ("id", "turn_id", "harness_id", "baseline_snapshot", "candidate_snapshot", "changes", "aggregate_digest", "diff_completeness", "command_provenance")
     ID_FIELD_NUMBER: _ClassVar[int]
     TURN_ID_FIELD_NUMBER: _ClassVar[int]
     HARNESS_ID_FIELD_NUMBER: _ClassVar[int]
     BASELINE_SNAPSHOT_FIELD_NUMBER: _ClassVar[int]
     CANDIDATE_SNAPSHOT_FIELD_NUMBER: _ClassVar[int]
-    APPROVED_SNAPSHOT_FIELD_NUMBER: _ClassVar[int]
     CHANGES_FIELD_NUMBER: _ClassVar[int]
     AGGREGATE_DIGEST_FIELD_NUMBER: _ClassVar[int]
     DIFF_COMPLETENESS_FIELD_NUMBER: _ClassVar[int]
@@ -26,12 +25,11 @@ class FileChangeSet(_message.Message):
     harness_id: str
     baseline_snapshot: SnapshotRef
     candidate_snapshot: SnapshotRef
-    approved_snapshot: SnapshotRef
     changes: _containers.RepeatedCompositeFieldContainer[CapturedFileChange]
     aggregate_digest: str
     diff_completeness: _enum_pb2.DiffCompleteness
     command_provenance: TurnCommandProvenance
-    def __init__(self, id: _Optional[str] = ..., turn_id: _Optional[str] = ..., harness_id: _Optional[str] = ..., baseline_snapshot: _Optional[_Union[SnapshotRef, _Mapping]] = ..., candidate_snapshot: _Optional[_Union[SnapshotRef, _Mapping]] = ..., approved_snapshot: _Optional[_Union[SnapshotRef, _Mapping]] = ..., changes: _Optional[_Iterable[_Union[CapturedFileChange, _Mapping]]] = ..., aggregate_digest: _Optional[str] = ..., diff_completeness: _Optional[_Union[_enum_pb2.DiffCompleteness, str]] = ..., command_provenance: _Optional[_Union[TurnCommandProvenance, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., turn_id: _Optional[str] = ..., harness_id: _Optional[str] = ..., baseline_snapshot: _Optional[_Union[SnapshotRef, _Mapping]] = ..., candidate_snapshot: _Optional[_Union[SnapshotRef, _Mapping]] = ..., changes: _Optional[_Iterable[_Union[CapturedFileChange, _Mapping]]] = ..., aggregate_digest: _Optional[str] = ..., diff_completeness: _Optional[_Union[_enum_pb2.DiffCompleteness, str]] = ..., command_provenance: _Optional[_Union[TurnCommandProvenance, _Mapping]] = ...) -> None: ...
 
 class CapturedFileChange(_message.Message):
     __slots__ = ("id", "path_before", "path_after", "kind", "capture_class", "before", "after", "before_sha256", "after_sha256", "unified_diff", "diff_complete", "file_digest", "blocked_reason", "lines_added", "lines_removed")

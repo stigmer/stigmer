@@ -72,10 +72,11 @@ message FileChangeSet {
   // pre-execution proposal is ever authoritative.
   SnapshotRef candidate_snapshot = 6;
 
-  // Workspace state after an undo put files back (the exact bytes reconciled
-  // to). Empty until files of the set are put back. Reconcile verifies the
-  // filesystem hashes against this snapshot.
-  SnapshotRef approved_snapshot = 7;
+  // Field 7 held the workspace state after an undo put files back. An undo's
+  // outcome is the session's stigmer.file_review.reconciled event. Reserved
+  // so the number and name are never reused.
+  reserved 7;
+  reserved "approved_snapshot";
 
   // The per-file deltas in this change set (the rendered review surface).
   repeated CapturedFileChange changes = 8;

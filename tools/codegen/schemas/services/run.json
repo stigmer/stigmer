@@ -2999,17 +2999,6 @@
           "required": false
         },
         {
-          "name": "ApprovedSnapshot",
-          "jsonName": "approvedSnapshot",
-          "protoField": "approved_snapshot",
-          "type": {
-            "kind": "message",
-            "messageType": "SnapshotRef"
-          },
-          "description": "Workspace state after an undo put files back (the exact bytes reconciled\n to). Empty until files of the set are put back. Reconcile verifies the\n filesystem hashes against this snapshot.",
-          "required": false
-        },
-        {
           "name": "Changes",
           "jsonName": "changes",
           "protoField": "changes",

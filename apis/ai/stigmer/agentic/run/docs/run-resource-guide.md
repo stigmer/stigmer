@@ -177,7 +177,6 @@ A run's status carries no transcript. The agent's messages and thinking, its too
 | `harness_id` | `string` | The engine that made the edits: `cursor` or `deep-agent`. |
 | `baseline_snapshot` | `SnapshotRef` | Workspace state at turn start, the "before" of the diff. |
 | `candidate_snapshot` | `SnapshotRef` | Workspace state at the turn boundary, the "after". The diff is computed between the two snapshots. |
-| `approved_snapshot` | `SnapshotRef` | Workspace state after an undo put files back. Empty until files of the set are put back. |
 | `changes` | `repeated CapturedFileChange` | One entry per file: `path_before`, `path_after`, `kind`, the contents `before` and `after` (inline, or by storage key when large), their SHA-256 digests, the `unified_diff`, whether the diff is complete, and lines added and removed. |
 | `aggregate_digest` | `string` | Digest over the ordered changes. Enforcement only: putting files back refuses content that differs from what was reviewed. |
 | `diff_completeness` | `DiffCompleteness` | Whether the set's diff is complete enough to keep in one step. |

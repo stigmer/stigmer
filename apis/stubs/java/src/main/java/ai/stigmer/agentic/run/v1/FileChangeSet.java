@@ -296,50 +296,6 @@ private static final long serialVersionUID = 0L;
     return candidateSnapshot_ == null ? ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : candidateSnapshot_;
   }
 
-  public static final int APPROVED_SNAPSHOT_FIELD_NUMBER = 7;
-  private ai.stigmer.agentic.run.v1.SnapshotRef approvedSnapshot_;
-  /**
-   * <pre>
-   * Workspace state after an undo put files back (the exact bytes reconciled
-   * to). Empty until files of the set are put back. Reconcile verifies the
-   * filesystem hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   * @return Whether the approvedSnapshot field is set.
-   */
-  @java.lang.Override
-  public boolean hasApprovedSnapshot() {
-    return ((bitField0_ & 0x00000004) != 0);
-  }
-  /**
-   * <pre>
-   * Workspace state after an undo put files back (the exact bytes reconciled
-   * to). Empty until files of the set are put back. Reconcile verifies the
-   * filesystem hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   * @return The approvedSnapshot.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.SnapshotRef getApprovedSnapshot() {
-    return approvedSnapshot_ == null ? ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : approvedSnapshot_;
-  }
-  /**
-   * <pre>
-   * Workspace state after an undo put files back (the exact bytes reconciled
-   * to). Empty until files of the set are put back. Reconcile verifies the
-   * filesystem hashes against this snapshot.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder getApprovedSnapshotOrBuilder() {
-    return approvedSnapshot_ == null ? ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : approvedSnapshot_;
-  }
-
   public static final int CHANGES_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.agentic.run.v1.CapturedFileChange> changes_;
@@ -501,7 +457,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasCommandProvenance() {
-    return ((bitField0_ & 0x00000008) != 0);
+    return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <pre>
@@ -558,9 +514,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(6, getCandidateSnapshot());
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
-      output.writeMessage(7, getApprovedSnapshot());
-    }
     for (int i = 0; i < changes_.size(); i++) {
       output.writeMessage(8, changes_.get(i));
     }
@@ -570,7 +523,7 @@ private static final long serialVersionUID = 0L;
     if (diffCompleteness_ != ai.stigmer.agentic.run.v1.DiffCompleteness.DIFF_COMPLETENESS_UNSPECIFIED.getNumber()) {
       output.writeEnum(10, diffCompleteness_);
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(12, getCommandProvenance());
     }
     getUnknownFields().writeTo(output);
@@ -599,10 +552,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(6, getCandidateSnapshot());
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(7, getApprovedSnapshot());
-    }
 
         {
           final int count = changes_.size();
@@ -619,7 +568,7 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, diffCompleteness_);
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(12, getCommandProvenance());
     }
@@ -653,11 +602,6 @@ private static final long serialVersionUID = 0L;
     if (hasCandidateSnapshot()) {
       if (!getCandidateSnapshot()
           .equals(other.getCandidateSnapshot())) return false;
-    }
-    if (hasApprovedSnapshot() != other.hasApprovedSnapshot()) return false;
-    if (hasApprovedSnapshot()) {
-      if (!getApprovedSnapshot()
-          .equals(other.getApprovedSnapshot())) return false;
     }
     if (!getChangesList()
         .equals(other.getChangesList())) return false;
@@ -693,10 +637,6 @@ private static final long serialVersionUID = 0L;
     if (hasCandidateSnapshot()) {
       hash = (37 * hash) + CANDIDATE_SNAPSHOT_FIELD_NUMBER;
       hash = (53 * hash) + getCandidateSnapshot().hashCode();
-    }
-    if (hasApprovedSnapshot()) {
-      hash = (37 * hash) + APPROVED_SNAPSHOT_FIELD_NUMBER;
-      hash = (53 * hash) + getApprovedSnapshot().hashCode();
     }
     if (getChangesCount() > 0) {
       hash = (37 * hash) + CHANGES_FIELD_NUMBER;
@@ -853,7 +793,6 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetBaselineSnapshotFieldBuilder();
         internalGetCandidateSnapshotFieldBuilder();
-        internalGetApprovedSnapshotFieldBuilder();
         internalGetChangesFieldBuilder();
         internalGetCommandProvenanceFieldBuilder();
       }
@@ -875,18 +814,13 @@ private static final long serialVersionUID = 0L;
         candidateSnapshotBuilder_.dispose();
         candidateSnapshotBuilder_ = null;
       }
-      approvedSnapshot_ = null;
-      if (approvedSnapshotBuilder_ != null) {
-        approvedSnapshotBuilder_.dispose();
-        approvedSnapshotBuilder_ = null;
-      }
       if (changesBuilder_ == null) {
         changes_ = java.util.Collections.emptyList();
       } else {
         changes_ = null;
         changesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       aggregateDigest_ = "";
       diffCompleteness_ = 0;
       commandProvenance_ = null;
@@ -928,9 +862,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.FileChangeSet result) {
       if (changesBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000020) != 0)) {
           changes_ = java.util.Collections.unmodifiableList(changes_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000020);
         }
         result.changes_ = changes_;
       } else {
@@ -962,23 +896,17 @@ private static final long serialVersionUID = 0L;
             : candidateSnapshotBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.approvedSnapshot_ = approvedSnapshotBuilder_ == null
-            ? approvedSnapshot_
-            : approvedSnapshotBuilder_.build();
-        to_bitField0_ |= 0x00000004;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.aggregateDigest_ = aggregateDigest_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.diffCompleteness_ = diffCompleteness_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.commandProvenance_ = commandProvenanceBuilder_ == null
             ? commandProvenance_
             : commandProvenanceBuilder_.build();
-        to_bitField0_ |= 0x00000008;
+        to_bitField0_ |= 0x00000004;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1016,14 +944,11 @@ private static final long serialVersionUID = 0L;
       if (other.hasCandidateSnapshot()) {
         mergeCandidateSnapshot(other.getCandidateSnapshot());
       }
-      if (other.hasApprovedSnapshot()) {
-        mergeApprovedSnapshot(other.getApprovedSnapshot());
-      }
       if (changesBuilder_ == null) {
         if (!other.changes_.isEmpty()) {
           if (changes_.isEmpty()) {
             changes_ = other.changes_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000020);
           } else {
             ensureChangesIsMutable();
             changes_.addAll(other.changes_);
@@ -1036,7 +961,7 @@ private static final long serialVersionUID = 0L;
             changesBuilder_.dispose();
             changesBuilder_ = null;
             changes_ = other.changes_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000020);
             changesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetChangesFieldBuilder() : null;
@@ -1047,7 +972,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getAggregateDigest().isEmpty()) {
         aggregateDigest_ = other.aggregateDigest_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       if (other.diffCompleteness_ != 0) {
@@ -1111,13 +1036,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 50
-            case 58: {
-              input.readMessage(
-                  internalGetApprovedSnapshotFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000020;
-              break;
-            } // case 58
             case 66: {
               ai.stigmer.agentic.run.v1.CapturedFileChange m =
                   input.readMessage(
@@ -1133,19 +1051,19 @@ private static final long serialVersionUID = 0L;
             } // case 66
             case 74: {
               aggregateDigest_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 74
             case 80: {
               diffCompleteness_ = input.readEnum();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 80
             case 98: {
               input.readMessage(
                   internalGetCommandProvenanceFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 98
             default: {
@@ -1792,187 +1710,12 @@ private static final long serialVersionUID = 0L;
       return candidateSnapshotBuilder_;
     }
 
-    private ai.stigmer.agentic.run.v1.SnapshotRef approvedSnapshot_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.SnapshotRef, ai.stigmer.agentic.run.v1.SnapshotRef.Builder, ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder> approvedSnapshotBuilder_;
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     * @return Whether the approvedSnapshot field is set.
-     */
-    public boolean hasApprovedSnapshot() {
-      return ((bitField0_ & 0x00000020) != 0);
-    }
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     * @return The approvedSnapshot.
-     */
-    public ai.stigmer.agentic.run.v1.SnapshotRef getApprovedSnapshot() {
-      if (approvedSnapshotBuilder_ == null) {
-        return approvedSnapshot_ == null ? ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : approvedSnapshot_;
-      } else {
-        return approvedSnapshotBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public Builder setApprovedSnapshot(ai.stigmer.agentic.run.v1.SnapshotRef value) {
-      if (approvedSnapshotBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        approvedSnapshot_ = value;
-      } else {
-        approvedSnapshotBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public Builder setApprovedSnapshot(
-        ai.stigmer.agentic.run.v1.SnapshotRef.Builder builderForValue) {
-      if (approvedSnapshotBuilder_ == null) {
-        approvedSnapshot_ = builderForValue.build();
-      } else {
-        approvedSnapshotBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public Builder mergeApprovedSnapshot(ai.stigmer.agentic.run.v1.SnapshotRef value) {
-      if (approvedSnapshotBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0) &&
-          approvedSnapshot_ != null &&
-          approvedSnapshot_ != ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance()) {
-          getApprovedSnapshotBuilder().mergeFrom(value);
-        } else {
-          approvedSnapshot_ = value;
-        }
-      } else {
-        approvedSnapshotBuilder_.mergeFrom(value);
-      }
-      if (approvedSnapshot_ != null) {
-        bitField0_ |= 0x00000020;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public Builder clearApprovedSnapshot() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      approvedSnapshot_ = null;
-      if (approvedSnapshotBuilder_ != null) {
-        approvedSnapshotBuilder_.dispose();
-        approvedSnapshotBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SnapshotRef.Builder getApprovedSnapshotBuilder() {
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return internalGetApprovedSnapshotFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder getApprovedSnapshotOrBuilder() {
-      if (approvedSnapshotBuilder_ != null) {
-        return approvedSnapshotBuilder_.getMessageOrBuilder();
-      } else {
-        return approvedSnapshot_ == null ?
-            ai.stigmer.agentic.run.v1.SnapshotRef.getDefaultInstance() : approvedSnapshot_;
-      }
-    }
-    /**
-     * <pre>
-     * Workspace state after an undo put files back (the exact bytes reconciled
-     * to). Empty until files of the set are put back. Reconcile verifies the
-     * filesystem hashes against this snapshot.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.SnapshotRef approved_snapshot = 7 [json_name = "approvedSnapshot"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.run.v1.SnapshotRef, ai.stigmer.agentic.run.v1.SnapshotRef.Builder, ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder> 
-        internalGetApprovedSnapshotFieldBuilder() {
-      if (approvedSnapshotBuilder_ == null) {
-        approvedSnapshotBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.run.v1.SnapshotRef, ai.stigmer.agentic.run.v1.SnapshotRef.Builder, ai.stigmer.agentic.run.v1.SnapshotRefOrBuilder>(
-                getApprovedSnapshot(),
-                getParentForChildren(),
-                isClean());
-        approvedSnapshot_ = null;
-      }
-      return approvedSnapshotBuilder_;
-    }
-
     private java.util.List<ai.stigmer.agentic.run.v1.CapturedFileChange> changes_ =
       java.util.Collections.emptyList();
     private void ensureChangesIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000020) != 0)) {
         changes_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.CapturedFileChange>(changes_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
        }
     }
 
@@ -2166,7 +1909,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearChanges() {
       if (changesBuilder_ == null) {
         changes_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000020);
         onChanged();
       } else {
         changesBuilder_.clear();
@@ -2271,7 +2014,7 @@ private static final long serialVersionUID = 0L;
         changesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.CapturedFileChange, ai.stigmer.agentic.run.v1.CapturedFileChange.Builder, ai.stigmer.agentic.run.v1.CapturedFileChangeOrBuilder>(
                 changes_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000020) != 0),
                 getParentForChildren(),
                 isClean());
         changes_ = null;
@@ -2340,7 +2083,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       aggregateDigest_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2356,7 +2099,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearAggregateDigest() {
       aggregateDigest_ = getDefaultInstance().getAggregateDigest();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -2376,7 +2119,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       aggregateDigest_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2415,7 +2158,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setDiffCompletenessValue(int value) {
       diffCompleteness_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2453,7 +2196,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setDiffCompleteness(ai.stigmer.agentic.run.v1.DiffCompleteness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       diffCompleteness_ = value.getNumber();
       onChanged();
       return this;
@@ -2472,7 +2215,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearDiffCompleteness() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       diffCompleteness_ = 0;
       onChanged();
       return this;
@@ -2491,7 +2234,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the commandProvenance field is set.
      */
     public boolean hasCommandProvenance() {
-      return ((bitField0_ & 0x00000200) != 0);
+      return ((bitField0_ & 0x00000100) != 0);
     }
     /**
      * <pre>
@@ -2526,7 +2269,7 @@ private static final long serialVersionUID = 0L;
       } else {
         commandProvenanceBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2545,7 +2288,7 @@ private static final long serialVersionUID = 0L;
       } else {
         commandProvenanceBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2559,7 +2302,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeCommandProvenance(ai.stigmer.agentic.run.v1.TurnCommandProvenance value) {
       if (commandProvenanceBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
+        if (((bitField0_ & 0x00000100) != 0) &&
           commandProvenance_ != null &&
           commandProvenance_ != ai.stigmer.agentic.run.v1.TurnCommandProvenance.getDefaultInstance()) {
           getCommandProvenanceBuilder().mergeFrom(value);
@@ -2570,7 +2313,7 @@ private static final long serialVersionUID = 0L;
         commandProvenanceBuilder_.mergeFrom(value);
       }
       if (commandProvenance_ != null) {
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       return this;
@@ -2584,7 +2327,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
      */
     public Builder clearCommandProvenance() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       commandProvenance_ = null;
       if (commandProvenanceBuilder_ != null) {
         commandProvenanceBuilder_.dispose();
@@ -2602,7 +2345,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.TurnCommandProvenance command_provenance = 12 [json_name = "commandProvenance"];</code>
      */
     public ai.stigmer.agentic.run.v1.TurnCommandProvenance.Builder getCommandProvenanceBuilder() {
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return internalGetCommandProvenanceFieldBuilder().getBuilder();
     }
