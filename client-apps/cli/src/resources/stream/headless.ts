@@ -1,139 +1,150 @@
-// The headless stream driver: subscribe → diff → render → resolve approvals.
+// The headless stream driver: follow the session's event log, fold it, render
+// it, and answer the turn's asks.
 //
-// This is the single-process analog of Go's renderer goroutine + approval
-// channel (run_stream.go / run_stream_events.go). Go runs streamToEvents in one
-// goroutine and the renderer in another, exchanging approvals over channels.
-// Here it's one async loop: each snapshot is diffed, every event is rendered,
-// and an ApprovalNeededEvent is resolved by the renderer's policy and submitted
-// (with retry) before the loop blocks on the next snapshot — which is safe
-// because the backend withholds further updates until the approval lands.
+// One async loop over `followSession` (the session's whole log, then each new
+// event): every stored event is handed to the renderer as it arrives (the
+// NDJSON renderer writes it), folded by one `SessionLog`, and the fold is
+// handed to the renderer after every change (the plaintext renderer draws from
+// it). The loop ends when the followed turn has ended.
+//
+// Asks are answered when the session idles waiting on them (its
+// `requires_action` idle names the tool uses), each once, with the run's
+// `--approve-default` answer, retried through transient failures. A refused
+// answer whose call no longer waits (a grant settled its class, or the turn
+// ended) is settled, not failed; any other refusal ends the stream with an
+// error naming how to re-attach.
+//
+// The follow never outlives the drive: it runs under a signal of the driver's
+// own, joined to the caller's, aborted on every way out, so the open stream
+// does not hold the process after the turn has ended.
 
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SnapshotDiffer } from "./diff.js";
-import type { ApprovalNeededEvent, StreamEvent } from "./events.js";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import {
+  foldSession,
+  SessionLog,
+  turnOf,
+  type SessionFold,
+  type SessionStatusView,
+  type ToolUse,
+  type Turn,
+} from "@stigmer/sdk";
+import { answerFor, type ApproveDefault, type AskAnswer } from "./answer.js";
 import {
   APPROVAL_RETRY_BASE_DELAY_MS,
   APPROVAL_RETRY_MAX_ATTEMPTS,
   classifyStreamError,
+  isSettledAnswerError,
   retryWithBackoff,
 } from "./submit.js";
 
-/**
- * A headless renderer: turns each differ event into output and decides how to
- * resolve approvals. Both methods are synchronous — submission is the driver's
- * job. Implemented by NdjsonRenderer and PlaintextRenderer.
- */
+/** A headless renderer: NdjsonRenderer and PlaintextRenderer. */
 export interface HeadlessRenderer {
-  /** Render one event to the renderer's sinks. */
-  render(event: StreamEvent): void;
-  /** Choose the approval action for an emitted ApprovalNeededEvent (may warn). */
-  resolveApproval(event: ApprovalNeededEvent): ApprovalAction;
+  /** One stored event, in log order, as it arrives. */
+  event(event: SessionEvent): void;
+  /** The fold, after every change. */
+  fold(fold: SessionFold): void;
+  /** An ask is about to be answered by the run's `--approve-default`. */
+  answering(ask: ToolUse, choice: ApproveDefault, answer: AskAnswer): void;
 }
 
-/**
- * How long the driver keeps reading after the terminal snapshot, for the
- * server to end the subscription, before it cancels the call itself.
- */
-export const SUBSCRIPTION_DRAIN_GRACE_MS = 2_000;
-
-/** The terminal outcome of a headless stream. */
+/** How a headless stream ended. */
 export interface HeadlessResult {
+  /** The turn's phase word; "" when the stream ended before the turn did. */
   readonly phase: string;
+  /** What went wrong with the stream; "" when nothing did. */
   readonly error: string;
+  /** The followed turn, folded, when the stream reached it. */
+  readonly turn: Turn | undefined;
 }
 
 /** Dependencies for {@link runHeadlessStream}. */
 export interface HeadlessStreamDeps {
-  /** The run snapshot source (the SDK's run.subscribe). */
-  readonly subscribe: (signal: AbortSignal) => AsyncIterable<Run>;
-  /** Submit one approval decision. The caller binds the run + RPC. */
-  readonly submitApproval: (toolCallId: string, action: ApprovalAction) => Promise<void>;
+  /** The session's events from the start of its log (the SDK's followSession). */
+  readonly follow: (signal: AbortSignal) => AsyncIterable<StreamSessionEventsResponse>;
+  /** Send one answer for a tool use of the session. */
+  readonly answer: (toolUseId: string, answer: AskAnswer) => Promise<void>;
+  /** The run's `--approve-default`. */
+  readonly approveDefault: ApproveDefault;
   readonly renderer: HeadlessRenderer;
   readonly sessionId: string;
+  /** The turn the stream follows to its end. */
+  readonly runId: string;
   readonly signal: AbortSignal;
 }
 
+const STOPPED: HeadlessResult = { phase: "", error: "", turn: undefined };
+
 /**
- * Drive the stream to a terminal phase and return the outcome. Aborting (Ctrl-C)
- * resolves cleanly with an empty result; a dropped stream renders a stream_error
- * and returns its message.
- *
- * The subscription never outlives the drive (#1522). After the terminal
- * snapshot the driver keeps reading, ignoring what follows, until the server
- * ends the subscription, which it does on a terminal phase: an HTTP/2 stream
- * whose unread frames are left in its buffer is never destroyed, and an open
- * stream holds the session, and with it the process, alive after the run has
- * finished. Leaving the loop early, or aborting the call once the server has
- * already closed its side, does not release it. A server that does not end the
- * stream within SUBSCRIPTION_DRAIN_GRACE_MS is cancelled, and the subscription
- * is subscribed with a signal of the driver's own (joined to the caller's),
- * aborted on every way out.
+ * Drive the stream until the followed turn ends and return how it ended.
+ * Aborting (Ctrl-C) resolves cleanly with an empty result; a dropped stream or
+ * a failed answer returns its message.
  */
 export async function runHeadlessStream(deps: HeadlessStreamDeps): Promise<HeadlessResult> {
-  const differ = new SnapshotDiffer();
-  const subscription = new AbortController();
-  let outcome: HeadlessResult | undefined;
-  let grace: ReturnType<typeof setTimeout> | undefined;
+  const log = new SessionLog();
+  const answered = new Set<string>();
+  const own = new AbortController();
+  const signal = AbortSignal.any([deps.signal, own.signal]);
+  let handledIdle: SessionStatusView | undefined;
   try {
-    for await (const snapshot of deps.subscribe(AbortSignal.any([deps.signal, subscription.signal]))) {
-      if (outcome !== undefined) continue;
-      outcome = await drainSnapshot(differ.next(snapshot), deps);
-      if (outcome !== undefined) {
-        grace = setTimeout(() => subscription.abort(), SUBSCRIPTION_DRAIN_GRACE_MS);
+    for await (const frame of deps.follow(signal)) {
+      if (frame.frame.case === "event") deps.renderer.event(frame.frame.value);
+      if (!log.applyFrame(frame)) continue;
+      const fold = log.snapshot();
+      deps.renderer.fold(fold);
+      const turn = turnOf(fold, deps.runId);
+      if (turn === undefined) continue;
+      if (turn.ended) return { phase: turn.status?.phase ?? "", error: turn.status?.error ?? "", turn };
+      if (fold.status !== handledIdle && waitsOnAsks(fold.status)) {
+        handledIdle = fold.status;
+        const failure = await answerAsks(turn, fold.status, answered, deps, signal);
+        if (failure !== undefined) return failure;
       }
     }
-    return outcome ?? { phase: "", error: "" };
+    return STOPPED;
   } catch (err) {
-    if (outcome !== undefined) return outcome;
-    if (deps.signal.aborted) return { phase: "", error: "" };
-    const message = classifyStreamError(err, deps.sessionId);
-    deps.renderer.render({ kind: "streamError", error: message });
-    return { phase: "", error: message };
+    if (deps.signal.aborted) return STOPPED;
+    return { phase: "", error: classifyStreamError(err, deps.sessionId), turn: undefined };
   } finally {
-    clearTimeout(grace);
-    subscription.abort();
+    own.abort();
   }
 }
 
-// Render every event for one snapshot, resolving approvals as they appear.
-// Returns the terminal result when a done/stream_error event is reached.
-async function drainSnapshot(events: StreamEvent[], deps: HeadlessStreamDeps): Promise<HeadlessResult | undefined> {
-  for (const event of events) {
-    deps.renderer.render(event);
+/** Render a finished session's stored events: each event, then the fold of them all. */
+export function renderReplay(events: readonly SessionEvent[], renderer: HeadlessRenderer): void {
+  for (const event of events) renderer.event(event);
+  renderer.fold(foldSession(events));
+}
 
-    if (event.kind === "approvalNeeded") {
-      const failure = await resolveAndSubmit(event, deps);
-      if (failure !== undefined) return failure;
+function waitsOnAsks(status: SessionStatusView): boolean {
+  return status.state === "idle" && status.stopReason === "requires_action";
+}
+
+// Answer every ask of the turn the idle names and this drive has not answered.
+// Returns the stream's failure when an answer fails for good.
+async function answerAsks(
+  turn: Turn,
+  status: SessionStatusView,
+  answered: Set<string>,
+  deps: HeadlessStreamDeps,
+  signal: AbortSignal,
+): Promise<HeadlessResult | undefined> {
+  const answer = answerFor(deps.approveDefault);
+  for (const ask of turn.asks) {
+    if (answered.has(ask.id) || !status.waitingOn.includes(ask.id)) continue;
+    answered.add(ask.id);
+    deps.renderer.answering(ask, deps.approveDefault, answer);
+    try {
+      await retryWithBackoff(signal, APPROVAL_RETRY_MAX_ATTEMPTS, APPROVAL_RETRY_BASE_DELAY_MS, () =>
+        deps.answer(ask.id, answer),
+      );
+    } catch (err) {
+      if (deps.signal.aborted) return STOPPED;
+      if (isSettledAnswerError(err)) continue;
+      let message = `Failed to answer the ${ask.name} call: ${err instanceof Error ? err.message : String(err)}`;
+      if (deps.sessionId !== "") message += `. Re-attach to retry: stigmer resume ${deps.sessionId}`;
+      return { phase: "", error: message, turn };
     }
-    if (event.kind === "done") return { phase: event.phase, error: event.error };
-    if (event.kind === "streamError") return { phase: "", error: event.error };
   }
   return undefined;
 }
-
-// Resolve an approval via the renderer's policy and submit it with retry. On
-// terminal submit failure, render a stream_error and return it (mirrors Go's
-// emitAndWaitApproval, which surfaces a StreamErrorEvent the renderer treats as
-// terminal). A successful submit returns undefined to continue the stream.
-async function resolveAndSubmit(
-  event: ApprovalNeededEvent,
-  deps: HeadlessStreamDeps,
-): Promise<HeadlessResult | undefined> {
-  const action = deps.renderer.resolveApproval(event);
-  try {
-    await retryWithBackoff(deps.signal, APPROVAL_RETRY_MAX_ATTEMPTS, APPROVAL_RETRY_BASE_DELAY_MS, () =>
-      deps.submitApproval(event.toolCallId, action),
-    );
-    return undefined;
-  } catch (err) {
-    if (deps.signal.aborted) return { phase: "", error: "" };
-    let message = `Failed to submit approval after ${APPROVAL_RETRY_MAX_ATTEMPTS} attempts`;
-    if (deps.sessionId !== "") message += `. Re-attach to retry: stigmer resume ${deps.sessionId}`;
-    deps.renderer.render({ kind: "streamError", error: message });
-    return { phase: "", error: message };
-  }
-}
-
-/** Re-export so command wiring can reference the enum without a deep import. */
-export { ApprovalAction };

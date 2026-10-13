@@ -11,11 +11,11 @@
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Attachment } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../../errors/index.js";
+import { parseApproveDefault, type ApproveDefault } from "../stream/answer.js";
 import { type ProgressSink, processAttachments } from "./attachments.js";
 import { resolveRunPlugins } from "./plugins.js";
 import { resolveRunVaults } from "./vaults.js";
@@ -75,7 +75,7 @@ export interface AgentExecFlags {
  * preparedAgentExec, minus the client/org which the command already owns.
  */
 export interface PreparedRun {
-  readonly defaultAction: ApprovalAction;
+  readonly approveDefault: ApproveDefault;
   readonly workspaceEntries: WorkspaceEntry[];
   /** The shared vaults the new conversation uses, in order. */
   readonly vaults: readonly ApiResourceReference[];
@@ -145,7 +145,7 @@ export async function prepareAgentExec(
   progress?: ProgressSink,
   options?: PrepareAgentExecOptions,
 ): Promise<PreparedRun> {
-  const defaultAction = parseApprovalAction(flags.approveDefault);
+  const approveDefault = parseApproveDefault(flags.approveDefault);
   validateMode(flags.mode);
   validateServiceTier(flags.serviceTier);
   validateThinking(flags.thinking);
@@ -210,7 +210,7 @@ export async function prepareAgentExec(
   );
 
   return {
-    defaultAction,
+    approveDefault,
     workspaceEntries,
     vaults,
     includeMyVault: flags.myVault,
@@ -285,31 +285,6 @@ async function resolveAccountExecutionDefaults(
     };
   } catch {
     return NO_ACCOUNT_DEFAULTS;
-  }
-}
-
-/**
- * Parse the `--approve-default` flag to an ApprovalAction. Empty means "no
- * default" (UNSPECIFIED). Mirrors Go's approval.ParseAction, including the
- * approve-all aliases and case-insensitivity.
- */
-export function parseApprovalAction(value: string): ApprovalAction {
-  if (value.trim() === "") return ApprovalAction.UNSPECIFIED;
-  switch (value.trim().toLowerCase()) {
-    case "approve":
-      return ApprovalAction.APPROVE;
-    case "skip":
-      return ApprovalAction.SKIP;
-    case "reject":
-      return ApprovalAction.REJECT;
-    case "approve-all":
-    case "approve_all":
-    case "approveall":
-      return ApprovalAction.APPROVE_ALL;
-    default:
-      throw new UsageError(
-        `invalid --approve-default value "${value}": must be one of: approve, skip, reject, approve-all`,
-      );
   }
 }
 

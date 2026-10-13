@@ -2,7 +2,8 @@
 // confirmation prompt, then delete it. Mirrors the Go CLI's unified delete,
 // including its three special cases:
 //
-//   - run        → maps to a *cancel* (runs only, by ID)
+//   - run        → maps to a *cancel* (runs only, by ID): its session is
+//                  interrupted, which stops every unfinished turn of it
 //   - organization → not org-scoped; resolved via findMyOrganizations
 //   - api_key    → addressable by ID only (not slug)
 //
@@ -244,13 +245,13 @@ function planRunCancel(client: Stigmer, reference: string): DeletePlan {
   const warning = CommandResult.warning(
     `You are about to cancel run: ${reference}`,
   );
-  warning.hint("This will gracefully stop the running agent.");
+  warning.hint("This stops every unfinished turn of the run's conversation, this run included.");
 
   return {
     warning,
     confirmPrompt: "Proceed with cancellation? [y/N]",
     perform: async () => {
-      const { run, wasAlreadyTerminal } = await cancelAgentRun(
+      const { run, wasAlreadyTerminal, stoppedRunIds } = await cancelAgentRun(
         client,
         reference,
       );
@@ -262,7 +263,8 @@ function planRunCancel(client: Stigmer, reference: string): DeletePlan {
       const out = wasAlreadyTerminal
         ? CommandResult.warning("Run was already in terminal state")
         : CommandResult.success("Run cancelled successfully");
-      out.addSection("Run").field("ID", id).field("Status", status);
+      const section = out.addSection("Run").field("ID", id).field("Status", status);
+      if (stoppedRunIds.length > 0) section.field("Stopped", stoppedRunIds.join(", "));
       return out;
     },
   };

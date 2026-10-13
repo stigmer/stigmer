@@ -5,17 +5,24 @@
 // names its duration and its tokens, never a price; tokens counted from the
 // runner's own report rather than the meter carry a "~". A stream that failed
 // before reaching a phase is re-raised as a CLI error.
+//
+// What went wrong with a failed or stopped turn is read from the turn as the
+// session's log folds it: the run's own error, else the turn's status error,
+// its last error event, the platform's last note, the first failed tool use's
+// output. The headless stream hands its folded turn over; after the Ink view,
+// the turn's events are listed only when the summary needs them.
 
 import { create } from "@bufbuild/protobuf";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { GetRunUsageReportInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import { foldSession, turnOf, type Stigmer, type NoteItem, type Turn, type TurnItem } from "@stigmer/sdk";
 import { CliExitError, ExitCode } from "../../errors/index.js";
 import { shouldColorize, styler } from "../../output/style.js";
 import { formatTokenCount } from "../run-format.js";
-import { mapPhaseToString } from "../stream/convert.js";
+import { formatAgentPhase } from "../runs.js";
+import { listSessionEvents } from "../session.js";
 import type { HeadlessResult } from "../stream/headless.js";
 
 /**
@@ -36,13 +43,15 @@ export async function runEpilogue(
   const exec = await client.run.get(runId);
   const usage = await fetchUsage(client, runId);
 
+  const failure = (): Promise<string> => resolveFailureError(client, sessionId, runId, exec, result.turn);
+
   const write = (line: string): void => void process.stderr.write(`${line}\n`);
   const s = styler(shouldColorize(process.stderr));
   write("");
   if (sessionId !== "") {
-    printSessionExit(write, s, sessionId, exec, usage);
+    await printSessionExit(write, s, sessionId, exec, usage, failure);
   } else {
-    printCompletion(write, s, exec);
+    await printCompletion(write, s, exec, failure);
   }
   return exec;
 }
@@ -65,13 +74,14 @@ type Write = (line: string) => void;
 
 // Compact session summary + a copy-paste resume command. Mirrors Go's
 // displaySessionExitLine + sessionResumeVerb.
-function printSessionExit(
+async function printSessionExit(
   write: Write,
   s: Styler,
   sessionId: string,
   exec: Run,
   usage: UsageReportAggregate | undefined,
-): void {
+  failure: () => Promise<string>,
+): Promise<void> {
   const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const duration = formatDuration(exec.status?.startedAt ?? "", exec.status?.completedAt ?? "");
   const tokens = formatRunTokens(usage);
@@ -81,16 +91,16 @@ function printSessionExit(
       write(s.green(completedLine(duration, tokens)));
       break;
     case RunPhase.RUN_FAILED:
-      write(s.red(`✗ Failed: ${resolveFailureError(exec)}`));
+      write(s.red(`✗ Failed: ${await failure()}`));
       break;
     case RunPhase.RUN_CANCELLED:
       write(s.yellow("Cancelled"));
       break;
     case RunPhase.RUN_TERMINATED:
-      write(s.yellow(`Stopped: ${resolveFailureError(exec)}`));
+      write(s.yellow(`Stopped: ${await failure()}`));
       break;
     default:
-      write(s.yellow(`Exited (${mapPhaseToString(phase)})`));
+      write(s.yellow(`Exited (${formatAgentPhase(phase)})`));
   }
 
   write("");
@@ -99,13 +109,13 @@ function printSessionExit(
 
 // Non-session completion (rare for run; e.g. a degraded backend). Mirrors the
 // information of Go's displayAgentExecutionComplete without the panel chrome.
-function printCompletion(write: Write, s: Styler, exec: Run): void {
+async function printCompletion(write: Write, s: Styler, exec: Run, failure: () => Promise<string>): Promise<void> {
   const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (phase === RunPhase.RUN_FAILED) {
-    write(s.red(`✗ Run failed: ${resolveFailureError(exec)}`));
+    write(s.red(`✗ Run failed: ${await failure()}`));
     return;
   }
-  write(s.green(`✓ Run ${mapPhaseToString(phase)}`));
+  write(s.green(`✓ Run ${formatAgentPhase(phase)}`));
 }
 
 function completedLine(duration: string, tokens: string): string {
@@ -134,23 +144,43 @@ function resumeVerb(phase: RunPhase): string {
   }
 }
 
-// Mirrors Go's resolveFailureError: canonical error, else last system message,
-// else first failed tool call's error, else a generic pointer to the logs.
-function resolveFailureError(exec: Run): string {
-  const status = exec.status;
-  if (status === undefined) return GENERIC_FAILURE;
-  if (status.error !== "") return status.error;
+// The run's own error, else what the turn's events say (module header), else
+// a generic pointer to the logs.
+async function resolveFailureError(
+  client: Stigmer,
+  sessionId: string,
+  runId: string,
+  exec: Run,
+  folded: Turn | undefined,
+): Promise<string> {
+  const error = exec.status?.error ?? "";
+  if (error !== "") return error;
+  const turn = folded ?? (await readTurn(client, sessionId, runId));
+  if (turn === undefined) return GENERIC_FAILURE;
+  if (turn.status !== undefined && turn.status.error !== "") return turn.status.error;
+  const lastError = turn.errors.at(-1);
+  if (lastError !== undefined && lastError.message !== "") return lastError.message;
+  const note = [...turn.items].reverse().find((item): item is NoteItem => item.kind === "note" && item.text !== "");
+  if (note !== undefined) return note.text;
+  return firstFailedOutput(turn.items) ?? GENERIC_FAILURE;
+}
 
-  for (let i = status.messages.length - 1; i >= 0; i--) {
-    const msg = status.messages[i];
-    if (msg.type === MessageType.MESSAGE_SYSTEM && msg.content !== "") return msg.content;
+// The turn as its events fold; undefined outside a session.
+async function readTurn(client: Stigmer, sessionId: string, runId: string): Promise<Turn | undefined> {
+  if (sessionId === "") return undefined;
+  return turnOf(foldSession(await listSessionEvents(client, sessionId, runId)), runId);
+}
+
+// The output of the first tool use that failed, a sub-agent's included.
+function firstFailedOutput(items: readonly TurnItem[]): string | undefined {
+  for (const item of items) {
+    if (item.kind !== "tool_use") continue;
+    const text = item.result?.text ?? "";
+    if (item.state === "failed" && text !== "") return text;
+    const nested = item.thread === undefined ? undefined : firstFailedOutput(item.thread.items);
+    if (nested !== undefined) return nested;
   }
-  for (const msg of status.messages) {
-    for (const tc of msg.toolCalls) {
-      if (tc.status === ToolCallStatus.TOOL_CALL_FAILED && tc.error !== "") return tc.error;
-    }
-  }
-  return GENERIC_FAILURE;
+  return undefined;
 }
 
 const GENERIC_FAILURE = "Run failed (error details unavailable — check run logs)";

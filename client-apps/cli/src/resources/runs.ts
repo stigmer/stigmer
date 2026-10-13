@@ -2,7 +2,9 @@
 //
 // Runs are not addressed through the generic resource registry: runs
 // (`run_`) are served by a dedicated controller, and `delete run` maps to a
-// *cancel*, not a destroy. This module owns the run-type check, the
+// *cancel*, not a destroy. A run is a turn of a conversation, and a cancel
+// interrupts that conversation's session: every unfinished turn of it stops.
+// This module owns the run-type check, the
 // cancel-with-result semantics, and the run reads shared by `get run`,
 // `list runs`, `delete run` and `download`; the run-ID check is
 // reference.ts's `isRunId`, over the kind's current and retired prefixes.
@@ -10,11 +12,8 @@
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  RunListSchema,
-  CancelRunInputSchema,
-  ListRunsRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { RunListSchema, ListRunsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { InterruptSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { OutputFormat } from "../output/index.js";
@@ -22,6 +21,7 @@ import { buildTypeInfo } from "../registry/index.js";
 import { readCursorPages } from "./cursor-pages.js";
 import type { ResourceResult } from "./get-bindings.js";
 import { obj, renderListMessage, str, type TableShape } from "./render.js";
+import { sessionOfRun } from "./session.js";
 
 // Terminal phases cannot be cancelled; mirrors Go's isTerminalAgentPhase.
 const TERMINAL_AGENT_PHASES: ReadonlySet<RunPhase> = new Set([
@@ -37,26 +37,30 @@ export function isTerminalAgentPhase(phase: RunPhase): boolean {
 }
 
 export interface CancelRunResult {
+  /** The run as it reads after the cancel (or as it was, when already terminal). */
   readonly run: Run;
-  /** True when the run was already terminal, so no cancel was issued. */
+  /** True when the run was already terminal, so nothing was interrupted. */
   readonly wasAlreadyTerminal: boolean;
+  /** The turns the interrupt stopped: this run, and any other unfinished turn of its session. */
+  readonly stoppedRunIds: readonly string[];
 }
 
 /**
- * Cancel a run, surfacing whether it was already in a terminal
- * state. Mirrors Go's execution.CancelWithResult: Get first to read the phase,
- * short-circuit if terminal, otherwise issue the cancel. Keeping the Get means
- * the success/already-terminal distinction is decided client-side from
- * authoritative state rather than from the cancel RPC's response alone.
+ * Cancel a run by interrupting its session, surfacing whether it was already
+ * terminal. Get first to read the phase and the session, short-circuit if
+ * terminal (so a finished run's conversation is never stopped by it),
+ * otherwise interrupt the session, which stops every unfinished turn of it,
+ * and read the run again for the phase it ended in.
  */
 export async function cancelAgentRun(client: Stigmer, id: string): Promise<CancelRunResult> {
   const current = await client.run.get(id);
   const phase = current.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (TERMINAL_AGENT_PHASES.has(phase)) {
-    return { run: current, wasAlreadyTerminal: true };
+    return { run: current, wasAlreadyTerminal: true, stoppedRunIds: [] };
   }
-  const cancelled = await client.run.cancel(create(CancelRunInputSchema, { id }));
-  return { run: cancelled, wasAlreadyTerminal: false };
+  const sessionId = sessionOfRun(current);
+  const interrupted = await client.session.interrupt(create(InterruptSessionInputSchema, { sessionId }));
+  return { run: await client.run.get(id), wasAlreadyTerminal: false, stoppedRunIds: interrupted.stoppedRunIds };
 }
 
 // The run kind's spellings, derived from its kind_meta row like every

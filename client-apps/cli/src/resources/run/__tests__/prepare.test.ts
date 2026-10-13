@@ -8,25 +8,8 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Stigmer } from "@stigmer/sdk";
-import { type AgentExecFlags, parseApprovalAction, prepareAgentExec, validateHarness, validateMode, validateServiceTier, validateThinking } from "../prepare.js";
-
-describe("parseApprovalAction", () => {
-  it("maps each accepted value (case-insensitive)", () => {
-    expect(parseApprovalAction("")).toBe(ApprovalAction.UNSPECIFIED);
-    expect(parseApprovalAction("approve")).toBe(ApprovalAction.APPROVE);
-    expect(parseApprovalAction("SKIP")).toBe(ApprovalAction.SKIP);
-    expect(parseApprovalAction("reject")).toBe(ApprovalAction.REJECT);
-    expect(parseApprovalAction("approve-all")).toBe(ApprovalAction.APPROVE_ALL);
-    expect(parseApprovalAction("approve_all")).toBe(ApprovalAction.APPROVE_ALL);
-    expect(parseApprovalAction("approveall")).toBe(ApprovalAction.APPROVE_ALL);
-  });
-
-  it("rejects an unknown value", () => {
-    expect(() => parseApprovalAction("maybe")).toThrow(/must be one of/);
-  });
-});
+import { type AgentExecFlags, prepareAgentExec, validateHarness, validateMode, validateServiceTier, validateThinking } from "../prepare.js";
 
 describe("validateMode", () => {
   it("accepts empty, agent, and plan", () => {
@@ -183,7 +166,7 @@ describe("prepareAgentExec vaults", () => {
 
   it("carries through scalar flags", async () => {
     const prepared = await prepareAgentExec(
-      { ...BASE_FLAGS, message: "go", model: "claude", autoApprove: true, detach: true, mode: "plan" },
+      { ...BASE_FLAGS, message: "go", model: "claude", autoApprove: true, detach: true, mode: "plan", approveDefault: "Approve_All" },
       STUB_CLIENT,
     );
     expect(prepared.message).toBe("go");
@@ -191,6 +174,11 @@ describe("prepareAgentExec vaults", () => {
     expect(prepared.autoApproveAll).toBe(true);
     expect(prepared.detach).toBe(true);
     expect(prepared.mode).toBe("plan");
+    expect(prepared.approveDefault).toBe("approve-all");
+  });
+
+  it("refuses an unknown --approve-default before anything else", async () => {
+    await expect(prepareAgentExec({ ...BASE_FLAGS, approveDefault: "maybe" }, STUB_CLIENT)).rejects.toThrow(/must be one of/);
   });
 });
 

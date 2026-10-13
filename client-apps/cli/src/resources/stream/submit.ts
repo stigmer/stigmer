@@ -1,10 +1,12 @@
-// Approval-submission resilience for the headless stream driver.
+// Answer-submission resilience for the headless stream driver, and the
+// user-facing message for a dropped event stream.
 //
-// Ports the retry/backoff machinery from Go's run_stream_events.go:21-191:
-// approval submits race a transient DB-consistency window ("no pending
-// approvals") and ordinary network blips, so they retry with exponential
-// backoff. Also ports classifyStreamError (:53-82) — the user-facing message
-// for a dropped Subscribe stream, with a resume hint.
+// An answer races ordinary network blips, so a transient failure retries
+// with exponential backoff. A FAILED_PRECONDITION is final: the call no
+// longer waits (another answer, or a grant on its class, settled it, or its
+// turn ended), which the driver reads as settled rather than failed.
+// classifyStreamError words a stream that dropped for good, with a resume
+// hint.
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import { StigmerError } from "@stigmer/sdk";
@@ -16,8 +18,8 @@ const MAX_CHAIN_DEPTH = 20;
 
 /**
  * Retry `fn` up to `maxAttempts` times with doubling backoff, stopping early on
- * success, a non-retryable error, or abort. Mirrors Go's retryWithBackoff. The
- * delay between attempts is abort-aware. Rejects with the last error on failure.
+ * success, a non-retryable error, or abort. The delay between attempts is
+ * abort-aware. Rejects with the last error on failure.
  */
 export async function retryWithBackoff(
   signal: AbortSignal,
@@ -44,9 +46,8 @@ export async function retryWithBackoff(
 }
 
 /**
- * True when an approval-submit error is transient and worth retrying. Mirrors
- * Go's isRetryableSubmitError, including the "no pending approvals" special
- * case. Non-RPC errors default to retryable (typically transient I/O).
+ * True when an answer-submit error is transient and worth retrying.
+ * Non-RPC errors default to retryable (typically transient I/O).
  */
 export function isRetryableSubmitError(err: unknown): boolean {
   const coded = extractCoded(err);
@@ -60,16 +61,23 @@ export function isRetryableSubmitError(err: unknown): boolean {
     case Code.Internal:
     case Code.Unknown:
       return true;
-    case Code.FailedPrecondition:
-      return coded.message.includes("no pending approvals");
     default:
       return false;
   }
 }
 
 /**
- * Translate a dropped Subscribe stream error into a user-facing message with a
- * resume hint. Mirrors Go's classifyStreamError.
+ * True when an answer was refused because the call no longer waits: it was
+ * answered already (a grant on its class allows every waiting call of the
+ * class at once) or its turn ended.
+ */
+export function isSettledAnswerError(err: unknown): boolean {
+  return extractCoded(err)?.code === Code.FailedPrecondition;
+}
+
+/**
+ * Translate a dropped event-stream error into a user-facing message with a
+ * resume hint.
  */
 export function classifyStreamError(err: unknown, sessionId: string): string {
   let message: string;
@@ -101,8 +109,8 @@ interface CodedError {
   readonly message: string;
 }
 
-// Walk the cause chain for the first SDK/Connect coded error. Mirrors the
-// Unwrap walk in errors/classify.ts.
+// Walk the cause chain for the first SDK/Connect coded error, as
+// errors/classify.ts does.
 function extractCoded(err: unknown): CodedError | undefined {
   let depth = 0;
   for (let current: unknown = err; current != null && depth < MAX_CHAIN_DEPTH; current = causeOf(current), depth++) {
