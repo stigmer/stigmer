@@ -72,11 +72,13 @@ export function UpgradeNotice({
   billingHref = DEFAULT_BILLING_HREF,
   className,
 }: UpgradeNoticeProps) {
-  const label = isNamedFeature(feature) ? FEATURE_COPY[feature].label : "This feature";
+  const copy = isNamedFeature(feature) ? FEATURE_COPY[feature] : undefined;
+  const label = copy?.label ?? "This feature";
+  const plural = copy?.plural ?? false;
   const ahead =
     unlockingPlanName === undefined || unlockingPlanName === ""
-      ? `${label} are not included in this organization's plan.`
-      : `${label} need the ${unlockingPlanName} plan or above.`;
+      ? `${label} ${plural ? "are" : "is"} not included in this organization's plan.`
+      : `${label} ${plural ? "need" : "needs"} the ${unlockingPlanName} plan or above.`;
   const message = error ? getUserMessage(error) : ahead;
   return (
     <div
