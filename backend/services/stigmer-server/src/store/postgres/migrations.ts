@@ -157,6 +157,18 @@ import {
   unreadableRetiredEnvironmentRowError,
 } from "../environment-retired.js";
 import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
+import {
+  SESSION_HARNESS_KIND,
+  SESSION_HARNESS_PAGE_SIZE,
+  migrateSessionHarnessRow,
+  unreadableSessionHarnessError,
+} from "../session-harness-state-moved.js";
+import {
+  ETAG_STAMPED_KIND_NAMES,
+  ETAG_STAMP_PAGE_SIZE,
+  logUnreadableEtagRows,
+  stampEtagRow,
+} from "../resource-etags-stamped.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -215,8 +227,14 @@ export const SCHEMA_VERSION_25 = 25;
 /** v26: each session event's gates (the tool use it opens or closes), derived at open (DDL only). */
 export const SCHEMA_VERSION_26 = 26;
 
+/** v27: a session's harness state moved from its spec to its status. */
+export const SCHEMA_VERSION_27 = 27;
+
+/** v28: every stored resource stamped with its etag. */
+export const SCHEMA_VERSION_28 = 28;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_26;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_28;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -283,6 +301,8 @@ export async function runMigrations(
       [SCHEMA_VERSION_24, (migrating) => migrateToV24(migrating, logger)],
       [SCHEMA_VERSION_25, (migrating) => migrateToV25(migrating, logger)],
       [SCHEMA_VERSION_26, migrateToV26],
+      [SCHEMA_VERSION_27, migrateToV27],
+      [SCHEMA_VERSION_28, (migrating) => migrateToV28(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1810,4 +1830,89 @@ async function migrateToV26(client: PoolClient): Promise<void> {
       WHERE closes_gate <> '';
     CREATE INDEX idx_session_events_gate_revision ON session_events (gate_revision);
   `);
+}
+
+/**
+ * v27: a session's harness state moves from its spec to its status
+ * (../session-harness-state-moved.ts says what each row becomes). Every
+ * session row is read in keyset pages on `(kind, id)` and rewritten only
+ * when its spec holds a moved field, its `updated_at` left alone. The
+ * chain's advisory lock keeps a second instance's boot out of the step,
+ * and the transaction makes it whole or nothing.
+ */
+async function migrateToV27(client: PoolClient): Promise<void> {
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [SESSION_HARNESS_KIND, after, SESSION_HARNESS_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateSessionHarnessRow(new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableSessionHarnessError(row.id, error);
+      }
+      if (migrated !== undefined) {
+        await client.query(
+          `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+          [Buffer.from(migrated), SESSION_HARNESS_KIND, row.id],
+        );
+      }
+    }
+    if (rows.length < SESSION_HARNESS_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+}
+
+/**
+ * v28: every stored resource is stamped with its etag
+ * (../resource-etags-stamped.ts says what each row becomes). Each kind's
+ * rows are read in keyset pages on `(kind, id)` and rewritten only when
+ * the etag they carry is not the one their content gives, their
+ * `updated_at` left alone (an etag is not an edit). A row that does not
+ * decode is left as it is and reported, never fatal.
+ */
+async function migrateToV28(client: PoolClient, logger: StoreLogger): Promise<void> {
+  for (const kind of ETAG_STAMPED_KIND_NAMES) {
+    const unreadable: string[] = [];
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, ETAG_STAMP_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        let stamped: Uint8Array | undefined;
+        try {
+          stamped = stampEtagRow(kind, new Uint8Array(row.data));
+        } catch {
+          unreadable.push(row.id);
+          continue;
+        }
+        if (stamped !== undefined) {
+          await client.query(
+            `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+            [Buffer.from(stamped), kind, row.id],
+          );
+        }
+      }
+      if (rows.length < ETAG_STAMP_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+    logUnreadableEtagRows(logger, kind, unreadable);
+  }
 }

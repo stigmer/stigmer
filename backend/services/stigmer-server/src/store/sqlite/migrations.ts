@@ -153,6 +153,18 @@ import {
   unreadableRetiredEnvironmentRowError,
 } from "../environment-retired.js";
 import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
+import {
+  SESSION_HARNESS_KIND,
+  SESSION_HARNESS_PAGE_SIZE,
+  migrateSessionHarnessRow,
+  unreadableSessionHarnessError,
+} from "../session-harness-state-moved.js";
+import {
+  ETAG_STAMPED_KIND_NAMES,
+  ETAG_STAMP_PAGE_SIZE,
+  logUnreadableEtagRows,
+  stampEtagRow,
+} from "../resource-etags-stamped.js";
 
 export const SCHEMA_VERSION_1 = 1;
 export const SCHEMA_VERSION_2 = 2;
@@ -212,8 +224,14 @@ export const SCHEMA_VERSION_30 = 30;
 /** v31: each session event's gates (the tool use it opens or closes), derived at open (DDL only). */
 export const SCHEMA_VERSION_31 = 31;
 
+/** v32: a session's harness state moved from its spec to its status. */
+export const SCHEMA_VERSION_32 = 32;
+
+/** v33: every stored resource stamped with its etag. */
+export const SCHEMA_VERSION_33 = 33;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_31;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_33;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -270,6 +288,8 @@ export function runMigrations(
     [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
     [SCHEMA_VERSION_30, (migrating) => migrateToV30(migrating, logger)],
     [SCHEMA_VERSION_31, migrateToV31],
+    [SCHEMA_VERSION_32, migrateToV32],
+    [SCHEMA_VERSION_33, (migrating) => migrateToV33(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1753,4 +1773,86 @@ function migrateToV31(db: DatabaseSync): void {
       WHERE closes_gate <> '';
     CREATE INDEX idx_session_events_gate_revision ON session_events (gate_revision);
   `);
+}
+
+/**
+ * v32: a session's harness state moves from its spec to its status — the
+ * Postgres driver's v27 in this engine's terms
+ * (../session-harness-state-moved.ts says what each row becomes). Every
+ * session row is read in keyset pages and rewritten only when its spec
+ * holds a moved field, its `updated_at` left alone. Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back and the
+ * boot stops on the row it names.
+ */
+function migrateToV32(db: DatabaseSync): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const update = db.prepare(
+    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
+  );
+  for (let after = ""; ; ) {
+    const rows = page.all(SESSION_HARNESS_KIND, after, SESSION_HARNESS_PAGE_SIZE) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrateSessionHarnessRow(row.data);
+      } catch (error) {
+        throw unreadableSessionHarnessError(row.id, error);
+      }
+      if (migrated !== undefined) {
+        update.run(migrated, SESSION_HARNESS_KIND, row.id);
+      }
+    }
+    if (rows.length < SESSION_HARNESS_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+}
+
+/**
+ * v33: every stored resource is stamped with its etag — the Postgres
+ * driver's v28 in this engine's terms (../resource-etags-stamped.ts says
+ * what each row becomes). Each kind's rows are read in keyset pages and
+ * rewritten only when the etag they carry is not the one their content
+ * gives, their `updated_at` left alone. A row that does not decode is
+ * left as it is and reported, never fatal.
+ */
+function migrateToV33(db: DatabaseSync, logger: StoreLogger): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const update = db.prepare(
+    `UPDATE resources SET data = ? WHERE kind = ? AND id = ?`,
+  );
+  for (const kind of ETAG_STAMPED_KIND_NAMES) {
+    const unreadable: string[] = [];
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, ETAG_STAMP_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      for (const row of rows) {
+        let stamped: Uint8Array | undefined;
+        try {
+          stamped = stampEtagRow(kind, row.data);
+        } catch {
+          unreadable.push(row.id);
+          continue;
+        }
+        if (stamped !== undefined) {
+          update.run(stamped, kind, row.id);
+        }
+      }
+      if (rows.length < ETAG_STAMP_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+    logUnreadableEtagRows(logger, kind, unreadable);
+  }
 }

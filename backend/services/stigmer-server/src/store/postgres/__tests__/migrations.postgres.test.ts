@@ -114,6 +114,9 @@ import {
   SCHEMA_VERSION_18,
   SCHEMA_VERSION_19,
   SCHEMA_VERSION_20,
+  SCHEMA_VERSION_26,
+  SCHEMA_VERSION_27,
+  SCHEMA_VERSION_28,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -130,6 +133,9 @@ import {
 } from "../../__tests__/retired-execution-rows.js";
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
+import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
+import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
+import { etagOf } from "../../etag.js";
 import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
@@ -3158,6 +3164,180 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             "created_at",
             "expires_at",
             "used_at",
+          ]);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v27 and v28: a session's harness state moves to its status, and every resource gains its etag", () => {
+      const seededAt = new Date("2026-10-13T00:00:00Z");
+      const ORG = "org_01jz0000000000000000000000";
+
+      const conversation = (id: string) => ({
+        metadata: { id, org: ORG, slug: id },
+        spec: { agentRef: { kind: ApiResourceKind.agent, org: ORG, slug: "helper" }, subject: "Fix the build" },
+      });
+      const reviewer = (id: string) =>
+        create(AgentSchema, {
+          metadata: { id, org: ORG, slug: id, name: "Reviewer" },
+          spec: { instructions: "Review every pull request." },
+        });
+
+      async function clientAt(version: number): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, version);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        return client;
+      }
+
+      async function insertRow(client: pg.Client, kind: string, id: string, data: Uint8Array): Promise<void> {
+        await client.query(
+          `INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`,
+          [kind, id, Buffer.from(data), seededAt],
+        );
+      }
+
+      async function row(
+        client: pg.Client,
+        kind: string,
+        id: string,
+      ): Promise<{ data: Uint8Array; updatedAt: Date }> {
+        const result = await client.query<{ data: Buffer; updated_at: Date }>(
+          `SELECT data, updated_at FROM resources WHERE kind = $1 AND id = $2`,
+          [kind, id],
+        );
+        return {
+          data: new Uint8Array(result.rows[0]!.data),
+          updatedAt: result.rows[0]!.updated_at,
+        };
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        return Number(
+          (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+        );
+      }
+
+      it("v27 moves a Cursor session's harness id and history to its status, keeps its stamp, and leaves the rest byte for byte", async () => {
+        const client = await clientAt(SCHEMA_VERSION_26);
+        try {
+          await insertRow(
+            client,
+            "session",
+            "ses_cursor",
+            sessionRowWithValues(conversation("ses_cursor"), {
+              harnessStateId: "agent-7f3c",
+              harnessStateIdHistory: ["agent-1a2b"],
+            }),
+          );
+          const untouched = currentSessionRow(conversation("ses_new"));
+          await insertRow(client, "session", "ses_new", untouched);
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_27);
+
+          expect(await version(client)).toBe(SCHEMA_VERSION_27);
+          const moved = await row(client, "session", "ses_cursor");
+          expect(moved.data).toEqual(
+            currentSessionRow({
+              ...conversation("ses_cursor"),
+              status: { harnessStateId: "agent-7f3c", harnessStateIdHistory: ["agent-1a2b"] },
+            }),
+          );
+          expect(moved.updatedAt).toEqual(seededAt);
+          expect((await row(client, "session", "ses_new")).data).toEqual(untouched);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("v27 reads sessions across keyset pages, and an unreadable one rolls the step back", async () => {
+        const client = await clientAt(SCHEMA_VERSION_26);
+        try {
+          for (let i = 0; i <= SESSION_HARNESS_PAGE_SIZE; i++) {
+            const id = `ses_${String(i).padStart(4, "0")}`;
+            await insertRow(client, "session", id, sessionRowWithValues(conversation(id), { harnessStateId: `thread-${i}` }));
+          }
+          const good = sessionRowWithValues(conversation("ses_a_good"), { harnessStateId: "thread-a" });
+          await insertRow(client, "session", "ses_a_good", good);
+          await insertRow(client, "session", "ses_zz_bad", new Uint8Array([0xff, 0xff, 0xff]));
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_27)).rejects.toThrow("session 'ses_zz_bad'");
+          expect(await version(client)).toBe(SCHEMA_VERSION_26);
+          expect((await row(client, "session", "ses_a_good")).data).toEqual(good);
+
+          await client.query(`DELETE FROM resources WHERE kind = 'session' AND id = 'ses_zz_bad'`);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_27);
+          const last = `ses_${String(SESSION_HARNESS_PAGE_SIZE).padStart(4, "0")}`;
+          expect(fromBinary(SessionSchema, (await row(client, "session", last)).data).status?.harnessStateId).toBe(
+            `thread-${SESSION_HARNESS_PAGE_SIZE}`,
+          );
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("v28 stamps every resource of every kind with its etag across pages, keeps its stamp, and leaves an unknown kind's rows alone", async () => {
+        const client = await clientAt(SCHEMA_VERSION_27);
+        try {
+          for (let i = 0; i <= ETAG_STAMP_PAGE_SIZE; i++) {
+            const id = `agt_${String(i).padStart(4, "0")}`;
+            await insertRow(client, "agent", id, toBinary(AgentSchema, reviewer(id)));
+          }
+          await insertRow(client, "session", "ses_1", currentSessionRow(conversation("ses_1")));
+          const foreign = new Uint8Array([0x0a, 0x01, 0x61]);
+          await insertRow(client, "retired_kind", "rk_1", foreign);
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_28);
+
+          expect(await version(client)).toBe(SCHEMA_VERSION_28);
+          const last = `agt_${String(ETAG_STAMP_PAGE_SIZE).padStart(4, "0")}`;
+          const agent = await row(client, "agent", last);
+          expect(fromBinary(AgentSchema, agent.data).metadata?.etag).toBe(etagOf(AgentSchema, reviewer(last)));
+          expect(agent.updatedAt).toEqual(seededAt);
+          const session = fromBinary(SessionSchema, (await row(client, "session", "ses_1")).data);
+          expect(session.metadata?.etag).toMatch(/^[0-9a-f]{64}$/);
+          expect((await row(client, "retired_kind", "rk_1")).data).toEqual(foreign);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("v28 leaves a resource that does not decode as it is, stamps the rest, and reports it once", async () => {
+        const client = await clientAt(SCHEMA_VERSION_27);
+        try {
+          await insertRow(client, "agent", "agt_a_good", toBinary(AgentSchema, reviewer("agt_a_good")));
+          const bad = new Uint8Array([0xff, 0xff, 0xff]);
+          await insertRow(client, "agent", "agt_b_bad", bad);
+          await insertRow(client, "agent", "agt_c_good", toBinary(AgentSchema, reviewer("agt_c_good")));
+          const warned: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+          const pool = new pg.Pool({ connectionString: db.databaseUrl, max: 1 });
+          const migrating = await pool.connect();
+          try {
+            await runMigrations(migrating, SCHEMA_VERSION_28, {
+              debug() {},
+              info() {},
+              warn(message, fields) {
+                warned.push({ message, fields });
+              },
+            });
+          } finally {
+            migrating.release();
+            await pool.end();
+          }
+
+          expect(await version(client)).toBe(SCHEMA_VERSION_28);
+          expect((await row(client, "agent", "agt_b_bad")).data).toEqual(bad);
+          for (const id of ["agt_a_good", "agt_c_good"]) {
+            expect(fromBinary(AgentSchema, (await row(client, "agent", id)).data).metadata?.etag, id).toBe(
+              etagOf(AgentSchema, reviewer(id)),
+            );
+          }
+          expect(warned).toEqual([
+            {
+              message: "rows that do not decode were left without an etag",
+              fields: { kind: "agent", count: 1, ids: ["agt_b_bad"] },
+            },
           ]);
         } finally {
           await client.end();

@@ -69,6 +69,14 @@ export function stampEtag<Desc extends DescMessage>(
   }
 }
 
+/** The etag `resource` carries, or undefined for a message with no resource metadata. */
+export function storedEtagOf<Desc extends DescMessage>(
+  schema: Desc,
+  resource: MessageShape<Desc>,
+): string | undefined {
+  return metadataOf(reflect(schema, resource))?.etag;
+}
+
 function metadataOf(root: ReflectMessage): ApiResourceMetadata | undefined {
   const field = root.desc.fields.find((candidate) => candidate.name === "metadata");
   if (
