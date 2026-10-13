@@ -521,6 +521,7 @@ function repairRig(rows: {
   const iamPolicies: ComposedIamPolicies = {
       findScopeTuple: () => Promise.resolve(undefined),
       findByPrincipalAndResource: () => Promise.reject(new Error("no lane of this suite asks a pair")),
+      findByPrincipal: () => Promise.reject(new Error("no lane of this suite asks a principal's rows")),
       findByResource: (_kind: string, id: string) => Promise.resolve(rows.policiesOn?.get(id) ?? []),
       findByResourceKindAndRelation: (kind: string, relation: string) =>
         rows.failKindReadFor?.has(kind) === true

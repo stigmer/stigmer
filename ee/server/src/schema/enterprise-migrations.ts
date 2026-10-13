@@ -128,6 +128,7 @@ export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
          org TEXT NOT NULL,
          expires_at TIMESTAMPTZ NOT NULL,
          redeemed_at TIMESTAMPTZ,
+         redeemer_id TEXT,
          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
        )`,
       `CREATE INDEX iam_access_move_tickets_org

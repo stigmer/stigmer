@@ -17,7 +17,9 @@
  *     through the door, acting for the caller, and closes the ticket;
  *   - it refuses an unknown, expired or redeemed ticket, and a redeemer the
  *     organization's provider did not make, leaving the ticket usable;
- *   - a move that stopped partway redeems again with the same ticket.
+ *   - a move that stopped partway redeems again with the same ticket;
+ *   - the first account to redeem a ticket holds it: another account the
+ *     same provider made is refused before anything moves.
  */
 import { createHash } from "node:crypto";
 
@@ -63,6 +65,8 @@ const ACME = "org_acme";
 const EMAIL = "ida_raj_email";
 const SSO = "ida_raj_sso";
 const STRANGER_SSO = "ida_other_sso";
+/** Another account Acme's provider made: someone else's. */
+const COLLEAGUE_SSO = "ida_mia_sso";
 const NOW = new Date("2026-10-13T12:00:00Z");
 
 const silent = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -106,7 +110,12 @@ async function rig(options: { readonly sso?: boolean } = {}): Promise<Rig> {
   if (options.sso !== false) {
     await providers.insert(storedProvider({ id: "idp_acme", org: ACME, slug: "acme-okta", isSso: true }));
   }
-  const accounts = [account(EMAIL), account(SSO, "idp_acme"), account(STRANGER_SSO, "idp_elsewhere")];
+  const accounts = [
+    account(EMAIL),
+    account(SSO, "idp_acme"),
+    account(STRANGER_SSO, "idp_elsewhere"),
+    account(COLLEAGUE_SSO, "idp_acme"),
+  ];
   const invitations = [
     invitation("inv_open", EMAIL),
     invitation("inv_revoked", EMAIL, InvitationState.revoked),
@@ -309,5 +318,19 @@ describe("redeemAccessMove", () => {
     r.door = (move) => Promise.resolve(preview(move.previewOnly ? 0 : 3));
     expect((await redeem(r, person(SSO), ticket.ticket)).moved?.movedPolicies).toBe(3);
     expect(r.tickets.rows.get(hashOf(ticket.ticket))?.redeemedAt).toEqual(NOW);
+  });
+
+  it("belongs to its first redeemer: another account the provider made is refused before anything moves", async () => {
+    const r = await rig();
+    const ticket = await ask(r, person(EMAIL));
+    r.door = () => Promise.reject(new ConnectError("tuple store unavailable", Code.Internal));
+    await refusal(redeem(r, person(SSO), ticket.ticket));
+    r.door = () => Promise.resolve(preview(3));
+    r.moves.length = 0;
+    const taken = await refusal(redeem(r, person(COLLEAGUE_SSO), ticket.ticket));
+    expect(taken.code).toBe(Code.FailedPrecondition);
+    expect(taken.rawMessage).toBe(TICKET_NOT_VALID_MESSAGE);
+    expect(r.moves).toEqual([]);
+    expect((await redeem(r, person(SSO), ticket.ticket)).moved?.movedPolicies).toBe(3);
   });
 });

@@ -8,13 +8,17 @@
  *     invalidates it or the TTL passes; a read begun before an
  *     invalidation is not remembered;
  *   - the account the organization's provider made counts, and so does a
- *     key it made (a key acts as its account); an account another sign-in
- *     made, or another provider made, is refused with SSO_REQUIRED, the
- *     organization and the provider's slug;
- *   - the organization's owners are exempt, read as one policy pair;
+ *     key it made (a key acts as its account); one of the organization's
+ *     own people whose account another sign-in or another provider made is
+ *     refused with SSO_REQUIRED, the organization and the provider's slug;
+ *   - its own people are those holding a role in it, directly or through a
+ *     team, and any credential bound to it; anyone else (a child
+ *     organization's member reading what it shares down) is not held;
+ *   - the organization's owners are exempt, read from the same policy pair;
  *   - a user token the organization's own platform client minted is
  *     exempt, and one another organization's client minted is not;
- *   - the caller's account is read once per caller object.
+ *   - the caller's account, and where it stands in an organization, are
+ *     read once per caller object; a failed read is not remembered.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -56,11 +60,35 @@ function account(id: string, providerId = ""): IdentityAccount {
   });
 }
 
-function owner(accountId: string, org: string): IamPolicy {
+function role(accountId: string, relation: string, org: string): IamPolicy {
   return create(IamPolicySchema, {
     spec: {
       principal: { kind: "identity_account", id: accountId },
-      relation: "owner",
+      relation,
+      resource: { kind: "organization", id: org },
+    },
+  });
+}
+
+function owner(accountId: string, org: string): IamPolicy {
+  return role(accountId, "owner", org);
+}
+
+function teamMember(accountId: string, team: string): IamPolicy {
+  return create(IamPolicySchema, {
+    spec: {
+      principal: { kind: "identity_account", id: accountId },
+      relation: "member",
+      resource: { kind: "team", id: team },
+    },
+  });
+}
+
+function teamRole(team: string, relation: string, org: string): IamPolicy {
+  return create(IamPolicySchema, {
+    spec: {
+      principal: { kind: "team", id: team, relation: "member" },
+      relation,
       resource: { kind: "organization", id: org },
     },
   });
@@ -86,7 +114,7 @@ function rule(options: {
   policies?: ReadonlyArray<IamPolicy>;
   nowMs?: () => number;
 }) {
-  const reads = { providers: 0, accounts: 0, pairs: 0 };
+  const reads = { providers: 0, accounts: 0, pairs: 0, principals: 0 };
   const signInRule = newSsoSignInRule({
     providers: {
       findLive: () => {
@@ -110,6 +138,14 @@ function rule(options: {
               row.spec.principal.id === principalId &&
               row.spec.resource?.kind === resourceKind &&
               row.spec.resource.id === resourceId,
+          ),
+        );
+      },
+      findByPrincipal: (principalKind, principalId) => {
+        reads.principals += 1;
+        return Promise.resolve(
+          (options.policies ?? []).filter(
+            (row) => row.spec?.principal?.kind === principalKind && row.spec.principal.id === principalId,
           ),
         );
       },
@@ -167,7 +203,7 @@ describe("the organizations that require sign-in", () => {
             : Promise.resolve(providers),
       },
       accounts: { findById: () => Promise.resolve(undefined) },
-      policies: { findByPrincipalAndResource: () => Promise.resolve([]) },
+      policies: { findByPrincipalAndResource: () => Promise.resolve([]), findByPrincipal: () => Promise.resolve([]) },
     });
     const stale = slow.requiringOrgs();
     providers = [];
@@ -186,6 +222,13 @@ describe("the refusal", () => {
     account("ida_other_sso", "idp_elsewhere"),
     account("ida_ana_email"),
   ];
+  /** Acme's own people, each by a role: the refused cases need one to be held at all. */
+  const members = [
+    role("ida_raj_email", "admin", ACME),
+    role("ida_other_sso", "member", ACME),
+    role("ida_unknown", "viewer", ACME),
+    role("ida_app_user", "member", ACME),
+  ];
 
   it("admits the account the organization's provider made, and a key it made", async () => {
     const { signInRule } = rule({ providers: () => [ACME_OKTA], accounts });
@@ -195,8 +238,8 @@ describe("the refusal", () => {
     ).toBeUndefined();
   });
 
-  it("refuses an account another sign-in or another provider made, naming the organization and the provider", async () => {
-    const { signInRule } = rule({ providers: () => [ACME_OKTA], accounts });
+  it("refuses one of its people whose account another sign-in or another provider made, naming the organization and the provider", async () => {
+    const { signInRule } = rule({ providers: () => [ACME_OKTA], accounts, policies: members });
     const expected = {
       reason: SSO_REQUIRED,
       message: ssoRequiredMessage("Acme Okta"),
@@ -213,15 +256,16 @@ describe("the refusal", () => {
     const { signInRule, reads } = rule({
       providers: () => [ACME_OKTA],
       accounts,
-      policies: [owner("ida_ana_email", ACME), owner("ida_raj_email", GLOBEX)],
+      policies: [owner("ida_ana_email", ACME), owner("ida_raj_email", GLOBEX), ...members],
     });
     expect(await signInRule.refusal(person("ida_ana_email"), ACME)).toBeUndefined();
     expect(reads.pairs).toBe(1);
+    expect(reads.principals).toBe(0);
     expect(await signInRule.refusal(person("ida_raj_email"), ACME)).toMatchObject({ reason: SSO_REQUIRED });
   });
 
   it("exempts a user token the organization's own platform client minted, and no other", async () => {
-    const { signInRule } = rule({ providers: () => [ACME_OKTA], accounts });
+    const { signInRule } = rule({ providers: () => [ACME_OKTA], accounts, policies: members });
     const token = platformClientToken();
     expect(
       await signInRule.refusal(person("ida_app_user", { rawToken: token, boundOrg: ACME }), ACME),
@@ -247,18 +291,78 @@ describe("the refusal", () => {
             ? Promise.reject(new Error("account store unavailable"))
             : Promise.resolve(accounts.find((held) => held.metadata?.id === id)),
       },
-      policies: { findByPrincipalAndResource: () => Promise.resolve([]) },
+      policies: { findByPrincipalAndResource: () => Promise.resolve([]), findByPrincipal: () => Promise.resolve([]) },
     });
     const caller = person("ida_raj_sso");
     await expect(signInRule.refusal(caller, ACME)).rejects.toThrow("account store unavailable");
     expect(await signInRule.refusal(caller, ACME)).toBeUndefined();
   });
 
-  it("reads the caller's account once per caller object", async () => {
-    const { signInRule, reads } = rule({ providers: () => [ACME_OKTA], accounts });
+  it("reads the caller's account, and where it stands in the organization, once per caller object", async () => {
+    const { signInRule, reads } = rule({ providers: () => [ACME_OKTA], accounts, policies: members });
     const caller = person("ida_raj_email");
     await signInRule.refusal(caller, ACME);
     await signInRule.refusal(caller, ACME);
     expect(reads.accounts).toBe(1);
+    expect(reads.pairs).toBe(1);
+  });
+
+  it("holds a person who belongs through a team, and a credential bound to the organization", async () => {
+    const { signInRule } = rule({
+      providers: () => [ACME_OKTA],
+      accounts: [account("ida_tess_email"), account("ida_bo_email")],
+      policies: [teamMember("ida_tess_email", "tm_sre"), teamRole("tm_sre", "member", ACME)],
+    });
+    expect(await signInRule.refusal(person("ida_tess_email"), ACME)).toMatchObject({ reason: SSO_REQUIRED });
+    expect(await signInRule.refusal(person("ida_bo_email", { boundOrg: ACME }), ACME)).toMatchObject({
+      reason: SSO_REQUIRED,
+    });
+  });
+
+  it("does not hold someone who is not one of its people: no role, no team holding one, no credential bound there", async () => {
+    const { signInRule, reads } = rule({
+      providers: () => [ACME_OKTA],
+      accounts: [account("ida_kim_child")],
+      policies: [
+        role("ida_kim_child", "member", "org_acme_eu"),
+        teamMember("ida_kim_child", "tm_elsewhere"),
+        teamRole("tm_elsewhere", "member", GLOBEX),
+        // A team row that is not a membership, and a team role on Acme that
+        // names the team itself rather than its members.
+        create(IamPolicySchema, {
+          spec: {
+            principal: { kind: "identity_account", id: "ida_kim_child" },
+            relation: "viewer",
+            resource: { kind: "team", id: "tm_acme_ops" },
+          },
+        }),
+        create(IamPolicySchema, {
+          spec: {
+            principal: { kind: "team", id: "tm_elsewhere" },
+            relation: "viewer",
+            resource: { kind: "organization", id: ACME },
+          },
+        }),
+      ],
+    });
+    expect(await signInRule.refusal(person("ida_kim_child"), ACME)).toBeUndefined();
+    expect(await signInRule.refusal(person("ida_kim_child", { boundOrg: "org_acme_eu" }), ACME)).toBeUndefined();
+    expect(reads.principals).toBe(2);
+  });
+
+  it("does not remember a failed read of where a person stands: the next check reads again", async () => {
+    let failures = 1;
+    const signInRule = newSsoSignInRule({
+      providers: { findLive: () => Promise.resolve([ACME_OKTA]) },
+      accounts: { findById: () => Promise.resolve(undefined) },
+      policies: {
+        findByPrincipalAndResource: () =>
+          failures-- > 0 ? Promise.reject(new Error("policy store unavailable")) : Promise.resolve(members),
+        findByPrincipal: () => Promise.resolve([]),
+      },
+    });
+    const caller = person("ida_raj_email");
+    await expect(signInRule.refusal(caller, ACME)).rejects.toThrow("policy store unavailable");
+    expect(await signInRule.refusal(caller, ACME)).toMatchObject({ reason: SSO_REQUIRED });
   });
 });

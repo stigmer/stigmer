@@ -1,7 +1,8 @@
 /**
  * An in-memory access move ticket store with the Postgres adapter's
  * semantics (../postgres-store.ts): a held hash refuses a second insert,
- * `markRedeemed` closes a ticket once, the sweep removes what expired
+ * `claimFor` binds a ticket to its first redeemer, `markRedeemed` closes a
+ * ticket once, the sweep removes what expired
  * before the instant asked. For the unit suites that compose the identity
  * unit or drive the move's handlers without a database.
  */
@@ -19,10 +20,18 @@ export function newInMemoryTicketStore(): InMemoryTicketStore {
       if (rows.has(ticket.tokenHash)) {
         throw new Error(`access move ticket ${ticket.tokenHash} is already held`);
       }
-      rows.set(ticket.tokenHash, { ...ticket, redeemedAt: undefined });
+      rows.set(ticket.tokenHash, { ...ticket, redeemedAt: undefined, redeemerId: undefined });
     },
     async findByHash(tokenHash) {
       return rows.get(tokenHash);
+    },
+    async claimFor(tokenHash, redeemerId) {
+      const row = rows.get(tokenHash);
+      if (row === undefined || (row.redeemerId !== undefined && row.redeemerId !== redeemerId)) {
+        return false;
+      }
+      rows.set(tokenHash, { ...row, redeemerId });
+      return true;
     },
     async markRedeemed(tokenHash, at) {
       const row = rows.get(tokenHash);

@@ -16,6 +16,12 @@
  *   - he moves his access: a ticket asked as the email account, redeemed as
  *     the Okta account, after which the Okta account holds his admin role
  *     and the email account holds nothing in Acme;
+ *   - Mia, a member who is not an admin, made an agent before the
+ *     requirement; after her move her Okta account owns it, though nothing
+ *     but its creation stamp ever said it was hers;
+ *   - Kim, a member of Acme's child organization, still reads the handbook
+ *     agent Acme shares with its children: she is not one of Acme's own
+ *     people, so Acme's requirement does not hold her;
  *   - as an admin who is not an owner, he cannot turn the requirement off.
  *
  * Postgres comes from TEST_DATABASE_URL (unset: skipped by name outside a
@@ -25,6 +31,10 @@ import { create } from "@bufbuild/protobuf";
 import { Code, createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
@@ -72,6 +82,18 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("an organization that requires 
   let rajOkta: Transport;
   let rajOktaId = "";
   let acme = "";
+  let mia: Person;
+  let miaAgent = "";
+  let kim: Person;
+  let handbook = "";
+
+  const agentRequest = (as: Transport, name: string, visibility: ApiResourceVisibility) =>
+    createClient(AgentCommandController, as).create({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { name, org: acme, visibility },
+      spec: { description: name, instructions: `You are ${name}.` },
+    });
 
   beforeAll(async () => {
     issuer = await startLoopbackIssuer();
@@ -89,8 +111,24 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("an organization that requires 
     owner = await signIn(booted, issuer, "operator|alice");
     acme = await createOrganization(owner, "acme");
     rajEmail = await signIn(booted, issuer, "operator|raj");
-    await createClient(IamPolicyCommandController, owner.transport).create(
-      grant(ref("identity_account", rajEmail.accountId), "admin", ref("organization", acme)),
+    const policies = createClient(IamPolicyCommandController, owner.transport);
+    await policies.create(grant(ref("identity_account", rajEmail.accountId), "admin", ref("organization", acme)));
+    mia = await signIn(booted, issuer, "operator|mia");
+    await policies.create(grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)));
+    miaAgent =
+      (await agentRequest(mia.transport, "mia-notes", ApiResourceVisibility.visibility_private)).metadata?.id ?? "";
+    handbook =
+      (await agentRequest(owner.transport, "handbook", ApiResourceVisibility.visibility_child_orgs)).metadata?.id ??
+      "";
+    const child = await createClient(OrganizationCommandController, owner.transport).create({
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: { name: "acme-eu", slug: "acme-eu", org: "" },
+      spec: { description: "Acme's European arm", parentOrg: acme },
+    });
+    kim = await signIn(booted, issuer, "operator|kim");
+    await policies.create(
+      grant(ref("identity_account", kim.accountId), "member", ref("organization", child.metadata?.id ?? "")),
     );
     const request = create(IdentityProviderSchema, providerRequest(issuer, acme, OKTA, { displayName: "Acme Okta" }));
     if (request.spec !== undefined) {
@@ -182,6 +220,23 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("an organization that requires 
       createClient(IdentityProviderCommandController, rajOkta).redeemAccessMove({ ticket: ticket.ticket }),
     );
     expect(again.code).toBe(Code.FailedPrecondition);
+  });
+
+  it("lets a child organization's member read what the organization shares down", async () => {
+    const read = await createClient(AgentQueryController, kim.transport).get({ value: handbook });
+    expect(read.metadata?.name).toBe("handbook");
+  });
+
+  it("gives a moved member the ownership of what they made, which only its creation stamp recorded", async () => {
+    const miaOkta = transportTo(booted.port, federatedToken(issuer, OKTA, "okta|mia", "mia@acme.example"));
+    const ticket = await createClient(IdentityProviderCommandController, mia.transport).createAccessMove({ org: acme });
+    // Her member role, and the agent she made.
+    expect(ticket.preview?.movedPolicies).toBe(2);
+    const before = await refusalOf(createClient(AgentQueryController, miaOkta).get({ value: miaAgent }));
+    expect(before.code).toBe(Code.PermissionDenied);
+    await createClient(IdentityProviderCommandController, miaOkta).redeemAccessMove({ ticket: ticket.ticket });
+    const read = await createClient(AgentQueryController, miaOkta).get({ value: miaAgent });
+    expect(read.metadata?.name).toBe("mia-notes");
   });
 
   it("lets only an owner turn the requirement off", async () => {

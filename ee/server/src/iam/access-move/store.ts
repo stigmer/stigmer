@@ -7,10 +7,13 @@
  * (store-contract.ts).
  *
  * Only a hash of the ticket is kept, as a password is: whoever reads the
- * table cannot redeem what it holds. A ticket is single-use: it is marked
+ * table cannot redeem what it holds. A ticket belongs to the first account
+ * that redeems it (`claimFor`, one conditional write), so a second account
+ * racing the first is refused before anything moves, while the same account
+ * may redeem it again to finish a move that stopped partway. It is marked
  * redeemed once its move completes, and `markRedeemed` answers whether this
- * call marked it, so two redemptions racing on one ticket both complete the
- * same move (a move is re-runnable) and the ticket closes once. A ticket
+ * call marked it, so two redemptions by that account racing on it both
+ * complete the same move (a move is re-runnable) and it closes once. A ticket
  * lives ten minutes; expired rows are swept when a new ticket is made, and
  * an organization's rows go with it through the identity unit's purge.
  */
@@ -25,13 +28,21 @@ export interface AccessMoveTicketRow {
   readonly expiresAt: Date;
   /** When its move completed; undefined while it may still be redeemed. */
   readonly redeemedAt: Date | undefined;
+  /** The account that first redeemed it, which alone may redeem it again; undefined until then. */
+  readonly redeemerId: string | undefined;
 }
 
 export interface AccessMoveTicketStore {
   /** Adds a ticket; a hash already held is a programming error and throws. */
-  insert(ticket: Omit<AccessMoveTicketRow, "redeemedAt">): Promise<void>;
+  insert(ticket: Omit<AccessMoveTicketRow, "redeemedAt" | "redeemerId">): Promise<void>;
   /** The ticket with this hash, redeemed or not; undefined when none. */
   findByHash(tokenHash: string): Promise<AccessMoveTicketRow | undefined>;
+  /**
+   * Binds the ticket to `redeemerId` unless another account holds it; true
+   * when it is that account's now (this call bound it, or an earlier one
+   * did), false when another account holds it or no ticket has the hash.
+   */
+  claimFor(tokenHash: string, redeemerId: string): Promise<boolean>;
   /** Marks the ticket redeemed at `at`; true only for the call that marked it. */
   markRedeemed(tokenHash: string, at: Date): Promise<boolean>;
   /** Removes every ticket that expired before `before`; answers how many went. */

@@ -313,6 +313,7 @@ export function newEnterpriseIdentityExtension(
       composed().iamPolicies.findByResourceKindAndRelation(kind, relation),
     findByPrincipalAndResource: (principalKind, principalId, resourceKind, resourceId) =>
       composed().iamPolicies.findByPrincipalAndResource(principalKind, principalId, resourceKind, resourceId),
+    findByPrincipal: (principalKind, principalId) => composed().iamPolicies.findByPrincipal(principalKind, principalId),
   };
   // The automations that act as a person (the requirement preview's list),
   // the composition's own read.

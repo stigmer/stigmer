@@ -2,8 +2,8 @@
  * The access move ticket store's Postgres adapter over
  * `ee.iam_access_move_tickets`, which the Enterprise schema chain creates
  * (schema/enterprise-migrations.ts, v2). The primary key is the ticket's
- * hash; `markRedeemed` is a conditional update, so exactly one call closes a
- * ticket. The sweep and the purge ride their indexes.
+ * hash; `claimFor` and `markRedeemed` are conditional updates, so exactly
+ * one account holds a ticket and exactly one call closes it. The sweep and the purge ride their indexes.
  */
 import type { Pool } from "pg";
 
@@ -15,6 +15,7 @@ interface TicketRecord {
   readonly org: string;
   readonly expires_at: Date;
   readonly redeemed_at: Date | null;
+  readonly redeemer_id: string | null;
 }
 
 export function newAccessMoveTicketStore(pool: Pool): AccessMoveTicketStore {
@@ -29,7 +30,7 @@ export function newAccessMoveTicketStore(pool: Pool): AccessMoveTicketStore {
 
     async findByHash(tokenHash): Promise<AccessMoveTicketRow | undefined> {
       const result = await pool.query<TicketRecord>(
-        `SELECT token_hash, account_id, org, expires_at, redeemed_at
+        `SELECT token_hash, account_id, org, expires_at, redeemed_at, redeemer_id
            FROM ee.iam_access_move_tickets WHERE token_hash = $1`,
         [tokenHash],
       );
@@ -42,7 +43,17 @@ export function newAccessMoveTicketStore(pool: Pool): AccessMoveTicketStore {
             org: row.org,
             expiresAt: row.expires_at,
             redeemedAt: row.redeemed_at ?? undefined,
+            redeemerId: row.redeemer_id ?? undefined,
           };
+    },
+
+    async claimFor(tokenHash, redeemerId) {
+      const result = await pool.query(
+        `UPDATE ee.iam_access_move_tickets SET redeemer_id = $2
+          WHERE token_hash = $1 AND (redeemer_id IS NULL OR redeemer_id = $2)`,
+        [tokenHash, redeemerId],
+      );
+      return result.rowCount !== null && result.rowCount > 0;
     },
 
     async markRedeemed(tokenHash, at) {

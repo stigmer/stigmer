@@ -15,9 +15,11 @@
  * stop: @stigmer/server's account automations, empty where a host's own
  * accounts run them).
  *
- * A person granted something on one resource of the organization without a
- * role on it is refused too, and is not listed: the preview reads roles, as
- * the member list does.
+ * These are exactly the people the requirement holds (sign-in-rule.ts): a
+ * child organization's member reading what the organization shares down,
+ * or anyone else with no role in it, is not held and not listed. A key
+ * bound to the organization by an account with no role in it is held and
+ * not listed; such a key is made only by an account that had a role there.
  */
 import { create } from "@bufbuild/protobuf";
 

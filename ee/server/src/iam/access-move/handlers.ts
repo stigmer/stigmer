@@ -48,8 +48,10 @@
  * A move that stops partway (a fault between grants) leaves both accounts
  * holding what was granted so far; the same ticket redeems again while it
  * lasts and completes the move, and the ticket closes only once a move has
- * completed. Two redemptions racing on one ticket both complete the same
- * move.
+ * completed. The first account to redeem a ticket holds it: another account
+ * redeeming it, even at the same moment, is refused before anything moves,
+ * so one person's access never splits between two accounts; the same
+ * account redeeming twice at once completes the same move.
  *
  * What the tests pin (__tests__/handlers.test.ts): the refusals of each
  * RPC (a non-person, a federated caller asking, an organization with no
@@ -184,6 +186,9 @@ export async function redeemAccessMove(
       redeemThroughProviderMessage(provider.spec?.displayName ?? ""),
       Code.PermissionDenied,
     );
+  }
+  if (!(await deps.tickets.claimFor(tokenHash, caller.identityId))) {
+    throw new ConnectError(TICKET_NOT_VALID_MESSAGE, Code.FailedPrecondition);
   }
   // Read before the move: the old account's role, which the creator check
   // of each invitation stands on, is gone once it has moved.

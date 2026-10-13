@@ -9,6 +9,9 @@
  *   - a ticket reads back as written, unredeemed, and a hash nobody holds
  *     reads as none;
  *   - a hash already held refuses a second insert;
+ *   - a ticket belongs to its first redeemer: claiming it for that account
+ *     again is answered true, for another account false, and claiming a
+ *     hash nobody holds false;
  *   - a ticket closes once: the call that marks it redeemed is answered
  *     true, every later one false, and it reads as redeemed at that instant;
  *     marking a hash nobody holds answers false;
@@ -53,6 +56,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<AccessMoveTicketStore>> = [
         org: "org_alpha",
         expiresAt: LATER,
         redeemedAt: undefined,
+        redeemerId: undefined,
       });
       assert.equal(await store.findByHash("hash_nobody"), undefined);
     },
@@ -63,6 +67,17 @@ const CASES: ReadonlyArray<PortContractDeclaration<AccessMoveTicketStore>> = [
       await store.insert(ticket("hash_a", "org_alpha"));
       await assert.rejects(store.insert(ticket("hash_a", "org_beta")));
       assert.equal((await store.findByHash("hash_a"))?.org, "org_alpha");
+    },
+  ],
+  [
+    "a ticket belongs to its first redeemer, who alone may claim it again",
+    async ({ store }) => {
+      await store.insert(ticket("hash_a", "org_alpha"));
+      assert.equal(await store.claimFor("hash_a", "ida_first"), true, "the first redeemer");
+      assert.equal(await store.claimFor("hash_a", "ida_first"), true, "the same redeemer again");
+      assert.equal(await store.claimFor("hash_a", "ida_second"), false, "another account");
+      assert.equal((await store.findByHash("hash_a"))?.redeemerId, "ida_first");
+      assert.equal(await store.claimFor("hash_nobody", "ida_first"), false);
     },
   ],
   [
@@ -102,6 +117,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<AccessMoveTicketStore>> = [
       await disconnect();
       await assert.rejects(store.insert(ticket("hash_a", "org_alpha")));
       await assert.rejects(store.findByHash("hash_a"));
+      await assert.rejects(store.claimFor("hash_a", "ida_first"));
       await assert.rejects(store.markRedeemed("hash_a", NOW));
       await assert.rejects(store.deleteExpired(NOW));
       await assert.rejects(store.removeByOrgId("org_alpha"));
