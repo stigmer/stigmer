@@ -42,12 +42,26 @@ type AgentChannelCommandControllerClient interface {
 	// organization's own provider keys, and the providers bill the
 	// organization for them.
 	Create(ctx context.Context, in *AgentChannel, opts ...grpc.CallOption) (*AgentChannel, error)
-	// Update an existing agent channel.
+	// Update an agent channel: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Replaces the spec wholesale. The slug, referenced agent, and provider
-	// arm are immutable; status (install facts, credential reference) is
-	// never touched by updates.
-	Update(ctx context.Context, in *AgentChannel, opts ...grpc.CallOption) (*AgentChannel, error)
+	// The referenced agent and the provider arm are immutable; status
+	// (install facts, credential reference) is never touched by updates.
+	//
+	// resource.metadata.id names the agent channel; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the agent channel does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the agent channel kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateAgentChannelInput, opts ...grpc.CallOption) (*AgentChannel, error)
 	// Start the provider install flow for an agent channel.
 	//
 	// For redirect-installed providers (Slack) the output carries the
@@ -125,7 +139,7 @@ func (c *agentChannelCommandControllerClient) Create(ctx context.Context, in *Ag
 	return out, nil
 }
 
-func (c *agentChannelCommandControllerClient) Update(ctx context.Context, in *AgentChannel, opts ...grpc.CallOption) (*AgentChannel, error) {
+func (c *agentChannelCommandControllerClient) Update(ctx context.Context, in *UpdateAgentChannelInput, opts ...grpc.CallOption) (*AgentChannel, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentChannel)
 	err := c.cc.Invoke(ctx, AgentChannelCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -180,12 +194,26 @@ type AgentChannelCommandControllerServer interface {
 	// organization's own provider keys, and the providers bill the
 	// organization for them.
 	Create(context.Context, *AgentChannel) (*AgentChannel, error)
-	// Update an existing agent channel.
+	// Update an agent channel: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Replaces the spec wholesale. The slug, referenced agent, and provider
-	// arm are immutable; status (install facts, credential reference) is
-	// never touched by updates.
-	Update(context.Context, *AgentChannel) (*AgentChannel, error)
+	// The referenced agent and the provider arm are immutable; status
+	// (install facts, credential reference) is never touched by updates.
+	//
+	// resource.metadata.id names the agent channel; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the agent channel does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the agent channel kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateAgentChannelInput) (*AgentChannel, error)
 	// Start the provider install flow for an agent channel.
 	//
 	// For redirect-installed providers (Slack) the output carries the
@@ -248,7 +276,7 @@ func (UnimplementedAgentChannelCommandControllerServer) Apply(context.Context, *
 func (UnimplementedAgentChannelCommandControllerServer) Create(context.Context, *AgentChannel) (*AgentChannel, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedAgentChannelCommandControllerServer) Update(context.Context, *AgentChannel) (*AgentChannel, error) {
+func (UnimplementedAgentChannelCommandControllerServer) Update(context.Context, *UpdateAgentChannelInput) (*AgentChannel, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedAgentChannelCommandControllerServer) InitiateInstall(context.Context, *InitiateChannelInstallInput) (*InitiateChannelInstallOutput, error) {
@@ -317,7 +345,7 @@ func _AgentChannelCommandController_Create_Handler(srv interface{}, ctx context.
 }
 
 func _AgentChannelCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AgentChannel)
+	in := new(UpdateAgentChannelInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -329,7 +357,7 @@ func _AgentChannelCommandController_Update_Handler(srv interface{}, ctx context.
 		FullMethod: AgentChannelCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentChannelCommandControllerServer).Update(ctx, req.(*AgentChannel))
+		return srv.(AgentChannelCommandControllerServer).Update(ctx, req.(*UpdateAgentChannelInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

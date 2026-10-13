@@ -10,6 +10,7 @@ import (
 	apikeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -40,12 +41,11 @@ func (a *ApiKeyClient) CreateForServiceAccount(ctx context.Context, input *apike
 	return resp, wrapErr(err)
 }
 
-func (a *ApiKeyClient) Update(ctx context.Context, input *ApiKeyInput) (*apikeyv1.ApiKey, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := a.command.Update(ctx, req)
+func (a *ApiKeyClient) Update(ctx context.Context, resource *apikeyv1.ApiKey, paths []string) (*apikeyv1.ApiKey, error) {
+	resp, err := a.command.Update(ctx, &apikeyv1.UpdateApiKeyInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -74,12 +74,12 @@ func (a *ApiKeyClient) FindByAccount(ctx context.Context, id string) (*apikeyv1.
 	return resp, wrapErr(err)
 }
 
-// ApiKeyInput holds the fields for creating/updating a ApiKey.
+// ApiKeyInput holds the fields for creating or applying a ApiKey.
 type ApiKeyInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id           string
 	Name         string
 	Slug         string

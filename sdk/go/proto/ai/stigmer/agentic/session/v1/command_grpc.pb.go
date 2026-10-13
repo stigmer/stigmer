@@ -29,6 +29,7 @@ const (
 	SessionCommandController_Interrupt_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt"
 	SessionCommandController_Delete_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
 	SessionCommandController_AppendEvents_FullMethodName      = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
+	SessionCommandController_BindHarnessState_FullMethodName  = "/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState"
 )
 
 // SessionCommandControllerClient is the client API for SessionCommandController service.
@@ -41,8 +42,23 @@ type SessionCommandControllerClient interface {
 	Apply(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
 	// Create a session.
 	Create(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
-	// Update an existing session (e.g., subject, thread_id).
-	Update(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
+	// Update a session: the fields update_mask names change, every other
+	// field keeps its stored value.
+	//
+	// resource.metadata.id names the session; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the session does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the session kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateSessionInput, opts ...grpc.CallOption) (*Session, error)
 	// Set the session subject.
 	//
 	// This is a targeted update that modifies only the subject field,
@@ -149,6 +165,12 @@ type SessionCommandControllerClient interface {
 	// session.thread_* and session.error. The batch is appended whole or not
 	// at all.
 	AppendEvents(ctx context.Context, in *AppendSessionEventsInput, opts ...grpc.CallOption) (*AppendSessionEventsResponse, error)
+	// Record the harness's conversation id for a run's session.
+	//
+	// Only the runner acting for the run may call it, while the run is not
+	// finished. The id replaced, if any, joins the session's
+	// harness_state_id_history.
+	BindHarnessState(ctx context.Context, in *BindHarnessStateInput, opts ...grpc.CallOption) (*BindHarnessStateResponse, error)
 }
 
 type sessionCommandControllerClient struct {
@@ -179,7 +201,7 @@ func (c *sessionCommandControllerClient) Create(ctx context.Context, in *Session
 	return out, nil
 }
 
-func (c *sessionCommandControllerClient) Update(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error) {
+func (c *sessionCommandControllerClient) Update(ctx context.Context, in *UpdateSessionInput, opts ...grpc.CallOption) (*Session, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Session)
 	err := c.cc.Invoke(ctx, SessionCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -259,6 +281,16 @@ func (c *sessionCommandControllerClient) AppendEvents(ctx context.Context, in *A
 	return out, nil
 }
 
+func (c *sessionCommandControllerClient) BindHarnessState(ctx context.Context, in *BindHarnessStateInput, opts ...grpc.CallOption) (*BindHarnessStateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BindHarnessStateResponse)
+	err := c.cc.Invoke(ctx, SessionCommandController_BindHarnessState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SessionCommandControllerServer is the server API for SessionCommandController service.
 // All implementations should embed UnimplementedSessionCommandControllerServer
 // for forward compatibility.
@@ -269,8 +301,23 @@ type SessionCommandControllerServer interface {
 	Apply(context.Context, *Session) (*Session, error)
 	// Create a session.
 	Create(context.Context, *Session) (*Session, error)
-	// Update an existing session (e.g., subject, thread_id).
-	Update(context.Context, *Session) (*Session, error)
+	// Update a session: the fields update_mask names change, every other
+	// field keeps its stored value.
+	//
+	// resource.metadata.id names the session; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the session does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the session kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateSessionInput) (*Session, error)
 	// Set the session subject.
 	//
 	// This is a targeted update that modifies only the subject field,
@@ -377,6 +424,12 @@ type SessionCommandControllerServer interface {
 	// session.thread_* and session.error. The batch is appended whole or not
 	// at all.
 	AppendEvents(context.Context, *AppendSessionEventsInput) (*AppendSessionEventsResponse, error)
+	// Record the harness's conversation id for a run's session.
+	//
+	// Only the runner acting for the run may call it, while the run is not
+	// finished. The id replaced, if any, joins the session's
+	// harness_state_id_history.
+	BindHarnessState(context.Context, *BindHarnessStateInput) (*BindHarnessStateResponse, error)
 }
 
 // UnimplementedSessionCommandControllerServer should be embedded to have
@@ -392,7 +445,7 @@ func (UnimplementedSessionCommandControllerServer) Apply(context.Context, *Sessi
 func (UnimplementedSessionCommandControllerServer) Create(context.Context, *Session) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedSessionCommandControllerServer) Update(context.Context, *Session) (*Session, error) {
+func (UnimplementedSessionCommandControllerServer) Update(context.Context, *UpdateSessionInput) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error) {
@@ -415,6 +468,9 @@ func (UnimplementedSessionCommandControllerServer) Delete(context.Context, *Sess
 }
 func (UnimplementedSessionCommandControllerServer) AppendEvents(context.Context, *AppendSessionEventsInput) (*AppendSessionEventsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AppendEvents not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) BindHarnessState(context.Context, *BindHarnessStateInput) (*BindHarnessStateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BindHarnessState not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) testEmbeddedByValue() {}
 
@@ -473,7 +529,7 @@ func _SessionCommandController_Create_Handler(srv interface{}, ctx context.Conte
 }
 
 func _SessionCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Session)
+	in := new(UpdateSessionInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -485,7 +541,7 @@ func _SessionCommandController_Update_Handler(srv interface{}, ctx context.Conte
 		FullMethod: SessionCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SessionCommandControllerServer).Update(ctx, req.(*Session))
+		return srv.(SessionCommandControllerServer).Update(ctx, req.(*UpdateSessionInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -616,6 +672,24 @@ func _SessionCommandController_AppendEvents_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_BindHarnessState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BindHarnessStateInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).BindHarnessState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_BindHarnessState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).BindHarnessState(ctx, req.(*BindHarnessStateInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SessionCommandController_ServiceDesc is the grpc.ServiceDesc for SessionCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -662,6 +736,10 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "appendEvents",
 			Handler:    _SessionCommandController_AppendEvents_Handler,
+		},
+		{
+			MethodName: "bindHarnessState",
+			Handler:    _SessionCommandController_BindHarnessState_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

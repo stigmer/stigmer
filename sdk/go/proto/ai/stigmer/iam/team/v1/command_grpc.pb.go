@@ -60,11 +60,25 @@ type TeamCommandControllerClient interface {
 	//   - SLUG_RESERVED — another team held the slug until a recent rename, and
 	//     it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error)
-	// Update a team's name or description.
+	// Update a team: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// An update names the team by its id, and the slug changes only through
-	// rename.
-	Update(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error)
+	// A team's name and description may change.
+	//
+	// resource.metadata.id names the team; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the team does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the team changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the team kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateTeamInput, opts ...grpc.CallOption) (*Team, error)
 	// Rename a team: change its slug, the name people type.
 	//
 	// The team keeps its id, so everything that names it keeps working, and every
@@ -100,7 +114,7 @@ func (c *teamCommandControllerClient) Create(ctx context.Context, in *Team, opts
 	return out, nil
 }
 
-func (c *teamCommandControllerClient) Update(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error) {
+func (c *teamCommandControllerClient) Update(ctx context.Context, in *UpdateTeamInput, opts ...grpc.CallOption) (*Team, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Team)
 	err := c.cc.Invoke(ctx, TeamCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -164,11 +178,25 @@ type TeamCommandControllerServer interface {
 	//   - SLUG_RESERVED — another team held the slug until a recent rename, and
 	//     it still leads there. Metadata: slug.
 	Create(context.Context, *Team) (*Team, error)
-	// Update a team's name or description.
+	// Update a team: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// An update names the team by its id, and the slug changes only through
-	// rename.
-	Update(context.Context, *Team) (*Team, error)
+	// A team's name and description may change.
+	//
+	// resource.metadata.id names the team; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the team does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the team changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the team kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateTeamInput) (*Team, error)
 	// Rename a team: change its slug, the name people type.
 	//
 	// The team keeps its id, so everything that names it keeps working, and every
@@ -196,7 +224,7 @@ type UnimplementedTeamCommandControllerServer struct{}
 func (UnimplementedTeamCommandControllerServer) Create(context.Context, *Team) (*Team, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedTeamCommandControllerServer) Update(context.Context, *Team) (*Team, error) {
+func (UnimplementedTeamCommandControllerServer) Update(context.Context, *UpdateTeamInput) (*Team, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedTeamCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*Team, error) {
@@ -244,7 +272,7 @@ func _TeamCommandController_Create_Handler(srv interface{}, ctx context.Context,
 }
 
 func _TeamCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Team)
+	in := new(UpdateTeamInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -256,7 +284,7 @@ func _TeamCommandController_Update_Handler(srv interface{}, ctx context.Context,
 		FullMethod: TeamCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TeamCommandControllerServer).Update(ctx, req.(*Team))
+		return srv.(TeamCommandControllerServer).Update(ctx, req.(*UpdateTeamInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

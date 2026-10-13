@@ -7,10 +7,12 @@ import ai.stigmer.agentic.channelapp.v1.ChannelAppCommandControllerGrpc;
 import ai.stigmer.agentic.channelapp.v1.ChannelAppQueryControllerGrpc;
 import ai.stigmer.agentic.channelapp.v1.ChannelApps;
 import ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput;
+import ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -36,9 +38,12 @@ public final class ChannelAppClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ChannelApp update(ChannelAppInput input) {
+    public ChannelApp update(ChannelApp resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateChannelAppInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -26,21 +26,22 @@ var File_ai_stigmer_agentic_score_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_score_v1_command_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/score/v1/command.proto\x12\x1bai.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a$ai/stigmer/agentic/score/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x82\x03\n" +
+	")ai/stigmer/agentic/score/v1/command.proto\x12\x1bai.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a$ai/stigmer/agentic/score/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x96\x03\n" +
 	"\x16ScoreCommandController\x12V\n" +
-	"\x06create\x12\".ai.stigmer.agentic.score.v1.Score\x1a\".ai.stigmer.agentic.score.v1.Score\"\x04и\x18\x01\x12\x85\x01\n" +
-	"\x06update\x12\".ai.stigmer.agentic.score.v1.Score\x1a\".ai.stigmer.agentic.score.v1.Score\"3¸\x18/\b\x02\x10=\"\vmetadata.id*\x1cunauthorized to update score\x12\x81\x01\n" +
+	"\x06create\x12\".ai.stigmer.agentic.score.v1.Score\x1a\".ai.stigmer.agentic.score.v1.Score\"\x04и\x18\x01\x12\x99\x01\n" +
+	"\x06update\x12-.ai.stigmer.agentic.score.v1.UpdateScoreInput\x1a\".ai.stigmer.agentic.score.v1.Score\"<¸\x188\b\x02\x10=\"\x14resource.metadata.id*\x1cunauthorized to update score\x12\x81\x01\n" +
 	"\x06delete\x12$.ai.stigmer.agentic.score.v1.ScoreId\x1a\".ai.stigmer.agentic.score.v1.Score\"-¸\x18)\b\x03\x10=\"\x05value*\x1cunauthorized to delete score\x1a\x04\xa0\xff+=B\x90\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.score.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_score_v1_command_proto_goTypes = []any{
-	(*Score)(nil),   // 0: ai.stigmer.agentic.score.v1.Score
-	(*ScoreId)(nil), // 1: ai.stigmer.agentic.score.v1.ScoreId
+	(*Score)(nil),            // 0: ai.stigmer.agentic.score.v1.Score
+	(*UpdateScoreInput)(nil), // 1: ai.stigmer.agentic.score.v1.UpdateScoreInput
+	(*ScoreId)(nil),          // 2: ai.stigmer.agentic.score.v1.ScoreId
 }
 var file_ai_stigmer_agentic_score_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.score.v1.ScoreCommandController.create:input_type -> ai.stigmer.agentic.score.v1.Score
-	0, // 1: ai.stigmer.agentic.score.v1.ScoreCommandController.update:input_type -> ai.stigmer.agentic.score.v1.Score
-	1, // 2: ai.stigmer.agentic.score.v1.ScoreCommandController.delete:input_type -> ai.stigmer.agentic.score.v1.ScoreId
+	1, // 1: ai.stigmer.agentic.score.v1.ScoreCommandController.update:input_type -> ai.stigmer.agentic.score.v1.UpdateScoreInput
+	2, // 2: ai.stigmer.agentic.score.v1.ScoreCommandController.delete:input_type -> ai.stigmer.agentic.score.v1.ScoreId
 	0, // 3: ai.stigmer.agentic.score.v1.ScoreCommandController.create:output_type -> ai.stigmer.agentic.score.v1.Score
 	0, // 4: ai.stigmer.agentic.score.v1.ScoreCommandController.update:output_type -> ai.stigmer.agentic.score.v1.Score
 	0, // 5: ai.stigmer.agentic.score.v1.ScoreCommandController.delete:output_type -> ai.stigmer.agentic.score.v1.Score

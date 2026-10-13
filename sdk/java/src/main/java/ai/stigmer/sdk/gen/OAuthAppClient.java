@@ -11,6 +11,8 @@ import ai.stigmer.iam.oauthapp.v1.OAuthApp;
 import ai.stigmer.iam.oauthapp.v1.OAuthAppCommandControllerGrpc;
 import ai.stigmer.iam.oauthapp.v1.OAuthAppQueryControllerGrpc;
 import ai.stigmer.iam.oauthapp.v1.OAuthApps;
+import ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -36,9 +38,12 @@ public final class OAuthAppClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public OAuthApp update(OAuthAppInput input) {
+    public OAuthApp update(OAuthApp resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateOAuthAppInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

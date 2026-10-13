@@ -16,7 +16,9 @@ import ai.stigmer.iam.identityaccount.v1.IdentityAccountsList;
 import ai.stigmer.iam.identityaccount.v1.IdpId;
 import ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg;
 import ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput;
+import ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput;
 import com.google.protobuf.Empty;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -36,9 +38,12 @@ public final class IdentityAccountClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public IdentityAccount update(IdentityAccountInput input) {
+    public IdentityAccount update(IdentityAccount resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateIdentityAccountInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

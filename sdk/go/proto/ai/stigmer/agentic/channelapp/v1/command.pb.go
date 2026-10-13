@@ -26,26 +26,27 @@ var File_ai_stigmer_agentic_channelapp_v1_command_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_channelapp_v1_command_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/channelapp/v1/command.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a*ai/stigmer/agentic/channelapp/v1/api.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xaf\x06\n" +
+	".ai/stigmer/agentic/channelapp/v1/command.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a*ai/stigmer/agentic/channelapp/v1/api.proto\x1a)ai/stigmer/agentic/channelapp/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc3\x06\n" +
 	"\x1bChannelAppCommandController\x12c\n" +
 	"\x05apply\x12,.ai.stigmer.agentic.channelapp.v1.ChannelApp\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\x12\xb5\x01\n" +
-	"\x06create\x12,.ai.stigmer.agentic.channelapp.v1.ChannelApp\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"O¸\x18K\b\x1f\x10\x1e\"\fmetadata.org*7unauthorized to create channel app in this organization\x12\x9f\x01\n" +
-	"\x06update\x12,.ai.stigmer.agentic.channelapp.v1.ChannelApp\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"9¸\x185\b\x02\x100\"\vmetadata.id*\"unauthorized to update channel app\x12\x9e\x01\n" +
+	"\x06create\x12,.ai.stigmer.agentic.channelapp.v1.ChannelApp\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"O¸\x18K\b\x1f\x10\x1e\"\fmetadata.org*7unauthorized to create channel app in this organization\x12\xb3\x01\n" +
+	"\x06update\x127.ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"B¸\x18>\b\x02\x100\"\x14resource.metadata.id*\"unauthorized to update channel app\x12\x9e\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"9¸\x185\b\x03\x100\"\vresource_id*\"unauthorized to rename channel app\x12\xa9\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a,.ai.stigmer.agentic.channelapp.v1.ChannelApp\"9¸\x185\b\x03\x100\"\vresource_id*\"unauthorized to delete channel app\x1a\x04\xa0\xff+0B\xb3\x02\n" +
 	"$com.ai.stigmer.agentic.channelapp.v1B\fCommandProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_channelapp_v1_command_proto_goTypes = []any{
 	(*ChannelApp)(nil),                         // 0: ai.stigmer.agentic.channelapp.v1.ChannelApp
-	(*apiresource.RenameInput)(nil),            // 1: ai.stigmer.commons.apiresource.RenameInput
-	(*apiresource.ApiResourceDeleteInput)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	(*UpdateChannelAppInput)(nil),              // 1: ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput
+	(*apiresource.RenameInput)(nil),            // 2: ai.stigmer.commons.apiresource.RenameInput
+	(*apiresource.ApiResourceDeleteInput)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 }
 var file_ai_stigmer_agentic_channelapp_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.apply:input_type -> ai.stigmer.agentic.channelapp.v1.ChannelApp
 	0, // 1: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.create:input_type -> ai.stigmer.agentic.channelapp.v1.ChannelApp
-	0, // 2: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.update:input_type -> ai.stigmer.agentic.channelapp.v1.ChannelApp
-	1, // 3: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
-	2, // 4: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	1, // 2: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.update:input_type -> ai.stigmer.agentic.channelapp.v1.UpdateChannelAppInput
+	2, // 3: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
+	3, // 4: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 	0, // 5: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.apply:output_type -> ai.stigmer.agentic.channelapp.v1.ChannelApp
 	0, // 6: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.create:output_type -> ai.stigmer.agentic.channelapp.v1.ChannelApp
 	0, // 7: ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.update:output_type -> ai.stigmer.agentic.channelapp.v1.ChannelApp
@@ -64,6 +65,7 @@ func file_ai_stigmer_agentic_channelapp_v1_command_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_channelapp_v1_api_proto_init()
+	file_ai_stigmer_agentic_channelapp_v1_io_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

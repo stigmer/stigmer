@@ -73,7 +73,7 @@ Run run = client.runs().get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listBySession`](#listbysession) | List all runs in a specific session. | |
 | [`subscribe`](#subscribe) | Subscribe to real-time run updates (streaming). | Server |
 | [`create`](#create) | Create and trigger a new run: a turn in an existing session, or the first turn of a new one created from session_spec. | |
-| [`update`](#update) | Update a run. | |
+| [`update`](#update) | Update a run: the fields update_mask names change, every other field keeps its stored value. | |
 | [`updateStatus`](#updatestatus) | Update a run's status. | |
 | [`delete`](#delete) | Delete a run by ID. | |
 | [`pause`](#pause) | Pause a running run. | |
@@ -734,120 +734,52 @@ Run run = client.runs().create(RunInput.builder()
 
 ### update
 
-Update a run.
+Update a run: the fields update_mask names change, every other field keeps its stored value.
+
+resource.metadata.id names the run; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the run does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the run changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the run kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const run = await stigmer.run.update({
-  name: "my-run",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  sessionId: "...",
-  sessionSpec: {},
-  message: "...",
-  runConfig: {},
-  interactionMode: "...",
-  buildFromPlan: false,
-  structuredOutputSchema: {},
-  tools: [],
-  disallowedTools: [],
-  appendSystemPrompt: "...",
-  autoApproveAll: false,
-  attachments: [],
-  workspaceFileRefs: [],
-  supersedesRunId: "...",
-  conversationCatchup: {},
-  pluginEvalCase: {},
-  reconcileFileReview: false,
-});
+const run = await stigmer.run.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
+run.metadata!.name = "New name";
+const updated = await stigmer.run.update(run, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-run, err := client.Run.Update(ctx, &stigmer.RunInput{
-  Name:                   "my-run",
-  Org:                    "acme",
-  Slug:                   "...",
-  Labels:                 map[string]string{},
-  SessionId:              "...",
-  SessionSpec:            &stigmer.SessionSpecInput{},
-  Message:                "...",
-  RunConfig:              &stigmer.RunConfigInput{},
-  InteractionMode:        "...",
-  BuildFromPlan:          false,
-  StructuredOutputSchema: nil,
-  Tools:                  []string{},
-  DisallowedTools:        []string{},
-  AppendSystemPrompt:     "...",
-  AutoApproveAll:         false,
-  Attachments:            []stigmer.AttachmentInput{},
-  WorkspaceFileRefs:      []string{},
-  SupersedesRunId:        "...",
-  ConversationCatchup:    &stigmer.ConversationCatchupInput{},
-  PluginEvalCase:         &stigmer.PluginEvalCaseContextInput{},
-  ReconcileFileReview:    false,
-})
+run, err := client.Run.Get(ctx, "run_01j5q3k7m8r2s4tnz2hfp0q0c3")
+run.Metadata.Name = "New name"
+updated, err := client.Run.Update(ctx, run, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-run = client.runs.update(RunInput(
-    name="my-run",
-    org="acme",
-    slug="...",
-    labels={},
-    session_id="...",
-    session_spec=None,
-    message="...",
-    run_config=None,
-    interaction_mode="...",
-    build_from_plan=False,
-    structured_output_schema=None,
-    tools=[],
-    disallowed_tools=[],
-    append_system_prompt="...",
-    auto_approve_all=False,
-    attachments=[],
-    workspace_file_refs=[],
-    supersedes_run_id="...",
-    conversation_catchup=None,
-    plugin_eval_case=None,
-    reconcile_file_review=False,
-))
+run = client.runs.get("run_01j5q3k7m8r2s4tnz2hfp0q0c3")
+run.metadata.name = "New name"
+updated = client.runs.update(run, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Run run = client.runs().update(RunInput.builder()
-    .name("my-run")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .sessionId("...")
-    .sessionSpec(null)
-    .message("...")
-    .runConfig(null)
-    .interactionMode("...")
-    .buildFromPlan(false)
-    .structuredOutputSchema(null)
-    .tools(List.of())
-    .disallowedTools(List.of())
-    .appendSystemPrompt("...")
-    .autoApproveAll(false)
-    .attachments(List.of())
-    .workspaceFileRefs(List.of())
-    .supersedesRunId("...")
-    .conversationCatchup(null)
-    .pluginEvalCase(null)
-    .reconcileFileReview(false)
-    .build());
+Run run = client.runs().get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Run updated = client.runs().update(
+    run.toBuilder().setMetadata(run.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`RunInput`](#runinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Run`](#run) | The run, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Run`](#run)
 
@@ -1355,8 +1287,6 @@ SessionSpec defines the configurable properties of a session.
   type={{
     agentRef: { type: "ResourceRef", description: "The agent this conversation runs, as 'org/slug' with an optional version; empty means no agent, and the built-in assistant answers with the plugins and skills this session itself declares.", typeDescriptionLink: "#resourceref" },
     subject: { type: "string", description: "Conversation title for UI display." },
-    harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
-    harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
@@ -1519,6 +1449,17 @@ PluginEvalMockTool is one mocked tool and how it answers.
     error: { type: "boolean", description: "Whether a fixed answer is returned as a tool error." },
     expectJson: { type: "string", description: "The input guard, as the mock's expect block in JSON; empty for none." },
     abortWhen: { type: "string", description: "The only conditions under which an agent stand-in may end the run." },
+  }}
+/>
+
+### UpdateRunInput
+
+The changes an update makes to a run: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "RunInput", description: "The run carrying the new values, named by metadata.id.", typeDescriptionLink: "#runinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

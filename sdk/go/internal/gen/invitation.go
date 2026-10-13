@@ -60,12 +60,12 @@ func (i *InvitationClient) GetByToken(ctx context.Context, input *invitationv1.I
 	return resp, wrapErr(err)
 }
 
-// InvitationInput holds the fields for creating/updating a Invitation.
+// InvitationInput holds the fields for creating or applying a Invitation.
 type InvitationInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id             string
 	Name           string
 	Slug           string

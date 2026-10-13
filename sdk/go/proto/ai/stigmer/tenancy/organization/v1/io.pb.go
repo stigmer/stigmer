@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -402,11 +403,71 @@ func (x *UpdateOrganizationPoliciesInput) GetPolicies() *OrganizationPolicies {
 	return nil
 }
 
+// The changes an update makes to an organization: the fields update_mask names,
+// taken from resource.
+type UpdateOrganizationInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The organization carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *Organization `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateOrganizationInput) Reset() {
+	*x = UpdateOrganizationInput{}
+	mi := &file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateOrganizationInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateOrganizationInput) ProtoMessage() {}
+
+func (x *UpdateOrganizationInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateOrganizationInput.ProtoReflect.Descriptor instead.
+func (*UpdateOrganizationInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateOrganizationInput) GetResource() *Organization {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateOrganizationInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_tenancy_organization_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"[\n" +
+	"+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a-ai/stigmer/tenancy/organization/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"[\n" +
 	"\rOrganizations\x12J\n" +
 	"\aentries\x18\x01 \x03(\v20.ai.stigmer.tenancy.organization.v1.OrganizationR\aentries\"\x7f\n" +
 	"\x10OrganizationList\x12\x1f\n" +
@@ -431,7 +492,12 @@ const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa1\x01\n" +
 	"\x1fUpdateOrganizationPoliciesInput\x12 \n" +
 	"\x06org_id\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05orgId\x12\\\n" +
-	"\bpolicies\x18\x02 \x01(\v28.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesB\x06\xbaH\x03\xc8\x01\x01R\bpoliciesB\xbc\x02\n" +
+	"\bpolicies\x18\x02 \x01(\v28.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesB\x06\xbaH\x03\xc8\x01\x01R\bpolicies\"\xfb\x02\n" +
+	"\x17UpdateOrganizationInput\x12T\n" +
+	"\bresource\x18\x01 \x01(\v20.ai.stigmer.tenancy.organization.v1.OrganizationB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xc4\x01\xbaH\xc0\x01\x1a\xbd\x01\n" +
+	"\x17update_names_its_target\x12Lresource.metadata.id is required: an update names the organization by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xbc\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
@@ -446,7 +512,7 @@ func file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_tenancy_organization_v1_io_proto_goTypes = []any{
 	(*Organizations)(nil),                   // 0: ai.stigmer.tenancy.organization.v1.Organizations
 	(*OrganizationList)(nil),                // 1: ai.stigmer.tenancy.organization.v1.OrganizationList
@@ -455,19 +521,23 @@ var file_ai_stigmer_tenancy_organization_v1_io_proto_goTypes = []any{
 	(*ListChildOrgsInput)(nil),              // 4: ai.stigmer.tenancy.organization.v1.ListChildOrgsInput
 	(*ChildOrgList)(nil),                    // 5: ai.stigmer.tenancy.organization.v1.ChildOrgList
 	(*UpdateOrganizationPoliciesInput)(nil), // 6: ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput
-	(*Organization)(nil),                    // 7: ai.stigmer.tenancy.organization.v1.Organization
-	(*OrganizationPolicies)(nil),            // 8: ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	(*UpdateOrganizationInput)(nil),         // 7: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput
+	(*Organization)(nil),                    // 8: ai.stigmer.tenancy.organization.v1.Organization
+	(*OrganizationPolicies)(nil),            // 9: ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	(*fieldmaskpb.FieldMask)(nil),           // 10: google.protobuf.FieldMask
 }
 var file_ai_stigmer_tenancy_organization_v1_io_proto_depIdxs = []int32{
-	7, // 0: ai.stigmer.tenancy.organization.v1.Organizations.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	7, // 1: ai.stigmer.tenancy.organization.v1.OrganizationList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	7, // 2: ai.stigmer.tenancy.organization.v1.ChildOrgList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	8, // 3: ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput.policies:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPolicies
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	8,  // 0: ai.stigmer.tenancy.organization.v1.Organizations.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	8,  // 1: ai.stigmer.tenancy.organization.v1.OrganizationList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	8,  // 2: ai.stigmer.tenancy.organization.v1.ChildOrgList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	9,  // 3: ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput.policies:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationPolicies
+	8,  // 4: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput.resource:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	10, // 5: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput.update_mask:type_name -> google.protobuf.FieldMask
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_io_proto_init() }
@@ -483,7 +553,7 @@ func file_ai_stigmer_tenancy_organization_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc), len(file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -172,44 +172,37 @@ export {
   type ListResult,
 } from "./gen/types.js";
 
-// Re-export all resource client classes and input types. The
-// toXxxUpdateInput mappers are the full-spec-replace safety layer: they
-// rebuild a COMPLETE input from a fetched resource so subset editors can
-// spread-and-override without wiping unlisted fields.
+// Re-export all resource client classes and input types. An update takes
+// the resource and the paths it changes (`client.<kind>.update(resource,
+// paths)`): every field it does not name keeps its stored value.
 export {
   AgentClient,
   buildAgentProto,
-  toAgentUpdateInput,
   type AgentInput,
   type EnvVarDeclarationInput,
   type HookSourceInput,
 } from "./gen/agent.js";
 export {
   AgentChannelClient,
-  toAgentChannelUpdateInput,
   type AgentChannelInput,
   type SlackChannelConfigInput,
 } from "./gen/agentchannel.js";
 export {
   RunClient,
-  toRunUpdateInput,
   type RunInput,
   type AttachmentInput,
 } from "./gen/run.js";
 export {
   AgentShareClient,
-  toAgentShareUpdateInput,
   type AgentShareInput,
   type AgentShareMessagesInput,
 } from "./gen/agentshare.js";
 export {
   ApiKeyClient,
-  toApiKeyUpdateInput,
   type ApiKeyInput,
 } from "./gen/apikey.js";
 export {
   ChannelAppClient,
-  toChannelAppUpdateInput,
   type ChannelAppInput,
   type SlackChannelAppConfigInput,
 } from "./gen/channelapp.js";
@@ -220,43 +213,36 @@ export {
 } from "./gen/iampolicy.js";
 export {
   IdentityAccountClient,
-  toIdentityAccountUpdateInput,
   type IdentityAccountInput,
 } from "./gen/identityaccount.js";
 export { InvitationClient, type InvitationInput } from "./gen/invitation.js";
 export {
   IdentityProviderClient,
-  toIdentityProviderUpdateInput,
   type IdentityProviderInput,
 } from "./gen/identityprovider.js";
 export {
   TeamClient,
-  toTeamUpdateInput,
   type TeamInput,
 } from "./gen/team.js";
 export {
   OAuthAppClient,
-  toOAuthAppUpdateInput,
   type OAuthAppInput,
 } from "./gen/oauthapp.js";
 export {
   MemoryClient,
   buildMemoryProto,
-  toMemoryUpdateInput,
   type MemoryInput,
   type MemoryProvenanceInput,
 } from "./gen/memory.js";
 export {
   ScoreClient,
   buildScoreProto,
-  toScoreUpdateInput,
   type ScoreInput,
   type ScoreCriterionInput,
 } from "./gen/score.js";
 export {
   EvaluatorClient,
   buildEvaluatorProto,
-  toEvaluatorUpdateInput,
   type EvaluatorInput,
 } from "./gen/evaluator.js";
 // Plugin evals: one run of a plugin's own evals/ cases. An eval is started
@@ -307,7 +293,6 @@ export {
 export {
   VaultClient,
   buildVaultProto,
-  toVaultUpdateInput,
   type VaultInput,
   type VaultSecretInput,
   type VaultConnectionInput,
@@ -315,12 +300,10 @@ export {
 } from "./gen/vault.js";
 export {
   OrganizationClient,
-  toOrganizationUpdateInput,
   type OrganizationInput,
 } from "./gen/organization.js";
 export {
   PlatformClientClient,
-  toPlatformClientUpdateInput,
   type PlatformClientInput,
 } from "./gen/platformclient.js";
 // The billing kinds (cloud_only): the plan catalog, an organization's
@@ -345,14 +328,12 @@ export {
 export {
   ScheduleClient,
   buildScheduleProto,
-  toScheduleUpdateInput,
   type ScheduleInput,
   type AgentInvocationInput,
   type RunConfigInput,
 } from "./gen/schedule.js";
 export {
   SessionClient,
-  toSessionUpdateInput,
   type SessionInput,
   type WorkspaceEntryInput,
   type WorkspaceSourceInput,

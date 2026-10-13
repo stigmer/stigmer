@@ -2,13 +2,13 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { MemorySchema, type Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryCommandController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/command_pb";
-import { MemoryIdSchema, ListMemoriesRequestSchema, MemoryListSchema, type ListMemoriesRequest, type MemoryList } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/io_pb";
+import { MemoryIdSchema, UpdateMemoryInputSchema, ListMemoriesRequestSchema, MemoryListSchema, type ListMemoriesRequest, type MemoryList } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/io_pb";
 import { MemoryQueryController } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/query_pb";
-import { MemorySpecSchema, MemoryProvenanceSchema, type MemoryProvenance } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
+import { MemorySpecSchema, MemoryProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -28,9 +28,9 @@ export class MemoryClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: MemoryInput): Promise<Memory> {
+  async update(resource: Memory | MessageInitShape<typeof MemorySchema>, paths: string[]): Promise<Memory> {
     try {
-      return await this.command.update(buildMemoryProto(input));
+      return await this.command.update(create(UpdateMemoryInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -65,13 +65,13 @@ export class MemoryClient {
   }
 }
 
-/** Input for creating/updating a Memory. */
+/** Input for creating or applying a Memory. */
 export interface MemoryInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -120,44 +120,4 @@ export function buildMemoryProto(input: MemoryInput): Memory {
       provenance,
     })),
   }) as Memory;
-}
-
-function toMemoryProvenanceInput(msg: MemoryProvenance): MemoryProvenanceInput {
-  return {
-    agentId: msg.agentId || undefined,
-    sessionId: msg.sessionId || undefined,
-    runId: msg.runId || undefined,
-    toolCallId: msg.toolCallId || undefined,
-  };
-}
-
-/**
- * Maps a fetched {@link Memory} to a complete {@link MemoryInput} for `update()`.
- *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
- *
- *   await client.update({ ...toMemoryUpdateInput(res), description: next });
- *
- * Proto3 defaults normalize to `undefined`; resource references keep
- * `version` (pinned refs) and `kind`.
- */
-export function toMemoryUpdateInput(resource: Memory): MemoryInput {
-  const meta = resource.metadata;
-  const spec = resource.spec ?? create(MemorySpecSchema);
-  return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
-    id: meta?.id || undefined,
-    name: meta?.name ?? "",
-    slug: meta?.slug || undefined,
-    org: meta?.org ?? "",
-    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
-    visibility: meta?.visibility || undefined,
-    content: spec.content || undefined,
-    subjectIdentityAccountId: spec.subjectIdentityAccountId || undefined,
-    provenance: spec.provenance ? toMemoryProvenanceInput(spec.provenance) : undefined,
-  };
 }

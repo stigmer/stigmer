@@ -11,6 +11,7 @@ import (
 	platformclientv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1"
 	iamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -38,12 +39,11 @@ func (p *PlatformClientClient) Create(ctx context.Context, input *PlatformClient
 	return resp, wrapErr(err)
 }
 
-func (p *PlatformClientClient) Update(ctx context.Context, input *PlatformClientInput) (*platformclientv1.PlatformClient, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := p.command.Update(ctx, req)
+func (p *PlatformClientClient) Update(ctx context.Context, resource *platformclientv1.PlatformClient, paths []string) (*platformclientv1.PlatformClient, error) {
+	resp, err := p.command.Update(ctx, &platformclientv1.UpdatePlatformClientInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -92,12 +92,12 @@ func (p *PlatformClientClient) MintGuestToken(ctx context.Context, input *platfo
 	return resp, wrapErr(err)
 }
 
-// PlatformClientInput holds the fields for creating/updating a PlatformClient.
+// PlatformClientInput holds the fields for creating or applying a PlatformClient.
 type PlatformClientInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id                     string
 	Name                   string
 	Slug                   string

@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -161,18 +162,83 @@ func (x *ListOAuthAppsByOrgInput) GetOrg() string {
 	return ""
 }
 
+// The changes an update makes to an OAuth app: the fields update_mask names,
+// taken from resource.
+type UpdateOAuthAppInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The OAuth app carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *OAuthApp `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateOAuthAppInput) Reset() {
+	*x = UpdateOAuthAppInput{}
+	mi := &file_ai_stigmer_iam_oauthapp_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateOAuthAppInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateOAuthAppInput) ProtoMessage() {}
+
+func (x *UpdateOAuthAppInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_oauthapp_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateOAuthAppInput.ProtoReflect.Descriptor instead.
+func (*UpdateOAuthAppInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *UpdateOAuthAppInput) GetResource() *OAuthApp {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateOAuthAppInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_oauthapp_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"#ai/stigmer/iam/oauthapp/v1/io.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"-\n" +
+	"#ai/stigmer/iam/oauthapp/v1/io.proto\x12\x1aai.stigmer.iam.oauthapp.v1\x1a$ai/stigmer/iam/oauthapp/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"-\n" +
 	"\n" +
 	"OAuthAppId\x12\x1f\n" +
 	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"K\n" +
 	"\tOAuthApps\x12>\n" +
 	"\aentries\x18\x01 \x03(\v2$.ai.stigmer.iam.oauthapp.v1.OAuthAppR\aentries\"4\n" +
 	"\x17ListOAuthAppsByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03orgB\x88\x02\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xe8\x02\n" +
+	"\x13UpdateOAuthAppInput\x12H\n" +
+	"\bresource\x18\x01 \x01(\v2$.ai.stigmer.iam.oauthapp.v1.OAuthAppB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xc1\x01\xbaH\xbd\x01\x1a\xba\x01\n" +
+	"\x17update_names_its_target\x12Iresource.metadata.id is required: an update names the OAuth app by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\x88\x02\n" +
 	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\aIoProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (
@@ -187,20 +253,24 @@ func file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_oauthapp_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_iam_oauthapp_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_iam_oauthapp_v1_io_proto_goTypes = []any{
 	(*OAuthAppId)(nil),              // 0: ai.stigmer.iam.oauthapp.v1.OAuthAppId
 	(*OAuthApps)(nil),               // 1: ai.stigmer.iam.oauthapp.v1.OAuthApps
 	(*ListOAuthAppsByOrgInput)(nil), // 2: ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput
-	(*OAuthApp)(nil),                // 3: ai.stigmer.iam.oauthapp.v1.OAuthApp
+	(*UpdateOAuthAppInput)(nil),     // 3: ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput
+	(*OAuthApp)(nil),                // 4: ai.stigmer.iam.oauthapp.v1.OAuthApp
+	(*fieldmaskpb.FieldMask)(nil),   // 5: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_oauthapp_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.iam.oauthapp.v1.OAuthApps.entries:type_name -> ai.stigmer.iam.oauthapp.v1.OAuthApp
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: ai.stigmer.iam.oauthapp.v1.OAuthApps.entries:type_name -> ai.stigmer.iam.oauthapp.v1.OAuthApp
+	4, // 1: ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput.resource:type_name -> ai.stigmer.iam.oauthapp.v1.OAuthApp
+	5, // 2: ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput.update_mask:type_name -> google.protobuf.FieldMask
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_oauthapp_v1_io_proto_init() }
@@ -215,7 +285,7 @@ func file_ai_stigmer_iam_oauthapp_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

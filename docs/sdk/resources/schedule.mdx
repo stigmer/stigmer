@@ -81,7 +81,7 @@ Schedule schedule = client.schedules().get("sch_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listFires`](#listfires) | List a schedule's fire history, newest first. |
 | [`apply`](#apply) | Create or update a schedule. |
 | [`create`](#create) | Create a schedule. |
-| [`update`](#update) | Update an existing schedule. |
+| [`update`](#update) | Update a schedule: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete a schedule. |
 | [`resume`](#resume) | Resume a schedule the platform paused after repeated run failures. |
 | [`rename`](#rename) | Rename a schedule: change its slug, the name people type. |
@@ -464,72 +464,54 @@ Schedule schedule = client.schedules().create(ScheduleInput.builder()
 
 ### update
 
-Update an existing schedule.
+Update a schedule: the fields update_mask names change, every other field keeps its stored value.
 
-Replaces the spec wholesale. The referenced agent and the target arm are immutable; cron, time zone, enablement, and the message may all change. Status (firing observations, the platform pause) is never touched by updates — use resume to clear a platform pause.
+The referenced agent and the target arm are immutable; cron, time zone, enablement and the message may change. Status (firing observations, the platform pause) is never touched by updates: use resume to clear a platform pause.
 
-The slug changes only through rename. An update authorizes the id it names, so wherever the server authorizes requests, an update without an id is refused before its slug is read; where it reads one, a slug the schedule was renamed away from is refused with SLUG_RENAMED (see apply).
+resource.metadata.id names the schedule; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the schedule does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the schedule kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const schedule = await stigmer.schedule.update({
-  name: "my-schedule",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  cron: "...",
-  timeZone: "...",
-  enabled: false,
-  agent: {},
-});
+const schedule = await stigmer.schedule.get("sch_01j5q3k7m8r2s4tnz2hfp0q0c3");
+schedule.metadata!.name = "New name";
+const updated = await stigmer.schedule.update(schedule, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-schedule, err := client.Schedule.Update(ctx, &stigmer.ScheduleInput{
-  Name:     "my-schedule",
-  Org:      "acme",
-  Slug:     "...",
-  Labels:   map[string]string{},
-  Cron:     "...",
-  TimeZone: "...",
-  Enabled:  false,
-  Agent:    &stigmer.AgentInvocationInput{},
-})
+schedule, err := client.Schedule.Get(ctx, "sch_01j5q3k7m8r2s4tnz2hfp0q0c3")
+schedule.Metadata.Name = "New name"
+updated, err := client.Schedule.Update(ctx, schedule, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-schedule = client.schedules.update(ScheduleInput(
-    name="my-schedule",
-    org="acme",
-    slug="...",
-    labels={},
-    cron="...",
-    time_zone="...",
-    enabled=False,
-    agent=None,
-))
+schedule = client.schedules.get("sch_01j5q3k7m8r2s4tnz2hfp0q0c3")
+schedule.metadata.name = "New name"
+updated = client.schedules.update(schedule, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Schedule schedule = client.schedules().update(ScheduleInput.builder()
-    .name("my-schedule")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .cron("...")
-    .timeZone("...")
-    .enabled(false)
-    .agent(null)
-    .build());
+Schedule schedule = client.schedules().get("sch_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Schedule updated = client.schedules().update(
+    schedule.toBuilder().setMetadata(schedule.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ScheduleInput`](#scheduleinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Schedule`](#schedule) | The schedule, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Schedule`](#schedule)
 
@@ -800,6 +782,17 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
+### UpdateScheduleInput
+
+The changes an update makes to a schedule: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "ScheduleInput", description: "The schedule carrying the new values, named by metadata.id.", typeDescriptionLink: "#scheduleinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

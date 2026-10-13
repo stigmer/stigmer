@@ -26,11 +26,11 @@ var File_ai_stigmer_agentic_agentchannel_v1_command_proto protoreflect.FileDescr
 
 const file_ai_stigmer_agentic_agentchannel_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/agentchannel/v1/command.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a+ai/stigmer/agentic/agentchannel/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xf4\a\n" +
+	"0ai/stigmer/agentic/agentchannel/v1/command.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a+ai/stigmer/agentic/agentchannel/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x88\b\n" +
 	"\x1dAgentChannelCommandController\x12k\n" +
 	"\x05apply\x120.ai.stigmer.agentic.agentchannel.v1.AgentChannel\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\x12r\n" +
-	"\x06create\x120.ai.stigmer.agentic.agentchannel.v1.AgentChannel\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"\x04и\x18\x01\x12\xa9\x01\n" +
-	"\x06update\x120.ai.stigmer.agentic.agentchannel.v1.AgentChannel\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\";¸\x187\b\x02\x10/\"\vmetadata.id*$unauthorized to update agent channel\x12\xd2\x01\n" +
+	"\x06create\x120.ai.stigmer.agentic.agentchannel.v1.AgentChannel\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"\x04и\x18\x01\x12\xbd\x01\n" +
+	"\x06update\x12;.ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"D¸\x18@\b\x02\x10/\"\x14resource.metadata.id*$unauthorized to update agent channel\x12\xd2\x01\n" +
 	"\x0finitiateInstall\x12?.ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput\x1a@.ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput\"<¸\x188\b\x02\x10/\"\vresource_id*%unauthorized to install agent channel\x12\xc2\x01\n" +
 	"\x0fcompleteInstall\x12?.ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"<¸\x188\b\x02\x10/\"\vresource_id*%unauthorized to install agent channel\x12\xa5\x01\n" +
 	"\x06delete\x122.ai.stigmer.agentic.agentchannel.v1.AgentChannelId\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"5¸\x181\b\x03\x10/\"\x05value*$unauthorized to delete agent channel\x1a\x04\xa0\xff+/B\xc1\x02\n" +
@@ -38,22 +38,23 @@ const file_ai_stigmer_agentic_agentchannel_v1_command_proto_rawDesc = "" +
 
 var file_ai_stigmer_agentic_agentchannel_v1_command_proto_goTypes = []any{
 	(*AgentChannel)(nil),                 // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannel
-	(*InitiateChannelInstallInput)(nil),  // 1: ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput
-	(*CompleteChannelInstallInput)(nil),  // 2: ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput
-	(*AgentChannelId)(nil),               // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelId
-	(*InitiateChannelInstallOutput)(nil), // 4: ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput
+	(*UpdateAgentChannelInput)(nil),      // 1: ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput
+	(*InitiateChannelInstallInput)(nil),  // 2: ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput
+	(*CompleteChannelInstallInput)(nil),  // 3: ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput
+	(*AgentChannelId)(nil),               // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannelId
+	(*InitiateChannelInstallOutput)(nil), // 5: ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput
 }
 var file_ai_stigmer_agentic_agentchannel_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.apply:input_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
 	0, // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.create:input_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
-	0, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.update:input_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
-	1, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.initiateInstall:input_type -> ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput
-	2, // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.completeInstall:input_type -> ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput
-	3, // 5: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.delete:input_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannelId
+	1, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.update:input_type -> ai.stigmer.agentic.agentchannel.v1.UpdateAgentChannelInput
+	2, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.initiateInstall:input_type -> ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput
+	3, // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.completeInstall:input_type -> ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput
+	4, // 5: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.delete:input_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannelId
 	0, // 6: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.apply:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
 	0, // 7: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.create:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
 	0, // 8: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.update:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
-	4, // 9: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.initiateInstall:output_type -> ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput
+	5, // 9: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.initiateInstall:output_type -> ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput
 	0, // 10: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.completeInstall:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
 	0, // 11: ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.delete:output_type -> ai.stigmer.agentic.agentchannel.v1.AgentChannel
 	6, // [6:12] is the sub-list for method output_type

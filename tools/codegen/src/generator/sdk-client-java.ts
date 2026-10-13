@@ -9,7 +9,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isValuedOneofScalar, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, searchListSupersedesMethod, tsClientFieldName } from "./gen-common.js";
 import { javaCamel, javaCapCamel } from "./lang-names.js";
 import { apiResourceKindEnumNames } from "./resource-kind.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
@@ -315,7 +315,8 @@ function generateJavaErrorCode(outputDir: string): void {
     RESOURCE_EXHAUSTED,
     FAILED_PRECONDITION,
     INTERNAL,
-    UNAVAILABLE;
+    UNAVAILABLE,
+    ABORTED;
 
     static ErrorCode fromGrpcCode(Status.Code code) {
         switch (code) {
@@ -328,6 +329,7 @@ function generateJavaErrorCode(outputDir: string): void {
             case FAILED_PRECONDITION: return FAILED_PRECONDITION;
             case INTERNAL: return INTERNAL;
             case UNAVAILABLE: return UNAVAILABLE;
+            case ABORTED: return ABORTED;
             default: return UNKNOWN;
         }
     }
@@ -742,6 +744,11 @@ function generateJavaClientClass(schema: ServiceSchemaFile, cfg: SdkResourceConf
         imports.add("com.google.protobuf.Empty");
       }
 
+      if (isUpdateInputType(m.inputType, cfg.protoResType)) {
+        imports.add(resolveJavaFQCN(m.inputFullType));
+        imports.add("com.google.protobuf.FieldMask");
+      }
+
       if (m.inputType === "ApiResourceDeleteInput") {
         imports.add("ai.stigmer.commons.apiresource.ApiResourceDeleteInput");
       }
@@ -849,6 +856,7 @@ function generateJavaMethod(
   const isIDIn = isIDType(m.inputType);
   const isDeleteIn = m.inputType === "ApiResourceDeleteInput";
   const isResourceIn = m.inputType === cfg.protoResType;
+  const isUpdateIn = isUpdateInputType(m.inputType, cfg.protoResType);
   const isApiResRefIn = m.inputType === "ApiResourceReference";
 
   const outputType = emptyOutput ? "void" : m.outputType;
@@ -866,6 +874,15 @@ function generateJavaMethod(
     buf.push(`    public ${outputType} ${methodName}() {\n`);
     buf.push("        try {\n");
     buf.push(`            return ${role}.${javaMethodLower(m.name)}(Empty.getDefaultInstance());\n`);
+    buf.push("        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }\n");
+    buf.push("    }\n");
+  } else if (isUpdateIn) {
+    buf.push(`    public ${outputType} ${methodName}(${cfg.protoResType} resource, java.util.List<String> paths) {\n`);
+    buf.push("        try {\n");
+    buf.push(`            ${returnKw}${role}.${javaMethodLower(m.name)}(${m.inputType}.newBuilder()\n`);
+    buf.push("                .setResource(resource)\n");
+    buf.push("                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())\n");
+    buf.push("                .build());\n");
     buf.push("        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }\n");
     buf.push("    }\n");
   } else if (isResourceIn && hasInputType) {
@@ -1042,7 +1059,7 @@ function generateJavaInputClass(
 
   const body: string[] = [];
 
-  body.push(`/** Input for creating/updating a ${cfg.protoResType}. */\n`);
+  body.push(`/** Input for creating or applying a ${cfg.protoResType}. */\n`);
   body.push(`public final class ${inputName} {\n`);
 
   body.push("    private final String id;\n");
@@ -1094,9 +1111,9 @@ function generateJavaInputClass(
   }
   body.push("\n        private Builder() {}\n\n");
   body.push("        /**\n");
-  body.push("         * The resource's metadata.id, for exact update addressing when set\n");
-  body.push("         * from a loaded resource. Required for updates to platform-scoped\n");
-  body.push("         * (org-less) kinds, where the org+slug fallback cannot match.\n");
+  body.push("         * The resource's metadata.id: an apply that carries it changes that\n");
+  body.push("         * resource, whatever its slug. An update takes the resource itself\n");
+  body.push("         * and the paths it changes.\n");
   body.push("         */\n");
   body.push("        public Builder id(String id) { this.id = id; return this; }\n");
   body.push("        public Builder name(String name) { this.name = name; return this; }\n");

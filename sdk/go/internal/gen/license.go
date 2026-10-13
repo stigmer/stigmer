@@ -45,12 +45,12 @@ func (l *LicenseClient) List(ctx context.Context, input *licensev1.ListLicensesI
 	return resp, wrapErr(err)
 }
 
-// LicenseInput holds the fields for creating/updating a License.
+// LicenseInput holds the fields for creating or applying a License.
 type LicenseInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id           string
 	Name         string
 	Slug         string

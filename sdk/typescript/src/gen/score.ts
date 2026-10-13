@@ -2,14 +2,14 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ScoreSchema, type Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
 import { ScoreSource, CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { ScoreIdSchema, ListScoresByRunRequestSchema, ScoreListSchema, ListScoresBySessionRequestSchema, GetAgentQualityReportRequestSchema, AgentQualityReportSchema, ListFlaggedScoresByAgentRequestSchema, type ListScoresByRunRequest, type ScoreList, type ListScoresBySessionRequest, type GetAgentQualityReportRequest, type AgentQualityReport, type ListFlaggedScoresByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
+import { ScoreIdSchema, UpdateScoreInputSchema, ListScoresByRunRequestSchema, ScoreListSchema, ListScoresBySessionRequestSchema, GetAgentQualityReportRequestSchema, AgentQualityReportSchema, ListFlaggedScoresByAgentRequestSchema, type ListScoresByRunRequest, type ScoreList, type ListScoresBySessionRequest, type GetAgentQualityReportRequest, type AgentQualityReport, type ListFlaggedScoresByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
-import { ScoreSpecSchema, ScoreCriterionSchema, type ScoreCriterion } from "@stigmer/protos/ai/stigmer/agentic/score/v1/spec_pb";
+import { ScoreSpecSchema, ScoreCriterionSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -29,9 +29,9 @@ export class ScoreClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: ScoreInput): Promise<Score> {
+  async update(resource: Score | MessageInitShape<typeof ScoreSchema>, paths: string[]): Promise<Score> {
     try {
-      return await this.command.update(buildScoreProto(input));
+      return await this.command.update(create(UpdateScoreInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -72,13 +72,13 @@ export class ScoreClient {
   }
 }
 
-/** Input for creating/updating a Score. */
+/** Input for creating or applying a Score. */
 export interface ScoreInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -140,49 +140,4 @@ export function buildScoreProto(input: ScoreInput): Score {
     }),
     spec,
   }) as Score;
-}
-
-function toScoreCriterionInput(msg: ScoreCriterion): ScoreCriterionInput {
-  return {
-    name: msg.name || undefined,
-    result: msg.result || undefined,
-    reason: msg.reason || undefined,
-  };
-}
-
-/**
- * Maps a fetched {@link Score} to a complete {@link ScoreInput} for `update()`.
- *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
- *
- *   await client.update({ ...toScoreUpdateInput(res), description: next });
- *
- * Proto3 defaults normalize to `undefined`; resource references keep
- * `version` (pinned refs) and `kind`.
- */
-export function toScoreUpdateInput(resource: Score): ScoreInput {
-  const meta = resource.metadata;
-  const spec = resource.spec ?? create(ScoreSpecSchema);
-  return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
-    id: meta?.id || undefined,
-    name: meta?.name ?? "",
-    slug: meta?.slug || undefined,
-    org: meta?.org ?? "",
-    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
-    visibility: meta?.visibility || undefined,
-    runId: spec.runId || undefined,
-    sessionId: spec.sessionId || undefined,
-    metric: spec.metric || undefined,
-    source: spec.source || undefined,
-    evaluatorVersion: spec.evaluatorVersion || undefined,
-    passed: spec.value?.case === "passed" ? spec.value.value : undefined,
-    criteria: spec.criteria?.length ? spec.criteria.map(toScoreCriterionInput) : undefined,
-    comment: spec.comment || undefined,
-    judgeModel: spec.judgeModel || undefined,
-  };
 }

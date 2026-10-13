@@ -50,25 +50,6 @@ type SessionSpec struct {
 	AgentRef *apiresource.ApiResourceReference `protobuf:"bytes,14,opt,name=agent_ref,json=agentRef,proto3" json:"agent_ref,omitempty"`
 	// Conversation title for UI display.
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
-	// Harness-specific state identifier for conversation continuity.
-	//
-	// Populated after the first run completes; empty until then.
-	// Each harness uses this field differently:
-	//
-	//   - NATIVE: LangGraph thread ID, derived deterministically as
-	//     "thread-{session_id}" by the EnsureThread activity. Stored here
-	//     so the immutability sentinel works uniformly across harnesses.
-	//
-	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
-	//     returned by Agent.create(). Used for Agent.resume() on
-	//     subsequent runs.
-	HarnessStateId string `protobuf:"bytes,3,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
-	// Prior harness state identifiers this session has owned, oldest first.
-	//
-	// A session can span multiple harness-side conversations: when the
-	// cursor-runner's resume fails, it creates a fresh Cursor agent and
-	// replaces harness_state_id, and the replaced id lands here.
-	HarnessStateIdHistory []string `protobuf:"bytes,13,rep,name=harness_state_id_history,json=harnessStateIdHistory,proto3" json:"harness_state_id_history,omitempty"`
 	// Custom key-value pairs for client-specific information.
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Workspace entries for this session.
@@ -204,20 +185,6 @@ func (x *SessionSpec) GetSubject() string {
 	return ""
 }
 
-func (x *SessionSpec) GetHarnessStateId() string {
-	if x != nil {
-		return x.HarnessStateId
-	}
-	return ""
-}
-
-func (x *SessionSpec) GetHarnessStateIdHistory() []string {
-	if x != nil {
-		return x.HarnessStateIdHistory
-	}
-	return nil
-}
-
 func (x *SessionSpec) GetMetadata() map[string]string {
 	if x != nil {
 		return x.Metadata
@@ -292,12 +259,10 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xe7\b\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xbc\b\n" +
 	"\vSessionSpec\x12W\n" +
 	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRef\x12\x18\n" +
-	"\asubject\x18\x02 \x01(\tR\asubject\x12(\n" +
-	"\x10harness_state_id\x18\x03 \x01(\tR\x0eharnessStateId\x127\n" +
-	"\x18harness_state_id_history\x18\r \x03(\tR\x15harnessStateIdHistory\x12T\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
 	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12Y\n" +
 	"\n" +
@@ -314,7 +279,7 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"fileReview\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\a\x10\bJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\x11mcp_server_usagesR\asecretsR\vconnectionsB\x9b\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\x03\x10\x04J\x04\b\r\x10\x0eJ\x04\b\a\x10\bJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\x10harness_state_idR\x18harness_state_id_historyR\x11mcp_server_usagesR\asecretsR\vconnectionsB\x9b\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (

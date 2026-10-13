@@ -2,11 +2,11 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EvaluatorSchema, type Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
-import { EvaluatorIdSchema, GetEvaluatorByAgentRequestSchema, type GetEvaluatorByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
+import { EvaluatorIdSchema, UpdateEvaluatorInputSchema, GetEvaluatorByAgentRequestSchema, type GetEvaluatorByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/io_pb";
 import { EvaluatorQueryController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/query_pb";
 import { EvaluatorSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -28,9 +28,9 @@ export class EvaluatorClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: EvaluatorInput): Promise<Evaluator> {
+  async update(resource: Evaluator | MessageInitShape<typeof EvaluatorSchema>, paths: string[]): Promise<Evaluator> {
     try {
-      return await this.command.update(buildEvaluatorProto(input));
+      return await this.command.update(create(UpdateEvaluatorInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -53,13 +53,13 @@ export class EvaluatorClient {
   }
 }
 
-/** Input for creating/updating an Evaluator. */
+/** Input for creating or applying an Evaluator. */
 export interface EvaluatorInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -94,37 +94,4 @@ export function buildEvaluatorProto(input: EvaluatorInput): Evaluator {
       modelName: input.modelName,
     })),
   }) as Evaluator;
-}
-
-/**
- * Maps a fetched {@link Evaluator} to a complete {@link EvaluatorInput} for `update()`.
- *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
- *
- *   await client.update({ ...toEvaluatorUpdateInput(res), description: next });
- *
- * Proto3 defaults normalize to `undefined`; resource references keep
- * `version` (pinned refs) and `kind`.
- */
-export function toEvaluatorUpdateInput(resource: Evaluator): EvaluatorInput {
-  const meta = resource.metadata;
-  const spec = resource.spec ?? create(EvaluatorSpecSchema);
-  return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
-    id: meta?.id || undefined,
-    name: meta?.name ?? "",
-    slug: meta?.slug || undefined,
-    org: meta?.org ?? "",
-    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
-    visibility: meta?.visibility || undefined,
-    agentId: spec.agentId || undefined,
-    enabled: spec.enabled || undefined,
-    sampleRate: spec.sampleRate || undefined,
-    monthlyLimitUsd: spec.monthlyLimitUsd || undefined,
-    modelName: spec.modelName || undefined,
-  };
 }
