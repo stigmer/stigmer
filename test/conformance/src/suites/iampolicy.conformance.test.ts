@@ -137,7 +137,6 @@ import { makeAgent } from "../support/agents";
 import { freshSubject } from "../support/identityaccounts";
 import {
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
-  BOOTSTRAP_MOVE_ORG_ACCESS_DENIED_MESSAGE,
   BOOTSTRAP_POLICY_DENIED_MESSAGE,
   BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE,
   CLEANUP_RESOURCE_POLICIES_DENIED_MESSAGE,
@@ -489,7 +488,8 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user", (
           toIdentityAccountId: syntheticAccountId(),
           org,
         }),
-      BOOTSTRAP_MOVE_ORG_ACCESS_DENIED_MESSAGE,
+      // The move door's annotation copy (command.proto error_msg).
+      "unauthorized to move organization access - can_bootstrap_iam permission required",
     ],
   ] as const)(
     "%s is PERMISSION_DENIED with the annotation's copy",
