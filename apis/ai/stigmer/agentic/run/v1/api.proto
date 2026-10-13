@@ -2,17 +2,12 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/run/v1/approval.proto";
 import "ai/stigmer/agentic/run/v1/artifact.proto";
-import "ai/stigmer/agentic/run/v1/context.proto";
 import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/filereview.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
-import "ai/stigmer/agentic/run/v1/message.proto";
 import "ai/stigmer/agentic/run/v1/plugin_eval_case.proto";
 import "ai/stigmer/agentic/run/v1/spec.proto";
-import "ai/stigmer/agentic/run/v1/subagent.proto";
-import "ai/stigmer/agentic/run/v1/todo.proto";
 import "ai/stigmer/agentic/run/v1/usage.proto";
 import "ai/stigmer/agentic/run/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
@@ -20,7 +15,6 @@ import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
-import "google/protobuf/struct.proto";
 
 // Run represents a single run instance (conversational).
 // Follows the standard pattern: spec contains user inputs, status contains run results.
@@ -43,30 +37,34 @@ message Run {
   RunSpec spec = 4;
 
   // System-managed run state and results.
-  // Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
+  // Contains: phase, timestamps, errors, the file record and what the turn ran
+  // with. What the agent said and did is the session's event log.
   RunStatus status = 5;
 }
 
 // RunStatus contains all run results and state.
 // Everything populated during or after the run goes here, not in spec.
+// The conversation itself (messages, tool calls, approvals, todos,
+// sub-agents, structured output and file-review decisions) is the session's
+// event log (SessionEvent), not a field here.
 message RunStatus {
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
-  // Sequential stream of run events: AI messages, tool calls, and system notifications.
-  // Ordered chronologically to reconstruct the complete run flow.
-  // Each message captures what happened during the run (agent responses, tool invocations, progress updates).
-  repeated AgentMessage messages = 1;
+  // Fields 1 (messages), 4 (sub_agent_runs), 9 (todos), 14 (context_info),
+  // 16 (pending_approvals), 21 (structured_output), 22
+  // (approval_event_stream), 23 (file_change_sets), 24
+  // (file_review_event_stream) and 26 (recalled_memories_report) held the
+  // run's own transcript and ledgers. Every client and the platform read a
+  // conversation from the session's events, so they left the contract.
+  // Reserved so the numbers and names are never reused.
+  reserved 1, 4, 9, 14, 16, 21, 22, 23, 24, 26;
+  reserved "messages", "sub_agent_runs", "todos", "context_info", "pending_approvals", "structured_output", "approval_event_stream", "file_change_sets", "file_review_event_stream", "recalled_memories_report";
 
   // Current run lifecycle phase.
   // Tracks the run state from creation (PENDING) through active processing (IN_PROGRESS)
   // to terminal states (COMPLETED/FAILED/CANCELLED).
   RunPhase phase = 2 [(buf.validate.field).enum.defined_only = true];
-
-  // Sub-agent runs invoked during this run.
-  // Tracks when the main agent delegates work to specialized sub-agents.
-  // Ordered chronologically by invocation time.
-  repeated SubAgentRun sub_agent_runs = 4;
 
   // Error message if the run failed.
   // Only populated when phase == RUN_FAILED.
@@ -79,12 +77,6 @@ message RunStatus {
   // ISO 8601 timestamp when the run completed, failed, or was cancelled.
   // Only populated for terminal states.
   string completed_at = 8;
-
-  // Todo list tracking multi-step tasks and progress for this run.
-  // Updated via write_todos tool (if TodoListMiddleware is enabled).
-  // Each run maintains its own snapshot of todos at run time.
-  // Key: todo item ID, Value: todo item details
-  map<string, TodoItem> todos = 9;
 
   // Field 10 held the task token of the workflow step waiting on this run,
   // which the runner used to complete that step when the run finished. It
@@ -101,65 +93,6 @@ message RunStatus {
   // with stale clients.
   reserved 12;
   reserved "resolved_context";
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Pending Approvals (HITL — Computed Projection)
-  //
-  // Server-side computed projection of tool calls awaiting user approval.
-  // Recomputed on every UpdateStatus write — never stale, never merged.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Active pending approval requests for this run.
-  //
-  // Contains one entry per tool call that requires user approval before
-  // it can proceed. Sub-agent approvals are included with from_sub_agent
-  // set to true. Empty when no approvals are pending.
-  //
-  // @internal
-  //
-  // Recomputed by the server on every write of the run: the tool calls in
-  // messages[].tool_calls and sub_agent_runs[].messages[].tool_calls with
-  // status WAITING_APPROVAL, requires_approval and no decision, kept to
-  // those whose agent.tool_use still waits in the session's log (an ask no
-  // user.tool_confirmation or result has closed). The log decides which
-  // calls wait; the rows describe them. Answers go through
-  // SessionCommandController.confirmToolUse and grantPermission
-  // (SubmitApproval is an adapter onto them).
-  repeated PendingApproval pending_approvals = 16;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Approval Event Stream (HITL re-architecture — persisted transition state)
-  //
-  // Append-only ledger of approval requests and decisions for this run.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // No longer written: approvals and their answers are the session's events
-  // (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
-  // stigmer.permission.grant). Runs written before then keep their entries.
-  //
-  // @internal
-  ApprovalEventStream approval_event_stream = 22;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Context Management
-  //
-  // Context window utilization and automatic summarization tracking.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Context window utilization and summarization tracking.
-  //
-  // Provides visibility into how the agent is using its context window and
-  // any summarization events that occurred during the run.
-  //
-  // Populated when context management is active (not disabled via config).
-  // Updated progressively during streaming as token counts change.
-  //
-  // Use cases:
-  // - **Monitoring**: Track context utilization across runs
-  // - **Debugging**: Understand why a run hit context limits
-  // - **Cost optimization**: Identify runs with excessive summarization
-  // - **UX**: Show users their context window health
-  ContextInfo context_info = 14;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Run Artifacts (Artifact Lifecycle)
@@ -228,122 +161,38 @@ message RunStatus {
   // Streaming usage summary, updated progressively during the run.
   StreamingUsageSummary streaming_usage = 20;
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Structured Output (Deterministic Agent Responses)
-  //
-  // Schema-conforming data extracted from the agent's final response.
-  // Replaces regex-based parsing for architect/refine/diagnose flows.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Structured output extracted from the agent's final response.
-  //
-  // Populated when spec.structured_output_schema was set and the
-  // runner successfully extracted schema-conforming data. Only meaningful
-  // when phase is RUN_COMPLETED.
-  //
-  // For native harness: populated from LangGraph graphState.structuredResponse
-  // (ToolStrategy enforcement). For Cursor harness: populated from 3-tier
-  // extraction (JSON.parse → fence extraction → extraction LLM fallback).
-  //
-  // Consumers: frontend architect/refine hooks read this instead of parsing
-  // YAML from messages.
-  google.protobuf.Struct structured_output = 21;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // File Change Review (HITL — Computed Projection + Append-Only Ledger)
-  //
-  // Apply-then-review file edits: file_change_sets is the read-model the review
-  // surface consumes; file_review_event_stream is the append-only source of
-  // truth it is projected from. The pair mirrors pending_approvals (16) +
-  // approval_event_stream (22) exactly, for a second lifecycle.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Server-computed projection of file change sets awaiting or completing
-  // review for this run.
-  //
-  // @internal
-  //
-  // Recomputed on every status write from file_review_event_stream (never
-  // merged), so it is always consistent with the authoritative ledger — exactly
-  // as pending_approvals is recomputed from the message scan / approval stream.
-  // Empty until the runner's capture activity authors events. A
-  // terminal run projects no actionable review. See FileChangeSet.
-  //
-  // Field 23: appended after approval_event_stream (22), the prior maximum.
-  repeated FileChangeSet file_change_sets = 23;
-
-  // Server-owned, append-only record of every file-review event (baseline /
-  // candidate capture, file decisions, reconcile, failures).
-  //
-  // @internal
-  //
-  // The persisted source of truth that file_change_sets is projected from — a
-  // sibling of approval_event_stream for the file-review lifecycle (the
-  // ApprovalEvent oneof is closed, so file events cannot ride it). Appends are
-  // keyed by the deterministic FileReviewEvent.event_id, so the stream is
-  // idempotent under retries.
-  //
-  // Write contract (one writer per event type): the runner CONTRIBUTES its
-  // capture/reconcile events (BASELINE_CAPTURED / CANDIDATE_CAPTURED /
-  // RECONCILED / FAILED) by carrying them here on UpdateStatus; the server folds
-  // them into the stored stream append-only, by event_id, on the freshly-loaded
-  // run under the write lock. The runner can never replace an existing
-  // event and never authors FILE_DECIDED (the server drops a runner-sent
-  // decision); FILE_DECIDED is authored solely by SubmitFileDecision. The stored
-  // stream is otherwise preserved in place across writes. See
-  // FileReviewEventStream.
-  //
-  // Field 24: appended after file_change_sets (23), the prior maximum.
-  FileReviewEventStream file_review_event_stream = 24;
-
   // Transient, non-authoritative snapshot of the workspace delta accumulating
   // during the current turn — the live "N files changed so far" surface, shown
   // before any review is possible.
   //
   // @internal
   //
-  // NOT part of the file-review ledger. This is a runner-owned, latest-snapshot
+  // NOT part of the file record. This is a runner-owned, latest-snapshot
   // display field in the family of setup_progress (18) / streaming_usage (20):
   // the runner overwrites it on each mid-run persist and the server clears it once
-  // its change set leaves CAPTURING, exactly as setup_progress is cleared when the
-  // phase leaves PENDING. It carries paths + kinds + line counts only (no bodies,
-  // no digests) and is never decidable — the turn-boundary CANDIDATE_CAPTURED in
-  // file_change_sets remains the single authoritative, reviewable diff. See
+  // its change set is on file_changes, exactly as setup_progress is cleared when
+  // the phase leaves PENDING. It carries paths + kinds + line counts only (no
+  // bodies, no digests) and is never decidable — the change set captured at the
+  // turn boundary remains the single authoritative, reviewable diff. See
   // FileChangeProgress.
-  //
-  // Field 25: appended after file_review_event_stream (24), the prior maximum.
   FileChangeProgress file_change_progress = 25;
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Recalled-Memories Injection Report
+  // The run's file record: the change sets its turns captured, each with the
+  // files' contents before and after (inline or by storage key), the diff, the
+  // snapshots they were read from and the consent the turn's commands ran
+  // under. Empty for a run that changed no file or ran without file review.
   //
-  // Runner-owned record of which status.recalled_memories facts the semantic
-  // retriever injected into the prompt. Absent report = wholesale injection.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Report of which recalled memories were injected into this run's
-  // prompt.
-  //
-  // Absent, or present with selection_active=false, means wholesale: every
-  // fact in the status.recalled_memories snapshot was injected.
+  // A record only: it carries no status and no decisions. What was decided,
+  // what is still undecided and what was put back are the session's
+  // stigmer.file_review.* events.
   //
   // @internal
+  // Runner-written at the turn boundary and merged by change set id. The
+  // server reads it to put files back for an undo and to verify
+  // command_provenance before the approved-command keep.
   //
-  // Runner-owned, single writer (the streaming_usage / context_info
-  // posture): written at most once per run, at prompt build, through
-  // the runner's status lane. The server merges it presence-guarded and
-  // never writes it — the create pipeline stamps only the snapshot
-  // (stigmer/stigmer#293).
-  //
-  // The audit contract: status.recalled_memories is the server-composed
-  // CANDIDATE set (everything the caller's consent state made recallable);
-  // what-the-model-saw = this report joined to that snapshot. Absent
-  // report = wholesale is true by construction — for every run that
-  // predates this field and for every wholesale path since (selection
-  // below threshold, no embeddings-capable provider, embed/rank failure).
-  //
-  // Field 26: appended after file_change_progress (25), the prior maximum.
-  RecalledMemoriesReport recalled_memories_report = 26;
+  // Field 37: numbered after loaded_versions (36), the prior maximum.
+  repeated FileChangeSet file_changes = 37;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // The Agent This Turn Ran
@@ -436,8 +285,8 @@ message RunStatus {
   // organization's alone, stigmer#1387); confirmed records only, never
   // proposed or rejected ones; best-effort (a memory load failure degrades
   // to disabled, never fails the create). What the model actually saw is
-  // this snapshot joined to recalled_memories_report, whose absence means
-  // the whole set. The enabled bit doubles as the runner's signal to offer
+  // this snapshot joined to the turn's stigmer.memory.recalled session
+  // event, whose absence means the whole set. The enabled bit doubles as the runner's signal to offer
   // the remember tool. Composed by the create pipeline's compose steps.
   RecalledMemories recalled_memories = 30;
 
@@ -644,37 +493,4 @@ message SetupProgress {
   // Examples: "Initializing sandbox…", "Setting up workspace…", "Loading skills…"
   // Empty when setup phase reporting has not started or is complete.
   string current_phase = 1;
-}
-
-// RecalledMemoriesReport records the semantic retriever's injection outcome
-// for one run.
-//
-// @internal
-// Runner-owned, written at most once per run at prompt build.
-// Selection activates only when the candidate set exceeds the
-// retriever's threshold (k); every other path — at-or-below threshold, no
-// embeddings-capable provider, embed/rank failure — injects the snapshot
-// wholesale and reports selection_active=false. Wholesale is the behavior
-// from before selection existed: selection is an optimization, its
-// absence is not a degradation.
-message RecalledMemoriesReport {
-  // Whether semantic selection was active for this run's prompt.
-  // False means wholesale: the full status.recalled_memories snapshot was
-  // injected.
-  bool selection_active = 1;
-
-  // IDs of the injected memories when selection was active.
-  //
-  // @internal
-  // Always a subset of the status.recalled_memories snapshot's memory_ids,
-  // in SNAPSHOT order (oldest-first): selection is by relevance, but
-  // presentation preserves the stable prompt order both editions pin.
-  // Empty when selection_active is false — readers fall back
-  // to the snapshot, which is exactly correct.
-  repeated string injected_memory_ids = 2;
-
-  // Embedding model that performed the selection.
-  // Example: "text-embedding-3-small". Empty when selection_active is
-  // false.
-  string embedding_model = 3;
 }

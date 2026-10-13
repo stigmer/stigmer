@@ -96,10 +96,8 @@ service SessionCommandController {
   //
   // @internal
   // can_edit on the session, the posture of every answer a person gives a
-  // conversation. The decision lands on the change set's run as a
-  // FILE_DECIDED ledger event in the same write as its session event;
-  // RunCommandController.submitFileDecision is an adapter onto the same
-  // core.
+  // conversation. The decision is the session event alone, with
+  // decided_by naming the caller.
   rpc reviewFileChanges(ReviewFileChangesInput) returns (ReviewFileChangesResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -132,8 +130,7 @@ service SessionCommandController {
   //
   // @internal
   // can_edit on the session, the posture of every answer a person gives a
-  // conversation. RunCommandController.submitApproval is an adapter onto
-  // the same core.
+  // conversation.
   rpc confirmToolUse(ConfirmToolUseInput) returns (SessionEvent) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -188,7 +185,6 @@ service SessionCommandController {
   // @internal
   // can_edit on the session, once; each run is then cancelled through the
   // cancel chain's steps after its authorization.
-  // RunCommandController.cancel stays the per-run stop.
   rpc interrupt(InterruptSessionInput) returns (InterruptSessionResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -204,7 +200,7 @@ service SessionCommandController {
   //
   // Fails with FAILED_PRECONDITION while any run in the
   // session is still active (pending, in progress, waiting for approval,
-  // or paused); cancel it or wait for it to finish first.
+  // or paused); interrupt the session or wait for it to finish first.
   //
   // @internal
   // Requires can_delete on the session (owner-only — sessions are personal

@@ -74,7 +74,7 @@ These apply to this message only and never carry over to the next one in the ses
 |---|---|---|
 | `interaction_mode` | `InteractionMode` | `INTERACTION_MODE_AGENT` (default): full tool access. `INTERACTION_MODE_PLAN`: read-only analysis, no file mutations. |
 | `build_from_plan` | `bool` | Marks a "Build from plan" turn: the person approved a plan from an earlier Plan-mode turn and asked the agent to implement it. The runner injects the implement-plan directive, so `message` stays a short label. |
-| `structured_output_schema` | `google.protobuf.Struct` | JSON Schema the agent's output must conform to. The validated data lands on `status.structured_output`. |
+| `structured_output_schema` | `google.protobuf.Struct` | JSON Schema the agent's output must conform to. The validated data is the session's `stigmer.agent.structured_output` event. |
 
 No request sets an approval mode: it is a fact of the lane the turn came through, recorded on `status.approval_mode`. See [hitl-approvals.md](hitl-approvals.md#unattended-surfaces-channels-and-guest-shares).
 
@@ -156,118 +156,40 @@ Defined in `ai/stigmer/agentic/run/v1/api.proto`. All fields are system-managed.
 | `recalled_memories` | `RecalledMemories` | The confirmed memories recalled into this turn, snapshotted when it was created. |
 | `run_config` | `RunConfig` | The settings this turn runs with, resolved once at create from `spec.run_config` (or the surface's saved settings), the agent version's defaults and the lane's operator profile. An empty `model_name` means no layer named one and the engine chose. Server-only. |
 | `approval_mode` | `ApprovalMode` | `APPROVAL_MODE_INTERACTIVE` or `APPROVAL_MODE_UNATTENDED`, a fact of the lane: schedule fires and the hosted edition's shared-agent guest and channel turns are unattended; every other turn is interactive. Server-only. |
+| `stop_cause` | `string` | Why the turn stopped, as one word (`budget_reached`, `timeout`, `infrastructure`, `platform_stop`, `user`, `model_error`, `failed`, `eval_stopped`, `review_resolved`). Empty while the turn works and when it ended on its own. See [run-lifecycle.md](run-lifecycle.md). |
 
-### Messages
+### The Conversation
 
-| Field | Type | Description |
-|---|---|---|
-| `messages` | `repeated AgentMessage` | Chronological stream of run events: human input, AI responses, tool results, and system notifications. |
+A run's status carries no transcript. The agent's messages and thinking, its tool calls and their results, the approvals it waited on and their answers, its todos, its sub-agents' threads, its structured output, the memories it recalled and every file-review decision are events in the session's log. Each event names the run it belongs to (`run_id`) and the thread that produced it; read them with the session's `listEvents` (filtered by run) or follow them with `streamEvents`. See the [Session docs](../../session/docs/README.md).
 
-**AgentMessage fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `type` | `MessageType` | `MESSAGE_HUMAN`, `MESSAGE_AI`, `MESSAGE_TOOL`, or `MESSAGE_SYSTEM`. |
-| `content` | `string` | Text content of the message. |
-| `timestamp` | `string` | ISO 8601 creation timestamp. |
-| `tool_calls` | `repeated ToolCall` | Tool calls associated with this AI message (only for `MESSAGE_AI` where tools were invoked). |
-| `is_streaming` | `bool` | `true` while the AI is actively generating this message. Enables typing indicators in UIs. |
-| `token_count` | `int32` | Total tokens consumed to generate this message. Zero until generation completes. |
-| `generation_duration_ms` | `int32` | Wall-clock time in milliseconds from first token to completion. |
-
-### Tool Calls
+### File Record
 
 | Field | Type | Description |
 |---|---|---|
-| `tool_calls` | `repeated ToolCall` | All tool calls made during this run, tracked separately for querying and display. |
+| `file_changes` | `repeated FileChangeSet` | The change sets this run's turns captured, in a session with file review on. Empty for a run that changed no file or ran without file review. A record only: it carries no status and no decisions. What was kept, what was undone and what is still undecided are the session's `stigmer.file_review.*` events. |
 
-**ToolCall fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique identifier for this tool call. |
-| `name` | `string` | Name of the tool called. |
-| `args` | `google.protobuf.Struct` | Arguments passed to the tool (JSON structure). |
-| `result` | `string` | Result returned by the tool. Contains partial output while `is_streaming == true`. |
-| `status` | `ToolCallStatus` | `TOOL_CALL_PENDING`, `TOOL_CALL_RUNNING`, `TOOL_CALL_COMPLETED`, `TOOL_CALL_FAILED`, `TOOL_CALL_WAITING_APPROVAL`, or `TOOL_CALL_SKIPPED`. |
-| `started_at` | `string` | ISO 8601 timestamp when the tool call started. |
-| `completed_at` | `string` | ISO 8601 timestamp when the tool call completed or failed. |
-| `error` | `string` | Error message when `status == TOOL_CALL_FAILED`. |
-| `is_streaming` | `bool` | `true` while the tool is actively producing output. |
-| `requires_approval` | `bool` | `true` if this tool requires user approval before execution. |
-| `approval_message` | `string` | Human-readable approval prompt with resolved argument placeholders. |
-| `approval_requested_at` | `string` | ISO 8601 timestamp when approval was requested. |
-| `approval_decided_at` | `string` | ISO 8601 timestamp when approval decision was submitted. |
-| `approved_by` | `string` | User ID of the person who made the approval decision. |
-| `approval_action` | `ApprovalAction` | `APPROVAL_ACTION_APPROVE`, `APPROVAL_ACTION_SKIP`, or `APPROVAL_ACTION_REJECT`. |
-
-### Sub-runs
+**FileChangeSet fields** (defined in `ai/stigmer/agentic/run/v1/filereview.proto`):
 
 | Field | Type | Description |
 |---|---|---|
-| `sub_agent_runs` | `repeated SubAgentRun` | Sub-agent invocations during this run, ordered chronologically. |
+| `id` | `string` | Stable id of the change set, unique per turn; the id the session's `stigmer.file_review.*` events name. |
+| `turn_id` | `string` | The turn that produced the change set. |
+| `harness_id` | `string` | The engine that made the edits: `cursor` or `deep-agent`. |
+| `baseline_snapshot` | `SnapshotRef` | Workspace state at turn start, the "before" of the diff. |
+| `candidate_snapshot` | `SnapshotRef` | Workspace state at the turn boundary, the "after". The diff is computed between the two snapshots. |
+| `approved_snapshot` | `SnapshotRef` | Workspace state after an undo put files back. Empty until files of the set are put back. |
+| `changes` | `repeated CapturedFileChange` | One entry per file: `path_before`, `path_after`, `kind`, the contents `before` and `after` (inline, or by storage key when large), their SHA-256 digests, the `unified_diff`, whether the diff is complete, and lines added and removed. |
+| `aggregate_digest` | `string` | Digest over the ordered changes. Enforcement only: putting files back refuses content that differs from what was reviewed. |
+| `diff_completeness` | `DiffCompleteness` | Whether the set's diff is complete enough to keep in one step. |
+| `command_provenance` | `TurnCommandProvenance` | The consent the turn's commands ran under, when every change came from a command a person allowed: the tool call ids whose answers in the session's log authorized them, or `authorized_by_auto_approve_all`. |
 
-**SubAgentRun fields:**
+While a turn works, `file_change_progress` shows a running count of the files it has changed so far (paths, kinds and line counts only); it is cleared once the turn's change set is on `file_changes`.
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique identifier, matching the tool call ID from the `task` tool invocation. |
-| `name` | `string` | Name of the subagent invoked: a listed agent's slug, a plugin agent's `<plugin>:<agent>`, or a built-in (`explore`, `shell`, `general-purpose`). |
-| `input` | `string` | Task/instruction given to the sub-agent. |
-| `output` | `string` | Result returned by the sub-agent. Only populated on `SUB_AGENT_COMPLETED`. |
-| `status` | `SubAgentStatus` | `SUB_AGENT_PENDING`, `SUB_AGENT_IN_PROGRESS`, `SUB_AGENT_COMPLETED`, or `SUB_AGENT_FAILED`. |
-| `started_at` | `string` | ISO 8601 timestamp when the sub-agent was invoked. |
-| `completed_at` | `string` | ISO 8601 timestamp when the sub-agent completed or failed. |
-| `error` | `string` | Error message when `status == SUB_AGENT_FAILED`. |
-| `tool_calls` | `repeated ToolCall` | Tool calls made by this sub-agent, separate from main agent tool calls. |
-| `messages` | `repeated AgentMessage` | AI responses and tool results from within the sub-agent's context. |
-| `usage` | `UsageMetrics` | Token and LLM resource usage for this sub-agent only. |
-
-### Todo List
+### Usage
 
 | Field | Type | Description |
 |---|---|---|
-| `todos` | `map<string, TodoItem>` | Multi-step task tracking. Updated via the `write_todos` tool. Key: todo item ID. |
-
-**TodoItem fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique identifier for the todo item. |
-| `content` | `string` | Description of the task. |
-| `status` | `TodoStatus` | `TODO_PENDING`, `TODO_IN_PROGRESS`, `TODO_COMPLETED`, or `TODO_CANCELLED`. |
-| `created_at` | `string` | ISO 8601 creation timestamp. |
-| `updated_at` | `string` | ISO 8601 last-updated timestamp. |
-
-### Pending Approvals
-
-| Field | Type | Description |
-|---|---|---|
-| `pending_approvals` | `repeated PendingApproval` | All tool calls currently awaiting approval. Populated when `phase == RUN_WAITING_FOR_APPROVAL`. See [hitl-approvals.md](hitl-approvals.md). |
-
-### Usage Metrics
-
-| Field | Type | Description |
-|---|---|---|
-| `usage` | `UsageMetrics` | Main agent token and LLM resource usage. Does **not** include sub-agent usage. |
-
-**UsageMetrics fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `prompt_tokens` | `int32` | Total input tokens consumed across all LLM calls. |
-| `completion_tokens` | `int32` | Total output tokens generated across all LLM calls. |
-| `total_tokens` | `int32` | `prompt_tokens + completion_tokens`. |
-| `llm_call_count` | `int32` | Number of LLM API calls made. |
-| `primary_model` | `string` | Primary model used. Example: `"claude-sonnet-4.5"`. |
-
-To calculate total run cost, sum `status.usage` with `usage` from each entry in `sub_agent_runs`.
-
-### Context Info
-
-| Field | Type | Description |
-|---|---|---|
-| `context_info` | `ContextInfo` | Context window utilization and summarization tracking: current token count, the model's context window, the summarization trigger and target (both from the model's Model Registry entry), and each summarization event. Updated progressively during streaming. |
+| `streaming_usage` | `StreamingUsageSummary` | Tokens (input, output, cache read and write), turn count, the model requested and the estimated cost in USD, updated as the run works. Display only: the metered record of each model call is `LlmCallUsageRecord`, which the usage report RPCs read. |
 
 ### Artifacts
 
@@ -282,32 +204,32 @@ To calculate total run cost, sum `status.usage` with `usage` from each entry in 
 ### Triggering Runs
 
 ```bash
-# Run an agent — auto-creates a session and run
-stigmer run my-agent "Your message here"
+# Run an agent: creates a session and its first run
+stigmer run my-agent -m "Your message here"
 
-# Continue an existing session
-stigmer run my-agent "Follow-up message" --session ses_abc123
-
-# Specify a model override
-stigmer run my-agent "Your message" --model claude-sonnet-4.5
+# Choose the model for this message
+stigmer run my-agent -m "Your message" --model claude-sonnet-4.5
 
 # Attach input files
-stigmer run my-agent "Process this config" --attach ./config.yaml
+stigmer run my-agent -m "Process this config" --attach ./config.yaml
 
 # Bypass all approval gates (for automation)
-stigmer run my-agent "Automated task" --auto-approve
+stigmer run my-agent -m "Automated task" --auto-approve
+
+# Reopen an existing session and continue the conversation
+stigmer resume ses_abc123
 ```
 
 ### Inspecting Runs
 
 ```bash
 # Get a single run by ID
-stigmer runs get run_abc123
+stigmer get run run_abc123
 
-# List runs in a session
-stigmer runs list --session ses_abc123
+# List runs
+stigmer list run
 
-# Watch real-time streaming updates
+# Print a run's events from the session's log; --follow streams them
 stigmer runs logs run_abc123 --follow
 ```
 
@@ -320,27 +242,26 @@ stigmer runs pause run_abc123
 # Resume a paused run
 stigmer runs resume run_abc123
 
-# Cancel gracefully
-stigmer runs cancel run_abc123 --reason "Task no longer needed"
+# Interrupt the run's session: every unfinished turn stops
+stigmer runs cancel run_abc123
 
 # Terminate immediately (stuck agents)
-stigmer runs terminate run_abc123 --reason "Not responding to cancel"
-
-# Recover a failed run from last checkpoint
-stigmer runs recover run_abc123
+stigmer runs terminate run_abc123 --reason "Not responding to interrupt"
 ```
+
+Recovering a failed run is the `recover` RPC; the CLI has no command for it.
 
 ### HITL Approvals
 
 ```bash
-# Approve a pending tool call
-stigmer runs approve run_abc123 --tool-call call_def789
+# Allow a waiting tool call (the tool use id runs logs shows)
+stigmer runs approve run_abc123 --tool-call <tool-use-id>
 
-# Skip a pending tool call
-stigmer runs skip run_abc123 --tool-call-id call_def789
+# Deny it; the agent reads the comment and the run continues
+stigmer runs approve run_abc123 --tool-call <tool-use-id> --action deny --comment "Not this one"
 
-# Reject — fails the run
-stigmer runs reject run_abc123 --tool-call-id call_def789
+# Allow it and every waiting call of its class for the rest of the turn
+stigmer runs approve run_abc123 --tool-call <tool-use-id> --action approve-all
 ```
 
 ### Artifacts

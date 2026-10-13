@@ -495,8 +495,7 @@ message StigmerPermissionAskedEvent {
   // A short preview of the tool's input, with secret values redacted.
   string args_preview = 5;
 
-  // Which rule asked or resolved the call, as one word, the run's
-  // ApprovalPolicySource without its prefix: builtin_category (a built-in
+  // Which rule asked or resolved the call, as one word: builtin_category (a built-in
   // tool that writes, deletes or runs a shell), annotation_destructive_tighten
   // (an MCP tool its server marks destructive, or whose server's tools could
   // not be listed), hook (a hook decided), approval_lease (an "approve all"
@@ -734,6 +733,17 @@ message StigmerFileReviewDecidedEvent {
 
   // The reason given with the decision, if any.
   string reason = 9;
+
+  // The identity account id of the person who decided; empty for a
+  // decision no person made (an approved_command, eval_try or next_turn
+  // keep).
+  //
+  // @internal
+  // Written by the server with the decision, from the caller of
+  // reviewFileChanges; never taken from a client. A turn that puts undone
+  // files back after its run stopped acts as the person who decided the
+  // newest undo it reconciles, read from this field.
+  string decided_by = 10;
 }
 
 // StigmerFileReviewReconciledEvent records that the files an undo covers
