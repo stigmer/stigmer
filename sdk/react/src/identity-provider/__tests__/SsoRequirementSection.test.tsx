@@ -9,9 +9,10 @@
  *     stops with them, the exempt owners), and only the confirmation saves
  *     the provider with the requirement on, keeping every other field;
  *   - turning it off saves it off after a confirmation;
- *   - on Cloud, a plan without SSO enforcement shows the plan notice in
- *     place of turning it on, and still lets an organization that requires
- *     it turn it off; Enterprise never reads a plan.
+ *   - on Cloud, a plan without SSO enforcement shows the owner the plan
+ *     notice in place of turning it on, and still lets an organization
+ *     that requires it turn it off; the plan is read only on Cloud, only for
+ *     an owner, only while the requirement is off.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -182,8 +183,16 @@ describe("SsoRequirementSection", () => {
     expect(screen.getByRole("button", { name: /Stop requiring it/ })).toBeTruthy();
   });
 
-  it("never reads a plan on Enterprise", () => {
+  it("reads the plan only on Cloud, only for an owner, only while the requirement is off", () => {
+    renderSection(provider(), "cloud");
+    expect(stubs.entitlementsEnabled).toEqual([]);
+    stubs.allowed = new Set(["can_assign_roles"]);
+    cleanup();
     renderSection(provider(), "enterprise");
+    expect(stubs.entitlementsEnabled.every((enabled) => enabled === false)).toBe(true);
+    stubs.entitlementsEnabled = [];
+    cleanup();
+    renderSection(provider({ required: true }), "cloud");
     expect(stubs.entitlementsEnabled.every((enabled) => enabled === false)).toBe(true);
   });
 });

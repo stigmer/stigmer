@@ -14,7 +14,8 @@
  * On Stigmer Cloud it is a plan feature: where the organization's plan
  * lacks it, the switch is replaced by the plan notice while it is off, and
  * an organization that already requires it keeps it and may turn it off.
- * Only Cloud reads the plan; on Enterprise it is an edition feature.
+ * Only Cloud reads the plan, only for an owner, and only while the
+ * requirement is off; on Enterprise it is an edition feature.
  */
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
@@ -41,18 +42,48 @@ type Step = "idle" | "confirm-on" | "confirm-off";
 
 export function SsoRequirementSection({ identityProvider, onUpdated, className }: SsoRequirementSectionProps) {
   const spec = identityProvider.spec;
-  const org = identityProvider.metadata?.org ?? "";
-  const required = spec?.ssoRequired ?? false;
-  const providerName = spec?.displayName || identityProvider.metadata?.name || "this provider";
-  const onCloud = useDeploymentMode() === "cloud";
-  const plan = useEntitlements(org || null, { enabled: onCloud });
-  const planLacksIt = plan.allows(Feature.sso_enforcement) === false;
-  const [step, setStep] = useState<Step>("idle");
-  const { update, isUpdating, error, clearError } = useUpdateIdentityProvider();
-
   if (spec?.isSsoProvider !== true) {
     return null;
   }
+  const org = identityProvider.metadata?.org ?? "";
+  const required = spec.ssoRequired;
+  const providerName = spec.displayName || identityProvider.metadata?.name || "this provider";
+  return (
+    <section className={cn("stg:space-y-2 stg:rounded-lg stg:border stg:border-border stg:p-3", className)}>
+      <h4 className="stg:text-foreground stg:text-xs stg:font-semibold">Require this sign-in</h4>
+      <p className="stg:text-muted-foreground stg:text-xs">
+        {required
+          ? `Members act in this organization only through ${providerName}. Owners keep their own sign-in as a way back in.`
+          : `Members may sign in through ${providerName} or another way.`}
+      </p>
+      <PermissionGate resource={{ kind: "organization", id: org }} relation="can_assign_roles">
+        <OwnerControls identityProvider={identityProvider} providerName={providerName} onUpdated={onUpdated} />
+      </PermissionGate>
+    </section>
+  );
+}
+
+/**
+ * The owners' half: the switch, its confirmations, and on Cloud the plan.
+ * Rendered only for the organization's owners, so nobody else reads the
+ * plan or the preview.
+ */
+function OwnerControls({
+  identityProvider,
+  providerName,
+  onUpdated,
+}: {
+  identityProvider: IdentityProvider;
+  providerName: string;
+  onUpdated: ((provider: IdentityProvider) => void) | undefined;
+}) {
+  const org = identityProvider.metadata?.org ?? "";
+  const required = identityProvider.spec?.ssoRequired ?? false;
+  const onCloud = useDeploymentMode() === "cloud";
+  const plan = useEntitlements(org || null, { enabled: onCloud && !required });
+  const planLacksIt = plan.allows(Feature.sso_enforcement) === false;
+  const [step, setStep] = useState<Step>("idle");
+  const { update, isUpdating, error, clearError } = useUpdateIdentityProvider();
 
   const change = async (next: boolean) => {
     clearError();
@@ -68,40 +99,27 @@ export function SsoRequirementSection({ identityProvider, onUpdated, className }
   const planFeature = error ? planUpgradeFeature(error) : null;
 
   return (
-    <section className={cn("stg:space-y-2 stg:rounded-lg stg:border stg:border-border stg:p-3", className)}>
-      <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
-        <div>
-          <h4 className="stg:text-foreground stg:text-xs stg:font-semibold">Require this sign-in</h4>
-          <p className="stg:text-muted-foreground stg:mt-0.5 stg:text-xs">
-            {required
-              ? `Members act in this organization only through ${providerName}. Owners keep their own sign-in as a way back in.`
-              : `Members may sign in through ${providerName} or another way.`}
-          </p>
-        </div>
-        {step === "idle" && (
-          <PermissionGate resource={{ kind: "organization", id: org }} relation="can_assign_roles">
-            {required ? (
-              <button
-                type="button"
-                onClick={() => setStep("confirm-off")}
-                className="stg:text-primary stg:shrink-0 stg:text-xs stg:font-medium stg:hover:text-foreground"
-              >
-                Stop requiring it
-              </button>
-            ) : planLacksIt ? null : (
-              <button
-                type="button"
-                onClick={() => setStep("confirm-on")}
-                className="stg:text-primary stg:shrink-0 stg:text-xs stg:font-medium stg:hover:text-foreground"
-              >
-                Require it…
-              </button>
-            )}
-          </PermissionGate>
-        )}
-      </div>
-
-      {!required && planLacksIt && <UpgradeNotice feature={Feature.sso_enforcement} />}
+    <div className="stg:space-y-2">
+      {step === "idle" &&
+        (required ? (
+          <button
+            type="button"
+            onClick={() => setStep("confirm-off")}
+            className="stg:text-primary stg:text-xs stg:font-medium stg:hover:text-foreground"
+          >
+            Stop requiring it
+          </button>
+        ) : planLacksIt ? (
+          <UpgradeNotice feature={Feature.sso_enforcement} />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setStep("confirm-on")}
+            className="stg:text-primary stg:text-xs stg:font-medium stg:hover:text-foreground"
+          >
+            Require it…
+          </button>
+        ))}
 
       {step === "confirm-on" && (
         <RequirementPreview
@@ -118,7 +136,12 @@ export function SsoRequirementSection({ identityProvider, onUpdated, className }
           <p className="stg:text-foreground">
             Members will be able to sign in another way again, and their other accounts will count here again.
           </p>
-          <ConfirmButtons label="Stop requiring it" isUpdating={isUpdating} onConfirm={() => void change(false)} onCancel={() => setStep("idle")} />
+          <ConfirmButtons
+            label="Stop requiring it"
+            isUpdating={isUpdating}
+            onConfirm={() => void change(false)}
+            onCancel={() => setStep("idle")}
+          />
         </div>
       )}
 
@@ -130,7 +153,7 @@ export function SsoRequirementSection({ identityProvider, onUpdated, className }
             {getUserMessage(error)}
           </p>
         ))}
-    </section>
+    </div>
   );
 }
 
