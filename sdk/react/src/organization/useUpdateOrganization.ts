@@ -1,46 +1,56 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { OrganizationInput } from "@stigmer/sdk";
-import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { Organization, OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useUpdateOrganization}. */
 export interface UseUpdateOrganizationReturn {
-  /** Submit an {@link OrganizationInput} to update an existing organization. Resolves with the updated resource. */
-  readonly update: (input: OrganizationInput) => Promise<Organization>;
-  /** `true` while the update request is in flight. */
+  /**
+   * Update an organization: the fields `paths` names take their values from
+   * `resource`, and every other field keeps its stored value. Resolves
+   * with the updated resource.
+   */
+  readonly update: (
+    resource: Organization | MessageInitShape<typeof OrganizationSchema>,
+    paths: string[],
+  ) => Promise<Organization>;
+  /** `true` while the update RPC is in flight. */
   readonly isUpdating: boolean;
   /** Error from the last failed update, or `null` when healthy. */
   readonly error: Error | null;
-  /** Reset `error` to `null`. */
+  /** Reset the error state to `null`. */
   readonly clearError: () => void;
 }
 
 /**
- * Mutation hook that wraps `organization.update()` with loading and
- * error state.
+ * Mutation hook that wraps `organization.update(resource, paths)` with
+ * loading and error state.
  *
- * Updates an existing Organization resource. The input must include
- * `name`, `org`, and `slug` to identify the target resource, along
- * with the spec fields to update (`description`, `logoUrl`).
+ * `resource` names the organization by `metadata.id`, and `paths` names the
+ * fields the update changes (proto field paths such as
+ * `spec.description`). Every field it does not name keeps its stored value, so
+ * a teammate's change to another field survives the save. A organization read
+ * carries `metadata.etag`: sent back, the update is refused (ABORTED,
+ * reason `ETAG_MISMATCH`) if the organization changed since it was read.
  *
- * Returns the full {@link Organization} proto including
- * server-updated metadata (version, timestamps) so callers can
- * immediately reference the latest state.
+ * An organization's policies have their own door (`updatePolicies`), and
+ * its parent and external id are fixed at create: an update that names
+ * them is refused.
  *
  * @example
  * ```tsx
  * const { update, isUpdating, error } = useUpdateOrganization();
  *
- * const updated = await update({
- *   name: "Acme Corp",
- *   slug: "acme-corp",
- *   org: "acme-corp",
- *   description: "Updated description",
- * });
- * refetch(); // refresh profile view
+ * await update(
+ *   {
+ *     metadata: { id: organization.metadata!.id, etag: organization.metadata!.etag },
+ *     spec: { description: "Updated description" },
+ *   },
+ *   ["spec.description"],
+ * );
  * ```
  */
 export function useUpdateOrganization(): UseUpdateOrganizationReturn {
@@ -51,12 +61,15 @@ export function useUpdateOrganization(): UseUpdateOrganizationReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const update = useCallback(
-    async (input: OrganizationInput): Promise<Organization> => {
+    async (
+      resource: Organization | MessageInitShape<typeof OrganizationSchema>,
+      paths: string[],
+    ): Promise<Organization> => {
       setIsUpdating(true);
       setError(null);
 
       try {
-        return await stigmer.organization.update(input);
+        return await stigmer.organization.update(resource, paths);
       } catch (err) {
         setError(toError(err));
         throw err;

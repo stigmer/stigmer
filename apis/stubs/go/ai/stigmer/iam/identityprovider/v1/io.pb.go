@@ -11,6 +11,7 @@ import (
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -809,11 +810,71 @@ func (x *SsoRequirementMember) GetAutomations() []*v1.AccountAutomation {
 	return nil
 }
 
+// The changes an update makes to an identity provider: the fields update_mask names,
+// taken from resource.
+type UpdateIdentityProviderInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The identity provider carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *IdentityProvider `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateIdentityProviderInput) Reset() {
+	*x = UpdateIdentityProviderInput{}
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateIdentityProviderInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateIdentityProviderInput) ProtoMessage() {}
+
+func (x *UpdateIdentityProviderInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateIdentityProviderInput.ProtoReflect.Descriptor instead.
+func (*UpdateIdentityProviderInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateIdentityProviderInput) GetResource() *IdentityProvider {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateIdentityProviderInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_identityprovider_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"5\n" +
+	"+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"5\n" +
 	"\x12IdentityProviderId\x12\x1f\n" +
 	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"c\n" +
 	"\x11IdentityProviders\x12N\n" +
@@ -859,7 +920,12 @@ const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12!\n" +
 	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12%\n" +
 	"\x0einvitation_ids\x18\x04 \x03(\tR\rinvitationIds\x12P\n" +
-	"\vautomations\x18\x05 \x03(\v2..ai.stigmer.iam.iampolicy.v1.AccountAutomationR\vautomationsB\xbe\x02\n" +
+	"\vautomations\x18\x05 \x03(\v2..ai.stigmer.iam.iampolicy.v1.AccountAutomationR\vautomations\"\x88\x03\n" +
+	"\x1bUpdateIdentityProviderInput\x12X\n" +
+	"\bresource\x18\x01 \x01(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xc9\x01\xbaH\xc5\x01\x1a\xc2\x01\n" +
+	"\x17update_names_its_target\x12Qresource.metadata.id is required: an update names the identity provider by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xbe\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\aIoProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (
@@ -874,7 +940,7 @@ func file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_ai_stigmer_iam_identityprovider_v1_io_proto_goTypes = []any{
 	(*IdentityProviderId)(nil),              // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderId
 	(*IdentityProviders)(nil),               // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviders
@@ -889,26 +955,30 @@ var file_ai_stigmer_iam_identityprovider_v1_io_proto_goTypes = []any{
 	(*SsoRequirementPreviewInput)(nil),      // 10: ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput
 	(*SsoRequirementPreview)(nil),           // 11: ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview
 	(*SsoRequirementMember)(nil),            // 12: ai.stigmer.iam.identityprovider.v1.SsoRequirementMember
-	(*IdentityProvider)(nil),                // 13: ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	(*timestamppb.Timestamp)(nil),           // 14: google.protobuf.Timestamp
-	(*v1.MoveOrgAccessResult)(nil),          // 15: ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
-	(*v1.AccountAutomation)(nil),            // 16: ai.stigmer.iam.iampolicy.v1.AccountAutomation
+	(*UpdateIdentityProviderInput)(nil),     // 13: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput
+	(*IdentityProvider)(nil),                // 14: ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	(*timestamppb.Timestamp)(nil),           // 15: google.protobuf.Timestamp
+	(*v1.MoveOrgAccessResult)(nil),          // 16: ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
+	(*v1.AccountAutomation)(nil),            // 17: ai.stigmer.iam.iampolicy.v1.AccountAutomation
+	(*fieldmaskpb.FieldMask)(nil),           // 18: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_identityprovider_v1_io_proto_depIdxs = []int32{
-	13, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviders.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	13, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderList.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	14, // 2: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.expires_at:type_name -> google.protobuf.Timestamp
+	14, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviders.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	14, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderList.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	15, // 2: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.expires_at:type_name -> google.protobuf.Timestamp
 	5,  // 3: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.provider:type_name -> ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
-	15, // 4: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.preview:type_name -> ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
-	15, // 5: ai.stigmer.iam.identityprovider.v1.AccessMoveResult.moved:type_name -> ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
+	16, // 4: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.preview:type_name -> ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
+	16, // 5: ai.stigmer.iam.identityprovider.v1.AccessMoveResult.moved:type_name -> ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
 	12, // 6: ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview.members:type_name -> ai.stigmer.iam.identityprovider.v1.SsoRequirementMember
 	12, // 7: ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview.exempt_owners:type_name -> ai.stigmer.iam.identityprovider.v1.SsoRequirementMember
-	16, // 8: ai.stigmer.iam.identityprovider.v1.SsoRequirementMember.automations:type_name -> ai.stigmer.iam.iampolicy.v1.AccountAutomation
-	9,  // [9:9] is the sub-list for method output_type
-	9,  // [9:9] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	17, // 8: ai.stigmer.iam.identityprovider.v1.SsoRequirementMember.automations:type_name -> ai.stigmer.iam.iampolicy.v1.AccountAutomation
+	14, // 9: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.resource:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	18, // 10: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.update_mask:type_name -> google.protobuf.FieldMask
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityprovider_v1_io_proto_init() }
@@ -923,7 +993,7 @@ func file_ai_stigmer_iam_identityprovider_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

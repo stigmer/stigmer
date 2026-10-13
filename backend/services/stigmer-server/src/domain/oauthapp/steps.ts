@@ -126,6 +126,13 @@ function newEncryptClientSecretStep(
         return;
       }
 
+      // An update that does not name the secret merges onto the stored
+      // row, so the value is the stored ciphertext itself: kept as it is.
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as OAuthApp | undefined;
+      if (!isCreate && clientSecret === existing?.spec?.clientSecret) {
+        return;
+      }
+
       if (isCiphertextShaped(clientSecret)) {
         throw invalidArgumentError(CIPHERTEXT_SHAPED_SECRET_MESSAGE);
       }

@@ -220,14 +220,19 @@ const response = await rotateSecret("pc-abc123");
 
 ### useUpdatePlatformClient
 
-Mutation hook that wraps `platformclient.update()` with loading
-and error state.
+Mutation hook that wraps `platformclient.update(resource, paths)` with
+loading and error state.
 
-Updates an existing platform client. The input must include the
-`slug` field to identify the target resource, along with the
-updated spec fields. Credential fields (`clientId`,
-`clientSecretHash`, `secretFingerprint`) are computed and
-preserved by the backend — do not set them in the input.
+`resource` names the platform client by `metadata.id`, and `paths` names the
+fields the update changes (proto field paths such as
+`spec.create_accounts_on_sign_in`). Every field it does not name keeps its stored value, so
+a teammate's change to another field survives the save. A platform client read
+carries `metadata.etag`: sent back, the update is refused (ABORTED,
+reason `ETAG_MISMATCH`) if the platform client changed since it was read.
+
+The credentials (`spec.client_id`, `spec.client_secret_hash`,
+`spec.secret_fingerprint`) are the server's and `rotateSecret`'s: an
+update that names them is refused.
 
 **Signature**
 
@@ -239,24 +244,23 @@ function useUpdatePlatformClient(): UseUpdatePlatformClientReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
     error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
-    isUpdating: { type: "boolean", description: "`true` while the update request is in flight." },
-    update: { type: "(input: PlatformClientInput) => Promise<PlatformClient>", description: "Submit a PlatformClientInput to update an existing platform client. Resolves with the updated resource." },
+    isUpdating: { type: "boolean", description: "`true` while the update RPC is in flight." },
+    update: { type: "(resource: MessageInit<PlatformClient>, paths: string[]) => Promise<PlatformClient>", description: "Update a platform client: the fields `paths` names take their values from `resource`, and every other field keeps its stored value. Resolves with the updated resource." },
   }}
 />
 
 ```tsx
 const { update, isUpdating, error } = useUpdatePlatformClient();
 
-await update({
-  name: "my-saas-backend",
-  slug: "my-saas-backend",
-  org: "acme",
-  createAccountsOnSignIn: true,
-  signInRole: IamRole.member,
-});
-refetch(); // refresh detail view
+await update(
+  {
+    metadata: { id: client.metadata!.id, etag: client.metadata!.etag },
+    spec: { createAccountsOnSignIn: true },
+  },
+  ["spec.create_accounts_on_sign_in"],
+);
 ```
 
 

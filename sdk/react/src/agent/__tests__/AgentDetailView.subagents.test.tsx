@@ -19,8 +19,8 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentInput } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { ACME_ID, GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 const SEARCH_RESULTS = [
@@ -75,8 +75,9 @@ function renderView(
   others: readonly Agent[],
   props: { editable?: boolean; defaultTab?: string } = {},
 ) {
-  const update = vi.fn(async (input: AgentInput) => {
-    void input;
+  const update = vi.fn(async (resource: Agent, paths: string[]) => {
+    void resource;
+    void paths;
     return parent;
   });
   const onAgentClick = vi.fn();
@@ -149,12 +150,13 @@ describe("AgentDetailView subagents", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Update release-notes to its latest version" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0][0].subagents).toEqual([
+    expect(sentRefs(sentUpdate<Agent>(update).resource.spec?.subagents)).toEqual([
       { org: ACME_ID, slug: "changelog", version: PIN_CHANGELOG },
-      { org: ACME_ID, slug: "release-notes", version: "" },
+      { org: ACME_ID, slug: "release-notes" },
     ]);
-    // The save is the whole agent: the rest of the spec rides along.
-    expect(update.mock.calls[0][0].instructions).toBe("Review pull requests.");
+    // The save names the subagents alone: the rest of the spec keeps its
+    // stored value without being sent back.
+    expect(sentUpdate<Agent>(update).paths).toEqual(["spec.subagents"]);
   });
 
   it("adds a picked agent without a version, keeps the listed pins, and never offers itself or a listed agent", async () => {
@@ -173,7 +175,7 @@ describe("AgentDetailView subagents", () => {
     fireEvent.click(within(picker).getByRole("option", { name: /Triager/ }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0][0].subagents).toEqual([
+    expect(sentRefs(sentUpdate<Agent>(update).resource.spec?.subagents)).toEqual([
       { org: ACME_ID, slug: "release-notes", version: PIN_NOTES },
       { org: ACME_ID, slug: "triager" },
     ]);
@@ -195,12 +197,12 @@ describe("AgentDetailView subagents", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove release-notes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0][0].subagents).toEqual([
+    expect(sentRefs(sentUpdate<Agent>(update).resource.spec?.subagents)).toEqual([
       { org: ACME_ID, slug: "changelog", version: PIN_CHANGELOG },
     ]);
   });
 
-  it("keeps every pin when another field is saved", async () => {
+  it("names only the field it saves, so every pin stays as stored", async () => {
     const { update } = renderView(
       parentWith({ subagents: [{ org: ACME_ID, slug: "release-notes", version: PIN_NOTES }] }),
       [listed("release-notes", HEAD_NOTES)],
@@ -211,9 +213,7 @@ describe("AgentDetailView subagents", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0][0].subagents).toEqual([
-      { org: ACME_ID, slug: "release-notes", version: PIN_NOTES },
-    ]);
+    expect(sentUpdate<Agent>(update).paths).toEqual(["spec.skill_refs"]);
   });
 
   it("says when a listed agent cannot be read", async () => {
@@ -299,7 +299,7 @@ describe("AgentDetailView sends stored references back by id (stigmer#2172)", ()
     fireEvent.click(screen.getByRole("button", { name: "Remove release-notes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0]![0].subagents).toEqual([
+    expect(sentRefs(sentUpdate<Agent>(update).resource.spec?.subagents)).toEqual([
       { org: ACME_ID, slug: "", id: "agt_changelog", version: PIN_CHANGELOG },
     ]);
   });
@@ -315,7 +315,7 @@ describe("AgentDetailView sends stored references back by id (stigmer#2172)", ()
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0]![0].skillRefs).toEqual([{ org: ACME_ID, slug: "", id: "skl_1" }]);
+    expect(sentRefs(sentUpdate<Agent>(update).resource.spec?.skillRefs)).toEqual([{ org: ACME_ID, slug: "", id: "skl_1" }]);
   });
 });
 

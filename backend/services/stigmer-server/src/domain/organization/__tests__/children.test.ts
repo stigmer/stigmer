@@ -205,7 +205,7 @@ describe("a child's parent and external id after create", () => {
       description: "renamed description",
     });
     moved.metadata!.id = child.metadata?.id ?? "";
-    const updated = await command.update(moved);
+    const updated = await command.update({ resource: moved, updateMask: { paths: ["*"] } });
     expect(updated.spec?.description).toBe("renamed description");
     expect(updated.spec?.parentOrg).toBe(child.spec?.parentOrg);
     expect(updated.spec?.externalId).toBe("cust-5");

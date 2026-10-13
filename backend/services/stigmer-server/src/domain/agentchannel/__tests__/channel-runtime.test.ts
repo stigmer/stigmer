@@ -489,7 +489,7 @@ describe("enforceWriteConstraints — the edition-split CRUD hook", () => {
     const channel = await createTestChannel(agent.metadata!.slug);
     calls.length = 0;
 
-    await channels.update(channel);
+    await channels.update({ resource: channel, updateMask: { paths: ["*"] } });
     expect(lastCall("enforceWriteConstraints").channelId).toBe(
       channel.metadata!.id,
     );

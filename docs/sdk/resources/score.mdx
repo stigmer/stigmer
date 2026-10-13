@@ -74,7 +74,7 @@ Score score = client.scores().get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listBySession`](#listbysession) | List every score of every run in a session. |
 | [`listFlaggedByAgent`](#listflaggedbyagent) | List the failed grades of one agent's runs in an organization, newest first: a failed health check, a failed judge verdict or a thumbs down. |
 | [`create`](#create) | Create a score on a completed run. |
-| [`update`](#update) | Update a person's rating: its value and comment. |
+| [`update`](#update) | Update a score: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete a score. |
 
 ### get
@@ -387,90 +387,54 @@ Score score = client.scores().create(ScoreInput.builder()
 
 ### update
 
-Update a person's rating: its value and comment.
+Update a score: the fields update_mask names change, every other field keeps its stored value.
 
-Only feedback is editable, and only by the person who gave it, and only its value and comment: every other field, the score's name and labels included, stays as created. A check's verdict never changes.
+Only feedback is editable, only by the person who gave it, and only its value and comment; a check's verdict never changes.
+
+resource.metadata.id names the score; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the score does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the score changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the score kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const score = await stigmer.score.update({
-  name: "my-score",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  runId: "...",
-  sessionId: "...",
-  metric: "...",
-  source: "...",
-  evaluatorVersion: "...",
-  passed: false,
-  criteria: [],
-  comment: "...",
-  judgeModel: "...",
-});
+const score = await stigmer.score.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
+score.metadata!.name = "New name";
+const updated = await stigmer.score.update(score, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-score, err := client.Score.Update(ctx, &stigmer.ScoreInput{
-  Name:             "my-score",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  RunId:            "...",
-  SessionId:        "...",
-  Metric:           "...",
-  Source:           "...",
-  EvaluatorVersion: "...",
-  Passed:           false,
-  Criteria:         []stigmer.ScoreCriterionInput{},
-  Comment:          "...",
-  JudgeModel:       "...",
-})
+score, err := client.Score.Get(ctx, "scr_01j5q3k7m8r2s4tnz2hfp0q0c3")
+score.Metadata.Name = "New name"
+updated, err := client.Score.Update(ctx, score, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-score = client.scores.update(ScoreInput(
-    name="my-score",
-    org="acme",
-    slug="...",
-    labels={},
-    run_id="...",
-    session_id="...",
-    metric="...",
-    source="...",
-    evaluator_version="...",
-    passed=False,
-    criteria=[],
-    comment="...",
-    judge_model="...",
-))
+score = client.scores.get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3")
+score.metadata.name = "New name"
+updated = client.scores.update(score, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Score score = client.scores().update(ScoreInput.builder()
-    .name("my-score")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .runId("...")
-    .sessionId("...")
-    .metric("...")
-    .source("...")
-    .evaluatorVersion("...")
-    .passed(false)
-    .criteria(List.of())
-    .comment("...")
-    .judgeModel("...")
-    .build());
+Score score = client.scores().get("scr_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Score updated = client.scores().update(
+    score.toBuilder().setMetadata(score.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ScoreInput`](#scoreinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Score`](#score) | The score, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Score`](#score)
 
@@ -544,6 +508,17 @@ ScoreCriterion is one criterion's outcome and the reason for it.
     name: { type: "string", description: "The criterion's identifier, for example `no-repeated-calls`." },
     result: { type: "CriterionResult", description: "The criterion's outcome.", typeDescriptionLink: "#criterionresult" },
     reason: { type: "string", description: "Why the criterion has its result." },
+  }}
+/>
+
+### UpdateScoreInput
+
+The changes an update makes to a score: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "ScoreInput", description: "The score carrying the new values, named by metadata.id.", typeDescriptionLink: "#scoreinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

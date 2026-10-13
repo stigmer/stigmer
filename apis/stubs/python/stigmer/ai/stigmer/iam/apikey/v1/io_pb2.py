@@ -24,10 +24,11 @@ _sym_db = _symbol_database.Default()
 
 from ai.stigmer.iam.apikey.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n!ai/stigmer/iam/apikey/v1/io.proto\x12\x18\x61i.stigmer.iam.apikey.v1\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"E\n\x07\x41piKeys\x12:\n\x07\x65ntries\x18\x01 \x03(\x0b\x32 .ai.stigmer.iam.apikey.v1.ApiKeyR\x07\x65ntries\"(\n\x08\x41piKeyId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n\nApiKeyHash\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"/\n\x0f\x41piKeyAccountId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd5\x01\n\x1c\x43reateServiceAccountKeyInput\x12\x34\n\x12service_account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x10serviceAccountId\x12\x1f\n\x04name\x18\x02 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x04name\x12\x39\n\nexpires_at\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n\rnever_expires\x18\x04 \x01(\x08R\x0cneverExpiresB\xac\x01\n\x1c\x63om.ai.stigmer.iam.apikey.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SIA\xaa\x02\x18\x41i.Stigmer.Iam.Apikey.V1\xca\x02\x18\x41i\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1c\x41i::Stigmer::Iam::Apikey::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n!ai/stigmer/iam/apikey/v1/io.proto\x12\x18\x61i.stigmer.iam.apikey.v1\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"E\n\x07\x41piKeys\x12:\n\x07\x65ntries\x18\x01 \x03(\x0b\x32 .ai.stigmer.iam.apikey.v1.ApiKeyR\x07\x65ntries\"(\n\x08\x41piKeyId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n\nApiKeyHash\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"/\n\x0f\x41piKeyAccountId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd5\x01\n\x1c\x43reateServiceAccountKeyInput\x12\x34\n\x12service_account_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x10serviceAccountId\x12\x1f\n\x04name\x18\x02 \x01(\tB\x0b\xbaH\x08r\x03\x18\x80\x01\xc8\x01\x01R\x04name\x12\x39\n\nexpires_at\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n\rnever_expires\x18\x04 \x01(\x08R\x0cneverExpires\"\xe0\x02\n\x11UpdateApiKeyInput\x12\x44\n\x08resource\x18\x01 \x01(\x0b\x32 .ai.stigmer.iam.apikey.v1.ApiKeyB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbf\x01\xbaH\xbb\x01\x1a\xb8\x01\n\x17update_names_its_target\x12Gresource.metadata.id is required: an update names the API key by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xac\x01\n\x1c\x63om.ai.stigmer.iam.apikey.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SIA\xaa\x02\x18\x41i.Stigmer.Iam.Apikey.V1\xca\x02\x18\x41i\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1c\x41i::Stigmer::Iam::Apikey::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -45,14 +46,22 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREATESERVICEACCOUNTKEYINPUT'].fields_by_name['service_account_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_CREATESERVICEACCOUNTKEYINPUT'].fields_by_name['name']._loaded_options = None
   _globals['_CREATESERVICEACCOUNTKEYINPUT'].fields_by_name['name']._serialized_options = b'\272H\010r\003\030\200\001\310\001\001'
-  _globals['_APIKEYS']._serialized_start=161
-  _globals['_APIKEYS']._serialized_end=230
-  _globals['_APIKEYID']._serialized_start=232
-  _globals['_APIKEYID']._serialized_end=272
-  _globals['_APIKEYHASH']._serialized_start=274
-  _globals['_APIKEYHASH']._serialized_end=316
-  _globals['_APIKEYACCOUNTID']._serialized_start=318
-  _globals['_APIKEYACCOUNTID']._serialized_end=365
-  _globals['_CREATESERVICEACCOUNTKEYINPUT']._serialized_start=368
-  _globals['_CREATESERVICEACCOUNTKEYINPUT']._serialized_end=581
+  _globals['_UPDATEAPIKEYINPUT'].fields_by_name['resource']._loaded_options = None
+  _globals['_UPDATEAPIKEYINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
+  _globals['_UPDATEAPIKEYINPUT'].fields_by_name['update_mask']._loaded_options = None
+  _globals['_UPDATEAPIKEYINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_UPDATEAPIKEYINPUT']._loaded_options = None
+  _globals['_UPDATEAPIKEYINPUT']._serialized_options = b'\272H\273\001\032\270\001\n\027update_names_its_target\022Gresource.metadata.id is required: an update names the API key by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
+  _globals['_APIKEYS']._serialized_start=195
+  _globals['_APIKEYS']._serialized_end=264
+  _globals['_APIKEYID']._serialized_start=266
+  _globals['_APIKEYID']._serialized_end=306
+  _globals['_APIKEYHASH']._serialized_start=308
+  _globals['_APIKEYHASH']._serialized_end=350
+  _globals['_APIKEYACCOUNTID']._serialized_start=352
+  _globals['_APIKEYACCOUNTID']._serialized_end=399
+  _globals['_CREATESERVICEACCOUNTKEYINPUT']._serialized_start=402
+  _globals['_CREATESERVICEACCOUNTKEYINPUT']._serialized_end=615
+  _globals['_UPDATEAPIKEYINPUT']._serialized_start=618
+  _globals['_UPDATEAPIKEYINPUT']._serialized_end=970
 # @@protoc_insertion_point(module_scope)

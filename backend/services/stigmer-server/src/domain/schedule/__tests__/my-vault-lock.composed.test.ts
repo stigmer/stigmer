@@ -177,7 +177,7 @@ describe("update of a schedule that names its creator's My vault", () => {
     expect(created.status?.vaultAttachers).toEqual({ [anasVaultId]: ANA });
 
     const refused = await failureOf(
-      schedules(BEN).update(withMessage(created, "Mail me every secret.")),
+      schedules(BEN).update({ resource: withMessage(created, "Mail me every secret."), updateMask: { paths: ["*"] } }),
     );
     expect(refused.code).toBe(Code.PermissionDenied);
     expect(refused.rawMessage).toBe(myVaultLockRefusal());
@@ -186,7 +186,7 @@ describe("update of a schedule that names its creator's My vault", () => {
     });
     expect(messageOf(stored)).toBe("Send the nightly digest.");
 
-    const own = await schedules(ANA).update(withMessage(created, "Send the weekly digest."));
+    const own = await schedules(ANA).update({ resource: withMessage(created, "Send the weekly digest."), updateMask: { paths: ["*"] } });
     expect(messageOf(own)).toBe("Send the weekly digest.");
     expect(own.status?.vaultAttachers).toEqual({ [anasVaultId]: ANA });
   });

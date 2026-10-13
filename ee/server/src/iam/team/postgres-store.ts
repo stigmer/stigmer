@@ -33,6 +33,7 @@ import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 
 import type { GuardedRead } from "@stigmer/server";
+import { stampEtag } from "@stigmer/server";
 
 import type { TeamInsertOutcome, TeamStore } from "./store.js";
 
@@ -69,7 +70,7 @@ export function newTeamStore(pool: Pool): TeamStore {
            VALUES ($1, $2, $3, $4, $5)`,
           [
             columns.id,
-            Buffer.from(toBinary(TeamSchema, team)),
+            payloadOf(team),
             columns.org,
             columns.slug,
             columns.createdAt,
@@ -101,7 +102,7 @@ export function newTeamStore(pool: Pool): TeamStore {
         [
           id,
           Buffer.from(expectedBytes),
-          Buffer.from(toBinary(TeamSchema, next)),
+          payloadOf(next),
           columnsOf(next).slug,
         ],
       );
@@ -122,7 +123,7 @@ export function newTeamStore(pool: Pool): TeamStore {
         modify(team);
         await client.query(`UPDATE ${TABLE} SET data = $2, slug = $3 WHERE id = $1`, [
           id,
-          Buffer.from(toBinary(TeamSchema, team)),
+          payloadOf(team),
           columnsOf(team).slug,
         ]);
         return { commit: true, value: team };
@@ -198,4 +199,10 @@ function columnsOf(team: Team): TeamColumns {
 function isOrgSlugViolation(error: unknown): boolean {
   const { code, constraint } = (error ?? {}) as { code?: unknown; constraint?: unknown };
   return code === UNIQUE_VIOLATION && constraint === ORG_SLUG_CONSTRAINT;
+}
+
+/** A team's stored bytes, stamped with its etag first, as every store write is (`@stigmer/server`'s store/etag.ts). */
+function payloadOf(team: Team): Buffer {
+  stampEtag(TeamSchema, team);
+  return Buffer.from(toBinary(TeamSchema, team));
 }

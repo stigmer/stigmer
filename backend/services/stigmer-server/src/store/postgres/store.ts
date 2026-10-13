@@ -21,7 +21,11 @@
  * - single-holder audit tags: two UPDATEs in one transaction, missing
  *   target rolls back (the #341 head-repoint contract);
  * - at-most-once OAuth state redemption: DELETE ... RETURNING (atomic
- *   without an explicit transaction).
+ *   without an explicit transaction);
+ * - create-only inserts: ON CONFLICT (kind, id) DO NOTHING, so the primary
+ *   key decides a race; with a permission change, the organization's
+ *   history lock first, then the row, and the entry in the row's
+ *   transaction (../permission-history.ts).
  *
  * BIGINT/COUNT results arrive from pg as strings (precision posture);
  * every numeric read is explicitly Number()-converted at the row mapping.
@@ -94,7 +98,6 @@ import {
   gatesOfDraft,
   openGatesOf,
   sameBytes,
-  sessionEventInstant,
 } from "../session-events.js";
 import type {
   OpenSessionEventGate,
@@ -118,7 +121,16 @@ import {
   filterRowsByLabel,
   scanForFieldMatch,
 } from "../proto-fields.js";
-import { rfc3339Seconds } from "../rfc3339.js";
+import {
+  assertPermissionChangeKind,
+  permissionHistoryEntryOf,
+} from "../permission-history.js";
+import type {
+  PermissionChange,
+  PermissionHistoryEntry,
+} from "../permission-history.js";
+import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
+import { stampEtag } from "../etag.js";
 import { runMigrations } from "./migrations.js";
 import { normalizeTsRankScore, renderTsQueryExpression } from "./tsquery.js";
 
@@ -149,6 +161,13 @@ const UPSERT_RESOURCE_SQL = `
     list_created_at = excluded.list_created_at,
     list_index_revision = excluded.list_index_revision,
     list_indexed_at = excluded.list_indexed_at`;
+
+/** insertResource's create-only write: the primary key (kind, id) decides, and a held id changes nothing. */
+const INSERT_NEW_RESOURCE_SQL = `
+  INSERT INTO resources
+    (kind, id, data, updated_at, list_org, list_created_at, list_index_revision, list_indexed_at)
+  VALUES ($1, $2, $3, now(), $4, $5, $6, now())
+  ON CONFLICT (kind, id) DO NOTHING`;
 
 /**
  * The rows of kind `$1` whose facts are not proven current under revision
@@ -276,6 +295,7 @@ export class PostgresStore implements Store {
     schema: Desc,
     msg: MessageShape<Desc>,
   ): Promise<void> {
+    stampEtag(schema, msg);
     const data = Buffer.from(toBinary(schema, msg));
     const kindName = apiResourceKindName(kind);
     const facts = this.listIndexes.factsOf(kind, msg);
@@ -300,6 +320,57 @@ export class PostgresStore implements Store {
         facts.revision,
       ]);
       await replaceListKeys(client, kindName, id, facts);
+    });
+  }
+
+  async insertResource<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    msg: MessageShape<Desc>,
+    change?: PermissionChange,
+  ): Promise<boolean> {
+    assertPermissionChangeKind(kind, change);
+    stampEtag(schema, msg);
+    const data = Buffer.from(toBinary(schema, msg));
+    const kindName = apiResourceKindName(kind);
+    const facts = this.listIndexes.factsOf(kind, msg);
+    if (facts === undefined && change === undefined) {
+      const result = await this.open().query(INSERT_NEW_RESOURCE_SQL, [
+        kindName,
+        id,
+        data,
+        null,
+        null,
+        null,
+      ]);
+      return (result.rowCount ?? 0) > 0;
+    }
+    return this.withTransaction(async (client) => {
+      // The organization's history lock first, then the row: the one lock
+      // order every recorded write takes (../permission-history.ts).
+      if (change !== undefined) {
+        await lockPermissionHistory(client, change.org);
+      }
+      const result = await client.query(INSERT_NEW_RESOURCE_SQL, [
+        kindName,
+        id,
+        data,
+        facts?.org ?? null,
+        facts?.createdAt ?? null,
+        facts?.revision ?? null,
+      ]);
+      const inserted = (result.rowCount ?? 0) > 0;
+      if (inserted && facts !== undefined) {
+        await replaceListKeys(client, kindName, id, facts);
+      }
+      if (inserted && change !== undefined) {
+        await appendPermissionHistory(
+          client,
+          permissionHistoryEntryOf(change, "granted", id, data),
+        );
+      }
+      return inserted;
     });
   }
 
@@ -344,6 +415,7 @@ export class PostgresStore implements Store {
     expectedBytes: Uint8Array,
     resource: MessageShape<Desc>,
   ): Promise<boolean> {
+    stampEtag(schema, resource);
     return this.replaceResourceDataIfUnchanged(
       kind,
       id,
@@ -383,6 +455,7 @@ export class PostgresStore implements Store {
       const msg = fromBinary(schema, row.data);
       const before = this.listIndexes.factsOf(kind, msg);
       modify(msg);
+      stampEtag(schema, msg);
       const after = this.listIndexes.factsOf(kind, msg);
 
       const data = toBinary(schema, msg);
@@ -478,16 +551,43 @@ export class PostgresStore implements Store {
     return mergeListIndexRows(provenRows, unprovenRows, query.limit);
   }
 
-  async deleteResource(kind: ApiResourceKind, id: string): Promise<void> {
+  async deleteResource(
+    kind: ApiResourceKind,
+    id: string,
+    change?: PermissionChange,
+  ): Promise<boolean> {
+    assertPermissionChangeKind(kind, change);
     const kindName = apiResourceKindName(kind);
-    await this.open().query(
-      `DELETE FROM resources WHERE kind = $1 AND id = $2`,
-      [kindName, id],
-    );
-    await this.open().query(
-      `DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`,
-      [kindName, id],
-    );
+    if (change === undefined) {
+      const removed = await this.open().query(
+        `DELETE FROM resources WHERE kind = $1 AND id = $2`,
+        [kindName, id],
+      );
+      await this.open().query(
+        `DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`,
+        [kindName, id],
+      );
+      return (removed.rowCount ?? 0) > 0;
+    }
+    return this.withTransaction(async (client) => {
+      await lockPermissionHistory(client, change.org);
+      const removed = await client.query(
+        `DELETE FROM resources WHERE kind = $1 AND id = $2 RETURNING data`,
+        [kindName, id],
+      );
+      await client.query(
+        `DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`,
+        [kindName, id],
+      );
+      const row = removed.rows[0] as { data: Uint8Array } | undefined;
+      if (row !== undefined) {
+        await appendPermissionHistory(
+          client,
+          permissionHistoryEntryOf(change, "revoked", id, row.data),
+        );
+      }
+      return row !== undefined;
+    });
   }
 
   async writeResourceAppendingEvents<Desc extends DescMessage>(
@@ -570,6 +670,7 @@ export class PostgresStore implements Store {
       let org = before?.org ?? "";
       if ("put" in outcome) {
         row = outcome.put;
+        stampEtag(schema, row);
         const after = listIndexFactsOf(declaration, row);
         assertSameSession(kindName, id, sessionId, keyValue(after, scope.sessionKey));
         org = after.org;
@@ -2559,6 +2660,64 @@ function sessionEventOf(row: SessionEventRow): SessionEventRecord {
 }
 
 /**
+ * The organization's permission-history lock, held to the end of the
+ * transaction, so its entries are numbered in commit order. Taken before
+ * the row the entry records (../permission-history.ts).
+ */
+async function lockPermissionHistory(client: PoolClient, org: string): Promise<void> {
+  await client.query(
+    `SELECT pg_advisory_xact_lock(hashtextextended('iam_policy_history/' || $1, 0))`,
+    [org],
+  );
+}
+
+/**
+ * One permission-history entry, numbered from its organization's head and
+ * stamped never before the head's time, under the organization's lock on
+ * the caller's transaction (sqlite/store.ts's twin).
+ */
+async function appendPermissionHistory(
+  client: PoolClient,
+  entry: PermissionHistoryEntry,
+): Promise<void> {
+  const head = await client.query(
+    `SELECT last_sequence, last_occurred_at FROM iam_policy_history_heads WHERE org = $1`,
+    [entry.org],
+  );
+  const last = head.rows[0] as { last_sequence: string; last_occurred_at: string } | undefined;
+  const sequence = (last === undefined ? 0 : Number(last.last_sequence)) + 1;
+  const occurredAt = instantNotBefore(Date.now(), last?.last_occurred_at);
+  await client.query(
+    `INSERT INTO iam_policy_history
+       (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+        principal_kind, principal_id, principal_relation, relation, resource_kind, resource_id, data)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+    [
+      entry.org,
+      sequence,
+      occurredAt,
+      entry.change,
+      entry.cause,
+      entry.actorId,
+      entry.actorClass,
+      entry.policyId,
+      entry.principalKind,
+      entry.principalId,
+      entry.principalRelation,
+      entry.relation,
+      entry.resourceKind,
+      entry.resourceId,
+      Buffer.from(entry.data),
+    ],
+  );
+  await client.query(
+    `INSERT INTO iam_policy_history_heads (org, last_sequence, last_occurred_at) VALUES ($1, $2, $3)
+     ON CONFLICT (org) DO UPDATE SET last_sequence = excluded.last_sequence, last_occurred_at = excluded.last_occurred_at`,
+    [entry.org, sequence, occurredAt],
+  );
+}
+
+/**
  * Serializes the writers of one session's log for the transaction: numbers
  * and times are assigned one writer at a time, and a write's count of the
  * session's working rows cannot race another's.
@@ -2684,7 +2843,7 @@ async function insertSessionEvents(
     [sessionId],
   );
   const last = head.rows[0] as { last_seq: string; last_processed_at: string } | undefined;
-  const processedAt = sessionEventInstant(Date.now(), last?.last_processed_at);
+  const processedAt = instantNotBefore(Date.now(), last?.last_processed_at);
   let seq = last === undefined ? 0 : Number(last.last_seq);
   const records: SessionEventRecord[] = [];
   const params: unknown[] = [];

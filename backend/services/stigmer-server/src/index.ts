@@ -644,6 +644,27 @@ export { newResolveSlugStep } from "./pipeline/steps/slug.js";
 // reads. The loaders stay the composition's for CheckDuplicate's reason:
 // they read its own table.
 export { newBuildUpdateStateStep } from "./pipeline/steps/build-update-state.js";
+export type { BuildUpdateStateOptions } from "./pipeline/steps/build-update-state.js";
+// An update's wire shape (Update<Kind>Input: the resource, named by its
+// metadata.id, and an update_mask) unwrapped for a chain typed on the
+// resource, and the mask's rules (pipeline/steps/update-input.ts,
+// update-mask.ts): a composition's update lane runs its chain on
+// `updateContext`, passes its kind's refused paths to BuildUpdateState,
+// and reaches the update from apply through `everyPathUpdate`.
+export { everyPathUpdate, updateContext } from "./pipeline/steps/update-input.js";
+export type { UpdateRequestShape } from "./pipeline/steps/update-input.js";
+export {
+  EVERY_UPDATABLE_PATH,
+  UPDATABLE_METADATA_PATHS,
+  UPDATE_MASK_KEY,
+  applyUpdateMask,
+  checkUpdateMask,
+  updateMaskOf,
+} from "./pipeline/steps/update-mask.js";
+export type { RefusedUpdatePath } from "./pipeline/steps/update-mask.js";
+// A resource's etag (store/etag.ts): a port that stores a kind outside the
+// shared store stamps it on every write, as the shared store's drivers do.
+export { etagOf, stampEtag, storedEtagOf } from "./store/etag.js";
 export {
   EXISTING_RESOURCE_BYTES_KEY,
   EXISTING_RESOURCE_KEY,
@@ -656,6 +677,8 @@ export {
 export { swapOntoLoadedPortRow } from "./pipeline/steps/persist.js";
 export {
   changeThroughGuardedPort,
+  ETAG_MISMATCH_REASON,
+  etagMismatchError,
   GUARDED_WRITE_ATTEMPTS,
   isWriteConflict,
   runGuardedWrite,
@@ -672,6 +695,9 @@ export { TARGET_RESOURCE_KEY } from "./pipeline/steps/load-target.js";
 // keys on (typed not-found → NotFound; anything else rethrows as an
 // infrastructure fault — the guidelines' instanceof idiom).
 export type { Store, StoreOpenOptions } from "./store/interface.js";
+// What a write hands `Store.insertResource` and `Store.deleteResource` to
+// record a change to an access row in the permission history.
+export type { PermissionChange } from "./store/permission-history.js";
 export {
   AuditNotFoundError,
   ResourceNotFoundError,

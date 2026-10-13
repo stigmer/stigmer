@@ -22,7 +22,7 @@ import {
   SsoRequirementMemberSchema,
   SsoRequirementPreviewSchema,
 } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
-import type { DeploymentMode, IdentityProviderInput } from "@stigmer/sdk";
+import type { DeploymentMode } from "@stigmer/sdk";
 import { DeploymentModeContext } from "../../deployment-mode";
 
 const stubs = vi.hoisted(() => ({
@@ -30,7 +30,10 @@ const stubs = vi.hoisted(() => ({
   checked: [] as Array<[string, string, string]>,
   planAllows: null as boolean | null,
   entitlementsEnabled: [] as Array<boolean | undefined>,
-  saved: [] as IdentityProviderInput[],
+  saved: [] as Array<{
+    resource: { metadata?: { id?: string; etag?: string }; spec?: { ssoRequired?: boolean } };
+    paths: string[];
+  }>,
   previewed: [] as Array<string | null>,
   previewState: "ready" as "ready" | "loading" | "error",
 }));
@@ -63,9 +66,12 @@ vi.mock("../../iam-policy/PermissionGate.js", () => ({
 }));
 vi.mock("../useUpdateIdentityProvider.js", () => ({
   useUpdateIdentityProvider: () => ({
-    update: (input: IdentityProviderInput) => {
-      stubs.saved.push(input);
-      return Promise.resolve(create(IdentityProviderSchema, { spec: { ssoRequired: input.ssoRequired ?? false } }));
+    update: (
+      resource: { metadata?: { id?: string; etag?: string }; spec?: { ssoRequired?: boolean } },
+      paths: string[],
+    ) => {
+      stubs.saved.push({ resource, paths });
+      return Promise.resolve(create(IdentityProviderSchema, { spec: { ssoRequired: resource.spec?.ssoRequired ?? false } }));
     },
     isUpdating: false,
     error: null,
@@ -106,7 +112,7 @@ import { SsoRequirementSection } from "../SsoRequirementSection";
 
 function provider(fields: { sso?: boolean; required?: boolean } = {}): IdentityProvider {
   return create(IdentityProviderSchema, {
-    metadata: { id: "idp_okta", org: "org_acme", slug: "acme-okta", name: "acme-okta" },
+    metadata: { id: "idp_okta", org: "org_acme", slug: "acme-okta", name: "acme-okta", etag: "etag-1" },
     spec: {
       displayName: "Acme Okta",
       jwksUri: "https://acme.okta.test/keys",
@@ -165,11 +171,11 @@ describe("SsoRequirementSection", () => {
     expect(stubs.saved).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Require it" }));
     await vi.waitFor(() => expect(stubs.saved).toHaveLength(1));
-    expect(stubs.saved[0]).toMatchObject({
-      ssoRequired: true,
-      displayName: "Acme Okta",
-      oidcClientId: "client",
-      isSsoProvider: true,
+    // The one field the switch changes, on the provider's id and the etag
+    // it was read at: every other field keeps its stored value.
+    expect(stubs.saved[0]).toEqual({
+      resource: { metadata: { id: "idp_okta", etag: "etag-1" }, spec: { ssoRequired: true } },
+      paths: ["spec.sso_required"],
     });
   });
 
@@ -207,7 +213,8 @@ describe("SsoRequirementSection", () => {
     fireEvent.click(screen.getByRole("button", { name: /Stop requiring it/ }));
     fireEvent.click(screen.getByRole("button", { name: "Stop requiring it" }));
     await vi.waitFor(() => expect(stubs.saved).toHaveLength(1));
-    expect(stubs.saved[0]?.ssoRequired).toBe(false);
+    expect(stubs.saved[0]?.resource.spec?.ssoRequired).toBe(false);
+    expect(stubs.saved[0]?.paths).toEqual(["spec.sso_required"]);
   });
 
   it("on Cloud, a plan without it shows the plan notice in place of turning it on, and still lets it be turned off", () => {

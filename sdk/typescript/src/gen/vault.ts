@@ -3,13 +3,13 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { ConnectLinkController, ConnectLinkTokenInputSchema, ConnectLinkInfoSchema, StartConnectLinkOutputSchema, CompleteConnectLinkInputSchema, CompleteConnectLinkOutputSchema, type ConnectLinkTokenInput, type ConnectLinkInfo, type StartConnectLinkOutput, type CompleteConnectLinkInput, type CompleteConnectLinkOutput } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/connect_link_pb";
-import { SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
+import { UpdateVaultInputSchema, SetVaultSecretsInputSchema, RemoveVaultSecretsInputSchema, SetVaultConnectionInputSchema, RemoveVaultConnectionsInputSchema, StartSignInInputSchema, StartSignInOutputSchema, CompleteSignInInputSchema, CompleteSignInOutputSchema, CreateConnectLinkInputSchema, ConnectLinkSchema, GetMyVaultInputSchema, GetVaultByExternalIdInputSchema, ListVaultsRequestSchema, VaultListSchema, type SetVaultSecretsInput, type RemoveVaultSecretsInput, type SetVaultConnectionInput, type RemoveVaultConnectionsInput, type StartSignInInput, type StartSignInOutput, type CompleteSignInInput, type CompleteSignInOutput, type CreateConnectLinkInput, type ConnectLink, type GetMyVaultInput, type GetVaultByExternalIdInput, type ListVaultsRequest, type VaultList } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSpecSchema, VaultConnectionSource, VaultSecretSchema, VaultConnectionSignInSchema, VaultConnectionSchema, type VaultSecret, type VaultConnectionSignIn, type VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { VaultValueController, FetchExecutionValuesInputSchema, ExecutionValuesSchema, type FetchExecutionValuesInput, type ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
@@ -38,9 +38,9 @@ export class VaultClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: VaultInput): Promise<Vault> {
+  async update(resource: Vault | MessageInitShape<typeof VaultSchema>, paths: string[]): Promise<Vault> {
     try {
-      return await this.command.update(buildVaultProto(input));
+      return await this.command.update(create(UpdateVaultInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -163,13 +163,13 @@ export class VaultClient {
   }
 }
 
-/** Input for creating/updating a Vault. */
+/** Input for creating or applying a Vault. */
 export interface VaultInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -308,24 +308,22 @@ function toVaultConnectionInput(msg: VaultConnection): VaultConnectionInput {
 }
 
 /**
- * Maps a fetched {@link Vault} to a complete {@link VaultInput} for `update()`.
+ * Maps a fetched {@link Vault} to the complete {@link VaultInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toVaultInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toVaultUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toVaultUpdateInput(resource: Vault): VaultInput {
+export function toVaultInput(resource: Vault): VaultInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(VaultSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

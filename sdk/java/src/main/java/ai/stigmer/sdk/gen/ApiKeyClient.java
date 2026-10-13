@@ -10,7 +10,9 @@ import ai.stigmer.iam.apikey.v1.ApiKeyId;
 import ai.stigmer.iam.apikey.v1.ApiKeyQueryControllerGrpc;
 import ai.stigmer.iam.apikey.v1.ApiKeys;
 import ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput;
+import ai.stigmer.iam.apikey.v1.UpdateApiKeyInput;
 import com.google.protobuf.Empty;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -36,9 +38,12 @@ public final class ApiKeyClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public ApiKey update(ApiKeyInput input) {
+    public ApiKey update(ApiKey resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateApiKeyInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

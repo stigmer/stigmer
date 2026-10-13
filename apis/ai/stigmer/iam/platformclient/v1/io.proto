@@ -4,6 +4,7 @@ package ai.stigmer.iam.platformclient.v1;
 
 import "ai/stigmer/iam/platformclient/v1/api.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 
 // PlatformClientId identifies a platform client by its unique identifier.
 message PlatformClientId {
@@ -43,4 +44,24 @@ message PlatformClientCreateResponse {
   // The raw client secret. Store this value securely — it is not retrievable
   // after this response. If lost, use rotateSecret to generate a new one.
   string client_secret = 2;
+}
+
+// The changes an update makes to a platform client: the fields update_mask names,
+// taken from resource.
+message UpdatePlatformClientInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the platform client by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The platform client carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  PlatformClient resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }

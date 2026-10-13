@@ -183,7 +183,7 @@ describe("MemoryListPanel", () => {
     );
   });
 
-  it("edits a confirmed fact through the wipe-safe update mapper", async () => {
+  it("edits a confirmed fact by naming its content alone", async () => {
     const client = makeClient([CONFIRMED]);
     const user = userEvent.setup();
     render(
@@ -209,10 +209,10 @@ describe("MemoryListPanel", () => {
     await waitFor(() =>
       expect(client.memory.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: "mem_confirmed",
-          org: "test-org",
-          content: "Deploys to eu-west-1.",
+          metadata: expect.objectContaining({ id: "mem_confirmed" }),
+          spec: { content: "Deploys to eu-west-1." },
         }),
+        ["spec.content"],
       ),
     );
   });

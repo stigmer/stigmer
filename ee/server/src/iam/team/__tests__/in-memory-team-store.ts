@@ -6,6 +6,7 @@
  * its own suites.
  */
 import { clone, create, toBinary } from "@bufbuild/protobuf";
+import { stampEtag } from "@stigmer/server";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -40,6 +41,8 @@ export class InMemoryTeamStore implements TeamStore {
       }
     }
     const id = team.metadata?.id ?? "";
+    // Every write stamps the etag, as the drivers do.
+    stampEtag(TeamSchema, team);
     this.rows.set(id, clone(TeamSchema, team));
     this.order.push(id);
     return Promise.resolve({ kind: "inserted" });
@@ -59,6 +62,8 @@ export class InMemoryTeamStore implements TeamStore {
     if (held === undefined || !sameBytes(toBinary(TeamSchema, held), expectedBytes)) {
       return Promise.resolve(false);
     }
+    // Every write stamps the etag, as the drivers do.
+    stampEtag(TeamSchema, next);
     this.rows.set(id, clone(TeamSchema, next));
     return Promise.resolve(true);
   }
@@ -70,6 +75,8 @@ export class InMemoryTeamStore implements TeamStore {
     }
     const team = clone(TeamSchema, held);
     modify(team);
+    // Every write stamps the etag, as the drivers do.
+    stampEtag(TeamSchema, team);
     this.rows.set(id, clone(TeamSchema, team));
     return Promise.resolve(team);
   }

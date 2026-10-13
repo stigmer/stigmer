@@ -293,10 +293,10 @@ describe("update — immutable identity and the status-honest graft", () => {
     });
     const created = await command.create(scheduleInput({ name: "Repoint Me", slug: "repoint-me" }));
     const err = await refusal(() =>
-      command.update({
+      command.update({ resource: {
         ...scheduleInput({ name: "Repoint Me", slug: "repoint-me", agentSlug: "other" }),
         metadata: created.metadata,
-      }),
+      }, updateMask: { paths: ["*"] } }),
     );
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(
@@ -307,10 +307,10 @@ describe("update — immutable identity and the status-honest graft", () => {
   it("re-validates cron/tz on update (spec replaced wholesale)", async () => {
     const created = await command.create(scheduleInput({ name: "Revalidate", slug: "revalidate" }));
     const err = await refusal(() =>
-      command.update({
+      command.update({ resource: {
         ...scheduleInput({ name: "Revalidate", slug: "revalidate", cron: "bad" }),
         metadata: created.metadata,
-      }),
+      }, updateMask: { paths: ["*"] } }),
     );
     expect(err.code).toBe(Code.InvalidArgument);
   });
@@ -319,10 +319,10 @@ describe("update — immutable identity and the status-honest graft", () => {
     const created = await command.create(scheduleInput({ name: "Graft", slug: "graft" }));
     const id = created.metadata?.id ?? "";
     await pauseDirectly(id);
-    const updated = await command.update({
+    const updated = await command.update({ resource: {
       ...scheduleInput({ name: "Graft", slug: "graft", cron: "15 7 * * *" }),
       metadata: created.metadata,
-    });
+    }, updateMask: { paths: ["*"] } });
     // The graft carried the request's spec but answered with the LIVE
     // status the runtime wrote mid-request.
     expect(updated.spec?.cron).toBe("15 7 * * *");
@@ -341,10 +341,10 @@ describe("update — immutable identity and the status-honest graft", () => {
       id,
       () => pauseDirectly(id),
       () =>
-        command.update({
+        command.update({ resource: {
           ...scheduleInput({ name: "Race", slug: "race", cron: "45 6 * * *" }),
           metadata: created.metadata,
-        }),
+        }, updateMask: { paths: ["*"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);

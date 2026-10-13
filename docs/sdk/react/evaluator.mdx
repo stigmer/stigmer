@@ -46,7 +46,10 @@ const { evaluator } = useAgentEvaluator(agent?.metadata?.id ?? "");
 ### useSaveEvaluator
 
 Behavior hook that writes an agent's `Evaluator` through
-`evaluator.create()` or `evaluator.update()`. Only someone who can edit
+`evaluator.create()` or `evaluator.update()`. An update names the
+grading settings alone (`GRADING_SETTING_PATHS`) on the evaluator
+as loaded, carrying the etag it was read at, so an evaluator changed
+since it was read refuses the save. Only someone who can edit
 the agent may; the server's refusal is surfaced as `error`. Turning
 grading off is a save with `enabled: false`, which keeps this month's
 spend and counts.

@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import { PlatformClient } from "./api_pbjs";
-import { PlatformClientCreateResponse, PlatformClientId } from "./io_pbjs";
+import { PlatformClientCreateResponse, PlatformClientId, UpdatePlatformClientInput } from "./io_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, RenameInput } from "../../../commons/apiresource/io_pbjs";
 
@@ -52,31 +52,32 @@ export const PlatformClientCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing platform client.
+     * Update a platform client: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * The name, labels and every spec field can be changed except the
-     * credential fields (client_id, client_secret_hash, secret_fingerprint),
-     * which are kept from the stored client. Use rotateSecret to change the
-     * client secret. A system-managed client cannot be updated.
+     * The credential fields (client_id, client_secret_hash, secret_fingerprint)
+     * are kept from the stored client: use rotateSecret to change the client
+     * secret. A system-managed client cannot be updated.
      *
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the platform client was renamed away from,
-     * named without the platform client's id, is refused with
-     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
-     * would later make a second platform client:
+     * resource.metadata.id names the platform client; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the platform client does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
      *
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-     *     platform client for reading, but a write names its current slug.
-     *     Metadata: slug (the one the request named).
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the platform client kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update
      */
     update: {
       name: "update",
-      I: PlatformClient,
+      I: UpdatePlatformClientInput,
       O: PlatformClient,
       kind: MethodKind.Unary,
     },

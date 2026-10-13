@@ -325,7 +325,7 @@ describe("model-pin existence (oss#774)", () => {
       modelName: "composr-2.5",
     };
 
-    const err = await grpcError(() => channels.update(update));
+    const err = await grpcError(() => channels.update({ resource: update, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toContain("not in the model registry (any harness)");
   });
@@ -515,7 +515,7 @@ describe("agentchannel update", () => {
 
     created.spec!.enabled = false;
     created.status = undefined; // a manifest apply sends no status
-    const updated = await channels.update(created);
+    const updated = await channels.update({ resource: created, updateMask: { paths: ["*"] } });
     expect(updated.spec?.enabled).toBe(false);
     expect(updated.status?.installState).toBe(
       AgentChannelInstallState.pending_install,
@@ -541,7 +541,7 @@ describe("agentchannel update", () => {
       slug: agentB.metadata!.slug,
     } as never;
 
-    const err = await grpcError(() => channels.update(repointed));
+    const err = await grpcError(() => channels.update({ resource: repointed, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(
       agentRefImmutableMessage(agentA.metadata!.org, agentA.metadata!.slug),
@@ -558,7 +558,7 @@ describe("agentchannel update", () => {
     const relative = channelFor(agent, created.metadata!.name, true);
     (relative.metadata as Record<string, string>).id = created.metadata!.id;
     (relative.metadata as Record<string, string>).slug = created.metadata!.slug;
-    await channels.update(relative);
+    await channels.update({ resource: relative, updateMask: { paths: ["*"] } });
   });
 
   it("providerFieldName derives the PROTO field name (Go TestProviderFieldName)", () => {
@@ -586,7 +586,7 @@ describe("agentchannel update", () => {
       slug: "acme-meta-app",
     };
 
-    const err = await grpcError(() => channels.update(flipped));
+    const err = await grpcError(() => channels.update({ resource: flipped, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(providerImmutableMessage("slack"));
   });
@@ -614,7 +614,7 @@ describe("agentchannel update", () => {
         id,
         ApiResourceVisibility.visibility_org,
       ),
-      () => channels.update(created),
+      () => channels.update({ resource: created, updateMask: { paths: ["*"] } }),
     );
 
     const stored = await server.store.getResource(
@@ -787,7 +787,7 @@ describe("app_ref (BYO channel-app binding)", () => {
       kind: ApiResourceKind.channel_app,
       slug: "second-app",
     };
-    const updated = await channels.update(rebound);
+    const updated = await channels.update({ resource: rebound, updateMask: { paths: ["*"] } });
     expect(updated.spec?.appRef?.slug).toBe("second-app");
   });
 
@@ -828,12 +828,12 @@ describe("app_ref (BYO channel-app binding)", () => {
       kind: ApiResourceKind.channel_app,
       slug: "different-app",
     };
-    const err = await grpcError(() => channels.update(rebound));
+    const err = await grpcError(() => channels.update({ resource: rebound, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toBe(APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE);
 
     // Unbinding while installed is equally a change.
-    const unbindErr = await grpcError(() => channels.update(rebindBase()));
+    const unbindErr = await grpcError(() => channels.update({ resource: rebindBase(), updateMask: { paths: ["*"] } }));
     expect(unbindErr.code).toBe(Code.FailedPrecondition);
 
     // An unchanged binding must pass — the disable toggle keeps it.
@@ -844,7 +844,7 @@ describe("app_ref (BYO channel-app binding)", () => {
       org: agent.metadata!.org,
       slug: "granted-app",
     };
-    await channels.update(unchanged);
+    await channels.update({ resource: unchanged, updateMask: { paths: ["*"] } });
   });
 });
 
@@ -897,7 +897,7 @@ describe("whatsapp app_ref (BYO-only)", () => {
     (unbound.metadata as Record<string, string>).id = created.metadata!.id;
     (unbound.metadata as Record<string, string>).slug = created.metadata!.slug;
 
-    const err = await grpcError(() => channels.update(unbound));
+    const err = await grpcError(() => channels.update({ resource: unbound, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(APP_REF_REQUIRED_FOR_WHATSAPP_MESSAGE);
   });
@@ -914,11 +914,11 @@ describe("whatsapp app_ref (BYO-only)", () => {
     // A read answers the reference by id and name; naming another app
     // beside the first one's id names two resources, and is refused.
     (created.spec!.appRef as Record<string, unknown>).slug = "second-meta-app";
-    const mixed = await grpcError(() => channels.update(created));
+    const mixed = await grpcError(() => channels.update({ resource: created, updateMask: { paths: ["*"] } }));
     expect(mixed.code).toBe(Code.InvalidArgument);
 
     (created.spec!.appRef as Record<string, unknown>).id = "";
-    const updated = await channels.update(created);
+    const updated = await channels.update({ resource: created, updateMask: { paths: ["*"] } });
     expect(updated.spec?.appRef?.slug).toBe("second-meta-app");
   });
 });

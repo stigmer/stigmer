@@ -1,6 +1,5 @@
 import { test, expect } from "../../fixtures";
 import { createTestAgent, createTestSkill } from "../../fixtures/seed-helpers";
-import { toAgentUpdateInput } from "@stigmer/sdk";
 
 /**
  * Version-history UX coverage.
@@ -22,12 +21,10 @@ test.describe("Version history timeline", () => {
 
     try {
       const fetched = await stigmerClient.agent.get(agent.id);
-      await stigmerClient.agent.update({
-        ...toAgentUpdateInput(fetched),
-        instructions: "Review pull requests and keep every comment short.\nAlways flag missing tests.",
-      });
+      fetched.spec!.instructions = "Review pull requests and keep every comment short.\nAlways flag missing tests.";
+      await stigmerClient.agent.update(fetched, ["spec.instructions"]);
       // An unchanged update records no version.
-      await stigmerClient.agent.update(toAgentUpdateInput(await stigmerClient.agent.get(agent.id)));
+      await stigmerClient.agent.update(await stigmerClient.agent.get(agent.id), ["spec.instructions"]);
 
       await page.goto(`/library/agents/${agent.org}/${agent.slug}`);
       await page.waitForLoadState("networkidle");

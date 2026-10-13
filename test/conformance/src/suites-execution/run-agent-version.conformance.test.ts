@@ -172,7 +172,7 @@ describe("Run — a conversation runs the version its session pinned", () => {
     const sessionId = sessionIdOf(first);
     const session = await clients.sessionQuery.get({ value: sessionId });
     session.spec!.agentRef!.version = "latest";
-    const updated = await clients.sessionCommand.update(session);
+    const updated = await clients.sessionCommand.update({ resource: session, updateMask: { paths: ["*"] } });
     expect(updated.status?.agentVersionHash, "latest pins the agent's head").toBe(v2.status?.versionHash);
 
     const next = await completedTurn(org, "aex-latest-next", { sessionId });

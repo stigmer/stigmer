@@ -141,7 +141,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(agent.sends).toHaveLength(1);
     expect(agent.closeCalls, "a bad key is not a bad handle").toBe(0);
     expect(_parkedAgentCountForTests(), "Phase 13 parks on every phase").toBe(1);
-    expect(record.sessionUpdates, "the one harness_state_id bind").toHaveLength(1);
+    expect(record.harnessBinds, "the one harness_state_id bind").toHaveLength(1);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
@@ -223,7 +223,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // rebuild from, unlike the poisoned-handle recovery's rebuilt prompt.
     expect(String(fresh.sends[0].message)).toBe(String(stale.sends[0].message));
     // Two harness_state_id binds: the primary agent, then the fresh one.
-    expect(record.sessionUpdates.map((s) => s.spec?.harnessStateId)).toEqual([staleId, freshId]);
+    expect(record.harnessBinds.map((s) => s.harnessStateId)).toEqual([staleId, freshId]);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
@@ -280,7 +280,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(agent.runs[0].cancelCalls, "the one cancel is the SDK's own").toHaveLength(1);
     expect(agent.closeCalls).toBe(0);
     expect(_parkedAgentCountForTests(), "Phase 13 parks on every phase").toBe(1);
-    expect(record.sessionUpdates).toHaveLength(1);
+    expect(record.harnessBinds).toHaveLength(1);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);

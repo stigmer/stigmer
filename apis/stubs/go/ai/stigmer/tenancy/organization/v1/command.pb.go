@@ -26,11 +26,11 @@ var File_ai_stigmer_tenancy_organization_v1_command_proto protoreflect.FileDescr
 
 const file_ai_stigmer_tenancy_organization_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/tenancy/organization/v1/command.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto2\xc8\a\n" +
+	"0ai/stigmer/tenancy/organization/v1/command.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a+ai/stigmer/tenancy/organization/v1/io.proto2\xdc\a\n" +
 	"\x1dOrganizationCommandController\x12k\n" +
 	"\x05apply\x120.ai.stigmer.tenancy.organization.v1.Organization\x1a0.ai.stigmer.tenancy.organization.v1.Organization\x12r\n" +
-	"\x06create\x120.ai.stigmer.tenancy.organization.v1.Organization\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"\x04и\x18\x01\x12\xa8\x01\n" +
-	"\x06update\x120.ai.stigmer.tenancy.organization.v1.Organization\x1a0.ai.stigmer.tenancy.organization.v1.Organization\":¸\x186\b\x02\x10\x1e\"\vmetadata.id*#unauthorized to update organization\x12\xc7\x01\n" +
+	"\x06create\x120.ai.stigmer.tenancy.organization.v1.Organization\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"\x04и\x18\x01\x12\xbc\x01\n" +
+	"\x06update\x12;.ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"C¸\x18?\b\x02\x10\x1e\"\x14resource.metadata.id*#unauthorized to update organization\x12\xc7\x01\n" +
 	"\x0eupdatePolicies\x12C.ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput\x1a0.ai.stigmer.tenancy.organization.v1.Organization\">¸\x18:\b\x02\x10\x1e\"\x06org_id*,unauthorized to update organization policies\x12\xa3\x01\n" +
 	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a0.ai.stigmer.tenancy.organization.v1.Organization\":¸\x186\b\x03\x10\x1e\"\vresource_id*#unauthorized to rename organization\x12\xa4\x01\n" +
 	"\x06delete\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"4¸\x180\b\x03\x10\x1e\"\x05value*#unauthorized to delete organization\x1a\x04\xa0\xff+\x1eB\xbf\x02\n" +
@@ -38,17 +38,18 @@ const file_ai_stigmer_tenancy_organization_v1_command_proto_rawDesc = "" +
 
 var file_ai_stigmer_tenancy_organization_v1_command_proto_goTypes = []any{
 	(*Organization)(nil),                    // 0: ai.stigmer.tenancy.organization.v1.Organization
-	(*UpdateOrganizationPoliciesInput)(nil), // 1: ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput
-	(*apiresource.RenameInput)(nil),         // 2: ai.stigmer.commons.apiresource.RenameInput
-	(*OrganizationId)(nil),                  // 3: ai.stigmer.tenancy.organization.v1.OrganizationId
+	(*UpdateOrganizationInput)(nil),         // 1: ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput
+	(*UpdateOrganizationPoliciesInput)(nil), // 2: ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput
+	(*apiresource.RenameInput)(nil),         // 3: ai.stigmer.commons.apiresource.RenameInput
+	(*OrganizationId)(nil),                  // 4: ai.stigmer.tenancy.organization.v1.OrganizationId
 }
 var file_ai_stigmer_tenancy_organization_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.apply:input_type -> ai.stigmer.tenancy.organization.v1.Organization
 	0, // 1: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.create:input_type -> ai.stigmer.tenancy.organization.v1.Organization
-	0, // 2: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.update:input_type -> ai.stigmer.tenancy.organization.v1.Organization
-	1, // 3: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.updatePolicies:input_type -> ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput
-	2, // 4: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
-	3, // 5: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.delete:input_type -> ai.stigmer.tenancy.organization.v1.OrganizationId
+	1, // 2: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.update:input_type -> ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput
+	2, // 3: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.updatePolicies:input_type -> ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput
+	3, // 4: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
+	4, // 5: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.delete:input_type -> ai.stigmer.tenancy.organization.v1.OrganizationId
 	0, // 6: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.apply:output_type -> ai.stigmer.tenancy.organization.v1.Organization
 	0, // 7: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.create:output_type -> ai.stigmer.tenancy.organization.v1.Organization
 	0, // 8: ai.stigmer.tenancy.organization.v1.OrganizationCommandController.update:output_type -> ai.stigmer.tenancy.organization.v1.Organization

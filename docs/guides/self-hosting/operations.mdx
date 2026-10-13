@@ -406,6 +406,16 @@ one and never deletes it). The delete answers at once, and the server then
 removes everything the Organization owned in the background, from the database
 and from the artifact store, and frees its slug last
 ([Deleting an Organization](/docs/concepts/organizations#deleting-an-organization)).
+
+A server running with a Stigmer Enterprise license keeps one record on purpose:
+the Organization's permission history. Each entry records access granted or
+removed, saying who made the change, why it was made, and when. It names the
+accounts and resources by ID, and keeps each access row as it stood, including
+the email and display name of the person who granted it. The server does not
+remove it yet. To erase a deleted Organization's history, delete its rows from
+the `iam_policy_history` and `iam_policy_history_heads` tables yourself, where
+`org` is the Organization's ID.
+
 Some copies live outside what the server can reach, and each ages out on its own
 schedule:
 

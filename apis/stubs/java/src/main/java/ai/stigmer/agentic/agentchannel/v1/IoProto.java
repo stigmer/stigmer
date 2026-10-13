@@ -66,6 +66,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentchannel_v1_CompleteChannelInstallInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentchannel_v1_UpdateAgentChannelInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentchannel_v1_UpdateAgentChannelInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -79,36 +84,46 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "proto\022\"ai.stigmer.agentic.agentchannel.v" +
       "1\032,ai/stigmer/agentic/agentchannel/v1/ap" +
       "i.proto\032\'ai/stigmer/commons/rpc/paginati" +
-      "on.proto\032\033buf/validate/validate.proto\".\n" +
-      "\016AgentChannelId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005" +
-      "value\"\224\001\n\036GetAgentChannelsByAgentRequest" +
-      "\022!\n\010agent_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022=\n\tp" +
-      "age_info\030\002 \001(\0132 .ai.stigmer.commons.rpc." +
-      "PageInfoR\010pageInfo\022\020\n\003org\030\003 \001(\tR\003org\"{\n\020" +
-      "AgentChannelList\022\037\n\013total_count\030\001 \001(\005R\nt" +
-      "otalCount\022F\n\005items\030\002 \003(\01320.ai.stigmer.ag" +
-      "entic.agentchannel.v1.AgentChannelR\005item" +
-      "s\"\221\002\n\030ListAgentChannelsRequest\022\031\n\003org\030\001 " +
-      "\001(\tB\007\272H\004r\002\020\001R\003org\022`\n\006labels\030\002 \003(\0132H.ai.s" +
-      "tigmer.agentic.agentchannel.v1.ListAgent" +
-      "ChannelsRequest.LabelsEntryR\006labels\022=\n\tp" +
-      "age_info\030\003 \001(\0132 .ai.stigmer.commons.rpc." +
-      "PageInfoR\010pageInfo\0329\n\013LabelsEntry\022\020\n\003key" +
-      "\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"F\n" +
-      "\033InitiateChannelInstallInput\022\'\n\013resource" +
-      "_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\"\177\n\034Initiat" +
-      "eChannelInstallOutput\022+\n\021authorization_u" +
-      "rl\030\001 \001(\tR\020authorizationUrl\022\024\n\005state\030\002 \001(" +
-      "\tR\005state\022\034\n\tcompleted\030\003 \001(\010R\tcompleted\"\200" +
-      "\001\n\033CompleteChannelInstallInput\022\'\n\013resour" +
-      "ce_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\034\n\005state" +
-      "\030\002 \001(\tB\006\272H\003\310\001\001R\005state\022\032\n\004code\030\003 \001(\tB\006\272H\003" +
-      "\310\001\001R\004codeB\266\001B\007IoProtoP\001\242\002\004ASAA\252\002\"Ai.Stig" +
-      "mer.Agentic.Agentchannel.V1\312\002\"Ai\\Stigmer" +
-      "\\Agentic\\Agentchannel\\V1\342\002.Ai\\Stigmer\\Ag" +
-      "entic\\Agentchannel\\V1\\GPBMetadata\352\002&Ai::" +
-      "Stigmer::Agentic::Agentchannel::V1b\006prot" +
-      "o3"
+      "on.proto\032\033buf/validate/validate.proto\032 g" +
+      "oogle/protobuf/field_mask.proto\".\n\016Agent" +
+      "ChannelId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"" +
+      "\224\001\n\036GetAgentChannelsByAgentRequest\022!\n\010ag" +
+      "ent_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022=\n\tpage_in" +
+      "fo\030\002 \001(\0132 .ai.stigmer.commons.rpc.PageIn" +
+      "foR\010pageInfo\022\020\n\003org\030\003 \001(\tR\003org\"{\n\020AgentC" +
+      "hannelList\022\037\n\013total_count\030\001 \001(\005R\ntotalCo" +
+      "unt\022F\n\005items\030\002 \003(\01320.ai.stigmer.agentic." +
+      "agentchannel.v1.AgentChannelR\005items\"\221\002\n\030" +
+      "ListAgentChannelsRequest\022\031\n\003org\030\001 \001(\tB\007\272" +
+      "H\004r\002\020\001R\003org\022`\n\006labels\030\002 \003(\0132H.ai.stigmer" +
+      ".agentic.agentchannel.v1.ListAgentChanne" +
+      "lsRequest.LabelsEntryR\006labels\022=\n\tpage_in" +
+      "fo\030\003 \001(\0132 .ai.stigmer.commons.rpc.PageIn" +
+      "foR\010pageInfo\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\t" +
+      "R\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"F\n\033Initi" +
+      "ateChannelInstallInput\022\'\n\013resource_id\030\001 " +
+      "\001(\tB\006\272H\003\310\001\001R\nresourceId\"\177\n\034InitiateChann" +
+      "elInstallOutput\022+\n\021authorization_url\030\001 \001" +
+      "(\tR\020authorizationUrl\022\024\n\005state\030\002 \001(\tR\005sta" +
+      "te\022\034\n\tcompleted\030\003 \001(\010R\tcompleted\"\200\001\n\033Com" +
+      "pleteChannelInstallInput\022\'\n\013resource_id\030" +
+      "\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\034\n\005state\030\002 \001(\t" +
+      "B\006\272H\003\310\001\001R\005state\022\032\n\004code\030\003 \001(\tB\006\272H\003\310\001\001R\004c" +
+      "ode\"\374\002\n\027UpdateAgentChannelInput\022T\n\010resou" +
+      "rce\030\001 \001(\01320.ai.stigmer.agentic.agentchan" +
+      "nel.v1.AgentChannelB\006\272H\003\330\001\003R\010resource\022C\n" +
+      "\013update_mask\030\002 \001(\0132\032.google.protobuf.Fie" +
+      "ldMaskB\006\272H\003\310\001\001R\nupdateMask:\305\001\272H\301\001\032\276\001\n\027up" +
+      "date_names_its_target\022Mresource.metadata" +
+      ".id is required: an update names the age" +
+      "nt channel by its id\032Thas(this.resource)" +
+      " && has(this.resource.metadata) && this." +
+      "resource.metadata.id != \'\'B\266\001B\007IoProtoP\001" +
+      "\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentchanne" +
+      "l.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchannel\\V" +
+      "1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\G" +
+      "PBMetadata\352\002&Ai::Stigmer::Agentic::Agent" +
+      "channel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -116,6 +131,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.agentchannel.v1.ApiProto.getDescriptor(),
           ai.stigmer.commons.rpc.PaginationProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_agentchannel_v1_AgentChannelId_descriptor =
       getDescriptor().getMessageType(0);
@@ -165,13 +181,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_CompleteChannelInstallInput_descriptor,
         new java.lang.String[] { "ResourceId", "State", "Code", });
+    internal_static_ai_stigmer_agentic_agentchannel_v1_UpdateAgentChannelInput_descriptor =
+      getDescriptor().getMessageType(7);
+    internal_static_ai_stigmer_agentic_agentchannel_v1_UpdateAgentChannelInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentchannel_v1_UpdateAgentChannelInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentchannel.v1.ApiProto.getDescriptor();
     ai.stigmer.commons.rpc.PaginationProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

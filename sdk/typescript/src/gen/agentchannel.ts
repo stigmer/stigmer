@@ -3,14 +3,14 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentChannelSchema, type AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
 import { ReplyToConversationInputSchema, ConversationControlInputSchema, ChannelConversationSchema, EscalateConversationInputSchema, ListChannelConversationsInputSchema, ChannelConversationListSchema, GetChannelConversationInputSchema, GetConversationTimelineInputSchema, ConversationTimelineSchema, GetConversationMediaDownloadUrlInputSchema, ConversationMediaDownloadUrlSchema, type ReplyToConversationInput, type ConversationControlInput, type ChannelConversation, type EscalateConversationInput, type ListChannelConversationsInput, type ChannelConversationList, type GetChannelConversationInput, type GetConversationTimelineInput, type ConversationTimeline, type GetConversationMediaDownloadUrlInput, type ConversationMediaDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
 import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
-import { AgentChannelIdSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, GetAgentChannelsByAgentRequestSchema, AgentChannelListSchema, ListAgentChannelsRequestSchema, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type GetAgentChannelsByAgentRequest, type AgentChannelList, type ListAgentChannelsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import { AgentChannelIdSchema, UpdateAgentChannelInputSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, GetAgentChannelsByAgentRequestSchema, AgentChannelListSchema, ListAgentChannelsRequestSchema, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type GetAgentChannelsByAgentRequest, type AgentChannelList, type ListAgentChannelsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
 import { SendChannelMessageOutputSchema, SendChannelMessageInputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, ListMessagingChannelsInputSchema, MessagingChannelsSchema, type SendChannelMessageOutput, type SendChannelMessageInput, type ListChannelTemplatesInput, type ChannelTemplates, type ListMessagingChannelsInput, type MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
@@ -53,9 +53,9 @@ export class AgentChannelClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: AgentChannelInput): Promise<AgentChannel> {
+  async update(resource: AgentChannel | MessageInitShape<typeof AgentChannelSchema>, paths: string[]): Promise<AgentChannel> {
     try {
-      return await this.command.update(buildAgentChannelProto(input));
+      return await this.command.update(create(UpdateAgentChannelInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -174,13 +174,13 @@ export class AgentChannelClient {
   }
 }
 
-/** Input for creating/updating an AgentChannel. */
+/** Input for creating or applying an AgentChannel. */
 export interface AgentChannelInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -295,24 +295,22 @@ function toRunConfigInput(msg: RunConfig): RunConfigInput {
 }
 
 /**
- * Maps a fetched {@link AgentChannel} to a complete {@link AgentChannelInput} for `update()`.
+ * Maps a fetched {@link AgentChannel} to the complete {@link AgentChannelInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toAgentChannelInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toAgentChannelUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toAgentChannelUpdateInput(resource: AgentChannel): AgentChannelInput {
+export function toAgentChannelInput(resource: AgentChannel): AgentChannelInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(AgentChannelSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

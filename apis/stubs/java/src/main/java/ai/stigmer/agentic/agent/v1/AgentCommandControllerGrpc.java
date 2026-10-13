@@ -77,27 +77,27 @@ public final class AgentCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.Agent,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentInput,
       ai.stigmer.agentic.agent.v1.Agent> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.agent.v1.Agent.class,
+      requestType = ai.stigmer.agentic.agent.v1.UpdateAgentInput.class,
       responseType = ai.stigmer.agentic.agent.v1.Agent.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.Agent,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentInput,
       ai.stigmer.agentic.agent.v1.Agent> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.Agent, ai.stigmer.agentic.agent.v1.Agent> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentInput, ai.stigmer.agentic.agent.v1.Agent> getUpdateMethod;
     if ((getUpdateMethod = AgentCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (AgentCommandControllerGrpc.class) {
         if ((getUpdateMethod = AgentCommandControllerGrpc.getUpdateMethod) == null) {
           AgentCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.Agent, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.UpdateAgentInput, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
+                  ai.stigmer.agentic.agent.v1.UpdateAgentInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
               .setSchemaDescriptor(new AgentCommandControllerMethodDescriptorSupplier("update"))
@@ -335,14 +335,22 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the agent was
-     * renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an agent: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the agent; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.agent.v1.Agent request,
+    default void update(ai.stigmer.agentic.agent.v1.UpdateAgentInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -486,14 +494,22 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the agent was
-     * renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an agent: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the agent; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.agent.v1.Agent request,
+    public void update(ai.stigmer.agentic.agent.v1.UpdateAgentInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -626,14 +642,22 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the agent was
-     * renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an agent: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the agent; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.Agent request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.UpdateAgentInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -761,14 +785,22 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the agent was
-     * renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an agent: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the agent; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.Agent request) {
+    public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.UpdateAgentInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -898,15 +930,23 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing agent.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the agent was
-     * renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an agent: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the agent; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> update(
-        ai.stigmer.agentic.agent.v1.Agent request) {
+        ai.stigmer.agentic.agent.v1.UpdateAgentInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -1016,7 +1056,7 @@ public final class AgentCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.agent.v1.Agent) request,
+          serviceImpl.update((ai.stigmer.agentic.agent.v1.UpdateAgentInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
           break;
         case METHODID_UPDATE_VISIBILITY:
@@ -1071,7 +1111,7 @@ public final class AgentCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.agent.v1.Agent,
+              ai.stigmer.agentic.agent.v1.UpdateAgentInput,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_UPDATE)))
         .addMethod(

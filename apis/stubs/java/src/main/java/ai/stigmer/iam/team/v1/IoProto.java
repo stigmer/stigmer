@@ -36,6 +36,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_team_v1_ListTeamsByOrgInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_team_v1_UpdateTeamInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_team_v1_UpdateTeamInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -48,19 +53,29 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n\037ai/stigmer/iam/team/v1/io.proto\022\026ai.st" +
       "igmer.iam.team.v1\032 ai/stigmer/iam/team/v" +
       "1/api.proto\032\033buf/validate/validate.proto" +
-      "\"?\n\005Teams\0226\n\007entries\030\001 \003(\0132\034.ai.stigmer." +
-      "iam.team.v1.TeamR\007entries\"0\n\023ListTeamsBy" +
-      "OrgInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003orgB\206\001B\007" +
-      "IoProtoP\001\242\002\004ASIT\252\002\026Ai.Stigmer.Iam.Team.V" +
-      "1\312\002\026Ai\\Stigmer\\Iam\\Team\\V1\342\002\"Ai\\Stigmer\\" +
-      "Iam\\Team\\V1\\GPBMetadata\352\002\032Ai::Stigmer::I" +
-      "am::Team::V1b\006proto3"
+      "\032 google/protobuf/field_mask.proto\"?\n\005Te" +
+      "ams\0226\n\007entries\030\001 \003(\0132\034.ai.stigmer.iam.te" +
+      "am.v1.TeamR\007entries\"0\n\023ListTeamsByOrgInp" +
+      "ut\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"\327\002\n\017Update" +
+      "TeamInput\022@\n\010resource\030\001 \001(\0132\034.ai.stigmer" +
+      ".iam.team.v1.TeamB\006\272H\003\330\001\003R\010resource\022C\n\013u" +
+      "pdate_mask\030\002 \001(\0132\032.google.protobuf.Field" +
+      "MaskB\006\272H\003\310\001\001R\nupdateMask:\274\001\272H\270\001\032\265\001\n\027upda" +
+      "te_names_its_target\022Dresource.metadata.i" +
+      "d is required: an update names the team " +
+      "by its id\032Thas(this.resource) && has(thi" +
+      "s.resource.metadata) && this.resource.me" +
+      "tadata.id != \'\'B\206\001B\007IoProtoP\001\242\002\004ASIT\252\002\026A" +
+      "i.Stigmer.Iam.Team.V1\312\002\026Ai\\Stigmer\\Iam\\T" +
+      "eam\\V1\342\002\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetad" +
+      "ata\352\002\032Ai::Stigmer::Iam::Team::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.iam.team.v1.ApiProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_team_v1_Teams_descriptor =
       getDescriptor().getMessageType(0);
@@ -74,12 +89,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_team_v1_ListTeamsByOrgInput_descriptor,
         new java.lang.String[] { "Org", });
+    internal_static_ai_stigmer_iam_team_v1_UpdateTeamInput_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_iam_team_v1_UpdateTeamInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_team_v1_UpdateTeamInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.iam.team.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

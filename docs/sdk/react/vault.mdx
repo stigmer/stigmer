@@ -666,7 +666,7 @@ The fields an update may change, on the vault it names.
     description: { type: "string", description: "" },
     externalId: { type: "string", description: "" },
     name: { type: "string", description: "" },
-    vault: { type: "Vault", description: "The vault as loaded (its id, org and slug address the update).", required: true, typeDescriptionLink: "/docs/sdk/resources/vault" },
+    vault: { type: "Vault", description: "The vault as loaded (its id addresses the update, its etag guards it).", required: true, typeDescriptionLink: "/docs/sdk/resources/vault" },
   }}
 />
 

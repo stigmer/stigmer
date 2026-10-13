@@ -9,6 +9,7 @@ import (
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	teamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/team/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // TeamClient provides operations on team resources.
@@ -33,12 +34,11 @@ func (t *TeamClient) Create(ctx context.Context, input *TeamInput) (*teamv1.Team
 	return resp, wrapErr(err)
 }
 
-func (t *TeamClient) Update(ctx context.Context, input *TeamInput) (*teamv1.Team, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := t.command.Update(ctx, req)
+func (t *TeamClient) Update(ctx context.Context, resource *teamv1.Team, paths []string) (*teamv1.Team, error) {
+	resp, err := t.command.Update(ctx, &teamv1.UpdateTeamInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -72,12 +72,12 @@ func (t *TeamClient) ListByOrg(ctx context.Context, input *teamv1.ListTeamsByOrg
 	return resp, wrapErr(err)
 }
 
-// TeamInput holds the fields for creating/updating a Team.
+// TeamInput holds the fields for creating or applying a Team.
 type TeamInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id          string
 	Name        string
 	Slug        string

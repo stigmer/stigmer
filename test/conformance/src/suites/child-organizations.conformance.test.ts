@@ -197,7 +197,7 @@ describe("child organizations — managed by the parent, never read by it", () =
     // Management: settings, members, access; billing is read only.
     const settings = await on.clients.organizationQuery.get({ value: child.org });
     expect(settings.metadata?.id).toBe(child.org);
-    const updated = await on.clients.organizationCommand.update({
+    const updated = await on.clients.organizationCommand.update({ resource: {
       apiVersion: ORGANIZATION_API_VERSION,
       kind: ORGANIZATION_KIND,
       metadata: {
@@ -206,7 +206,7 @@ describe("child organizations — managed by the parent, never read by it", () =
         slug: settings.metadata?.slug ?? "",
       },
       spec: { description: "edited by the parent's admin" },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.spec?.parentOrg, "the update keeps the parent").toBe(
       parent.org,
     );

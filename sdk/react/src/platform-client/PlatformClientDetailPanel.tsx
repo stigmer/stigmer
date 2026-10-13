@@ -3,7 +3,8 @@
 import { type FormEvent, type KeyboardEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
-import { getUserMessage, toPlatformClientUpdateInput } from "@stigmer/sdk";
+import { buildPlatformClientProto, getUserMessage } from "@stigmer/sdk";
+import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
@@ -188,12 +189,10 @@ export function PlatformClientDetailPanel({
       e.preventDefault();
       clearUpdateError();
       try {
-        // Full-spec-replace safety: spread the complete mapped input and
-        // override only the edited fields, so unlisted spec fields
-        // survive the save. Cleared fields are set to undefined
-        // explicitly — omitting them would carry the stale mapped value.
-        const updated = await update({
-          ...toPlatformClientUpdateInput(platformClient),
+        // The update names the fields this form edits, so unlisted spec
+        // fields (the credentials among them) keep their stored values.
+        // Cleared fields are named with undefined, which clears them.
+        const { resource, paths } = maskedEdit(platformClient, buildPlatformClientProto, {
           neverExpires,
           expiresAt:
             !neverExpires && expiresAt ? new Date(expiresAt) : undefined,
@@ -201,6 +200,7 @@ export function PlatformClientDetailPanel({
           allowedOrigins: origins,
           vaults: vaults.map(keptReference),
         });
+        const updated = await update(resource, paths);
         setMode("view");
         onUpdated?.(updated);
       } catch {
@@ -451,7 +451,7 @@ export function PlatformClientDetailPanel({
 
           {updateError && (
             <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-              {getUserMessage(updateError)}
+              {saveErrorMessage(updateError, "platform client")}
             </p>
           )}
 

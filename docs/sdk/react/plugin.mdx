@@ -1643,10 +1643,6 @@ function summariseInstall(outcome: InstallPluginOutcome): string
 
 ### toolsLeaveOut
 
-Whether the agent names the tools it may use and none of the plugin's
-servers is among them: `mcp__*`, or `mcp__<server segment>` with or
-without a tool, lets a server through.
-
 ```tsx
 function toolsLeaveOut(input: AgentInput, pluginName: string, servers: readonly string[]): boolean
 ```

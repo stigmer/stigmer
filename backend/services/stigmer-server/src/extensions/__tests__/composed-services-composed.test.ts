@@ -328,7 +328,7 @@ describe("onComposed: the policy store binding under open source's own authoriza
       relation: "organization",
     });
     const id = policyIdFor(spec);
-    await newResourceIamPolicyStore(server.store).save(
+    await newResourceIamPolicyStore(server.store, { keepsHistory: false }).save(
       create(IamPolicySchema, { metadata: { id }, spec }),
     );
 

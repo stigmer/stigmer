@@ -9,7 +9,7 @@ import ai.stigmer.iam.oauthapp.v1.OAuthAppSpec;
 import ai.stigmer.iam.oauthapp.v1.TokenEndpointAuthMethod;
 import ai.stigmer.iam.oauthapp.v1.VendorApprovalStatus;
 
-/** Input for creating/updating a OAuthApp. */
+/** Input for creating or applying a OAuthApp. */
 public final class OAuthAppInput {
     private final String id;
     private final String name;
@@ -139,9 +139,9 @@ public final class OAuthAppInput {
         private Builder() {}
 
         /**
-         * The resource's metadata.id, for exact update addressing when set
-         * from a loaded resource. Required for updates to platform-scoped
-         * (org-less) kinds, where the org+slug fallback cannot match.
+         * The resource's metadata.id: an apply that carries it changes that
+         * resource, whatever its slug. An update takes the resource itself
+         * and the paths it changes.
          */
         public Builder id(String id) { this.id = id; return this; }
         public Builder name(String name) { this.name = name; return this; }

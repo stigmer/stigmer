@@ -27,6 +27,7 @@ import {
   isSpecialType,
   firstMemberWinsOrder,
   isSyntheticOneof,
+  isUpdateInputType,
   isValuedOneofScalar,
   protoTypeToGoImportPath,
   protoTypeToPackageAlias,
@@ -236,6 +237,7 @@ function generateResourceClient(
 
   let needsIO = false;
   let needsEmptypb = false;
+  let needsFieldmaskpb = false;
   let needsApiResource = false;
   let needsApiResourceRef = false;
   const needsSearch = schema.listVia === "SearchService";
@@ -247,6 +249,7 @@ function generateResourceClient(
       if (m.inputFullType.includes("commons.apiresource")) needsApiResource = true;
       if (m.inputType === "ApiResourceReference") needsApiResourceRef = true;
       if (isEmptyType(m.inputFullType)) needsEmptypb = true;
+      if (isUpdateInputType(m.inputType, cfg.protoResType)) needsFieldmaskpb = true;
     }
   }
 
@@ -407,6 +410,9 @@ function generateResourceClient(
   if (needsEmptypb) {
     buf.push('\t"google.golang.org/protobuf/types/known/emptypb"\n');
   }
+  if (needsFieldmaskpb) {
+    buf.push('\t"google.golang.org/protobuf/types/known/fieldmaskpb"\n');
+  }
   if (needsTimestamppb) {
     buf.push('\t"google.golang.org/protobuf/types/known/timestamppb"\n');
   }
@@ -446,6 +452,7 @@ function generateMethod(
   const isIDInput = isIDType(m.inputType);
   const isDeleteInput = m.inputType === "ApiResourceDeleteInput";
   const isResourceInput = m.inputType === cfg.protoResType;
+  const isUpdateInput = isUpdateInputType(m.inputType, cfg.protoResType);
   const isApiResRefInput = m.inputType === "ApiResourceReference";
 
   if (emptyInput && emptyOutput) {
@@ -464,6 +471,13 @@ function generateMethod(
     buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, input *${inputPkg}.${inputType}) error {\n`);
     buf.push(`\t_, err := ${receiver}.${svc.role}.${m.name}(ctx, input)\n`);
     buf.push("\treturn wrapErr(err)\n}\n\n");
+  } else if (isUpdateInput) {
+    buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, resource *${outputPkg}.${cfg.protoResType}, paths []string) (*${outputPkg}.${outputType}, error) {\n`);
+    buf.push(`\tresp, err := ${receiver}.${svc.role}.${m.name}(ctx, &${inputPkg}.${inputType}{\n`);
+    buf.push("\t\tResource:   resource,\n");
+    buf.push("\t\tUpdateMask: &fieldmaskpb.FieldMask{Paths: paths},\n");
+    buf.push("\t})\n");
+    buf.push("\treturn resp, wrapErr(err)\n}\n\n");
   } else if (isResourceInput && hasInputType) {
     const inputTypeName = cfg.inputPrefix + "Input";
     buf.push(`func (${receiver} *${cfg.clientName}) ${m.name}(ctx context.Context, input *${inputTypeName}) (*${outputPkg}.${outputType}, error) {\n`);
@@ -594,12 +608,12 @@ function generateInputTypesV2(
 
   const specFields = spec.fields.filter((f) => !META_FIELD_NAMES.has(f.name));
 
-  buf.push(`// ${inputName} holds the fields for creating/updating a ${cfg.protoResType}.\n`);
+  buf.push(`// ${inputName} holds the fields for creating or applying a ${cfg.protoResType}.\n`);
   buf.push(`type ${inputName} struct {\n`);
-  buf.push("\t// Id is the resource's metadata.id, for exact update addressing when\n");
-  buf.push("\t// set from a loaded resource. Required for updates to platform-scoped\n");
-  buf.push("\t// (org-less) kinds, where the org+slug fallback cannot match. Ignored\n");
-  buf.push("\t// on create: the server assigns every new resource's id.\n");
+  buf.push("\t// Id is the resource's metadata.id: an apply that carries it changes\n");
+  buf.push("\t// that resource, whatever its slug. Ignored on create: the server\n");
+  buf.push("\t// assigns every new resource's id. An update takes the resource\n");
+  buf.push("\t// itself and the paths it changes.\n");
   buf.push("\tId         string\n");
   buf.push("\tName       string\n");
   buf.push("\tSlug       string\n");
@@ -1641,6 +1655,7 @@ const (
 	CodeFailedPrecondition
 	CodeInternal
 	CodeUnavailable
+	CodeAborted
 )
 
 // Error is the structured error type returned by all SDK operations.
@@ -1707,6 +1722,8 @@ func grpcCodeToSDK(c codes.Code) ErrorCode {
 		return CodeInternal
 	case codes.Unavailable:
 		return CodeUnavailable
+	case codes.Aborted:
+		return CodeAborted
 	default:
 		return CodeUnknown
 	}

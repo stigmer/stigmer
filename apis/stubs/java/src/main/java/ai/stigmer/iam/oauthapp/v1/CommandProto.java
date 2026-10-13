@@ -41,30 +41,31 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mer/commons/apiresource/rpc_service_opti" +
       "ons.proto\032+ai/stigmer/commons/rpc/method" +
       "_options.proto\032$ai/stigmer/iam/oauthapp/" +
-      "v1/api.proto2\345\005\n\031OAuthAppCommandControll" +
-      "er\022S\n\005apply\022$.ai.stigmer.iam.oauthapp.v1" +
-      ".OAuthApp\032$.ai.stigmer.iam.oauthapp.v1.O" +
-      "AuthApp\022\243\001\n\006create\022$.ai.stigmer.iam.oaut" +
-      "happ.v1.OAuthApp\032$.ai.stigmer.iam.oautha" +
-      "pp.v1.OAuthApp\"M\302\270\030I\010\027\020\036\"\014metadata.org*5" +
-      "unauthorized to create oauth app in this" +
-      " organization\022\215\001\n\006update\022$.ai.stigmer.ia" +
-      "m.oauthapp.v1.OAuthApp\032$.ai.stigmer.iam." +
-      "oauthapp.v1.OAuthApp\"7\302\270\0303\010\002\020\026\"\013metadata" +
-      ".id* unauthorized to update oauth app\022\224\001" +
-      "\n\006rename\022+.ai.stigmer.commons.apiresourc" +
-      "e.RenameInput\032$.ai.stigmer.iam.oauthapp." +
-      "v1.OAuthApp\"7\302\270\0303\010\003\020\026\"\013resource_id* unau" +
-      "thorized to rename OAuth app\022\237\001\n\006delete\022" +
-      "6.ai.stigmer.commons.apiresource.ApiReso" +
-      "urceDeleteInput\032$.ai.stigmer.iam.oauthap" +
-      "p.v1.OAuthApp\"7\302\270\0303\010\003\020\026\"\013resource_id* un" +
-      "authorized to delete oauth app\032\004\240\377+\026B\233\001B" +
-      "\014CommandProtoP\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam." +
-      "Oauthapp.V1\312\002\032Ai\\Stigmer\\Iam\\Oauthapp\\V1" +
-      "\342\002&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadat" +
-      "a\352\002\036Ai::Stigmer::Iam::Oauthapp::V1b\006prot" +
-      "o3"
+      "v1/api.proto\032#ai/stigmer/iam/oauthapp/v1" +
+      "/io.proto2\371\005\n\031OAuthAppCommandController\022" +
+      "S\n\005apply\022$.ai.stigmer.iam.oauthapp.v1.OA" +
+      "uthApp\032$.ai.stigmer.iam.oauthapp.v1.OAut" +
+      "hApp\022\243\001\n\006create\022$.ai.stigmer.iam.oauthap" +
+      "p.v1.OAuthApp\032$.ai.stigmer.iam.oauthapp." +
+      "v1.OAuthApp\"M\302\270\030I\010\027\020\036\"\014metadata.org*5una" +
+      "uthorized to create oauth app in this or" +
+      "ganization\022\241\001\n\006update\022/.ai.stigmer.iam.o" +
+      "authapp.v1.UpdateOAuthAppInput\032$.ai.stig" +
+      "mer.iam.oauthapp.v1.OAuthApp\"@\302\270\030<\010\002\020\026\"\024" +
+      "resource.metadata.id* unauthorized to up" +
+      "date oauth app\022\224\001\n\006rename\022+.ai.stigmer.c" +
+      "ommons.apiresource.RenameInput\032$.ai.stig" +
+      "mer.iam.oauthapp.v1.OAuthApp\"7\302\270\0303\010\003\020\026\"\013" +
+      "resource_id* unauthorized to rename OAut" +
+      "h app\022\237\001\n\006delete\0226.ai.stigmer.commons.ap" +
+      "iresource.ApiResourceDeleteInput\032$.ai.st" +
+      "igmer.iam.oauthapp.v1.OAuthApp\"7\302\270\0303\010\003\020\026" +
+      "\"\013resource_id* unauthorized to delete oa" +
+      "uth app\032\004\240\377+\026B\233\001B\014CommandProtoP\001\242\002\004ASIO\252" +
+      "\002\032Ai.Stigmer.Iam.Oauthapp.V1\312\002\032Ai\\Stigme" +
+      "r\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigmer\\Iam\\Oauth" +
+      "app\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Iam::O" +
+      "authapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -73,12 +74,14 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.oauthapp.v1.ApiProto.getDescriptor(),
+          ai.stigmer.iam.oauthapp.v1.IoProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.oauthapp.v1.ApiProto.getDescriptor();
+    ai.stigmer.iam.oauthapp.v1.IoProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);

@@ -2,7 +2,8 @@
 
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, toOrganizationUpdateInput } from "@stigmer/sdk";
+import { getUserMessage } from "@stigmer/sdk";
+import { saveErrorMessage } from "../internal/maskedEdit.js";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
@@ -39,8 +40,9 @@ export interface OrgPreferencesPanelProps {
  * run by the organization's members (first-party human operators only)
  * and delivered to the agent as background context. Editing requires
  * `can_edit` on the organization; viewers without it get a read-only
- * rendering. On save, calls `organization.update()` with the complete
- * mapped input (full-spec-replace safety) and fires `onUpdated`.
+ * rendering. On save, calls `organization.update()` naming only the
+ * preference it edits, with the etag the organization was loaded at, and
+ * fires `onUpdated`.
  *
  * All visual properties flow through `--stgm-*` design tokens. Zero
  * dependencies on Console routing, auth context, or layout — platform
@@ -127,18 +129,16 @@ export function OrgPreferencesPanel({
 
       clearError();
       try {
-        // update() is a full-spec replace: spread the complete mapped input
-        // so unedited spec fields survive. `preferences` is a nested message,
-        // so the override spreads the mapper's COMPLETE preferences too —
-        // fields this form does not own (memory_enabled) survive the save.
-        const mapped = toOrganizationUpdateInput(organization);
-        const updated = await update({
-          ...mapped,
-          preferences: {
-            ...mapped.preferences,
-            standingContext: standingContext.trim() || undefined,
+        // The update names the one preference this form owns: every other
+        // preference (memory_enabled) and every other field keep their
+        // stored values.
+        const updated = await update(
+          {
+            metadata: { id: organization.metadata?.id ?? "", etag: organization.metadata?.etag ?? "" },
+            spec: { preferences: { standingContext: standingContext.trim() } },
           },
-        });
+          ["spec.preferences.standing_context"],
+        );
         refetch();
         onUpdated?.(updated);
       } catch {
@@ -150,19 +150,18 @@ export function OrgPreferencesPanel({
 
   // The memory consent flag applies instantly (the UX-checkpoint decision):
   // a consent bit flipped-but-unsaved that silently reverts on navigation is
-  // the failure consent UX must not have. Same wipe-safe double spread.
+  // the failure consent UX must not have. It names the flag alone.
   const handleMemoryToggle = useCallback(
     async (next: boolean) => {
       if (!organization) return;
       try {
-        const mapped = toOrganizationUpdateInput(organization);
-        const updated = await updateMemoryFlag({
-          ...mapped,
-          preferences: {
-            ...mapped.preferences,
-            memoryEnabled: next || undefined,
+        const updated = await updateMemoryFlag(
+          {
+            metadata: { id: organization.metadata?.id ?? "", etag: organization.metadata?.etag ?? "" },
+            spec: { preferences: { memoryEnabled: next } },
           },
-        });
+          ["spec.preferences.memory_enabled"],
+        );
         refetch();
         onUpdated?.(updated);
       } catch {
@@ -250,7 +249,7 @@ export function OrgPreferencesPanel({
 
       {updateError && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-          {getUserMessage(updateError)}
+          {saveErrorMessage(updateError, "organization")}
         </p>
       )}
 

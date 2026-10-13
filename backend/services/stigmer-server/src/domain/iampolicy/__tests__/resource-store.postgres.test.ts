@@ -1,13 +1,16 @@
 /**
  * Runs the IamPolicyStore port-contract kit (../store-contract.ts) over the
  * OSS adapter (../resource-store.ts) on both drivers through the drivers'
- * own fixtures (sqlite always; Postgres under TEST_DATABASE_URL), and pins
- * the two behaviours that are the OSS adapter's rather than the port's:
- * save refuses a policy whose id is not the triple's derived id, the
- * invariant that makes "one row per triple" the primary key's job in open
- * source; and a principal's rows are read through the kind's list index,
- * never by decoding the whole kind, because the built-in authorizer reads
- * them on every check.
+ * own fixtures (sqlite always; Postgres under TEST_DATABASE_URL), opened
+ * with and without the permission history, and pins the behaviours that
+ * are the adapter's rather than the port's: save refuses a policy whose id
+ * is not the triple's derived id, the invariant that makes "one row per
+ * triple" the primary key's job in open source; a principal's rows are
+ * read through the kind's list index, never by decoding the whole kind,
+ * because the built-in authorizer reads them on every check; two
+ * concurrent saves of one triple end in one row and one winner; and the
+ * history: kept, one entry per change the grant path records and none for
+ * a duplicate or an id not held; not kept, none at all.
  *
  * The kit's case list is pinned by name so a case cannot drop out unnoticed:
  * another driver's test iterates the same export over its own table and
@@ -16,7 +19,10 @@
  * principals, not rows; the scope-tuple exclusions verbatim; unknown-id
  * delete a no-op; a held triple refused.
  */
+import { DatabaseSync } from "node:sqlite";
+
 import { create } from "@bufbuild/protobuf";
+import pg from "pg";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -37,7 +43,9 @@ import {
   IAM_POLICY_KIND,
   policyIdFor,
 } from "../constants.js";
+import type { PolicyChangeRecord } from "../change.js";
 import { newResourceIamPolicyStore } from "../resource-store.js";
+import { DuplicatePolicyError } from "../store.js";
 import type { IamPolicyStoreContractFixture } from "../store-contract.js";
 import { iamPolicyStoreContract } from "../store-contract.js";
 import { orgRole } from "./support.js";
@@ -59,8 +67,36 @@ const CONTRACT_CASE_NAMES = [
   "two concurrent saves of one triple end in one row and DuplicatePolicyErrors only",
 ] as const;
 
+/** One permission-history entry, the columns the adapter's cases read. */
+interface HistoryEntry {
+  readonly org: string;
+  readonly sequence: number;
+  readonly change: string;
+  readonly cause: string;
+  readonly actorId: string;
+  readonly actorClass: string;
+  readonly policyId: string;
+}
+
+const HISTORY_SQL = `SELECT org, sequence, change, cause, actor_id, actor_class, policy_id
+  FROM iam_policy_history ORDER BY org, sequence`;
+
+function historyEntryOf(row: Record<string, unknown>): HistoryEntry {
+  return {
+    org: String(row.org),
+    sequence: Number(row.sequence),
+    change: String(row.change),
+    cause: String(row.cause),
+    actorId: String(row.actor_id),
+    actorClass: String(row.actor_class),
+    policyId: String(row.policy_id),
+  };
+}
+
 interface OpenedStore {
   readonly store: Store;
+  /** Every permission-history entry, read raw (no Store member reads it). */
+  history(): Promise<HistoryEntry[]>;
   close(): Promise<void>;
 }
 
@@ -75,7 +111,20 @@ const sqliteFixture: DriverFixture = {
   skip: false,
   async open() {
     const temp = tempStore();
-    return { store: temp.store, close: () => temp.cleanup() };
+    return {
+      store: temp.store,
+      async history() {
+        const db = new DatabaseSync(temp.dbPath);
+        try {
+          return (db.prepare(HISTORY_SQL).all() as Array<Record<string, unknown>>).map(
+            historyEntryOf,
+          );
+        } finally {
+          db.close();
+        }
+      },
+      close: () => temp.cleanup(),
+    };
   },
 };
 
@@ -93,7 +142,19 @@ const postgresFixture: DriverFixture = {
       { listIndexes: LIST_INDEXES },
     );
     await store.deleteResourcesByKind(ApiResourceKind.iam_policy);
-    return { store, close: () => store.close() };
+    const raw = new pg.Pool({ connectionString: postgresDatabase.databaseUrl, max: 1 });
+    await raw.query(`TRUNCATE iam_policy_history, iam_policy_history_heads`);
+    return {
+      store,
+      async history() {
+        const result = await raw.query(HISTORY_SQL);
+        return (result.rows as Array<Record<string, unknown>>).map(historyEntryOf);
+      },
+      async close() {
+        await raw.end();
+        await store.close();
+      },
+    };
   },
 };
 
@@ -104,12 +165,15 @@ afterAll(async () => {
 describe.each([sqliteFixture, postgresFixture])(
   "IamPolicyStore over the OSS adapter ($name)",
   (fixture) => {
-    describe.skipIf(fixture.skip)("the port-contract kit", () => {
+    describe.skipIf(fixture.skip).each([
+      { keepsHistory: false },
+      { keepsHistory: true },
+    ])("the port-contract kit (keepsHistory: $keepsHistory)", (options) => {
       const cases = iamPolicyStoreContract(
         async (): Promise<IamPolicyStoreContractFixture> => {
           const opened = await fixture.open();
           return {
-            store: newResourceIamPolicyStore(opened.store),
+            store: newResourceIamPolicyStore(opened.store, options),
             disconnect: () => opened.store.close(),
             cleanup: () => opened.close(),
           };
@@ -139,7 +203,9 @@ describe.each([sqliteFixture, postgresFixture])(
       });
 
       it("refuses to save a policy whose id is not its triple's derived id", async () => {
-        const policies = newResourceIamPolicyStore(opened.store);
+        const policies = newResourceIamPolicyStore(opened.store, {
+          keepsHistory: false,
+        });
         const spec = orgRole("ida_wtr3jcf281yfk9xx61kj59fsme", "admin", "acme");
         const stray = create(IamPolicySchema, {
           apiVersion: IAM_POLICY_API_VERSION,
@@ -188,7 +254,9 @@ describe.each([sqliteFixture, postgresFixture])(
             return typeof value === "function" ? value.bind(store) : value;
           },
         });
-        const policies = newResourceIamPolicyStore(counted);
+        const policies = newResourceIamPolicyStore(counted, {
+          keepsHistory: false,
+        });
         for (const [principal, relation] of [
           ["ida_wtr3jcf281yfk9xx61kj59fsme", "admin"],
           ["ida_wtr3jcf281yfk9xx61kj59fsme", "member"],
@@ -222,6 +290,125 @@ describe.each([sqliteFixture, postgresFixture])(
         ).toEqual([]);
         expect(scans).toBe(0);
       });
+
+      it("ends two concurrent saves of one triple in one row, one winner and DuplicatePolicyErrors only", async () => {
+        const policies = newResourceIamPolicyStore(opened.store, {
+          keepsHistory: true,
+        });
+        const spec = orgRole("ida_wtr3jcf281yfk9xx61kj59fsme", "member", "acme");
+        const outcomes = await Promise.allSettled(
+          Array.from({ length: 6 }, () =>
+            policies.save(policyOf(spec), record("grant", "acme")),
+          ),
+        );
+        expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+        for (const outcome of outcomes) {
+          if (outcome.status === "rejected") {
+            expect(outcome.reason).toBeInstanceOf(DuplicatePolicyError);
+          }
+        }
+        expect(await opened.store.listResources(ApiResourceKind.iam_policy)).toHaveLength(1);
+        expect(await opened.history()).toHaveLength(1);
+      });
+    });
+
+    describe.skipIf(fixture.skip)("the permission history", () => {
+      let opened: OpenedStore;
+
+      beforeEach(async () => {
+        opened = await fixture.open();
+      });
+
+      afterEach(async () => {
+        await opened.close();
+      });
+
+      it("kept: one entry per change the grant path records, none for a duplicate, an id not held or a structural row", async () => {
+        const policies = newResourceIamPolicyStore(opened.store, {
+          keepsHistory: true,
+        });
+        const ana = orgRole("ida_wtr3jcf281yfk9xx61kj59fsme", "member", "acme");
+        const raj = orgRole("ida_0hlf2yb5mhkgb3bdzkkrptqf4d", "admin", "acme");
+        await policies.save(policyOf(ana), record("grant", "acme"));
+        await expect(
+          policies.save(policyOf(ana), record("grant", "acme")),
+        ).rejects.toBeInstanceOf(DuplicatePolicyError);
+        await policies.save(policyOf(raj), {
+          actor: { id: "ida_server", callerClass: "internal" },
+          cause: "first_sign_in",
+          organizationId: "acme",
+        });
+        await policies.deleteById(policyIdFor(ana), record("left_organization", "acme"));
+        await policies.deleteById(policyIdFor(ana), record("left_organization", "acme"));
+        await policies.deleteById("iamp_01hzzzzzzzzzzzzzzzzzzzzzzz", record("revoke", "acme"));
+        const structural = orgRole("ida_structural0000000000000000", "member", "beta");
+        await policies.save(policyOf(structural));
+        await policies.deleteById(policyIdFor(structural));
+
+        expect(await opened.history()).toEqual([
+          {
+            org: "acme",
+            sequence: 1,
+            change: "granted",
+            cause: "grant",
+            actorId: "ida_ana",
+            actorClass: "user",
+            policyId: policyIdFor(ana),
+          },
+          {
+            org: "acme",
+            sequence: 2,
+            change: "granted",
+            cause: "first_sign_in",
+            actorId: "ida_server",
+            actorClass: "internal",
+            policyId: policyIdFor(raj),
+          },
+          {
+            org: "acme",
+            sequence: 3,
+            change: "revoked",
+            cause: "left_organization",
+            actorId: "ida_ana",
+            actorClass: "user",
+            policyId: policyIdFor(ana),
+          },
+        ]);
+      });
+
+      it("not kept: the records change nothing and nothing is written", async () => {
+        const policies = newResourceIamPolicyStore(opened.store, {
+          keepsHistory: false,
+        });
+        const ana = orgRole("ida_wtr3jcf281yfk9xx61kj59fsme", "member", "acme");
+        await policies.save(policyOf(ana), record("grant", "acme"));
+        expect((await policies.findById(policyIdFor(ana)))?.spec).toEqual(ana);
+        await policies.deleteById(policyIdFor(ana), record("revoke", "acme"));
+        expect(await policies.findById(policyIdFor(ana))).toBeUndefined();
+        expect(await opened.history()).toEqual([]);
+      });
     });
   },
 );
+
+/** The row the grant path writes for a triple: its derived id and the triple. */
+function policyOf(spec: ReturnType<typeof orgRole>) {
+  return create(IamPolicySchema, {
+    apiVersion: IAM_POLICY_API_VERSION,
+    kind: IAM_POLICY_KIND,
+    metadata: create(ApiResourceMetadataSchema, { id: policyIdFor(spec) }),
+    spec,
+  });
+}
+
+/** A change record by Ana, a user, through `cause`. */
+function record(
+  cause: PolicyChangeRecord["cause"],
+  organizationId: string,
+): PolicyChangeRecord {
+  return {
+    actor: { id: "ida_ana", callerClass: "user" },
+    cause,
+    organizationId,
+  };
+}

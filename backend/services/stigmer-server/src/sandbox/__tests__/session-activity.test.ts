@@ -378,7 +378,7 @@ describe("recentActivity(sessionId)", () => {
 
   it("answers as the full read does through creates, completions, deletions and a stamp ahead of the clock", async () => {
     const r = rig();
-    const steps: Array<[string, () => Promise<void>]> = [
+    const steps: Array<[string, () => Promise<unknown>]> = [
       ["no runs yet", async () => {}],
       [
         "a turn starts",
@@ -743,7 +743,7 @@ describe("recentActivity(sessionId)", () => {
   });
 
   it("counts a held-back stamp once the clock reaches it, only while its run still carries it, and then stops re-reading the run", async () => {
-    const cases: Array<[string, () => Promise<void>]> = [
+    const cases: Array<[string, () => Promise<unknown>]> = [
       ["the run is unchanged", async () => {}],
       [
         "a late report rewrote the completion",

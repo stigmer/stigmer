@@ -9,13 +9,15 @@ import { file_ai_stigmer_agentic_memory_v1_api } from "./api_pb.js";
 import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/memory/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_memory_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvbWVtb3J5L3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxIiEKCE1lbW9yeUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiYAoTTGlzdE1lbW9yaWVzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJWCgpNZW1vcnlMaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEjMKBWl0ZW1zGAIgAygLMiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnliBnByb3RvMw", [file_ai_stigmer_agentic_memory_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvbWVtb3J5L3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMubWVtb3J5LnYxIiEKCE1lbW9yeUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiYAoTTGlzdE1lbW9yaWVzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJWCgpNZW1vcnlMaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEjMKBWl0ZW1zGAIgAygLMiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnkizQIKEVVwZGF0ZU1lbW9yeUlucHV0Ej4KCHJlc291cmNlGAEgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLm1lbW9yeS52MS5NZW1vcnlCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq+AbpIugEatwEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkZyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBtZW1vcnkgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_agentic_memory_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * MemoryId wraps a memory identifier.
@@ -93,4 +95,37 @@ export type MemoryList = Message<"ai.stigmer.agentic.memory.v1.MemoryList"> & {
  */
 export const MemoryListSchema: GenMessage<MemoryList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_memory_v1_io, 2);
+
+/**
+ * The changes an update makes to a memory: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.agentic.memory.v1.UpdateMemoryInput
+ */
+export type UpdateMemoryInput = Message<"ai.stigmer.agentic.memory.v1.UpdateMemoryInput"> & {
+  /**
+   * The memory carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.agentic.memory.v1.Memory resource = 1;
+   */
+  resource?: Memory;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.memory.v1.UpdateMemoryInput.
+ * Use `create(UpdateMemoryInputSchema)` to create a new message.
+ */
+export const UpdateMemoryInputSchema: GenMessage<UpdateMemoryInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_memory_v1_io, 3);
 

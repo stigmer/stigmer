@@ -9,10 +9,11 @@
  * none of these leaves the session alone.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useSessionConversation } from "../useSessionConversation";
@@ -46,6 +47,15 @@ const WITH_REPOSITORY_TOKEN = create(SessionSchema, {
 });
 
 let stored = STORED;
+
+/** The git repositories a sent session's workspace names, as plain values. */
+function repositoriesOf(session: Session): Array<{ name: string; url: string; branch: string; token: string }> {
+  return (session.spec?.workspaceEntries ?? []).flatMap((entry) =>
+    entry.source?.source.case === "gitRepo"
+      ? [{ name: entry.name, url: entry.source.source.value.url, branch: entry.source.source.value.branch, token: entry.source.source.value.token }]
+      : [],
+  );
+}
 let sessionUpdate: ReturnType<typeof vi.fn>;
 let runCreate: ReturnType<typeof vi.fn>;
 
@@ -84,8 +94,10 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
     });
 
     expect(sessionUpdate).toHaveBeenCalledTimes(1);
-    expect(sessionUpdate.mock.calls[0][0].includeMyVault).toBeUndefined();
-    expect(sessionUpdate.mock.calls[0][0].vaults).toBeUndefined();
+    const sent = sentUpdate<Session>(sessionUpdate);
+    expect(sent.paths).toEqual(["spec.vaults", "spec.include_my_vault"]);
+    expect(sent.resource.spec?.includeMyVault).toBe(false);
+    expect(sent.resource.spec?.vaults).toEqual([]);
     const runInput = runCreate.mock.calls[0][0];
     expect(runInput).not.toHaveProperty("runtimeEnv");
     expect(runInput).not.toHaveProperty("vaults");
@@ -98,8 +110,10 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
       await result.current.sendFollowUp("go", { vaults: [{ org: "org_acme", slug: "billing" }] });
     });
 
-    expect(sessionUpdate.mock.calls[0][0].includeMyVault).toBe(true);
-    expect(sessionUpdate.mock.calls[0][0].vaults).toEqual([{ org: "org_acme", slug: "billing" }]);
+    // The vaults alone: the stored My vault tick is not named, so it stays.
+    const sent = sentUpdate<Session>(sessionUpdate);
+    expect(sent.paths).toEqual(["spec.vaults"]);
+    expect(sentRefs(sent.resource.spec?.vaults)).toEqual([{ org: "org_acme", slug: "billing" }]);
   });
 
   it("keeps a repository's stored token when the workspace sent omits it", async () => {
@@ -115,12 +129,11 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
       });
     });
 
-    expect(sessionUpdate.mock.calls[0][0].workspaceEntries).toEqual([
-      {
-        name: "acme/api",
-        source: { gitRepo: { url: "https://github.com/acme/api.git", branch: "main", token: MARKER } },
-      },
-      { name: "acme/web", source: { gitRepo: { url: "https://github.com/acme/web.git" } } },
+    const sent = sentUpdate<Session>(sessionUpdate);
+    expect(sent.paths).toEqual(["spec.workspace_entries"]);
+    expect(repositoriesOf(sent.resource)).toEqual([
+      { name: "acme/api", url: "https://github.com/acme/api.git", branch: "main", token: MARKER },
+      { name: "acme/web", url: "https://github.com/acme/web.git", branch: "", token: "" },
     ]);
   });
 
@@ -143,8 +156,8 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
       });
     });
 
-    expect(sessionUpdate.mock.calls[0][0].workspaceEntries[0].source.gitRepo).not.toHaveProperty("token");
-    expect(sessionUpdate.mock.calls[1][0].workspaceEntries[0].source.gitRepo.token).toBe("fresh");
+    expect(repositoriesOf(sentUpdate<Session>(sessionUpdate).resource)[0]?.token).toBe("");
+    expect(repositoriesOf(sentUpdate<Session>(sessionUpdate, 1).resource)[0]?.token).toBe("fresh");
   });
 
   it("leaves the session alone when a follow-up carries none of them", async () => {

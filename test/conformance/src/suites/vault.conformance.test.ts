@@ -182,14 +182,14 @@ describe("Vault conformance — shared vaults", () => {
     const read = await clients.vaultQuery.get({ value: created.metadata!.id });
 
     const renamed = uniqueName("renamed");
-    const updated = await clients.vaultCommand.update({
+    const updated = await clients.vaultCommand.update({ resource: {
       apiVersion: VAULT_API_VERSION,
       kind: VAULT_KIND,
       metadata: { ...read.metadata!, name: renamed },
       // Sending back what a read showed (every value blank), or nothing at
       // all, never touches the stored entries.
       spec: { description: "after", externalId: `ext-${renamed}`, secrets: {} },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.id).toBe(created.metadata?.id);
     expect(updated.metadata?.slug).toBe(created.metadata?.slug);
@@ -205,12 +205,12 @@ describe("Vault conformance — shared vaults", () => {
     const created = await createShared(org);
     await expectGrpcCode(
       () =>
-        clients.vaultCommand.update({
+        clients.vaultCommand.update({ resource: {
           apiVersion: VAULT_API_VERSION,
           kind: VAULT_KIND,
           metadata: created.metadata!,
           spec: { owner: { case: "person", value: "someone" } },
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.InvalidArgument,
       "update moving the vault to a person",
     );

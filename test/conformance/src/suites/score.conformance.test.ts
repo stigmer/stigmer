@@ -120,7 +120,7 @@ describe("Score conformance (no finished run)", () => {
     const update = makeFeedback(org, MISSING_RUN_ID, false);
     update.metadata = { ...update.metadata, id: MISSING_SCORE_ID };
     await expectGrpcCode(
-      () => clients.scoreCommand.update(update),
+      () => clients.scoreCommand.update({ resource: update, updateMask: { paths: ["*"] } }),
       Code.NotFound,
       "update of a missing score",
     );

@@ -12,6 +12,7 @@ import (
 	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -477,11 +478,71 @@ func (x *SharedAgentProfile) GetAgentRef() *apiresource.ApiResourceReference {
 	return nil
 }
 
+// The changes an update makes to an agent share: the fields update_mask names,
+// taken from resource.
+type UpdateAgentShareInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The agent share carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *AgentShare `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAgentShareInput) Reset() {
+	*x = UpdateAgentShareInput{}
+	mi := &file_ai_stigmer_agentic_agentshare_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAgentShareInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAgentShareInput) ProtoMessage() {}
+
+func (x *UpdateAgentShareInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentshare_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAgentShareInput.ProtoReflect.Descriptor instead.
+func (*UpdateAgentShareInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateAgentShareInput) GetResource() *AgentShare {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateAgentShareInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_agentshare_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"1\n" +
+	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"1\n" +
 	"\fAgentShareId\x12!\n" +
 	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"\x92\x01\n" +
 	"\x1cGetAgentSharesByAgentRequest\x12!\n" +
@@ -512,7 +573,12 @@ const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x05 \x01(\tR\aiconUrl\x12W\n" +
-	"\tagent_ref\x18\a \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRefJ\x04\b\x06\x10\aR\x13default_instance_idB\xac\x02\n" +
+	"\tagent_ref\x18\a \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRefJ\x04\b\x06\x10\aR\x13default_instance_id\"\xf4\x02\n" +
+	"\x15UpdateAgentShareInput\x12P\n" +
+	"\bresource\x18\x01 \x01(\v2,.ai.stigmer.agentic.agentshare.v1.AgentShareB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xc3\x01\xbaH\xbf\x01\x1a\xbc\x01\n" +
+	"\x17update_names_its_target\x12Kresource.metadata.id is required: an update names the agent share by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xac\x02\n" +
 	"$com.ai.stigmer.agentic.agentshare.v1B\aIoProtoP\x01ZVgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
 var (
@@ -527,7 +593,7 @@ func file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentshare_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_agentic_agentshare_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_agentic_agentshare_v1_io_proto_goTypes = []any{
 	(*AgentShareId)(nil),                     // 0: ai.stigmer.agentic.agentshare.v1.AgentShareId
 	(*GetAgentSharesByAgentRequest)(nil),     // 1: ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest
@@ -536,22 +602,26 @@ var file_ai_stigmer_agentic_agentshare_v1_io_proto_goTypes = []any{
 	(*RotateShareLinkInput)(nil),             // 4: ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput
 	(*GetSharedProfileRequest)(nil),          // 5: ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest
 	(*SharedAgentProfile)(nil),               // 6: ai.stigmer.agentic.agentshare.v1.SharedAgentProfile
-	nil,                                      // 7: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),                     // 8: ai.stigmer.commons.rpc.PageInfo
-	(*AgentShare)(nil),                       // 9: ai.stigmer.agentic.agentshare.v1.AgentShare
-	(*apiresource.ApiResourceReference)(nil), // 10: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*UpdateAgentShareInput)(nil),            // 7: ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput
+	nil,                                      // 8: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntry
+	(*rpc.PageInfo)(nil),                     // 9: ai.stigmer.commons.rpc.PageInfo
+	(*AgentShare)(nil),                       // 10: ai.stigmer.agentic.agentshare.v1.AgentShare
+	(*apiresource.ApiResourceReference)(nil), // 11: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*fieldmaskpb.FieldMask)(nil),            // 12: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_agentshare_v1_io_proto_depIdxs = []int32{
-	8,  // 0: ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	9,  // 1: ai.stigmer.agentic.agentshare.v1.AgentShareList.items:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShare
-	7,  // 2: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.labels:type_name -> ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntry
-	8,  // 3: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	10, // 4: ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5,  // [5:5] is the sub-list for method output_type
-	5,  // [5:5] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	9,  // 0: ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	10, // 1: ai.stigmer.agentic.agentshare.v1.AgentShareList.items:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShare
+	8,  // 2: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.labels:type_name -> ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.LabelsEntry
+	9,  // 3: ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	11, // 4: ai.stigmer.agentic.agentshare.v1.SharedAgentProfile.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	10, // 5: ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput.resource:type_name -> ai.stigmer.agentic.agentshare.v1.AgentShare
+	12, // 6: ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput.update_mask:type_name -> google.protobuf.FieldMask
+	7,  // [7:7] is the sub-list for method output_type
+	7,  // [7:7] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentshare_v1_io_proto_init() }
@@ -566,7 +636,7 @@ func file_ai_stigmer_agentic_agentshare_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

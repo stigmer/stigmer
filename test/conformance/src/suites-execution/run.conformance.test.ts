@@ -407,7 +407,7 @@ describe("Run conformance — a turn belongs to its session and its session's or
     const current = await clients.agentExecutionQuery.get({ value: moved.metadata!.id });
     current.spec!.target = { case: "sessionId", value: sessionIdOf(elsewhere) };
     const refused = await expectGrpcCode(
-      () => clients.agentExecutionCommand.update(current),
+      () => clients.agentExecutionCommand.update({ resource: current, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update to another session",
     );
@@ -831,12 +831,6 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
     const final = await awaitTerminal(clients, created.metadata!.id);
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
-
-  // The validation negative (the harness_state_id server-owned-field guard)
-  // lives in the CRUD-level suite (suites/run.conformance.test.ts):
-  // it needs no engine, and only src/suites/** runs against the cloud edition,
-  // which is what gates cloud on the shared validation contract. Do not re-add
-  // it here.
 });
 
 // The cross-process artifact contract (stigmer/stigmer#285). Nothing else in the

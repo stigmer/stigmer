@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
@@ -18,13 +19,25 @@ import {
 
 function createMockStigmer(overrides: {
   apply?: (input: AgentShareInput) => Promise<unknown>;
+  update?: (resource: AgentShare, paths: string[]) => Promise<unknown>;
 } = {}) {
   return {
     agentShare: {
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
+      update: overrides.update ?? vi.fn().mockResolvedValue({}),
     },
   } as never;
 }
+
+/** Every field the share dialog saves, by its path. */
+const DRAFT_PATHS = [
+  "spec.enabled",
+  "spec.audience",
+  "spec.allowed_origins",
+  "spec.messages",
+  "spec.vaults",
+  "spec.run_config",
+];
 
 function wrapper(client: unknown) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -97,11 +110,12 @@ describe("useSaveAgentShare", () => {
     expect(input.runConfig).toEqual({ modelName: "gpt-5-mini", maxCostUsd: 0.25 });
   });
 
-  it("keeps the existing share's identity when editing (a renamed share is never forked)", async () => {
+  it("edits an existing share by its id, naming the draft's fields (a renamed share is never forked)", async () => {
     const apply = vi.fn().mockResolvedValue({});
-    const client = createMockStigmer({ apply });
-    // A share created via manifest with a non-default slug: applying with
-    // the agent's slug would create a SECOND share instead of updating.
+    const update = vi.fn().mockResolvedValue({});
+    const client = createMockStigmer({ apply, update });
+    // A share created via manifest with a non-default slug: an apply with
+    // the agent's slug would create a SECOND share; an update names it by id.
     const renamedShare = {
       metadata: { id: "ash_1", org: "acme", slug: "help-desk", name: "Help Desk" },
       spec: { enabled: true },
@@ -113,11 +127,12 @@ describe("useSaveAgentShare", () => {
 
     await act(() => result.current.save(FULL_DRAFT, renamedShare));
 
-    const input = apply.mock.calls[0][0] as AgentShareInput;
-    expect(input.slug).toBe("help-desk");
-    expect(input.name).toBe("Help Desk");
-    // The agent reference is the agent's identity regardless of share slug.
-    expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
+    expect(apply).not.toHaveBeenCalled();
+    const sent = sentUpdate<AgentShare>(update);
+    expect(sent.id).toBe("ash_1");
+    expect(sent.paths).toEqual(DRAFT_PATHS);
+    // The agent reference is not named: it stays as stored.
+    expect(sent.paths).not.toContain("spec.agent_ref");
   });
 
   it("disabling still carries origins, messages, bindings, and audience (toggle never clobbers config)", async () => {
@@ -153,12 +168,11 @@ describe("useSaveAgentShare", () => {
     expect(input.audience).toBe(AgentShareAudience.org);
   });
 
-  it("a pause/resume toggle built from draftFromShare carries run_config (never wipes an API-set override)", async () => {
-    const apply = vi.fn().mockResolvedValue({});
-    const client = createMockStigmer({ apply });
+  it("a pause/resume toggle names spec.enabled alone, so an API-set run_config stays", async () => {
+    const update = vi.fn().mockResolvedValue({});
+    const client = createMockStigmer({ update });
     // A share whose run_config was set via CLI/API — the console list's
-    // toggle rebuilds the full spec from draftFromShare, so the override
-    // must ride through even though no console surface edits it.
+    // toggle names `enabled` alone, so no console save can touch it.
     const share = {
       metadata: { id: "ash_1", org: "acme", slug: "support-agent", name: "Support Agent" },
       spec: {
@@ -174,22 +188,17 @@ describe("useSaveAgentShare", () => {
     });
 
     await act(() =>
-      result.current.save({ ...draftFromShare(share), enabled: false }, share),
+      result.current.save({ ...draftFromShare(share), enabled: false }, share, undefined, ["enabled"]),
     );
 
-    const input = apply.mock.calls[0][0] as AgentShareInput;
-    expect(input.enabled).toBe(false);
-    expect(input.runConfig).toEqual({
-      modelName: "gpt-5-mini",
-      maxCostUsd: 0.25,
-      maxToolRounds: 8,
-      serviceTier: undefined,
-    });
+    const sent = sentUpdate<AgentShare>(update);
+    expect(sent.paths).toEqual(["spec.enabled"]);
+    expect(sent.resource.spec?.enabled).toBe(false);
   });
 
   it("a save built from draftFromShare carries every run_config field (stigmer#1905)", async () => {
-    const apply = vi.fn().mockResolvedValue({});
-    const client = createMockStigmer({ apply });
+    const update = vi.fn().mockResolvedValue({});
+    const client = createMockStigmer({ update });
     // Every RunConfig field set: a draft that dropped any one of them
     // would silently clear the owner's setting on the next pause/resume.
     const runConfig = {
@@ -213,8 +222,9 @@ describe("useSaveAgentShare", () => {
       result.current.save({ ...draftFromShare(share), enabled: false }, share),
     );
 
-    const input = apply.mock.calls[0][0] as AgentShareInput;
-    expect(input.runConfig).toStrictEqual(runConfig);
+    const sent = sentUpdate<AgentShare>(update);
+    expect(sent.paths).toContain("spec.run_config");
+    expect(sent.resource.spec?.runConfig).toMatchObject(runConfig);
   });
 
   it("draftFromShare leaves run_config undefined when the share carries none", () => {
@@ -273,7 +283,8 @@ describe("useSaveAgentShare", () => {
       // A share written before sharing across organizations was retired
       // may live in another organization; an edit must not re-home it.
       const apply = vi.fn().mockResolvedValue({});
-      const client = createMockStigmer({ apply });
+      const update = vi.fn().mockResolvedValue({});
+      const client = createMockStigmer({ apply, update });
       const legacyShare = {
         metadata: {
           id: "ash_ext",
@@ -290,10 +301,12 @@ describe("useSaveAgentShare", () => {
 
       await act(() => result.current.save(FULL_DRAFT, legacyShare));
 
-      const input = apply.mock.calls[0][0] as AgentShareInput;
-      expect(input.org).toBe("consumer-org");
-      expect(input.slug).toBe("renamed-channel");
-      expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
+      // An update names the share by its id: its organization and slug are
+      // never named, so it is never re-homed.
+      expect(apply).not.toHaveBeenCalled();
+      const sent = sentUpdate<AgentShare>(update);
+      expect(sent.id).toBe("ash_ext");
+      expect(sent.paths).toEqual(DRAFT_PATHS);
     });
   });
 

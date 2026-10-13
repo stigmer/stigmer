@@ -33,8 +33,6 @@ const SRC = path.resolve(HERE, "../..");
 const SAVE_RESOURCE_CREATES: Readonly<Record<string, string>> = {
   "pipeline/steps/persist.ts":
     "Persist saves only when its chain loaded no row (a create); an update swaps on the loaded bytes, and a push stores a found row by swap",
-  "domain/iampolicy/resource-store.ts":
-    "save refuses a held id before it writes; a policy row is never rewritten",
   "domain/identityaccount/resource-store.ts":
     "save refuses a held id before it writes; an update swaps",
   "domain/platformclient/resource-store.ts":

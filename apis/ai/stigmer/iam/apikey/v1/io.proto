@@ -4,6 +4,7 @@ package ai.stigmer.iam.apikey.v1;
 
 import "ai/stigmer/iam/apikey/v1/api.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 
 // ApiKeys contains a list of API key resources.
@@ -47,4 +48,24 @@ message CreateServiceAccountKeyInput {
 
   // When true, the key never expires regardless of expires_at.
   bool never_expires = 4;
+}
+
+// The changes an update makes to an API key: the fields update_mask names,
+// taken from resource.
+message UpdateApiKeyInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the API key by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The API key carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  ApiKey resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }

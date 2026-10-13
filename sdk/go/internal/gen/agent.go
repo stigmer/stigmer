@@ -15,6 +15,7 @@ import (
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // AgentClient provides operations on agent resources.
@@ -50,12 +51,11 @@ func (a *AgentClient) Create(ctx context.Context, input *AgentInput) (*agentv1.A
 	return resp, wrapErr(err)
 }
 
-func (a *AgentClient) Update(ctx context.Context, input *AgentInput) (*agentv1.Agent, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := a.command.Update(ctx, req)
+func (a *AgentClient) Update(ctx context.Context, resource *agentv1.Agent, paths []string) (*agentv1.Agent, error) {
+	resp, err := a.command.Update(ctx, &agentv1.UpdateAgentInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -120,12 +120,12 @@ func (a *AgentClient) List(ctx context.Context, params *ListParams) (*ListResult
 	}, nil
 }
 
-// AgentInput holds the fields for creating/updating a Agent.
+// AgentInput holds the fields for creating or applying a Agent.
 type AgentInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id              string
 	Name            string
 	Slug            string

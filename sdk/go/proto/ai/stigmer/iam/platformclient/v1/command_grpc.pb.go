@@ -59,26 +59,27 @@ type PlatformClientCommandControllerClient interface {
 	//   - SLUG_RESERVED — another platform client held the slug until a recent
 	//     rename, and it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClientCreateResponse, error)
-	// Update an existing platform client.
+	// Update a platform client: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The name, labels and every spec field can be changed except the
-	// credential fields (client_id, client_secret_hash, secret_fingerprint),
-	// which are kept from the stored client. Use rotateSecret to change the
-	// client secret. A system-managed client cannot be updated.
+	// The credential fields (client_id, client_secret_hash, secret_fingerprint)
+	// are kept from the stored client: use rotateSecret to change the client
+	// secret. A system-managed client cannot be updated.
 	//
-	// The slug changes only through rename. An update authorizes the id it
-	// names, so wherever the server authorizes requests, an update without an
-	// id is refused before its slug is read. Where it reads one (a server that
-	// admits every caller), a slug the platform client was renamed away from,
-	// named without the platform client's id, is refused with
-	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-	// "stigmer.ai"), because a write by a name that stops resolving after 30 days
-	// would later make a second platform client:
+	// resource.metadata.id names the platform client; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the platform client does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
 	//
-	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-	//     platform client for reading, but a write names its current slug.
-	//     Metadata: slug (the one the request named).
-	Update(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClient, error)
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the platform client kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdatePlatformClientInput, opts ...grpc.CallOption) (*PlatformClient, error)
 	// Rename a platform client: change its slug, the name people type.
 	//
 	// The platform client keeps its id, so everything that names it keeps
@@ -134,7 +135,7 @@ func (c *platformClientCommandControllerClient) Create(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *platformClientCommandControllerClient) Update(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClient, error) {
+func (c *platformClientCommandControllerClient) Update(ctx context.Context, in *UpdatePlatformClientInput, opts ...grpc.CallOption) (*PlatformClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PlatformClient)
 	err := c.cc.Invoke(ctx, PlatformClientCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -206,26 +207,27 @@ type PlatformClientCommandControllerServer interface {
 	//   - SLUG_RESERVED — another platform client held the slug until a recent
 	//     rename, and it still leads there. Metadata: slug.
 	Create(context.Context, *PlatformClient) (*PlatformClientCreateResponse, error)
-	// Update an existing platform client.
+	// Update a platform client: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The name, labels and every spec field can be changed except the
-	// credential fields (client_id, client_secret_hash, secret_fingerprint),
-	// which are kept from the stored client. Use rotateSecret to change the
-	// client secret. A system-managed client cannot be updated.
+	// The credential fields (client_id, client_secret_hash, secret_fingerprint)
+	// are kept from the stored client: use rotateSecret to change the client
+	// secret. A system-managed client cannot be updated.
 	//
-	// The slug changes only through rename. An update authorizes the id it
-	// names, so wherever the server authorizes requests, an update without an
-	// id is refused before its slug is read. Where it reads one (a server that
-	// admits every caller), a slug the platform client was renamed away from,
-	// named without the platform client's id, is refused with
-	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-	// "stigmer.ai"), because a write by a name that stops resolving after 30 days
-	// would later make a second platform client:
+	// resource.metadata.id names the platform client; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the platform client does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
 	//
-	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-	//     platform client for reading, but a write names its current slug.
-	//     Metadata: slug (the one the request named).
-	Update(context.Context, *PlatformClient) (*PlatformClient, error)
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the platform client kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdatePlatformClientInput) (*PlatformClient, error)
 	// Rename a platform client: change its slug, the name people type.
 	//
 	// The platform client keeps its id, so everything that names it keeps
@@ -273,7 +275,7 @@ type UnimplementedPlatformClientCommandControllerServer struct{}
 func (UnimplementedPlatformClientCommandControllerServer) Create(context.Context, *PlatformClient) (*PlatformClientCreateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedPlatformClientCommandControllerServer) Update(context.Context, *PlatformClient) (*PlatformClient, error) {
+func (UnimplementedPlatformClientCommandControllerServer) Update(context.Context, *UpdatePlatformClientInput) (*PlatformClient, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedPlatformClientCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*PlatformClient, error) {
@@ -324,7 +326,7 @@ func _PlatformClientCommandController_Create_Handler(srv interface{}, ctx contex
 }
 
 func _PlatformClientCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PlatformClient)
+	in := new(UpdatePlatformClientInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -336,7 +338,7 @@ func _PlatformClientCommandController_Update_Handler(srv interface{}, ctx contex
 		FullMethod: PlatformClientCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlatformClientCommandControllerServer).Update(ctx, req.(*PlatformClient))
+		return srv.(PlatformClientCommandControllerServer).Update(ctx, req.(*UpdatePlatformClientInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

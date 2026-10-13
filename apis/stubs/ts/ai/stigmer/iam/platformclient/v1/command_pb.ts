@@ -10,14 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { PlatformClientSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_platformclient_v1_api } from "./api_pb.js";
-import type { PlatformClientCreateResponseSchema, PlatformClientIdSchema } from "./io_pb.js";
+import type { PlatformClientCreateResponseSchema, PlatformClientIdSchema, UpdatePlatformClientInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_platformclient_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/platformclient/v1/command.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MTLJBwofUGxhdGZvcm1DbGllbnRDb21tYW5kQ29udHJvbGxlchLPAQoGY3JlYXRlEjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQaPi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlIlPCuBhPCBgQHiIMbWV0YWRhdGEub3JnKjt1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHBsYXRmb3JtIGNsaWVudCBpbiB0aGlzIG9yZ2FuaXphdGlvbhKrAQoGdXBkYXRlEjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQaMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudCI9wrgYOQgCEBciC21ldGFkYXRhLmlkKiZ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHBsYXRmb3JtIGNsaWVudBKmAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQiPcK4GDkIAxAXIgtyZXNvdXJjZV9pZComdW5hdXRob3JpemVkIHRvIHJlbmFtZSBwbGF0Zm9ybSBjbGllbnQSsQEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQiPcK4GDkIAxAXIgtyZXNvdXJjZV9pZComdW5hdXRob3JpemVkIHRvIGRlbGV0ZSBwbGF0Zm9ybSBjbGllbnQSwgEKDHJvdGF0ZVNlY3JldBIyLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50SWQaPi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlIj7CuBg6CAIQFyIFdmFsdWUqLXVuYXV0aG9yaXplZCB0byByb3RhdGUgcGxhdGZvcm0gY2xpZW50IHNlY3JldBoEoP8rF2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_platformclient_v1_api, file_ai_stigmer_iam_platformclient_v1_io]);
+  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MTLdBwofUGxhdGZvcm1DbGllbnRDb21tYW5kQ29udHJvbGxlchLPAQoGY3JlYXRlEjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQaPi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlIlPCuBhPCBgQHiIMbWV0YWRhdGEub3JnKjt1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHBsYXRmb3JtIGNsaWVudCBpbiB0aGlzIG9yZ2FuaXphdGlvbhK/AQoGdXBkYXRlEjsuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuVXBkYXRlUGxhdGZvcm1DbGllbnRJbnB1dBowLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50IkbCuBhCCAIQFyIUcmVzb3VyY2UubWV0YWRhdGEuaWQqJnVuYXV0aG9yaXplZCB0byB1cGRhdGUgcGxhdGZvcm0gY2xpZW50EqYBCgZyZW5hbWUSKy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuUmVuYW1lSW5wdXQaMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudCI9wrgYOQgDEBciC3Jlc291cmNlX2lkKiZ1bmF1dGhvcml6ZWQgdG8gcmVuYW1lIHBsYXRmb3JtIGNsaWVudBKxAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudCI9wrgYOQgDEBciC3Jlc291cmNlX2lkKiZ1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHBsYXRmb3JtIGNsaWVudBLCAQoMcm90YXRlU2VjcmV0EjIuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnRJZBo+LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50Q3JlYXRlUmVzcG9uc2UiPsK4GDoIAhAXIgV2YWx1ZSotdW5hdXRob3JpemVkIHRvIHJvdGF0ZSBwbGF0Zm9ybSBjbGllbnQgc2VjcmV0GgSg/ysXYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_platformclient_v1_api, file_ai_stigmer_iam_platformclient_v1_io]);
 
 /**
  * PlatformClientCommandController provides write operations for platform client resources.
@@ -60,31 +60,32 @@ export const PlatformClientCommandController: GenService<{
     output: typeof PlatformClientCreateResponseSchema;
   },
   /**
-   * Update an existing platform client.
+   * Update a platform client: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * The name, labels and every spec field can be changed except the
-   * credential fields (client_id, client_secret_hash, secret_fingerprint),
-   * which are kept from the stored client. Use rotateSecret to change the
-   * client secret. A system-managed client cannot be updated.
+   * The credential fields (client_id, client_secret_hash, secret_fingerprint)
+   * are kept from the stored client: use rotateSecret to change the client
+   * secret. A system-managed client cannot be updated.
    *
-   * The slug changes only through rename. An update authorizes the id it
-   * names, so wherever the server authorizes requests, an update without an
-   * id is refused before its slug is read. Where it reads one (a server that
-   * admits every caller), a slug the platform client was renamed away from,
-   * named without the platform client's id, is refused with
-   * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-   * "stigmer.ai"), because a write by a name that stops resolving after 30 days
-   * would later make a second platform client:
+   * resource.metadata.id names the platform client; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the platform client does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
    *
-   *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-   *     platform client for reading, but a write names its current slug.
-   *     Metadata: slug (the one the request named).
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the platform client kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof PlatformClientSchema;
+    input: typeof UpdatePlatformClientInputSchema;
     output: typeof PlatformClientSchema;
   },
   /**

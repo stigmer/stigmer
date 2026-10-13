@@ -81,7 +81,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { create, fromBinary, fromJson, toBinary } from "@bufbuild/protobuf";
-import type { DescMessage } from "@bufbuild/protobuf";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import {
@@ -91,6 +91,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -118,6 +119,9 @@ import {
   SCHEMA_VERSION_23,
   SCHEMA_VERSION_24,
   SCHEMA_VERSION_25,
+  SCHEMA_VERSION_32,
+  SCHEMA_VERSION_33,
+  SCHEMA_VERSION_34,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -136,6 +140,9 @@ import {
 } from "../../__tests__/retired-execution-rows.js";
 import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
+import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
+import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
+import { etagOf, stampEtag } from "../../etag.js";
 import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { HISTORY_PAGE_SIZE } from "../../organization-slug-history.js";
 import { PUBLIC_ROW_KINDS_AT_RETIREMENT } from "../../public-visibility-retired.js";
@@ -168,6 +175,12 @@ import {
 import { policyIdFor } from "../../../domain/iampolicy/constants.js";
 
 const cleanups: Array<() => void | Promise<void>> = [];
+
+/** `resource` as the head's store answers it: stamped with its etag (v34). */
+function withEtag<Desc extends DescMessage>(schema: Desc, resource: MessageShape<Desc>): MessageShape<Desc> {
+  stampEtag(schema, resource);
+  return resource;
+}
 
 afterEach(async () => {
   while (cleanups.length > 0) {
@@ -302,6 +315,8 @@ describe("fresh database", () => {
       "pending_oauth_state",
       "resource_names",
       "organization_deletions",
+      "iam_policy_history",
+      "iam_policy_history_heads",
     ]) {
       expect(tables, `table ${expected} should exist`).toContain(expected);
     }
@@ -325,7 +340,7 @@ describe("fresh database", () => {
       .all() as Array<{ version: number }>;
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-      22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
     ]);
   });
 
@@ -909,7 +924,11 @@ describe("v13: the resource-name table replaces the organization-slug ledger", (
     // Before minted ids an organization's id was its slug.
     setup
       .prepare(`INSERT INTO resources (kind, id, data) VALUES (?, ?, ?)`)
-      .run("organization", "acme", new Uint8Array([0x00]));
+      .run(
+        "organization",
+        "acme",
+        toBinary(OrganizationSchema, create(OrganizationSchema, { metadata: { id: "acme", slug: "acme" } })),
+      );
     setup
       .prepare(
         `INSERT INTO organization_slugs (slug, claimed_at, retired_at) VALUES (?, ?, ?)`,
@@ -2196,17 +2215,23 @@ describe("v19: workflows, workflow runs and artifacts leave the store", () => {
       listIndexes: [CONTRACT_SESSION_INDEX, agentExecutionListIndex, iamPolicyListIndex],
     });
     cleanups.push(() => store.close());
+    // v34 stamps each kept run with its etag.
     expect(
       await store.getResource(ApiResourceKind.run, "aex_parented", RunSchema),
     ).toEqual(
-      fromBinary(
+      withEtag(
         RunSchema,
-        agentRunRow({ id: "aex_parented", kindString: "Run", org: ORG, sessionId: "ses_1", labels: OWN_LABELS }),
+        fromBinary(
+          RunSchema,
+          agentRunRow({ id: "aex_parented", kindString: "Run", org: ORG, sessionId: "ses_1", labels: OWN_LABELS }),
+        ),
       ),
     );
     expect(
       await store.getResource(ApiResourceKind.run, "aex_plain", RunSchema),
-    ).toEqual(fromBinary(RunSchema, agentRunRow({ id: "aex_plain", kindString: "Run", org: ORG, sessionId: "ses_1" })));
+    ).toEqual(
+      withEtag(RunSchema, fromBinary(RunSchema, agentRunRow({ id: "aex_plain", kindString: "Run", org: ORG, sessionId: "ses_1" }))),
+    );
     expect(
       (
         await store.queryResources(agentExecutionListIndex, {
@@ -3054,5 +3079,154 @@ describe("v25: the execution context rows leave the store; a connect in flight i
       (index) => index.name,
     );
     expect(indexes).toEqual(expect.arrayContaining(["idx_connect_attempt_expires", "idx_connect_attempt_org"]));
+  });
+});
+
+describe("v33 and v34: a session's harness state moves to its status, and every resource gains its etag", () => {
+  const ORG = "org_01jz0000000000000000000000";
+  const SEEDED_AT = "2026-10-13 00:00:00";
+
+  const conversation = (id: string) => ({
+    metadata: { id, org: ORG, slug: id },
+    spec: { agentRef: { kind: ApiResourceKind.agent, org: ORG, slug: "helper" }, subject: "Fix the build" },
+  });
+  const reviewer = (id: string) =>
+    create(AgentSchema, {
+      metadata: { id, org: ORG, slug: id, name: "Reviewer" },
+      spec: { instructions: "Review every pull request." },
+    });
+
+  function databaseAt(version: number): { dbPath: string; db: DatabaseSync } {
+    const dbPath = tempDbPath();
+    const setup = new DatabaseSync(dbPath);
+    runMigrations(setup, version);
+    expect(getSchemaVersion(setup)).toBe(version);
+    return { dbPath, db: setup };
+  }
+
+  function insert(db: DatabaseSync, kind: string, id: string, data: Uint8Array): void {
+    db.prepare(
+      `INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`,
+    ).run(kind, id, data, SEEDED_AT);
+  }
+
+  function row(db: DatabaseSync, kind: string, id: string): { data: Uint8Array; updated_at: string } {
+    return db
+      .prepare(`SELECT data, updated_at FROM resources WHERE kind = ? AND id = ?`)
+      .get(kind, id) as { data: Uint8Array; updated_at: string };
+  }
+
+  function reopen(dbPath: string): DatabaseSync {
+    const db = new DatabaseSync(dbPath);
+    cleanups.push(() => db.close());
+    return db;
+  }
+
+  it("v33 moves a Cursor session's harness id and history to its status, keeps its stamp, and leaves the rest byte for byte", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_32);
+    insert(
+      setup,
+      "session",
+      "ses_cursor",
+      sessionRowWithValues(conversation("ses_cursor"), {
+        harnessStateId: "agent-7f3c",
+        harnessStateIdHistory: ["agent-1a2b"],
+      }),
+    );
+    const untouched = currentSessionRow(conversation("ses_new"));
+    insert(setup, "session", "ses_new", untouched);
+    setup.close();
+
+    const db = reopen(dbPath);
+    runMigrations(db, SCHEMA_VERSION_33);
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_33);
+    const moved = row(db, "session", "ses_cursor");
+    expect(moved.data).toEqual(
+      currentSessionRow({
+        ...conversation("ses_cursor"),
+        status: { harnessStateId: "agent-7f3c", harnessStateIdHistory: ["agent-1a2b"] },
+      }),
+    );
+    expect(moved.updated_at).toBe(SEEDED_AT);
+    expect(Buffer.from(row(db, "session", "ses_new").data).equals(Buffer.from(untouched))).toBe(true);
+  });
+
+  it("v33 reads sessions across pages, and an unreadable one rolls the step back", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_32);
+    for (let i = 0; i <= SESSION_HARNESS_PAGE_SIZE; i++) {
+      const id = `ses_${String(i).padStart(4, "0")}`;
+      insert(setup, "session", id, sessionRowWithValues(conversation(id), { harnessStateId: `thread-${i}` }));
+    }
+    const good = sessionRowWithValues(conversation("ses_a_good"), { harnessStateId: "thread-a" });
+    insert(setup, "session", "ses_a_good", good);
+    insert(setup, "session", "ses_zz_bad", new Uint8Array([0xff, 0xff, 0xff]));
+    setup.close();
+
+    const db = reopen(dbPath);
+    expect(() => runMigrations(db, SCHEMA_VERSION_33)).toThrow("session 'ses_zz_bad'");
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_32);
+    expect(row(db, "session", "ses_a_good").data).toEqual(good);
+
+    db.prepare(`DELETE FROM resources WHERE kind = 'session' AND id = 'ses_zz_bad'`).run();
+    runMigrations(db, SCHEMA_VERSION_33);
+    const last = `ses_${String(SESSION_HARNESS_PAGE_SIZE).padStart(4, "0")}`;
+    expect(fromBinary(SessionSchema, row(db, "session", last).data).status?.harnessStateId).toBe(
+      `thread-${SESSION_HARNESS_PAGE_SIZE}`,
+    );
+  });
+
+  it("v34 stamps every resource of every kind with its etag across pages, keeps its stamp, and leaves an unknown kind's rows alone", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_33);
+    for (let i = 0; i <= ETAG_STAMP_PAGE_SIZE; i++) {
+      const id = `agt_${String(i).padStart(4, "0")}`;
+      insert(setup, "agent", id, toBinary(AgentSchema, reviewer(id)));
+    }
+    insert(setup, "session", "ses_1", currentSessionRow(conversation("ses_1")));
+    const foreign = new Uint8Array([0x0a, 0x01, 0x61]);
+    insert(setup, "retired_kind", "rk_1", foreign);
+    setup.close();
+
+    const db = reopen(dbPath);
+    runMigrations(db, SCHEMA_VERSION_34);
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_34);
+    const last = `agt_${String(ETAG_STAMP_PAGE_SIZE).padStart(4, "0")}`;
+    const agent = row(db, "agent", last);
+    expect(fromBinary(AgentSchema, agent.data).metadata?.etag).toBe(etagOf(AgentSchema, reviewer(last)));
+    expect(agent.updated_at).toBe(SEEDED_AT);
+    expect(fromBinary(SessionSchema, row(db, "session", "ses_1").data).metadata?.etag).toMatch(/^[0-9a-f]{64}$/);
+    expect(Buffer.from(row(db, "retired_kind", "rk_1").data).equals(Buffer.from(foreign))).toBe(true);
+  });
+
+  it("v34 leaves a resource that does not decode as it is, stamps the rest, and reports it once", () => {
+    const { dbPath, db: setup } = databaseAt(SCHEMA_VERSION_33);
+    insert(setup, "agent", "agt_a_good", toBinary(AgentSchema, reviewer("agt_a_good")));
+    const bad = new Uint8Array([0xff, 0xff, 0xff]);
+    insert(setup, "agent", "agt_b_bad", bad);
+    insert(setup, "agent", "agt_c_good", toBinary(AgentSchema, reviewer("agt_c_good")));
+    setup.close();
+
+    const db = reopen(dbPath);
+    const warned: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+    runMigrations(db, SCHEMA_VERSION_34, {
+      debug() {},
+      info() {},
+      warn(message, fields) {
+        warned.push({ message, fields });
+      },
+    });
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_34);
+    expect(Buffer.from(row(db, "agent", "agt_b_bad").data).equals(Buffer.from(bad))).toBe(true);
+    for (const id of ["agt_a_good", "agt_c_good"]) {
+      expect(fromBinary(AgentSchema, row(db, "agent", id).data).metadata?.etag, id).toBe(etagOf(AgentSchema, reviewer(id)));
+    }
+    expect(warned).toEqual([
+      {
+        message: "rows that do not decode were left without an etag",
+        fields: { kind: "agent", count: 1, ids: ["agt_b_bad"] },
+      },
+    ]);
   });
 });

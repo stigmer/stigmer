@@ -79,7 +79,7 @@ describe("an admin service account's key, at the doors that decide membership or
     const asKey = createClient(PlatformClientCommandController, at.presenting(ciKey));
     const attempts: ReadonlyArray<() => Promise<unknown>> = [
       () => asKey.create(platformClientInput(acme, "doors-rogue")),
-      () => asKey.update(client ?? {}),
+      () => asKey.update({ resource: client ?? {}, updateMask: { paths: ["*"] } }),
       () => asKey.rotateSecret({ value: client?.metadata?.id ?? "" }),
     ];
     for (const attempt of attempts) {

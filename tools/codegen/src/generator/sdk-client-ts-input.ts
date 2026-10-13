@@ -1,23 +1,21 @@
-// Update-input mapper generation — the inverse of buildXxxProto. The
-// platform's update RPCs are FULL-SPEC REPLACEMENTS, so the generated
-// toXxxUpdateInput maps a FETCHED resource to a complete XxxInput; editors
-// spread it and override only what they change (the wipe-bug class behind
-// stigmer/stigmer#319 / oss#293). Byte-parity port of
-// sdk_client_ts_update_input.go; the semantic rules live in the emitted
-// doc comments.
+// Resource-input mapper generation — the inverse of buildXxxProto: the
+// generated toXxxInput maps a FETCHED resource to the complete XxxInput
+// that restates it, for copying it into a new resource. An update never
+// needs it: it takes the resource itself and the paths it changes. The
+// semantic rules live in the emitted doc comments.
 
 import type { ServiceSchemaFile } from "./gen-common.js";
-import { deriveTSImportBase, isSpecialType, isSyntheticOneof, tsProtoFieldName, tsProtoFileToSuffix } from "./gen-common.js";
+import { deriveTSImportBase, isSpecialType, isUpdateInputType, isSyntheticOneof, tsProtoFieldName, tsProtoFileToSuffix } from "./gen-common.js";
 import type { TsImportSet } from "./gen-common.js";
 import type { SdkResourceConfig } from "./sdk-resource-config.js";
 import { META_FIELD_NAMES } from "./sdk-resource-config.js";
 import type { FieldSchema, SpecSchema, TypeSchema, TypeSpec } from "./schema.js";
 
-/** True when a command controller exposes Update taking the resource. */
+/** True when a command controller exposes Update (the kinds whose resources are edited and copied). */
 export function tsHasUpdateRPC(schema: ServiceSchemaFile, cfg: SdkResourceConfig): boolean {
   for (const svc of schema.services) {
     for (const m of svc.methods) {
-      if (m.name.toLowerCase() === "update" && m.inputType === cfg.protoResType) {
+      if (m.name.toLowerCase() === "update" && isUpdateInputType(m.inputType, cfg.protoResType)) {
         return true;
       }
     }
@@ -42,8 +40,8 @@ function tsAddMessageTypeImport(ts: TypeSchema, imports: TsImportSet, importBase
   }
 }
 
-/** Port of generateTSUpdateInputMapper. */
-export function generateTSUpdateInputMapper(
+/** The toXxxInput mapper of one resource kind. */
+export function generateTSResourceInputMapper(
   buf: string[],
   schema: ServiceSchemaFile,
   cfg: SdkResourceConfig,
@@ -59,28 +57,26 @@ export function generateTSUpdateInputMapper(
   // Nested mappers first, mirroring the nested-builder order.
   const emitted = new Set<string>();
   for (const f of specFields) {
-    emitTSNestedUpdateInputMappers(buf, f, typeMap, emitted, imports, importBase);
+    emitTSNestedResourceInputMappers(buf, f, typeMap, emitted, imports, importBase);
   }
 
   buf.push("/**\n");
-  buf.push(` * Maps a fetched {@link ${cfg.protoResType}} to a complete {@link ${inputName}} for \`update()\`.\n`);
+  buf.push(` * Maps a fetched {@link ${cfg.protoResType}} to the complete {@link ${inputName}} that\n`);
+  buf.push(" * restates it, for copying it into a new resource:\n");
   buf.push(" *\n");
-  buf.push(" * The update RPC replaces the ENTIRE spec — spread this mapper's output\n");
-  buf.push(" * and override only the fields you edit (spread nested objects the same\n");
-  buf.push(" * way):\n");
+  buf.push(` *   await client.create({ ...to${cfg.protoResType}Input(res), id: undefined, slug: next });\n`);
   buf.push(" *\n");
-  buf.push(` *   await client.update({ ...to${cfg.protoResType}UpdateInput(res), description: next });\n`);
+  buf.push(" * An update never needs it: it takes the resource and the paths it changes.\n");
   buf.push(" *\n");
   buf.push(" * Proto3 defaults normalize to `undefined`; resource references keep\n");
   buf.push(" * `version` (pinned refs) and `kind`.\n");
   buf.push(" */\n");
-  buf.push(`export function to${cfg.protoResType}UpdateInput(resource: ${cfg.protoResType}): ${inputName} {\n`);
+  buf.push(`export function to${cfg.protoResType}Input(resource: ${cfg.protoResType}): ${inputName} {\n`);
   buf.push("  const meta = resource.metadata;\n");
   buf.push(`  const spec = resource.spec ?? create(${spec.name}Schema);\n`);
   buf.push("  return {\n");
-  buf.push("    // Exact update addressing (id-first in the update pipeline) — for\n");
-  buf.push("    // platform-scoped (org-less) kinds the org+slug fallback cannot\n");
-  buf.push("    // match, so the id is the ONLY working address.\n");
+  buf.push("    // The resource's id: an apply that carries it changes this resource;\n");
+  buf.push("    // a copy clears it.\n");
   buf.push("    id: meta?.id || undefined,\n");
   buf.push('    name: meta?.name ?? "",\n');
   buf.push("    slug: meta?.slug || undefined,\n");
@@ -91,15 +87,15 @@ export function generateTSUpdateInputMapper(
   buf.push("    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,\n");
   buf.push("    visibility: meta?.visibility || undefined,\n");
   if (cfg.isVersioned) {
-    buf.push("    // Never carried over: a version message describes the NEXT update.\n");
+    buf.push("    // Never carried over: a version message describes the NEXT save.\n");
     buf.push("    versionMessage: undefined,\n");
   }
-  emitTSUpdateInputFields(buf, "    ", "spec", specFields, typeMap, imports);
+  emitTSResourceInputFields(buf, "    ", "spec", specFields, typeMap, imports);
   buf.push("  };\n");
   buf.push("}\n");
 }
 
-function emitTSUpdateInputFields(
+function emitTSResourceInputFields(
   buf: string[],
   indent: string,
   src: string,
@@ -111,16 +107,16 @@ function emitTSUpdateInputFields(
     const fieldName = tsProtoFieldName(f.protoField);
     let expr: string;
     if (f.oneofGroup !== undefined && f.oneofGroup !== "" && !isSyntheticOneof(f.oneofGroup)) {
-      expr = tsUpdateInputOneofExpr(f, src, typeMap, imports);
+      expr = tsResourceInputOneofExpr(f, src, typeMap, imports);
     } else {
-      expr = tsUpdateInputFieldExpr(f, src + "." + fieldName, imports);
+      expr = tsResourceInputFieldExpr(f, src + "." + fieldName, imports);
     }
     buf.push(`${indent}${fieldName}: ${expr},\n`);
   }
 }
 
 // One oneof member: set when the oneof's case matches, undefined otherwise.
-function tsUpdateInputOneofExpr(
+function tsResourceInputOneofExpr(
   f: FieldSchema,
   src: string,
   typeMap: Map<string, TypeSchema>,
@@ -160,7 +156,7 @@ function tsZeroValueForScalar(ts: TypeSpec): string {
   }
 }
 
-function tsUpdateInputFieldExpr(f: FieldSchema, access: string, imports: TsImportSet): string {
+function tsResourceInputFieldExpr(f: FieldSchema, access: string, imports: TsImportSet): string {
   const t = f.type;
   const required = f.required;
 
@@ -232,7 +228,7 @@ function tsUpdateInputFieldExpr(f: FieldSchema, access: string, imports: TsImpor
 
 // One private toXxxInput(msg) helper per non-special nested message type,
 // in the same order as the nested builders (sub-types first).
-function emitTSNestedUpdateInputMappers(
+function emitTSNestedResourceInputMappers(
   buf: string[],
   f: FieldSchema,
   typeMap: Map<string, TypeSchema>,
@@ -258,14 +254,14 @@ function emitTSNestedUpdateInputMappers(
   emitted.add(msgName);
 
   for (const field of ts.fields) {
-    emitTSNestedUpdateInputMappers(buf, field, typeMap, emitted, imports, importBase);
+    emitTSNestedResourceInputMappers(buf, field, typeMap, emitted, imports, importBase);
   }
 
   tsAddMessageTypeImport(ts, imports, importBase);
 
   buf.push(`function to${msgName}Input(msg: ${msgName}): ${msgName}Input {\n`);
   buf.push("  return {\n");
-  emitTSUpdateInputFields(buf, "    ", "msg", ts.fields, typeMap, imports);
+  emitTSResourceInputFields(buf, "    ", "msg", ts.fields, typeMap, imports);
   buf.push("  };\n");
   buf.push("}\n\n");
 }

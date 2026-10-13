@@ -178,12 +178,12 @@ describe("Run — the settings a turn runs with", () => {
     const first = await turn({ org, agentRef: agentRefOf(agent) });
 
     const { id, name, slug } = agent.metadata!;
-    await clients.agentCommand.update({
+    await clients.agentCommand.update({ resource: {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       metadata: { id, name, slug, org },
       spec: makeAgentSpec({ harness: Harness.NATIVE, runConfig: { modelName: MESSAGE_MODEL } }),
-    });
+    }, updateMask: { paths: ["*"] } });
     const second = await turn({ org, sessionId: sessionIdOf(first) });
 
     expect(second.status?.runConfig?.modelName).toBe(AGENT_MODEL);

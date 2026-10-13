@@ -153,14 +153,26 @@ export function newPermissiveSingleTeamAuthorizer(): Authorizer {
  * at construction (descriptors are static imports — the apiresource.ts
  * idiom); the caller identity comes from the RequestContext at execution.
  */
+/**
+ * `request`, when given, is the message the annotation is read against in
+ * place of the chain's input: an update chain runs on the resource it
+ * carries, while its annotation names the field of the wire request
+ * (`resource.metadata.id` on Update<Kind>Input).
+ */
 export function newAuthorizeStep<Desc extends DescMessage>(
   method: DescMethod,
   authorizer: Authorizer,
+  request?: Message,
 ): PipelineStep<Desc> {
   return {
     name: "Authorize",
     execute(ctx: RequestContext<Desc>): Promise<void> {
-      return authorizeDirect(method, authorizer, ctx.callerIdentity, ctx.input);
+      return authorizeDirect(
+        method,
+        authorizer,
+        ctx.callerIdentity,
+        request ?? ctx.input,
+      );
     },
   };
 }

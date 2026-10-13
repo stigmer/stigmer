@@ -210,7 +210,7 @@ describe("decision hooks", () => {
     expect(del).toHaveBeenCalledWith("mem_rejected");
   });
 
-  it("useUpdateMemoryContent maps through toMemoryUpdateInput and overrides only content", async () => {
+  it("useUpdateMemoryContent names spec.content alone, on the memory's id", async () => {
     const update = vi.fn().mockResolvedValue(CONFIRMED);
     const client = { memory: { update } };
 
@@ -219,14 +219,14 @@ describe("decision hooks", () => {
     });
 
     await result.current.updateContent(CONFIRMED, "Edited fact.");
-    // The wipe-safe rule: the loaded record's identity and immutable
-    // fields ride along; only content changes.
+    // Only content is named: the record's subject, provenance and consent
+    // keep their stored values without being sent back.
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: "mem_confirmed",
-        org: "test-org",
-        content: "Edited fact.",
+        metadata: expect.objectContaining({ id: "mem_confirmed" }),
+        spec: { content: "Edited fact." },
       }),
+      ["spec.content"],
     );
   });
 });

@@ -182,7 +182,7 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     expect(agent.closeCalls, "the handle is closed on this failure").toBe(1);
     expect(_parkedAgentCountForTests(), "and not parked").toBe(0);
     expect(agent.runs[0].cancelCalls, "the run completed on its own — nothing cancelled it").toHaveLength(0);
-    expect(record.sessionUpdates, "the one harness_state_id bind").toHaveLength(1);
+    expect(record.harnessBinds, "the one harness_state_id bind").toHaveLength(1);
 
     // ── Assert: the user's hooks.json survived the turn byte for byte (#173) ─
     expect(readFileSync(hooksJsonPath, "utf-8")).toBe(USER_HOOKS_JSON);

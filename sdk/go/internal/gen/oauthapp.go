@@ -9,6 +9,7 @@ import (
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	oauthappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // OAuthAppClient provides operations on oauthapp resources.
@@ -42,12 +43,11 @@ func (o *OAuthAppClient) Create(ctx context.Context, input *OAuthAppInput) (*oau
 	return resp, wrapErr(err)
 }
 
-func (o *OAuthAppClient) Update(ctx context.Context, input *OAuthAppInput) (*oauthappv1.OAuthApp, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := o.command.Update(ctx, req)
+func (o *OAuthAppClient) Update(ctx context.Context, resource *oauthappv1.OAuthApp, paths []string) (*oauthappv1.OAuthApp, error) {
+	resp, err := o.command.Update(ctx, &oauthappv1.UpdateOAuthAppInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -81,12 +81,12 @@ func (o *OAuthAppClient) ListByOrg(ctx context.Context, input *oauthappv1.ListOA
 	return resp, wrapErr(err)
 }
 
-// OAuthAppInput holds the fields for creating/updating a OAuthApp.
+// OAuthAppInput holds the fields for creating or applying a OAuthApp.
 type OAuthAppInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id                      string
 	Name                    string
 	Slug                    string

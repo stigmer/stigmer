@@ -35,6 +35,7 @@ import type { SessionList } from "@stigmer/protos/ai/stigmer/agentic/session/v1/
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { SessionStatus } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
@@ -97,16 +98,17 @@ export function newValidateHarnessImmutabilityStep(): PipelineStep<SessionDesc> 
       }
 
       // Session has not been used yet — harness can still change.
-      if (existingSpec.harnessStateId === "") {
+      if ((existing.status?.harnessStateId ?? "") === "") {
         return;
       }
 
-      const inputSpec = ctx.input.spec;
+      // The merged state: the stored harness unless the update named it.
+      const inputSpec = ctx.newState.spec;
       if (inputSpec === undefined) {
         return;
       }
 
-      // An update that names no harness keeps the stored one
+      // An update that sets no harness keeps the stored one
       // (ResolveSessionAgent carries it over), so it changes nothing.
       if (inputSpec.harness === Harness.UNSPECIFIED) {
         return;
@@ -176,11 +178,12 @@ export function newValidateExecutionTargetImmutabilityStep(
         return;
       }
 
-      if (existingSpec.harnessStateId === "") {
+      if ((existing.status?.harnessStateId ?? "") === "") {
         return;
       }
 
-      const inputSpec = ctx.input.spec;
+      // The merged state: the stored target unless the update named it.
+      const inputSpec = ctx.newState.spec;
       if (inputSpec === undefined) {
         return;
       }
@@ -202,58 +205,30 @@ export function newValidateExecutionTargetImmutabilityStep(
 }
 
 // ---------------------------------------------------------------------------
-// RecordHarnessStateHistory — record_harness_state_history.go: maintains
-// the server-owned harness_state_id_history on the merged update state.
+// The harness state a run's runner records (bindHarnessState): the new id,
+// and the id it replaces appended to the history.
 //
 // A session can span multiple harness-side conversations: when the
-// cursor-runner's resume fails, it creates a fresh Cursor agent and
-// replaces harness_state_id via a normal session update. The replaced id
-// must not be destroyed — Cursor's own usage events name the conversation
-// id they ran under, so joining them back to the session reads the union
-// of current + prior ids, and every turn that ran under a replaced id
-// would otherwise become an orphaned event.
+// cursor-runner's resume fails, it creates a fresh Cursor agent and binds
+// its id. The replaced id must not be destroyed — Cursor's own usage events
+// name the conversation id they ran under, so joining them back to the
+// session reads the union of current + prior ids, and every turn that ran
+// under a replaced id would otherwise become an orphaned event.
 //
-// The history is computed here, from the observed harness_state_id
-// transition, and never taken from client input: BuildUpdateState performs
-// full spec replacement, so a stale client resending an old spec would
-// silently clobber a client-writable history. Resetting it from the
-// existing record makes the server the single writer of this field.
-//
-// Must run after BuildUpdateState (it mutates the merged state) and
-// before Persist.
+// Runs inside the store's atomic write on the live row, so two binds never
+// lose each other's id.
 // ---------------------------------------------------------------------------
 
-export function newRecordHarnessStateHistoryStep(): PipelineStep<SessionDesc> {
-  return {
-    name: "RecordHarnessStateHistory",
-    execute(ctx: RequestContext<SessionDesc>): void {
-      const mergedSpec = ctx.newState.spec;
-      if (mergedSpec === undefined) {
-        return;
-      }
-
-      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-      if (existing === undefined || existing.spec === undefined) {
-        return;
-      }
-      const existingSpec = existing.spec;
-
-      // Server-owned: the merged state carries whatever the client sent
-      // for this field — discard it and rebuild from the stored history.
-      const history = [...existingSpec.harnessStateIdHistory];
-
-      const previousId = existingSpec.harnessStateId;
-      if (
-        previousId !== "" &&
-        previousId !== mergedSpec.harnessStateId &&
-        !history.includes(previousId)
-      ) {
-        history.push(previousId);
-      }
-
-      mergedSpec.harnessStateIdHistory = history;
-    },
-  };
+export function recordHarnessState(status: SessionStatus, harnessStateId: string): void {
+  const previousId = status.harnessStateId;
+  if (
+    previousId !== "" &&
+    previousId !== harnessStateId &&
+    !status.harnessStateIdHistory.includes(previousId)
+  ) {
+    status.harnessStateIdHistory.push(previousId);
+  }
+  status.harnessStateId = harnessStateId;
 }
 
 // ---------------------------------------------------------------------------

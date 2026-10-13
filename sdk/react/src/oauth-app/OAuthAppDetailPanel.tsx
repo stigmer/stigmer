@@ -2,7 +2,8 @@
 
 import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, toOAuthAppUpdateInput } from "@stigmer/sdk";
+import { buildOAuthAppProto, getUserMessage } from "@stigmer/sdk";
+import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   TokenEndpointAuthMethod,
@@ -141,18 +142,15 @@ export function OAuthAppDetailPanel({
         .filter(Boolean);
 
       try {
-        // Full-spec-replace safety: spread the complete mapped input and
-        // override every field this form owns, so a future spec field the
-        // form does not know about survives the save. An empty secret
-        // input keeps the fetched value — the redaction marker — which
-        // the server's update pipeline treats as "keep the stored
-        // secret"; a non-empty input replaces it.
-        const mapped = toOAuthAppUpdateInput(oauthApp);
-        const updated = await update({
-          ...mapped,
+        // The update names every field this form owns, so a spec field the
+        // form does not know about keeps its stored value. An empty secret
+        // input leaves the secret unnamed, so the stored one stays; a
+        // non-empty input replaces it.
+        const secret = clientSecret.trim();
+        const { resource, paths } = maskedEdit(oauthApp, buildOAuthAppProto, {
           provider: provider.trim(),
           clientId: clientId.trim(),
-          clientSecret: clientSecret.trim() || mapped.clientSecret,
+          ...(secret !== "" && { clientSecret: secret }),
           authorizationUrl: authorizationUrl.trim(),
           tokenUrl: tokenUrl.trim(),
           addresses: parseAddressList(addresses),
@@ -169,6 +167,7 @@ export function OAuthAppDetailPanel({
               : undefined,
           vendorApprovalDocsUrl: vendorApprovalDocsUrl.trim() || undefined,
         });
+        const updated = await update(resource, paths);
         setMode("view");
         onUpdated?.(updated);
       } catch {
@@ -502,7 +501,7 @@ export function OAuthAppDetailPanel({
 
           {updateError && (
             <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-              {getUserMessage(updateError)}
+              {saveErrorMessage(updateError, "OAuth app")}
             </p>
           )}
 

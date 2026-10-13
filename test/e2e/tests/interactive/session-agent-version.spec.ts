@@ -1,5 +1,4 @@
 import type { Stigmer } from "@stigmer/sdk";
-import { toAgentUpdateInput } from "@stigmer/sdk";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import {
@@ -104,10 +103,10 @@ test.describe("A conversation's agent version", () => {
       expect(session.status?.agentVersionHash).toBe(startedOn);
 
       // The author saves a new version.
-      const saved = await stigmerClient.agent.update({
-        ...toAgentUpdateInput(agent),
-        instructions: "You are a helpful test assistant. Answer in one word.",
-      });
+      const saved = await stigmerClient.agent.update(
+        { metadata: { id: agent.metadata!.id }, spec: { instructions: "You are a helpful test assistant. Answer in one word." } },
+        ["spec.instructions"],
+      );
       const head = saved.status?.versionHash ?? "";
       expect(head, "the save produces a new version").not.toBe(startedOn);
 

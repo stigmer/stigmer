@@ -2,7 +2,7 @@
 
 import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, type RunConfigInput } from "@stigmer/sdk";
+import { type RunConfigInput } from "@stigmer/sdk";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -20,7 +20,8 @@ import {
   toProtoThinkingMode,
   type ThinkingModeOption,
 } from "../models/thinking-mode.js";
-import { agentChannelToInput, useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { saveErrorMessage } from "../internal/maskedEdit.js";
 
 /** Props for {@link ChannelRunConfigDialog}. */
 export interface ChannelRunConfigDialogProps {
@@ -60,9 +61,9 @@ export interface ChannelRunConfigDialogProps {
  * the write-time model-pin validation judges the pin against any harness
  * section, so pinning under either scope is legitimate.
  *
- * Saves are full-input applies via {@link agentChannelToInput}, so the
- * agent reference, provider marker, credential bindings, and install
- * status all survive; clearing the model with no budget set is an
+ * A save is an update naming `spec.run_config` alone, so the agent
+ * reference, provider marker, credential bindings, and install status
+ * keep their stored values; clearing the model with no budget set is an
  * explicit reset to the platform defaults (`run_config` absent). Untouched
  * variant switches keep what was stored — an explicit choice stays
  * explicit, an unset one stays off the wire; unspecified-vs-explicit is a
@@ -126,7 +127,7 @@ function ChannelRunConfigDialogBody({
     channel.metadata?.name || channel.metadata?.slug || "this channel";
   const stored = channel.spec?.runConfig;
 
-  const { save, isPending, error, clearError } = useSaveAgentChannel();
+  const { update, isPending, error, clearError } = useSaveAgentChannel();
 
   const [modelName, setModelName] = useState(stored?.modelName ?? "");
   const [harness, setHarness] = useState<HarnessOption>("cursor");
@@ -142,12 +143,11 @@ function ChannelRunConfigDialogBody({
 
   const handleSave = useCallback(async () => {
     try {
-      // Full-input apply: only run_config changes. An all-empty draft
-      // clears the block entirely — the proto's "empty = inherit" contract
-      // — while `max_tool_rounds` and `max_tool_result_chars`, which this
-      // editor never renders, survive verbatim (operator knobs).
-      await save({
-        ...agentChannelToInput(channel),
+      // The update names run_config alone. An all-empty draft clears the
+      // block entirely — the proto's "empty = inherit" contract — while
+      // `max_tool_rounds` and `max_tool_result_chars`, which this editor
+      // never renders, are carried from the stored block (operator knobs).
+      await update(channel, {
         runConfig: buildRunConfig(
           modelName,
           budgetUsd,
@@ -161,7 +161,7 @@ function ChannelRunConfigDialogBody({
     } catch {
       // Surfaced through the hook's error state below.
     }
-  }, [budgetUsd, channel, modelName, onClose, onSaved, save, serviceTier, stored, thinkingMode]);
+  }, [budgetUsd, channel, modelName, onClose, onSaved, update, serviceTier, stored, thinkingMode]);
 
   return (
     <div className="stg:flex stg:flex-col">
@@ -269,7 +269,7 @@ function ChannelRunConfigDialogBody({
             role="alert"
             className="stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-destructive"
           >
-            {getUserMessage(error)}
+            {saveErrorMessage(error, "channel")}
           </div>
         )}
       </div>

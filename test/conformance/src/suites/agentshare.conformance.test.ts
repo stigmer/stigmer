@@ -171,23 +171,24 @@ describe("AgentShare conformance — CRUD & identity", () => {
       name: uniqueName("share"),
     });
 
-    const updated = await clients.agentShareCommand.update({
+    const updated = await clients.agentShareCommand.update({ resource: {
       ...makeAgentShare(org, agent.metadata!.slug, {
         name: created.metadata!.name,
         enabled: false,
       }),
       metadata: created.metadata,
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.spec?.enabled).toBe(false);
     // The rebind pin is status and survives updates wholesale.
     expect(updated.status?.agentId).toBe(agent.metadata?.id);
 
     const err = await expectGrpcCode(
       () =>
-        clients.agentShareCommand.update({
+        clients.agentShareCommand.update({ resource: {
           ...makeAgentShare(org, otherAgent.metadata!.slug, { name: created.metadata!.name }),
-          metadata: created.metadata,
-        }),
+          // No etag: the refusal under test is the immutable agent_ref.
+          metadata: { id: created.metadata!.id, name: created.metadata!.name, org: created.metadata!.org },
+        }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "update re-pointing the share at a different agent",
     );

@@ -2,14 +2,14 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp } from "./proto-utils.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { EmptySchema, timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiKeySchema, type ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema, ApiKeyHashSchema, ApiKeysSchema, ApiKeyAccountIdSchema, type CreateServiceAccountKeyInput, type ApiKeyHash, type ApiKeys } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema, UpdateApiKeyInputSchema, ApiKeyHashSchema, ApiKeysSchema, ApiKeyAccountIdSchema, type CreateServiceAccountKeyInput, type ApiKeyHash, type ApiKeys } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
 
@@ -35,9 +35,9 @@ export class ApiKeyClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: ApiKeyInput): Promise<ApiKey> {
+  async update(resource: ApiKey | MessageInitShape<typeof ApiKeySchema>, paths: string[]): Promise<ApiKey> {
     try {
-      return await this.command.update(buildApiKeyProto(input));
+      return await this.command.update(create(UpdateApiKeyInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -72,13 +72,13 @@ export class ApiKeyClient {
   }
 }
 
-/** Input for creating/updating an ApiKey. */
+/** Input for creating or applying an ApiKey. */
 export interface ApiKeyInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -117,24 +117,22 @@ export function buildApiKeyProto(input: ApiKeyInput): ApiKey {
 }
 
 /**
- * Maps a fetched {@link ApiKey} to a complete {@link ApiKeyInput} for `update()`.
+ * Maps a fetched {@link ApiKey} to the complete {@link ApiKeyInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toApiKeyInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toApiKeyUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toApiKeyUpdateInput(resource: ApiKey): ApiKeyInput {
+export function toApiKeyInput(resource: ApiKey): ApiKeyInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(ApiKeySpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

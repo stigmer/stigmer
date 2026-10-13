@@ -324,20 +324,20 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
   });
 
   it("a member may not edit an org-visible agent — `can_edit` is `owner`, which is the creator or an admin of the organization", async () => {
-    const memberEdit = createClient(AgentCommandController, asMember()).update({
+    const memberEdit = createClient(AgentCommandController, asMember()).update({ resource: {
       ...orgAgent,
       spec: { ...orgAgent.spec!, instructions: "edited by a member" },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(await codeOf(memberEdit)).toBe(Code.PermissionDenied);
 
     // The positive beside the negative: the owner's own edit succeeds.
     const ownerEdit = await createClient(
       AgentCommandController,
       asFounder(),
-    ).update({
+    ).update({ resource: {
       ...orgAgent,
       spec: { ...orgAgent.spec!, instructions: "edited by the owner" },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(ownerEdit.spec?.instructions).toBe("edited by the owner");
   });
 

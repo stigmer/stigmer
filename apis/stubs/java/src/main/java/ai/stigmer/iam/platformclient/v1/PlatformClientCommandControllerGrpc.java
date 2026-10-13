@@ -50,27 +50,27 @@ public final class PlatformClientCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.PlatformClient,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput,
       ai.stigmer.iam.platformclient.v1.PlatformClient> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.iam.platformclient.v1.PlatformClient.class,
+      requestType = ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput.class,
       responseType = ai.stigmer.iam.platformclient.v1.PlatformClient.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.PlatformClient,
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput,
       ai.stigmer.iam.platformclient.v1.PlatformClient> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.PlatformClient, ai.stigmer.iam.platformclient.v1.PlatformClient> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput, ai.stigmer.iam.platformclient.v1.PlatformClient> getUpdateMethod;
     if ((getUpdateMethod = PlatformClientCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (PlatformClientCommandControllerGrpc.class) {
         if ((getUpdateMethod = PlatformClientCommandControllerGrpc.getUpdateMethod) == null) {
           PlatformClientCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.platformclient.v1.PlatformClient, ai.stigmer.iam.platformclient.v1.PlatformClient>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput, ai.stigmer.iam.platformclient.v1.PlatformClient>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.platformclient.v1.PlatformClient.getDefaultInstance()))
+                  ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.platformclient.v1.PlatformClient.getDefaultInstance()))
               .setSchemaDescriptor(new PlatformClientCommandControllerMethodDescriptorSupplier("update"))
@@ -270,25 +270,25 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing platform client.
-     * The name, labels and every spec field can be changed except the
-     * credential fields (client_id, client_secret_hash, secret_fingerprint),
-     * which are kept from the stored client. Use rotateSecret to change the
-     * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the platform client was renamed away from,
-     * named without the platform client's id, is refused with
-     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
-     * would later make a second platform client:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-     *     platform client for reading, but a write names its current slug.
-     *     Metadata: slug (the one the request named).
+     * Update a platform client: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The credential fields (client_id, client_secret_hash, secret_fingerprint)
+     * are kept from the stored client: use rotateSecret to change the client
+     * secret. A system-managed client cannot be updated.
+     * resource.metadata.id names the platform client; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the platform client does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the platform client kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.iam.platformclient.v1.PlatformClient request,
+    default void update(ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -417,25 +417,25 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing platform client.
-     * The name, labels and every spec field can be changed except the
-     * credential fields (client_id, client_secret_hash, secret_fingerprint),
-     * which are kept from the stored client. Use rotateSecret to change the
-     * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the platform client was renamed away from,
-     * named without the platform client's id, is refused with
-     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
-     * would later make a second platform client:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-     *     platform client for reading, but a write names its current slug.
-     *     Metadata: slug (the one the request named).
+     * Update a platform client: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The credential fields (client_id, client_secret_hash, secret_fingerprint)
+     * are kept from the stored client: use rotateSecret to change the client
+     * secret. A system-managed client cannot be updated.
+     * resource.metadata.id names the platform client; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the platform client does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the platform client kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.iam.platformclient.v1.PlatformClient request,
+    public void update(ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -549,25 +549,25 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing platform client.
-     * The name, labels and every spec field can be changed except the
-     * credential fields (client_id, client_secret_hash, secret_fingerprint),
-     * which are kept from the stored client. Use rotateSecret to change the
-     * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the platform client was renamed away from,
-     * named without the platform client's id, is refused with
-     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
-     * would later make a second platform client:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-     *     platform client for reading, but a write names its current slug.
-     *     Metadata: slug (the one the request named).
+     * Update a platform client: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The credential fields (client_id, client_secret_hash, secret_fingerprint)
+     * are kept from the stored client: use rotateSecret to change the client
+     * secret. A system-managed client cannot be updated.
+     * resource.metadata.id names the platform client; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the platform client does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the platform client kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.iam.platformclient.v1.PlatformClient update(ai.stigmer.iam.platformclient.v1.PlatformClient request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.platformclient.v1.PlatformClient update(ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -677,25 +677,25 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing platform client.
-     * The name, labels and every spec field can be changed except the
-     * credential fields (client_id, client_secret_hash, secret_fingerprint),
-     * which are kept from the stored client. Use rotateSecret to change the
-     * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the platform client was renamed away from,
-     * named without the platform client's id, is refused with
-     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
-     * would later make a second platform client:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-     *     platform client for reading, but a write names its current slug.
-     *     Metadata: slug (the one the request named).
+     * Update a platform client: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The credential fields (client_id, client_secret_hash, secret_fingerprint)
+     * are kept from the stored client: use rotateSecret to change the client
+     * secret. A system-managed client cannot be updated.
+     * resource.metadata.id names the platform client; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the platform client does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the platform client kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.iam.platformclient.v1.PlatformClient update(ai.stigmer.iam.platformclient.v1.PlatformClient request) {
+    public ai.stigmer.iam.platformclient.v1.PlatformClient update(ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -806,26 +806,26 @@ public final class PlatformClientCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing platform client.
-     * The name, labels and every spec field can be changed except the
-     * credential fields (client_id, client_secret_hash, secret_fingerprint),
-     * which are kept from the stored client. Use rotateSecret to change the
-     * client secret. A system-managed client cannot be updated.
-     * The slug changes only through rename. An update authorizes the id it
-     * names, so wherever the server authorizes requests, an update without an
-     * id is refused before its slug is read. Where it reads one (a server that
-     * admits every caller), a slug the platform client was renamed away from,
-     * named without the platform client's id, is refused with
-     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
-     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
-     * would later make a second platform client:
-     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
-     *     platform client for reading, but a write names its current slug.
-     *     Metadata: slug (the one the request named).
+     * Update a platform client: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * The credential fields (client_id, client_secret_hash, secret_fingerprint)
+     * are kept from the stored client: use rotateSecret to change the client
+     * secret. A system-managed client cannot be updated.
+     * resource.metadata.id names the platform client; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the platform client does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the platform client changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the platform client kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClient> update(
-        ai.stigmer.iam.platformclient.v1.PlatformClient request) {
+        ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -917,7 +917,7 @@ public final class PlatformClientCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.iam.platformclient.v1.PlatformClient) request,
+          serviceImpl.update((ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient>) responseObserver);
           break;
         case METHODID_RENAME:
@@ -961,7 +961,7 @@ public final class PlatformClientCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.platformclient.v1.PlatformClient,
+              ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput,
               ai.stigmer.iam.platformclient.v1.PlatformClient>(
                 service, METHODID_UPDATE)))
         .addMethod(

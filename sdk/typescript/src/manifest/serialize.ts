@@ -6,10 +6,13 @@
 // defaults, so the output round-trips through `parseManifest`'s strict
 // `fromJson` without loss.
 //
-// Three deliberate departures from the raw protojson projection, all for
+// Four deliberate departures from the raw protojson projection, all for
 // the *editable manifest* use case:
 //   - `status` and `metadata.version` are stripped — they are system-managed
 //     and would be ignored (or rejected) on apply.
+//   - `metadata.etag` is stripped: an apply that carries one is refused once
+//     the resource changes, which a file kept for later must not be. An
+//     editor that wants that refusal sends the etag it read itself.
 //   - every reference to another resource names it by `org` and `slug`
 //     alone: its `id` is dropped. The server stores the id and fills the
 //     current slug in what it returns; a manifest names things, so a name
@@ -89,12 +92,15 @@ export function serializeManifest(message: Message): string {
 
 // metadata.version (version id, previous-version pointer, tag) is written by
 // the server on every mutation; round-tripping it through an edit would be
-// misleading at best. Everything else — including id — is user-meaningful.
+// misleading at best. metadata.etag is the stored content's fingerprint: an
+// apply carrying it is refused once anything changes (the module header).
+// Everything else — including id — is user-meaningful.
 function stripSystemMetadata(
   metadata: Record<string, unknown>,
 ): Record<string, unknown> {
-  const { version, ...rest } = metadata;
+  const { version, etag, ...rest } = metadata;
   void version;
+  void etag;
   return rest;
 }
 

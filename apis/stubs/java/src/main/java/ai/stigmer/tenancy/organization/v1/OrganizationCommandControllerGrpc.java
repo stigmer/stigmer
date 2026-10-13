@@ -77,27 +77,27 @@ public final class OrganizationCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.Organization,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput,
       ai.stigmer.tenancy.organization.v1.Organization> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.tenancy.organization.v1.Organization.class,
+      requestType = ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput.class,
       responseType = ai.stigmer.tenancy.organization.v1.Organization.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.Organization,
+  public static io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput,
       ai.stigmer.tenancy.organization.v1.Organization> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.Organization, ai.stigmer.tenancy.organization.v1.Organization> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput, ai.stigmer.tenancy.organization.v1.Organization> getUpdateMethod;
     if ((getUpdateMethod = OrganizationCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (OrganizationCommandControllerGrpc.class) {
         if ((getUpdateMethod = OrganizationCommandControllerGrpc.getUpdateMethod) == null) {
           OrganizationCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.tenancy.organization.v1.Organization, ai.stigmer.tenancy.organization.v1.Organization>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput, ai.stigmer.tenancy.organization.v1.Organization>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.tenancy.organization.v1.Organization.getDefaultInstance()))
+                  ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.tenancy.organization.v1.Organization.getDefaultInstance()))
               .setSchemaDescriptor(new OrganizationCommandControllerMethodDescriptorSupplier("update"))
@@ -349,15 +349,22 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization.
-     * The slug is not changed by an update; rename changes it. An update
-     * authorizes the id it names, so wherever the server authorizes
-     * requests, an update without an id is refused before its slug is read;
-     * where it reads one, a slug the organization was renamed away from is
-     * refused with SLUG_RENAMED (see apply).
+     * Update an organization: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the organization; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the organization does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the organization changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the organization kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.tenancy.organization.v1.Organization request,
+    default void update(ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -404,7 +411,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -544,15 +552,22 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization.
-     * The slug is not changed by an update; rename changes it. An update
-     * authorizes the id it names, so wherever the server authorizes
-     * requests, an update without an id is refused before its slug is read;
-     * where it reads one, a slug the organization was renamed away from is
-     * refused with SLUG_RENAMED (see apply).
+     * Update an organization: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the organization; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the organization does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the organization changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the organization kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.tenancy.organization.v1.Organization request,
+    public void update(ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -602,7 +617,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -727,15 +743,22 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization.
-     * The slug is not changed by an update; rename changes it. An update
-     * authorizes the id it names, so wherever the server authorizes
-     * requests, an update without an id is refused before its slug is read;
-     * where it reads one, a slug the organization was renamed away from is
-     * refused with SLUG_RENAMED (see apply).
+     * Update an organization: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the organization; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the organization does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the organization changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the organization kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
+    public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -782,7 +805,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -906,15 +930,22 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization.
-     * The slug is not changed by an update; rename changes it. An update
-     * authorizes the id it names, so wherever the server authorizes
-     * requests, an update without an id is refused before its slug is read;
-     * where it reads one, a slug the organization was renamed away from is
-     * refused with SLUG_RENAMED (see apply).
+     * Update an organization: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the organization; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the organization does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the organization changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the organization kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) {
+    public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -961,7 +992,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -1087,16 +1119,23 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing organization.
-     * The slug is not changed by an update; rename changes it. An update
-     * authorizes the id it names, so wherever the server authorizes
-     * requests, an update without an id is refused before its slug is read;
-     * where it reads one, a slug the organization was renamed away from is
-     * refused with SLUG_RENAMED (see apply).
+     * Update an organization: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the organization; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the organization does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the organization changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the organization kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> update(
-        ai.stigmer.tenancy.organization.v1.Organization request) {
+        ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -1145,7 +1184,8 @@ public final class OrganizationCommandControllerGrpc {
      * slug stays held until the purge finishes, then is released: a later
      * organization may take it, and sees nothing the deleted one owned. An
      * edition may keep some records on purpose and says which (Stigmer Cloud
-     * keeps financial records and the permission history). There is no
+     * keeps financial records and the permission history; a licensed
+     * Stigmer Enterprise server keeps the permission history). There is no
      * restore.
      * A server that holds one organization (GetServerInfoOutput.single_org's
      * composition) refuses to delete it with FAILED_PRECONDITION carrying a
@@ -1202,7 +1242,7 @@ public final class OrganizationCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.tenancy.organization.v1.Organization) request,
+          serviceImpl.update((ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization>) responseObserver);
           break;
         case METHODID_UPDATE_POLICIES:
@@ -1253,7 +1293,7 @@ public final class OrganizationCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.tenancy.organization.v1.Organization,
+              ai.stigmer.tenancy.organization.v1.UpdateOrganizationInput,
               ai.stigmer.tenancy.organization.v1.Organization>(
                 service, METHODID_UPDATE)))
         .addMethod(

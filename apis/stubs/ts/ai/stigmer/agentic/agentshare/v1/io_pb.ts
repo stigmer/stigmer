@@ -12,13 +12,15 @@ import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apireso
 import type { PageInfo } from "../../../commons/rpc/pagination_pb.js";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/agentshare/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiKgoMQWdlbnRTaGFyZUlkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ6ChxHZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiYgoOQWdlbnRTaGFyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIugBChZMaXN0QWdlbnRTaGFyZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJUCgZsYWJlbHMYAiADKAsyRC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5MaXN0QWdlbnRTaGFyZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIzChRSb3RhdGVTaGFyZUxpbmtJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBIm0KF0dldFNoYXJlZFByb2ZpbGVSZXF1ZXN0Eh0KCHNoYXJlX2lkGAQgASgJQgu6SAjIAQFyAxiAARIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAAUoECAEQAkoECAIQA1IDb3JnUgRzbHVnIs4BChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRJNCglhZ2VudF9yZWYYByABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLChKBAgGEAdSE2RlZmF1bHRfaW5zdGFuY2VfaWRiBnByb3RvMw", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiKgoMQWdlbnRTaGFyZUlkEhoKBXZhbHVlGAEgASgJQgu6SAjIAQFyAxiAASJ6ChxHZXRBZ2VudFNoYXJlc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiYgoOQWdlbnRTaGFyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIugBChZMaXN0QWdlbnRTaGFyZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJUCgZsYWJlbHMYAiADKAsyRC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5MaXN0QWdlbnRTaGFyZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIzChRSb3RhdGVTaGFyZUxpbmtJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBIm0KF0dldFNoYXJlZFByb2ZpbGVSZXF1ZXN0Eh0KCHNoYXJlX2lkGAQgASgJQgu6SAjIAQFyAxiAARIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAAUoECAEQAkoECAIQA1IDb3JnUgRzbHVnIs4BChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRJNCglhZ2VudF9yZWYYByABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLChKBAgGEAdSE2RlZmF1bHRfaW5zdGFuY2VfaWQi3gIKFVVwZGF0ZUFnZW50U2hhcmVJbnB1dBJGCghyZXNvdXJjZRgBIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxLkFnZW50U2hhcmVCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrDAbpIvwEavAEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EktyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBhZ2VudCBzaGFyZSBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * AgentShareId wraps an agent share identifier.
@@ -275,4 +277,37 @@ export type SharedAgentProfile = Message<"ai.stigmer.agentic.agentshare.v1.Share
  */
 export const SharedAgentProfileSchema: GenMessage<SharedAgentProfile> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentshare_v1_io, 6);
+
+/**
+ * The changes an update makes to an agent share: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput
+ */
+export type UpdateAgentShareInput = Message<"ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput"> & {
+  /**
+   * The agent share carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.agentic.agentshare.v1.AgentShare resource = 1;
+   */
+  resource?: AgentShare;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput.
+ * Use `create(UpdateAgentShareInputSchema)` to create a new message.
+ */
+export const UpdateAgentShareInputSchema: GenMessage<UpdateAgentShareInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentshare_v1_io, 7);
 

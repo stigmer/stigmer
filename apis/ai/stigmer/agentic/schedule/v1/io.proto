@@ -5,6 +5,7 @@ package ai.stigmer.agentic.schedule.v1;
 import "ai/stigmer/agentic/schedule/v1/api.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 
 // ScheduleId wraps a schedule identifier.
@@ -184,4 +185,24 @@ message ScheduleFireList {
 
   // Fires in the current page.
   repeated ScheduleFire items = 2;
+}
+
+// The changes an update makes to a schedule: the fields update_mask names,
+// taken from resource.
+message UpdateScheduleInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the schedule by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The schedule carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  Schedule resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }

@@ -9,6 +9,7 @@ import (
 	organizationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // OrganizationClient provides operations on organization resources.
@@ -42,12 +43,11 @@ func (o *OrganizationClient) Create(ctx context.Context, input *OrganizationInpu
 	return resp, wrapErr(err)
 }
 
-func (o *OrganizationClient) Update(ctx context.Context, input *OrganizationInput) (*organizationv1.Organization, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := o.command.Update(ctx, req)
+func (o *OrganizationClient) Update(ctx context.Context, resource *organizationv1.Organization, paths []string) (*organizationv1.Organization, error) {
+	resp, err := o.command.Update(ctx, &organizationv1.UpdateOrganizationInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -91,12 +91,12 @@ func (o *OrganizationClient) ListChildOrgs(ctx context.Context, input *organizat
 	return resp, wrapErr(err)
 }
 
-// OrganizationInput holds the fields for creating/updating a Organization.
+// OrganizationInput holds the fields for creating or applying a Organization.
 type OrganizationInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id          string
 	Name        string
 	Slug        string

@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { MethodSchema, ServiceDefinition, ServiceSchemaFile } from "./gen-common.js";
-import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isValuedOneofScalar, searchListSupersedesMethod } from "./gen-common.js";
+import { firstMemberWinsOrder, goQuote, hasExplicitPresence, indefiniteArticle, isEmptyType, isIDType, isRealOneofMember, isSpecialType, isUpdateInputType, isValuedOneofScalar, searchListSupersedesMethod } from "./gen-common.js";
 import { isPythonKeyword, pyClientFieldName, pyFieldName, pyMethodName, pyProtoFileToModule, pyProtoImportLine, pyProtoModuleAlias, pyStubMethodName } from "./lang-names.js";
 import type { ResourceGenInfo, SdkResourceConfig } from "./sdk-resource-config.js";
 import { deriveResourceConfig, loadSpecSchemaWithTypes, META_FIELD_NAMES } from "./sdk-resource-config.js";
@@ -188,6 +188,7 @@ class PyImports {
   needsApiResIo = false;
   needsMetadata = false;
   needsEmptyPb2 = false;
+  needsFieldMaskPb2 = false;
   needsSearch = false;
   needsApiResKind = false;
 
@@ -293,6 +294,9 @@ class PyImports {
     }
     if (this.needsEmptyPb2) {
       buf.push("from google.protobuf import empty_pb2\n");
+    }
+    if (this.needsFieldMaskPb2) {
+      buf.push("from google.protobuf import field_mask_pb2\n");
     }
     if (this.needsSearch || this.needsApiResKind) {
       buf.push("from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2\n");
@@ -423,6 +427,9 @@ function generatePythonResourceClient(
       }
       if (isEmptyType(m.inputFullType)) {
         imports.needsEmptyPb2 = true;
+      }
+      if (isUpdateInputType(m.inputType, cfg.protoResType)) {
+        imports.needsFieldMaskPb2 = true;
       }
       if (m.serverStreaming === true) {
         genInfo.streamTypes.push(cfg.protoResType + m.name + "Stream");
@@ -563,6 +570,7 @@ function generatePythonMethod(
   const isIDInput = isIDType(m.inputType);
   const isDeleteInput = m.inputType === "ApiResourceDeleteInput";
   const isResourceInput = m.inputType === cfg.protoResType;
+  const isUpdateInput = isUpdateInputType(m.inputType, cfg.protoResType);
   const isApiResourceIdInput = m.inputType === "ApiResourceId";
   const isApiResourceRefInput = m.inputType === "ApiResourceReference";
 
@@ -582,6 +590,15 @@ function generatePythonMethod(
     buf.push(`    def ${methodName}(self) -> ${outputAnnotation}:\n`);
     buf.push("        try:\n");
     buf.push(`            ${returnKw}self._${svc.role}.${stubMethod}(empty_pb2.Empty())\n`);
+    buf.push("        except grpc.RpcError as e:\n");
+    buf.push("            raise wrap_error(e) from e\n\n");
+  } else if (isUpdateInput) {
+    const inputMod = pyMethodTypePb2Prefix(m.inputType, methodTypePb2Map);
+    buf.push(`    def ${methodName}(self, resource: api_pb2.${cfg.protoResType}, paths: list[str]) -> ${outputAnnotation}:\n`);
+    buf.push("        try:\n");
+    buf.push(`            ${returnKw}self._${svc.role}.${stubMethod}(\n`);
+    buf.push(`                ${inputMod}.${m.inputType}(resource=resource, update_mask=field_mask_pb2.FieldMask(paths=paths))\n`);
+    buf.push("            )\n");
     buf.push("        except grpc.RpcError as e:\n");
     buf.push("            raise wrap_error(e) from e\n\n");
   } else if (isResourceInput && hasInputType) {
@@ -736,7 +753,7 @@ function generatePythonInputAndProto(
     buf.push(`    # Always empty: ${article} ${cfg.protoResType} belongs to no organization.\n`);
     buf.push('    org: str = ""\n');
   }
-  // id: exact update addressing for platform-scoped (org-less) kinds.
+  // id: an apply that carries it changes that resource, whatever its slug.
   buf.push("    id: str | None = None\n");
   buf.push("    slug: str | None = None\n");
   buf.push("    labels: dict[str, str] | None = None\n");
@@ -1111,6 +1128,7 @@ class ErrorCode(enum.Enum):
     ALREADY_EXISTS = "already-exists"
     RESOURCE_EXHAUSTED = "resource-exhausted"
     FAILED_PRECONDITION = "failed-precondition"
+    ABORTED = "aborted"
     INTERNAL = "internal"
     UNAVAILABLE = "unavailable"
     CANCELLED = "cancelled"
@@ -1124,6 +1142,7 @@ _GRPC_CODE_MAP: dict[grpc.StatusCode, ErrorCode] = {
     grpc.StatusCode.ALREADY_EXISTS: ErrorCode.ALREADY_EXISTS,
     grpc.StatusCode.RESOURCE_EXHAUSTED: ErrorCode.RESOURCE_EXHAUSTED,
     grpc.StatusCode.FAILED_PRECONDITION: ErrorCode.FAILED_PRECONDITION,
+    grpc.StatusCode.ABORTED: ErrorCode.ABORTED,
     grpc.StatusCode.INTERNAL: ErrorCode.INTERNAL,
     grpc.StatusCode.UNAVAILABLE: ErrorCode.UNAVAILABLE,
     grpc.StatusCode.CANCELLED: ErrorCode.CANCELLED,

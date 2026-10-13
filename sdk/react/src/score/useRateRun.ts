@@ -7,7 +7,7 @@ import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import {
   ratingCreateInput,
-  ratingUpdateInput,
+  ratingUpdate,
   type RunRating,
 } from "./rating-input.js";
 import { SCORE_EXISTS_REASON } from "./score-view.js";
@@ -62,9 +62,8 @@ export function useRateRun(): UseRateRunReturn {
             throw err;
           }
           const existing = await stigmer.score.get(existingId);
-          return await stigmer.score.update(
-            ratingUpdateInput(existing, rating),
-          );
+          const { resource, paths } = ratingUpdate(existing, rating);
+          return await stigmer.score.update(resource, paths);
         }
       } catch (err) {
         setError(toError(err));

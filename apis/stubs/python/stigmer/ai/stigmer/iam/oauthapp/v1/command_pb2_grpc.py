@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.iam.oauthapp.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2
+from ai.stigmer.iam.oauthapp.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2
 
 
 class OAuthAppCommandControllerStub(object):
@@ -28,7 +29,7 @@ class OAuthAppCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2.OAuthApp.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.UpdateOAuthAppInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2.OAuthApp.FromString,
                 _registered_method=True)
         self.rename = channel.unary_unary(
@@ -87,12 +88,22 @@ class OAuthAppCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing OAuth app.
+        """Update an OAuth app: the fields update_mask names change, every other
+        field keeps its stored value.
 
-        The slug changes only through rename. An update authorizes the id it names,
-        so wherever the server authorizes requests, an update without an id is
-        refused before its slug is read; where it reads one, a slug the OAuth app
-        was renamed away from is refused with SLUG_RENAMED (see apply).
+        resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the OAuth app does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the OAuth app kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -143,7 +154,7 @@ def add_OAuthAppCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2.OAuthApp.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.UpdateOAuthAppInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2.OAuthApp.SerializeToString,
             ),
             'rename': grpc.unary_unary_rpc_method_handler(
@@ -237,7 +248,7 @@ class OAuthAppCommandController(object):
             request,
             target,
             '/ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController/update',
-            ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2.OAuthApp.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_io__pb2.UpdateOAuthAppInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_oauthapp_dot_v1_dot_api__pb2.OAuthApp.FromString,
             options,
             channel_credentials,

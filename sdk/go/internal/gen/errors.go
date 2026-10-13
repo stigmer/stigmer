@@ -24,6 +24,7 @@ const (
 	CodeFailedPrecondition
 	CodeInternal
 	CodeUnavailable
+	CodeAborted
 )
 
 // Error is the structured error type returned by all SDK operations.
@@ -90,6 +91,8 @@ func grpcCodeToSDK(c codes.Code) ErrorCode {
 		return CodeInternal
 	case codes.Unavailable:
 		return CodeUnavailable
+	case codes.Aborted:
+		return CodeAborted
 	default:
 		return CodeUnknown
 	}

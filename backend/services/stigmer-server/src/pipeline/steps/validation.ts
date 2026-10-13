@@ -23,13 +23,21 @@ export function validator(): Validator {
   return sharedValidator;
 }
 
-export function newValidateProtoStep<
-  Desc extends DescMessage,
->(): PipelineStep<Desc> {
+/**
+ * `of: "state"` validates the state the chain built instead of its input:
+ * an update's request carries only the fields its mask names, so the rules
+ * hold for the merged resource, the one that will be stored.
+ */
+export function newValidateProtoStep<Desc extends DescMessage>(
+  options: { readonly of?: "input" | "state" } = {},
+): PipelineStep<Desc> {
   return {
     name: "ValidateProto",
     execute(ctx: RequestContext<Desc>): void {
-      const result = validator().validate(ctx.schema, ctx.input);
+      const result = validator().validate(
+        ctx.schema,
+        options.of === "state" ? ctx.newState : ctx.input,
+      );
       if (result.kind === "valid") {
         return;
       }

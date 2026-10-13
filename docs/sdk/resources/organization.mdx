@@ -55,7 +55,7 @@ Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hf
 | [`findMyOrganizations`](#findmyorganizations) | Find organizations the authenticated user is a member of. |
 | [`apply`](#apply) | Create or update an organization. |
 | [`create`](#create) | Create an organization. |
-| [`update`](#update) | Update an existing organization. |
+| [`update`](#update) | Update an organization: the fields update_mask names change, every other field keeps its stored value. |
 | [`updatePolicies`](#updatepolicies) | Change what the organization lets its members do (OrganizationPolicies), the one way to change a policy: update and apply keep the stored policies. |
 | [`delete`](#delete) | Delete an organization, and everything it owned. |
 | [`rename`](#rename) | Rename an organization: change its slug, the name people type. |
@@ -443,74 +443,52 @@ Organization organization = client.organizations().create(OrganizationInput.buil
 
 ### update
 
-Update an existing organization.
+Update an organization: the fields update_mask names change, every other field keeps its stored value.
 
-The slug is not changed by an update; rename changes it. An update authorizes the id it names, so wherever the server authorizes requests, an update without an id is refused before its slug is read; where it reads one, a slug the organization was renamed away from is refused with SLUG_RENAMED (see apply).
+resource.metadata.id names the organization; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the organization does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the organization changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the organization kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const organization = await stigmer.organization.update({
-  name: "my-organization",
-  slug: "...",
-  labels: {},
-  description: "...",
-  logoUrl: "...",
-  externalId: "...",
-  preferences: {},
-  parentOrg: "...",
-  policies: {},
-});
+const organization = await stigmer.organization.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
+organization.metadata!.name = "New name";
+const updated = await stigmer.organization.update(organization, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
-  Name:        "my-organization",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Description: "...",
-  LogoUrl:     "...",
-  ExternalId:  "...",
-  Preferences: &stigmer.OrganizationPreferencesInput{},
-  ParentOrg:   "...",
-  Policies:    &stigmer.OrganizationPoliciesInput{},
-})
+organization, err := client.Organization.Get(ctx, "org_01j5q3k7m8r2s4tnz2hfp0q0c3")
+organization.Metadata.Name = "New name"
+updated, err := client.Organization.Update(ctx, organization, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organizations.update(OrganizationInput(
-    name="my-organization",
-    slug="...",
-    labels={},
-    description="...",
-    logo_url="...",
-    external_id="...",
-    preferences=None,
-    parent_org="...",
-    policies=None,
-))
+organization = client.organizations.get("org_01j5q3k7m8r2s4tnz2hfp0q0c3")
+organization.metadata.name = "New name"
+updated = client.organizations.update(organization, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organizations().update(OrganizationInput.builder()
-    .name("my-organization")
-    .slug("...")
-    .labels(Map.of())
-    .description("...")
-    .logoUrl("...")
-    .externalId("...")
-    .preferences(null)
-    .parentOrg("...")
-    .policies(null)
-    .build());
+Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Organization updated = client.organizations().update(
+    organization.toBuilder().setMetadata(organization.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`OrganizationInput`](#organizationinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Organization`](#organization) | The organization, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Organization`](#organization)
 
@@ -561,7 +539,7 @@ Organization organization = client.organizations().updatePolicies(UpdateOrganiza
 
 Delete an organization, and everything it owned.
 
-The delete answers the organization as it stood. From that answer on, the organization does not exist: every request that names it, or one of its resources, answers NOT_FOUND, a second delete included, and nothing new can start inside it. A purge then removes, in the background, everything the organization owned: its agents, sessions, runs and their files, skills, plugins, vaults and their logins and secrets, sandboxes, channels and their conversations, and every permission naming it or its resources. Its slug stays held until the purge finishes, then is released: a later organization may take it, and sees nothing the deleted one owned. An edition may keep some records on purpose and says which (Stigmer Cloud keeps financial records and the permission history). There is no restore.
+The delete answers the organization as it stood. From that answer on, the organization does not exist: every request that names it, or one of its resources, answers NOT_FOUND, a second delete included, and nothing new can start inside it. A purge then removes, in the background, everything the organization owned: its agents, sessions, runs and their files, skills, plugins, vaults and their logins and secrets, sandboxes, channels and their conversations, and every permission naming it or its resources. Its slug stays held until the purge finishes, then is released: a later organization may take it, and sees nothing the deleted one owned. An edition may keep some records on purpose and says which (Stigmer Cloud keeps financial records and the permission history; a licensed Stigmer Enterprise server keeps the permission history). There is no restore.
 
 A server that holds one organization (GetServerInfoOutput.single_org's composition) refuses to delete it with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
 
@@ -687,6 +665,17 @@ OrganizationPolicies holds what an organization lets its members do.
 <TypeTable
   type={{
     membersCanCreateAgents: { type: "boolean", description: "Members may create agents." },
+  }}
+/>
+
+### UpdateOrganizationInput
+
+The changes an update makes to an organization: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "OrganizationInput", description: "The organization carrying the new values, named by metadata.id.", typeDescriptionLink: "#organizationinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

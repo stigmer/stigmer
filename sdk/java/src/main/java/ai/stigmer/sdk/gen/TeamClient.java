@@ -11,6 +11,8 @@ import ai.stigmer.iam.team.v1.Team;
 import ai.stigmer.iam.team.v1.TeamCommandControllerGrpc;
 import ai.stigmer.iam.team.v1.TeamQueryControllerGrpc;
 import ai.stigmer.iam.team.v1.Teams;
+import ai.stigmer.iam.team.v1.UpdateTeamInput;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -30,9 +32,12 @@ public final class TeamClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Team update(TeamInput input) {
+    public Team update(Team resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateTeamInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

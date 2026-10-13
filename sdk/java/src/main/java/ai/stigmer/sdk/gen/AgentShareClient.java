@@ -12,7 +12,9 @@ import ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest;
 import ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest;
 import ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput;
 import ai.stigmer.agentic.agentshare.v1.SharedAgentProfile;
+import ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -38,9 +40,12 @@ public final class AgentShareClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public AgentShare update(AgentShareInput input) {
+    public AgentShare update(AgentShare resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateAgentShareInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

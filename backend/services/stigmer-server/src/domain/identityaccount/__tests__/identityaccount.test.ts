@@ -208,12 +208,12 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     it("update round-trips preferences — the console's one write — and whoAmI reflects it", async () => {
       const me = await query.whoAmI({});
       const updated = await command.update(
-        withSpec(me, (spec) => {
+        { resource: withSpec(me, (spec) => {
           spec.preferences = create(IdentityAccountPreferencesSchema, {
             defaultHarness: "cursor",
             defaultCursorModel: "gpt-5",
           });
-        }),
+        }), updateMask: { paths: ["*"] } },
       );
       expect(updated.spec?.preferences?.defaultHarness).toBe("cursor");
       const again = await query.whoAmI({});
@@ -305,9 +305,9 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
       );
       const error = await connectErrorOf(
         command.update(
-          withSpec(created, (spec) => {
+          { resource: withSpec(created, (spec) => {
             spec.idpId = "auth0|someone-else";
-          }),
+          }), updateMask: { paths: ["*"] } },
         ),
       );
       expect(error.code).toBe(Code.FailedPrecondition);
@@ -321,13 +321,13 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
         accountInput({ idpId: "auth0|keep" }),
       );
       const updated = await command.update(
-        withSpec(created, (spec) => {
+        { resource: withSpec(created, (spec) => {
           spec.firstName = "Edited";
           spec.email = "rewritten@example.com";
           spec.isMachineAccount = true;
           spec.provisioningMode =
             IdentityAccountProvisioningMode.platform_client;
-        }),
+        }), updateMask: { paths: ["*"] } },
       );
       expect(updated.spec?.firstName).toBe("Edited");
       // The IdP asserted the email; the client cannot rewrite it.
@@ -341,7 +341,7 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
     it("an update of an id no account holds answers NOT_FOUND with the byte-pinned copy", async () => {
       const missing = "ida_00000000000000000000000001";
       const error = await connectErrorOf(
-        command.update(accountInput({ id: missing, idpId: "auth0|nobody-holds" })),
+        command.update({ resource: accountInput({ id: missing, idpId: "auth0|nobody-holds" }), updateMask: { paths: ["*"] } }),
       );
       expect(error.code).toBe(Code.NotFound);
       expect(error.rawMessage).toBe(accountNotFoundMessage(missing));
@@ -366,12 +366,14 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
           read.row.spec.email = "asserted@example.com";
           expect(await accounts.swap(id, read.bytes, read.row)).toBe(true);
         },
-        () =>
-          command.update(
-            withSpec(created, (spec) => {
-              spec.firstName = "Edited";
-            }),
-          ),
+        () => {
+          // An update that sends no etag, naming the one field it edits.
+          const edit = withSpec(created, (spec) => {
+            spec.firstName = "Edited";
+          });
+          edit.metadata!.etag = "";
+          return command.update({ resource: edit, updateMask: { paths: ["spec.first_name"] } });
+        },
       );
 
       expect(writes).toBeGreaterThanOrEqual(2);

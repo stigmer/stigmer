@@ -26,26 +26,27 @@ var File_ai_stigmer_agentic_agentshare_v1_command_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_agentshare_v1_command_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentshare/v1/command.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a)ai/stigmer/agentic/agentshare/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xee\x05\n" +
+	".ai/stigmer/agentic/agentshare/v1/command.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a)ai/stigmer/agentic/agentshare/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x82\x06\n" +
 	"\x1bAgentShareCommandController\x12c\n" +
 	"\x05apply\x12,.ai.stigmer.agentic.agentshare.v1.AgentShare\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\x12j\n" +
-	"\x06create\x12,.ai.stigmer.agentic.agentshare.v1.AgentShare\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"\x04и\x18\x01\x12\x9f\x01\n" +
-	"\x06update\x12,.ai.stigmer.agentic.agentshare.v1.AgentShare\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"9¸\x185\b\x02\x10.\"\vmetadata.id*\"unauthorized to update agent share\x12\xb7\x01\n" +
+	"\x06create\x12,.ai.stigmer.agentic.agentshare.v1.AgentShare\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"\x04и\x18\x01\x12\xb3\x01\n" +
+	"\x06update\x127.ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"B¸\x18>\b\x02\x10.\"\x14resource.metadata.id*\"unauthorized to update agent share\x12\xb7\x01\n" +
 	"\x0frotateShareLink\x126.ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\">¸\x18:\b\x02\x10.\"\vresource_id*'unauthorized to rotate agent share link\x12\x9b\x01\n" +
 	"\x06delete\x12..ai.stigmer.agentic.agentshare.v1.AgentShareId\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"3¸\x18/\b\x03\x10.\"\x05value*\"unauthorized to delete agent share\x1a\x04\xa0\xff+.B\xb1\x02\n" +
 	"$com.ai.stigmer.agentic.agentshare.v1B\fCommandProtoP\x01ZVgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentshare_v1_command_proto_goTypes = []any{
-	(*AgentShare)(nil),           // 0: ai.stigmer.agentic.agentshare.v1.AgentShare
-	(*RotateShareLinkInput)(nil), // 1: ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput
-	(*AgentShareId)(nil),         // 2: ai.stigmer.agentic.agentshare.v1.AgentShareId
+	(*AgentShare)(nil),            // 0: ai.stigmer.agentic.agentshare.v1.AgentShare
+	(*UpdateAgentShareInput)(nil), // 1: ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput
+	(*RotateShareLinkInput)(nil),  // 2: ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput
+	(*AgentShareId)(nil),          // 3: ai.stigmer.agentic.agentshare.v1.AgentShareId
 }
 var file_ai_stigmer_agentic_agentshare_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.apply:input_type -> ai.stigmer.agentic.agentshare.v1.AgentShare
 	0, // 1: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.create:input_type -> ai.stigmer.agentic.agentshare.v1.AgentShare
-	0, // 2: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.update:input_type -> ai.stigmer.agentic.agentshare.v1.AgentShare
-	1, // 3: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.rotateShareLink:input_type -> ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput
-	2, // 4: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.delete:input_type -> ai.stigmer.agentic.agentshare.v1.AgentShareId
+	1, // 2: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.update:input_type -> ai.stigmer.agentic.agentshare.v1.UpdateAgentShareInput
+	2, // 3: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.rotateShareLink:input_type -> ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput
+	3, // 4: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.delete:input_type -> ai.stigmer.agentic.agentshare.v1.AgentShareId
 	0, // 5: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.apply:output_type -> ai.stigmer.agentic.agentshare.v1.AgentShare
 	0, // 6: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.create:output_type -> ai.stigmer.agentic.agentshare.v1.AgentShare
 	0, // 7: ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.update:output_type -> ai.stigmer.agentic.agentshare.v1.AgentShare

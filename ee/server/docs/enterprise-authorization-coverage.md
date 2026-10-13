@@ -17,7 +17,7 @@ In short:
 |---|---|---|
 | IdentityProviderCommandController.apply | none | chain-with-Authorize (guard: AuthorizeResolvedTarget — `can_create_idp` on the request's organization, create's own question and copy, before the slug is resolved; the create or update arm then runs its own chain under its own annotation) |
 | IdentityProviderCommandController.create | config: can_create_idp on organization (field metadata.org), error_msg yes | chain-with-Authorize (guard: OwnersDecideSsoRequired — a provider that sets `sso_required` also needs `can_assign_roles` on the organization, its owners; the host's SsoPlanGate when it fills one; `src/iam/provider/sso-required-steps.ts`) |
-| IdentityProviderCommandController.update | config: can_edit on identity_provider (field metadata.id), error_msg yes | chain-with-Authorize (guard: OwnersDecideSsoRequired when the update changes `sso_required`, or whom a provider with it on trusts: its issuers, key set or audience; the host's SsoPlanGate when it turns it on) |
+| IdentityProviderCommandController.update | config: can_edit on identity_provider (field resource.metadata.id), error_msg yes | chain-with-Authorize (guard: OwnersDecideSsoRequired when the update changes `sso_required`, or whom a provider with it on trusts: its issuers, key set or audience; the host's SsoPlanGate when it turns it on) |
 | IdentityProviderCommandController.rename | config: can_delete on identity_provider (field resource_id), error_msg yes | chain-with-Authorize (the library's rename chain, `renameResource`, over this table's `modifyById`; a service account refused before the load, a provider being deleted after it) |
 | IdentityProviderCommandController.delete | config: can_delete on identity_provider (field resource_id), error_msg yes | chain-with-Authorize (guard: OwnersDecideSsoRequired when the provider sets `sso_required`: deleting it ends the requirement) |
 | IdentityProviderCommandController.createAccessMove | is_skip_authorization | chain-with-Authorize (by design: moves only the caller's own access, so a signed-in person alone may ask, a service account or any other class refused; the organization must have a live SSO provider, and the library's move door refuses an owner; `src/iam/access-move/handlers.ts`) |
@@ -44,7 +44,7 @@ In short:
 | Method | Annotation | Handler |
 |---|---|---|
 | TeamCommandController.create | config: can_create_team on organization (field metadata.org), error_msg yes | chain-with-Authorize |
-| TeamCommandController.update | config: can_edit on team (field metadata.id), error_msg yes | chain-with-Authorize |
+| TeamCommandController.update | config: can_edit on team (field resource.metadata.id), error_msg yes | chain-with-Authorize |
 | TeamCommandController.rename | config: can_delete on team (field resource_id), error_msg yes | chain-with-Authorize (the library's rename chain, `renameResource`, over this table's `modifyById`) |
 | TeamCommandController.delete | config: can_delete on team (field resource_id), error_msg yes | chain-with-Authorize |
 | TeamQueryController.get | config: can_view on team (field value), error_msg yes | chain-with-Authorize |

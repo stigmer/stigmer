@@ -23,7 +23,7 @@ export type { TemplateBodySegment } from "./templatePresentation.js";
 export { useAgentChannel } from "./useAgentChannel.js";
 export type { UseAgentChannelReturn } from "./useAgentChannel.js";
 
-export { useSaveAgentChannel, agentChannelToInput } from "./useSaveAgentChannel.js";
+export { useSaveAgentChannel } from "./useSaveAgentChannel.js";
 export type { UseSaveAgentChannelReturn } from "./useSaveAgentChannel.js";
 
 export { useCreateAgentChannel } from "./useCreateAgentChannel.js";
