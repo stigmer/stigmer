@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   computeDiff,
   useFileChangeContent,
@@ -28,9 +27,8 @@ export interface FileDiffBodyProps {
  * branch. Renders a single `CapturedFileChange`'s unified diff for review in the
  * terminal.
  *
- * A capture is always whole-file (`toDisplayFileChange` emits
- * `captureLevel = WHOLE_FILE`), so this deliberately handles only that case: it
- * resolves the before/after text via the shared `useFileChangeContent` behavior
+ * A capture is always whole-file (the candidate carries the byte-exact
+ * before and after), so this handles only that case: it resolves the before/after text via the shared `useFileChangeContent` behavior
  * hook (inline bodies cost nothing; offloaded bodies are fetched lazily through
  * the server proxy) and diffs them with the shared pure `computeDiff` — the SAME
  * engine the web renders, so the terminal and web diffs are line-for-line
@@ -82,7 +80,7 @@ export function FileDiffBody({ change }: FileDiffBodyProps) {
     // emptiness we cannot prove from the capture.
     return (
       <Notice>
-        {displayChange.changeType === FileChangeType.CREATE
+        {displayChange.changeType === "added"
           ? "Empty new file."
           : "No preview available."}
       </Notice>

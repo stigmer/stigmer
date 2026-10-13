@@ -4,7 +4,7 @@
 // was decided — is the session's fold (`FileReviewSet`); the mid-run
 // progress strip reads the run's slim progress entries.
 import type { FileChangeProgressEntry } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileChangeKind, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { extractPrimaryArg, fileReviewability } from "@stigmer/react";
 import { resolveToolKind, type FileReviewFile, type FileReviewSet, type ToolUse } from "@stigmer/sdk";
 
@@ -148,9 +148,9 @@ export function settledSummary(set: Pick<FileReviewSet, "files">): string {
  */
 export function editedPath(toolUse: ToolUse): string | null {
   switch (resolveToolKind(toolUse)) {
-    case ToolKind.FILE_WRITE:
-    case ToolKind.FILE_EDIT:
-    case ToolKind.FILE_DELETE:
+    case "file_write":
+    case "file_edit":
+    case "file_delete":
       return extractPrimaryArg(toolUse);
     default:
       return null;
