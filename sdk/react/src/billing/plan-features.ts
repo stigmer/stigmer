@@ -104,6 +104,15 @@ export function formatChildOrgs(
   return `${included} child organization${included === 1 ? "" : "s"} included${beyond}`;
 }
 
+/**
+ * Working agent time as hours to one decimal, e.g. "31.4 h": the tenth of
+ * an hour the invoice bills by, rounded half up.
+ */
+export function formatAgentHours(seconds: bigint): string {
+  const tenths = (seconds + BigInt(180)) / BigInt(360);
+  return `${tenths / BigInt(10)}.${tenths % BigInt(10)} h`;
+}
+
 const DAY = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 /**

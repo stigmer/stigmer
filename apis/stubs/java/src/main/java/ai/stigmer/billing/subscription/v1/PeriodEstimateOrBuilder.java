@@ -147,4 +147,16 @@ public interface PeriodEstimateOrBuilder extends
    * @return The totalMicros.
    */
   long getTotalMicros();
+
+  /**
+   * <pre>
+   * The working agent seconds counted against the plan this period so
+   * far: the organization's and its child organizations', never an
+   * automatic grade's.
+   * </pre>
+   *
+   * <code>int64 working_seconds = 9 [json_name = "workingSeconds"];</code>
+   * @return The workingSeconds.
+   */
+  long getWorkingSeconds();
 }

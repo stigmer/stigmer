@@ -1,7 +1,8 @@
 // What a plan shows: only the features Cloud offers today, in contract
 // order (a feature listed ahead of its gate is left out), its monthly fee
-// and its child organizations; every period day in UTC; and
-// which plans are offered, cheapest first, with what a switch gives up.
+// and its child organizations; every period day in UTC; working agent time
+// in tenths of an hour; and which plans are offered, cheapest first, with
+// what a switch gives up.
 
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -11,6 +12,7 @@ import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform
 import {
   buyablePlans,
   featuresLost,
+  formatAgentHours,
   formatChildOrgs,
   formatMonthlyFee,
   formatPeriodDay,
@@ -63,6 +65,16 @@ describe("formatPeriodDay", () => {
   it("shows a period boundary as its UTC calendar day", () => {
     expect(formatPeriodDay(timestampFromDate(new Date("2027-02-28T23:30:00Z")))).toBe("Feb 28, 2027");
     expect(formatPeriodDay(undefined)).toBe("");
+  });
+});
+
+describe("formatAgentHours", () => {
+  it("shows working time as hours to the tenth the invoice bills by, rounded half up", () => {
+    expect(formatAgentHours(0n)).toBe("0.0 h");
+    expect(formatAgentHours(112_320n)).toBe("31.2 h");
+    expect(formatAgentHours(179n)).toBe("0.0 h");
+    expect(formatAgentHours(180n)).toBe("0.1 h");
+    expect(formatAgentHours(36_000n)).toBe("10.0 h");
   });
 });
 
