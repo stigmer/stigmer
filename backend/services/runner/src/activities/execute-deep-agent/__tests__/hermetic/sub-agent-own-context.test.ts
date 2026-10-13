@@ -144,7 +144,7 @@ describe("ExecuteDeepAgent hermetic — a saved subagent's own context", () => {
 
     expect(invocation.outcome.kind).toBe("returned");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
-    const subRows = record.lastFullStatus!.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
+    const subRows = record.lastFullRows!.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
     expect(subRows.map((r) => [r.id, r.status]), "both hooks allowed it: no card").toEqual([["call-notes-shell", ToolCallStatus.TOOL_CALL_COMPLETED]]);
 
     expect(readFileSync(join(workspace, "shell-env.txt"), "utf8"), "its shell holds its value, never the agent's").toBe("notes-secret|");

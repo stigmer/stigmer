@@ -1,0 +1,13 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "The answer is forty-two, and I would score it a perfect forty-two out of the same.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    }
+  ],
+  "structuredOutput": {
+    "answer": "forty-two",
+    "score": 42
+  }
+}

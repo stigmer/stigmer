@@ -34,8 +34,6 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { fromJson, toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -73,8 +71,11 @@ import {
   loadRows,
   readRows,
   type PausedSessionFixture,
+  pausedTurnJson,
+  pausedTurnOf,
 } from "../../__test-utils__/paused-session-fixture.js";
-import { ApprovalAction, ToolCallStatus, ToolKind } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { toolUseEventId } from "../../../../harness/events/ids.js";
 
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 const RESUME_AFTER_MS = 60_000;
@@ -123,7 +124,7 @@ describe("ExecuteDeepAgent hermetic — a session saved with a think call resume
       recordedWith: engineVersions(),
       threadId: FIXTURE.threadId,
       ...readRows(getCheckpointDbPath(FIXTURE.sessionId)),
-      status: toJson(RunStatusSchema, record.lastFullStatus!),
+      status: pausedTurnJson(record.rowsOf(record.lastFullStatus!), record.lastFullStatus!),
     };
     mkdirSync(dirname(FIXTURE_PATH), { recursive: true });
     writeFileSync(FIXTURE_PATH, JSON.stringify(fixture, null, 2) + "\n");
@@ -137,7 +138,8 @@ describe("ExecuteDeepAgent hermetic — a session saved with a think call resume
     const record = deepAgentExecutionRecord({ message: THINK_RETIREMENT_MESSAGE });
     const scenario = beginDeepAgentScenario({ env, clock, record, checkpointer: "sqlite", script: SCRIPT });
     await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-    await record.restorePausedTurn(fromJson(RunStatusSchema, fixture.status));
+    const paused = pausedTurnOf(fixture.status);
+    await record.restorePausedTurn(paused.rows, paused.status);
     // The approval arrives after the pause, as it does live; the resumed
     // turn's checkpoints must sort after the paused one they continue.
     clock.tick(RESUME_AFTER_MS);
@@ -153,17 +155,27 @@ describe("ExecuteDeepAgent hermetic — a session saved with a think call resume
     expect(turn.outcome.kind).toBe("returned");
     expect((turn.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     const final = record.lastFullStatus!;
-    const calls = final.messages.flatMap((m) => m.toolCalls);
+    const finalRows = record.rowsOf(final);
+    const calls = finalRows.messages.flatMap((m) => m.toolCalls);
     const executed = calls.filter((tc) => tc.id === EXECUTE_CALL_A.id);
     expect(executed, "exactly one copy of the gated call — a resume, not a replay").toHaveLength(1);
     expect(executed[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(executed[0].result, "the command ran on this engine").toContain("hermetic-a");
-    const thought = calls.filter((tc) => tc.id === THINK_CALL_ID);
-    expect(thought, "the old engine's think call stays in the record, once").toHaveLength(1);
-    expect(thought[0].name).toBe("think");
-    expect(thought[0].toolKind, "classified for history, so the transcript still renders it").toBe(ToolKind.THINK);
-    expect(thought[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(final.messages.at(-1)?.content).toBe(CLOSING_TURN.text);
+    // The old engine's think call is the log's: its use and its result were
+    // written once, when the paused turn was, and the resumed rows carry no
+    // copy of it.
+    const thinkUse = toolUseEventId(record.executionId, THINK_CALL_ID);
+    const thinkEvents = record.sessionEvents.flatMap((e) => {
+      if (e.event.case === "agentToolUse" && e.event.value.id === thinkUse) return [["use", e.event.value.name]];
+      if (e.event.case === "agentToolResult" && e.event.value.toolUseId === thinkUse) return [["result", e.event.value.isError]];
+      return [];
+    });
+    expect(thinkEvents, "the old engine's think call stays in the log, once").toEqual([
+      ["use", "think"],
+      ["result", false],
+    ]);
+    expect(calls.some((tc) => tc.id === THINK_CALL_ID), "the resumed rows carry no copy of it").toBe(false);
+    expect(finalRows.messages.at(-1)?.content).toBe(CLOSING_TURN.text);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
   });
 });

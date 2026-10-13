@@ -26,7 +26,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -58,7 +57,7 @@ const REPORT_BODY = "# Report\n\nWritten before the provider failed.\n";
 const WRITE_CALL_ID = "call-hermetic-write-0001";
 const PROVIDER_FAULT = "provider stream failed mid-turn";
 
-function systemMessages(status: RunStatus): string[] {
+function systemMessages(status: { readonly messages: readonly { readonly type: MessageType; readonly content: string }[] }): string[] {
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content);
 }
 
@@ -135,7 +134,7 @@ describe("ExecuteDeepAgent hermetic — a thrown turn drains its inline publishe
     const final = record.lastFullStatus!;
     expect(final.phase, "nothing holds the failure: review is off").toBe(RunPhase.RUN_FAILED);
     expect(final.error).toContain(PROVIDER_FAULT);
-    expect(systemMessages(final), "the failure's rows").toEqual([
+    expect(systemMessages(record.rowsOf(final)), "the failure's rows").toEqual([
       TERMINAL_COPY.internalFailure.row,
       `Error details: [Error] ${PROVIDER_FAULT}`,
     ]);

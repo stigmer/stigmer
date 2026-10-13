@@ -1,0 +1,18 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Here is the structured answer.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Returning structured response: {\"answer\":\"forty-two\",\"score\":42}",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    }
+  ],
+  "structuredOutput": {
+    "answer": "forty-two",
+    "score": 42
+  }
+}

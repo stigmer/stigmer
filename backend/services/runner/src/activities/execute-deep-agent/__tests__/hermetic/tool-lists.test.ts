@@ -149,7 +149,7 @@ describe("ExecuteDeepAgent hermetic — tool lists", () => {
 
     expect(invocation.outcome.kind).toBe("returned");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
-    const subRows = record.lastFullStatus!.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
+    const subRows = record.lastFullRows!.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
     expect(subRows.map((r) => [r.id, r.status])).toEqual([["call-sub-shell", ToolCallStatus.TOOL_CALL_FAILED]]);
     expect(subRows[0].error).toContain('Subagent "worker": tools [Read]');
     expect(subRows[0].approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
@@ -172,10 +172,11 @@ describe("ExecuteDeepAgent hermetic — tool lists", () => {
 
     expect(invocation.outcome.kind, "a deterministic refusal RETURNS").toBe("returned");
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     const message = new ToolListResolutionError(AGENT_OWNER, tools).message;
     expect(final.phase).toBe(RunPhase.RUN_FAILED);
     expect(final.error).toBe(message);
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       `Execution failed: ${message}`,
     ]);
     expect(recordedModelBuilds().length, "the model is built, never asked").toBeLessThanOrEqual(1);

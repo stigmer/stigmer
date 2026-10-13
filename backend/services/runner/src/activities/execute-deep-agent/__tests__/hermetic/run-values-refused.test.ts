@@ -70,9 +70,10 @@ describe("ExecuteDeepAgent hermetic — the run's values are refused", () => {
 
     expect(turn.outcome.kind, "a refusal the person fixes RETURNS").toBe("returned");
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.phase).toBe(RunPhase.RUN_FAILED);
     expect(final.error).toBe(REFUSAL);
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       `Execution failed: ${REFUSAL}`,
     ]);
   });

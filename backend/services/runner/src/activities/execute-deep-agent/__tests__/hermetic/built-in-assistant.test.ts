@@ -86,7 +86,8 @@ describe("ExecuteDeepAgent hermetic — the built-in assistant", () => {
       RunPhase.RUN_COMPLETED,
     ]);
     const final = record.lastFullStatus!;
-    const ai = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
+    const finalRows = record.rowsOf(final);
+    const ai = finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI);
     expect(ai).toHaveLength(1);
     expect(ai[0].content).toBe(ASSISTANT_TEXT);
 

@@ -48,11 +48,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import {
-  RunStatusSchema,
-  type RunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -68,6 +63,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -88,9 +86,6 @@ const REASONING = "Two commands are needed; I will run them in order.";
 const OPENING_TEXT = "I will run the two commands.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 
-function statusJson(status: RunStatus): string {
-  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
-}
 
 describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", () => {
   let env: HermeticEnvironment;
@@ -138,11 +133,13 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
     expect(turn1.outcome.kind).toBe("returned");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const run1 = record.lastFullStatus!;
-    const thinking = run1.messages.filter((m) => m.type === MessageType.MESSAGE_THINKING);
+    const run1Rows = record.rowsOf(run1);
+    const thinking = run1Rows.messages.filter((m) => m.type === MessageType.MESSAGE_THINKING);
     expect(thinking.map((m) => m.content), "the reasoning block is exactly one THINKING message").toEqual([REASONING]);
-    expect(run1.messages[0].type, "and it leads the transcript").toBe(MessageType.MESSAGE_THINKING);
+    expect(run1Rows.messages[0].type, "and it leads the transcript").toBe(MessageType.MESSAGE_THINKING);
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
-    await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/approve-all-lease.turn1.status.json");
+    await expect(statusGolden(run1)).toMatchFileSnapshot("./goldens/approve-all-lease.turn1.status.json");
+    await expect(rowsGolden(record.rowsOf(run1))).toMatchFileSnapshot(rowsGoldenPath("./goldens/approve-all-lease.turn1.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/approve-all-lease.turn1.events.json");
 
     // ── Between turns: APPROVE_ALL on A ──────────────────────────────────────
@@ -158,7 +155,8 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
     expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(1);
 
     const final = record.lastFullStatus!;
-    const rows = final.messages.flatMap((m) => m.toolCalls);
+    const finalRows = record.rowsOf(final);
+    const rows = finalRows.messages.flatMap((m) => m.toolCalls);
     expect(rows.map((tc) => tc.id), "A reconciled in place, B appended; one copy each").toEqual([
       EXECUTE_CALL_A.id,
       EXECUTE_CALL_B.id,
@@ -175,18 +173,22 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
     expect(b.approvalAction, "B was never decided by a person").toBe(ApprovalAction.UNSPECIFIED);
     expect(b.result).toContain("hermetic-b");
 
-    // The superset invariant: every run-1 message survives, in order, at the front.
-    const run1Shape = run1.messages.map((m) => [m.type, m.content]);
-    const finalShape = final.messages.map((m) => [m.type, m.content]);
-    expect(finalShape.slice(0, run1Shape.length), "run 1's transcript is a prefix of the final").toEqual(run1Shape);
-    expect(final.messages[0].type, "the leading thinking survives the resume").toBe(MessageType.MESSAGE_THINKING);
+    // Run 1's transcript is the log's: the resumed rows are the ask it
+    // resumed onto (on a message with no text) and its own, and the leading
+    // thinking stays in the log, written once, by run 1.
+    const finalShape = finalRows.messages.map((m) => [m.type, m.content]);
+    expect(finalShape[0], "the seeded ask sits on a message with no text").toEqual([MessageType.MESSAGE_AI, ""]);
+    expect(finalRows.messages.some((m) => m.type === MessageType.MESSAGE_THINKING), "run 1's thinking is not carried").toBe(false);
+    const thoughts = record.sessionEvents.flatMap((e) => (e.event.case === "stigmerAgentThinking" ? [e.event.value.text] : []));
+    expect(thoughts, "the leading thinking survives the resume in the log, once").toEqual([REASONING]);
     expect(finalShape.at(-1)).toEqual([MessageType.MESSAGE_AI, CLOSING_TURN.text]);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    await expect(statusJson(final)).toMatchFileSnapshot("./goldens/approve-all-lease.turn2.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/approve-all-lease.turn2.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/approve-all-lease.turn2.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/approve-all-lease.turn2.events.json");
   });
 });

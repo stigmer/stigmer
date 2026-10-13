@@ -31,8 +31,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -46,6 +44,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -106,12 +107,13 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
 
     // ── Assert: the copy ─────────────────────────────────────────────────────
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error).toBe(`[Error] ${CONTROL_PLANE_FAULT}`);
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       "Internal system error occurred. Please contact support if this issue persists.",
       `Error details: [Error] ${CONTROL_PLANE_FAULT}`,
     ]);
-    expect(final.messages, "the two system rows are the whole transcript").toHaveLength(2);
+    expect(finalRows.messages, "the two system rows are the whole transcript").toHaveLength(2);
 
     // ── Assert: nothing past the fault ───────────────────────────────────────
     expect(recordedModelBuilds(), "no model was built").toHaveLength(0);
@@ -121,8 +123,8 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/resolution-error.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/resolution-error.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/resolution-error.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/resolution-error.events.json");
   });
 });

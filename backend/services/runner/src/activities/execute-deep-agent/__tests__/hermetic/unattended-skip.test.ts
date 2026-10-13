@@ -23,9 +23,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
 import { ToolMessage } from "@langchain/core/messages";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalMode,
   RunPhase,
@@ -43,6 +41,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { unattendedSkipMessage } from "../../../../shared/approval-policy.js";
@@ -122,8 +123,8 @@ describe("ExecuteDeepAgent hermetic — an unattended turn skips a call that wou
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the goldens ──────────────────────────────────────────────────
-    const statusJson = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
-    await expect(statusJson).toMatchFileSnapshot("./goldens/unattended-skip.status.json");
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot("./goldens/unattended-skip.status.json");
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath("./goldens/unattended-skip.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/unattended-skip.events.json");
   });
 });

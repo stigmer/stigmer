@@ -122,12 +122,13 @@ describe("ExecuteDeepAgent hermetic — workspace lock timeout", () => {
       // ── Assert: the copy, built with the same class over the real path ─────
       const expectedMessage = new WorkspaceLockTimeoutError(resolvedDir, 0).message;
       const final = record.lastFullStatus!;
+      const finalRows = record.rowsOf(final);
       expect(final.error).toBe(expectedMessage);
       expect(final.completedAt).not.toBe("");
-      expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+      expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
         `Execution failed: ${expectedMessage}`,
       ]);
-      expect(final.messages, "the system row is the whole transcript").toHaveLength(1);
+      expect(finalRows.messages, "the system row is the whole transcript").toHaveLength(1);
 
       // ── Assert: the order — the lock is tried before the tool surface ─────
       expect(record.setupProgress).toEqual([

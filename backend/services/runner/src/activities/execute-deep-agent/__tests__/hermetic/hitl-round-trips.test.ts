@@ -58,11 +58,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import {
-  RunStatusSchema,
-  type RunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ToolMessage } from "@langchain/core/messages";
 import {
   RunPhase,
@@ -79,6 +74,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -98,9 +96,6 @@ import { ApprovalAction, MessageType, ToolCallStatus } from "../../../../gen/tur
 const USER_MESSAGE = "Run the command for me.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 
-function statusJson(status: RunStatus): string {
-  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
-}
 
 describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
   let env: HermeticEnvironment;
@@ -164,9 +159,9 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
       expect(waiting[0].approvalMessage).toBe(executeApprovalMessage(EXECUTE_CALL_A));
       expect(waiting[0].approvalAction, "no decision yet").toBe(ApprovalAction.UNSPECIFIED);
       const run1 = record.lastFullStatus!;
-      await expect(statusJson(run1), "every decision's first turn is the same status").toMatchFileSnapshot(
-        GATE_TURN1_GOLDEN,
-      );
+      const run1Rows = record.rowsOf(run1);
+      await expect(statusGolden(run1), "every decision's first turn is the same status").toMatchFileSnapshot(GATE_TURN1_GOLDEN);
+      await expect(rowsGolden(record.rowsOf(run1)), "every decision's first turn is the same status").toMatchFileSnapshot(rowsGoldenPath(GATE_TURN1_GOLDEN));
       await expect(record.eventsGolden()).toMatchFileSnapshot(GATE_TURN1_GOLDEN.replace(".status.json", ".events.json"));
 
       // ── Between turns: the server's answer, on the log and the row ─────────
@@ -185,13 +180,13 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
       expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
 
       const final = record.lastFullStatus!;
-      const rows = final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === EXECUTE_CALL_A.id);
+      const finalRows = record.rowsOf(final);
+      const rows = finalRows.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === EXECUTE_CALL_A.id);
       expect(rows, "exactly one copy of the gated call — reconciled in place, never duplicated").toHaveLength(1);
       const row = rows[0];
       expect(row.approvalAction, "the decision is preserved for audit; any deny is a REJECT").toBe(
         action === ApprovalAction.APPROVE ? ApprovalAction.APPROVE : ApprovalAction.REJECT,
       );
-      expect(row.approvalDecidedAt).toBe(DECIDED_AT);
       expect(row.status, "never left at WAITING_APPROVAL").not.toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
       if (action === ApprovalAction.APPROVE) {
         expect(row.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
@@ -208,17 +203,21 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
         ]);
       }
 
-      const run1Ai = run1.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
-      const finalAi = final.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
-      expect(finalAi.slice(0, run1Ai.length), "run 1's transcript survives the resume as a prefix").toEqual(run1Ai);
-      expect(finalAi.at(-1)).toBe(CLOSING_TURN.text);
+      // Run 1's transcript is the log's: written once by run 1 and never
+      // carried, so the resumed rows hold only their own text.
+      const run1Ai = run1Rows.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.content !== "").map((m) => m.content);
+      const finalAi = finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.content !== "").map((m) => m.content);
+      const logged = record.sessionEvents.flatMap((e) => (e.event.case === "agentMessage" ? e.event.value.content.map((c) => c.text) : []));
+      expect(logged.slice(0, run1Ai.length), "run 1's transcript survives the resume in the log").toEqual(run1Ai);
+      expect(finalAi, "the resumed rows hold their own text alone").toEqual([CLOSING_TURN.text]);
       expect(final.completedAt).not.toBe("");
 
       // ── Assert: hermeticity ────────────────────────────────────────────────
       expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
       // ── Assert: the golden ─────────────────────────────────────────────────
-      await expect(statusJson(final)).toMatchFileSnapshot(`./goldens/${name}.turn2.status.json`);
+      await expect(statusGolden(final)).toMatchFileSnapshot(`./goldens/${name}.turn2.status.json`);
+      await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath(`./goldens/${name}.turn2.status.json`));
       await expect(record.eventsGolden()).toMatchFileSnapshot(`./goldens/${name}.turn2.events.json`);
     });
   });

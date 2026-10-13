@@ -19,8 +19,6 @@
  * plane's real registry (`real-model-registry.ts`).
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { fromJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
@@ -34,7 +32,10 @@ import { realModelRegistry } from "../../../__test-utils__/real-model-registry.j
 import { getCheckpointDbPath } from "../../../shared/workspace/platform-dir.js";
 import { EXECUTE_CALL_A } from "../__test-utils__/hitl-script.js";
 import { FIXTURE, beginLiveDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../__test-utils__/hermetic-deep-agent.js";
-import { loadRows } from "../__test-utils__/paused-session-fixture.js";
+import {
+  loadRows,
+  pausedTurnOf,
+} from "../__test-utils__/paused-session-fixture.js";
 import { THINK_CALL_ID, THINK_RETIREMENT_MESSAGE, thinkBoundSession } from "../__test-utils__/think-bound-session.js";
 import { ApprovalAction, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -70,7 +71,8 @@ describe.skipIf(!liveSecret("ANTHROPIC_API_KEY"))("ExecuteDeepAgent live — a s
     // live posture's default is the in-memory saver.
     const scenario = beginLiveDeepAgentScenario({ env, record, config: { checkpointerType: "sqlite" } });
     await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-    await record.restorePausedTurn(fromJson(RunStatusSchema, fixture.status));
+    const paused = pausedTurnOf(fixture.status);
+    await record.restorePausedTurn(paused.rows, paused.status);
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, new Date().toISOString())).toBe(1);
 

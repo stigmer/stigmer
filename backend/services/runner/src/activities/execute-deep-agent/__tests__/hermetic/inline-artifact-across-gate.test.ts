@@ -64,11 +64,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import {
-  RunStatusSchema,
-  type RunStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -84,6 +79,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import {
@@ -101,9 +99,6 @@ const REPORT_BODY = "# Report\n\nAll fixtures nominal.\n";
 const WRITE_CALL_ID = "call-hermetic-write-0001";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 
-function statusJson(status: RunStatus): string {
-  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
-}
 
 describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)", () => {
   let env: HermeticEnvironment;
@@ -157,7 +152,8 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     expect(writeRow.status, "the write flowed: review is off").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(run1.artifacts[0].createdAt, "the artifact is stamped at its write's finish").toBe(writeRow.completedAt);
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
-    await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/inline-artifact.turn1.status.json");
+    await expect(statusGolden(run1)).toMatchFileSnapshot("./goldens/inline-artifact.turn1.status.json");
+    await expect(rowsGolden(record.rowsOf(run1))).toMatchFileSnapshot(rowsGoldenPath("./goldens/inline-artifact.turn1.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/inline-artifact.turn1.events.json");
 
     // ── Between turns ────────────────────────────────────────────────────────
@@ -171,20 +167,22 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     expect(turn2.outcome.kind).toBe("returned");
     expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.artifacts.map((a) => [a.name, a.storageKey, a.contentHash]), "the seed carried the artifact").toEqual(
       run1.artifacts.map((a) => [a.name, a.storageKey, a.contentHash]),
     );
     expect(turn2Keys, "turn 2 does not upload the unchanged report again").not.toContain(run1.artifacts[0].storageKey);
-    expect(final.messages.flatMap((m) => m.toolCalls).map((tc) => [tc.id, tc.status])).toEqual([
-      [WRITE_CALL_ID, ToolCallStatus.TOOL_CALL_COMPLETED],
-      [EXECUTE_CALL_A.id, ToolCallStatus.TOOL_CALL_COMPLETED],
-    ]);
+    expect(
+      finalRows.messages.flatMap((m) => m.toolCalls).map((tc) => [tc.id, tc.status]),
+      "turn 2's rows are the ask it resumed onto; turn 1's write is the log's",
+    ).toEqual([[EXECUTE_CALL_A.id, ToolCallStatus.TOOL_CALL_COMPLETED]]);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    const finalJson = statusJson(final);
+    const finalJson = statusGolden(final) + rowsGolden(record.rowsOf(final));
     expect(finalJson, "no temp path may reach the golden").not.toContain(env.artifactPath);
-    await expect(finalJson).toMatchFileSnapshot("./goldens/inline-artifact.turn2.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/inline-artifact.turn2.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot("./goldens/inline-artifact.turn2.rows.json");
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/inline-artifact.turn2.events.json");
   });
 });

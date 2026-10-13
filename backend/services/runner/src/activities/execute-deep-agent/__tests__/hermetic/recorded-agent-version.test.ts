@@ -138,8 +138,9 @@ describe("ExecuteDeepAgent hermetic — the recorded agent version", () => {
     expect(invocation.outcome.kind, "a deterministic failure RETURNS").toBe("returned");
     expect(record.persistedPhases).toEqual([RunPhase.RUN_FAILED]);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error).toContain(`agent ${agentId}, version ${RECORDED_HASH}`);
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM)).toHaveLength(2);
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM)).toHaveLength(2);
     expect(headRead).not.toHaveBeenCalled();
     expect(recordedModelBuilds(), "no model was built").toHaveLength(0);
     expect(record.setupProgress).toEqual(["Fetching execution", "Resolving agent blueprint"]);

@@ -117,7 +117,7 @@ describe("ExecuteDeepAgent hermetic — two gated calls in one round (sqlite)", 
       expect((turn2.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
       expect(record.persistedPhases.filter((p) => p === RunPhase.RUN_WAITING_FOR_APPROVAL)).toHaveLength(1);
 
-      const rows = record.lastFullStatus!.messages.flatMap((m) => m.toolCalls);
+      const rows = record.lastFullRows!.messages.flatMap((m) => m.toolCalls);
       expect(rows.filter((tc) => tc.id === CALL_A.id), "one row per call, never duplicated").toHaveLength(1);
       expect(rows.filter((tc) => tc.id === CALL_B.id)).toHaveLength(1);
       expect(rows.find((tc) => tc.id === CALL_A.id)?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);

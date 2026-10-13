@@ -57,8 +57,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -72,6 +70,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { MIN_TOOL_ROUNDS } from "../../../../shared/tool-rounds.js";
@@ -139,6 +140,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
       RunPhase.RUN_TERMINATED,
     ]);
     const persisted = record.lastFullStatus!;
+    const persistedRows = record.rowsOf(persisted);
     expect(String(persisted.error).startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), "the persisted error carries the prefix").toBe(true);
     expect(persisted.error, "the event count left the copy").not.toMatch(/\d+ events?/);
     expect(persisted.completedAt).not.toBe("");
@@ -147,7 +149,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     // The message boundary: every row sits on the message whose text proposed it
     // — one "Reading file N." message per row, no empty host (before #1097 all
     // thirteen rows sat on ONE empty message).
-    const rowHosts = persisted.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.toolCalls.length > 0);
+    const rowHosts = persistedRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.toolCalls.length > 0);
     expect(rowHosts).toHaveLength(rows.length);
     for (const host of rowHosts) {
       expect(host.content).toMatch(/^Reading file \d+\.$/);
@@ -158,8 +160,8 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, persisted), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/recursion-limit.persisted.status.json");
+    await expect(statusGolden(persisted)).toMatchFileSnapshot("./goldens/recursion-limit.persisted.status.json");
+    await expect(rowsGolden(record.rowsOf(persisted))).toMatchFileSnapshot(rowsGoldenPath("./goldens/recursion-limit.persisted.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/recursion-limit.persisted.events.json");
   });
 
@@ -202,8 +204,9 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     expect(roundsSeen, "the follow-up's one model turn saw the ten rounds the stop checkpointed").toEqual([MIN_TOOL_ROUNDS]);
     expect(record.persistedPhases).toEqual([RunPhase.RUN_IN_PROGRESS, RunPhase.RUN_COMPLETED]);
     const persisted = record.lastFullStatus!;
+    const persistedRows = record.rowsOf(persisted);
     expect(persisted.error).toBe("");
-    const answer = persisted.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1);
+    const answer = persistedRows.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1);
     expect(answer?.content).toBe(PICKED_UP.text);
   });
 });

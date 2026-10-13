@@ -106,7 +106,7 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
 
       expect(outcome.kind).toBe("interrupted");
       expect(subject.executionCount(id), "the resume completed the pending task before the hang; the stop came after").toBe(1);
-      expect(findToolCallRow(hanging.sink.status, id)?.status, "and the row on the interrupted turn's status says so").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+      expect(findToolCallRow(hanging.sink.rows, id)?.status, "and the row on the interrupted turn's status says so").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     });
 
     it("hands a REJECT to the model as the gate's denial ToolMessage; the call is proposed exactly once and never re-gated", async () => {
