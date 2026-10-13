@@ -6,7 +6,9 @@
 // end. Asserts the SDK wiring (request shapes, RPC routing) and the protojson
 // parity contract for json output. Search results and a session's agent
 // reference carry their organization by id; the human table names it by slug,
-// and a session that names no agent shows the built-in assistant.
+// a session that names no agent shows the built-in assistant, and each
+// session's state shows as the server computed it, "-" from a server that
+// sends none.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -47,7 +49,7 @@ const knownSession = create(SessionSchema, {
     agentRef: { kind: ApiResourceKind.agent, org: ACME_ID, slug: "helper" },
     subject: "Fix the build",
   },
-  status: { agentId: "agt_1", agentVersionHash: "a".repeat(64) },
+  status: { agentId: "agt_1", agentVersionHash: "a".repeat(64), state: "running" },
 });
 
 // A conversation with the built-in assistant: no reference and no pin.
@@ -179,6 +181,14 @@ describe("session integration", () => {
     expect(rendered).not.toContain(ACME_ID);
   });
 
+  it("shows each session's state, and \"-\" for a session the server sent none for", async () => {
+    const rendered = await listResources(client, ApiResourceKind.session, "", 50, "table");
+    const lines = rendered.split("\n");
+    expect(lines.find((line) => line.includes("SESSION ID"))).toMatch(/SESSION ID\s+STATE\s+AGENT\s+SUBJECT\s+CREATED/);
+    expect(lines.find((line) => line.includes("ses_1"))).toMatch(/ses_1\s+running\s+acme\/helper/);
+    expect(lines.find((line) => line.includes("ses_2"))).toMatch(/ses_2\s+-\s+/);
+  });
+
   it("renders session list json as the entries array every list kind shares", async () => {
     const rendered = await listResources(client, ApiResourceKind.session, "", 50, "json");
     const json = JSON.parse(rendered);
@@ -186,6 +196,7 @@ describe("session integration", () => {
       toJson(SessionSchema, knownSession, { useProtoFieldName: true }),
       toJson(SessionSchema, assistantSession, { useProtoFieldName: true }),
     ]);
+    expect(json[0].status.state).toBe("running");
   });
 });
 
