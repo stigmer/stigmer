@@ -6,19 +6,17 @@
 
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { toolUseOf } from "./tool-use.js";
 import {
   ToolCallStatus,
-  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { normalizeToolResult } from "../tool-view";
 
 /** A completed FILE_EDIT tool call carrying the given args/result. */
 function editToolCall(opts: { args?: Record<string, unknown>; result?: string }) {
-  return create(ToolCallSchema, {
+  return toolUseOf({
     id: "tc-1",
     name: "edit_file",
-    toolKind: ToolKind.FILE_EDIT,
     status: ToolCallStatus.TOOL_CALL_COMPLETED,
     args: (opts.args ?? {}) as JsonObject,
     result: opts.result ?? "",
@@ -27,10 +25,9 @@ function editToolCall(opts: { args?: Record<string, unknown>; result?: string })
 
 /** A completed FILE_WRITE tool call carrying the given args. */
 function writeToolCall(opts: { args?: Record<string, unknown> }) {
-  return create(ToolCallSchema, {
+  return toolUseOf({
     id: "tc-w",
     name: "write_file",
-    toolKind: ToolKind.FILE_WRITE,
     status: ToolCallStatus.TOOL_CALL_COMPLETED,
     args: (opts.args ?? {}) as JsonObject,
   });

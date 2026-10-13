@@ -56,6 +56,7 @@
   "dependencies": {
     "@connectrpc/connect": "^2.0.0",
     "@connectrpc/connect-web": "^2.0.0",
+    "@stigmer/session-log": "*",
     "yaml": "^2.8.2"
   },
   "peerDependencies": {
