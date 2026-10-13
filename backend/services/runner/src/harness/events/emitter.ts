@@ -25,6 +25,9 @@
  *     boundary's reach or the turn's terminal write proves the boundary ran;
  *   - a tool result, once its row settles, with the same boundary rule;
  *   - a hidden row (the collapsed shape) writes nothing.
+ * A result whose output the chokepoint offloaded carries the output's
+ * head, and `stigmer.tool_result.full_output` after it says where the
+ * whole output is stored.
  * So narration a boundary later blanks sits behind an unsealed row and
  * reaches neither the log nor a preview.
  *
@@ -101,6 +104,7 @@ import {
   threadEventId,
   threadId,
   toolResultEventId,
+  toolResultFullOutputEventId,
   toolUseEventId,
 } from "./ids.js";
 
@@ -534,6 +538,25 @@ export class SessionEventEmitter {
       this.push(thread.threadId, resultId, { case: "agentMcpToolResult", value: { id: resultId, mcpToolUseId: useId, content, isError } });
     } else {
       this.push(thread.threadId, resultId, { case: "agentToolResult", value: { id: resultId, toolUseId: useId, content, isError } });
+    }
+    // An offloaded output: the result carries its head, and where the whole
+    // output is stored follows it (the persist chokepoint offloaded it
+    // before this read).
+    const ref = row.outputRef;
+    if (ref !== undefined && ref.storageKey !== "") {
+      const fullId = toolResultFullOutputEventId(useId);
+      this.push(thread.threadId, fullId, {
+        case: "stigmerToolResultFullOutput",
+        value: {
+          id: fullId,
+          toolUseId: useId,
+          storageKey: ref.storageKey,
+          sizeBytes: ref.sizeBytes,
+          contentHash: ref.contentHash,
+          mimeType: ref.mimeType,
+          isImage: ref.isImage,
+        },
+      });
     }
     return true;
   }
