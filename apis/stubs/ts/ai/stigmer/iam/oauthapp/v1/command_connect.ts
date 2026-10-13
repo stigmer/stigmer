@@ -65,9 +65,10 @@ export const OAuthAppCommandController = {
     /**
      * Update an existing OAuth app.
      *
-     * The slug changes only through rename. An update that names the OAuth app by
-     * a slug it was renamed away from, without its id, is refused with
-     * SLUG_RENAMED (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the OAuth app
+     * was renamed away from is refused with SLUG_RENAMED (see apply).
      *
      * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.update
      */

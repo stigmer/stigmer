@@ -336,9 +336,10 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
-     * The slug changes only through rename. An update that names the agent by a
-     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
-     * (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the agent was
+     * renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     default void update(ai.stigmer.agentic.agent.v1.Agent request,
@@ -486,9 +487,10 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
-     * The slug changes only through rename. An update that names the agent by a
-     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
-     * (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the agent was
+     * renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public void update(ai.stigmer.agentic.agent.v1.Agent request,
@@ -625,9 +627,10 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
-     * The slug changes only through rename. An update that names the agent by a
-     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
-     * (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the agent was
+     * renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.Agent request) throws io.grpc.StatusException {
@@ -759,9 +762,10 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
-     * The slug changes only through rename. An update that names the agent by a
-     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
-     * (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the agent was
+     * renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.Agent request) {
@@ -895,9 +899,10 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
-     * The slug changes only through rename. An update that names the agent by a
-     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
-     * (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the agent was
+     * renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> update(

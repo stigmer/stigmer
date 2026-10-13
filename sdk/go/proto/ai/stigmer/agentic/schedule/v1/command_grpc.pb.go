@@ -70,9 +70,10 @@ type ScheduleCommandControllerClient interface {
 	// pause) is never touched by updates — use resume to clear a platform
 	// pause.
 	//
-	// The slug changes only through rename. An update that names the schedule by
-	// a slug it was renamed away from, without its id, is refused with
-	// SLUG_RENAMED (see apply).
+	// The slug changes only through rename. An update authorizes the id it names,
+	// so wherever the server authorizes requests, an update without an id is
+	// refused before its slug is read; where it reads one, a slug the schedule
+	// was renamed away from is refused with SLUG_RENAMED (see apply).
 	Update(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
 	// Rename a schedule: change its slug, the name people type.
 	//
@@ -239,9 +240,10 @@ type ScheduleCommandControllerServer interface {
 	// pause) is never touched by updates — use resume to clear a platform
 	// pause.
 	//
-	// The slug changes only through rename. An update that names the schedule by
-	// a slug it was renamed away from, without its id, is refused with
-	// SLUG_RENAMED (see apply).
+	// The slug changes only through rename. An update authorizes the id it names,
+	// so wherever the server authorizes requests, an update without an id is
+	// refused before its slug is read; where it reads one, a slug the schedule
+	// was renamed away from is refused with SLUG_RENAMED (see apply).
 	Update(context.Context, *Schedule) (*Schedule, error)
 	// Rename a schedule: change its slug, the name people type.
 	//

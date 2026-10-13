@@ -281,9 +281,10 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * The slug changes only through rename. An update that names the channel app
-     * by a slug it was renamed away from, without its id, is refused with
-     * SLUG_RENAMED (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the channel app
+     * was renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     default void update(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -404,9 +405,10 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * The slug changes only through rename. An update that names the channel app
-     * by a slug it was renamed away from, without its id, is refused with
-     * SLUG_RENAMED (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the channel app
+     * was renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public void update(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -514,9 +516,10 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * The slug changes only through rename. An update that names the channel app
-     * by a slug it was renamed away from, without its id, is refused with
-     * SLUG_RENAMED (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the channel app
+     * was renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp update(ai.stigmer.agentic.channelapp.v1.ChannelApp request) throws io.grpc.StatusException {
@@ -621,9 +624,10 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * The slug changes only through rename. An update that names the channel app
-     * by a slug it was renamed away from, without its id, is refused with
-     * SLUG_RENAMED (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the channel app
+     * was renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp update(ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
@@ -730,9 +734,10 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
-     * The slug changes only through rename. An update that names the channel app
-     * by a slug it was renamed away from, without its id, is refused with
-     * SLUG_RENAMED (see apply).
+     * The slug changes only through rename. An update authorizes the id it names,
+     * so wherever the server authorizes requests, an update without an id is
+     * refused before its slug is read; where it reads one, a slug the channel app
+     * was renamed away from is refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> update(
