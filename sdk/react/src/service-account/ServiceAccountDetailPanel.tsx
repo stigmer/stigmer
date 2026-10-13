@@ -18,8 +18,8 @@ import {
   getUserMessage,
   iamRoleDisplayName,
   iamRoleToString,
-  toIdentityAccountUpdateInput,
 } from "@stigmer/sdk";
+import { saveErrorMessage } from "../internal/maskedEdit.js";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   ApiResourceRefSchema,
@@ -153,10 +153,17 @@ function NameSection({
       if (!canSave) return;
       clearError();
       try {
-        const renamed = await update({
-          ...toIdentityAccountUpdateInput(serviceAccount),
-          name: trimmed,
-        });
+        // The update names the display name alone.
+        const renamed = await update(
+          {
+            metadata: {
+              id: serviceAccount.metadata?.id ?? "",
+              etag: serviceAccount.metadata?.etag ?? "",
+              name: trimmed,
+            },
+          },
+          ["metadata.name"],
+        );
         setEditing(false);
         onRenamed?.(renamed);
       } catch {
@@ -212,7 +219,7 @@ function NameSection({
       />
       {error && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-          {getUserMessage(error)}
+          {saveErrorMessage(error, "service account")}
         </p>
       )}
       <div className="stg:flex stg:items-center stg:gap-2">

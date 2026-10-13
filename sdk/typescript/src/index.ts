@@ -171,6 +171,9 @@ export {
   type ListParams,
   type ListResult,
 } from "./gen/types.js";
+// A stored reference as a ResourceRef input (its id, version and kind
+// kept): how a form reads the references it edits from a loaded resource.
+export { toResourceRefInput, toResourceRefInputs } from "./gen/proto-utils.js";
 
 // Re-export all resource client classes and input types. An update takes
 // the resource and the paths it changes (`client.<kind>.update(resource,
@@ -184,6 +187,7 @@ export {
 } from "./gen/agent.js";
 export {
   AgentChannelClient,
+  buildAgentChannelProto,
   type AgentChannelInput,
   type SlackChannelConfigInput,
 } from "./gen/agentchannel.js";
@@ -194,6 +198,7 @@ export {
 } from "./gen/run.js";
 export {
   AgentShareClient,
+  buildAgentShareProto,
   type AgentShareInput,
   type AgentShareMessagesInput,
 } from "./gen/agentshare.js";
@@ -203,6 +208,7 @@ export {
 } from "./gen/apikey.js";
 export {
   ChannelAppClient,
+  buildChannelAppProto,
   type ChannelAppInput,
   type SlackChannelAppConfigInput,
 } from "./gen/channelapp.js";
@@ -213,19 +219,23 @@ export {
 } from "./gen/iampolicy.js";
 export {
   IdentityAccountClient,
+  buildIdentityAccountProto,
   type IdentityAccountInput,
 } from "./gen/identityaccount.js";
 export { InvitationClient, type InvitationInput } from "./gen/invitation.js";
 export {
   IdentityProviderClient,
+  buildIdentityProviderProto,
   type IdentityProviderInput,
 } from "./gen/identityprovider.js";
 export {
   TeamClient,
+  buildTeamProto,
   type TeamInput,
 } from "./gen/team.js";
 export {
   OAuthAppClient,
+  buildOAuthAppProto,
   type OAuthAppInput,
 } from "./gen/oauthapp.js";
 export {
@@ -300,10 +310,12 @@ export {
 } from "./gen/vault.js";
 export {
   OrganizationClient,
+  buildOrganizationProto,
   type OrganizationInput,
 } from "./gen/organization.js";
 export {
   PlatformClientClient,
+  buildPlatformClientProto,
   type PlatformClientInput,
 } from "./gen/platformclient.js";
 // The billing kinds (cloud_only): the plan catalog, an organization's
@@ -334,6 +346,7 @@ export {
 } from "./gen/schedule.js";
 export {
   SessionClient,
+  buildSessionProto,
   type SessionInput,
   type WorkspaceEntryInput,
   type WorkspaceSourceInput,

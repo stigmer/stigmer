@@ -6,9 +6,10 @@
  * skills, agents, hooks and MCP servers).
  *
  * The agent is fetched on the pick, for two reasons the caller cannot see
- * from a search result: the update is a full spec replacement over
- * `toAgentUpdateInput`, and an agent a plugin installed is refused on
- * update by the server, so the hook says so first, from the
+ * from a search result: the update names the agent's `plugins` on the
+ * agent as read (its id and the etag it was read at), and an agent a
+ * plugin installed is refused on update by the server, so the hook says
+ * so first, from the
  * `stigmer.ai/plugin` label the search result does not carry. The read
  * also says whether the agent lists the plugin already, and whether the
  * agent's own tool list leaves the plugin's servers out: an agent that
@@ -20,9 +21,11 @@
 import { useCallback, useMemo, useState } from "react";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { toolServerSegment } from "@stigmer/plugin-package";
-import { type AgentInput, type ResourceRef, toAgentUpdateInput } from "@stigmer/sdk";
+import { type AgentInput, type ResourceRef, buildAgentProto } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { keptReference } from "../internal/kept-reference.js";
+import { maskedEdit } from "../internal/maskedEdit.js";
 import { useUpdateAgent } from "../agent/useUpdateAgent.js";
 import { PLUGIN_LABEL } from "./useManagingPlugin.js";
 import { listsPlugin, withPlugin } from "./plugin-on-agent.js";
@@ -92,7 +95,7 @@ export function useAddPluginToAgent(offer: PluginOffer): UseAddPluginToAgentRetu
 
   const readyFor = useCallback(
     (agent: Agent): AddPluginPhase => {
-      const input = toAgentUpdateInput(agent);
+      const input = addView(agent);
       return {
         status: "ready",
         agent,
@@ -135,7 +138,9 @@ export function useAddPluginToAgent(offer: PluginOffer): UseAddPluginToAgentRetu
     setPhase({ status: "adding", agent });
     setError(null);
     try {
-      const updated = await update(withPlugin(toAgentUpdateInput(agent), plugin));
+      const plugins = (withPlugin(addView(agent), plugin).plugins ?? []).map(keptReference);
+      const { resource, paths } = maskedEdit(agent, buildAgentProto, { plugins });
+      const updated = await update(resource, paths);
       setPhase({ status: "added", agent: updated, outcome });
       return outcome;
     } catch (err) {
@@ -160,6 +165,21 @@ export function useAddPluginToAgent(offer: PluginOffer): UseAddPluginToAgentRetu
  * servers is among them: `mcp__*`, or `mcp__<server segment>` with or
  * without a tool, lets a server through.
  */
+/** The agent as the add reads it: its organization, its plugins as read, and its tool list. */
+function addView(agent: Agent): AgentInput {
+  return {
+    name: agent.metadata?.name ?? "",
+    org: agent.metadata?.org ?? "",
+    plugins: (agent.spec?.plugins ?? []).map((ref) => ({
+      org: ref.org,
+      slug: ref.slug,
+      ...(ref.id ? { id: ref.id } : {}),
+      ...(ref.version ? { version: ref.version } : {}),
+    })),
+    tools: [...(agent.spec?.tools ?? [])],
+  };
+}
+
 export function toolsLeaveOut(input: AgentInput, pluginName: string, servers: readonly string[]): boolean {
   const tools = input.tools ?? [];
   if (tools.length === 0 || servers.length === 0) return false;

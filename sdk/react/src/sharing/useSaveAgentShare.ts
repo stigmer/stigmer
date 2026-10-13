@@ -4,8 +4,9 @@ import { useCallback, useState } from "react";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import type { ResourceRef, RunConfigInput } from "@stigmer/sdk";
+import { buildAgentShareProto, type AgentShareInput, type ResourceRef, type RunConfigInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
+import { maskedEdit } from "../internal/maskedEdit.js";
 import { toError } from "../internal/toError.js";
 
 /**
@@ -19,15 +20,14 @@ import { toError } from "../internal/toError.js";
 export type SharingAudience = "public" | "org";
 
 /**
- * A complete share configuration to persist.
+ * A complete share configuration, as the Share dialog edits it.
  *
- * Every field is required by design: saving **replaces the share's whole
- * spec**, so a caller must always supply the full configuration. A
- * partial type here would let a toggle change silently wipe
- * `allowedOrigins`, `messages`, `vaults`, or the `audience` —
- * the required shape makes that mistake unrepresentable. (The rotatable
- * link token is exempt: it is server-owned `status`, which survives
- * every save verbatim.)
+ * Every field is required so a create carries a whole configuration. An
+ * edit of an existing share names only the fields it saves (all of them
+ * by default, or the ones the caller passes as `fields`), on the share as
+ * loaded with the etag it was read at, so a field it does not name keeps
+ * its stored value. (The rotatable link token is server-owned `status`,
+ * which no save touches.)
  */
 export interface AgentShareDraft {
   /** Whether hosted-chat access for the configured audience is enabled. */
@@ -61,9 +61,9 @@ export interface AgentShareDraft {
    * The owner's per-share run override (model / cost cap / tool
    * rounds / service tier), merged over the platform guest profile at
    * run time — stigmer/stigmer#360. The console does not edit it (yet):
-   * it rides through every save opaquely so a toggle never wipes an
-   * override set via the CLI or API. Public-audience only (the same
-   * proto CEL rule as vaults, for the same reason).
+   * it is saved back as loaded with the rest of the dialog's fields.
+   * Public-audience only (the same proto CEL rule as vaults, for the
+   * same reason).
    */
   readonly runConfig: RunConfigInput | undefined;
 }
@@ -93,10 +93,7 @@ function sharingAudienceToProto(audience: SharingAudience): AgentShareAudience {
  * on first create.
  *
  * Shared by the Share dialog (draft seeding) and the share list's
- * pause/resume toggle, so a toggle rebuilds the complete spec with only
- * `enabled` flipped and can never wipe origins, messages, or credential
- * bindings — the fails-closed posture {@link AgentShareDraft} exists to
- * enforce.
+ * pause/resume toggle, which saves `enabled` alone.
  */
 export function draftFromShare(share: AgentShare | null): AgentShareDraft {
   const spec = share?.spec;
@@ -144,18 +141,21 @@ export interface AgentShareCreateIdentity {
 /** Return value of {@link useSaveAgentShare}. */
 export interface UseSaveAgentShareReturn {
   /**
-   * Persist the complete share configuration. Resolves with the
-   * persisted {@link AgentShare} — adopt it as the new baseline (its
+   * Persist the share configuration. Resolves with the persisted
+   * {@link AgentShare} — adopt it as the new baseline (its
    * `status.shareLinkToken` carries the live link token).
    *
    * `current` is the share being edited, or `null` to create one —
    * named by `createIdentity` when given, else the server's defaults
-   * (the agent's own name and slug).
+   * (the agent's own name and slug). An edit names `fields` (every
+   * draft field when omitted); a share changed since `current` was
+   * read refuses it (ABORTED, reason `ETAG_MISMATCH`).
    */
   readonly save: (
     draft: AgentShareDraft,
     current: AgentShare | null,
     createIdentity?: AgentShareCreateIdentity,
+    fields?: ReadonlyArray<keyof AgentShareDraft>,
   ) => Promise<AgentShare | undefined>;
   /** `true` while the RPC is in flight. */
   readonly isPending: boolean;
@@ -166,16 +166,13 @@ export interface UseSaveAgentShareReturn {
 /**
  * Behavior hook that persists an agent share's configuration.
  *
- * Commits via `stigmer.agentShare.apply()` — an idempotent upsert keyed
- * on the share's `(org, slug)` identity — so one code path serves both
- * creation (the server authorizes on the referenced agent's `can_manage_audience`
- * and the organization's `can_create_agent_share`) and every later
- * edit. There is deliberately no create/update
- * branching: the share slug is unique per org, which makes
- * apply-by-identity exact, and the generated `AgentShareInput` carries
- * no `metadata.id` for an update to route by anyway. A create that
- * collides on `(org, slug)` rejects with an already-exists error rather
- * than touching the existing share.
+ * A create goes through `stigmer.agentShare.apply()` (the server
+ * authorizes on the referenced agent's `can_manage_audience` and the
+ * organization's `can_create_agent_share`); a create that collides on
+ * `(org, slug)` rejects with an already-exists error rather than touching
+ * the existing share. An edit is `stigmer.agentShare.update()` on the
+ * share as loaded, naming the fields it saves, so a teammate's change to
+ * another field stays.
  *
  * Disabling is a save with `enabled: false` — a config-preserving pause.
  * Deleting the share is a separate, destructive
@@ -214,6 +211,7 @@ export function useSaveAgentShare(
       draft: AgentShareDraft,
       current: AgentShare | null,
       createIdentity?: AgentShareCreateIdentity,
+      fields?: ReadonlyArray<keyof AgentShareDraft>,
     ): Promise<AgentShare | undefined> => {
       if (!agentOrg || !agentSlug) return undefined;
 
@@ -221,37 +219,22 @@ export function useSaveAgentShare(
       setError(null);
 
       try {
+        const settings = shareSettingsOf(draft);
+        if (current !== null) {
+          const named = fields ?? (Object.keys(settings) as Array<keyof AgentShareDraft>);
+          const patch = Object.fromEntries(named.map((field) => [field, settings[field]])) as Partial<AgentShareInput>;
+          const { resource, paths } = maskedEdit(current, buildAgentShareProto, patch);
+          return await stigmer.agentShare.update(resource, paths);
+        }
         return await stigmer.agentShare.apply({
-          // Identity: the existing share's org/slug when editing (a
-          // share may carry a non-default slug — apply with the agent's
-          // slug would create a SECOND share); when creating, the
-          // agent's org + the caller-chosen identity, falling back to
-          // the agent's own slug/name (the server's default, made
-          // explicit).
-          org: current?.metadata?.org || agentOrg,
-          slug: current?.metadata?.slug || createIdentity?.slug || agentSlug,
-          name:
-            current?.metadata?.name ||
-            createIdentity?.name ||
-            agentName ||
-            agentSlug,
+          // Identity: the agent's org + the caller-chosen identity,
+          // falling back to the agent's own slug/name (the server's
+          // default, made explicit).
+          org: agentOrg,
+          slug: createIdentity?.slug || agentSlug,
+          name: createIdentity?.name || agentName || agentSlug,
           agentRef: { org: agentOrg, slug: agentSlug },
-          enabled: draft.enabled,
-          // Written as the explicit enum value, never left unspecified —
-          // a share persisted as "public" can't be silently downgraded
-          // by tooling that relies on the unspecified-means-public rule.
-          audience: sharingAudienceToProto(draft.audience),
-          allowedOrigins: [...draft.allowedOrigins],
-          messages: {
-            rateLimited: draft.messages.rateLimited,
-            unavailable: draft.messages.unavailable,
-            conversationEnded: draft.messages.conversationEnded,
-          },
-          vaults: draft.vaults.map((ref) => ({
-            org: ref.org,
-            slug: ref.slug,
-          })),
-          runConfig: draft.runConfig,
+          ...shareSettingsOf(draft),
         });
       } catch (err) {
         setError(toError(err));
@@ -264,4 +247,26 @@ export function useSaveAgentShare(
   );
 
   return { save, isPending, error };
+}
+
+/** A draft as the SDK input's spec fields, keyed by the draft's own names. */
+function shareSettingsOf(draft: AgentShareDraft): Pick<
+  AgentShareInput,
+  "enabled" | "audience" | "allowedOrigins" | "messages" | "vaults" | "runConfig"
+> {
+  return {
+    enabled: draft.enabled,
+    // Written as the explicit enum value, never left unspecified — a share
+    // persisted as "public" can't be silently downgraded by tooling that
+    // relies on the unspecified-means-public rule.
+    audience: sharingAudienceToProto(draft.audience),
+    allowedOrigins: [...draft.allowedOrigins],
+    messages: {
+      rateLimited: draft.messages.rateLimited,
+      unavailable: draft.messages.unavailable,
+      conversationEnded: draft.messages.conversationEnded,
+    },
+    vaults: draft.vaults.map((ref) => ({ org: ref.org, slug: ref.slug })),
+    runConfig: draft.runConfig,
+  };
 }

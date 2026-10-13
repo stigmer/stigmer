@@ -2,7 +2,8 @@
 
 import { type FormEvent, useCallback, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, toIdentityProviderUpdateInput } from "@stigmer/sdk";
+import { buildIdentityProviderProto } from "@stigmer/sdk";
+import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js";
@@ -129,14 +130,11 @@ export function IdentityProviderDetailPanel({
       e.preventDefault();
       clearError();
       try {
-        // Full-spec-replace safety: spread the complete mapped input and
-        // override only the edited fields, so a spec field the form does
-        // not list survives the save. Fields the form clears (the client
-        // id of a provider that is no longer SSO, an emptied sign-in
-        // setting) are set to undefined explicitly — omitting them would
-        // carry the stale mapped value.
-        const updated = await update({
-          ...toIdentityProviderUpdateInput(identityProvider),
+        // The update names the fields this form edits, so a spec field the
+        // form does not list keeps its stored value. Fields the form clears
+        // (the client id of a provider that is no longer SSO, an emptied
+        // sign-in setting) are named with undefined, which clears them.
+        const { resource, paths } = maskedEdit(identityProvider, buildIdentityProviderProto, {
           displayName: displayName.trim(),
           jwksUri: jwksUri.trim(),
           allowedIssuers: issuers
@@ -149,6 +147,7 @@ export function IdentityProviderDetailPanel({
           oidcClientId: isSso ? oidcClientId.trim() : undefined,
           ...toSignInInput(signIn, isSso),
         });
+        const updated = await update(resource, paths);
         setMode("view");
         onUpdated?.(updated);
       } catch {
@@ -340,7 +339,7 @@ export function IdentityProviderDetailPanel({
 
           {error && (
             <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-              {getUserMessage(error)}
+              {saveErrorMessage(error, "identity provider")}
             </p>
           )}
 

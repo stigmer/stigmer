@@ -1,50 +1,43 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { clone } from "@bufbuild/protobuf";
+import { clone, create, equals } from "@bufbuild/protobuf";
+import { reflect } from "@bufbuild/protobuf/reflect";
+import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import {
-  ScheduleSchema,
-  type Schedule,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import type { ScheduleSpec } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
-import { getUserMessage, manifestDocumentForResource } from "@stigmer/sdk";
+  ScheduleSpecSchema,
+  type ScheduleSpec,
+} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { useStigmer } from "../hooks.js";
 import { toast } from "../feedback/toast.js";
+import { saveErrorMessage } from "../internal/maskedEdit.js";
 
 /** Return value of {@link useUpdateScheduleSpec}. */
 export interface UseUpdateScheduleSpecReturn {
   /**
-   * Apply one spec mutation to the schedule. Takes the full fetched
-   * schedule (not just an id) because the write re-applies the whole
-   * resource. Resolves with the post-apply schedule; the caller
-   * refetches or replaces its local copy from it.
+   * Apply one spec mutation to the schedule as loaded. Resolves with the
+   * updated schedule (the loaded one when the mutation changed nothing);
+   * the caller refetches or replaces its local copy from it.
    */
   readonly updateSpec: (
     schedule: Schedule,
     mutate: (spec: ScheduleSpec) => void,
   ) => Promise<Schedule>;
-  /** `true` while the apply is in flight. */
+  /** `true` while the update is in flight. */
   readonly isUpdating: boolean;
-  /** Error from the last failed apply, or `null` when healthy. */
+  /** Error from the last failed update, or `null` when healthy. */
   readonly error: Error | null;
 }
 
 /**
- * Behavior hook behind the schedule detail view's inline editing: apply
- * a single spec mutation losslessly.
- *
- * The write path is deliberate, and it is NOT the agent detail view's
- * input-based one: clone the fetched proto, let the caller mutate the
- * spec in place, and re-apply the WHOLE resource through the manifest
- * engine (`stigmer.manifest.apply`) — never down-convert to the curated
- * `ScheduleInput` shape. The server replaces spec and mutable metadata
- * wholesale on update, and `ScheduleInput` cannot express every
- * metadata field (tags, description), so the input route would silently
- * wipe them. The full-proto route is lossless by construction; the
- * server ignores client-provided status, and re-applying never clears a
- * platform pause (Resume is the one clearing path — see
- * `useResumeSchedule`). Same mechanics as {@link useSetScheduleEnabled},
- * generalized from one hardcoded field to any spec edit.
+ * Behavior hook behind the schedule detail view's inline editing: one
+ * spec mutation, saved as an update that names exactly the spec fields it
+ * changed ({@link changedSpecPaths}), on the schedule as loaded (its id
+ * and the etag it was read at). Every field the mutation leaves alone
+ * keeps its stored value, so a teammate's change to another field
+ * survives, and a schedule changed since it was loaded refuses the save.
+ * An edit never clears a platform pause (Resume is the one clearing
+ * path — see `useResumeSchedule`).
  *
  * Errors are NOT toasted here: inline editors surface the server's
  * message next to the field that was edited, and a toast on
@@ -77,21 +70,29 @@ export function useUpdateScheduleSpec(): UseUpdateScheduleSpecReturn {
         );
       }
 
+      const edited = clone(ScheduleSpecSchema, schedule.spec);
+      mutate(edited);
+      const paths = changedSpecPaths(schedule.spec, edited);
+      if (paths.length === 0) {
+        return schedule;
+      }
+
       setIsUpdating(true);
       setError(null);
       try {
-        const updated = clone(ScheduleSchema, schedule);
-        mutate(updated.spec!);
-
-        const applied = await stigmer.manifest.apply(
-          manifestDocumentForResource(updated),
+        const updated = await stigmer.schedule.update(
+          {
+            metadata: { id: schedule.metadata?.id ?? "", etag: schedule.metadata?.etag ?? "" },
+            spec: edited,
+          },
+          paths,
         );
         toast.success("Schedule updated");
-        return applied.message as Schedule;
+        return updated;
       } catch (err) {
         // Rethrow with the user-facing message: the inline editors render
         // `message` verbatim next to the edited field.
-        const wrapped = new Error(getUserMessage(err));
+        const wrapped = new Error(saveErrorMessage(err, "schedule"));
         setError(wrapped);
         throw wrapped;
       } finally {
@@ -105,4 +106,22 @@ export function useUpdateScheduleSpec(): UseUpdateScheduleSpecReturn {
     () => ({ updateSpec, isUpdating, error }),
     [updateSpec, isUpdating, error],
   );
+}
+
+/**
+ * The mask paths of a spec edit: `spec.<field>` for each top-level spec
+ * field whose value the edit changed (a oneof member by its own name).
+ */
+export function changedSpecPaths(before: ScheduleSpec, after: ScheduleSpec): string[] {
+  const from = reflect(ScheduleSpecSchema, before);
+  const to = reflect(ScheduleSpecSchema, after);
+  return ScheduleSpecSchema.fields
+    .filter((field) => {
+      const one = reflect(ScheduleSpecSchema, create(ScheduleSpecSchema));
+      const other = reflect(ScheduleSpecSchema, create(ScheduleSpecSchema));
+      if (from.isSet(field)) one.set(field, from.get(field));
+      if (to.isSet(field)) other.set(field, to.get(field));
+      return !equals(ScheduleSpecSchema, one.message as ScheduleSpec, other.message as ScheduleSpec);
+    })
+    .map((field) => `spec.${field.name}`);
 }

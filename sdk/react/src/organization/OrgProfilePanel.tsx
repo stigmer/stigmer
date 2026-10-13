@@ -2,7 +2,8 @@
 
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, toOrganizationUpdateInput } from "@stigmer/sdk";
+import { buildOrganizationProto, getUserMessage } from "@stigmer/sdk";
+import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization.js";
 import { useUpdateOrganization } from "./useUpdateOrganization.js";
@@ -158,15 +159,14 @@ export function OrgProfilePanel({
 
       clearError();
       try {
-        // update() is a full-spec replace: spread the complete mapped input
-        // so unedited spec fields (e.g. preferences) survive the save, and
-        // override only the fields this form edits.
-        const updated = await update({
-          ...toOrganizationUpdateInput(organization),
+        // The update names the fields this form edits; every other field
+        // (the preferences, the policies) keeps its stored value.
+        const { resource, paths } = maskedEdit(organization, buildOrganizationProto, {
           name: name.trim(),
           description: description.trim() || undefined,
           logoUrl: logoUrl.trim() || undefined,
         });
+        const updated = await update(resource, paths);
         refetch();
         refreshProvider();
         onUpdated?.(updated);
@@ -354,7 +354,7 @@ export function OrgProfilePanel({
       {/* -- Error feedback -- */}
       {updateError && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
-          {getUserMessage(updateError)}
+          {saveErrorMessage(updateError, "organization")}
         </p>
       )}
 

@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
-import { ratingUpdateInput } from "./rating-input.js";
+import { ratingUpdate } from "./rating-input.js";
 
 /** Return value of {@link useUpdateRating}. */
 export interface UseUpdateRatingReturn {
@@ -47,9 +47,8 @@ export function useUpdateRating(): UseUpdateRatingReturn {
       setIsUpdating(true);
       setError(null);
       try {
-        return await stigmer.score.update(
-          ratingUpdateInput(rating, change),
-        );
+        const { resource, paths } = ratingUpdate(rating, change);
+        return await stigmer.score.update(resource, paths);
       } catch (err) {
         setError(toError(err));
         throw err;

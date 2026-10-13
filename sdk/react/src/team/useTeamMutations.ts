@@ -4,15 +4,16 @@
  * Create, update and delete for teams, each with its own in-flight and
  * error state so a form can show the one it is waiting on.
  *
- * Update takes a complete `TeamInput`: the RPC replaces the whole spec, so
- * callers spread `toTeamUpdateInput(team)` and override only what they
- * edit. Deleting a team removes every membership and every grant made to
+ * Update takes the team (named by its id, carrying the etag it was read
+ * at) and the paths it changes; every other field keeps its stored value.
+ * Deleting a team removes every membership and every grant made to
  * the team with it (the server's delete cleanup); people keep what was
  * granted to them directly.
  */
 import { useCallback, useMemo, useState } from "react";
 import type { DeleteResourceInput, TeamInput } from "@stigmer/sdk";
-import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { Team, TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -34,8 +35,11 @@ export interface UseCreateTeamReturn extends MutationState {
 
 /** Return value of {@link useUpdateTeam}. */
 export interface UseUpdateTeamReturn extends MutationState {
-  /** Replace a team's name and description. */
-  readonly update: (input: TeamInput) => Promise<Team>;
+  /** Change the fields of a team that `paths` names (its name, its description). */
+  readonly update: (
+    resource: Team | MessageInitShape<typeof TeamSchema>,
+    paths: string[],
+  ) => Promise<Team>;
   /** `true` while the update request is in flight. */
   readonly isUpdating: boolean;
 }
@@ -91,22 +95,35 @@ export function useCreateTeam(): UseCreateTeamReturn {
 }
 
 /**
- * Mutation hook that updates a team. Spread `toTeamUpdateInput(team)` so
- * the fields you do not edit are kept.
+ * Mutation hook that updates a team: the fields `paths` names take their
+ * values from the resource, and every other field keeps its stored value.
+ * A team read carries `metadata.etag`; sent back, the update is refused
+ * (ABORTED, reason `ETAG_MISMATCH`) if the team changed since it was read.
  *
  * @example
  * ```tsx
  * const { update } = useUpdateTeam();
- * await update({ ...toTeamUpdateInput(team), description: next });
+ * await update(
+ *   { metadata: { id: team.metadata!.id, etag: team.metadata!.etag }, spec: { description: next } },
+ *   ["spec.description"],
+ * );
  * ```
  */
 export function useUpdateTeam(): UseUpdateTeamReturn {
   const stigmer = useStigmer();
-  const call = useCallback((input: TeamInput) => stigmer.team.update(input), [stigmer]);
+  const call = useCallback(
+    (edit: { readonly resource: Team | MessageInitShape<typeof TeamSchema>; readonly paths: string[] }) =>
+      stigmer.team.update(edit.resource, edit.paths),
+    [stigmer],
+  );
   const { run, pending, error, clearError } = useTracked(call);
+  const update = useCallback(
+    (resource: Team | MessageInitShape<typeof TeamSchema>, paths: string[]) => run({ resource, paths }),
+    [run],
+  );
   return useMemo(
-    () => ({ update: run, isUpdating: pending, error, clearError }),
-    [run, pending, error, clearError],
+    () => ({ update, isUpdating: pending, error, clearError }),
+    [update, pending, error, clearError],
   );
 }
 

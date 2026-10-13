@@ -9,11 +9,11 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
 import {
+  buildAgentProto,
   deletedReferenceLabel,
   isDeletedReference,
-  toAgentUpdateInput,
 } from "@stigmer/sdk";
-import { toError } from "../internal/toError.js";
+import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
@@ -140,7 +140,8 @@ export interface AgentDetailViewProps {
   readonly onAgentClick?: (ref: { org: string; slug: string }) => void;
   /**
    * When `true`, fields on the detail view become click-to-edit.
-   * Each field saves independently via `stigmer.agent.update()`.
+   * Each field saves independently via `stigmer.agent.update()`, naming
+   * only that field and carrying the etag the agent was loaded at.
    * @default false
    */
   readonly editable?: boolean;
@@ -261,15 +262,14 @@ export function AgentDetailView({
     async (field: string, patch: Partial<import("@stigmer/sdk").AgentInput>): Promise<boolean> => {
       if (!agent) return false;
       setSaveError(null);
-      const base = toAgentUpdateInput(agent);
       try {
-        const input = { ...base, ...patch };
-        const updated = await update(input);
+        const { resource, paths } = maskedEdit(agent, buildAgentProto, patch);
+        const updated = await update(resource, paths);
         onResourceUpdated?.(updated);
         refetch();
         return true;
       } catch (err) {
-        setSaveError({ field, message: toError(err).message });
+        setSaveError({ field, message: saveErrorMessage(err, "agent") });
         return false;
       }
     },
