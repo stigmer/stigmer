@@ -479,14 +479,14 @@ rows:
     lane: >-
       gate.checkBilling
     behavior: >-
-      submitApproval on an execution whose billing signal is STOP answers FAILED_PRECONDITION "Insufficient credits to continue this execution. Please add credits before acting on this approval, or cancel the execution."; a non-billed execution's approval is unaffected.
+      An approval decision on an execution whose billing signal is STOP answers FAILED_PRECONDITION "Insufficient credits to continue this execution. Please add credits before acting on this approval, or cancel the execution."; a non-billed execution's approval is unaffected.
     class: carve-out
     disposition: debris
     observability: none
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      Debris: no execution carries a billing STOP, so an approval asks nothing of billing. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
+      Debris: no execution carries a billing STOP, so an approval asks nothing of billing; the run-scoped approval method is itself retired, and a waiting call is answered through the session's confirmToolUse and grantPermission. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
   - id: billing.gate.rearm.recover-refused-when-unfunded
     surface: billing
     lane: >-
