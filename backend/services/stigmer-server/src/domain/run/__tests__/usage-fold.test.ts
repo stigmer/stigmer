@@ -258,12 +258,12 @@ describe("folding several runs", () => {
   });
 
   it("per-run rows carry total tokens and whether they are estimated", () => {
-    const rows = all.map(runSummaryOf);
-    expect(rows.map((r) => [r.runId, r.totalTokens, r.isEstimated, r.primaryModel])).toEqual([
-      ["m1", 500n, false, "claude-sonnet-4-5"],
-      ["e1", 46_965n, true, "composer-1"],
-      ["z1", 0n, false, ""],
-      ["n1", 19_642n, true, "claude-sonnet-4-5"],
+    const rows = all.map((counted, index) => runSummaryOf(counted, index));
+    expect(rows.map((r) => [r.runId, r.totalTokens, r.isEstimated, r.primaryModel, r.subAgentCount])).toEqual([
+      ["m1", 500n, false, "claude-sonnet-4-5", 0],
+      ["e1", 46_965n, true, "composer-1", 1],
+      ["z1", 0n, false, "", 2],
+      ["n1", 19_642n, true, "claude-sonnet-4-5", 3],
     ]);
     expect(rows[1]?.inputTokens).toBe(3_120n);
     expect(rows[1]?.cacheReadInputTokens).toBe(41_800n);
