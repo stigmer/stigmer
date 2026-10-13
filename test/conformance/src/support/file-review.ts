@@ -4,15 +4,17 @@
 // File review is the session's choice (spec.file_review, off unless set), and
 // it never makes a turn wait. In a session that asks for it, a turn that
 // edits files in a workspace the runner can capture lets every edit land, ends
-// normally, and leaves its delta on status.file_change_sets as a FileChangeSet
-// AWAITING_REVIEW and in the log as stigmer.file_review.changes. A person then
-// keeps or undoes it, at FILE or CHANGE_SET scope and bound to the digest they
-// saw, through SessionCommandController.reviewFileChanges (or its adapter,
-// RunCommandController.submitFileDecision). A keep only records the decision;
-// an undo on a finished turn starts a reconcile turn that puts the files back
-// and writes stigmer.file_review.reconciled. These helpers are the
-// read-and-decide vocabulary for that lifecycle, the way support/runs.ts is
-// for the approval gate.
+// normally, and leaves its delta in two places: the captured files (ids,
+// digests, bytes) on the run's file record, status.file_changes, and the offer
+// in the log as stigmer.file_review.changes. A person then keeps or undoes it,
+// at file or change_set scope and bound to the digest they saw, through
+// SessionCommandController.reviewFileChanges. A keep only records the
+// decision (stigmer.file_review.decided); an undo on a finished turn starts a
+// reconcile turn that puts the files back and writes
+// stigmer.file_review.reconciled. The file record holds no status and no
+// decision: what is decided, and what is still undecided, is the log's,
+// folded by @stigmer/session-log into each turn's review sets. These helpers
+// are the read-and-decide vocabulary for that lifecycle.
 //
 // Correlation is ALWAYS by stable id (change set id, file change id); digests
 // are the enforcement gate the decision carries, never how a change is found
@@ -30,8 +32,8 @@
 // (the runner's shared/filereview/progress.ts header, "What a capture may
 // see"). So one snapshot can be a turn behind, half-written, or a turn ahead,
 // and only the CONVERGED shape is a contract: an arm states the entries it
-// expects and waits until a CAPTURING snapshot carries all of them with their
-// counts (`awaitProgressEntries`), never for "the first snapshot with N
+// expects and waits until a mid-run snapshot (the turn still working, its
+// change set not yet captured) carries all of them with their counts (`awaitProgressEntries`), never for "the first snapshot with N
 // files". Every progress wait records the distinct snapshots it saw and puts
 // them in its failure message, because the sequence (say 0 -> 1 -> 3) is the
 // diagnosis a bare timeout hides.
@@ -43,13 +45,8 @@ import type {
   StigmerFileReviewReconciledEvent,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { ReviewFileChangesResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import {
-  FileChangeKind,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  FileDecisionScope,
-  FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewSet } from "@stigmer/sdk";
 import type {
   CapturedFileChange,
   FileChangeProgress,
@@ -59,9 +56,10 @@ import type {
 import type { ConformanceClients } from "../harness/clients";
 import { type PollCoreOptions, pollUntil } from "./run-poll";
 import { awaitTerminal, isTerminalPhase, pollExecution, type PollOptions } from "./runs";
+import { reviewSetOf, sessionFold } from "./turn";
 
-// Polls until the turn has ended and returns it, holding a change set offered
-// for review. Fails, with the phase and the sets it holds, when the turn ended
+// Polls until the turn has ended and returns it, its file record holding a
+// captured change set. Fails, naming the sets it holds, when the turn ended
 // with none (the session has review off, the agent edited nothing, or the
 // workspace has nothing to capture with), so a wrong fixture is a legible
 // failure rather than a timeout.
@@ -110,7 +108,8 @@ export function progressCarries(progress: FileChangeProgress, expected: readonly
 }
 
 // Polls until a MID-RUN file_change_progress snapshot satisfies `settled` while
-// a CAPTURING set exists — the transient pre-boundary window. `settled` must
+// the turn still works and its file record holds no captured set yet: the
+// transient pre-boundary window. `settled` must
 // hold for the converged snapshot and stay true once it does (header); an arm
 // with a concrete expectation uses `awaitProgressEntries`. On failure — a
 // timeout, or the boundary arriving first — the error carries the distinct
@@ -128,9 +127,9 @@ export async function awaitFileChangeProgress(
       executionId,
       (exec) => {
         const progress = exec.status?.fileChangeProgress;
-        const capturing = findChangeSet(exec, FileChangeSetStatus.CAPTURING);
+        const capturing = !isTerminalPhase(exec.status?.phase) && capturedSet(exec) === undefined;
         trace.observe(progress);
-        if (capturing !== undefined && progress !== undefined && settled(progress)) return true;
+        if (capturing && progress !== undefined && settled(progress)) return true;
         if (isTerminalPhase(exec.status?.phase)) {
           throw new Error(
             `execution ${executionId} reached terminal phase before a mid-run file_change_progress snapshot ` +
@@ -147,7 +146,7 @@ export async function awaitFileChangeProgress(
   }
 }
 
-// Polls until a CAPTURING snapshot carries every expected row (`progressCarries`).
+// Polls until a mid-run snapshot carries every expected row (`progressCarries`).
 // The shape every progress arm should take: state what the strip converges to,
 // not how many files one capture happened to see.
 export function awaitProgressEntries(
@@ -189,23 +188,56 @@ function renderProgress(progress: FileChangeProgress): string {
   return `files=${progress.filesChanged} [${rows.join(", ")}]`;
 }
 
-// The first projected change set in `status`, if any — the file-review analogue
-// of scanning pending_approvals.
-export function findChangeSet(exec: Run, status: FileChangeSetStatus): FileChangeSet | undefined {
-  return exec.status?.fileChangeSets.find((set) => set.status === status);
+// The first change set of the run's file record that captured files, if any.
+function capturedSet(exec: Run): FileChangeSet | undefined {
+  return exec.status?.fileChanges.find((set) => set.changes.length > 0);
 }
 
-// The set AWAITING_REVIEW, which every decide-and-continue arm starts from;
-// throws when absent so an assertion never dereferences a missing set.
+// The change set the turn captured, which every decide-and-continue arm
+// starts from: its ids and digests are what a decision names. Throws when the
+// file record holds none, so an assertion never dereferences a missing set.
+// Whether it is still undecided is the log's (`reviewSetNow`).
 export function requireReviewSet(exec: Run): FileChangeSet {
-  const set = findChangeSet(exec, FileChangeSetStatus.AWAITING_REVIEW);
+  const set = capturedSet(exec);
   if (set === undefined) {
     throw new Error(
-      `execution ${exec.metadata?.id ?? "?"} has no change set AWAITING_REVIEW ` +
-        `(sets: ${JSON.stringify(exec.status?.fileChangeSets.map((s) => FileChangeSetStatus[s.status]))})`,
+      `execution ${exec.metadata?.id ?? "?"} captured no change set ` +
+        `(file record: ${JSON.stringify(exec.status?.fileChanges.map((s) => [s.id, s.changes.length]) ?? [])})`,
     );
   }
   return set;
+}
+
+// The change set `id` of the run's file record, as the run reads now.
+export function recordedSet(exec: Run, id: string): FileChangeSet {
+  const set = exec.status?.fileChanges.find((candidate) => candidate.id === id);
+  if (set === undefined) {
+    throw new Error(`execution ${exec.metadata?.id ?? "?"} has no change set ${id} on its file record`);
+  }
+  return set;
+}
+
+// What the session's log says of change set `changeSetId` now: its files
+// with each one's state (undecided, kept, undoing, undone), every decision
+// and every reconcile, folded. Throws when the log has not offered the set.
+export async function reviewSetNow(
+  clients: ConformanceClients,
+  sessionId: string,
+  changeSetId: string,
+): Promise<FileReviewSet> {
+  const set = reviewSetOf(await sessionFold(clients, sessionId), changeSetId);
+  if (set === undefined) {
+    throw new Error(`session ${sessionId}: the log has not offered change set ${changeSetId}`);
+  }
+  return set;
+}
+
+// A folded set's files as `[path, state, decided by]`, sorted by path: the
+// shape an arm compares whole.
+export function reviewStatesOf(set: FileReviewSet): Array<[string, string, string]> {
+  return set.files
+    .map((file): [string, string, string] => [file.path || file.previousPath, file.state, file.decidedBy])
+    .sort((a, b) => a[0].localeCompare(b[0]));
 }
 
 // The change for a workspace-relative path: path_after for ADD/MODIFY/RENAME,
@@ -227,55 +259,10 @@ export interface FileDecisionOptions {
   // CURRENT digest (what the reviewer saw); an arm passes a stale value to
   // prove the enforcement gate refuses it.
   expectedDigest?: string;
-  // Consciously keep a binary change whose diff cannot be shown (APPROVE at
-  // FILE scope only, per SubmitFileDecisionInput).
+  // Consciously keep a binary change whose diff cannot be shown (a keep, per
+  // ReviewFileChangesInput).
   acknowledgeUnreviewable?: boolean;
   reason?: string;
-}
-
-// Decides one file through RunCommandController.submitFileDecision, the
-// adapter onto the session's decision method (APPROVE is keep, REJECT is
-// undo), correlating by the change's id and binding to its file_digest.
-// Returns the server's response (the execution as the handler left it) so an
-// arm can assert the projection synchronously.
-export function submitFileDecisionByPath(
-  clients: ConformanceClients,
-  executionId: string,
-  set: FileChangeSet,
-  path: string,
-  action: FileDecisionAction,
-  opts: FileDecisionOptions = {},
-): Promise<Run> {
-  const change = requireChangeByPath(set, path);
-  return clients.agentExecutionCommand.submitFileDecision({
-    runId: executionId,
-    changeSetId: set.id,
-    scope: FileDecisionScope.FILE,
-    fileChangeId: change.id,
-    action,
-    expectedDigest: opts.expectedDigest ?? change.fileDigest,
-    acknowledgeUnreviewable: opts.acknowledgeUnreviewable ?? false,
-    reason: opts.reason ?? "",
-  });
-}
-
-// Decides the whole set through the adapter, bound to its aggregate_digest.
-export function submitChangeSetDecision(
-  clients: ConformanceClients,
-  executionId: string,
-  set: FileChangeSet,
-  action: FileDecisionAction,
-  opts: FileDecisionOptions = {},
-): Promise<Run> {
-  return clients.agentExecutionCommand.submitFileDecision({
-    runId: executionId,
-    changeSetId: set.id,
-    scope: FileDecisionScope.CHANGE_SET,
-    action,
-    expectedDigest: opts.expectedDigest ?? set.aggregateDigest,
-    acknowledgeUnreviewable: opts.acknowledgeUnreviewable ?? false,
-    reason: opts.reason ?? "",
-  });
 }
 
 // The word reviewFileChanges takes for a decision.
@@ -372,33 +359,12 @@ export async function awaitReconciled(
   return reconciledIn(events)!;
 }
 
-// Whether the file-review ledger records `type` for `changeSetId` (any set when
-// omitted). The ledger is the source of truth the projection is derived from,
-// so RECONCILED here is the proof a waiting run applied the decision; a
-// reconcile after the turn writes only the log's reconciled event.
-export function fileReviewStreamHas(
-  exec: Run,
-  type: FileReviewEventType,
-  changeSetId?: string,
-): boolean {
-  return (exec.status?.fileReviewEventStream?.events ?? []).some(
-    (event) => event.eventType === type && (changeSetId === undefined || event.changeSetId === changeSetId),
-  );
-}
-
-// Who the file-review ledger names as the reviewer of each decision on
-// `changeSetId`: the reviewer_id of every FILE_DECIDED event, in stream order.
-// Read from the append-only stream, the ledger the projection is folded from.
-// The server records the
-// principal it authorized, the same id it stamps as created_by on what that
-// caller creates, so a suite compares the two without knowing the edition's
-// identity scheme.
-export function fileReviewersOf(exec: Run, changeSetId: string): string[] {
-  return (exec.status?.fileReviewEventStream?.events ?? []).flatMap((event) =>
-    event.eventType === FileReviewEventType.FILE_DECIDED &&
-    event.changeSetId === changeSetId &&
-    event.payload.case === "fileDecided"
-      ? [event.payload.value.reviewerId]
-      : [],
-  );
+// Who decided each decision on `changeSetId`, in log order: the decided
+// event's decided_by, which the server writes from the caller of
+// reviewFileChanges (empty for a decision no person made). The server records
+// the principal it authorized, the same id it stamps as created_by on what
+// that caller creates, so a suite compares the two without knowing the
+// edition's identity scheme.
+export function fileReviewersOf(log: FileReviewLog, changeSetId: string): string[] {
+  return log.decided.filter((event) => event.changeSetId === changeSetId).map((event) => event.decidedBy);
 }

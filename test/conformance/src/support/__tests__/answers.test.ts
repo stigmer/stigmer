@@ -7,13 +7,12 @@
 //   otherwise;
 // - the answers of a run read from its confirmations and grants, a deny
 //   with its message, and anything else by its case;
-// - an answer per the contract gives the answer, then holds the run to the
-//   remainder it must carry.
+// - an answer per the contract gives the answer, then holds the turn to the
+//   calls its log still names waiting.
 // Pure: hand-built events and stubbed clients, no target.
 // Domain: conformance support (approvals are session events).
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { type SessionEvent, SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
@@ -95,16 +94,32 @@ describe("answersOf", () => {
 });
 
 describe("confirmPerContract", () => {
-  it("gives the answer, then holds the run to the remainder it must carry", async () => {
-    const run = create(RunSchema, { metadata: { id: "run_1" }, status: { pendingApprovals: [{ toolCallId: "tc-2" }] } });
-    const get = vi.fn(async () => run);
+  // A turn with two calls that asked; `answered` of them carry an answer.
+  function askLog(answered: number): SessionEvent[] {
+    const runEvent = (value: MessageInitShape<typeof SessionEventSchema>["event"]) =>
+      create(SessionEventSchema, { sessionId: "ses_1", runId: "run_1", event: value });
+    const log = [runEvent({ case: "userMessage", value: { id: "run_1.user", content: [{ type: "text", text: "go" }] } })];
+    for (const call of ["c1", "c2"]) {
+      log.push(
+        runEvent({
+          case: "agentMcpToolUse",
+          value: { id: `run_1.${call}`, name: "echo", mcpServerName: "tools", evaluatedPermission: "ask" },
+        }),
+      );
+    }
+    for (const call of ["c1", "c2"].slice(0, answered)) {
+      log.push(runEvent({ case: "userToolConfirmation", value: { id: `${call}.ok`, toolUseId: `run_1.${call}`, result: "allow" } }));
+    }
+    return log;
+  }
+
+  it("gives the answer, then holds the turn to the calls still waiting", async () => {
+    const c = logClients(askLog(1));
     const answer = vi.fn(async () => undefined);
-    const clients = { agentExecutionQuery: { get } } as unknown as ConformanceClients;
-    expect(await confirmPerContract({ clients, runId: "run_1", answer, expectedRemaining: 1, label: "one left" })).toBe(run);
+    const opts = { clients: c.clients, sessionId: "ses_1", runId: "run_1", answer };
+    expect(await confirmPerContract({ ...opts, expectedRemaining: 1, label: "one left" })).toEqual(["run_1.c2"]);
     expect(answer).toHaveBeenCalledOnce();
-    expect(get).toHaveBeenCalledWith({ value: "run_1" });
-    await expect(
-      confirmPerContract({ clients, runId: "run_1", answer, expectedRemaining: 0, label: "none left" }),
-    ).rejects.toThrow(/none left/);
+    expect(c.listEvents).toHaveBeenCalledWith({ sessionId: "ses_1", pageSize: 1000 });
+    await expect(confirmPerContract({ ...opts, expectedRemaining: 0, label: "none left" })).rejects.toThrow(/none left/);
   });
 });
