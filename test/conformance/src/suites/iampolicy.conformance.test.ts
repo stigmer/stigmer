@@ -137,6 +137,7 @@ import { makeAgent } from "../support/agents";
 import { freshSubject } from "../support/identityaccounts";
 import {
   AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE,
+  BOOTSTRAP_MOVE_ORG_ACCESS_DENIED_MESSAGE,
   BOOTSTRAP_POLICY_DENIED_MESSAGE,
   BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE,
   CLEANUP_RESOURCE_POLICIES_DENIED_MESSAGE,
@@ -479,6 +480,16 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user", (
           org,
         }),
       BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE,
+    ],
+    [
+      "[rpc:IamPolicyCommandController.bootstrapMoveOrgAccess] bootstrapMoveOrgAccess",
+      (org: string) =>
+        clients.iamPolicyCommand.bootstrapMoveOrgAccess({
+          fromIdentityAccountId: syntheticAccountId(),
+          toIdentityAccountId: syntheticAccountId(),
+          org,
+        }),
+      BOOTSTRAP_MOVE_ORG_ACCESS_DENIED_MESSAGE,
     ],
   ] as const)(
     "%s is PERMISSION_DENIED with the annotation's copy",
