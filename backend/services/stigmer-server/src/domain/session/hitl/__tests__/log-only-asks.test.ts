@@ -6,9 +6,13 @@
  * (CountOpenGates), is answered by confirmToolUse (in the sub-agent's
  * thread the tool use names), and a grantPermission allows every waiting
  * call of its class from the tool uses and asked events in the log, and
- * the turn is signalled once no gate is open.
+ * the turn is signalled once no gate is open. A tool use another run
+ * wrote under this run's id, or one that never asked, is no ask; a run
+ * whose asks fill more than one page of the log is still read whole; and
+ * a store fault reading the ask, or whether it is open, is Internal.
  */
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -25,6 +29,7 @@ import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/authorize.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
+import type { Store } from "../../../../store/interface.js";
 import { createAgentExecutionActivities } from "../../../../temporal/agentexecution/activities.js";
 import { COUNT_OPEN_GATES_ACTIVITY_NAME } from "../../../../temporal/agentexecution/names.js";
 import { stubConnectedEngine } from "../../../run/__tests__/engine-stub.js";
@@ -189,5 +194,76 @@ describe("a turn whose asks are only in its session's log", () => {
     ]);
     expect(await openGateCount()).toBe(0);
     expect(signalled).toEqual([RUN]);
+  });
+});
+
+function confirm(callId: string, d = deps()) {
+  return confirmToolUse(
+    d,
+    create(ConfirmToolUseInputSchema, { sessionId: SESSION, toolUseId: `${RUN}.${callId}`, result: "allow" }),
+    testCallerIdentity(),
+  );
+}
+
+async function codeOf(promise: Promise<unknown>): Promise<Code> {
+  try {
+    await promise;
+  } catch (error) {
+    expect(error).toBeInstanceOf(ConnectError);
+    return (error as ConnectError).code;
+  }
+  throw new Error("expected a refusal");
+}
+
+describe("what is an ask, read from the log", () => {
+  it("is not a tool use another run wrote under this run's id, nor one that never asked", async () => {
+    await seedLogOnly([{ callId: "tc-1", name: "Write" }]);
+    const writeDeps = { store: temp.store, sessionEventBroker: new SessionEventBroker(silentLogger) };
+    await createRunAppendingEvents(
+      writeDeps,
+      create(RunSchema, {
+        metadata: { id: "run_other", org: "acme" },
+        spec: { target: { case: "sessionId", value: SESSION }, message: "again" },
+        status: { phase: RunPhase.RUN_IN_PROGRESS },
+      }),
+    );
+    const use = (runId: string, callId: string, evaluatedPermission: string): SessionEvent =>
+      create(SessionEventSchema, {
+        runId,
+        event: { case: "agentToolUse", value: { id: `${RUN}.${callId}`, name: "Write", input: {}, evaluatedPermission } },
+      });
+    const guard = (id: string) => ({ kind: ApiResourceKind.run, id, schema: RunSchema, admit: () => undefined });
+    await temp.store.sessionEvents.append(SESSION, "acme", [draftOf(use("run_other", "tc-forged", "ask"))], guard("run_other"));
+    await temp.store.sessionEvents.append(SESSION, "acme", [draftOf(use(RUN, "tc-quiet", "allow"))], guard(RUN));
+    expect(await codeOf(confirm("tc-forged"))).toBe(Code.NotFound);
+    expect(await codeOf(confirm("tc-quiet"))).toBe(Code.NotFound);
+  });
+
+  it("reads a run's asked events past one page", async () => {
+    const asks: Ask[] = Array.from({ length: 1001 }, (_, i) => ({ callId: `tc-${i}`, name: "shell" }));
+    await seedLogOnly(asks);
+    const granted = await grantPermission(
+      deps(),
+      create(GrantPermissionInputSchema, { sessionId: SESSION, toolUseId: `${RUN}.tc-1000` }),
+      testCallerIdentity(),
+    );
+    expect(granted.grant).toBeDefined();
+    expect(granted.confirmations).toHaveLength(1001);
+  }, 30_000);
+
+  it("a store fault reading the ask, or whether it is open, is Internal", async () => {
+    await seedLogOnly([{ callId: "tc-1", name: "Write" }]);
+    const withLog = (sessionEvents: Partial<Store["sessionEvents"]>): SessionAnswerDeps => ({
+      ...deps(),
+      store: new Proxy(temp.store, {
+        get(target, key, receiver) {
+          return key === "sessionEvents"
+            ? { ...target.sessionEvents, list: target.sessionEvents.list.bind(target.sessionEvents), openGates: target.sessionEvents.openGates.bind(target.sessionEvents), ...sessionEvents }
+            : Reflect.get(target, key, receiver);
+        },
+      }),
+    });
+    expect(await codeOf(confirm("tc-1", withLog({ list: () => Promise.reject(new Error("disk")) })))).toBe(Code.Internal);
+    expect(await codeOf(confirm("tc-1", withLog({ openGates: () => Promise.reject(new Error("disk")) })))).toBe(Code.Internal);
   });
 });

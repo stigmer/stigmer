@@ -511,6 +511,8 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       assert.deepEqual(seen.events, ["w1", "x", "w2"], "a committed write's events are read by the next");
       await writeAsking([]);
       assert.deepEqual(seen.events, [], "a scope that names no type is handed none");
+      await writeAsking([], []);
+      assert.deepEqual(seen.events, [], "nor is one that names an empty list");
     },
   ],
   [

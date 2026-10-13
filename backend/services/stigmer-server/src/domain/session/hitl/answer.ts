@@ -284,14 +284,12 @@ export async function readAsks(
   toolUseIds: ReadonlyArray<string>,
 ): Promise<Map<string, LoggedAsk>> {
   const asks = new Map<string, LoggedAsk>();
-  if (toolUseIds.length === 0) {
-    return asks;
-  }
+  // No id reads no event (the store's rule for an empty eventIds).
   const uses = await store.sessionEvents.list(sessionId, {
     order: "asc",
     eventIds: toolUseIds,
     types: TOOL_USE_TYPES,
-    limit: toolUseIds.length,
+    limit: Math.max(1, toolUseIds.length),
   });
   const asked = await askedEventsOf(store, sessionId, runId);
   for (const record of uses) {

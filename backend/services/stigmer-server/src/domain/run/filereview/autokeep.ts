@@ -117,11 +117,8 @@ export function autoKeepApprovedCommandSets(
       continue;
     }
     const cs = findChangeSet(changeSets, ev.changeSetId);
-    if (cs === undefined) {
-      continue;
-    }
-    const decisions = decisionsOn(log, cs.id);
-    if (!awaitsReview(cs, decisions)) {
+    const decisions = cs === undefined ? [] : decisionsOn(log, cs.id);
+    if (cs === undefined || !awaitsReview(cs, decisions)) {
       continue;
     }
     if (decisions.length > 0) {
