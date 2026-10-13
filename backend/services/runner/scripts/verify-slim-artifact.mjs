@@ -9,7 +9,7 @@
  * Temporal (Worker.create is where the native bridge and workflow bundle
  * load). So this verifies against a real Temporal dev server, from an
  * isolated copy of the artifact (nothing can accidentally resolve from the
- * repo's node_modules):
+ * repo's node_modules), or, with --in-place, from the artifact itself:
  *
  *   1. Size budget — the artifact's runtime payload (sourcemaps excluded)
  *      stays under SLIM_SIZE_BUDGET_MB (default 120). The whole point of
@@ -70,12 +70,21 @@
  *   --node <path>        the Node binary that boots the runner
  *   --artifact <dir>     the staged artifact directory (default: dist-slim/)
  *   --entry <relative>   the entry inside it (default: main.js)
+ *   --in-place           boot the artifact where it lives instead of a copy
  *
  * The desktop app runs exactly that after staging its bundle
  * (client-apps/desktop/scripts/verify-staged-runtime.mjs): its pinned Node
  * runtime against resources/runner, whose entry is dist/main.js. The sandbox
  * image's release smoke runs it inside the image against /runner/dist with
- * /runner/bin/start, the layer's start script, which execs /runner/bin/node.
+ * /runner/bin/start, the layer's start script, which execs /runner/bin/node,
+ * and --in-place: there the artifact already ships isolated, and a sandbox
+ * runs it from /runner/dist, so the checks must see the ownership and modes
+ * the runner's agent user reads it with (a runner started as root through
+ * the start script runs its agent host as that user, and a copy in a private
+ * temporary directory is one it cannot read). Everything the checks write
+ * goes to a scratch directory of their own, standing in for the workspace
+ * and HOME a driver gives a sandbox; the Cursor SDK probe alone is written
+ * beside the entry, inside a throwaway container.
  * The script imports only Node built-ins and its siblings
  * verify-attach-boot.mjs and verify-agent-host-boot.mjs, so it runs from a
  * mounted checkout.
@@ -94,6 +103,7 @@ const { values: options } = parseArgs({
     node: { type: "string", default: "node" },
     artifact: { type: "string" },
     entry: { type: "string", default: "main.js" },
+    "in-place": { type: "boolean", default: false },
   },
 });
 
@@ -157,22 +167,27 @@ if (sizeMb > sizeBudgetMb) {
 }
 console.log(`[size]   OK: ${sizeMb.toFixed(1)} MB <= ${sizeBudgetMb} MB (sourcemaps excluded)`);
 
-// ─── Isolated copy ───────────────────────────────────────────────────────────
+// ─── Where the runner runs, and where it writes ─────────────────────────────
 
-const isolatedDir = mkdtempSync(join(tmpdir(), "stigmer-slim-verify-"));
-cpSync(artifactDir, isolatedDir, { recursive: true });
-const cleanup = () => rmSync(isolatedDir, { recursive: true, force: true });
+// runDir holds the artifact the checks boot: an isolated copy, or with
+// --in-place the artifact itself. scratchDir takes what the runner writes
+// (its workspace and HOME): the copy itself, or with --in-place a directory
+// of its own, standing in for the workspace and HOME a driver gives a sandbox.
+const scratchDir = mkdtempSync(join(tmpdir(), "stigmer-slim-verify-"));
+const runDir = options["in-place"] ? artifactDir : scratchDir;
+if (runDir === scratchDir) cpSync(artifactDir, scratchDir, { recursive: true });
+const cleanup = () => rmSync(scratchDir, { recursive: true, force: true });
 process.on("exit", cleanup);
 
 const baseEnv = {
   ...process.env,
   TEMPORAL_SERVICE_ADDRESS: temporalAddress,
-  WORKSPACE_ROOT_DIR: join(isolatedDir, "workspace"),
+  WORKSPACE_ROOT_DIR: join(scratchDir, "workspace"),
 };
 
 function bootRunner(extraEnv) {
-  return spawn(nodeBinary, [join(isolatedDir, entry)], {
-    cwd: isolatedDir,
+  return spawn(nodeBinary, [join(runDir, entry)], {
+    cwd: runDir,
     env: { ...baseEnv, ...extraEnv },
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -272,7 +287,7 @@ async function verifyCloudMode() {
       STIGMER_BACKEND_ENDPOINT: "http://127.0.0.1:65004",
       STIGMER_TASK_QUEUE: "session:verify-slim",
       TEMPORAL_SERVICE_ADDRESS: CLOUD_SENTINEL_ADDRESS,
-      HOME: join(isolatedDir, "home"),
+      HOME: join(scratchDir, "home"),
     });
     let output = "";
     const timer = setTimeout(() => {
@@ -294,10 +309,10 @@ async function verifyCloudMode() {
 /**
  * Imports @cursor/sdk and resolves its platform package from beside the
  * entry, where the runner's own dynamic import resolves them. The probe is
- * written into the isolated copy, so nothing resolves from this checkout.
+ * written beside the entry it boots, so nothing resolves from this checkout.
  */
 function verifyCursorSdk() {
-  const probe = join(dirname(join(isolatedDir, entry)), "verify-cursor-sdk.mjs");
+  const probe = join(dirname(join(runDir, entry)), "verify-cursor-sdk.mjs");
   writeFileSync(
     probe,
     `import { createRequire } from "node:module";
@@ -306,7 +321,7 @@ const sdk = createRequire(import.meta.resolve("@cursor/sdk"));
 console.log(sdk.resolve(\`@cursor/sdk-\${process.platform}-\${process.arch}/package.json\`));
 `,
   );
-  const result = spawnSync(nodeBinary, [probe], { cwd: isolatedDir, encoding: "utf8", timeout: BOOT_TIMEOUT_MS });
+  const result = spawnSync(nodeBinary, [probe], { cwd: runDir, encoding: "utf8", timeout: BOOT_TIMEOUT_MS });
   rmSync(probe);
   if (result.status !== 0) {
     throw new Error(`@cursor/sdk did not load from the artifact (exit ${result.status}).\n${(result.stderr ?? "").slice(-2000)}`);
@@ -318,7 +333,7 @@ console.log(sdk.resolve(\`@cursor/sdk-\${process.platform}-\${process.arch}/pack
 
 function verifyAttachEntry() {
   const script = fileURLToPath(new URL("./verify-attach-boot.mjs", import.meta.url));
-  const artifact = dirname(join(isolatedDir, entry));
+  const artifact = dirname(join(runDir, entry));
   const result = spawnSync(nodeBinary, [script, "--node", nodeBinary, "--artifact", artifact], {
     encoding: "utf8",
     timeout: BOOT_TIMEOUT_MS,
@@ -332,7 +347,7 @@ function verifyAttachEntry() {
 
 function verifyAgentHost() {
   const script = fileURLToPath(new URL("./verify-agent-host-boot.mjs", import.meta.url));
-  const result = spawnSync(nodeBinary, [script, "--node", nodeBinary, "--entry", join(isolatedDir, entry)], {
+  const result = spawnSync(nodeBinary, [script, "--node", nodeBinary, "--entry", join(runDir, entry)], {
     encoding: "utf8",
     timeout: BOOT_TIMEOUT_MS,
   });
@@ -395,7 +410,7 @@ async function verifyPoolMode() {
       // Unreachable on purpose: nothing exports before ready; what matters is
       // that the OTel interceptors load as they do in production.
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://127.0.0.1:65005",
-      HOME: join(isolatedDir, "home-pool"),
+      HOME: join(scratchDir, "home-pool"),
     });
     let output = "";
     let ready = false;

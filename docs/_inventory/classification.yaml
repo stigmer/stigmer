@@ -709,10 +709,10 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      Stigmer Cloud's plans and their flat monthly fees, how Stripe invoices
-      them, that every model call runs on the Organization's own provider
-      keys, what the model catalog's list prices are for, and what reduces
-      model spend.
+      Stigmer Cloud's plans, their monthly fees and agent hours, how Stripe
+      invoices them, that every model call runs on the Organization's own
+      provider keys, what the model catalog's list prices are for, and what
+      reduces model spend.
     medium: none
 
   guides/self-hosting/overview:

@@ -215,10 +215,11 @@ public final class SubscriptionQueryControllerGrpc {
      * Estimate what the organization's current period will be invoiced.
      * The estimate is the invoice the period would close with: the plan's
      * monthly fee over the whole period (not prorated to the time elapsed),
-     * plus the child organizations beyond those the plan includes. It is
-     * rated by the same rule the monthly close invoices by, so an estimate
-     * read at a period's end equals that period's invoice. Every other read
-     * derives it the same way; nothing is stored.
+     * plus the child organizations beyond those the plan includes, plus the
+     * agent hours worked so far beyond those the plan includes. It is rated
+     * by the same rule the monthly close invoices by, so an estimate read at
+     * a period's end equals that period's invoice once every turn's end is
+     * recorded. Every other read derives it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
      * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
@@ -306,10 +307,11 @@ public final class SubscriptionQueryControllerGrpc {
      * Estimate what the organization's current period will be invoiced.
      * The estimate is the invoice the period would close with: the plan's
      * monthly fee over the whole period (not prorated to the time elapsed),
-     * plus the child organizations beyond those the plan includes. It is
-     * rated by the same rule the monthly close invoices by, so an estimate
-     * read at a period's end equals that period's invoice. Every other read
-     * derives it the same way; nothing is stored.
+     * plus the child organizations beyond those the plan includes, plus the
+     * agent hours worked so far beyond those the plan includes. It is rated
+     * by the same rule the monthly close invoices by, so an estimate read at
+     * a period's end equals that period's invoice once every turn's end is
+     * recorded. Every other read derives it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
      * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
@@ -378,10 +380,11 @@ public final class SubscriptionQueryControllerGrpc {
      * Estimate what the organization's current period will be invoiced.
      * The estimate is the invoice the period would close with: the plan's
      * monthly fee over the whole period (not prorated to the time elapsed),
-     * plus the child organizations beyond those the plan includes. It is
-     * rated by the same rule the monthly close invoices by, so an estimate
-     * read at a period's end equals that period's invoice. Every other read
-     * derives it the same way; nothing is stored.
+     * plus the child organizations beyond those the plan includes, plus the
+     * agent hours worked so far beyond those the plan includes. It is rated
+     * by the same rule the monthly close invoices by, so an estimate read at
+     * a period's end equals that period's invoice once every turn's end is
+     * recorded. Every other read derives it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
      * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
@@ -449,10 +452,11 @@ public final class SubscriptionQueryControllerGrpc {
      * Estimate what the organization's current period will be invoiced.
      * The estimate is the invoice the period would close with: the plan's
      * monthly fee over the whole period (not prorated to the time elapsed),
-     * plus the child organizations beyond those the plan includes. It is
-     * rated by the same rule the monthly close invoices by, so an estimate
-     * read at a period's end equals that period's invoice. Every other read
-     * derives it the same way; nothing is stored.
+     * plus the child organizations beyond those the plan includes, plus the
+     * agent hours worked so far beyond those the plan includes. It is rated
+     * by the same rule the monthly close invoices by, so an estimate read at
+     * a period's end equals that period's invoice once every turn's end is
+     * recorded. Every other read derives it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
      * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.
@@ -522,10 +526,11 @@ public final class SubscriptionQueryControllerGrpc {
      * Estimate what the organization's current period will be invoiced.
      * The estimate is the invoice the period would close with: the plan's
      * monthly fee over the whole period (not prorated to the time elapsed),
-     * plus the child organizations beyond those the plan includes. It is
-     * rated by the same rule the monthly close invoices by, so an estimate
-     * read at a period's end equals that period's invoice. Every other read
-     * derives it the same way; nothing is stored.
+     * plus the child organizations beyond those the plan includes, plus the
+     * agent hours worked so far beyond those the plan includes. It is rated
+     * by the same rule the monthly close invoices by, so an estimate read at
+     * a period's end equals that period's invoice once every turn's end is
+     * recorded. Every other read derives it the same way; nothing is stored.
      * NOT_FOUND when the organization has no live subscription: it is on
      * Free, or it is a child organization on its parent's plan, and
      * neither is invoiced a plan of its own.

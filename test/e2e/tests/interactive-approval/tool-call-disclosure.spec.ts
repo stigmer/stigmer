@@ -148,9 +148,11 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     const diff = fileDiff(row).first();
     await expect(diff).toBeVisible();
     const clamp = diff.locator('[class*="overflow-hidden"]').first();
+    // Visible is not laid out: the clamp can read 0 high for a frame after the
+    // diff appears, so wait for its height before measuring it.
+    await expect.poll(() => clamp.evaluate((el) => el.clientHeight)).toBeGreaterThan(0);
     const collapsed = await clamp.evaluate((el) => el.clientHeight);
     const full = await clamp.evaluate((el) => el.scrollHeight);
-    expect(collapsed).toBeGreaterThan(0);
     expect(collapsed).toBeLessThan(full); // actually clipped, not the whole file
     expect(collapsed).toBeLessThanOrEqual(220); // ~max-h-48 (192px) + table chrome
 
@@ -159,7 +161,6 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     const expand = fileDiffExpand(row);
     await expect(expand).toBeVisible();
     await expand.click();
-    const expanded = await clamp.evaluate((el) => el.clientHeight);
-    expect(expanded).toBeGreaterThan(collapsed);
+    await expect.poll(() => clamp.evaluate((el) => el.clientHeight)).toBeGreaterThan(collapsed);
   });
 });

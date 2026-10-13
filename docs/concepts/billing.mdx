@@ -1,16 +1,17 @@
 ---
 title: Billing
 description:
-  How Stigmer Cloud billing works — a flat monthly fee per plan, invoiced
-  through Stripe, while every model call runs on your Organization's own
-  provider keys and is billed by the provider.
+  How Stigmer Cloud billing works — a monthly fee per plan and the agent hours
+  past its allowance, invoiced through Stripe, while every model call runs on
+  your Organization's own provider keys and is billed by the provider.
 ---
 
 ## Overview
 
 Stigmer Cloud charges for the platform, never for tokens. Your Organization is
-on a plan, and a paid plan costs a flat monthly fee that Stripe invoices to the
-card on file. Every model call your Agents make runs on your Organization's own
+on a plan, and a paid plan costs a monthly fee that Stripe invoices to the card
+on file, with any [agent hours](#agent-hours) past the plan's allowance on the
+same invoice. Every model call your Agents make runs on your Organization's own
 provider key, on every plan, so your model provider bills those calls to you
 directly and Stigmer adds nothing to them.
 
@@ -36,8 +37,9 @@ runs on its parent's plan and has no plan or invoice of its own.
 A paid plan runs in monthly billing periods from the day you subscribe. At the
 end of each period, Stripe invoices the period's fee and charges it to your
 Organization's saved card, with tax added where it applies. The invoice has the
-plan's fee and, on Business, a line for the child organizations past the five
-the plan includes. It never has a line for model usage.
+plan's fee; on Business, a line for the child organizations past the five the
+plan includes; and, on a plan that prices agent hours, a line for the hours past
+its allowance. It never has a line for model usage.
 
 - **Changing plans** takes effect at once: the current period ends and a new one
   starts on the new plan, and each part of the month is billed on the plan it
@@ -50,6 +52,30 @@ the plan includes. It never has a line for model usage.
 Your card and your past invoices are managed through the **Stripe Customer
 Portal**, opened from **Settings → Billing**, where you can add, update or
 remove a card without leaving the Stigmer billing flow.
+
+## Agent hours
+
+An agent hour is an hour an Agent spends working on a Session: thinking, calling
+tools, writing files. Time spent waiting for a person, for an approval or for
+the next message, is never an agent hour. Hours are counted to the second.
+
+Each plan includes a monthly allowance of agent hours. A
+[child organization](/docs/guides/authentication/federation/child-organizations#billing)'s
+hours count toward its parent's allowance, since it runs on its parent's plan.
+Hours an eval spends grading a run are not counted.
+
+What happens at the allowance depends on the plan:
+
+- **Free**, and any plan with no hourly price, pauses new work until the
+  allowance resets: on the first day of the month (UTC) on Free, at the next
+  billing period on a paid plan. A new message is refused with a note naming the
+  date. A turn already running may finish; if the Organization's Agents keep
+  working an hour past the allowance, the turns still running are stopped.
+- **A plan that prices agent hours** never pauses. The hours past the allowance
+  are billed at the plan's hourly price on the period's invoice, rounded once to
+  a tenth of an hour. A period cut short by a plan change gets an allowance cut
+  by the same share as its fee. The estimated invoice in **Settings → Billing**
+  shows the line as the hours build up through the period.
 
 ## Model calls run on your own keys
 
