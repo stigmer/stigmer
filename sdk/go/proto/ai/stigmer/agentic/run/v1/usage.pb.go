@@ -890,6 +890,12 @@ type UsageReportAggregate struct {
 	CacheCreationInputTokens int64 `protobuf:"varint,4,opt,name=cache_creation_input_tokens,json=cacheCreationInputTokens,proto3" json:"cache_creation_input_tokens,omitempty"`
 	CacheReadInputTokens     int64 `protobuf:"varint,5,opt,name=cache_read_input_tokens,json=cacheReadInputTokens,proto3" json:"cache_read_input_tokens,omitempty"`
 	ReasoningTokens          int64 `protobuf:"varint,6,opt,name=reasoning_tokens,json=reasoningTokens,proto3" json:"reasoning_tokens,omitempty"`
+	// Seconds an agent was working (thinking, calling tools, writing files),
+	// counted from the session's status events; waiting for a person is never
+	// working. A stretch of work is credited to the run whose start began it.
+	// This is the clock, never priced; a Stigmer Cloud plan's agent hours are
+	// its subscription's getAgentHours.
+	WorkingSeconds int64 `protobuf:"varint,7,opt,name=working_seconds,json=workingSeconds,proto3" json:"working_seconds,omitempty"`
 	// Number of metered LLM API calls in this aggregate. A run counted from
 	// its runner's own report adds its tokens and no calls.
 	LlmCallCount int32 `protobuf:"varint,10,opt,name=llm_call_count,json=llmCallCount,proto3" json:"llm_call_count,omitempty"`
@@ -973,6 +979,13 @@ func (x *UsageReportAggregate) GetCacheReadInputTokens() int64 {
 func (x *UsageReportAggregate) GetReasoningTokens() int64 {
 	if x != nil {
 		return x.ReasoningTokens
+	}
+	return 0
+}
+
+func (x *UsageReportAggregate) GetWorkingSeconds() int64 {
+	if x != nil {
+		return x.WorkingSeconds
 	}
 	return 0
 }
@@ -1414,14 +1427,15 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x06labels\x18Z \x03(\v29.ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x17\x10\x18J\x04\b&\x10'J\x04\b'\x10(J\x04\b+\x10,J\x04\b3\x104J\x04\bP\x10QR\vis_billableR\x11cursor_account_idR\rcursor_key_idR\x11cursor_key_sourceR\x04costR\abilling\"\x97\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x17\x10\x18J\x04\b&\x10'J\x04\b'\x10(J\x04\b+\x10,J\x04\b3\x104J\x04\bP\x10QR\vis_billableR\x11cursor_account_idR\rcursor_key_idR\x11cursor_key_sourceR\x04costR\abilling\"\xc0\x04\n" +
 	"\x14UsageReportAggregate\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12!\n" +
 	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x12=\n" +
 	"\x1bcache_creation_input_tokens\x18\x04 \x01(\x03R\x18cacheCreationInputTokens\x125\n" +
 	"\x17cache_read_input_tokens\x18\x05 \x01(\x03R\x14cacheReadInputTokens\x12)\n" +
-	"\x10reasoning_tokens\x18\x06 \x01(\x03R\x0freasoningTokens\x12$\n" +
+	"\x10reasoning_tokens\x18\x06 \x01(\x03R\x0freasoningTokens\x12'\n" +
+	"\x0fworking_seconds\x18\a \x01(\x03R\x0eworkingSeconds\x12$\n" +
 	"\x0ellm_call_count\x18\n" +
 	" \x01(\x05R\fllmCallCount\x12#\n" +
 	"\rprimary_model\x18\x1e \x01(\tR\fprimaryModel\x12)\n" +

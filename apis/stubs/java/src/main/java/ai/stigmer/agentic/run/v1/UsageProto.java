@@ -156,7 +156,7 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "\001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001J\004\010\027\020\030" +
       "J\004\010&\020\'J\004\010\'\020(J\004\010+\020,J\004\0103\0204J\004\010P\020QR\013is_billa" +
       "bleR\021cursor_account_idR\rcursor_key_idR\021c" +
-      "ursor_key_sourceR\004costR\007billing\"\227\004\n\024Usag" +
+      "ursor_key_sourceR\004costR\007billing\"\300\004\n\024Usag" +
       "eReportAggregate\022!\n\014input_tokens\030\001 \001(\003R\013" +
       "inputTokens\022#\n\routput_tokens\030\002 \001(\003R\014outp" +
       "utTokens\022!\n\014total_tokens\030\003 \001(\003R\013totalTok" +
@@ -164,71 +164,72 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "R\030cacheCreationInputTokens\0225\n\027cache_read" +
       "_input_tokens\030\005 \001(\003R\024cacheReadInputToken" +
       "s\022)\n\020reasoning_tokens\030\006 \001(\003R\017reasoningTo" +
-      "kens\022$\n\016llm_call_count\030\n \001(\005R\014llmCallCou" +
-      "nt\022#\n\rprimary_model\030\036 \001(\tR\014primaryModel\022" +
-      ")\n\020primary_provider\030\037 \001(\tR\017primaryProvid" +
-      "er\022E\n\tserved_by\030( \003(\0132(.ai.stigmer.agent" +
-      "ic.run.v1.ServedByUsageR\010servedByJ\004\010\024\020\025J" +
-      "\004\010\025\020\026R\024billable_cost_microsR\024provider_co" +
-      "st_micros\"\266\001\n\rServedByUsage\022\\\n\023provider_" +
-      "key_source\030\001 \001(\0162,.ai.stigmer.agentic.ru" +
-      "n.v1.ProviderKeySourceR\021providerKeySourc" +
-      "e\022!\n\014total_tokens\030\002 \001(\003R\013totalTokens\022$\n\016" +
-      "llm_call_count\030\003 \001(\005R\014llmCallCount\"\366\002\n\nM" +
-      "odelUsage\022\024\n\005model\030\001 \001(\tR\005model\022\032\n\010provi" +
-      "der\030\002 \001(\tR\010provider\022!\n\014input_tokens\030\003 \001(" +
-      "\003R\013inputTokens\022#\n\routput_tokens\030\004 \001(\003R\014o" +
-      "utputTokens\022=\n\033cache_creation_input_toke" +
-      "ns\030\005 \001(\003R\030cacheCreationInputTokens\0225\n\027ca" +
-      "che_read_input_tokens\030\006 \001(\003R\024cacheReadIn" +
-      "putTokens\022\035\n\ncall_count\030\007 \001(\005R\tcallCount" +
-      "\022!\n\014total_tokens\030\n \001(\003R\013totalTokensJ\004\010\010\020" +
-      "\tJ\004\010\t\020\nR\024billable_cost_microsR\024provider_" +
-      "cost_micros\"\325\004\n\025StreamingUsageSummary\022!\n" +
-      "\014input_tokens\030\001 \001(\003R\013inputTokens\022#\n\routp" +
-      "ut_tokens\030\002 \001(\003R\014outputTokens\022*\n\021cache_r" +
-      "ead_tokens\030\003 \001(\003R\017cacheReadTokens\022,\n\022cac" +
-      "he_write_tokens\030\004 \001(\003R\020cacheWriteTokens\022" +
-      "!\n\014total_tokens\030\005 \001(\003R\013totalTokens\022\035\n\ntu" +
-      "rn_count\030\006 \001(\005R\tturnCount\022,\n\022estimated_c" +
-      "ost_usd\030\007 \001(\001R\020estimatedCostUsd\022\024\n\005model" +
-      "\030\010 \001(\tR\005model\022\037\n\013observed_at\030\t \001(\tR\nobse" +
-      "rvedAt\022\\\n\026requested_service_tier\030\n \001(\0162&" +
-      ".ai.stigmer.agentic.run.v1.ServiceTierR\024" +
-      "requestedServiceTier\0224\n\026requested_model_" +
-      "params\030\013 \001(\tR\024requestedModelParams\022_\n\027re" +
-      "quested_thinking_mode\030\014 \001(\0162\'.ai.stigmer" +
-      ".agentic.run.v1.ThinkingModeR\025requestedT" +
-      "hinkingMode*\256\002\n\023UsageMeteringSource\022%\n!U" +
-      "SAGE_METERING_SOURCE_UNSPECIFIED\020\000\0221\n-US" +
-      "AGE_METERING_SOURCE_PROXY_PROVIDER_REPOR" +
-      "TED\020\001\0226\n2USAGE_METERING_SOURCE_RUNNER_PR" +
-      "OVIDER_REPORTED_OSS\020\002\022#\n\037USAGE_METERING_" +
-      "SOURCE_ESTIMATED\020\003\0223\n/USAGE_METERING_SOU" +
-      "RCE_PROVIDER_ADMIN_RECONCILED\020\004\022+\n\'USAGE" +
-      "_METERING_SOURCE_MANUAL_ADJUSTMENT\020\005*\250\001\n" +
-      "\017UsageTrustLevel\022!\n\035USAGE_TRUST_LEVEL_UN" +
-      "SPECIFIED\020\000\022\'\n#USAGE_TRUST_LEVEL_BILLING" +
-      "_AUTHORITY\020\001\022%\n!USAGE_TRUST_LEVEL_SERVER" +
-      "_OBSERVED\020\002\022\"\n\036USAGE_TRUST_LEVEL_DISPLAY" +
-      "_ONLY\020\003*\374\002\n\025UsageCompletionStatus\022\'\n#USA" +
-      "GE_COMPLETION_STATUS_UNSPECIFIED\020\000\022$\n US" +
-      "AGE_COMPLETION_STATUS_COMPLETE\020\001\022.\n*USAG" +
-      "E_COMPLETION_STATUS_STREAM_INTERRUPTED\020\002" +
-      "\0225\n1USAGE_COMPLETION_STATUS_PROVIDER_ERR" +
-      "OR_WITH_USAGE\020\003\0223\n/USAGE_COMPLETION_STAT" +
-      "US_PROVIDER_ERROR_NO_USAGE\020\004\022*\n&USAGE_CO" +
-      "MPLETION_STATUS_ESTIMATED_ONLY\020\005\022&\n\"USAG" +
-      "E_COMPLETION_STATUS_RECONCILED\020\006\022$\n USAG" +
-      "E_COMPLETION_STATUS_CONFLICT\020\007*\200\001\n\021Provi" +
-      "derKeySource\022#\n\037PROVIDER_KEY_SOURCE_UNSP" +
-      "ECIFIED\020\000\022 \n\034PROVIDER_KEY_SOURCE_PLATFOR" +
-      "M\020\001\022$\n PROVIDER_KEY_SOURCE_ORGANIZATION\020" +
-      "\002B\225\001B\nUsageProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.A" +
-      "gentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V" +
-      "1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadat" +
-      "a\352\002\035Ai::Stigmer::Agentic::Run::V1b\006proto" +
-      "3"
+      "kens\022\'\n\017working_seconds\030\007 \001(\003R\016workingSe" +
+      "conds\022$\n\016llm_call_count\030\n \001(\005R\014llmCallCo" +
+      "unt\022#\n\rprimary_model\030\036 \001(\tR\014primaryModel" +
+      "\022)\n\020primary_provider\030\037 \001(\tR\017primaryProvi" +
+      "der\022E\n\tserved_by\030( \003(\0132(.ai.stigmer.agen" +
+      "tic.run.v1.ServedByUsageR\010servedByJ\004\010\024\020\025" +
+      "J\004\010\025\020\026R\024billable_cost_microsR\024provider_c" +
+      "ost_micros\"\266\001\n\rServedByUsage\022\\\n\023provider" +
+      "_key_source\030\001 \001(\0162,.ai.stigmer.agentic.r" +
+      "un.v1.ProviderKeySourceR\021providerKeySour" +
+      "ce\022!\n\014total_tokens\030\002 \001(\003R\013totalTokens\022$\n" +
+      "\016llm_call_count\030\003 \001(\005R\014llmCallCount\"\366\002\n\n" +
+      "ModelUsage\022\024\n\005model\030\001 \001(\tR\005model\022\032\n\010prov" +
+      "ider\030\002 \001(\tR\010provider\022!\n\014input_tokens\030\003 \001" +
+      "(\003R\013inputTokens\022#\n\routput_tokens\030\004 \001(\003R\014" +
+      "outputTokens\022=\n\033cache_creation_input_tok" +
+      "ens\030\005 \001(\003R\030cacheCreationInputTokens\0225\n\027c" +
+      "ache_read_input_tokens\030\006 \001(\003R\024cacheReadI" +
+      "nputTokens\022\035\n\ncall_count\030\007 \001(\005R\tcallCoun" +
+      "t\022!\n\014total_tokens\030\n \001(\003R\013totalTokensJ\004\010\010" +
+      "\020\tJ\004\010\t\020\nR\024billable_cost_microsR\024provider" +
+      "_cost_micros\"\325\004\n\025StreamingUsageSummary\022!" +
+      "\n\014input_tokens\030\001 \001(\003R\013inputTokens\022#\n\rout" +
+      "put_tokens\030\002 \001(\003R\014outputTokens\022*\n\021cache_" +
+      "read_tokens\030\003 \001(\003R\017cacheReadTokens\022,\n\022ca" +
+      "che_write_tokens\030\004 \001(\003R\020cacheWriteTokens" +
+      "\022!\n\014total_tokens\030\005 \001(\003R\013totalTokens\022\035\n\nt" +
+      "urn_count\030\006 \001(\005R\tturnCount\022,\n\022estimated_" +
+      "cost_usd\030\007 \001(\001R\020estimatedCostUsd\022\024\n\005mode" +
+      "l\030\010 \001(\tR\005model\022\037\n\013observed_at\030\t \001(\tR\nobs" +
+      "ervedAt\022\\\n\026requested_service_tier\030\n \001(\0162" +
+      "&.ai.stigmer.agentic.run.v1.ServiceTierR" +
+      "\024requestedServiceTier\0224\n\026requested_model" +
+      "_params\030\013 \001(\tR\024requestedModelParams\022_\n\027r" +
+      "equested_thinking_mode\030\014 \001(\0162\'.ai.stigme" +
+      "r.agentic.run.v1.ThinkingModeR\025requested" +
+      "ThinkingMode*\256\002\n\023UsageMeteringSource\022%\n!" +
+      "USAGE_METERING_SOURCE_UNSPECIFIED\020\000\0221\n-U" +
+      "SAGE_METERING_SOURCE_PROXY_PROVIDER_REPO" +
+      "RTED\020\001\0226\n2USAGE_METERING_SOURCE_RUNNER_P" +
+      "ROVIDER_REPORTED_OSS\020\002\022#\n\037USAGE_METERING" +
+      "_SOURCE_ESTIMATED\020\003\0223\n/USAGE_METERING_SO" +
+      "URCE_PROVIDER_ADMIN_RECONCILED\020\004\022+\n\'USAG" +
+      "E_METERING_SOURCE_MANUAL_ADJUSTMENT\020\005*\250\001" +
+      "\n\017UsageTrustLevel\022!\n\035USAGE_TRUST_LEVEL_U" +
+      "NSPECIFIED\020\000\022\'\n#USAGE_TRUST_LEVEL_BILLIN" +
+      "G_AUTHORITY\020\001\022%\n!USAGE_TRUST_LEVEL_SERVE" +
+      "R_OBSERVED\020\002\022\"\n\036USAGE_TRUST_LEVEL_DISPLA" +
+      "Y_ONLY\020\003*\374\002\n\025UsageCompletionStatus\022\'\n#US" +
+      "AGE_COMPLETION_STATUS_UNSPECIFIED\020\000\022$\n U" +
+      "SAGE_COMPLETION_STATUS_COMPLETE\020\001\022.\n*USA" +
+      "GE_COMPLETION_STATUS_STREAM_INTERRUPTED\020" +
+      "\002\0225\n1USAGE_COMPLETION_STATUS_PROVIDER_ER" +
+      "ROR_WITH_USAGE\020\003\0223\n/USAGE_COMPLETION_STA" +
+      "TUS_PROVIDER_ERROR_NO_USAGE\020\004\022*\n&USAGE_C" +
+      "OMPLETION_STATUS_ESTIMATED_ONLY\020\005\022&\n\"USA" +
+      "GE_COMPLETION_STATUS_RECONCILED\020\006\022$\n USA" +
+      "GE_COMPLETION_STATUS_CONFLICT\020\007*\200\001\n\021Prov" +
+      "iderKeySource\022#\n\037PROVIDER_KEY_SOURCE_UNS" +
+      "PECIFIED\020\000\022 \n\034PROVIDER_KEY_SOURCE_PLATFO" +
+      "RM\020\001\022$\n PROVIDER_KEY_SOURCE_ORGANIZATION" +
+      "\020\002B\225\001B\nUsageProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer." +
+      "Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\" +
+      "V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetada" +
+      "ta\352\002\035Ai::Stigmer::Agentic::Run::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -271,7 +272,7 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_UsageReportAggregate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_UsageReportAggregate_descriptor,
-        new java.lang.String[] { "InputTokens", "OutputTokens", "TotalTokens", "CacheCreationInputTokens", "CacheReadInputTokens", "ReasoningTokens", "LlmCallCount", "PrimaryModel", "PrimaryProvider", "ServedBy", });
+        new java.lang.String[] { "InputTokens", "OutputTokens", "TotalTokens", "CacheCreationInputTokens", "CacheReadInputTokens", "ReasoningTokens", "WorkingSeconds", "LlmCallCount", "PrimaryModel", "PrimaryProvider", "ServedBy", });
     internal_static_ai_stigmer_agentic_run_v1_ServedByUsage_descriptor =
       getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_run_v1_ServedByUsage_fieldAccessorTable = new

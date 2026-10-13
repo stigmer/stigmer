@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/subscription/v1/io.proto.
  */
 export const file_ai_stigmer_billing_subscription_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASLRAgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD2NoaWxkX29yZ19jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoAxIXCg93b3JraW5nX3NlY29uZHMYCSABKANKBAgEEAVKBAgFEAZSFHByb3ZpZGVyX2Nvc3RfbWljcm9zUhtjb21taXNzaW9uX2NvbGxlY3RlZF9taWNyb3MidQoSUGVyaW9kRXN0aW1hdGVMaW5lEkgKBGtpbmQYASABKA4yOi5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlBlcmlvZEVzdGltYXRlTGluZUtpbmQSFQoNYW1vdW50X21pY3JvcxgCIAEoAyqHAQoWUGVyaW9kRXN0aW1hdGVMaW5lS2luZBIpCiVwZXJpb2RfZXN0aW1hdGVfbGluZV9raW5kX3Vuc3BlY2lmaWVkEAASCAoEcGxhbhABEg4KCmNoaWxkX29yZ3MQAxIPCgthZ2VudF9ob3VycxAEIgQIAhACKhFjb21taXNzaW9uX2NyZWRpdGIGcHJvdG8z", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASLRAgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD2NoaWxkX29yZ19jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoAxIXCg93b3JraW5nX3NlY29uZHMYCSABKANKBAgEEAVKBAgFEAZSFHByb3ZpZGVyX2Nvc3RfbWljcm9zUhtjb21taXNzaW9uX2NvbGxlY3RlZF9taWNyb3MiKQoSR2V0QWdlbnRIb3Vyc0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIrsCCgpBZ2VudEhvdXJzEhcKD3dvcmtpbmdfc2Vjb25kcxgBIAEoAxIbCg5pbmNsdWRlZF9ob3VycxgCIAEoBUgAiAEBEiIKFXBlcl9hZ2VudF9ob3VyX21pY3JvcxgDIAEoA0gBiAEBEjAKDHdpbmRvd19zdGFydBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKd2luZG93X2VuZBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASRAoGd2luZG93GAYgASgOMjQuYWkuc3RpZ21lci5iaWxsaW5nLnN1YnNjcmlwdGlvbi52MS5BZ2VudEhvdXJzV2luZG93QhEKD19pbmNsdWRlZF9ob3Vyc0IYChZfcGVyX2FnZW50X2hvdXJfbWljcm9zInUKElBlcmlvZEVzdGltYXRlTGluZRJICgRraW5kGAEgASgOMjouYWkuc3RpZ21lci5iaWxsaW5nLnN1YnNjcmlwdGlvbi52MS5QZXJpb2RFc3RpbWF0ZUxpbmVLaW5kEhUKDWFtb3VudF9taWNyb3MYAiABKAMqXgoQQWdlbnRIb3Vyc1dpbmRvdxIiCh5hZ2VudF9ob3Vyc193aW5kb3dfdW5zcGVjaWZpZWQQABISCg5jYWxlbmRhcl9tb250aBABEhIKDmJpbGxpbmdfcGVyaW9kEAIqhwEKFlBlcmlvZEVzdGltYXRlTGluZUtpbmQSKQolcGVyaW9kX2VzdGltYXRlX2xpbmVfa2luZF91bnNwZWNpZmllZBAAEggKBHBsYW4QARIOCgpjaGlsZF9vcmdzEAMSDwoLYWdlbnRfaG91cnMQBCIECAIQAioRY29tbWlzc2lvbl9jcmVkaXRiBnByb3RvMw", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * GetSubscriptionForOrgInput names the organization whose
@@ -234,6 +234,92 @@ export const PeriodEstimateSchema: GenMessage<PeriodEstimate> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_subscription_v1_io, 6);
 
 /**
+ * GetAgentHoursInput names the organization whose agent hours are read.
+ *
+ * @generated from message ai.stigmer.billing.subscription.v1.GetAgentHoursInput
+ */
+export type GetAgentHoursInput = Message<"ai.stigmer.billing.subscription.v1.GetAgentHoursInput"> & {
+  /**
+   * The organization's id.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.subscription.v1.GetAgentHoursInput.
+ * Use `create(GetAgentHoursInputSchema)` to create a new message.
+ */
+export const GetAgentHoursInputSchema: GenMessage<GetAgentHoursInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_subscription_v1_io, 7);
+
+/**
+ * AgentHours is where an organization stands against its plan's agent
+ * hours: what it has used in the current window and what the plan
+ * includes. The fields mirror the plan's own terms, so a client applies
+ * the plan's rule (an allowance with no hourly price pauses new work at
+ * the allowance) rather than a second statement of it.
+ *
+ * @generated from message ai.stigmer.billing.subscription.v1.AgentHours
+ */
+export type AgentHours = Message<"ai.stigmer.billing.subscription.v1.AgentHours"> & {
+  /**
+   * The working agent seconds used in the window so far: the
+   * organization's and its child organizations', never an automatic
+   * grade's. The same count as the period estimate's working_seconds.
+   *
+   * @generated from field: int64 working_seconds = 1;
+   */
+  workingSeconds: bigint;
+
+  /**
+   * The agent hours the plan includes in each window, its entitlements'
+   * included_agent_hours. Absent is no limit.
+   *
+   * @generated from field: optional int32 included_hours = 2;
+   */
+  includedHours?: number;
+
+  /**
+   * What the plan bills for each agent hour past included_hours, in
+   * micro-USD, its terms' per_agent_hour_micros. Absent with an allowance
+   * means new work pauses at the allowance until the window resets.
+   *
+   * @generated from field: optional int64 per_agent_hour_micros = 3;
+   */
+  perAgentHourMicros?: bigint;
+
+  /**
+   * When the window began.
+   *
+   * @generated from field: google.protobuf.Timestamp window_start = 4;
+   */
+  windowStart?: Timestamp;
+
+  /**
+   * When the window ends: the moment the count resets.
+   *
+   * @generated from field: google.protobuf.Timestamp window_end = 5;
+   */
+  windowEnd?: Timestamp;
+
+  /**
+   * Which month the window is.
+   *
+   * @generated from field: ai.stigmer.billing.subscription.v1.AgentHoursWindow window = 6;
+   */
+  window: AgentHoursWindow;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.subscription.v1.AgentHours.
+ * Use `create(AgentHoursSchema)` to create a new message.
+ */
+export const AgentHoursSchema: GenMessage<AgentHours> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_subscription_v1_io, 8);
+
+/**
  * PeriodEstimateLine is one line of an estimated invoice.
  *
  * @generated from message ai.stigmer.billing.subscription.v1.PeriodEstimateLine
@@ -259,7 +345,41 @@ export type PeriodEstimateLine = Message<"ai.stigmer.billing.subscription.v1.Per
  * Use `create(PeriodEstimateLineSchema)` to create a new message.
  */
 export const PeriodEstimateLineSchema: GenMessage<PeriodEstimateLine> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_subscription_v1_io, 7);
+  messageDesc(file_ai_stigmer_billing_subscription_v1_io, 9);
+
+/**
+ * AgentHoursWindow names the month an organization's agent hours are
+ * counted over.
+ *
+ * @generated from enum ai.stigmer.billing.subscription.v1.AgentHoursWindow
+ */
+export enum AgentHoursWindow {
+  /**
+   * @generated from enum value: agent_hours_window_unspecified = 0;
+   */
+  agent_hours_window_unspecified = 0,
+
+  /**
+   * The calendar month in UTC, resetting on the 1st: Free, which has no
+   * subscription period.
+   *
+   * @generated from enum value: calendar_month = 1;
+   */
+  calendar_month = 1,
+
+  /**
+   * The subscription's current billing period.
+   *
+   * @generated from enum value: billing_period = 2;
+   */
+  billing_period = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.billing.subscription.v1.AgentHoursWindow.
+ */
+export const AgentHoursWindowSchema: GenEnum<AgentHoursWindow> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_billing_subscription_v1_io, 0);
 
 /**
  * PeriodEstimateLineKind names what an estimated invoice line is for.
@@ -301,5 +421,5 @@ export enum PeriodEstimateLineKind {
  * Describes the enum ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind.
  */
 export const PeriodEstimateLineKindSchema: GenEnum<PeriodEstimateLineKind> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_billing_subscription_v1_io, 0);
+  enumDesc(file_ai_stigmer_billing_subscription_v1_io, 1);
 

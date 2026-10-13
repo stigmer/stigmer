@@ -53,6 +53,12 @@ class SubscriptionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_agent_hours(self, input: io_pb2.GetAgentHoursInput) -> io_pb2.AgentHours:
+        try:
+            return self._query.getAgentHours(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class SubscriptionInput:
