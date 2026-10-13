@@ -73,7 +73,7 @@
 import { Code } from "@connectrpc/connect";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolUse, Turn } from "@stigmer/sdk";
+import type { ToolUse, Turn } from "@stigmer/session-log";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";

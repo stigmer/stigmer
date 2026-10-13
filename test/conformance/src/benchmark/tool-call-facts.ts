@@ -28,7 +28,7 @@
 //   is kept with the record of the work and read by people, and a call's
 //   target (a path, a pattern, the head of a command) is what a reader needs
 //   to tell a re-read from a new read.
-import type { ToolUse, Turn } from "@stigmer/sdk";
+import type { ToolUse, Turn } from "@stigmer/session-log";
 import type { TimingLine, TodoCounts, ToolCallFact, ToolCallOutcome } from "./report";
 
 /** The longest command head a fact keeps: enough to tell `go test ./...` from `ls -la`. */

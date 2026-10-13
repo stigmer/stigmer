@@ -46,7 +46,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { ReviewFileChangesResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { FileReviewSet } from "@stigmer/sdk";
+import type { FileReviewSet } from "@stigmer/session-log";
 import type {
   CapturedFileChange,
   FileChangeProgress,

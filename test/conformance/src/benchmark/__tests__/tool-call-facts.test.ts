@@ -13,7 +13,7 @@
 // state.
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUse } from "@stigmer/session-log";
 import { describe, expect, it } from "vitest";
 import type { TimingLine } from "../report";
 import { COMMAND_TARGET_CHARS, outcomeOf, targetOf, todoCounts, toolCallFacts } from "../tool-call-facts";

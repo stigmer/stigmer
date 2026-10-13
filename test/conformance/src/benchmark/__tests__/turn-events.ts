@@ -1,7 +1,7 @@
 // Event fixtures for the benchmark's readers: a turn's session events, named
 // the way the runner names them (`<run>.<call>` for a tool use, `<run>.root.m<n>`
 // for a primary-thread message), folded the way every client folds them
-// (@stigmer/session-log through the SDK). The readers take a folded `Turn`;
+// (@stigmer/session-log). The readers take a folded `Turn`;
 // the tests build the log a turn would leave and fold it.
 // Domain: conformance benchmark (test fixtures).
 import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
@@ -9,7 +9,7 @@ import {
   SessionEventSchema,
   type SessionEvent,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { foldSession, turnOf, type Turn } from "@stigmer/sdk";
+import { foldSession, turnOf, type Turn } from "@stigmer/session-log";
 
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 

@@ -25,7 +25,7 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Turn } from "@stigmer/sdk";
+import type { Turn } from "@stigmer/session-log";
 import type { BenchmarkAxes, SampleOutcome, TokenCounts } from "./report";
 
 const MICROS_PER_USD = 1_000_000;

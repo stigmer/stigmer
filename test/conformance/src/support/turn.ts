@@ -5,8 +5,8 @@
 // tools it called and how they ended, its sub-agents, to-dos, structured
 // output and memory recall, and every file-review decision are the
 // session's events. These helpers fold that log the way every client does
-// (`foldSession` from @stigmer/session-log, re-exported by the SDK) and
-// hand a suite the turn's items. Nothing here reads a run's status for the
+// (`foldSession` from @stigmer/session-log: pure functions over the
+// contract's event protos, no transport) and hand a suite the turn's items. Nothing here reads a run's status for the
 // transcript.
 //
 // A tool use is found by the call id the scripted model gave it: the runner
@@ -23,7 +23,7 @@ import {
   type ToolUse,
   type Turn,
   type TurnItem,
-} from "@stigmer/sdk";
+} from "@stigmer/session-log";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { ConformanceClients } from "../harness/clients";
