@@ -14,7 +14,7 @@
  * pause primitives are indistinguishable. Whether the engine checkpoints at
  * the gate (`interrupt`) or a hook denies the tool and the run is cancelled
  * (`deny-and-retry`), the turn ends `awaiting_approval` with a WAITING row on
- * the status, and the next invocation carries the decision. How the engine
+ * the rows, and the next invocation carries the decision. How the engine
  * RESUMES is the adapter's business, below the line, and the runtime never
  * sees it. So this fake takes `pausePrimitive` as an option and does not
  * branch on it — and the kit runs it under both to prove the kit does not
@@ -60,10 +60,8 @@ import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../har
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { testConfig } from "../config-fixture.js";
-import { findToolCallRow } from "../proto-helpers.js";
 import type { EngineView, HarnessContractSubject, ScenarioStep, TurnScenario } from "./types.js";
-import type { ToolCall } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 export interface ScriptedHarnessOptions {
   /** Diagnostic name; defaults to a name that says which primitives this instance runs under. */
@@ -90,12 +88,6 @@ function whenAborted(signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
 }
 
-/** A proposal already carried to a terminal row has been settled by an earlier invocation. */
-function isSettled(row: ToolCall | undefined): boolean {
-  return row !== undefined
-    && (row.status === ToolCallStatus.TOOL_CALL_COMPLETED || row.status === ToolCallStatus.TOOL_CALL_SKIPPED);
-}
-
 export class ScriptedHarnessAdapter implements HarnessAdapter {
   readonly name: string;
   readonly capabilities: HarnessCapabilities;
@@ -104,6 +96,13 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly arranged = new Map<string, TurnScenario>();
   private readonly mintedStateIds = new Set<string>();
   private readonly executions = new Map<string, number>();
+  /**
+   * The engine's memory, per session: the calls it has carried out or moved
+   * past. A real engine keeps this in its own state (a checkpoint, a vendor
+   * agent); the runtime hands a resumed turn only the asks it resumes onto,
+   * never the rows an earlier invocation settled.
+   */
+  private readonly settledCalls = new Map<string, Set<string>>();
   private readonly hangWaiters: Array<() => void> = [];
   private mintCounter = 0;
   /** One `runId` per `say`, as an engine mints one per model run; the builder keys a message on it. */
@@ -139,7 +138,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   /**
    * What the session's next `runTurn` plays. The rest of the view is not
    * needed here: this fake reads its decisions from `input.approvalDecisions`
-   * and settles a repeated proposal from the row itself, so it has nothing to
+   * and settles a repeated proposal from its own memory, so it has nothing to
    * decide before the turn.
    */
   arrange(turn: TurnScenario, view: Pick<EngineView, "sessionId">): void {
@@ -148,6 +147,16 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
 
   executionCount(toolCallId: string): number {
     return this.executions.get(toolCallId) ?? 0;
+  }
+
+  private hasSettled(sessionId: string, toolCallId: string): boolean {
+    return this.settledCalls.get(sessionId)?.has(toolCallId) ?? false;
+  }
+
+  private settle(sessionId: string, toolCallId: string): void {
+    const calls = this.settledCalls.get(sessionId) ?? new Set<string>();
+    calls.add(toolCallId);
+    this.settledCalls.set(sessionId, calls);
   }
 
   // ── HarnessAdapter ────────────────────────────────────────────────────────
@@ -273,11 +282,10 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   }
 
   /**
-   * The gate, above the contract line. The status is the single source of
-   * truth for whether the effect ran: a row already carried to COMPLETED or
-   * SKIPPED by an earlier invocation is settled and the step is a no-op, which
-   * is what makes "reinvoked twice with the same decision, still once" hold
-   * without a second ledger.
+   * The gate, above the contract line. The engine's memory says whether the
+   * effect ran: a call an earlier invocation carried out or moved past is
+   * settled and the step is a no-op, which is what makes "reinvoked twice
+   * with the same decision, still once" hold.
    */
   private propose(
     toolCallId: string,
@@ -285,8 +293,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     input: TurnInput,
     sink: TurnSink,
   ): TurnOutcome | undefined {
-    const existing = findToolCallRow(sink.status, toolCallId);
-    if (isSettled(existing)) return undefined;
+    if (this.hasSettled(input.sessionId, toolCallId)) return undefined;
 
     const decision = input.approvalDecisions.get(toolCallId) ?? ApprovalAction.UNSPECIFIED;
     switch (decision) {
@@ -311,6 +318,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       case ApprovalAction.APPROVE:
       case ApprovalAction.APPROVE_ALL: {
         this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
+        this.settle(input.sessionId, toolCallId);
         this.completeRow(toolCallId, action, sink);
         return undefined;
       }
@@ -318,6 +326,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       case ApprovalAction.REJECT: {
         // Not executed, and the row is left as the runtime handed it (see
         // the header): the engine simply moves on.
+        this.settle(input.sessionId, toolCallId);
         sink.recordActivity();
         return undefined;
       }
@@ -332,11 +341,12 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
    * A write under apply-then-review capture: no gate — the engine writes the
    * bytes into the workspace and reports a COMPLETED `write` row, and the
    * RUNTIME captures the change for review after the turn. The bytes are the
-   * fake's own (the tool-call id, one line); an already-settled row on a
+   * fake's own (the tool-call id, one line); a call already carried out on a
    * reinvocation is a no-op, as `propose`'s is.
    */
   private async flowingWrite(toolCallId: string, action: ProposedAction, input: TurnInput, sink: TurnSink): Promise<TurnOutcome | undefined> {
-    if (isSettled(findToolCallRow(sink.status, toolCallId))) return undefined;
+    if (this.hasSettled(input.sessionId, toolCallId)) return undefined;
+    this.settle(input.sessionId, toolCallId);
     const file = join(input.workspace.primaryDir, action.resource);
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, `${toolCallId}\n`);

@@ -1,0 +1,29 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "I'll run the build now.",
+      "timestamp": "2026-01-01T00:00:02.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-shell-0001",
+          "name": "shell",
+          "args": {
+            "command": "npm run build",
+            "cwd": "/x",
+            "timeout": 30000
+          },
+          "status": "TOOL_CALL_WAITING_APPROVAL",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "requiresApproval": true,
+          "approvalMessage": "Run command: npm run build",
+          "approvalRequestedAt": "2026-01-01T00:00:05.000Z",
+          "argsPreview": "{\"command\":\"npm run build\",\"cwd\":\"/x\",\"timeout\":30000}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "hooks-2"
+        }
+      ]
+    }
+  ]
+}

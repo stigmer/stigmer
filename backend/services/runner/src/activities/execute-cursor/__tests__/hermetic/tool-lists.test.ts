@@ -145,7 +145,8 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     const invocation = await runCursorTurn(scenario);
     expect(invocation.outcome.kind).toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
-    return { scenario, phase: slim.phase, final: scenario.record.lastFullStatus! };
+    const final = scenario.record.lastFullStatus!;
+    return { scenario, phase: slim.phase, final, finalRows: scenario.record.rowsOf(final) };
   }
 
   it("hands the SDK the allow-list in its own names: read kept, the excluded built-ins absent", async () => {
@@ -181,13 +182,13 @@ describe("ExecuteCursor hermetic — tool lists", () => {
 
   it("refuses an Agent(type, …) type list, naming the entry, before any agent exists", async () => {
     const neverUsed = new ScriptedCursorAgent({ agentId: "agent-lists-never-types", turns: [] });
-    const { scenario, phase, final } = await run(
+    const { scenario, phase, final, finalRows } = await run(
       { message: USER_MESSAGE, tools: ["Read", "Agent(explore)"], subagents: [subAgent("researcher")] },
       neverUsed,
     );
     expect(phase).toBe("RUN_FAILED");
     expect(final.error).toMatch(/^.+ lists Agent\(explore\), which the Cursor engine cannot enforce: it cannot limit which subagents an agent starts\./);
-    expect(systemRows(final)).toEqual([`Execution failed: ${final.error}`]);
+    expect(systemRows(finalRows)).toEqual([`Execution failed: ${final.error}`]);
     expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
   });
 
@@ -209,14 +210,14 @@ describe("ExecuteCursor hermetic — tool lists", () => {
 
   it("refuses the turn when a sub-agent carries its own lists, naming it, before any agent exists", async () => {
     const neverUsed = new ScriptedCursorAgent({ agentId: "agent-lists-never-1", turns: [] });
-    const { scenario, phase, final } = await run(
+    const { scenario, phase, final, finalRows } = await run(
       { message: USER_MESSAGE, subagents: [subAgent("helper", { tools: ["Read"] }), subAgent("plain")] },
       neverUsed,
     );
     expect(phase).toBe("RUN_FAILED");
     expect(final.error, "the refusal's own sentence, unprefixed").toBe(subagentBringsOwnMessage("helper"));
     expect(final.error).not.toContain("plain");
-    expect(systemRows(final)).toEqual([`Execution failed: ${final.error}`]);
+    expect(systemRows(finalRows)).toEqual([`Execution failed: ${final.error}`]);
     expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
   });
 
@@ -260,13 +261,13 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       ],
     });
     const lists = { tools: ["Read", "Agent"], disallowedTools: [] };
-    const { phase, final } = await run({ message: USER_MESSAGE, ...lists, subagents: [subAgent("helper")] }, agent);
+    const { phase, finalRows } = await run({ message: USER_MESSAGE, ...lists, subagents: [subAgent("helper")] }, agent);
 
     expect(hookDecisions, "the real hook refused both").toEqual(["deny", "deny"]);
     expect(phase, "a refused call never fails the turn").toBe("RUN_COMPLETED");
     const expected = outOfScopeMessage("GenerateImage", ToolScope.of("The agent", lists));
-    const rootRow = final.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === "gen-1")!;
-    const subRows = final.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
+    const rootRow = finalRows.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === "gen-1")!;
+    const subRows = finalRows.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
     expect(subRows.map((tc) => tc.id)).toEqual(["sub-gen-1"]);
     for (const row of [rootRow, subRows[0]]) {
       expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
@@ -278,11 +279,11 @@ describe("ExecuteCursor hermetic — tool lists", () => {
 
   it("refuses the turn when a tools list names nothing the turn has", async () => {
     const neverUsed = new ScriptedCursorAgent({ agentId: "agent-lists-never-2", turns: [] });
-    const { scenario, phase, final } = await run({ message: USER_MESSAGE, tools: ["mcp__nosuch"] }, neverUsed);
+    const { scenario, phase, final, finalRows } = await run({ message: USER_MESSAGE, tools: ["mcp__nosuch"] }, neverUsed);
     expect(phase).toBe("RUN_FAILED");
     const message = new ToolListResolutionError("The agent", ["mcp__nosuch"]).message;
     expect(final.error).toBe(message);
-    expect(systemRows(final)).toEqual([`Execution failed: ${message}`]);
+    expect(systemRows(finalRows)).toEqual([`Execution failed: ${message}`]);
     expect(scenario.sdk.resolutions).toHaveLength(0);
   });
 
@@ -363,12 +364,12 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     const APPENDED = "Always answer in exactly one sentence.";
     const schema = { type: "object", properties: { answer: { type: "string" } }, required: ["answer"] };
     const agent = answeringAgent("agent-append-schema", "run-append-schema", clock, '{"answer":"one"}');
-    const { phase, final } = await run({ message: USER_MESSAGE, appendSystemPrompt: APPENDED, structuredOutputSchema: schema }, agent);
+    const { phase, finalRows } = await run({ message: USER_MESSAGE, appendSystemPrompt: APPENDED, structuredOutputSchema: schema }, agent);
     expect(phase).toBe("RUN_COMPLETED");
     const sent = String(agent.sends[0]!.message);
     expect(sent).toContain(`<user_request>\n${USER_MESSAGE}\n</user_request>\n\n---\n\n${APPENDED}\n\n---\nCRITICAL OUTPUT REQUIREMENT:`);
     expect(sent.endsWith("Respond with ONLY the JSON object. Nothing else.")).toBe(true);
     expect(sent.indexOf(APPENDED)).toBe(sent.lastIndexOf(APPENDED));
-    expect(final.structuredOutput).toEqual({ answer: "one" });
+    expect(finalRows.structuredOutput).toEqual({ answer: "one" });
   });
 });

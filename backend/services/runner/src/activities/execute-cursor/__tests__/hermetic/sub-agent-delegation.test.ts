@@ -40,8 +40,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -57,6 +55,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -153,17 +154,18 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
 
     // ── Assert: the root transcript ──────────────────────────────────────────
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(record.toolCalls().map((tc) => [tc.id, tc.name, tc.status])).toEqual([
       [TASK_CALL_ID, "task", ToolCallStatus.TOOL_CALL_COMPLETED],
     ]);
-    expect(final.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
+    expect(finalRows.messages.map((m) => [m.type, m.content, m.toolCalls.map((tc) => tc.id)])).toEqual([
       [MessageType.MESSAGE_AI, ROOT_OPENING, [TASK_CALL_ID]],
       [MessageType.MESSAGE_AI, ROOT_CLOSING, []],
     ]);
 
     // ── Assert: the sub-agent execution ──────────────────────────────────────
-    expect(final.subAgentRuns).toHaveLength(1);
-    const sub = final.subAgentRuns[0];
+    expect(finalRows.subAgentRuns).toHaveLength(1);
+    const sub = finalRows.subAgentRuns[0];
     expect(sub.id, "keyed by the task call id").toBe(TASK_CALL_ID);
     expect(sub.name).toBe("helper");
     expect(sub.subject).toBe(TASK_ARGS.description);
@@ -188,8 +190,8 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/sub-agent-delegation.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/sub-agent-delegation.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/sub-agent-delegation.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sub-agent-delegation.events.json");
   });
 });

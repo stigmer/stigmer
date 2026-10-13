@@ -29,8 +29,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
@@ -44,6 +42,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -133,8 +134,9 @@ describe("ExecuteCursor hermetic — todo writes", () => {
 
     // ── Assert: the transcript — a row per write, on the message that proposed it ──
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(
-      final.messages.map((m) => [m.type, m.content, m.toolCalls.length]),
+      finalRows.messages.map((m) => [m.type, m.content, m.toolCalls.length]),
       "the todo call splits the text like any tool, and its row stays",
     ).toEqual([
       [MessageType.MESSAGE_AI, TEXT_PLAN, 1],
@@ -148,9 +150,9 @@ describe("ExecuteCursor hermetic — todo writes", () => {
     ]);
 
     // ── Assert: the todos, by key (byte-identical across the swap) ──────────
-    expect(Object.keys(final.todos).sort()).toEqual(["todo-0", "todo-1"]);
-    const first = final.todos["todo-0"];
-    const second = final.todos["todo-1"];
+    expect(Object.keys(finalRows.todos).sort()).toEqual(["todo-0", "todo-1"]);
+    const first = finalRows.todos["todo-0"];
+    const second = finalRows.todos["todo-1"];
     expect([first.content, first.status]).toEqual(["Read the fixture", TodoStatus.TODO_COMPLETED]);
     expect(first.createdAt < first.updatedAt, "the merge kept the first write's createdAt and moved updatedAt").toBe(true);
     expect([second.content, second.status]).toEqual(["Summarise it", TodoStatus.TODO_PENDING]);
@@ -160,8 +162,8 @@ describe("ExecuteCursor hermetic — todo writes", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/todo-write.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/todo-write.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/todo-write.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/todo-write.events.json");
   });
 });

@@ -1,0 +1,14 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Internal system error occurred. Please contact support if this issue persists.",
+      "timestamp": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Error details: [Error] hermetic fault injected at getSession",
+      "timestamp": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

@@ -27,7 +27,6 @@
 import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { approvalAnswersOf, type ApprovalAsk } from "../harness/approval-answers.js";
@@ -138,6 +137,6 @@ export function loggedApprovalsFor(
       log.push(askedEventFor(ids, row), ...answerEventsFor(ids, row, row.approvalAction));
     }
   }
-  const answers = approvalAnswersOf(runId, create(RunStatusSchema, { messages: [...messages] }), log);
+  const answers = approvalAnswersOf(runId, { messages }, log);
   return { runId, decisions: answers.decisions, asks: answers.asks, denyMessages: answers.denyMessages };
 }

@@ -38,8 +38,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
@@ -56,6 +54,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { _parkedAgentCountForTests } from "../../agent-session-cache.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
@@ -135,7 +136,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     const final = record.lastFullStatus!;
     expect(final.error).toBe(`${AUTH_ERROR} [category=auth, source=sdk, retryable=false]`);
     expect(final.completedAt).not.toBe("");
-    expect(systemMessages(final), "the classified arm appends no system message").toEqual([]);
+    expect(systemMessages(record.rowsOf(final)), "the classified arm appends no system message").toEqual([]);
 
     // ── Assert: no recovery fired ────────────────────────────────────────────
     expect(scenario.sdk.resolutions.map((r) => r.kind), "one create, no fresh agent").toEqual(["create"]);
@@ -149,8 +150,8 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(invocation.heartbeats.length).toBeGreaterThan(0);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/run-error-non-retryable.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/run-error-non-retryable.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/run-error-non-retryable.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/run-error-non-retryable.events.json");
   });
 
@@ -202,7 +203,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(invocation.outcome.kind, "a recovered turn RETURNS like any completion").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("RUN_COMPLETED");
-    expect(record.status?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(FINAL_TEXT);
+    expect(record.rows?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_COMPLETED,
@@ -230,8 +231,8 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/recovery-transport-timeout.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/recovery-transport-timeout.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/recovery-transport-timeout.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/recovery-transport-timeout.events.json");
   });
 
@@ -272,10 +273,11 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
       RunPhase.RUN_CANCELLED,
     ]);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error, "a cancel is not an error").toBe("");
     expect(final.completedAt, "the turn is complete").not.toBe("");
-    expect(systemMessages(final), "no copy is written for an SDK-side cancel").toEqual([]);
-    expect(final.messages.some((m) => m.content === NEVER_SEEN), "nothing after the cancel is processed").toBe(false);
+    expect(systemMessages(record.rowsOf(final)), "no copy is written for an SDK-side cancel").toEqual([]);
+    expect(finalRows.messages.some((m) => m.content === NEVER_SEEN), "nothing after the cancel is processed").toBe(false);
 
     // ── Assert: engine disposition (today's) ─────────────────────────────────
     expect(agent.runs[0].cancelCalls, "the one cancel is the SDK's own").toHaveLength(1);
@@ -287,8 +289,8 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/run-cancelled.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/run-cancelled.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/run-cancelled.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/run-cancelled.events.json");
   });
 });

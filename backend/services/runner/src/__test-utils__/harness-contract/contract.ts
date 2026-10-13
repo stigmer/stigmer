@@ -17,12 +17,14 @@
  * advances `turnSeq`, records a person's answer the way the server's answer
  * core does (a `user.tool_confirmation` on the modelled log, and nothing on
  * the row, `../approval-log.ts`) and on the next invocation does what the
- * runtime's seed does with the runtime's own code over that log
- * (`harness/approval-answers.ts`): derives the decisions map and the asks,
- * and copies each call's answer onto its row. It hands each reinvocation a CLONE of the previous status on BOTH
- * the sink and the record (`execution.status` — the runtime seeds the one
- * from the other, and an adapter may read the record's copy for its facts;
- * nothing survives by object identity), and owns the sink. The subject owns
+ * runtime's seed does with the runtime's own code over that log: writes
+ * each turn's rows into the log with the runtime's session event emitter,
+ * seeds the next turn's rows with the asks it holds (`harness/resume-seed.ts`),
+ * derives the decisions map and the asks, and copies each call's answer onto
+ * its row (`harness/approval-answers.ts`). It hands each reinvocation a
+ * CLONE of the previous status on BOTH the sink and the record
+ * (`execution.status`; nothing survives by object identity), and owns the
+ * sink. The subject owns
  * the engine, and tells the kit when that engine is parked on a hang, which
  * is the only moment the kit stops a turn from the outside: a real engine
  * reaches its hang after real setup, and a stop delivered earlier lands in
@@ -34,7 +36,7 @@
  *  1. Every exit is a `TurnOutcome`. `runTurn` resolves, never rejects, under
  *     every scenario kind and under a pre-aborted signal; a `CancelledFailure`
  *     never escapes (the runtime, not the adapter, throws it).
- *  2. A proposal is a WAITING_APPROVAL row on `sink.status` when
+ *  2. A proposal is a WAITING_APPROVAL row on `sink.rows` when
  *     `awaiting_approval` resolves, and never executes in that turn.
  *  3. Reinvoked with APPROVE for that id → executes exactly once and the row
  *     is carried to COMPLETED; with REJECT or SKIP → never executes and the
@@ -79,14 +81,19 @@
 
 import { afterAll, beforeAll, describe, it, expect } from "vitest";
 import { CancelledFailure } from "@temporalio/activity";
-import { clone } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { AppendSessionEventsResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { eventTypeOf } from "@stigmer/session-log";
 
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { approvalAnswersOf, copyAnswersOntoRows } from "../../harness/approval-answers.js";
 import { terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
 import { answerEventsFor } from "../approval-log.js";
+import { SessionEventEmitter } from "../../harness/events/emitter.js";
+import { resumeSeedOf } from "../../harness/resume-seed.js";
+import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { emptyStatus, findToolCallRow } from "../proto-helpers.js";
@@ -147,7 +154,9 @@ export class ExecutionDriver {
   private threadId: string;
   private turnSeq = 0;
   private persisted: RunStatus | undefined;
-  /** The session's log as the server holds it: the answers {@link decide} appended, in order. */
+  /** The rows the last turn folded into: where {@link decide} finds the row a person answers. */
+  private lastRows: TurnRows | undefined;
+  /** The session's log as the server holds it: what each turn's emitter wrote and the answers {@link decide} appended, in order. */
   readonly log: SessionEvent[] = [];
 
   constructor(private readonly subject: HarnessContractSubject, label: string) {
@@ -161,15 +170,14 @@ export class ExecutionDriver {
 
   /** Start a turn without awaiting it, for invariants about turns in flight. */
   begin(turn: TurnScenario, options: TurnOptions = {}): TurnInFlight {
-    const sink = options.sink ?? new RecordingTurnSink({ status: this.seedStatus(), executionId: this.executionId });
-    // The engine's view and the record's copy both derive from the status
-    // this turn folds into, so a prepared sink's status is honoured too; the
-    // answers come off the modelled log through the runtime's own map, as
-    // its door reads them, and the seed's copy puts each on its row
-    // (`harness/approval-answers.ts`): the runtime writes a row's
-    // approvalAction, never the adapter.
-    const answers = approvalAnswersOf(this.executionId, sink.status, this.log);
-    copyAnswersOntoRows(this.executionId, sink.status, answers);
+    const sink = options.sink ?? this.newSink();
+    // The engine's view derives from the rows this turn folds into, so a
+    // prepared sink's rows are honoured too; the answers come off the
+    // modelled log through the runtime's own map, as its door reads them,
+    // and the seed's copy puts each on its row (`harness/approval-answers.ts`):
+    // the runtime writes a row's approvalAction, never the adapter.
+    const answers = approvalAnswersOf(this.executionId, sink.rows, this.log);
+    copyAnswersOntoRows(this.executionId, sink.rows, answers);
     const view: EngineView = {
       executionId: this.executionId,
       sessionId: this.sessionId,
@@ -204,22 +212,54 @@ export class ExecutionDriver {
   async turn(turn: TurnScenario, options: TurnOptions = {}): Promise<TurnRun> {
     const { input, sink, settled } = this.begin(turn, options);
     const outcome = await settled;
-    this.recordTurn(sink);
+    await this.recordTurn(sink);
     return { input, sink, outcome };
   }
 
   /**
    * The runtime's post-turn bookkeeping: settle the SKIP and REJECT rows the
    * adapter never executes (the runtime's write, `terminalizeNonExecutingDecisions`,
-   * so a decided row is not re-read as WAITING on the next turn), persist the
-   * status, adopt a bound id, advance the cycle.
+   * so a decided row is not re-read as WAITING on the next turn), write the
+   * rows into the log with the runtime's own emitter (its terminal write),
+   * persist the status, adopt a bound id, advance the cycle.
    */
-  recordTurn(sink: RecordingTurnSink): void {
-    terminalizeNonExecutingDecisions(sink.status);
+  async recordTurn(sink: RecordingTurnSink): Promise<void> {
+    terminalizeNonExecutingDecisions(sink.rows);
+    await this.writeRows(sink.rows, sink.seeded);
     this.persisted = sink.status;
+    this.lastRows = sink.rows;
     const bound = sink.boundStateIds.at(-1);
     if (bound !== undefined) this.threadId = bound;
     this.turnSeq += 1;
+  }
+
+  /** The rows' events into the modelled log, as the runtime's terminal write appends them; `seeded` is what the turn began with. */
+  private async writeRows(rows: TurnRows, seeded: TurnRows): Promise<void> {
+    const log = this.log;
+    const runId = this.executionId;
+    const emitter = new SessionEventEmitter({
+      client: {
+        appendSessionEvents: async (_runId, events) => {
+          log.push(...events);
+          return create(AppendSessionEventsResponseSchema);
+        },
+        listRunSessionEvents: async (_sessionId, listedRun, types = []) =>
+          log.filter((e) => e.runId === listedRun && (types.length === 0 || types.includes(eventTypeOf(e)))),
+      },
+      runId,
+      credential: async () => undefined,
+      delay: async () => {},
+    });
+    await emitter.begin({ sessionId: this.sessionId, resumed: true, rows: seeded });
+    await emitter.flush(rows, { final: true });
+  }
+
+  /** A fresh sink for the next turn, its rows seeded with the asks the log holds, as the runtime seeds them. */
+  newSink(): RecordingTurnSink {
+    const sink = new RecordingTurnSink({ status: this.seedStatus(), executionId: this.executionId });
+    if (this.turnSeq > 0) sink.transcript.seed(resumeSeedOf(this.executionId, this.log).rows);
+    sink.markSeeded();
+    return sink;
   }
 
   /**
@@ -230,9 +270,9 @@ export class ExecutionDriver {
    * or is not waiting is a test bug, not a contract case.
    */
   decide(toolCallId: string, action: ApprovalAction, denyMessage = ""): void {
-    const row = this.persisted ? findToolCallRow(this.persisted, toolCallId) : undefined;
+    const row = this.lastRows ? findToolCallRow(this.lastRows, toolCallId) : undefined;
     if (!row || row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
-      const rows = (this.persisted?.messages ?? [])
+      const rows = (this.lastRows?.messages ?? [])
         .flatMap((m) => m.toolCalls)
         .map((tc) => `${tc.id}=${ToolCallStatus[tc.status]}`)
         .join(", ");
@@ -314,7 +354,7 @@ export async function assertEveryExitIsAnOutcome(subject: HarnessContractSubject
     driver.recordTurn(sink);
   }
 
-  const preAborted = new RecordingTurnSink({ status: driver.seedStatus(), executionId: driver.executionId });
+  const preAborted = driver.newSink();
   preAborted.abort("kit: aborted before the turn");
   const { settled } = driver.begin([scenario.say("never")], { sink: preAborted });
   await settleAsOutcome(subject, settleWithinBound(subject, settled, "under a pre-aborted signal", boundMs), "under a pre-aborted signal");
@@ -336,8 +376,8 @@ export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContr
   const { outcome, sink } = await driver.turn([scenario.say("about to write"), scenario.propose(id, WRITE_ALPHA), scenario.say("after")]);
 
   expect(outcome.kind, `${subject.name}: a turn that proposes an undecided action must end awaiting_approval`).toBe("awaiting_approval");
-  const row = findToolCallRow(sink.status, id);
-  expect(row, `${subject.name}: the proposal must be a tool-call row on sink.status when awaiting_approval resolves`).toBeDefined();
+  const row = findToolCallRow(sink.rows, id);
+  expect(row, `${subject.name}: the proposal must be a tool-call row on sink.rows when awaiting_approval resolves`).toBeDefined();
   expect(row?.status, `${subject.name}: the proposal's row must be WAITING_APPROVAL`).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
   expect(row?.requiresApproval, `${subject.name}: the proposal's row must carry requiresApproval`).toBe(true);
   expect(row?.approvalAction, `${subject.name}: the adapter must never write approvalAction (the runtime's seed copies it from the log)`).toBe(ApprovalAction.UNSPECIFIED);
@@ -369,7 +409,7 @@ export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContract
   const resumed = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done")]);
   expect(resumed.outcome.kind, `${subject.name}: after APPROVE the turn must run to completion`).toBe("completed");
   expect(subject.executionCount(approved), `${subject.name}: an approved action must execute exactly once`).toBe(1);
-  expect(findToolCallRow(resumed.sink.status, approved)?.status, `${subject.name}: the approved row must be carried to COMPLETED`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  expect(findToolCallRow(resumed.sink.rows, approved)?.status, `${subject.name}: the approved row must be carried to COMPLETED`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
 
   const again = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("again")]);
   expect(again.outcome.kind, `${subject.name}: a settled proposal seen again must not re-gate`).toBe("completed");
@@ -383,7 +423,7 @@ export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContract
     const decided = await driver.turn([scenario.propose(id, WRITE_ALPHA), scenario.say("moving on")]);
     expect(decided.outcome.kind, `${subject.name}: after ${label} the turn must continue to completion`).toBe("completed");
     expect(subject.executionCount(id), `${subject.name}: a ${label}-ed action must never execute`).toBe(0);
-    expect(findToolCallRow(decided.sink.status, id)?.status, `${subject.name}: a ${label}-ed action must never be reported as executed`).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(findToolCallRow(decided.sink.rows, id)?.status, `${subject.name}: a ${label}-ed action must never be reported as executed`).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   }
 }
 
@@ -406,10 +446,10 @@ export async function assertStopSignalInterrupts(subject: HarnessContractSubject
   const outcome = await settleWithinBound(subject, hanging.settled, "after stopSignal aborted mid-hang", boundMs);
   expect(outcome.kind, `${subject.name}: a turn stopped mid-hang must settle interrupted`).toBe("interrupted");
   expect(subject.executionCount(id), `${subject.name}: nothing after the stop may execute`).toBe(0);
-  expect(findToolCallRow(hanging.sink.status, id), `${subject.name}: nothing after the stop may even reach the gate — the proposal after the hang has no row`).toBeUndefined();
+  expect(findToolCallRow(hanging.sink.rows, id), `${subject.name}: nothing after the stop may even reach the gate — the proposal after the hang has no row`).toBeUndefined();
   driver.recordTurn(hanging.sink);
 
-  const preAborted = new RecordingTurnSink({ status: driver.seedStatus(), executionId: driver.executionId });
+  const preAborted = driver.newSink();
   preAborted.abort("kit: aborted before the turn");
   const early = driver.begin([scenario.propose(id, WRITE_ALPHA)], { sink: preAborted });
   const earlyOutcome = await settleWithinBound(subject, early.settled, "under a pre-aborted signal", boundMs);
@@ -501,7 +541,7 @@ export async function assertStateIdCapabilityAgrees(subject: HarnessContractSubj
     const rejected = await failing.turn([scenario.say("never persisted")], { sink: rejecting });
     expect(rejected.outcome.kind, `${subject.name}: a rejected bind must end the turn failed, not reject runTurn`).toBe("failed");
     expect(rejecting.persistRequests, `${subject.name}: nothing may be persisted after a rejected bind`).toBe(0);
-    expect(rejecting.status.messages, `${subject.name}: nothing may be folded into the status after a rejected bind`).toHaveLength(0);
+    expect(rejecting.rows.messages, `${subject.name}: nothing may be folded into the rows after a rejected bind`).toHaveLength(0);
   } else {
     expect(first.input.threadId, `${subject.name}: a deterministic harness is handed the runtime's id on its first turn`).not.toBe("");
     expect(first.sink.boundStateIds, `${subject.name}: a deterministic adapter must never bind a state id`).toHaveLength(0);
@@ -565,7 +605,7 @@ export async function assertConcurrentTurnsAreIndependent(subject: HarnessContra
   const stopped = await settleWithinBound(subject, hanging.settled, "after the hanging turn was stopped", boundMs);
   expect(stopped.kind, `${subject.name}: the hanging turn must settle interrupted, and only it`).toBe("interrupted");
   expect(subject.executionCount(id), `${subject.name}: stopping one execution must not touch another's execution count`).toBe(1);
-  expect(findToolCallRow(hanging.sink.status, id), `${subject.name}: one execution's rows must never appear on another's status`).toBeUndefined();
+  expect(findToolCallRow(hanging.sink.rows, id), `${subject.name}: one execution's rows must never appear on another's status`).toBeUndefined();
 }
 
 // ── The runnable suite ──────────────────────────────────────────────────────

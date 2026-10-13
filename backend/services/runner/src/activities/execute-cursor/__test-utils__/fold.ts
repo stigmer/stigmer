@@ -1,6 +1,6 @@
 /**
  * Drive Cursor SDK events through the REAL pair the harness runs in production
- * — `CursorTranslator` into `TranscriptBuilder` over a `RunStatus`
+ * — `CursorTranslator` into `TranscriptBuilder` over the turn's `TurnRows`
  * — and hand back what they built. The unit-test seam that replaced
  * `new <accumulator>(messages, options)` in #1097 (the accumulator folded
  * rows itself; now the translator emits events and the shared builder folds
@@ -19,18 +19,18 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { TranscriptBuilder, type TranscriptObserver } from "../../../harness/transcript/builder.js";
 import { CursorTranslator, type CursorTranslatorOptions } from "../translator.js";
-import type { AgentMessage, ToolCall } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { TurnRowsSchema, type AgentMessage, type ToolCall, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 export interface CursorFoldOptions {
-  /** The status to build into; a fresh empty one when omitted. Its `messages` are the translator's seed. */
-  readonly status?: RunStatus;
+  /** The rows to build into; fresh empty ones when omitted. Their `messages` are the translator's seed. */
+  readonly turnRows?: TurnRows;
   /**
    * An existing `messages` array to build into BY REFERENCE (a test that
    * hand-built its seeded rows and keeps asserting on the same objects). Wins
-   * over `status`'s own array.
+   * over `turnRows`'s own array.
    */
   readonly messages?: AgentMessage[];
   readonly mcpDefault?: CursorTranslatorOptions["mcpDefault"];
@@ -40,19 +40,19 @@ export interface CursorFoldOptions {
 }
 
 export class CursorFold {
-  readonly status: RunStatus;
+  readonly turnRows: TurnRows;
   readonly translator: CursorTranslator;
   readonly builder: TranscriptBuilder;
 
   constructor(options: CursorFoldOptions = {}) {
-    this.status = options.status ?? create(RunStatusSchema, {});
-    if (options.messages) this.status.messages = options.messages;
+    this.turnRows = options.turnRows ?? create(TurnRowsSchema, {});
+    if (options.messages) this.turnRows.messages = options.messages;
     this.translator = new CursorTranslator({
       mcpDefault: options.mcpDefault ?? { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
       leases: options.leases ?? { global: false, categories: new Set() },
-      seeded: this.status.messages,
+      seeded: this.turnRows.messages,
     });
-    this.builder = new TranscriptBuilder("exec-fold", this.status, options.observer);
+    this.builder = new TranscriptBuilder("exec-fold", this.turnRows, create(RunStatusSchema, {}), options.observer);
   }
 
   /** One stream event, translated and folded as one observation, then the deltas queued so far — the loop's order. */
@@ -85,12 +85,12 @@ export class CursorFold {
   }
 
   get messages(): AgentMessage[] {
-    return this.status.messages;
+    return this.turnRows.messages;
   }
 
   /** Every root row, in transcript order. */
   rows(): ToolCall[] {
-    return this.status.messages.flatMap((m) => m.toolCalls);
+    return this.turnRows.messages.flatMap((m) => m.toolCalls);
   }
 
   row(callId: string): ToolCall {
@@ -106,13 +106,13 @@ export function foldCursorEvents(events: readonly SDKMessage[], options: CursorF
 }
 
 /**
- * A builder over an existing `messages` array, kept BY REFERENCE (the status
- * is given the array itself, never a copy), so a boundary test that built its
- * rows by hand can hand them to `reconcileDeniedToolCalls` and keep asserting
- * on the same objects.
+ * A builder over an existing `messages` array, kept BY REFERENCE (the rows
+ * are given the array itself, never a copy), so a boundary test that built
+ * its rows by hand can hand them to `reconcileDeniedToolCalls` and keep
+ * asserting on the same objects.
  */
 export function builderOver(messages: AgentMessage[], executionId = "exec-boundary"): TranscriptBuilder {
-  const status = create(RunStatusSchema, {});
-  status.messages = messages;
-  return new TranscriptBuilder(executionId, status);
+  const rows = create(TurnRowsSchema, {});
+  rows.messages = messages;
+  return new TranscriptBuilder(executionId, rows, create(RunStatusSchema, {}));
 }

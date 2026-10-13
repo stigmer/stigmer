@@ -28,8 +28,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
@@ -43,6 +41,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -133,8 +134,8 @@ describe("ExecuteCursor hermetic — an ungated tool call that fails", () => {
 
     // ── Assert: the golden ───────────────────────────────────────────────────
     const final = record.lastFullStatus!;
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/tool-error.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/tool-error.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/tool-error.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/tool-error.events.json");
   });
 });

@@ -50,7 +50,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { RunControlSignal, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
@@ -79,19 +79,13 @@ import {
   type HermeticEnvironment,
   type InvocationControls,
 } from "../hermetic-activity.js";
-import { emptyStatus } from "../proto-helpers.js";
+import { emptyRows, emptyStatus } from "../proto-helpers.js";
 import { scenario } from "./types.js";
 import type { EngineView, HarnessContractSubject, TurnScenario } from "./types.js";
-import {
-  RecalledMemoriesReportSchema,
-  SubAgentRunSchema,
-  TodoItemSchema,
-} from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { AgentMessage, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalAction,
   MessageType,
-  SubAgentStatus,
-  TodoStatus,
   ToolCallStatus,
 } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -135,13 +129,13 @@ export interface RuntimeTurnOptions {
   readonly onControls?: (controls: InvocationControls) => void;
 }
 
-export function systemMessages(status: RunStatus): string[] {
-  return status.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content);
+export function systemMessages(rows: { readonly messages: readonly AgentMessage[] }): string[] {
+  return rows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content);
 }
 
 /** The assistant's texts; a message that only carries tool-call rows has none and is not one. */
-export function aiMessages(status: RunStatus): string[] {
-  return status.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.content !== "").map((m) => m.content);
+export function aiMessages(rows: { readonly messages: readonly AgentMessage[] }): string[] {
+  return rows.messages.filter((m) => m.type === MessageType.MESSAGE_AI && m.content !== "").map((m) => m.content);
 }
 
 /** The slim status an activity returned; a throw here is the arm's failure, named. */
@@ -198,13 +192,13 @@ export class RuntimeExecutionDriver {
   /** One activity invocation: arrange the engine from the record's view, then run the real activity for the subject's row. */
   async turn(turn: TurnScenario, options: RuntimeTurnOptions = {}): Promise<ActivityInvocation> {
     const { subject } = this.harness;
-    // The decisions come off the log and the status the server HOLDS
-    // (`record.sessionEvents` and `record.status`, what the runtime's door
-    // reads), never off a persisted snapshot.
+    // The decisions come off the log and the rows the runner last wrote
+    // from (`record.sessionEvents` and `record.rows`, what the runtime's door
+    // reads over the asks it seeds).
     const view: EngineView = {
       executionId: this.record.executionId,
       sessionId: this.sessionId,
-      approvalDecisions: approvalAnswersOf(this.record.executionId, this.record.status ?? emptyStatus(), this.record.sessionEvents).decisions,
+      approvalDecisions: approvalAnswersOf(this.record.executionId, this.record.rows ?? emptyRows(), this.record.sessionEvents).decisions,
     };
     subject.arrange(turn, view);
     bindHermeticClient(this.record.client(options.clientOverrides));
@@ -263,14 +257,19 @@ export class RuntimeExecutionDriver {
 
 /**
  * The final full status the record holds, checked for the one fact every
- * settled turn owes its transcript before the arm reads anything else. An
- * arm that persisted nothing is a failure, named.
+ * settled turn owes its transcript (the rows it was written from) before the
+ * arm reads anything else. An arm that persisted nothing is a failure, named.
  */
 function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver): RunStatus {
   const final = driver.record.lastFullStatus;
   if (!final) throw new Error(`${harness.subject.name}: the runtime persisted no full status`);
-  assertTranscriptStreamsNothing(harness.subject.name, final);
+  assertTranscriptStreamsNothing(harness.subject.name, driver.record.rowsOf(final));
   return final;
+}
+
+/** The rows the final full status was written from, checked as {@link finalStatusOf} checks them. */
+function finalRowsOf(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver): TurnRows {
+  return driver.record.rowsOf(finalStatusOf(harness, driver));
 }
 
 /**
@@ -285,9 +284,9 @@ function finalStatusOf(harness: RuntimeContractHarness, driver: RuntimeExecution
  * kit's self-check can hand it a status that still streams and prove it
  * fires.
  */
-export function assertTranscriptStreamsNothing(subjectName: string, status: RunStatus): void {
+export function assertTranscriptStreamsNothing(subjectName: string, rows: TurnRows): void {
   const streaming: string[] = [];
-  const sweep = (scope: string, messages: RunStatus["messages"]): void => {
+  const sweep = (scope: string, messages: TurnRows["messages"]): void => {
     messages.forEach((m, i) => {
       if (m.isStreaming) streaming.push(`${scope}messages[${i}]`);
       for (const tc of m.toolCalls) {
@@ -295,8 +294,8 @@ export function assertTranscriptStreamsNothing(subjectName: string, status: RunS
       }
     });
   };
-  sweep("", status.messages);
-  for (const sub of status.subAgentRuns) sweep(`subAgentExecutions[${sub.id}].`, sub.messages);
+  sweep("", rows.messages);
+  for (const sub of rows.subAgentRuns) sweep(`subAgentExecutions[${sub.id}].`, sub.messages);
   if (streaming.length > 0) {
     throw new Error(`${subjectName}: a settled turn's transcript is still streaming at ${streaming.join(", ")}`);
   }
@@ -336,7 +335,7 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
     expect(driver.record.harnessBinds, `${subject.name}: a deterministic adapter binds nothing`).toHaveLength(0);
   }
   const final = finalStatusOf(harness, driver);
-  expect(aiMessages(final).at(-1), `${subject.name}: the transcript ends with the last assistant text`).toBe(text);
+  expect(aiMessages(driver.record.rowsOf(final)).at(-1), `${subject.name}: the transcript ends with the last assistant text`).toBe(text);
   expect(final.completedAt, `${subject.name}: a completed turn is stamped`).not.toBe("");
   expect(final.error, `${subject.name}: a completed turn carries no error`).toBe("");
   expect(final.streamingUsage?.inputTokens, `${subject.name}: the usage the adapter reported is summed on the status`).toBe(1_200n);
@@ -372,7 +371,7 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
 
   const second = await driver.turn([propose, scenario.say("Done.")]);
   expect(slimOf(subject, second).phase, `${subject.name}: after APPROVE the turn completes`).toBe("RUN_COMPLETED");
-  expect(aiMessages(finalStatusOf(harness, driver)).at(-1)).toBe("Done.");
+  expect(aiMessages(finalRowsOf(harness, driver)).at(-1)).toBe("Done.");
   expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once`).toBe(1);
   expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
   expect(driver.record.harnessBinds, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
@@ -427,7 +426,8 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
   expect(existsSync(join(driver.workspaceDir, KEPT)) && existsSync(join(driver.workspaceDir, DROPPED)), `${subject.name}: both writes landed on the tree`).toBe(true);
 
   const afterCapture = finalStatusOf(harness, driver);
-  const events = afterCapture.fileReviewEventStream?.events ?? [];
+  const afterCaptureRows = driver.record.rowsOf(afterCapture);
+  const events = afterCaptureRows.fileReviewEventStream?.events ?? [];
   expect(events.map((e) => e.payload.case), `${subject.name}: the runtime authored the baseline and the candidate`).toEqual(["baselineCaptured", "candidateCaptured"]);
   const candidate = events[1]!.payload;
   if (candidate.case !== "candidateCaptured") throw new Error("unreachable");
@@ -436,13 +436,15 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
   const baseline = events[0]!.payload;
   if (baseline.case !== "baselineCaptured") throw new Error("unreachable");
   expect(baseline.value.harnessId, `${subject.name}: the ledger carries this harness's file-review identity`).toBe(subject.adapter.capabilities.fileReview.harnessId);
-  const rows = new Map(afterCapture.messages.flatMap((m) => m.toolCalls).map((tc) => [tc.id, tc]));
+  const rows = new Map(afterCaptureRows.messages.flatMap((m) => m.toolCalls).map((tc) => [tc.id, tc]));
   expect(rows.get(keepId)?.fileChangeSetId, `${subject.name}: a flowed row is badged with the change set`).toBe(changeSetId);
   expect(rows.get(dropId)?.fileChangeSetId).toBe(changeSetId);
   expect(rows.get(keepId)?.status, `${subject.name}: a flowed row is COMPLETED, never gated`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   // The strip is the runtime's, attached on its writes. Its COUNT is
   // the capture floor's (#1114); the arm asserts the ownership, not the floor.
   expect(afterCapture.fileChangeProgress?.changeSetId, `${subject.name}: the runtime carries this turn's strip`).toBe(changeSetId);
+  expect(afterCapture.fileChanges.map((set) => set.id), `${subject.name}: the run's file record carries the captured change set`).toEqual([changeSetId]);
+  expect([...afterCapture.fileChanges[0]!.changes.map((c) => c.pathAfter)].sort(), `${subject.name}: the file record holds both files`).toEqual([DROPPED, KEPT]);
   expect(afterCapture.completedAt, `${subject.name}: the turn is complete`).not.toBe("");
   const changes = driver.record.sessionEvents.flatMap((e) => (e.event.case === "stigmerFileReviewChanges" ? [e.event.value] : []));
   expect(changes.map((c) => c.changeSetId), `${subject.name}: one changes event for the change set`).toEqual([changeSetId]);
@@ -463,7 +465,7 @@ export async function assertFileReviewRoundTrip(harness: RuntimeContractHarness,
   const final = driver.record.reconcileFinalStatus;
   if (final === undefined) throw new Error(`${subject.name}: the reconcile turn persisted no full status`);
   expect(final.stopCause, `${subject.name}: the reconcile turn's stop cause`).toBe("review_resolved");
-  expect(systemMessages(final), `${subject.name}: the row names the file put back`).toContain(`${TERMINAL_COPY.fileReview.discardedPrefix}${DROPPED}.`);
+  expect(systemMessages(driver.record.rowsOf(final)), `${subject.name}: the row names the file put back`).toContain(`${TERMINAL_COPY.fileReview.discardedPrefix}${DROPPED}.`);
   expect(final.completedAt).not.toBe("");
   const reconciled = driver.record.sessionEvents.flatMap((e) => (e.event.case === "stigmerFileReviewReconciled" ? [e] : []));
   expect(reconciled.map((e) => e.event.case === "stigmerFileReviewReconciled" && e.event.value.undonePaths), `${subject.name}: one reconciled event naming the undone path`).toEqual([[DROPPED]]);
@@ -488,7 +490,8 @@ export async function assertFileReviewOffWriteFlows(harness: RuntimeContractHarn
   expect(driver.record.waitingToolCalls(), `${subject.name}: no gate row`).toHaveLength(0);
   expect(existsSync(join(driver.workspaceDir, "notes.md")), `${subject.name}: the edit is on the tree`).toBe(true);
   const final = finalStatusOf(harness, driver);
-  expect(final.fileReviewEventStream?.events ?? [], `${subject.name}: nothing is captured with review off`).toHaveLength(0);
+  expect(driver.record.rowsOf(final).fileReviewEventStream?.events ?? [], `${subject.name}: nothing is captured with review off`).toHaveLength(0);
+  expect(final.fileChanges, `${subject.name}: the run's file record is empty with review off`).toHaveLength(0);
   expect(driver.record.sessionEvents.some((e) => e.event.case === "stigmerFileReviewChanges"), `${subject.name}: no changes event`).toBe(false);
   return { driver, invocations: [invocation], final };
 }
@@ -524,11 +527,11 @@ export async function assertNonExecutingDecisionSettlesSkipped(
 
   const second = await driver.turn([propose, scenario.say("Moving on.")]);
   expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("RUN_COMPLETED");
-  expect(aiMessages(finalStatusOf(harness, driver)).at(-1), `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
+  expect(aiMessages(finalRowsOf(harness, driver)).at(-1), `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
   expect(subject.executionCount(id), `${subject.name}: a ${verdict}ed action never executes`).toBe(0);
 
   const final = finalStatusOf(harness, driver);
-  const row = final.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
+  const row = driver.record.rowsOf(final).messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
   expect(row, `${subject.name}: the decided row is carried on the transcript`).toBeDefined();
   expect(row!.status, `${subject.name}: the runtime settles a ${verdict}ed row SKIPPED`).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
   expect(row!.approvalAction, `${subject.name}: the decision stays legible on the settled row`).toBe(ApprovalAction.REJECT);
@@ -567,31 +570,32 @@ export async function assertToolCallLimitTerminates(harness: RuntimeContractHarn
   expect(final.phase).toBe(RunPhase.RUN_TERMINATED);
   expect(final.error.startsWith(TOOL_CALL_LIMIT_ERROR_PREFIX), `${subject.name}: the error carries the cross-repo prefix; got "${final.error}"`).toBe(true);
   expect(final.error, `${subject.name}: the copy is the table's, byte for byte`).toBe(formatToolCallLimitError());
-  expect(systemMessages(final), `${subject.name}: the user copy is the one system row`).toEqual([TOOL_CALL_LIMIT_USER_COPY]);
+  expect(systemMessages(driver.record.rowsOf(final)), `${subject.name}: the user copy is the one system row`).toEqual([TOOL_CALL_LIMIT_USER_COPY]);
   expect(final.completedAt, `${subject.name}: a TERMINATED turn completes`).not.toBe("");
-  expect(aiMessages(final), `${subject.name}: the step after the limit is never processed`).not.toContain(NEVER_SEEN);
+  expect(aiMessages(driver.record.rowsOf(final)), `${subject.name}: the step after the limit is never processed`).not.toContain(NEVER_SEEN);
   expect(driver.record.persistedPhases.at(-1), `${subject.name}: the terminal is persisted, not merely returned`).toBe(RunPhase.RUN_TERMINATED);
   return { driver, invocations: [invocation], final };
 }
 
-// ── Arm: the seed's breadth on a reinvocation ───────────────────────────────
+// ── Arm: what a reinvocation carries ────────────────────────────────────────
 
 /**
- * What a reinvocation carries forward. Every runner-owned collection and
- * singleton the prior invocation persisted — the sub-agent rows, the to-dos,
- * the artifacts, the write-back rows, the usage summary, the recalled-memories
- * report, the structured output — is on the completed status of the resumed
- * turn, because the server REPLACES each of them wholesale when the runner's
- * write carries any (`update-status.ts`), so a write holding only the resumed
- * turn's own would erase the prior turn's. A first turn (no transcript)
- * carries none of them, whatever the record holds: the seed is gated on the
- * persisted transcript, the one signal every harness shares.
+ * What a reinvocation carries forward, and what it does not. The status's
+ * own outputs the prior invocation persisted — the artifacts, the write-back
+ * rows, the usage summary — are on the completed status of the resumed
+ * turn, because the server takes each list a write carries as the whole
+ * list, so a write holding only the resumed turn's own would erase the prior
+ * turn's. The transcript is not carried: the resumed turn's rows hold the
+ * asked call it resumes onto, seeded once from the session's log
+ * (`harness/resume-seed.ts`), and the rows it wrote itself, never an earlier
+ * invocation's other rows. A first turn carries nothing, whatever the
+ * record holds: the seed is gated on the log holding what the run's engine
+ * did.
  *
  * The record here REPLACES its held status with every full write (stricter
- * than the server's presence guard), so a dropped collection is a failing
- * assertion, not a masked one. The planted rows are the prior turn's own
- * facts, written onto the record between invocations as the prior turn would
- * have persisted them.
+ * than the server's merge), so a dropped list is a failing assertion, not a
+ * masked one. The planted outputs are the prior turn's own, written onto the
+ * record between invocations as the prior turn would have persisted them.
  */
 export async function assertReinvocationCarriesThePersistedStatus(harness: RuntimeContractHarness, label = "rt-seed"): Promise<RuntimeArmResult> {
   const { subject } = harness;
@@ -599,59 +603,46 @@ export async function assertReinvocationCarriesThePersistedStatus(harness: Runti
   const id = `${label}-shell`;
   const propose = scenario.propose(id, { kind: "shell", resource: `make release # ${label}` });
 
-  const first = await driver.turn([propose]);
+  const first = await driver.turn([scenario.say("Releasing."), propose]);
   expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
-  const planted = plantPriorTurnFacts(driver.record.status!, label);
+  const planted = plantPriorTurnOutputs(driver.record.status!, label);
   expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
 
   const second = await driver.turn([propose, scenario.say("Done.")]);
   expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("RUN_COMPLETED");
   const final = finalStatusOf(harness, driver);
-  expect(final.subAgentRuns.map((s) => s.id), `${subject.name}: the prior turn's sub-agent row survives the resume`).toContain(planted.subAgentId);
-  expect(Object.keys(final.todos), `${subject.name}: the prior turn's to-dos survive the resume`).toContain(planted.todoId);
+  const rows = driver.record.rowsOf(final);
   expect(final.artifacts.map((a) => a.name), `${subject.name}: the prior turn's artifacts survive the resume`).toContain(planted.artifactName);
   expect(final.workspaceWriteBacks.map((w) => w.workspaceEntryName), `${subject.name}: the prior turn's write-back rows survive the resume`).toContain(planted.writeBackEntry);
-  expect(final.recalledMemoriesReport?.injectedMemoryIds, `${subject.name}: the recalled-memories report survives the resume`).toEqual([planted.memoryId]);
-  expect(final.structuredOutput, `${subject.name}: a structured output already on the record survives the resume`).toEqual(planted.structuredOutput);
   expect(final.streamingUsage?.inputTokens, `${subject.name}: the usage summary carries until the resumed turn reports its own`).toBe(planted.inputTokens);
-  expect(final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === id), `${subject.name}: the gated row is carried once, not duplicated`).toHaveLength(1);
+  expect(rows.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === id), `${subject.name}: the gated row is seeded once, not duplicated`).toHaveLength(1);
+  expect(aiMessages(rows), `${subject.name}: the resumed turn's rows are its own; the prior turn's text is the log's`).toEqual(["Done."]);
   return { driver, invocations: [first, second], final };
 }
 
-/** The same record with the same planted facts but NO transcript: a first turn seeds nothing. */
+/** The same record with the same planted outputs but nothing in the log: a first turn carries nothing. */
 export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarness, label = "rt-seed-first"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
-  const planted = plantPriorTurnFacts(driver.record.status ?? (driver.record.execution.status = emptyStatus()), label);
+  const planted = plantPriorTurnOutputs(driver.record.status ?? (driver.record.execution.status = emptyStatus()), label);
   const invocation = await driver.turn([scenario.say("Fresh start.")]);
   expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
   const final = finalStatusOf(harness, driver);
-  expect(final.subAgentRuns.map((s) => s.id), `${subject.name}: a first turn seeds no sub-agent rows`).not.toContain(planted.subAgentId);
-  expect(Object.keys(final.todos), `${subject.name}: a first turn seeds no to-dos`).not.toContain(planted.todoId);
-  expect(final.artifacts.map((a) => a.name), `${subject.name}: a first turn seeds no artifacts`).not.toContain(planted.artifactName);
-  expect(final.workspaceWriteBacks, `${subject.name}: a first turn seeds no write-back rows`).toHaveLength(0);
-  expect(final.recalledMemoriesReport, `${subject.name}: a first turn seeds no report`).toBeUndefined();
-  expect(final.structuredOutput, `${subject.name}: a first turn seeds no structured output`).toBeUndefined();
+  expect(final.artifacts.map((a) => a.name), `${subject.name}: a first turn carries no artifacts`).not.toContain(planted.artifactName);
+  expect(final.workspaceWriteBacks, `${subject.name}: a first turn carries no write-back rows`).toHaveLength(0);
+  expect(driver.record.rowsOf(final).messages.flatMap((m) => m.toolCalls), `${subject.name}: a first turn seeds no rows`).toHaveLength(0);
   return { driver, invocations: [invocation], final };
 }
 
-/** Write the prior turn's facts onto the server-held status, as its writes would have left them. */
-function plantPriorTurnFacts(held: RunStatus, label: string) {
+/** Write the prior turn's outputs onto the server-held status, as its writes would have left them. */
+function plantPriorTurnOutputs(held: RunStatus, label: string) {
   const planted = {
-    subAgentId: `${label}-sub`,
-    todoId: `${label}-todo`,
     artifactName: `${label}-report.md`,
     writeBackEntry: `${label}-repo`,
-    memoryId: `${label}-memory`,
-    structuredOutput: { verdict: "carried" } as JsonObject,
     inputTokens: 4_242n,
   };
-  held.subAgentRuns.push(create(SubAgentRunSchema, { id: planted.subAgentId, name: "researcher", status: SubAgentStatus.SUB_AGENT_COMPLETED }));
-  held.todos[planted.todoId] = create(TodoItemSchema, { id: planted.todoId, content: "carry me", status: TodoStatus.TODO_PENDING });
   held.artifacts.push(create(RunArtifactSchema, { name: planted.artifactName }));
   held.workspaceWriteBacks.push(create(WorkspaceWriteBackSchema, { workspaceEntryName: planted.writeBackEntry, phase: WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_COMMITTED }));
-  held.recalledMemoriesReport = create(RecalledMemoriesReportSchema, { selectionActive: true, injectedMemoryIds: [planted.memoryId] });
-  held.structuredOutput = planted.structuredOutput;
   held.streamingUsage = create(StreamingUsageSummarySchema, { inputTokens: planted.inputTokens, totalTokens: planted.inputTokens });
   return planted;
 }
@@ -692,11 +683,11 @@ export async function assertOrchestratorStopSettlesAndThrows(
   const settle = driver.record.persisted.at(-1);
   if (!settle) throw new Error(`${subject.name}: the runtime persisted nothing`);
   expect(settle.phase, `${subject.name}: the settle write carries no phase`).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
-  assertTranscriptStreamsNothing(subject.name, settle);
+  assertTranscriptStreamsNothing(subject.name, driver.record.rowsOf(settle));
   expect(settle.error, `${subject.name}: a stop is not an error`).toBe("");
   expect(settle.completedAt, `${subject.name}: a stopped turn is not complete`).toBe("");
-  expect(systemMessages(settle), `${subject.name}: no stop row; the workflow writes it`).toEqual([]);
-  expect(aiMessages(settle)).not.toContain(NEVER_SEEN);
+  expect(systemMessages(driver.record.rowsOf(settle)), `${subject.name}: no stop row; the workflow writes it`).toEqual([]);
+  expect(aiMessages(driver.record.rowsOf(settle))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final: settle };
 }
 
@@ -723,8 +714,8 @@ export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeCont
   const final = finalStatusOf(harness, driver);
   expect(final.error).toBe(TERMINAL_COPY.workerShutdown.error);
   expect(final.completedAt).not.toBe("");
-  expect(systemMessages(final), `${subject.name}: the shutdown row, exactly once`).toEqual([TERMINAL_COPY.workerShutdown.row]);
-  expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+  expect(systemMessages(driver.record.rowsOf(final)), `${subject.name}: the shutdown row, exactly once`).toEqual([TERMINAL_COPY.workerShutdown.row]);
+  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
 
@@ -753,8 +744,8 @@ export async function assertInfrastructureCancelPersistsAndThrows(
   const final = finalStatusOf(harness, driver);
   expect(final.error).toBe(TERMINAL_COPY.infrastructureCancel.error);
   expect(final.completedAt).not.toBe("");
-  expect(systemMessages(final), `${subject.name}: the unresponsive row, exactly once`).toEqual([TERMINAL_COPY.infrastructureCancel.row]);
-  expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+  expect(systemMessages(driver.record.rowsOf(final)), `${subject.name}: the unresponsive row, exactly once`).toEqual([TERMINAL_COPY.infrastructureCancel.row]);
+  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
 
@@ -799,12 +790,12 @@ export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, l
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toMatch(/^\[StallTimeoutError\] Agent stream stalled: no activity for \d+s( \(last tool: [^)]+\))?\. Retry or resume\.$/);
-  expect(systemMessages(final)).toHaveLength(1);
-  expect(systemMessages(final)[0]).toMatch(
+  expect(systemMessages(driver.record.rowsOf(final))).toHaveLength(1);
+  expect(systemMessages(driver.record.rowsOf(final))[0]).toMatch(
     /^Execution failed: the agent made no progress for too long and was stopped \(Agent stream stalled: no activity for \d+s( \(last tool: [^)]+\))?\)\. You can retry or resume\.$/,
   );
   expect(final.completedAt).not.toBe("");
-  expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
 
@@ -832,12 +823,12 @@ export async function assertCostCapTerminates(harness: RuntimeContractHarness, l
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_TERMINATED);
   const final = finalStatusOf(harness, driver);
   expect(final.error).toMatch(/^Agent reached the cost limit for this message \(~\$[\d.]+ of the \$0\.50 budget\)\. Send another message to continue\.$/);
-  expect(systemMessages(final)).toEqual([
+  expect(systemMessages(driver.record.rowsOf(final))).toEqual([
     "The agent reached the cost limit for this message. Work completed so far has been saved. " +
       "Send another message to continue where the agent left off.",
   ]);
   expect(final.streamingUsage?.estimatedCostUsd ?? 0, `${subject.name}: the priced usage is above the budget`).toBeGreaterThan(COST_CAP_BUDGET_USD);
-  expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
 
@@ -853,8 +844,8 @@ export async function assertCostCapTerminates(harness: RuntimeContractHarness, l
 export async function assertPlatformStopCompletesEarly(harness: RuntimeContractHarness, label = "rt-platform-stop"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label, {
-    controlSignal: (status) =>
-      status.messages.some((m) => m.toolCalls.some((tc) => tc.status === ToolCallStatus.TOOL_CALL_COMPLETED))
+    controlSignal: (_status, rows) =>
+      rows.messages.some((m) => m.toolCalls.some((tc) => tc.status === ToolCallStatus.TOOL_CALL_COMPLETED))
         ? RunControlSignal.STOP
         : RunControlSignal.UNSPECIFIED,
   });
@@ -865,8 +856,8 @@ export async function assertPlatformStopCompletesEarly(harness: RuntimeContractH
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
   const final = finalStatusOf(harness, driver);
   expect(final.error, `${subject.name}: a platform stop is not an error`).toBe("");
-  expect(systemMessages(final)).toEqual([TERMINAL_COPY.platformStop.row]);
-  expect(aiMessages(final), `${subject.name}: the step after the STOP never runs`).toEqual(["Starting the suite."]);
+  expect(systemMessages(driver.record.rowsOf(final))).toEqual([TERMINAL_COPY.platformStop.row]);
+  expect(aiMessages(driver.record.rowsOf(final)), `${subject.name}: the step after the STOP never runs`).toEqual(["Starting the suite."]);
   return { driver, invocations: [invocation], final };
 }
 
@@ -885,8 +876,8 @@ export async function assertEngineCancelledEndsCancelled(harness: RuntimeContrac
   const final = finalStatusOf(harness, driver);
   expect(final.error).toBe("");
   expect(final.completedAt).not.toBe("");
-  expect(systemMessages(final)).toEqual([]);
-  expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+  expect(systemMessages(driver.record.rowsOf(final))).toEqual([]);
+  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
 
@@ -910,7 +901,7 @@ export async function assertFailedSurfaceWritesItsCopy(harness: RuntimeContractH
   const final = finalStatusOf(harness, driver);
   expect(final.error, `${subject.name}: a failed turn names its error`).not.toBe("");
   expect(final.completedAt).not.toBe("");
-  const rows = systemMessages(final);
+  const rows = systemMessages(driver.record.rowsOf(final));
   switch (surface) {
     case "engine":
       expect(rows, `${subject.name}: an engine failure writes no row`).toEqual([]);
@@ -929,7 +920,7 @@ export async function assertFailedSurfaceWritesItsCopy(harness: RuntimeContractH
       throw new Error(`unknown failure surface ${String(exhaustive)}`);
     }
   }
-  expect(aiMessages(final)).not.toContain(NEVER_SEEN);
+  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
 
@@ -955,8 +946,8 @@ export async function assertRejectedBindFails(harness: RuntimeContractHarness, l
   expect(slimOf(subject, invocation).phase, `${subject.name}: a rejected bind RETURNS FAILED`).toBe("RUN_FAILED");
   const final = finalStatusOf(harness, driver);
   expect(final.error).not.toBe("");
-  expect(systemMessages(final)[0], `${subject.name}: a rejected bind is an internal failure`).toBe(TERMINAL_COPY.internalFailure.row);
-  expect(aiMessages(final), `${subject.name}: nothing ran after the rejected bind`).not.toContain(NEVER_SEEN);
+  expect(systemMessages(driver.record.rowsOf(final))[0], `${subject.name}: a rejected bind is an internal failure`).toBe(TERMINAL_COPY.internalFailure.row);
+  expect(aiMessages(driver.record.rowsOf(final)), `${subject.name}: nothing ran after the rejected bind`).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
 }
 
@@ -984,7 +975,7 @@ export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeCon
   // One grammar for a FAILED `status.error` (stigmer#1122): the described
   // fault, unframed, exactly what the details row carries.
   expect(final.error).toBe("[Error] runtime fault injected at getSession");
-  expect(systemMessages(final)).toEqual([TERMINAL_COPY.internalFailure.row, `Error details: ${final.error}`]);
+  expect(systemMessages(driver.record.rowsOf(final))).toEqual([TERMINAL_COPY.internalFailure.row, `Error details: ${final.error}`]);
   expect(driver.record.setupProgress).toEqual(["Fetching execution", "Resolving agent blueprint"]);
   expect(driver.record.harnessBinds).toHaveLength(0);
   return { driver, invocations: [invocation], final };
@@ -1007,7 +998,7 @@ export async function assertWorkspaceLockTimeoutFails(harness: RuntimeContractHa
     const final = finalStatusOf(harness, driver);
     const resolvedDir = await realpath(driver.workspaceDir);
     expect(final.error).toContain(`Workspace is in use by another session: ${resolvedDir}`);
-    expect(systemMessages(final)).toEqual([`Execution failed: ${final.error}`]);
+    expect(systemMessages(driver.record.rowsOf(final))).toEqual([`Execution failed: ${final.error}`]);
     expect(driver.record.setupProgress.at(-1)).toBe("Waiting for workspace — in use by another session");
     expect(driver.record.harnessBinds).toHaveLength(0);
     return { driver, invocations: [invocation], final };
@@ -1071,7 +1062,7 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertApprovalRoundTrip(harness);
     });
-    it("a reinvocation carries every runner-owned collection and singleton the prior turn persisted; a first turn seeds nothing", async () => {
+    it("a reinvocation carries the status's own outputs and seeds only its asks; a first turn carries nothing", async () => {
       clock.reset();
       await assertReinvocationCarriesThePersistedStatus(harness);
       clock.reset();

@@ -30,8 +30,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { create, toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { create } from "@bufbuild/protobuf";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -46,7 +45,14 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
-import { ScriptedClock, createHermeticEnvironment, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
+import {
+  ScriptedClock,
+  createHermeticEnvironment,
+  type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
+} from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { hasBash, hookBuiltin, hookShell } from "../../__test-utils__/cursor-hook-harness.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
@@ -61,15 +67,13 @@ import {
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import {  type AgentMessage } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 const FINISH = { inputTokens: 1_000, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0 };
 
-function statusJson(status: RunStatus): string {
-  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
-}
 
-const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
+const row = (rows: { readonly messages: readonly AgentMessage[] }, id: string) => rows.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
 
 describe.skipIf(!hasBash)("ExecuteCursor hermetic — a person's answers, read from the log", () => {
   let env: HermeticEnvironment;
@@ -130,14 +134,15 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a person's answers, read f
     );
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
-    const clean = row(final, "call-clean")!;
+    const clean = row(record.rowsOf(final), "call-clean")!;
     expect([clean.status, clean.approvalAction, clean.error]).toEqual([
       ToolCallStatus.TOOL_CALL_SKIPPED,
       ApprovalAction.REJECT,
       "Rejected by user",
     ]);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    await expect(statusJson(final)).toMatchFileSnapshot("./goldens/reject.turn2.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/reject.turn2.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/reject.turn2.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/reject.turn2.events.json");
   });
 
@@ -191,10 +196,11 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a person's answers, read f
     expect(decisions, "the grant lets the build through and the lease the next shell call").toEqual(["deny", "allow", "allow"]);
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
-    expect(row(final, "call-build")?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    expect(row(final, "call-build")?.approvalAction).toBe(ApprovalAction.APPROVE_ALL);
-    expect(row(final, "call-test")?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    await expect(statusJson(final)).toMatchFileSnapshot("./goldens/approve-all.turn2.status.json");
+    expect(row(record.rowsOf(final), "call-build")?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(row(record.rowsOf(final), "call-build")?.approvalAction).toBe(ApprovalAction.APPROVE_ALL);
+    expect(row(record.rowsOf(final), "call-test")?.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/approve-all.turn2.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/approve-all.turn2.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/approve-all.turn2.events.json");
   });
 

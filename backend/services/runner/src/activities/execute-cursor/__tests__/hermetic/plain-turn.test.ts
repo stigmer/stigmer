@@ -29,8 +29,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 // Both mocks are hoisted by vitest; they must live in this file. Each factory
@@ -49,6 +47,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { ScriptedCursorAgent, step } from "../../__test-utils__/scripted-agent.js";
 import {
@@ -127,7 +128,7 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     expect(invocation.outcome.kind, "a completed turn RETURNS, never throws").toBe("returned");
     const slim = (invocation.outcome as { value: Record<string, unknown> }).value;
     expect(slim.phase).toBe("RUN_COMPLETED");
-    expect(record.status?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(ASSISTANT_TEXT);
+    expect(record.rows?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(ASSISTANT_TEXT);
     expect(slim, "the slim return carries no transcript").not.toHaveProperty("messages");
 
     // ── Assert: what the control plane received, in order ────────────────────
@@ -170,8 +171,8 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const finalStatus = record.lastFullStatus;
     expect(finalStatus).toBeDefined();
-    const json = JSON.stringify(toJson(RunStatusSchema, finalStatus!), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/plain-turn.status.json");
+    await expect(statusGolden(finalStatus!)).toMatchFileSnapshot("./goldens/plain-turn.status.json");
+    await expect(rowsGolden(record.rowsOf(finalStatus!))).toMatchFileSnapshot(rowsGoldenPath("./goldens/plain-turn.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/plain-turn.events.json");
   });
 });

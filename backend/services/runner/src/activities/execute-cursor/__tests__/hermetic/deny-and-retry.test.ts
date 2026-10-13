@@ -39,8 +39,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -59,6 +57,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { hasBash, hookShell } from "../../__test-utils__/cursor-hook-harness.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
@@ -178,10 +179,10 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     // the full shape; here only the shared salient field is asserted.
     expect(waiting[0].args).toMatchObject(SHELL_ARGS);
     // The model's post-denial narration never reaches the user as fact.
-    expect(record.status?.messages.some((m) => m.content === "The build was blocked.")).toBe(false);
+    expect(record.rows?.messages.some((m) => m.content === "The build was blocked.")).toBe(false);
 
-    const turn1Json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
-    await expect(turn1Json).toMatchFileSnapshot("./goldens/deny-and-retry.turn1.status.json");
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot("./goldens/deny-and-retry.turn1.status.json");
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath("./goldens/deny-and-retry.turn1.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/deny-and-retry.turn1.events.json");
 
     // ── The user approves (the server's SubmitApproval effect on the row) ────
@@ -196,7 +197,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     expect(turn2.outcome.kind).toBe("returned");
     const slim2 = (turn2.outcome as { value: Record<string, unknown> }).value;
     expect(slim2.phase).toBe("RUN_COMPLETED");
-    expect(record.status?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(FINAL_TEXT);
+    expect(record.rows?.messages.filter((m) => m.type === MessageType.MESSAGE_AI).at(-1)?.content, "the persisted transcript ends with the answer").toBe(FINAL_TEXT);
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
       RunPhase.RUN_WAITING_FOR_APPROVAL,
@@ -225,8 +226,8 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
-    const turn2Json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
-    await expect(turn2Json).toMatchFileSnapshot("./goldens/deny-and-retry.turn2.status.json");
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot("./goldens/deny-and-retry.turn2.status.json");
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath("./goldens/deny-and-retry.turn2.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/deny-and-retry.turn2.events.json");
   });
 });

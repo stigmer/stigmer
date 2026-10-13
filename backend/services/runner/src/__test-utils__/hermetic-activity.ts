@@ -41,9 +41,12 @@
  *     the constructor hands back whatever client {@link bindHermeticClient} bound
  *     for the current run. The client is `mockStigmerClient` over an
  *     {@link ExecutionRecord}: `updateStatus` writes back into the record the way
- *     the server would, so a REINVOCATION (`threadId` set) reads the transcript
- *     the first invocation persisted — the resume path runs on real data, not on
- *     a hand-built status.
+ *     the server would, and `appendSessionEvents` into its modelled log, so a
+ *     REINVOCATION (`threadId` set) reads what the first invocation wrote —
+ *     the resume path runs on real data, not on a hand-built status. The
+ *     runner's rows never cross the wire; the record reads them where the
+ *     emitter does ({@link ExecutionRecord.persistedRows}), so a test asserts
+ *     on the rows each write was made from.
  *
  *  3. The environment — a temp `HOME` (the runner-owned `~/.stigmer` tree,
  *     `platform-dir.ts` reads `process.env.HOME`), a temp workspace root, local
@@ -90,6 +93,7 @@ import {
   type Run,
   type RunStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { TurnRowsSchema, type TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   RunControlSignal,
   RunPhase,
@@ -118,10 +122,61 @@ import {
 } from "../shared/worker-shutdown.js";
 import { SessionEventEmitter } from "../harness/events/emitter.js";
 import { answerEventsFor } from "./approval-log.js";
-import { decideCapturedFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
+import { decideCapturedFileChanges, upsertFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
 import { mockStigmerClient } from "./mock-client.js";
 import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import { ApprovalAction, FileDecisionAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+
+// ---------------------------------------------------------------------------
+// Goldens: a write's status and the rows it was made from, one file each
+// ---------------------------------------------------------------------------
+
+/** A status write as its golden holds it (`<name>.status.json`): the status fields alone. */
+export function statusGolden(status: RunStatus): string {
+  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
+}
+
+/** The rows a write was made from, as their golden holds them (`<name>.rows.json`). */
+export function rowsGolden(rows: TurnRows): string {
+  return JSON.stringify(toJson(TurnRowsSchema, rows), null, 2) + "\n";
+}
+
+/** The rows golden beside a status golden: `<name>.status.json` becomes `<name>.rows.json`. */
+export function rowsGoldenPath(statusGoldenPath: string): string {
+  if (!statusGoldenPath.endsWith(".status.json")) throw new Error(`rowsGoldenPath: '${statusGoldenPath}' is not a status golden (test bug)`);
+  return statusGoldenPath.slice(0, -".status.json".length) + ".rows.json";
+}
+
+// ---------------------------------------------------------------------------
+// The rows tap: the runner's rows as each write was made from them
+// ---------------------------------------------------------------------------
+
+/**
+ * The rows the session event emitter read at each run's latest write, by run
+ * id, taken by the record's next status write of that run. The rows are the
+ * runner's own and never cross the wire, so this is where a test sees them:
+ * the persist chokepoint hands them to the emitter's `flush` right before the
+ * status write (`harness/persist-chokepoint.ts`), and the tap copies them
+ * there. Installed once, for every record of the process.
+ */
+const flushedRows = new Map<string, TurnRows>();
+const realFlush = SessionEventEmitter.prototype.flush;
+SessionEventEmitter.prototype.flush = function flushThroughTap(
+  this: SessionEventEmitter,
+  rows: TurnRows,
+  opts: { readonly final: boolean },
+): Promise<void> {
+  const runId = (this as unknown as { readonly deps: { readonly runId: string } }).deps.runId;
+  flushedRows.set(runId, clone(TurnRowsSchema, rows));
+  return realFlush.call(this, rows, opts);
+};
+
+/** The rows a run's latest write was made from, once; `undefined` when no write flushed since. */
+function takeFlushedRows(runId: string): TurnRows | undefined {
+  const rows = flushedRows.get(runId);
+  flushedRows.delete(runId);
+  return rows;
+}
 
 // ---------------------------------------------------------------------------
 // The execution record: what the control plane would hold for one execution
@@ -144,11 +199,11 @@ export interface ExecutionRecordInput {
    * What `UpdateStatus` answers for each FULL status write — the platform's
    * STOP lever (`RunControlSignal`), decided by the control plane per
    * write and read by the harness stream loop on its mid-stream persist.
-   * Evaluated AFTER the write lands, on the snapshot just persisted, so a
-   * policy can key on the transcript ("stop once the first assistant message
-   * is in"). Defaults to UNSPECIFIED: keep going.
+   * Evaluated AFTER the write lands, on the snapshot just persisted and the
+   * rows it was made from, so a policy can key on the transcript ("stop once
+   * the first assistant message is in"). Defaults to UNSPECIFIED: keep going.
    */
-  readonly controlSignal?: (status: RunStatus) => RunControlSignal;
+  readonly controlSignal?: (status: RunStatus, rows: TurnRows) => RunControlSignal;
   /** The skills the control plane holds, answered by slug; any other reference is NotFound. */
   readonly skills?: readonly Skill[];
   /**
@@ -163,11 +218,12 @@ export interface ExecutionRecordInput {
  * An in-memory stand-in for the server's execution row, with the THREE merge
  * rules and the ONE control lever the activity depends on, and no others:
  *
- *  - A status whose phase is UNSPECIFIED is a setup-progress report
+ *  - A status carrying a setup label is a setup-progress report
  *    (`reportSetupProgress`): the server keeps `setup_progress` and leaves the
- *    phase and transcript alone. Modelled as: record the label, change nothing else.
- *  - Any other status replaces the held status wholesale (the runner is the
- *    writer of the transcript; a person's answer is the test answering on the
+ *    phase alone. Modelled as: record the label, change nothing else.
+ *  - Any other status replaces the held status wholesale, its phase kept when
+ *    the write carries none, and its file record upserted by change set id
+ *    onto the held one (a person's answer is the test answering on the
  *    record between invocations, on the log only, as the server's answer
  *    core writes it: `decideWaitingToolCalls`).
  *  - The fields the server stamps at create and the runner never sends — the
@@ -193,8 +249,8 @@ export interface ExecutionRecordInput {
  * makes for the undos still owed.
  *
  * File review is modelled the way the server's decision core does it:
- * {@link decideCapturedFileChanges} decides the captured files, folds them
- * onto `status.file_change_sets` and writes each decision into the log as
+ * {@link decideCapturedFileChanges} decides the captured files on the held
+ * file record and writes each decision into the log as
  * `stigmer.file_review.decided`; {@link startReconcileTurn} creates the
  * reconcile turn an Undo on a finished run starts, a second run of the same
  * session (`RunSpec.reconcile_file_review`, no message) that the client
@@ -217,11 +273,17 @@ export class ExecutionRecord {
   readonly execution: Run;
   readonly session: Session;
   readonly agent: Agent | undefined;
-  private readonly controlSignal: (status: RunStatus) => RunControlSignal;
+  private readonly controlSignal: (status: RunStatus, rows: TurnRows) => RunControlSignal;
   private readonly skills: readonly Skill[];
   private readonly subagents: readonly Agent[];
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
   readonly persisted: RunStatus[] = [];
+  /**
+   * The rows each `updateStatus` payload was made from, one per entry of
+   * {@link persisted} (an empty `TurnRows` for a write that read none, a
+   * setup-progress report).
+   */
+  readonly persistedRows: TurnRows[] = [];
   /** Fired after every full-status `applyStatusUpdate`; {@link whenToolCallsSettled} subscribes here. */
   private readonly persistListeners = new Set<() => void>();
   /** Setup-progress labels reported before the stream started, in order. */
@@ -240,6 +302,8 @@ export class ExecutionRecord {
   reconcileRun: Run | undefined;
   /** Every status the reconcile turn's runner wrote, in order. */
   readonly reconcilePersisted: RunStatus[] = [];
+  /** The rows each reconcile turn write was made from, one per entry of {@link reconcilePersisted}. */
+  readonly reconcilePersistedRows: TurnRows[] = [];
 
   constructor(input: ExecutionRecordInput) {
     this.execution = clone(RunSchema, input.execution);
@@ -268,6 +332,32 @@ export class ExecutionRecord {
     return undefined;
   }
 
+  /** The rows the last FULL status was made from, or undefined if none yet. */
+  get lastFullRows(): TurnRows | undefined {
+    for (let i = this.persisted.length - 1; i >= 0; i--) {
+      if (this.persisted[i].phase !== RunPhase.RUN_PHASE_UNSPECIFIED) return this.persistedRows[i];
+    }
+    return undefined;
+  }
+
+  /** The rows the latest write that read any was made from: the runner's rows as the log last saw them. */
+  get rows(): TurnRows | undefined {
+    for (let i = this.persistedRows.length - 1; i >= 0; i--) {
+      if (this.persisted[i].setupProgress?.currentPhase) continue;
+      return this.persistedRows[i];
+    }
+    return undefined;
+  }
+
+  /** The rows `status` (an entry of {@link persisted} or {@link reconcilePersisted}) was made from. */
+  rowsOf(status: RunStatus): TurnRows {
+    const index = this.persisted.indexOf(status);
+    if (index >= 0) return this.persistedRows[index];
+    const reconcileIndex = this.reconcilePersisted.indexOf(status);
+    if (reconcileIndex >= 0) return this.reconcilePersistedRows[reconcileIndex];
+    throw new Error("ExecutionRecord.rowsOf: not a persisted status (test bug)");
+  }
+
   /**
    * The ORDERED, DISTINCT phases the activity persisted — the deterministic
    * shape of the persist cadence. The COUNT of persists depends on the
@@ -282,9 +372,9 @@ export class ExecutionRecord {
     return out;
   }
 
-  /** Every tool call on the held transcript (top-level messages), in order. */
+  /** Every tool call on the latest rows (top-level messages), in order. */
   toolCalls(): ToolCall[] {
-    return this.execution.status?.messages.flatMap((m) => m.toolCalls) ?? [];
+    return this.rows?.messages.flatMap((m) => m.toolCalls) ?? [];
   }
 
   /**
@@ -371,12 +461,12 @@ export class ExecutionRecord {
     });
   }
 
-  /** The ids of every row not RUNNING in the held status, across the root and every sub-agent transcript. */
+  /** The ids of every row not RUNNING in the latest rows, across the root and every sub-agent transcript. */
   private settledToolCallIds(): Set<string> {
     const out = new Set<string>();
-    const status = this.execution.status;
-    if (!status) return out;
-    const transcripts = [status.messages, ...status.subAgentRuns.map((s) => s.messages)];
+    const rows = this.rows;
+    if (!rows) return out;
+    const transcripts = [rows.messages, ...rows.subAgentRuns.map((s) => s.messages)];
     for (const messages of transcripts) {
       for (const message of messages) {
         for (const tc of message.toolCalls) {
@@ -389,23 +479,23 @@ export class ExecutionRecord {
 
   /**
    * What a turn recorded on an older runner left on the server, restored in
-   * one act: the status it persisted, and the events its session event
-   * emitter wrote for that status into the log (`harness/events/emitter.ts`,
-   * the terminal write). A resumed turn learns from the log that the run's
+   * one act: the events its session event emitter wrote for its rows into
+   * the log (`harness/events/emitter.ts`, the terminal write), then the
+   * status it persisted. A resumed turn learns from the log that the run's
    * engine already worked (`turn-context.ts` `runWroteEngineEvents`) and
-   * where the calls it answers were asked, so a status restored without its
-   * events would read as a first turn.
+   * which calls it asked and still waits on (`resume-seed.ts`), so a status
+   * restored without its events would read as a first turn.
    */
-  async restorePausedTurn(status: RunStatus): Promise<void> {
-    this.applyStatusUpdate(status);
+  async restorePausedTurn(rows: TurnRows, status: RunStatus): Promise<void> {
     const emitter = new SessionEventEmitter({
       client: this.client(),
       runId: this.executionId,
       credential: async () => undefined,
       delay: async () => {},
     });
-    await emitter.begin({ sessionId: this.session.metadata?.id ?? "", resumed: false, status: create(RunStatusSchema) });
-    await emitter.flush(status, { final: true });
+    await emitter.begin({ sessionId: this.session.metadata?.id ?? "", resumed: false, rows: create(TurnRowsSchema) });
+    await emitter.flush(rows, { final: true });
+    this.applyStatusUpdate(status);
   }
 
   /** The tool calls currently paused for a decision. */
@@ -416,40 +506,41 @@ export class ExecutionRecord {
   /**
    * What the server's answer core does when a person answers the calls that
    * asked (`confirmToolUse`, `grantPermission`): append the answer to the
-   * session's log (`approval-log.ts`). The row's `approval_action` is not
-   * stamped: the resumed turn reads the answer from the log and its seed
-   * copies it onto the row (`harness/approval-answers.ts`), so a kit that
-   * answered on the row would prove nothing. The decision time is the one
-   * server field still set on the row, which no runner code reads; the
-   * status goldens carry it as production's rows do. This is the ONE place
-   * a test answers, and the status stays WAITING_APPROVAL until the resumed
-   * turn runs the tool, exactly as in production. `onlyId`
-   * answers one of several calls paused in the same round and leaves the
-   * rest waiting, as a person answering them one at a time does; a deny may
-   * carry `denyMessage`, the reason the model reads.
+   * session's log (`approval-log.ts`). Nothing is stamped on any row: the
+   * resumed turn seeds its asks from the log and copies each answer onto its
+   * row (`harness/resume-seed.ts`, `harness/approval-answers.ts`), so a kit
+   * that answered on the row would prove nothing. This is the ONE place a
+   * test answers, and the call stays waiting until the resumed turn runs the
+   * tool, exactly as in production. `onlyId` answers one of several calls
+   * paused in the same round and leaves the rest waiting, as a person
+   * answering them one at a time does; a deny may carry `denyMessage`, the
+   * reason the model reads. `_decidedAt` is the instant a person answered,
+   * which no event carries.
    */
-  decideWaitingToolCalls(action: ApprovalAction, decidedAt: string, onlyId?: string, denyMessage = ""): number {
+  decideWaitingToolCalls(action: ApprovalAction, _decidedAt: string, onlyId?: string, denyMessage = ""): number {
     const waiting = this.waitingToolCalls().filter((tc) => onlyId === undefined || tc.id === onlyId);
     for (const tc of waiting) {
       this.sessionEvents.push(
         ...answerEventsFor({ sessionId: this.session.metadata?.id ?? "", runId: this.executionId }, tc, action, denyMessage),
       );
-      tc.approvalDecidedAt = decidedAt;
     }
     return waiting.length;
   }
 
   /**
-   * What the server's `SubmitFileDecision` and its projection do between
-   * invocations: every change of every AWAITING_REVIEW set the runner captured
-   * gets a per-file verdict, and `status.file_change_sets` is re-folded from
-   * the ledger (`file-review-projection.ts` mirrors the server's fold). The
-   * runner authors the ledger; the server owns the sets — so this is the ONE
+   * What the server's decision core does between invocations: every change
+   * of every captured set on the held file record the log holds no decision
+   * for gets a per-file verdict, written into the log as
+   * `stigmer.file_review.decided` (`file-review-projection.ts`). The runner
+   * authors the record; the decisions are the log's — so this is the ONE
    * place a test writes them. Returns how many decisions were written.
    */
-  decideCapturedFileChanges(verdicts: FileReviewVerdicts, decidedAt: string): number {
+  decideCapturedFileChanges(verdicts: FileReviewVerdicts, _decidedAt: string): number {
     if (!this.execution.status) throw new Error("ExecutionRecord: no status to decide file changes on (test bug)");
-    const decisions = decideCapturedFileChanges(this.execution.status, verdicts, decidedAt);
+    const decided = new Set(
+      this.sessionEvents.flatMap((e) => (e.event.case === "stigmerFileReviewDecided" ? [e.event.value.fileChangeId] : [])),
+    );
+    const decisions = decideCapturedFileChanges(this.execution.status.fileChanges, decided, verdicts);
     for (const decision of decisions) {
       const id = `sevt_fd_${this.sessionEvents.length}`;
       this.sessionEvents.push(
@@ -463,7 +554,7 @@ export class ExecutionRecord {
               changeSetId: decision.changeSetId,
               scope: "file",
               fileChangeId: decision.fileChangeId,
-              action: decision.action === FileDecisionAction.REJECT ? "undo" : "keep",
+              action: decision.action,
               expectedDigest: decision.expectedDigest,
               origin: "person",
             },
@@ -506,6 +597,7 @@ export class ExecutionRecord {
   /** A write to the reconcile turn: kept as written, its phase held when the write carries none. */
   private applyReconcileStatus(status: RunStatus): RunControlSignal {
     const snapshot = clone(RunStatusSchema, status);
+    this.reconcilePersistedRows.push(takeFlushedRows(this.reconcileRun?.metadata?.id ?? "") ?? create(TurnRowsSchema));
     this.reconcilePersisted.push(snapshot);
     const run = this.reconcileRun!;
     if (snapshot.phase === RunPhase.RUN_PHASE_UNSPECIFIED) {
@@ -530,29 +622,30 @@ export class ExecutionRecord {
   /**
    * Apply one `UpdateStatus` write and answer the control signal the server
    * would. A write with no phase never carries a signal (the runner ignores
-   * the response there). It is a setup-progress report, or the transcript an
+   * the response there). It is a setup-progress report, or the write an
    * orchestrator stop settles (the runtime writes no phase for it; the
-   * workflow does, stigmer#980): the server's merge applies the transcript and
-   * leaves the phase to its writers, so the double keeps the held phase.
+   * workflow does, stigmer#980): the server's merge applies it and leaves
+   * the phase to its writers, so the double keeps the held phase.
    */
   applyStatusUpdate(status: RunStatus): RunControlSignal {
     const snapshot = clone(RunStatusSchema, status);
     this.persisted.push(snapshot);
+    const rows = takeFlushedRows(this.executionId) ?? create(TurnRowsSchema);
+    this.persistedRows.push(rows);
     if (snapshot.phase === RunPhase.RUN_PHASE_UNSPECIFIED) {
       if (snapshot.setupProgress?.currentPhase) {
         this.setupProgress.push(snapshot.setupProgress.currentPhase);
+        return RunControlSignal.UNSPECIFIED;
       }
-      if (snapshot.messages.length > 0) {
-        const heldPhase = this.execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
-        this.execution.status = this.keepServerStamp(snapshot);
-        this.execution.status.phase = heldPhase;
-        for (const listener of [...this.persistListeners]) listener();
-      }
+      const heldPhase = this.execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+      this.execution.status = this.keepServerStamp(snapshot);
+      this.execution.status.phase = heldPhase;
+      for (const listener of [...this.persistListeners]) listener();
       return RunControlSignal.UNSPECIFIED;
     }
     this.execution.status = this.keepServerStamp(snapshot);
     for (const listener of [...this.persistListeners]) listener();
-    return this.controlSignal(snapshot);
+    return this.controlSignal(snapshot, rows);
   }
 
   /** The server's append rules over the modelled log (the class header). */
@@ -599,11 +692,12 @@ export class ExecutionRecord {
     return JSON.stringify(this.sessionEvents.map((e) => toJson(SessionEventSchema, e, { useProtoFieldName: true })), null, 2) + "\n";
   }
 
-  /** The runner's write with the server-stamped fields of the held status carried over. */
+  /** The runner's write with the server-stamped fields of the held status carried over, and its file record upserted. */
   private keepServerStamp(snapshot: RunStatus): RunStatus {
     const next = clone(RunStatusSchema, snapshot);
     const held = this.execution.status;
     if (held === undefined) return next;
+    next.fileChanges = upsertFileChanges(held.fileChanges, snapshot.fileChanges);
     next.agentId = held.agentId;
     next.agentVersionHash = held.agentVersionHash;
     next.declaredPreferences = held.declaredPreferences;

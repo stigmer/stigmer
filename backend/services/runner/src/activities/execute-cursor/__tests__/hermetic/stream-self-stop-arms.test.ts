@@ -52,8 +52,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunControlSignal,
   RunPhase,
@@ -73,6 +71,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { _parkedAgentCountForTests } from "../../agent-session-cache.js";
 import { ScriptedCursorAgent, sdkEvents, step, type ScriptedRun } from "../../__test-utils__/scripted-agent.js";
@@ -173,16 +174,17 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
       RunPhase.RUN_FAILED,
     ]);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     // Idle = the 1 s step tick before the effect + the effect's own tick: 3 s.
     expect(final.error).toBe(
       "[StallTimeoutError] Agent stream stalled: no activity for 3s (last tool: shell). Retry or resume.",
     );
     expect(final.completedAt).not.toBe("");
-    expect(systemMessages(final)).toEqual([
+    expect(systemMessages(record.rowsOf(final))).toEqual([
       "Execution failed: the agent made no progress for too long and was stopped " +
         "(Agent stream stalled: no activity for 3s (last tool: shell)). You can retry or resume.",
     ]);
-    expect(final.messages.some((m) => m.content === NEVER_SEEN), "nothing after the stall is processed").toBe(false);
+    expect(finalRows.messages.some((m) => m.content === NEVER_SEEN), "nothing after the stall is processed").toBe(false);
 
     // ── Assert: engine disposition ───────────────────────────────────────────
     expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);
@@ -196,8 +198,8 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(invocation.heartbeats.length).toBeGreaterThan(0);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/stall.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/stall.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/stall.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/stall.events.json");
   });
 
@@ -237,16 +239,17 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
       RunPhase.RUN_TERMINATED,
     ]);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error).toBe(
       "Agent reached the cost limit for this message (~$0.6000 of the $0.50 budget). Send another message to continue.",
     );
     expect(final.completedAt).not.toBe("");
-    expect(systemMessages(final)).toEqual([
+    expect(systemMessages(record.rowsOf(final))).toEqual([
       "The agent reached the cost limit for this message. Work completed so far has been saved. " +
         "Send another message to continue where the agent left off.",
     ]);
     expect(final.streamingUsage?.estimatedCostUsd, "the figure the copy quotes is the usage summary's").toBe(0.6);
-    expect(final.messages.some((m) => m.content === NEVER_SEEN), "the event after the overrun is never processed").toBe(false);
+    expect(finalRows.messages.some((m) => m.content === NEVER_SEEN), "the event after the overrun is never processed").toBe(false);
 
     // ── Assert: engine disposition ───────────────────────────────────────────
     expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);
@@ -258,8 +261,8 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/cost-cap.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/cost-cap.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/cost-cap.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/cost-cap.events.json");
   });
 
@@ -291,8 +294,8 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     const record = cursorExecutionRecord({
       message: USER_MESSAGE,
       // The platform's decision: stop once the tool call has completed.
-      controlSignal: (status) =>
-        status.messages.some((m) => m.toolCalls.some((tc) => tc.status === ToolCallStatus.TOOL_CALL_COMPLETED))
+      controlSignal: (_status, rows) =>
+        rows.messages.some((m) => m.toolCalls.some((tc) => tc.status === ToolCallStatus.TOOL_CALL_COMPLETED))
           ? RunControlSignal.STOP
           : RunControlSignal.UNSPECIFIED,
     });
@@ -310,13 +313,14 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
       RunPhase.RUN_COMPLETED,
     ]);
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error, "a platform stop is not an error").toBe("");
     expect(final.completedAt).not.toBe("");
-    expect(systemMessages(final)).toEqual(["Execution stopped by the platform."]);
+    expect(systemMessages(record.rowsOf(final))).toEqual(["Execution stopped by the platform."]);
     expect(record.toolCalls().map((tc) => tc.status), "the persist that drew the STOP is on the transcript").toEqual([
       ToolCallStatus.TOOL_CALL_COMPLETED,
     ]);
-    expect(final.messages.some((m) => m.content === NEVER_SEEN), "the event after the STOP is never processed").toBe(false);
+    expect(finalRows.messages.some((m) => m.content === NEVER_SEEN), "the event after the STOP is never processed").toBe(false);
 
     // ── Assert: engine disposition ───────────────────────────────────────────
     // Since #1070: the SDK run is cancelled on every stop; before, a
@@ -331,8 +335,8 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/platform-stop.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/platform-stop.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/platform-stop.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/platform-stop.events.json");
   });
 });

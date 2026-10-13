@@ -40,8 +40,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
@@ -58,6 +56,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { hasBash, hookWrite } from "../../__test-utils__/cursor-hook-harness.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
@@ -162,7 +163,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     expect(agent.runs[0].cancelCalls, "a flowed edit is not a denial; nothing is cancelled").toHaveLength(0);
 
     // ── Assert: the file_review ledger ───────────────────────────────────────
-    const events = record.status?.fileReviewEventStream?.events ?? [];
+    const events = record.rows?.fileReviewEventStream?.events ?? [];
     const types = events.map((e) => e.payload.case);
     expect(types).toEqual(["baselineCaptured", "candidateCaptured"]);
     const candidate = events[1].payload;
@@ -185,9 +186,10 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
+    const json = statusGolden(record.lastFullStatus!) + rowsGolden(record.rowsOf(record.lastFullStatus!));
     expect(json, "no temp path may reach the golden").not.toContain(env.workspaceRootDir);
-    await expect(json).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
+    await expect(statusGolden(record.lastFullStatus!)).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
+    await expect(rowsGolden(record.rowsOf(record.lastFullStatus!))).toMatchFileSnapshot(rowsGoldenPath("./goldens/file-review-capture.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-capture.events.json");
 
     // ── An Undo after the turn: a reconcile turn puts the file back ──────────
@@ -206,9 +208,10 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
       record.sessionEvents.filter((e) => e.event.case === "stigmerFileReviewReconciled").map((e) => [e.runId, e.event.value?.id]),
       "one reconciled event, written by the reconcile turn, answering the undo by its decided event",
     ).toEqual([[reconcileRunId, `${FIXTURE.executionId}.fr0.r.${record.sessionEvents.find((e) => e.event.case === "stigmerFileReviewDecided")?.event.value?.id}`]]);
-    const reconcileJson = JSON.stringify(toJson(RunStatusSchema, reconciled), null, 2) + "\n";
+    const reconcileJson = statusGolden(reconciled) + rowsGolden(record.rowsOf(reconciled));
     expect(reconcileJson).not.toContain(env.workspaceRootDir);
-    await expect(reconcileJson).toMatchFileSnapshot("./goldens/file-review-reconcile.status.json");
+    await expect(statusGolden(reconciled)).toMatchFileSnapshot("./goldens/file-review-reconcile.status.json");
+    await expect(rowsGolden(record.rowsOf(reconciled))).toMatchFileSnapshot(rowsGoldenPath("./goldens/file-review-reconcile.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-reconcile.events.json");
   });
 
@@ -247,11 +250,13 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
     expect(readFileSync(absFile, "utf-8")).toBe(AFTER);
     const final = record.lastFullStatus!;
-    expect(final.fileReviewEventStream?.events ?? [], "nothing is captured with review off").toHaveLength(0);
+    const finalRows = record.rowsOf(final);
+    expect(finalRows.fileReviewEventStream?.events ?? [], "nothing is captured with review off").toHaveLength(0);
     expect(record.sessionEvents.some((e) => e.event.case === "stigmerFileReviewChanges")).toBe(false);
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
+    const json = statusGolden(final) + rowsGolden(record.rowsOf(final));
     expect(json).not.toContain(env.workspaceRootDir);
-    await expect(json).toMatchFileSnapshot("./goldens/file-review-off.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/file-review-off.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/file-review-off.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-off.events.json");
   });
 });

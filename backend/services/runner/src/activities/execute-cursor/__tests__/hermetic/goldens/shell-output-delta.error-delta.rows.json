@@ -1,0 +1,36 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Running the tests.",
+      "timestamp": "2026-01-01T00:00:24.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-shelldelta-0003",
+          "name": "shell",
+          "args": {
+            "command": "npm test"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:25.000Z",
+          "completedAt": "2026-01-01T00:00:27.000Z",
+          "error": "sh: npm: command not found",
+          "argsPreview": "{\"command\":\"npm test\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "hooks-2"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_THINKING",
+      "content": "The command failed; npm may be missing.",
+      "timestamp": "2026-01-01T00:00:28.000Z"
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "npm is not installed here.",
+      "timestamp": "2026-01-01T00:00:30.000Z"
+    }
+  ]
+}

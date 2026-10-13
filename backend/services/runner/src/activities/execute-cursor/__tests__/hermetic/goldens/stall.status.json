@@ -1,31 +1,4 @@
 {
-  "messages": [
-    {
-      "type": "MESSAGE_AI",
-      "content": "Running the suite.",
-      "timestamp": "2026-01-01T00:00:02.000Z",
-      "toolCalls": [
-        {
-          "id": "call-hermetic-stall-0001",
-          "name": "shell",
-          "args": {
-            "command": "npm test"
-          },
-          "status": "TOOL_CALL_RUNNING",
-          "startedAt": "2026-01-01T00:00:03.000Z",
-          "argsPreview": "{\"command\":\"npm test\"}",
-          "toolKind": "TOOL_KIND_SHELL",
-          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "hooks-2"
-        }
-      ]
-    },
-    {
-      "type": "MESSAGE_SYSTEM",
-      "content": "Execution failed: the agent made no progress for too long and was stopped (Agent stream stalled: no activity for 3s (last tool: shell)). You can retry or resume.",
-      "timestamp": "2026-01-01T00:00:06.000Z"
-    }
-  ],
   "phase": "RUN_FAILED",
   "error": "[StallTimeoutError] Agent stream stalled: no activity for 3s (last tool: shell). Retry or resume.",
   "startedAt": "2026-01-01T00:00:00.000Z",

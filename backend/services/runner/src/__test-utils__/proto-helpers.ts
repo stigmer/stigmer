@@ -14,13 +14,19 @@ import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb
 import {
   AgentMessageSchema,
   ToolCallSchema,
+  TurnRowsSchema,
   type AgentMessage,
   type ToolCall,
+  type TurnRows,
 } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { MessageType, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 export function emptyStatus(): RunStatus {
   return create(RunStatusSchema, {});
+}
+
+export function emptyRows(): TurnRows {
+  return create(TurnRowsSchema, {});
 }
 
 export function aiMessage(content: string): AgentMessage {
@@ -38,9 +44,9 @@ export function toolCall(
   return create(ToolCallSchema, { id, name, status });
 }
 
-/** The tool-call row with this id, wherever it sits in the transcript. */
-export function findToolCallRow(status: RunStatus, toolCallId: string): ToolCall | undefined {
-  for (const message of status.messages) {
+/** The tool-call row with this id, wherever it sits in the root transcript. */
+export function findToolCallRow(rows: { readonly messages: readonly AgentMessage[] }, toolCallId: string): ToolCall | undefined {
+  for (const message of rows.messages) {
     const row = message.toolCalls.find((tc) => tc.id === toolCallId);
     if (row) return row;
   }

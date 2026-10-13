@@ -46,9 +46,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { create, toJson } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   RunPhase,
@@ -69,7 +68,15 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
-import { ScriptedClock, createHermeticEnvironment, type ExecutionRecord, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
+import {
+  ScriptedClock,
+  createHermeticEnvironment,
+  type ExecutionRecord,
+  type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
+} from "../../../../__test-utils__/hermetic-activity.js";
 import { localPathEntry } from "../../../../__test-utils__/git-workspace-fixture.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { isToolCallRowHidden } from "../../../../shared/tool-row.js";
@@ -90,6 +97,8 @@ import {
   MessageType,
   ToolCallStatus,
 } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+import { type AgentMessage } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { toolUseEventId } from "../../../../harness/events/ids.js";
 
 /** Refuses recursive deletes, allows listings, asks before publishing; decides nothing else. */
 const GUARD = `#!/usr/bin/env bash
@@ -162,11 +171,8 @@ function pluginClient(script: string) {
 /** Cursor's preToolUse payload for a shell call. */
 const shellHook = (command: string, callId: string) => ({ ...hookBuiltin("Shell", { command, cwd: "", timeout: 30000 }), tool_use_id: callId });
 
-function statusJson(status: RunStatus): string {
-  return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
-}
 
-const row = (status: RunStatus, id: string) => status.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
+const row = (rows: { readonly messages: readonly AgentMessage[] }, id: string) => rows.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id)!;
 
 describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, allows and asks", () => {
   let env: HermeticEnvironment;
@@ -237,21 +243,22 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const run1 = record.lastFullStatus!;
 
-    const deleted = row(run1, "call-delete");
+    const deleted = row(record.rowsOf(run1), "call-delete");
     expect(deleted.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
     expect(deleted.error).toBe("The safety plugin's hook refused this call: recursive deletes are not allowed");
     expect([deleted.approvalPolicySource, deleted.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
 
-    const listed = row(run1, "call-list");
+    const listed = row(record.rowsOf(run1), "call-list");
     expect(listed.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(listed.requiresApproval, "the hook's allow skips the shell default's card").toBe(false);
     expect([listed.approvalPolicySource, listed.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
 
-    const held = row(run1, "call-publish");
+    const held = row(record.rowsOf(run1), "call-publish");
     expect(held.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(held.approvalMessage).toBe("publishing needs a person");
     expect([held.approvalPolicySource, held.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
-    await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/hooks.turn1.status.json");
+    await expect(statusGolden(run1)).toMatchFileSnapshot("./goldens/hooks.turn1.status.json");
+    await expect(rowsGolden(record.rowsOf(run1))).toMatchFileSnapshot(rowsGoldenPath("./goldens/hooks.turn1.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/hooks.turn1.events.json");
 
     // ── Between turns: approve the publish ───────────────────────────────────
@@ -263,14 +270,23 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     expect(answers.at(-1), "the approval's grant answers the hook's second ask").toBe("allow");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const final = record.lastFullStatus!;
-    const published = row(final, "call-publish");
+    const finalRows = record.rowsOf(final);
+    const published = row(record.rowsOf(final), "call-publish");
     expect(published.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(published.approvalAction).toBe(ApprovalAction.APPROVE);
     expect([published.approvalPolicySource, published.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
-    expect(row(final, "call-delete").status, "the refusal stays refused").toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    // The refusal is the log's: its result was written once, in turn 1, and
+    // the resumed turn's rows carry no copy of the refused call.
+    const deleteUse = toolUseEventId(record.executionId, "call-delete");
+    expect(
+      record.sessionEvents.flatMap((e) => (e.event.case === "agentToolResult" && e.event.value.toolUseId === deleteUse ? [e.event.value.isError] : [])),
+      "the refusal stays refused",
+    ).toEqual([true]);
+    expect(finalRows.messages.flatMap((m) => m.toolCalls).some((tc) => tc.id === "call-delete"), "the resumed turn carries no copy of it").toBe(false);
     expect(client.getPluginArtifact, "the second turn mounts from the session's verified cache").toHaveBeenCalledTimes(1);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
-    await expect(statusJson(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/hooks.turn2.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/hooks.turn2.events.json");
   });
 
@@ -323,14 +339,14 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     expect(answers).toEqual(["deny", "allow", "allow", "deny"]);
     expect(record.persistedPhases.at(-1), "the shell default still asks before pwd").toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
     const status = record.lastFullStatus!;
-    const approved = row(status, "call-pub");
+    const approved = row(record.rowsOf(status), "call-pub");
     expect([approved.approvalPolicySource, approved.approvalPolicyHook, approved.approvalAction]).toEqual([
       ApprovalPolicySource.HOOK, "safety", ApprovalAction.APPROVE_ALL,
     ]);
-    const again = row(status, "call-again");
+    const again = row(record.rowsOf(status), "call-again");
     expect(again.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect([again.approvalPolicySource, again.approvalPolicyHook]).toEqual([ApprovalPolicySource.APPROVAL_LEASE, "safety"]);
-    const where = row(status, "call-where");
+    const where = row(record.rowsOf(status), "call-where");
     expect(where.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     expect(where.approvalPolicySource, "the default asked, not a hook").toBe(ApprovalPolicySource.BUILTIN_CATEGORY);
   });
@@ -377,7 +393,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     // Two refusals of one command are two acts: the terminal twin collapse
     // keeps the rows the boundary settled from the refusals (#1967).
     for (const id of ["call-rm-1", "call-rm-2"]) {
-      const refused = row(final, id);
+      const refused = row(record.rowsOf(final), id);
       expect(isToolCallRowHidden(refused), `${id} stays visible`).toBe(false);
       expect([refused.status, refused.error, refused.approvalPolicyHook]).toEqual([
         ToolCallStatus.TOOL_CALL_FAILED,
@@ -439,9 +455,9 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     );
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const status = record.lastFullStatus!;
-    expect(row(status, "call-first").approvalAction).toBe(ApprovalAction.REJECT);
+    expect(row(record.rowsOf(status), "call-first").approvalAction).toBe(ApprovalAction.REJECT);
     // The retry is the rejected call's twin: kept in place, hidden, never run.
-    const retry = row(status, "call-retry");
+    const retry = row(record.rowsOf(status), "call-retry");
     expect(retry.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
     expect(isToolCallRowHidden(retry)).toBe(true);
   });
@@ -541,9 +557,10 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const invocation = await runCursorTurn(scenario);
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_FAILED");
     const final = scenario.record.lastFullStatus!;
+    const finalRows = scenario.record.rowsOf(final);
     expect(final.error).toContain(settingsPath);
     expect(final.error).toContain("Run this session on Stigmer's native engine");
-    expect(final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
+    expect(finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content)).toEqual([
       `Execution failed: ${final.error}`,
     ]);
     expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);

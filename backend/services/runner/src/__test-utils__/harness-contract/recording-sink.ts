@@ -14,11 +14,14 @@
  * `failed` instead of letting it escape `runTurn`.
  *
  * One sink per turn, like the runtime. A reinvocation gets a NEW sink whose
- * `status` is a clone of the previous turn's — the runtime persists and reads
- * back, so nothing survives between turns by object identity.
+ * rows are seeded with the asks the driver's log holds, as the runtime seeds
+ * them (`harness/resume-seed.ts`) — nothing survives between turns by object
+ * identity.
  */
 
+import { clone, create } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { TurnSink, UsageDelta } from "../../harness/types.js";
@@ -36,12 +39,10 @@ export type SinkEvent =
   | { readonly kind: "cas-observations" };
 
 export interface RecordingTurnSinkOptions {
-  /**
-   * The status this turn folds into; a fresh empty one when omitted. A
-   * reinvocation's clone arrives already carrying last turn's rows, and the
-   * builder indexes them as the runtime's would after its seed.
-   */
+  /** The status this turn writes; a fresh empty one when omitted. */
   readonly status?: RunStatus;
+  /** The rows this turn folds into; fresh empty ones when omitted. */
+  readonly rows?: TurnRows;
   /** The execution the builder names in its log lines; the kit's driver passes its own. */
   readonly executionId?: string;
   /** When set, `bindHarnessState` rejects with this error (a failed session write). */
@@ -50,7 +51,8 @@ export interface RecordingTurnSinkOptions {
 
 export class RecordingTurnSink implements TurnSink {
   readonly status: RunStatus;
-  /** The one builder over `status`, as the runtime hands every adapter; the fake creates its rows through it. */
+  readonly rows: TurnRows;
+  /** The one builder over `rows`, as the runtime hands every adapter; the fake creates its rows through it. */
   readonly transcript: TranscriptBuilder;
   readonly stopSignal: AbortSignal;
   readonly setupTiming = new TimingRecorder();
@@ -61,9 +63,18 @@ export class RecordingTurnSink implements TurnSink {
 
   constructor(options: RecordingTurnSinkOptions = {}) {
     this.status = options.status ?? emptyStatus();
-    this.transcript = new TranscriptBuilder(options.executionId ?? "kit-exec", this.status);
+    this.rows = options.rows ?? create(TurnRowsSchema);
+    this.transcript = new TranscriptBuilder(options.executionId ?? "kit-exec", this.rows, this.status);
     this.stopSignal = this.controller.signal;
     this.bindRejectsWith = options.bindRejectsWith;
+  }
+
+  /** The rows as the turn began (the runtime's seed), once the driver marks them; empty until then. */
+  seeded: TurnRows = create(TurnRowsSchema);
+
+  /** Record the rows as they stand as the turn's start: what the runtime seeded before the engine ran. */
+  markSeeded(): void {
+    this.seeded = clone(TurnRowsSchema, this.rows);
   }
 
   /** Stop the turn from the outside, the way the runtime would. */

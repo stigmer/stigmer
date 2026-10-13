@@ -46,8 +46,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { toJson } from "@bufbuild/protobuf";
-import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -66,6 +64,9 @@ import {
   ScriptedClock,
   createHermeticEnvironment,
   type HermeticEnvironment,
+  statusGolden,
+  rowsGolden,
+  rowsGoldenPath,
 } from "../../../../__test-utils__/hermetic-activity.js";
 import { _parkedAgentCountForTests } from "../../agent-session-cache.js";
 import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scripted-agent.js";
@@ -159,6 +160,7 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
 
     // ── Assert: the diagnosable reason ───────────────────────────────────────
     const final = record.lastFullStatus!;
+    const finalRows = record.rowsOf(final);
     expect(final.error).toBe(
       `A Cursor hook outside Stigmer's approval gate blocked tool(s): shell. ` +
         `Stigmer cannot request approval on another hook's behalf — find the hook ` +
@@ -166,7 +168,7 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     );
     expect(final.completedAt, "a failed turn is complete").not.toBe("");
     expect(
-      final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
+      finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
     ).toEqual([`Execution failed: ${final.error}`]);
 
     // The blocked row stays FAILED with Cursor's text — never silently
@@ -191,8 +193,8 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     expect(invocation.heartbeats.length).toBeGreaterThan(0);
 
     // ── Assert: the golden ───────────────────────────────────────────────────
-    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
-    await expect(json).toMatchFileSnapshot("./goldens/unattributed-hook-block.status.json");
+    await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/unattributed-hook-block.status.json");
+    await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/unattributed-hook-block.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/unattributed-hook-block.events.json");
   });
 });

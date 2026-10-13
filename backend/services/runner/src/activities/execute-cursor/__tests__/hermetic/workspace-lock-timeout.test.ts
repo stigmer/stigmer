@@ -123,13 +123,14 @@ describe("ExecuteCursor hermetic — workspace lock timeout", () => {
           `Another agent execution is operating on this workspace directory; retry after it finishes.`,
       );
       const final = record.lastFullStatus!;
+      const finalRows = record.rowsOf(final);
       expect(final.error).toBe(expectedMessage);
       expect(final.completedAt).not.toBe("");
       expect(final.startedAt).not.toBe("");
       expect(
-        final.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
+        finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
       ).toEqual([`Execution failed: ${expectedMessage}`]);
-      expect(final.messages, "the system message is the whole transcript").toHaveLength(1);
+      expect(finalRows.messages, "the system message is the whole transcript").toHaveLength(1);
 
       // ── Assert: the visible waiting state, then nothing past the lock ──────
       expect(record.setupProgress).toEqual([

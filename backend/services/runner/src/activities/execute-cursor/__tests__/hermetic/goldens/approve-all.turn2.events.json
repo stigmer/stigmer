@@ -82,7 +82,7 @@
   {
     "run_id": "aex_hermetic_0001",
     "agent_message": {
-      "id": "aex_hermetic_0001.root.m1",
+      "id": "aex_hermetic_0001.root.m0",
       "content": [
         {
           "type": "text",
