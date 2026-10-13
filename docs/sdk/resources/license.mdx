@@ -28,8 +28,9 @@ spec:
     contact_email: platform@acme.example
   plan_id: pln_01j5q3k7m8r2s4tnz2hfp0q0c3
   entitlements:
-    features:
-      - sso_enforcement
+    limits:
+      max_orgs: 5
+      max_users: 250
   term: paid
   expires_at: "2027-09-01T00:00:00Z"
   grace_until: "2027-10-01T00:00:00Z"
@@ -341,7 +342,7 @@ A capability an entitlement can unlock.
 
 | Value | Description |
 |-------|-------------|
-| `sso_enforcement` | Enforcing sign-in through a registered identity provider, so members cannot use another login. |
+| `sso_enforcement` | No longer used: gates nothing. |
 | `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every customer, so a plan or license that lists it grants nothing more. |
 | `byo_provider_keys` | No longer used: gates nothing. |
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |

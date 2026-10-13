@@ -56,7 +56,6 @@ IdentityProvider identityProvider = client.identityProviders().get("idp_01j5q3k7
 |--------|-------------|
 | [`get`](#get) | Get an identity provider by its unique identifier. |
 | [`getByReference`](#getbyreference) | Get an identity provider by its organization-scoped reference (org/slug). |
-| [`getSsoProvider`](#getssoprovider) | Look up the SSO identity provider for an organization. |
 | [`listByOrg`](#listbyorg) | List the identity providers of an organization that the caller may view. |
 | [`apply`](#apply) | Create or update an identity provider. |
 | [`create`](#create) | Create an identity provider. |
@@ -156,49 +155,6 @@ IdentityProvider identityProvider = client.identityProviders().getByReference(Ap
 
 **Returns**: [`IdentityProvider`](#identityprovider)
 
-### getSsoProvider
-
-Look up the SSO identity provider for an organization.
-
-Returns the SSO-relevant projection (display name, OIDC client ID, issuer, expected audience) of the IdentityProvider where is_sso_provider is true for the given org. Returns NOT_FOUND if the organization has no SSO provider configured.
-
-This endpoint is called by the web app's login page before the user has signed in, so it requires no credential. The response intentionally omits internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const ssoProviderInfo = await stigmer.identityProvider.getSsoProvider({
-  org: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-ssoProviderInfo, err := client.IdentityProvider.GetSsoProvider(ctx, &stigmer.OrganizationSsoLookup{
-  Org: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-sso_provider_info = client.identity_providers.get_sso_provider(OrganizationSsoLookup(
-    org="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-SsoProviderInfo ssoProviderInfo = client.identityProviders().getSsoProvider(OrganizationSsoLookup.builder()
-    .org("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`OrganizationSsoLookup`](#organizationssolookup)
-
-**Returns**: [`SsoProviderInfo`](#ssoproviderinfo)
-
 ### listByOrg
 
 List the identity providers of an organization that the caller may view.
@@ -265,8 +221,6 @@ const identityProvider = await stigmer.identityProvider.apply({
   allowedIssuers: [],
   expectedAudience: "...",
   userinfoEndpoint: "...",
-  isSsoProvider: false,
-  oidcClientId: "...",
   externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
@@ -285,8 +239,6 @@ identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityPro
   AllowedIssuers:         []string{},
   ExpectedAudience:       "...",
   UserinfoEndpoint:       "...",
-  IsSsoProvider:          false,
-  OidcClientId:           "...",
   ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
@@ -305,8 +257,6 @@ identity_provider = client.identity_providers.apply(IdentityProviderInput(
     allowed_issuers=[],
     expected_audience="...",
     userinfo_endpoint="...",
-    is_sso_provider=False,
-    oidc_client_id="...",
     external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
@@ -325,8 +275,6 @@ IdentityProvider identityProvider = client.identityProviders().apply(IdentityPro
     .allowedIssuers(List.of())
     .expectedAudience("...")
     .userinfoEndpoint("...")
-    .isSsoProvider(false)
-    .oidcClientId("...")
     .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
@@ -366,8 +314,6 @@ const identityProvider = await stigmer.identityProvider.create({
   allowedIssuers: [],
   expectedAudience: "...",
   userinfoEndpoint: "...",
-  isSsoProvider: false,
-  oidcClientId: "...",
   externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
@@ -386,8 +332,6 @@ identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityPr
   AllowedIssuers:         []string{},
   ExpectedAudience:       "...",
   UserinfoEndpoint:       "...",
-  IsSsoProvider:          false,
-  OidcClientId:           "...",
   ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
@@ -406,8 +350,6 @@ identity_provider = client.identity_providers.create(IdentityProviderInput(
     allowed_issuers=[],
     expected_audience="...",
     userinfo_endpoint="...",
-    is_sso_provider=False,
-    oidc_client_id="...",
     external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
@@ -426,8 +368,6 @@ IdentityProvider identityProvider = client.identityProviders().create(IdentityPr
     .allowedIssuers(List.of())
     .expectedAudience("...")
     .userinfoEndpoint("...")
-    .isSsoProvider(false)
-    .oidcClientId("...")
     .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
@@ -463,8 +403,6 @@ const identityProvider = await stigmer.identityProvider.update({
   allowedIssuers: [],
   expectedAudience: "...",
   userinfoEndpoint: "...",
-  isSsoProvider: false,
-  oidcClientId: "...",
   externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
@@ -483,8 +421,6 @@ identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityPr
   AllowedIssuers:         []string{},
   ExpectedAudience:       "...",
   UserinfoEndpoint:       "...",
-  IsSsoProvider:          false,
-  OidcClientId:           "...",
   ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
@@ -503,8 +439,6 @@ identity_provider = client.identity_providers.update(IdentityProviderInput(
     allowed_issuers=[],
     expected_audience="...",
     userinfo_endpoint="...",
-    is_sso_provider=False,
-    oidc_client_id="...",
     external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
@@ -523,8 +457,6 @@ IdentityProvider identityProvider = client.identityProviders().update(IdentityPr
     .allowedIssuers(List.of())
     .expectedAudience("...")
     .userinfoEndpoint("...")
-    .isSsoProvider(false)
-    .oidcClientId("...")
     .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
@@ -644,8 +576,6 @@ Input for creating or updating an Identity Provider.
     allowedIssuers: { type: "string[]", description: "JWT issuer values that Stigmer will accept from this platform." },
     expectedAudience: { type: "string", description: "Expected JWT audience value." },
     userinfoEndpoint: { type: "string", description: "OIDC UserInfo endpoint URL for reading a user's profile when Stigmer creates their account." },
-    isSsoProvider: { type: "boolean", description: "Whether this identity provider serves as the SSO login provider for its owning organization." },
-    oidcClientId: { type: "string", description: "OIDC client identifier for browser-based SSO login." },
     externalIdClaim: { type: "string", description: "Name of the JWT claim that names the child organization a token works in, by the identifier the provider's organization keeps for it." },
     createAccountsOnSignIn: { type: "boolean", description: "Whether Stigmer creates a federated identity account the first time a valid token arrives for a sub claim it has no account for." },
     signInRole: { type: "IamRole", description: "The role an account receives the first time it signs in to an organization through this provider: the organization its token is bound to (external_id_claim's, or the provider's own).", typeDescriptionLink: "#iamrole" },
@@ -694,29 +624,6 @@ IdentityProviders contains a list of identity provider resources.
 <TypeTable
   type={{
     entries: { type: "IdentityProviderInput[]", description: "Identity provider entries.", typeDescriptionLink: "#identityproviderinput" },
-  }}
-/>
-
-### OrganizationSsoLookup
-
-OrganizationSsoLookup identifies an organization for SSO provider discovery.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "Organization to look up SSO configuration for: its id, as the shared SSO sign-in link carries it, or its slug, as a person types it." },
-  }}
-/>
-
-### SsoProviderInfo
-
-SsoProviderInfo contains the minimal OIDC configuration the web app needs to render an SSO login button and initiate the Authorization Code flow.
-
-<TypeTable
-  type={{
-    displayName: { type: "string", description: "Display name of the SSO provider (e.g., \"Acme Corp Okta\")." },
-    oidcClientId: { type: "string", description: "OIDC client ID for initiating the Authorization Code flow with PKCE." },
-    issuer: { type: "string", description: "OIDC issuer URL." },
-    expectedAudience: { type: "string", description: "Expected JWT audience value for the OIDC token request." },
   }}
 />
 

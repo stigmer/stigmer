@@ -205,27 +205,18 @@ System.out.println("Created IdP: " + idp.getMetadata().getId());
 
 ## Understand the fields
 
-| Field                    | Required | Purpose                                                                                                                                                                                                            |
-| ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `name`                   | Yes      | Human-readable name shown in the console                                                                                                                                                                           |
-| `org`                    | Yes      | The Organization slug that owns this Identity Provider                                                                                                                                                             |
-| `slug`                   | No       | URL-friendly identifier, unique within the Organization. Generated from `name` if omitted                                                                                                                          |
-| `jwksUri`                | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures. Must be the `jwks_uri` each issuer's discovery document names                                                                   |
-| `allowedIssuers`         | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                                                              |
-| `expectedAudience`       | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                                                              |
-| `displayName`            | No       | Display name in the console, and on the sign-in button of an SSO provider. The console's provider list and detail show `name` when it is empty                                                                     |
-| `isSsoProvider`          | No       | Set to `true` only when configuring console SSO for your own team. Defaults to `false`                                                                                                                             |
-| `oidcClientId`           | No       | OIDC client ID for browser-based SSO. Only required when `isSsoProvider` is `true`                                                                                                                                 |
-| `createAccountsOnSignIn` | No       | When `true`, Stigmer creates a federated account the first time a valid token arrives for a subject it has no account for. Defaults to `false`. Required for an SSO provider                                       |
-| `signInRole`             | No       | The role an account receives the first time it signs in to an Organization through this provider. Options: `viewer`, `member`, `admin`. Unset grants nothing. Owner is not permitted. Required for an SSO provider |
-| `externalIdClaim`        | No       | JWT claim name that names, by its external id, the child organization each token works in. Read on every token. See [Child organizations](/docs/guides/authentication/federation/child-organizations)              |
-
-<Callout type="warn">
-  Do not set `isSsoProvider` to `true` for a platform integration. SSO is
-  designed for your own team signing in directly via the Stigmer web app. For a
-  platform integration, your users authenticate on your platform and call the
-  Stigmer API with their JWT.
-</Callout>
+| Field                    | Required | Purpose                                                                                                                                                                                               |
+| ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                   | Yes      | Human-readable name shown in the console                                                                                                                                                              |
+| `org`                    | Yes      | The Organization slug that owns this Identity Provider                                                                                                                                                |
+| `slug`                   | No       | URL-friendly identifier, unique within the Organization. Generated from `name` if omitted                                                                                                             |
+| `jwksUri`                | Yes      | JWKS endpoint URL. Stigmer fetches public keys from here to verify JWT signatures. Must be the `jwks_uri` each issuer's discovery document names                                                      |
+| `allowedIssuers`         | Yes      | List of `iss` values Stigmer accepts, at most 10. Tokens with a different issuer are rejected. Each must publish an OpenID Connect discovery document                                                 |
+| `expectedAudience`       | Yes      | The `aud` value Stigmer expects. Tokens without this audience are rejected. With the issuer, it identifies this Identity Provider across the platform                                                 |
+| `displayName`            | No       | Display name in the console. The console's provider list and detail show `name` when it is empty                                                                                                      |
+| `createAccountsOnSignIn` | No       | When `true`, Stigmer creates a federated account the first time a valid token arrives for a subject it has no account for. Defaults to `false`                                                        |
+| `signInRole`             | No       | The role an account receives the first time it signs in to an Organization through this provider. Options: `viewer`, `member`, `admin`. Unset grants nothing. Owner is not permitted                  |
+| `externalIdClaim`        | No       | JWT claim name that names, by its external id, the child organization each token works in. Read on every token. See [Child organizations](/docs/guides/authentication/federation/child-organizations) |
 
 ## Which Organization a token works in
 
@@ -378,14 +369,6 @@ This suits a platform that decides each user's role itself. A platform with
 child organizations can also set `externalIdClaim` without either field: Stigmer
 then binds each token to its child organization and grants nothing. See
 [Child organizations](/docs/guides/authentication/federation/child-organizations).
-
-<Callout type="warn">
-  An SSO provider must set `createAccountsOnSignIn` to `true` and a
-  `signInRole`; the console fills in `viewer` for you. SSO signs your own team
-  in to your Organization, so routing to child organizations with
-  `externalIdClaim` belongs on a non-SSO Identity Provider. See [Set up
-  SSO](/docs/guides/authentication/federation/sso-login) for the SSO path.
-</Callout>
 
 <Callout type="info">
   **JIT setup is complete.** If you enabled JIT provisioning, your integration

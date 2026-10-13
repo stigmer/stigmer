@@ -11,8 +11,8 @@ needs a license key in production. The same platform runs two ways.
 **Self-hosting** gives your team everything it needs to run Stigmer for itself,
 on infrastructure you control. **Stigmer Cloud** is the managed service: it runs
 the same platform for many teams at once and adds the capabilities that only
-make sense when someone operates Stigmer as a service — tenancy, SSO, billing,
-and the operations behind them.
+make sense when someone operates Stigmer as a service — tenancy, billing, and
+the operations behind them.
 
 The contracts are identical either way. Your Agents, Skills, and the CLI and
 SDKs that drive them work against both — moving between them is a configuration
@@ -30,7 +30,7 @@ change, not a rewrite.
 **Choose Stigmer Cloud if:**
 
 - You want to build with Agents today, not operate a platform.
-- You need multiple Organizations, SSO/SAML, or per-resource permissions.
+- You need multiple Organizations or per-resource permissions.
 - You want Agents reachable in Slack and WhatsApp.
 - You want a managed platform rather than operating infrastructure.
 
@@ -40,7 +40,7 @@ change, not a rewrite.
 | ------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Agents, Skills, Sessions, MCP servers | Full — the same contracts                                                     | Full — the same contracts                                                           |
 | Storage                               | Your Postgres                                                                 | Managed                                                                             |
-| Authentication                        | Your OIDC provider, API keys, service accounts and PlatformClient             | Hosted login, SSO/SAML, identity federation, service accounts, PlatformClient       |
+| Authentication                        | Your OIDC provider, API keys, service accounts and PlatformClient             | Hosted login, identity federation, service accounts, PlatformClient                 |
 | Organizations                         | One team's — the server does not stop a signed-in person creating more        | As many as you need                                                                 |
 | Permissions                           | Owner, admin, member and viewer roles per Organization; Private stays private | The Organization's roles, plus per-resource roles (Viewer, Editor, Owner) and Teams |
 | Sandbox isolation                     | Pluggable drivers: local process, Docker, Kubernetes (off by default)         | Managed Kubernetes isolation                                                        |
@@ -87,7 +87,7 @@ that executes your Agents — with durable state in volumes you own and back up.
 Stigmer Cloud runs the same platform and layers on what a managed, multi-tenant
 service requires:
 
-- **Tenancy and governance.** Multiple Organizations, invitations, SSO/SAML, and
+- **Tenancy and governance.** Multiple Organizations, invitations, and
   fine-grained per-resource permissions and sharing.
 - **Identity federation.** Bring users from many identity providers with
   [identity federation](/docs/guides/authentication/federation/overview) — trust

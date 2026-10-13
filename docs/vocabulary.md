@@ -854,8 +854,7 @@ your authentication system.
 - **API surface**: `kind: identity_provider`, prefix `idp`. proto:
   `iam/identityprovider/v1/spec.proto`.
 - **Key fields**: `jwks_uri`, `allowed_issuers`, `expected_audience`,
-  `is_sso_provider`, `oidc_client_id`, `create_accounts_on_sign_in`,
-  `sign_in_role`, `external_id_claim`.
+  `create_accounts_on_sign_in`, `sign_in_role`, `external_id_claim`.
 - **Context rule**: Do not use on the sales site. In quickstart, say "identity
   provider" in lowercase on first use with a brief gloss. In concepts and
   how-to, capitalize as "Identity Provider." In reference, use
