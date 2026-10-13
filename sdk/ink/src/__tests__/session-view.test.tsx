@@ -4,7 +4,7 @@
 // Ctrl+O toggle that expands tool calls, and the Ctrl+T switch between agent
 // and plan mode that the follow-up line announces. The conversation hook is
 // replaced by a fixture so each state renders exactly as the hook would
-// report it, and the usage widget's pricing hook reports no usage; every
+// report it, and the usage widget's hook reports no usage; every
 // component below the hooks is the real Ink tree.
 import React from "react";
 import { afterEach, describe, it, expect, vi } from "vitest";
@@ -26,8 +26,8 @@ vi.mock("@stigmer/react", async (importOriginal) => {
   return {
     ...actual,
     useSessionConversation: () => conversation,
-    // The usage widget prices runs through the client; with no
-    // runs in these fixtures it has nothing to show.
+    // The usage widget reads the session usage report through the
+    // client; with no runs in these fixtures it has nothing to show.
     useSessionUsage: () => ({ hasUsage: false }) as unknown as ReturnType<typeof actual.useSessionUsage>,
   };
 });

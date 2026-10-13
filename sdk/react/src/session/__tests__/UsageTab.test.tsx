@@ -1,7 +1,11 @@
-// The #362 console surface: the Usage tab pairs billing's RESOLVED
-// per-execution model (the after-the-fact truth for Cursor Auto runs)
-// with the tier the runner REQUESTED (the streaming summary's audit
-// record that the account default was never left in control).
+/**
+ * The session Usage tab: the session's tokens (never money), and per run
+ * its tokens and primary model (for a metered Cursor Auto run, the
+ * after-the-fact truth of which model served) paired with the tier the
+ * runner REQUESTED (the streaming summary's audit record that the account
+ * default was never left in control, #362), marked "Estimated" for a run
+ * counted from its runner's own report.
+ */
 
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -11,7 +15,7 @@ import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { UseSessionUsageReturn } from "../useSessionUsage.js";
 
 // UsageTab's render contract is what this suite pins; the aggregation
-// itself (billing-report-wins, streaming fallback, breakdown mapping) is
+// itself (report mapping, polling) is
 // useSessionUsage's own suite. Mocking the hook also spares the RPC
 // provider plumbing.
 const usageMock = vi.hoisted(() => vi.fn<() => UseSessionUsageReturn>());
@@ -26,7 +30,6 @@ import { UsageTab } from "../facets/UsageTab.js";
 // mocked above it sees the same mocked value, which is exactly the intent.
 
 const EMPTY_USAGE: UseSessionUsageReturn = {
-  totalCostUsd: 0,
   totalTokens: 0,
   inputTokens: 0,
   outputTokens: 0,
@@ -35,6 +38,7 @@ const EMPTY_USAGE: UseSessionUsageReturn = {
   llmCallCount: 0,
   modelBreakdown: [],
   runBreakdown: [],
+  servedBy: [],
   primaryModel: "",
   primaryProvider: "",
   hasUsage: false,
@@ -45,8 +49,7 @@ function usageWith(overrides: Partial<UseSessionUsageReturn>): UseSessionUsageRe
   return {
     ...EMPTY_USAGE,
     hasUsage: true,
-    totalCostUsd: 0.0123,
-    totalTokens: 100,
+    totalTokens: 18_400,
     llmCallCount: 1,
     primaryModel: "composer-2.5",
     primaryProvider: "cursor",
@@ -79,20 +82,36 @@ describe("UsageTab (#362 model provenance)", () => {
     expect(screen.getByText(/No usage data yet/)).toBeTruthy();
   });
 
-  it("renders the billing-resolved model per run with its cost — the Auto forensics view", () => {
+  it("shows the session's tokens and each run's model with its tokens, and no money", () => {
     usageMock.mockReturnValue(usageWith({
       runBreakdown: [{
         runId: "exe_1",
         resolvedModel: "cursor-grok-4.5-high-fast",
-        billableCostUsd: 0.0123,
+        totalTokens: 12_300,
         isEstimated: false,
       }],
     }));
 
-    render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
+    const { container } = render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
 
-    expect(screen.getByText(/cursor-grok-4\.5-high-fast/)).toBeTruthy();
-    expect(screen.getByRole("list", { name: "Per-run model and tier" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Session usage summary" }).textContent).toContain("18.4k tokens");
+    const list = screen.getByRole("list", { name: "Per-run tokens, model and tier" });
+    expect(list.textContent).toContain("cursor-grok-4.5-high-fast");
+    expect(list.textContent).toContain("12.3k tokens");
+    expect(container.textContent).not.toContain("$");
+  });
+
+  it("marks a run counted from its runner's report as estimated", () => {
+    usageMock.mockReturnValue(usageWith({
+      isEstimated: true,
+      runBreakdown: [{ runId: "exe_1", resolvedModel: "composer-2", totalTokens: 900, isEstimated: true }],
+    }));
+
+    render(<UsageTab runs={[executionWithTier("exe_1")]} />);
+
+    const list = screen.getByRole("list", { name: "Per-run tokens, model and tier" });
+    expect(list.textContent).toContain("Estimated");
+    expect(list.textContent).toContain("900 tokens");
   });
 
   it("pairs the run with the tier the runner requested", () => {
@@ -100,7 +119,7 @@ describe("UsageTab (#362 model provenance)", () => {
       runBreakdown: [{
         runId: "exe_1",
         resolvedModel: "composer-2.5",
-        billableCostUsd: 0.0123,
+        totalTokens: 100,
         isEstimated: false,
       }],
     }));
@@ -115,7 +134,7 @@ describe("UsageTab (#362 model provenance)", () => {
       runBreakdown: [{
         runId: "exe_0",
         resolvedModel: "claude-haiku-4.5",
-        billableCostUsd: 0.0042,
+        totalTokens: 100,
         isEstimated: false,
       }],
     }));
@@ -126,11 +145,11 @@ describe("UsageTab (#362 model provenance)", () => {
     expect(screen.queryByText(/requested/)).toBeNull();
   });
 
-  it("renders no provenance list before any billing record lands", () => {
+  it("renders no per-run list before the report lists any run", () => {
     usageMock.mockReturnValue(usageWith({ runBreakdown: [] }));
 
     render(<UsageTab runs={[executionWithTier("exe_1", ServiceTier.STANDARD)]} />);
 
-    expect(screen.queryByRole("list", { name: "Per-run model and tier" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Per-run tokens, model and tier" })).toBeNull();
   });
 });

@@ -885,26 +885,21 @@ function SessionSidebar() {
 
 ### useSessionUsage
 
-Usage hook for session-level cost and token aggregation.
+Usage hook for session-level token aggregation.
 
-Uses exactly ONE data source at a time to avoid displaying a cost total
-from one pipeline with a model breakdown from another:
-
-- When billing records exist (proxy-metered), the billing report is shown
-  as authoritative (`isEstimated: false`).
-- When run is in-flight and only streaming data is available,
-  streaming is shown with `isEstimated: true`.
-- The two sources are never mixed in the same display.
+Reads `getSessionUsageReport` for the session the runs belong to, polling
+while any run is in flight. Returns zeros with `hasUsage: false` until the
+report has tokens.
 
 **Signature**
 
 ```tsx
-function useSessionUsage(executions: readonly Run[]): UseSessionUsageReturn
+function useSessionUsage(runs: readonly Run[]): UseSessionUsageReturn
 ```
 
 <TypeTable
   type={{
-    executions: { type: "readonly Run[]", description: "", required: true },
+    runs: { type: "readonly Run[]", description: "All runs for a session (completed + active). The session is   taken from the first run's target; the phases decide whether to poll.", required: true },
   }}
 />
 
@@ -914,16 +909,16 @@ function useSessionUsage(executions: readonly Run[]): UseSessionUsageReturn
   type={{
     cacheCreationTokens: { type: "number", description: "Total tokens used to create cache entries across all models." },
     cacheReadTokens: { type: "number", description: "Total tokens served from cache across all models." },
-    hasUsage: { type: "boolean", description: "`true` when usage data is available." },
-    inputTokens: { type: "number", description: "Total input tokens across all models." },
-    isEstimated: { type: "boolean", description: "`true` when the displayed cost comes from runner-reported streaming data rather than settled billing records. The UI should show an \"Estimated\" badge when this is true." },
-    llmCallCount: { type: "number", description: "Total number of LLM calls in this session." },
-    modelBreakdown: { type: "readonly ModelCostEntry[]", description: "Per-model cost and token breakdown." },
+    hasUsage: { type: "boolean", description: "`true` when the session has any tokens or calls." },
+    inputTokens: { type: "number", description: "Total non-cached input tokens across all models." },
+    isEstimated: { type: "boolean", description: "`true` when any run is counted from its runner's own report rather than the deployment's meter. The UI shows an \"Estimated\" badge." },
+    llmCallCount: { type: "number", description: "Total number of metered LLM calls in this session." },
+    modelBreakdown: { type: "readonly ModelUsageEntry[]", description: "Per-model token breakdown, most tokens first." },
     outputTokens: { type: "number", description: "Total output tokens across all models." },
-    primaryModel: { type: "string", description: "Model with the highest usage in this session." },
+    primaryModel: { type: "string", description: "Model with the most tokens in this session." },
     primaryProvider: { type: "string", description: "Provider of the primary model." },
-    runBreakdown: { type: "readonly RunUsageEntry[]", description: "Per-execution resolved model + cost, chronological, from billing records (#362). Empty until the first authoritative record lands — the streaming fallback deliberately contributes none, because the runner only knows what it REQUESTED, never what the provider served." },
-    totalCostUsd: { type: "number", description: "Aggregate estimated cost in USD across all models." },
+    runBreakdown: { type: "readonly RunUsageEntry[]", description: "Per-run tokens and primary model, chronological." },
+    servedBy: { type: "readonly ServedByEntry[]", description: "The session's tokens by whose provider credential served them." },
     totalTokens: { type: "number", description: "Total tokens across all models (cache-inclusive: input + output + cache)." },
   }}
 />
@@ -1607,20 +1602,20 @@ function isSameAgent(a: ResourceRef | null | undefined, b: ResourceRef | null | 
 ```
 
 
-### ModelCostEntry
+### ModelUsageEntry
 
-Per-model cost breakdown.
+Per-model token breakdown.
 
 <TypeTable
   type={{
     cacheCreationTokens: { type: "number", description: "Tokens used to create cache entries.", required: true },
     cacheReadTokens: { type: "number", description: "Tokens served from cache.", required: true },
-    callCount: { type: "number", description: "Number of LLM calls made to this model.", required: true },
-    estimatedCostUsd: { type: "number", description: "Estimated cost in USD for this model's usage.", required: true },
-    inputTokens: { type: "number", description: "Total input tokens consumed by this model.", required: true },
+    callCount: { type: "number", description: "Number of metered LLM calls to this model (0 for estimated runs).", required: true },
+    inputTokens: { type: "number", description: "Non-cached input tokens consumed by this model.", required: true },
     model: { type: "string", description: "Model identifier (e.g. \"claude-sonnet-4-6\").", required: true },
-    outputTokens: { type: "number", description: "Total output tokens generated by this model.", required: true },
-    provider: { type: "string", description: "Provider name (e.g. \"anthropic\", \"openai\").", required: true },
+    outputTokens: { type: "number", description: "Output tokens generated by this model.", required: true },
+    provider: { type: "string", description: "Provider name (e.g. \"anthropic\", \"cursor\"); empty when not known.", required: true },
+    totalTokens: { type: "number", description: "Total tokens for this model (cache-inclusive).", required: true },
   }}
 />
 
@@ -1676,14 +1671,14 @@ function planDraftKey(plan: SessionPlan): string
 
 ### RunUsageEntry
 
-Per-execution model provenance from billing records (stigmer/stigmer#362).
+Per-run token usage and model provenance (stigmer/stigmer#362).
 
 <TypeTable
   type={{
-    billableCostUsd: { type: "number", description: "Billable cost in USD for this run.", required: true },
-    isEstimated: { type: "boolean", description: "`true` while this run's records are still provisional.", required: true },
-    resolvedModel: { type: "string", description: "Billing-resolved primary model — what the provider actually served. For a Cursor Auto run this is the after-the-fact answer to \"which model did Auto pick\", which the requested model (empty by definition there) can never give.", required: true },
+    isEstimated: { type: "boolean", description: "`true` when this run is counted from its runner's own report.", required: true },
+    resolvedModel: { type: "string", description: "The run's primary model — the model with the most tokens. For a metered run it is what the provider actually served, which for a Cursor Auto run answers \"which model did Auto pick\"; for an estimated run it is the model the runner reported.", required: true },
     runId: { type: "string", description: "Run identifier (`metadata.id`).", required: true },
+    totalTokens: { type: "number", description: "Total tokens for this run (cache-inclusive).", required: true },
   }}
 />
 
@@ -1726,6 +1721,19 @@ fields preserve the session's existing values.
     vaults: { type: "ResourceRef[]", description: "Replace the vaults the conversation lists, in order. An empty list leaves it listing none: it then uses only the sender's My vault, when it includes that." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries to attach to the run, replacing the stored ones. A repository kept by name and URL and sent without a token keeps its stored token; a token sent replaces it." },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  Lightweight \"attention\" signals — no upload, no injection. The agent reads these files directly from the workspace filesystem." },
+  }}
+/>
+
+
+### ServedByEntry
+
+Tokens and calls served by one kind of provider credential.
+
+<TypeTable
+  type={{
+    llmCallCount: { type: "number", description: "Metered LLM calls served this way.", required: true },
+    providerKeySource: { type: "ProviderKeySource", description: "Whose credential served the calls; UNSPECIFIED when not known.", required: true },
+    totalTokens: { type: "number", description: "Total tokens served this way.", required: true },
   }}
 />
 

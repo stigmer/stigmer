@@ -24,7 +24,6 @@ export interface SummarizationEventView {
   readonly model: string;
   readonly messagesBefore: number;
   readonly messagesAfter: number;
-  readonly costUsd: number;
 }
 
 /** Return value of {@link useContextWindow}. */
@@ -84,7 +83,6 @@ function mapEvent(e: SummarizationEvent): SummarizationEventView {
     model: e.summarizationModel,
     messagesBefore: e.messagesBefore,
     messagesAfter: e.messagesAfter,
-    costUsd: e.summarizationCostUsd,
   };
 }
 

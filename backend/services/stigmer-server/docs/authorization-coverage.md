@@ -261,9 +261,9 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | RunQueryController.getArtifactDownloadUrl | config: can_view on run (field run_id), error_msg yes | direct: authorizeDirect, then key-prefix / attachment-membership ownership check, then time-limited URL mint |
 | RunQueryController.getArtifactContent | config: can_view on run (field run_id), error_msg yes | direct: authorizeDirect, then key-prefix ownership check, CAS-blob integrity check, truncated bytes in response |
 | RunQueryController.getRunUsageReport | config: can_view on run (field run_id), error_msg yes | chain-with-Authorize (usage.ts) |
-| RunQueryController.getSessionUsageReport | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (usage.ts) |
-| RunQueryController.getAgentUsageReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (usage.ts) |
-| RunQueryController.getOrgUsageReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (usage.ts) |
+| RunQueryController.getSessionUsageReport | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (usage.ts; the session's runs through the list index, then a composed ListReadScope narrows them to the caller's authorized rows) |
+| RunQueryController.getAgentUsageReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (usage.ts; the organization's runs of the agent through the list index, then a composed ListReadScope narrows them to the caller's authorized rows) |
+| RunQueryController.getOrgUsageReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (usage.ts; the organization's runs in the window through the list index, then a composed ListReadScope narrows them, so the report counts and names only runs and agents the caller may read) |
 | RunQueryController.getRunSummary | is_skip_authorization | direct: the requested org's runs within the window, read through the list index, aggregated for the dashboard (driver: ListReadScope's restrict verb — a composed scope keeps the caller's authorized rows; none kept = the default instance) |
 
 ## 16a. Score (`src/domain/score/controller.ts`)

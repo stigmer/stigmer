@@ -6,7 +6,9 @@
 //
 // Lanes and what this file asserts:
 //   llm          — relay on the organization's own provider key, the
-//                  keyless refusal, usage landing on the meter, scope
+//                  keyless refusal, usage landing on the meter (read back
+//                  through the run's, session's and organization's usage
+//                  reports, the only usage reads there are), scope
 //                  authorization, verbatim relay of upstream errors marked as
 //                  the organization's key, mid-stream abort, hop-by-hop
 //                  header hygiene
@@ -31,14 +33,15 @@
 // cloud environment: the conformance environment boots the composition in its
 // production posture, so they measure the real edge alongside the
 // authorization arms (FGA 403).
-import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV, provisionConsolePerson, requireDirectLoginTenant } from "../harness/cloud-env";
 import { createTransport, makeClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText, openAiText } from "@stigmer/test-support/llm-wire";
 import { makeAgent, agentRefOf } from "../support/agents";
-import { makeAgentExecution } from "../support/runs";
+import { makeAgentExecution, sessionIdOf } from "../support/runs";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
 import { bidiHandshake, HTTP2_REFUSED_STREAM } from "../support/cursor-bidi";
 import { uniqueName } from "../support/naming";
@@ -75,16 +78,38 @@ async function keyedOrg(): Promise<TenancyContext> {
   return context;
 }
 
-// A real, owned agent execution in the org: the scope every proxy lane is
-// authorized against, and the org usage recorded against it lands on.
-async function ownedExecution(org: string): Promise<string> {
+// A real, owned run in the org: the scope every proxy lane is authorized
+// against, and the run the meter attributes each relayed call to. Its agent,
+// conversation and UTC creation day are what the usage reports group by.
+interface OwnedRun {
+  readonly runId: string;
+  readonly agentId: string;
+  readonly sessionId: string;
+  readonly createdDay: string;
+}
+
+async function ownedRun(org: string): Promise<OwnedRun> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("proxy-agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({ org, name: uniqueName("proxy-exec"), agentRef: agentRefOf(agent) }),
   );
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
-  return execution.metadata!.id;
+  const createdAt = execution.status?.audit?.specAudit?.createdAt;
+  if (createdAt === undefined) throw new Error("the server stamps a run's creation instant on create");
+  return {
+    runId: execution.metadata!.id,
+    agentId: agent.metadata!.id,
+    sessionId: sessionIdOf(execution),
+    // The day the reports window and bucket the run by: its creation
+    // instant's UTC calendar day, read from the server so no midnight
+    // between create and read can move it.
+    createdDay: timestampDate(createdAt).toISOString().slice(0, 10),
+  };
+}
+
+async function ownedExecution(org: string): Promise<string> {
+  return (await ownedRun(org)).runId;
 }
 
 async function ownedSession(org: string): Promise<string> {
@@ -114,12 +139,23 @@ function anthropicCall(executionId: string, body: Record<string, unknown> = {}, 
   });
 }
 
-async function usageReport(org: string) {
-  return clients.billingQuery.getBillingUsageReport({
-    org,
-    startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
-    endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
-  });
+// The run's usage report once the meter holds `calls` calls for it. Usage
+// reporting is asynchronous to the relayed stream, so this polls briefly;
+// until the first metered call lands the report counts the run from its
+// runner's report (empty here: no runner serves these runs).
+async function meteredRunReport(runId: string, calls: number) {
+  const deadline = Date.now() + 15_000;
+  let report = await clients.agentExecutionQuery.getRunUsageReport({ runId });
+  while ((report.aggregate?.llmCallCount ?? 0) < calls && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 500));
+    report = await clients.agentExecutionQuery.getRunUsageReport({ runId });
+  }
+  return report;
+}
+
+// Whose key served the calls, as comparable tuples.
+function servedBy(aggregate: { servedBy: ReadonlyArray<{ providerKeySource: ProviderKeySource; totalTokens: bigint; llmCallCount: number }> } | undefined) {
+  return (aggregate?.servedBy ?? []).map((row) => [row.providerKeySource, row.totalTokens, row.llmCallCount] as const);
 }
 
 describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy targets)", () => {
@@ -222,10 +258,10 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect((upstream?.body as { stream_options?: { include_usage?: boolean } }).stream_options?.include_usage).toBe(true);
     });
 
-    it("[proxy.llm.usage.anthropic-sse-usage-lands] [proxy.llm.usage.openai-final-chunk-usage-lands] usage extracted from both providers' wire lands on the org's usage report", async () => {
+    it("[proxy.llm.usage.anthropic-sse-usage-lands] [proxy.llm.usage.openai-final-chunk-usage-lands] [billing.rpc.get-run-usage-report.reads-metered-tokens] [billing.rpc.get-org-usage-report.metered-totals-and-top-agents] [rpc:RunQueryController.getRunUsageReport] [rpc:RunQueryController.getSessionUsageReport] [rpc:RunQueryController.getOrgUsageReport] usage extracted from both providers' wire is counted on the run's, the conversation's and the organization's usage reports, metered on the organization's key", async () => {
       const { org } = await keyedOrg();
-      const executionId = await ownedExecution(org);
-      const before = await usageReport(org);
+      const run = await ownedRun(org);
+      const executionId = run.runId;
 
       await control.llm.enqueue({ kind: "anthropic", body: anthropicText("a", { inputTokens: 100, outputTokens: 50 }) });
       await (await anthropicCall(executionId)).text();
@@ -248,15 +284,32 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
         })
       ).text();
 
-      // Usage reporting is asynchronous to the relayed stream; poll briefly.
-      const deadline = Date.now() + 15_000;
-      let after = await usageReport(org);
-      while (after.llmCallCount < before.llmCallCount + 3 && Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, 500));
-        after = await usageReport(org);
-      }
-      expect(after.llmCallCount).toBe(before.llmCallCount + 3);
-      expect(after.runCount).toBe(1);
+      // The run's report reads the meter: three calls and every token the
+      // three wires carried (100+50, 30+20, 5+5), all served on the
+      // organization's own key.
+      const report = await meteredRunReport(executionId, 3);
+      expect(report.aggregate?.llmCallCount).toBe(3);
+      expect(report.aggregate?.inputTokens).toBe(135n);
+      expect(report.aggregate?.outputTokens).toBe(75n);
+      expect(report.aggregate?.totalTokens, "an Anthropic call's tokens count toward the total though its wire carries no total").toBe(210n);
+      expect(servedBy(report.aggregate)).toEqual([[ProviderKeySource.ORGANIZATION, 210n, 3]]);
+      expect(report.modelBreakdown.reduce((sum, model) => sum + model.callCount, 0), "the breakdown counts every call").toBe(3);
+      expect(report.modelBreakdown.reduce((sum, model) => sum + model.totalTokens, 0n), "the breakdown sums to the total").toBe(210n);
+
+      // A metered run is counted from the meter, never estimated.
+      const session = await clients.agentExecutionQuery.getSessionUsageReport({ sessionId: run.sessionId });
+      expect(session.isEstimated).toBe(false);
+      expect(session.runs.map((r) => [r.runId, r.isEstimated, r.totalTokens])).toEqual([[executionId, false, 210n]]);
+
+      // The organization's report over the run's own day holds it, its agent
+      // at the top by tokens, and one daily row.
+      const orgReport = await clients.agentExecutionQuery.getOrgUsageReport({ org, fromDate: run.createdDay, toDate: run.createdDay });
+      expect(orgReport.totalRuns).toBe(1);
+      expect(orgReport.totalUsage?.totalTokens).toBe(210n);
+      expect(orgReport.totalUsage?.llmCallCount).toBe(3);
+      expect(servedBy(orgReport.totalUsage)).toEqual([[ProviderKeySource.ORGANIZATION, 210n, 3]]);
+      expect(orgReport.topAgents.map((a) => [a.agentId, a.runCount, a.totalTokens])).toEqual([[run.agentId, 1, 210n]]);
+      expect(orgReport.dailyUsage.map((d) => [d.date, d.runCount, d.totalTokens, d.llmCallCount])).toEqual([[run.createdDay, 1, 210n, 3]]);
     });
 
     it("[proxy.llm.unknown-provider-400] an unknown provider answers 400 without touching the upstream", async () => {
@@ -344,20 +397,16 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     it("[proxy.llm.upstream.aborted-mid-stream-truncates-and-records-partial-usage] an upstream cut mid-stream ends the relayed stream early and records the usage seen so far", async () => {
       const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
-      const before = await usageReport(org);
       // message_start (input tokens) and one content_block_start arrive; the
       // socket dies before message_delta carries output tokens.
       await control.llm.enqueue({ kind: "abort-mid-stream", body: anthropicText("cut", { inputTokens: 40, outputTokens: 40 }), afterEvents: 2 });
       const response = await anthropicCall(executionId);
       const text = await response.text().catch(() => "");
       expect(text).not.toContain("event: message_stop");
-      const deadline = Date.now() + 10_000;
-      let after = await usageReport(org);
-      while (after.llmCallCount < before.llmCallCount + 1 && Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, 500));
-        after = await usageReport(org);
-      }
-      expect(after.llmCallCount, "Java records the partial call — the input tokens it saw — rather than dropping it").toBe(before.llmCallCount + 1);
+      const report = await meteredRunReport(executionId, 1);
+      expect(report.aggregate?.llmCallCount, "the partial call is recorded — the input tokens it saw — rather than dropped").toBe(1);
+      expect(report.aggregate?.inputTokens).toBe(40n);
+      expect(report.aggregate?.outputTokens, "no message_delta, no output tokens").toBe(0n);
     });
   });
 

@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * CSV export of the organization usage report already in memory: one row
+ * per day or one row per model, in tokens and calls, never money.
+ *
+ * Built client-side from the loaded report, so an export always matches
+ * what the panel shows and costs no extra request. The suite in
+ * `__tests__/useExportCSV.test.tsx` pins the filenames and both formats'
+ * columns.
+ */
+
 import { useCallback, useState } from "react";
 import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { downloadTextFile } from "../internal/download.js";
@@ -20,8 +30,8 @@ export interface UseExportCSVReturn {
  *
  * Operates entirely client-side from data already in memory — no
  * additional RPC calls. Supports two formats:
- * - `daily_summary` — one row per day with date, runs, tokens, cost
- * - `model_breakdown` — one row per model with calls, tokens, cost
+ * - `daily_summary` — one row per UTC day with date, runs, tokens, LLM calls
+ * - `model_breakdown` — one row per model with calls and each token bucket
  *
  * @param report - The org usage report data (from `useOrgUsageReport`).
  * @param org - Organization ID for the filename.
@@ -57,11 +67,10 @@ function buildDailySummaryCSV(
   report: GetOrgUsageReportOutput,
   org: string,
 ): { csv: string; filename: string } {
-  const header = "Date,Runs,Tokens,Cost (USD)";
-  const rows = report.dailyCosts.map((entry) => {
-    const cost = (Number(entry.billableCostMicros) / 1_000_000).toFixed(6);
-    return `${entry.date},${entry.runCount},${entry.totalTokens},${cost}`;
-  });
+  const header = "Date,Runs,Tokens,LLM Calls";
+  const rows = report.dailyUsage.map(
+    (entry) => `${entry.date},${entry.runCount},${entry.totalTokens},${entry.llmCallCount}`,
+  );
 
   return {
     csv: [header, ...rows].join("\n"),
@@ -74,10 +83,9 @@ function buildModelBreakdownCSV(
   org: string,
 ): { csv: string; filename: string } {
   const header =
-    "Model,Provider,Calls,Input Tokens,Output Tokens,Cache Read Tokens,Cache Write Tokens,Cost (USD)";
-  const rows = report.modelBreakdown.map((m) => {
-    const cost = (Number(m.billableCostMicros) / 1_000_000).toFixed(6);
-    return [
+    "Model,Provider,Calls,Input Tokens,Output Tokens,Cache Read Tokens,Cache Write Tokens,Total Tokens";
+  const rows = report.modelBreakdown.map((m) =>
+    [
       escapeCsvField(m.model),
       escapeCsvField(m.provider),
       m.callCount,
@@ -85,9 +93,9 @@ function buildModelBreakdownCSV(
       m.outputTokens,
       m.cacheReadInputTokens,
       m.cacheCreationInputTokens,
-      cost,
-    ].join(",");
-  });
+      m.totalTokens,
+    ].join(","),
+  );
 
   return {
     csv: [header, ...rows].join("\n"),

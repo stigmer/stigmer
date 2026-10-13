@@ -3,13 +3,11 @@ package ai.stigmer.sdk;
 import ai.stigmer.billing.v1.BillingAccount;
 import ai.stigmer.billing.v1.BillingCommandControllerGrpc;
 import ai.stigmer.billing.v1.BillingQueryControllerGrpc;
-import ai.stigmer.billing.v1.BillingUsageReportResponse;
 import ai.stigmer.billing.v1.CreateBillingPortalSessionInput;
 import ai.stigmer.billing.v1.CreateBillingPortalSessionResponse;
 import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput;
 import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse;
 import ai.stigmer.billing.v1.GetBillingAccountInput;
-import ai.stigmer.billing.v1.GetBillingUsageReportInput;
 import ai.stigmer.billing.v1.GetOrCreateBillingAccountInput;
 import ai.stigmer.billing.v1.ListModelPricingBaselinesInput;
 import ai.stigmer.billing.v1.ModelPricingBaseline;
@@ -17,21 +15,22 @@ import ai.stigmer.billing.v1.ModelPricingBaselinesResponse;
 import ai.stigmer.billing.v1.RetireModelPricingBaselineInput;
 import ai.stigmer.billing.v1.UpsertModelPricingBaselineInput;
 import ai.stigmer.sdk.gen.StigmerException;
-import com.google.protobuf.Timestamp;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
-import java.time.Instant;
 import java.util.Objects;
 
 /**
  * Client for the billing bounded context.
  *
  * <p>Wraps the user-facing billing RPCs: the organization's billing account
- * (its Stripe customer), the Stripe portal and card setup sessions, the
- * usage meter's call and run counts, and the platform-operator pricing
- * surfaces. The proxy's metering write ({@code recordLlmCallUsage}) is not
- * exposed; only the server calls it.
+ * (its Stripe customer), the Stripe portal and card setup sessions, and the
+ * platform-operator pricing surfaces. Token usage is read from the run
+ * client's usage reports ({@code getRunUsageReport},
+ * {@code getSessionUsageReport}, {@code getAgentUsageReport},
+ * {@code getOrgUsageReport}), counted in tokens and never priced. The proxy's
+ * metering write ({@code recordLlmCallUsage}) is not exposed; only the server
+ * calls it.
  *
  * <p>Billing is not an API Resource: RPCs authorize against the owning
  * organization ({@code can_view_billing} for queries,
@@ -41,13 +40,6 @@ import java.util.Objects;
  *
  * <pre>{@code
  * BillingAccount account = client.billing().getBillingAccount(org);
- *
- * BillingUsageReportResponse report = client.billing().getBillingUsageReport(
- *     BillingClient.GetBillingUsageReportParams.builder()
- *         .org(org)
- *         .startTime(Instant.parse("2026-10-01T00:00:00Z"))
- *         .endTime(Instant.parse("2026-11-01T00:00:00Z"))
- *         .build());
  * }</pre>
  */
 public final class BillingClient {
@@ -60,7 +52,7 @@ public final class BillingClient {
         this.query = BillingQueryControllerGrpc.newBlockingStub(channel);
     }
 
-    // -- Account & usage --------------------------------------------------------
+    // -- Account ----------------------------------------------------------------
 
     /**
      * Provisions or retrieves the billing account for an organization.
@@ -86,20 +78,6 @@ public final class BillingClient {
             return query.getBillingAccount(GetBillingAccountInput.newBuilder()
                     .setOrg(org)
                     .build());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
-    /**
-     * Retrieves an aggregated usage report for a date range.
-     *
-     * <p>Returns the run and LLM call counts, and a per-model breakdown of
-     * call counts by model and harness.
-     */
-    public BillingUsageReportResponse getBillingUsageReport(GetBillingUsageReportParams params) {
-        try {
-            return query.getBillingUsageReport(params.toProto());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
         }
@@ -191,71 +169,6 @@ public final class BillingClient {
             return command.retireModelPricingBaseline(params.toProto());
         } catch (StatusRuntimeException e) {
             throw StigmerException.wrap(e);
-        }
-    }
-
-    private static Timestamp protoTimestamp(Instant instant) {
-        return Timestamp.newBuilder()
-                .setSeconds(instant.getEpochSecond())
-                .setNanos(instant.getNano())
-                .build();
-    }
-
-    // -- GetBillingUsageReportParams ------------------------------------------------
-
-    /** Parameters for querying the aggregated usage report. */
-    public static final class GetBillingUsageReportParams {
-        final String org;
-        final Instant startTime;
-        final Instant endTime;
-
-        private GetBillingUsageReportParams(Builder builder) {
-            this.org = builder.org;
-            this.startTime = builder.startTime;
-            this.endTime = builder.endTime;
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        GetBillingUsageReportInput toProto() {
-            return GetBillingUsageReportInput.newBuilder()
-                    .setOrg(org)
-                    .setStartTime(protoTimestamp(startTime))
-                    .setEndTime(protoTimestamp(endTime))
-                    .build();
-        }
-
-        public static final class Builder {
-            private String org;
-            private Instant startTime;
-            private Instant endTime;
-
-            private Builder() {}
-
-            /** Organization ID to report on (required). */
-            public Builder org(String org) {
-                this.org = Objects.requireNonNull(org);
-                return this;
-            }
-
-            /** Start of the reporting period (required). */
-            public Builder startTime(Instant startTime) {
-                this.startTime = Objects.requireNonNull(startTime);
-                return this;
-            }
-
-            /** End of the reporting period (required). */
-            public Builder endTime(Instant endTime) {
-                this.endTime = Objects.requireNonNull(endTime);
-                return this;
-            }
-
-            public GetBillingUsageReportParams build() {
-                Objects.requireNonNull(org, "org is required");
-                Objects.requireNonNull(startTime, "startTime is required");
-                Objects.requireNonNull(endTime, "endTime is required");
-                return new GetBillingUsageReportParams(this);
-            }
         }
     }
 

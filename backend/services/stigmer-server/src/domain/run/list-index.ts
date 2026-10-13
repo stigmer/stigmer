@@ -18,12 +18,14 @@
  * session's other working runs by, from the key table alone
  * (domain/session/events/run-writes.ts); `waiting_session` is the session
  * while the run waits for a person's answer, by which the same write finds
- * the session's waiting runs and their open asks; the organization and the
+ * the session's waiting runs and their open asks; `agent` is the agent the
+ * run recorded (status.agent_id), by which the agent usage report reads one
+ * agent's runs in an organization (usage.ts); the organization and the
  * creation order are every declaration's. Revision 2 added `grades`,
  * revision 3 `plugin_eval`, revision 4 `working_session`, revision 5
- * `schedule`, and revision 6 took waiting runs out of `working_session`
- * into `waiting_session`: the store derives every existing run's keys
- * again once, at open.
+ * `schedule`, revision 6 took waiting runs out of `working_session` into
+ * `waiting_session`, and revision 7 added `agent`: the store derives every
+ * existing run's keys again once, at open.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts
  * pins the pair).
@@ -40,7 +42,7 @@ import { WAITING_PHASES, WORKING_PHASES } from "./phases.js";
 export const agentExecutionListIndex = declareListIndex({
   kind: ApiResourceKind.run,
   schema: RunSchema,
-  revision: 6,
+  revision: 7,
   keys: {
     session: field("spec.session_id"),
     grades: label(GRADES_RUN_LABEL),
@@ -48,5 +50,6 @@ export const agentExecutionListIndex = declareListIndex({
     schedule: label(SCHEDULE_ID_LABEL_KEY),
     working_session: fieldWhen("spec.session_id", "status.phase", WORKING_PHASES),
     waiting_session: fieldWhen("spec.session_id", "status.phase", WAITING_PHASES),
+    agent: field("status.agent_id"),
   },
 });

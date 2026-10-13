@@ -3,8 +3,8 @@
  * an empty `org` before any handler runs (`min_len: 1` on both inputs), so
  * these checks answer only a caller that invokes the exported report
  * functions directly, below the transport. They still hold there: an empty
- * organization never reaches the load step, whose org filter would otherwise
- * match executions that name no organization.
+ * organization never reaches the load step, whose index read would otherwise
+ * read every organization's runs.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -35,6 +35,7 @@ const deps: UsageReportDeps = {
   logger: createLogger({ level: "error", pretty: false, write: () => {} }),
   authorizer: allow,
   listReadScope: undefined,
+  meteredUsageProvider: undefined,
 };
 
 async function refusal(call: () => Promise<unknown>): Promise<ConnectError> {

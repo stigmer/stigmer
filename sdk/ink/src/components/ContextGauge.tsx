@@ -1,3 +1,7 @@
+// The context window gauge in the terminal: an ASCII bar of how full the
+// run's context is, its health, and the latest compaction (tokens before and
+// after, model, duration). A compaction is shown in tokens; no price is shown.
+
 import React from "react";
 import { Box, Text } from "ink";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -111,9 +115,6 @@ function LatestEvent({ event }: { readonly event: SummarizationEventView }) {
         {formatCompactTokens(event.tokensAfter)} tokens ({reduction}% reduction)
         {event.model ? ` · ${event.model}` : ""}
         {event.durationMs > 0 ? ` · ${formatDuration(event.durationMs)}` : ""}
-        {event.costUsd > 0
-          ? ` · $${event.costUsd < 0.01 ? event.costUsd.toFixed(4) : event.costUsd.toFixed(2)}`
-          : ""}
       </Text>
     </Box>
   );

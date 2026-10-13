@@ -4,7 +4,7 @@
  * defaults, unit-order concatenation for list points, single-declaration
  * enforcement for authorizer and edition, unique unit names, the
  * unknown-gate-slot boot throw, and the driver points (single-instance
- * providers, name-keyed storage-driver registration with duplicate and
+ * providers, the meter among them, name-keyed storage-driver registration with duplicate and
  * built-in-shadow throws), the row readers' kind-keyed merge with its
  * reserved kinds, the units' hand-over and start points kept in unit
  * order, and the organization purge point (stages in unit order, names
@@ -33,6 +33,7 @@ import type { CallerGuard } from "../caller-guards.js";
 import { DECLARED_GATE_SLOTS, GATE_SLOT_NAMES } from "../gate-slots.js";
 import type { GateSlotName } from "../gate-slots.js";
 import type { IdentityVerifier } from "../identity.js";
+import type { MeteredUsageProvider } from "../metered-usage.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
 import { resolveExtensions } from "../registry.js";
 import type { ServerExtension } from "../registry.js";
@@ -149,6 +150,7 @@ describe("resolveExtensions — defaults", () => {
     expect(resolved.responseDecorators).toEqual([]);
     expect(resolved.drivers.modelCatalogProvider).toBeUndefined();
     expect(resolved.drivers.runnerCredentialProvider).toBeUndefined();
+    expect(resolved.drivers.meteredUsageProvider).toBeUndefined();
     expect(resolved.drivers.artifactStorageDrivers.size).toBe(0);
     expect(resolved.drivers.sandboxProvisionerDrivers.size).toBe(0);
     expect(resolved.drivers.channelRuntime).toBeUndefined();
@@ -599,6 +601,22 @@ describe("resolveExtensions — loud-fail throws", () => {
       ]),
     ).toThrowError(
       /extension 'second-catalog' registers a ModelCatalogProvider, but 'first-catalog' already did/,
+    );
+  });
+
+  it("exposes one MeteredUsageProvider and throws on a second, naming both units", () => {
+    const meter: MeteredUsageProvider = { usageForRuns: () => Promise.resolve(new Map()) };
+    expect(
+      resolveExtensions([{ name: "meter", drivers: { meteredUsageProvider: meter } }]).drivers
+        .meteredUsageProvider,
+    ).toBe(meter);
+    expect(() =>
+      resolveExtensions([
+        { name: "first-meter", drivers: { meteredUsageProvider: meter } },
+        { name: "second-meter", drivers: { meteredUsageProvider: meter } },
+      ]),
+    ).toThrow(
+      "extension 'second-meter' registers a MeteredUsageProvider, but 'first-meter' already did — exactly one may be composed",
     );
   });
 

@@ -1,8 +1,10 @@
 // Shared, presentation-only formatters for run output.
 //
 // These mirror helpers in Go's pkg/display + internal/cli/execution (duration
-// math, ellipsis truncation). They live here, away from any RPC code, so run
-// output formats durations and truncates text the same way everywhere.
+// math, ellipsis truncation) and add the compact token count the usage
+// reports and the run epilogue share. They live here, away from any RPC code,
+// so run output formats durations, tokens and truncated text the same way
+// everywhere.
 
 /**
  * Human duration between two ISO 8601 timestamps. Mirrors Go's calculateDuration:
@@ -26,4 +28,17 @@ export function truncateWithEllipsis(value: string, maxLen: number): string {
   if (value.length <= maxLen) return value;
   if (maxLen <= 3) return value.slice(0, maxLen);
   return `${value.slice(0, maxLen - 3)}...`;
+}
+
+/**
+ * Compact token count: the integer under a thousand, then one decimal with a
+ * "k" or "M" suffix ("18.4k", "1.2M"). Takes the wire's int64 as is; display
+ * precision makes the Number conversion harmless past 2^53.
+ */
+export function formatTokenCount(count: bigint): string {
+  const n = Number(count);
+  if (n < 1000) return String(count);
+  // 999,950 and up would round to "1000.0k"; it reads as "1.0M" instead.
+  if (n < 999_950) return `${(n / 1000).toFixed(1)}k`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
 }

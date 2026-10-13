@@ -121,7 +121,6 @@ export {
   BillingClient,
   type CreateBillingPortalSessionParams,
   type CreatePaymentMethodSetupSessionParams,
-  type GetBillingUsageReportParams,
 } from "./billing.js";
 
 // Search client

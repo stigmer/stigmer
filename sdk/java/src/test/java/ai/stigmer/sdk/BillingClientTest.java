@@ -2,13 +2,10 @@ package ai.stigmer.sdk;
 
 import ai.stigmer.billing.v1.CreateBillingPortalSessionInput;
 import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput;
-import ai.stigmer.billing.v1.GetBillingUsageReportInput;
 import ai.stigmer.billing.v1.ModelPricingBaseline;
 import ai.stigmer.billing.v1.RetireModelPricingBaselineInput;
 import ai.stigmer.billing.v1.UpsertModelPricingBaselineInput;
 import org.junit.jupiter.api.Test;
-
-import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,39 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  *
  * <p>Each params class owns its proto request construction via a
  * package-private {@code toProto()}; these tests pin that mapping (field
- * routing, optional-field presence, timestamp conversion) and the builders'
- * required-field enforcement, without needing a gRPC server.
+ * routing, optional-field presence) and the builders' required-field
+ * enforcement, without needing a gRPC server.
  */
 class BillingClientTest {
-
-    // -- GetBillingUsageReportParams ----------------------------------------------
-
-    @Test
-    void getBillingUsageReport_toProto_convertsInstants() {
-        Instant start = Instant.parse("2026-07-01T00:00:00Z");
-        Instant end = Instant.parse("2026-08-01T00:00:00Z");
-
-        GetBillingUsageReportInput proto = BillingClient.GetBillingUsageReportParams.builder()
-                .org("org_123")
-                .startTime(start)
-                .endTime(end)
-                .build()
-                .toProto();
-
-        assertEquals("org_123", proto.getOrg());
-        assertEquals(start.getEpochSecond(), proto.getStartTime().getSeconds());
-        assertEquals(end.getEpochSecond(), proto.getEndTime().getSeconds());
-    }
-
-    @Test
-    void getBillingUsageReport_missingTimeRange_throws() {
-        assertThrows(NullPointerException.class,
-                () -> BillingClient.GetBillingUsageReportParams.builder()
-                        .org("org_123").endTime(Instant.now()).build());
-        assertThrows(NullPointerException.class,
-                () -> BillingClient.GetBillingUsageReportParams.builder()
-                        .org("org_123").startTime(Instant.now()).build());
-    }
 
     // -- Stripe params ------------------------------------------------------------
 

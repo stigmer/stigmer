@@ -1,22 +1,35 @@
 "use client";
 
+/**
+ * Session usage widget: the session's tokens, per model, with an
+ * "Estimated" badge when any run is counted from its runner's own report,
+ * and who served the tokens when that is known.
+ *
+ * Numbers come from {@link useSessionUsage} (the server's session report);
+ * the widget only lays them out. Usage is tokens and calls, never money,
+ * so nothing here formats a currency. `formatTokenCount` stays public for
+ * the context gauge and summarization views, which show exact token counts.
+ * The session Usage tab suite (`session/__tests__/UsageTab.test.tsx`) and
+ * `__tests__/usage-views-show-no-money.test.tsx` pin what it renders.
+ */
+
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import {
   useSessionUsage,
-  type ModelCostEntry,
+  type ModelUsageEntry,
 } from "../session/useSessionUsage.js";
+import { formatCalls, formatCompactCount, formatTokens } from "../usage/format.js";
+import { ServedByLine } from "../usage/ServedByLine.js";
 
 /** Props for {@link UsageWidget}. */
 export interface UsageWidgetProps {
   /**
-   * All runs for the current session — both completed and
-   * actively streaming.  The widget aggregates cost data across
-   * every run's `usageSummary` (proxy-maintained), presenting a
-   * session-level total that never resets.
+   * All runs for the current session — both completed and actively
+   * streaming. The widget reads the session usage report for the session
+   * these runs belong to, and polls it while any of them is in flight.
    *
-   * Renders nothing when the list is empty or no run has
-   * usage data.
+   * Renders nothing when the list is empty or the session has no usage.
    */
   readonly runs: readonly Run[];
   /** Additional CSS classes for the root element. */
@@ -24,13 +37,14 @@ export interface UsageWidgetProps {
 }
 
 /**
- * Right-sidebar widget that displays session-level cost and token
- * usage aggregated from per-message `LlmCallMetrics`.
+ * Right-sidebar widget that displays the session's token usage.
  *
- * Usage data is computed purely from messages the frontend already
- * has — no server RPC is required for the real-time widget.
+ * Shows the session's total tokens (marked "Estimated" when any run is
+ * counted from its runner's own report), the model or per-model tokens,
+ * metered call count, the prompt/completion and cache split, and who
+ * served the tokens when that is known.
  *
- * Returns `null` when no run has usage data, matching the
+ * Returns `null` when the session has no usage, matching the
  * conditional-render pattern of {@link ArtifactsWidget} and
  * {@link WriteBacksWidget}.
  *
@@ -49,10 +63,10 @@ export interface UsageWidgetProps {
  * />
  * ```
  *
- * @see {@link useSessionUsage} — headless session-level usage aggregation hook
+ * @see {@link useSessionUsage} — headless session-level usage hook
  */
-export function UsageWidget({ runs: executions, className }: UsageWidgetProps) {
-  const usage = useSessionUsage(executions);
+export function UsageWidget({ runs, className }: UsageWidgetProps) {
+  const usage = useSessionUsage(runs);
 
   if (!usage.hasUsage) return null;
 
@@ -62,11 +76,11 @@ export function UsageWidget({ runs: executions, className }: UsageWidgetProps) {
     <div
       className={cn("stg:flex stg:flex-col stg:gap-1.5", className)}
       role="region"
-      aria-label="Session cost summary"
+      aria-label="Session usage summary"
     >
       <div className="stg:flex stg:items-baseline stg:gap-1.5">
         <span className="stg:text-sm stg:font-medium stg:tabular-nums stg:text-foreground">
-          {formatCost(usage.totalCostUsd)}
+          {formatTokens(usage.totalTokens)}
         </span>
         {usage.isEstimated && (
           <span className="stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:text-[10px] stg:font-medium stg:leading-none stg:text-muted-foreground">
@@ -84,14 +98,15 @@ export function UsageWidget({ runs: executions, className }: UsageWidgetProps) {
         </div>
       )}
 
-      <div className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-        {formatTokenCount(usage.totalTokens)} tokens ·{" "}
-        {usage.llmCallCount} {usage.llmCallCount === 1 ? "call" : "calls"}
-      </div>
+      {usage.llmCallCount > 0 && (
+        <div className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
+          {formatCalls(usage.llmCallCount)}
+        </div>
+      )}
 
       <div className="stg:pl-2 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-        prompt {formatTokenCount(usage.inputTokens)} · completion{" "}
-        {formatTokenCount(usage.outputTokens)}
+        prompt {formatCompactCount(usage.inputTokens)} · completion{" "}
+        {formatCompactCount(usage.outputTokens)}
       </div>
 
       {(usage.cacheReadTokens > 0 || usage.cacheCreationTokens > 0) && (
@@ -100,6 +115,8 @@ export function UsageWidget({ runs: executions, className }: UsageWidgetProps) {
           creationTokens={usage.cacheCreationTokens}
         />
       )}
+
+      <ServedByLine rows={usage.servedBy} />
     </div>
   );
 }
@@ -107,13 +124,13 @@ export function UsageWidget({ runs: executions, className }: UsageWidgetProps) {
 function ModelBreakdown({
   models,
 }: {
-  readonly models: readonly ModelCostEntry[];
+  readonly models: readonly ModelUsageEntry[];
 }) {
   return (
     <div
       className="stg:flex stg:flex-col stg:gap-0.5"
       role="list"
-      aria-label="Model cost breakdown"
+      aria-label="Model token breakdown"
     >
       {models.map((entry) => (
         <div
@@ -123,7 +140,7 @@ function ModelBreakdown({
         >
           <span className="stg:truncate">{entry.model}</span>
           <span className="stg:ml-2 stg:shrink-0 stg:tabular-nums">
-            {formatCost(entry.estimatedCostUsd)}
+            {formatTokens(entry.totalTokens)}
           </span>
         </div>
       ))}
@@ -139,27 +156,15 @@ function CacheLine({
   readonly creationTokens: number;
 }) {
   const parts: string[] = [];
-  if (readTokens > 0) parts.push(`${formatTokenCount(readTokens)} read`);
+  if (readTokens > 0) parts.push(`${formatCompactCount(readTokens)} read`);
   if (creationTokens > 0)
-    parts.push(`${formatTokenCount(creationTokens)} write`);
+    parts.push(`${formatCompactCount(creationTokens)} write`);
 
   return (
     <div className="stg:pl-2 stg:text-xs stg:tabular-nums stg:text-muted-foreground">
       cache {parts.join(" · ")}
     </div>
   );
-}
-
-/**
- * Formats a USD cost value for display.
- * - Zero: "$0.00"
- * - Under $1: 4 decimal places ("$0.0042")
- * - $1 and above: 2 decimal places ("$1.23")
- */
-export function formatCost(usd: number): string {
-  if (usd === 0) return "$0.00";
-  if (usd < 1) return `$${usd.toFixed(4)}`;
-  return `$${usd.toFixed(2)}`;
 }
 
 const tokenFormatter = new Intl.NumberFormat("en-US");

@@ -1,15 +1,25 @@
 "use client";
 
+/**
+ * Ranked list of the organization's agents by tokens, each with its runs,
+ * tokens, share of the organization's tokens and a proportional bar.
+ *
+ * Rows arrive ordered by the server (`top_agents`, most tokens first); the
+ * list only lays them out. Usage is tokens, never money. The suite in
+ * `__tests__/AgentBreakdownList.test.tsx` pins the cells, the share and the
+ * optional links.
+ */
+
 import { cn } from "@stigmer/theme";
 import type { AgentUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { formatCost } from "../run/UsageWidget.js";
+import { formatCompactCount, sharePercent } from "./format.js";
 
 /** Props for {@link AgentBreakdownList}. */
 export interface AgentBreakdownListProps {
-  /** Top agents by cost, ordered by billable cost descending. */
+  /** Top agents by tokens, ordered by total tokens descending. */
   readonly agents: readonly AgentUsageSummary[];
-  /** Total billable cost for the org (used to compute percentages). */
-  readonly totalBillableCostMicros: bigint;
+  /** The organization's total tokens (used to compute each agent's share). */
+  readonly totalTokens: bigint;
   /** Optional href builder for agent links. Receives the agent ID. */
   readonly agentHref?: (agentId: string) => string;
   /** Additional CSS class names. */
@@ -17,37 +27,34 @@ export interface AgentBreakdownListProps {
 }
 
 /**
- * Renders a ranked list of agents by cost with proportional cost bars.
+ * Renders a ranked list of agents by tokens with proportional bars.
  *
- * Each row shows the agent name, run count, token usage,
- * billable cost, and a visual bar representing cost as a percentage
- * of the organization total.
+ * Each row shows the agent name, run count, tokens with their share of
+ * the organization's tokens, and a bar scaled to the top agent.
  */
 export function AgentBreakdownList({
   agents,
-  totalBillableCostMicros,
+  totalTokens,
   agentHref,
   className,
 }: AgentBreakdownListProps) {
   if (agents.length === 0) return null;
 
-  const totalCost = Number(totalBillableCostMicros);
-  const maxCost =
-    agents.length > 0 ? Number(agents[0].billableCostMicros) : 0;
+  const maxTokens = Math.max(...agents.map((a) => Number(a.totalTokens)), 0);
 
   return (
     <div className={className}>
       <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
-        Top Agents by Cost
+        Top Agents by Tokens
       </h3>
       <div
         className="stg:rounded-lg stg:border stg:border-border stg:bg-card"
         role="table"
-        aria-label="Agent cost breakdown"
+        aria-label="Agent token breakdown"
       >
         <div
           role="row"
-          className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
+          className="stg:grid stg:grid-cols-[1fr_auto_auto] stg:gap-x-4 stg:border-b stg:border-border stg:px-3.5 stg:py-2 stg:text-[0.65rem] stg:font-medium stg:uppercase stg:tracking-wider stg:text-muted-foreground"
         >
           <span role="columnheader">Agent</span>
           <span role="columnheader" className="stg:text-right">
@@ -56,15 +63,11 @@ export function AgentBreakdownList({
           <span role="columnheader" className="stg:text-right">
             Tokens
           </span>
-          <span role="columnheader" className="stg:text-right">
-            Cost
-          </span>
         </div>
         {agents.map((agent) => {
-          const cost = Number(agent.billableCostMicros);
-          const pct = totalCost > 0 ? (cost / totalCost) * 100 : 0;
-          const barWidth =
-            maxCost > 0 ? (cost / maxCost) * 100 : 0;
+          const tokens = Number(agent.totalTokens);
+          const pct = sharePercent(tokens, totalTokens);
+          const barWidth = maxTokens > 0 ? (tokens / maxTokens) * 100 : 0;
 
           const NameTag = agentHref ? "a" : "span";
           const nameProps = agentHref
@@ -78,7 +81,7 @@ export function AgentBreakdownList({
             >
               <div
                 role="row"
-                className="stg:grid stg:grid-cols-[1fr_auto_auto_auto] stg:gap-x-4"
+                className="stg:grid stg:grid-cols-[1fr_auto_auto] stg:gap-x-4"
               >
                 <div role="cell" className="stg:min-w-0">
                   <NameTag
@@ -101,21 +104,15 @@ export function AgentBreakdownList({
                 </span>
                 <span
                   role="cell"
-                  className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
-                >
-                  {formatCompactTokens(Number(agent.totalTokens))}
-                </span>
-                <span
-                  role="cell"
                   className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-foreground"
                 >
-                  {formatCost(cost / 1_000_000)}
+                  {formatCompactCount(tokens)}
                   <span className="stg:ml-1.5 stg:text-[0.6rem] stg:text-muted-foreground">
-                    {pct.toFixed(0)}%
+                    {pct}%
                   </span>
                 </span>
               </div>
-              {/* Proportional cost bar */}
+              {/* Bar scaled to the top agent */}
               <div className="stg:mt-1.5 stg:h-1 stg:w-full stg:rounded-full stg:bg-muted">
                 <div
                   className="stg:h-full stg:rounded-full stg:bg-chart-2 stg:transition-all"
@@ -128,20 +125,4 @@ export function AgentBreakdownList({
       </div>
     </div>
   );
-}
-
-function formatCompactTokens(n: number): string {
-  if (n >= 1_000_000) {
-    const v = n / 1_000_000;
-    return v >= 100 ? `${Math.round(v)}M` : `${trimZero(v.toFixed(1))}M`;
-  }
-  if (n >= 1_000) {
-    const v = n / 1_000;
-    return v >= 100 ? `${Math.round(v)}K` : `${trimZero(v.toFixed(1))}K`;
-  }
-  return String(n);
-}
-
-function trimZero(s: string): string {
-  return s.endsWith(".0") ? s.slice(0, -2) : s;
 }

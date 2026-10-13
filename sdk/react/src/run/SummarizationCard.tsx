@@ -22,7 +22,7 @@ export interface SummarizationCardProps {
  * Shows:
  * - "Context compacted" header with compression icon
  * - Token reduction (before -> after) and compression percentage
- * - Duration, model, and cost when available (native harness)
+ * - Duration and model when available (native harness)
  * - For Cursor harness (model/duration unavailable): "Detected context compaction"
  *
  * All visual properties flow through `--stgm-*` tokens.
@@ -73,14 +73,6 @@ export const SummarizationCard = memo(function SummarizationCard({
             <>
               <span className="stg:text-muted-foreground/50">&middot;</span>
               <span>{event.model}</span>
-            </>
-          )}
-          {event.costUsd > 0 && (
-            <>
-              <span className="stg:text-muted-foreground/50">&middot;</span>
-              <span>
-                ${event.costUsd < 0.01 ? event.costUsd.toFixed(4) : event.costUsd.toFixed(2)}
-              </span>
             </>
           )}
         </div>

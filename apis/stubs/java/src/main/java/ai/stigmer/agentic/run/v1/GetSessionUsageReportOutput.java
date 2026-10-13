@@ -383,7 +383,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether any run in this session is counted from its runner's own report
-   * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
+   * rather than from the deployment's metered model calls.
    * </pre>
    *
    * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -2093,7 +2093,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether any run in this session is counted from its runner's own report
-     * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
+     * rather than from the deployment's metered model calls.
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -2106,7 +2106,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether any run in this session is counted from its runner's own report
-     * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
+     * rather than from the deployment's metered model calls.
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -2123,7 +2123,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether any run in this session is counted from its runner's own report
-     * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
+     * rather than from the deployment's metered model calls.
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>

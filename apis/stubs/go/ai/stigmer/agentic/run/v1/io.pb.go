@@ -2119,7 +2119,7 @@ type GetSessionUsageReportOutput struct {
 	// ISO 8601 timestamp of the most recent run in this session.
 	LastRunAt string `protobuf:"bytes,7,opt,name=last_run_at,json=lastRunAt,proto3" json:"last_run_at,omitempty"`
 	// Whether any run in this session is counted from its runner's own report
-	// rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
+	// rather than from the deployment's metered model calls.
 	IsEstimated   bool `protobuf:"varint,8,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2635,7 +2635,7 @@ type RunUsageSummary struct {
 	// Terminal phase of this run.
 	Phase RunPhase `protobuf:"varint,10,opt,name=phase,proto3,enum=ai.stigmer.agentic.run.v1.RunPhase" json:"phase,omitempty"`
 	// Whether this run is counted from its runner's own report rather than
-	// the deployment's meter (usage.proto, USAGE REPORT TYPES).
+	// from the deployment's metered model calls.
 	IsEstimated bool `protobuf:"varint,11,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	// Total tokens for this run (cache-inclusive, as the aggregate's).
 	TotalTokens   int64 `protobuf:"varint,12,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`

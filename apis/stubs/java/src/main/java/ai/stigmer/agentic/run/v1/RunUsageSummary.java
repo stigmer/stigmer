@@ -336,7 +336,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether this run is counted from its runner's own report rather than
-   * the deployment's meter (usage.proto, USAGE REPORT TYPES).
+   * from the deployment's metered model calls.
    * </pre>
    *
    * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1517,7 +1517,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this run is counted from its runner's own report rather than
-     * the deployment's meter (usage.proto, USAGE REPORT TYPES).
+     * from the deployment's metered model calls.
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1530,7 +1530,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this run is counted from its runner's own report rather than
-     * the deployment's meter (usage.proto, USAGE REPORT TYPES).
+     * from the deployment's metered model calls.
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1547,7 +1547,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this run is counted from its runner's own report rather than
-     * the deployment's meter (usage.proto, USAGE REPORT TYPES).
+     * from the deployment's metered model calls.
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>

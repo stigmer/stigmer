@@ -1,6 +1,11 @@
-// `usage` reports: token/cost/model breakdowns at three granularities (session,
-// agent, org). Mirrors Go's internal/cli usage_* renderers, including the cost,
-// token-count, share, and date formatting helpers.
+// `usage` reports: token and model breakdowns at three granularities
+// (session, agent, org). Usage is counted in tokens and never priced, so the
+// tables show TOKENS and a SHARE of the report's tokens; no dollar figure
+// appears. A served-by line says whose provider credential served the tokens
+// (the organization's own keys or Stigmer's free model), and "estimated"
+// marks numbers counted from a run's own runner report rather than the
+// deployment's meter. Mirrors the retired Go CLI's usage_* renderers for
+// layout and date formatting.
 //
 // A deliberate divergence from the retired Go CLI, which serialized usage
 // reports with the standard library (encoding/json + yaml.v3) directly on the
@@ -22,10 +27,15 @@ import {
   type GetOrgUsageReportOutput,
   type GetSessionUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import {
+  ProviderKeySource,
+  type ModelUsage,
+  type UsageReportAggregate,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { OutputFormat } from "../output/index.js";
 import { renderProtoJson, renderProtoYaml, renderTable } from "../output/index.js";
+import { formatTokenCount } from "./run-format.js";
 
 export interface DateRange {
   readonly from: string;
@@ -70,38 +80,24 @@ export function renderSessionUsage(report: GetSessionUsageReportOutput, format: 
   if (period !== "") {
     lines.push(`Period:  ${period} (${report.runCount} runs)`);
   } else {
-    lines.push(`Runs: ${report.runCount}`);
+    lines.push(`Runs:    ${report.runCount}`);
   }
+  const totalTokens = reportTokens(report.totalUsage, report.modelBreakdown);
+  lines.push(`Tokens:  ${formatTokenCount(totalTokens)}${report.isEstimated ? " (estimated)" : ""}`);
+  const servedBy = formatServedBy(report.totalUsage);
+  if (servedBy !== "") lines.push(`Served by: ${servedBy}`);
   lines.push("");
 
   if (report.modelBreakdown.length > 0) {
-    let totalInput = 0n;
-    let totalOutput = 0n;
-    let totalCached = 0n;
-    let totalCost = 0n;
-    const rows = report.modelBreakdown.map((m) => {
-      totalInput += m.inputTokens;
-      totalOutput += m.outputTokens;
-      totalCached += m.cacheReadInputTokens;
-      totalCost += m.billableCostMicros;
-      return [
-        m.model,
-        formatTokenCount(m.inputTokens),
-        formatTokenCount(m.outputTokens),
-        formatTokenCount(m.cacheReadInputTokens),
-        formatCost(m.billableCostMicros),
-      ];
-    });
-    if (report.modelBreakdown.length > 1) {
-      rows.push([
-        "Total",
-        formatTokenCount(totalInput),
-        formatTokenCount(totalOutput),
-        formatTokenCount(totalCached),
-        formatCost(totalCost),
-      ]);
-    }
-    lines.push(renderTable(["MODEL", "INPUT", "OUTPUT", "CACHED", "COST"], rows), "");
+    const rows = report.modelBreakdown.map((m) => [
+      m.model,
+      formatTokenCount(m.inputTokens),
+      formatTokenCount(m.outputTokens),
+      formatTokenCount(m.cacheReadInputTokens),
+      formatTokenCount(m.totalTokens),
+      formatShare(m.totalTokens, totalTokens),
+    ]);
+    lines.push(renderTable(["MODEL", "INPUT", "OUTPUT", "CACHED", "TOKENS", "SHARE"], rows), "");
   }
 
   const cacheRate = formatCacheHitRate(report.totalUsage);
@@ -112,12 +108,14 @@ export function renderSessionUsage(report: GetSessionUsageReportOutput, format: 
     const rows = report.runs.map((exec, i) => [
       String(i + 1),
       formatDate(exec.startedAt),
-      formatTokenCount(exec.inputTokens + exec.outputTokens),
-      formatCost(exec.billableCostMicros),
+      `${exec.isEstimated ? ESTIMATED_MARK : ""}${formatTokenCount(exec.totalTokens)}`,
       exec.primaryModel,
       mapPhaseToString(exec.phase),
     ]);
-    lines.push(renderTable(["#", "DATE", "TOKENS", "COST", "MODEL", "STATUS"], rows));
+    lines.push(renderTable(["#", "DATE", "TOKENS", "MODEL", "STATUS"], rows));
+    if (report.runs.some((exec) => exec.isEstimated)) {
+      lines.push(`${ESTIMATED_MARK} estimated from the run's own report`);
+    }
   }
 
   lines.push("");
@@ -139,25 +137,25 @@ export function renderAgentUsage(
   if (range.from !== "" || range.to !== "") {
     lines.push(`Period: ${formatInputDateRange(range.from, range.to)}`);
   }
+  const totalTokens = reportTokens(report.totalUsage, report.modelBreakdown);
   lines.push("");
   lines.push(`  Sessions:     ${report.totalSessions}`);
   lines.push(`  Runs:         ${report.totalRuns}`);
-  lines.push(`  Total cost:   ${formatCost(report.totalBillableCostMicros)}`);
+  lines.push(`  Total tokens: ${formatTokenCount(totalTokens)}`);
   if (report.totalRuns > 0) {
-    const avg = report.totalBillableCostMicros / BigInt(report.totalRuns);
-    lines.push(`  Avg/run:      ${formatCost(avg)}`);
+    lines.push(`  Avg/run:      ${formatTokenCount(totalTokens / BigInt(report.totalRuns))}`);
   }
+  const servedBy = formatServedBy(report.totalUsage);
+  if (servedBy !== "") lines.push(`  Served by:    ${servedBy}`);
   lines.push("");
 
-  const totalCost = report.totalBillableCostMicros;
   if (report.modelBreakdown.length > 0) {
     const rows = report.modelBreakdown.map((m) => [
       m.model,
-      formatTokenCount(m.inputTokens + m.outputTokens + m.cacheCreationInputTokens + m.cacheReadInputTokens),
-      formatCost(m.billableCostMicros),
-      formatShare(m.billableCostMicros, totalCost),
+      formatTokenCount(m.totalTokens),
+      formatShare(m.totalTokens, totalTokens),
     ]);
-    lines.push(renderTable(["MODEL", "TOKENS", "COST", "SHARE"], rows), "");
+    lines.push(renderTable(["MODEL", "TOKENS", "SHARE"], rows), "");
   }
 
   if (report.sessions.length > 0) {
@@ -165,9 +163,9 @@ export function renderAgentUsage(
       String(i + 1),
       formatDateRange(sess.firstRunAt, sess.lastRunAt),
       String(sess.runCount),
-      formatCost(sess.billableCostMicros),
+      formatTokenCount(sess.totalTokens),
     ]);
-    lines.push(renderTable(["#", "PERIOD", "RUNS", "COST"], rows));
+    lines.push(renderTable(["#", "PERIOD", "RUNS", "TOKENS"], rows));
   }
 
   lines.push("");
@@ -184,61 +182,110 @@ export function renderOrgUsage(
   if (format === "json") return renderProtoJson(GetOrgUsageReportOutputSchema, report);
   if (format === "yaml") return renderProtoYaml(GetOrgUsageReportOutputSchema, report);
 
+  const totalTokens = reportTokens(report.totalUsage, report.modelBreakdown);
   const lines: string[] = ["", "Organization Usage Report", `Period: ${formatInputDateRange(range.from, range.to)}`, ""];
   lines.push(`  Agents:       ${report.totalAgents}`);
   lines.push(`  Sessions:     ${report.totalSessions}`);
   lines.push(`  Runs:         ${report.totalRuns}`);
-  lines.push(`  Total cost:   ${formatCost(report.totalBillableCostMicros)}`);
+  lines.push(`  Total tokens: ${formatTokenCount(totalTokens)}`);
+  const servedBy = formatServedBy(report.totalUsage);
+  if (servedBy !== "") lines.push(`  Served by:    ${servedBy}`);
   lines.push("");
 
-  const totalCost = report.totalBillableCostMicros;
   if (report.modelBreakdown.length > 0) {
     const rows = report.modelBreakdown.map((m) => [
       m.model,
-      formatTokenCount(m.inputTokens + m.outputTokens + m.cacheCreationInputTokens + m.cacheReadInputTokens),
-      formatCost(m.billableCostMicros),
-      formatShare(m.billableCostMicros, totalCost),
+      formatTokenCount(m.totalTokens),
+      formatShare(m.totalTokens, totalTokens),
     ]);
-    lines.push(renderTable(["MODEL", "TOKENS", "COST", "SHARE"], rows), "");
+    lines.push(renderTable(["MODEL", "TOKENS", "SHARE"], rows), "");
   }
 
-  if (report.topAgentsByCost.length > 0) {
-    const rows = report.topAgentsByCost.map((a) => [
+  if (report.topAgents.length > 0) {
+    const rows = report.topAgents.map((a) => [
       a.agentName === "" ? a.agentId : a.agentName,
       String(a.runCount),
-      formatCost(a.billableCostMicros),
-      formatShare(a.billableCostMicros, totalCost),
+      formatTokenCount(a.totalTokens),
+      formatShare(a.totalTokens, totalTokens),
     ]);
-    lines.push(renderTable(["AGENT", "RUNS", "COST", "SHARE"], rows), "");
+    lines.push(renderTable(["AGENT", "RUNS", "TOKENS", "SHARE"], rows), "");
   }
 
-  if (report.dailyCosts.length > 0) {
-    const rows = report.dailyCosts.map((day) => [
-      day.date,
-      String(day.runCount),
-      formatCost(day.billableCostMicros),
+  if (report.harnessUsage.length > 0) {
+    const rows = report.harnessUsage.map((h) => [
+      h.harness,
+      String(h.runCount),
+      formatTokenCount(h.totalTokens),
+      formatShare(h.totalTokens, totalTokens),
     ]);
-    lines.push(renderTable(["DATE", "RUNS", "COST"], rows));
+    lines.push(renderTable(["HARNESS", "RUNS", "TOKENS", "SHARE"], rows), "");
+  }
+
+  if (report.dailyUsage.length > 0) {
+    const rows = report.dailyUsage.map((day) => [day.date, String(day.runCount), formatTokenCount(day.totalTokens)]);
+    lines.push(renderTable(["DATE", "RUNS", "TOKENS"], rows));
   }
 
   lines.push("");
   return `${lines.join("\n")}\n`;
 }
 
-// --- Formatting helpers (mirror Go's usage_format.go) ---
+// --- Formatting helpers ---
 
-function formatCost(micros: bigint): string {
-  const usd = Number(micros) / 1_000_000;
-  if (usd === 0) return "$0.00";
-  if (usd < 1) return `$${usd.toFixed(3)}`;
-  return `$${usd.toFixed(2)}`;
+// Prefixes a run's tokens when they were counted from its runner's own report.
+const ESTIMATED_MARK = "~";
+
+// The report's token total: the aggregate's, or the model rows' sum when the
+// aggregate is absent (a report with no runs may carry none).
+function reportTokens(usage: UsageReportAggregate | undefined, models: readonly ModelUsage[]): bigint {
+  if (usage !== undefined) return usage.totalTokens;
+  return models.reduce((sum, m) => sum + m.totalTokens, 0n);
 }
 
-function formatTokenCount(count: bigint): string {
-  const n = Number(count);
-  if (n < 1000) return String(count);
-  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}K`;
-  return `${(n / 1_000_000).toFixed(1)}M`;
+/**
+ * Whose provider credential served a report's tokens, as one line. The split
+ * shows only when more than one known source served tokens; a single known
+ * source reads as its name, with any tokens whose server was not recorded
+ * noted beside it. No known source (every run counted from its runner's own
+ * report, or metered records older than the field) prints nothing, since
+ * there is nothing to tell apart.
+ */
+export function formatServedBy(usage: UsageReportAggregate | undefined): string {
+  if (usage === undefined) return "";
+  const rows = usage.servedBy.filter((row) => row.totalTokens > 0n);
+  const isKnown = (source: ProviderKeySource): boolean =>
+    source !== ProviderKeySource.UNSPECIFIED;
+  const known = rows.filter((row) => isKnown(row.providerKeySource));
+  if (known.length === 0) return "";
+  if (known.length === 1) {
+    const label = servedByLabel(known[0].providerKeySource);
+    const unrecorded = rows
+      .filter((row) => !isKnown(row.providerKeySource))
+      .reduce((sum, row) => sum + row.totalTokens, 0n);
+    return unrecorded > 0n ? `${label} (${formatTokenCount(unrecorded)} tokens not recorded)` : label;
+  }
+  const total = rows.reduce((sum, row) => sum + row.totalTokens, 0n);
+  return rows
+    .map(
+      (row) =>
+        `${servedByLabel(row.providerKeySource)} ${formatTokenCount(row.totalTokens)} (${formatShare(row.totalTokens, total)})`,
+    )
+    .join(" · ");
+}
+
+function servedByLabel(source: ProviderKeySource): string {
+  switch (source) {
+    case ProviderKeySource.ORGANIZATION:
+      return "your keys";
+    case ProviderKeySource.PLATFORM:
+      return "Stigmer's free model";
+    case ProviderKeySource.UNSPECIFIED:
+      return "not recorded";
+    default: {
+      const unknown: never = source;
+      return `source ${String(unknown)}`;
+    }
+  }
 }
 
 function formatShare(part: bigint, total: bigint): string {
@@ -246,9 +293,12 @@ function formatShare(part: bigint, total: bigint): string {
   return `${((Number(part) / Number(total)) * 100).toFixed(1)}%`;
 }
 
+// The share of all input served from the cache. The aggregate's input_tokens
+// excludes both cache buckets, so the whole input is the three summed.
 function formatCacheHitRate(usage: UsageReportAggregate | undefined): string {
-  if (usage === undefined || usage.inputTokens === 0n || usage.cacheReadInputTokens === 0n) return "";
-  const rate = (Number(usage.cacheReadInputTokens) / Number(usage.inputTokens)) * 100;
+  if (usage === undefined || usage.cacheReadInputTokens === 0n) return "";
+  const allInput = usage.inputTokens + usage.cacheReadInputTokens + usage.cacheCreationInputTokens;
+  const rate = (Number(usage.cacheReadInputTokens) / Number(allInput)) * 100;
   return `${Math.round(rate)}% cached`;
 }
 

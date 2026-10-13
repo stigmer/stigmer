@@ -43,10 +43,18 @@
 // fixture and approval choreography, and this file is already large):
 // - submitApproval / HITL tool approval -> run-approval.conformance.test.ts.
 //
+// A completed run's usage reports count its tokens: from the server's meter
+// where the target routes the runner's model calls through one
+// (CapabilityFlags.runModelCallsMetered), else from the run's own runner
+// report, marked estimated, the fallback every edition shares. The mock's
+// one text turn carries 10 input and 5 output tokens, so the numbers are
+// exact. The organization report's window is the run's creation day, both
+// bounds inclusive.
+//
 // Deliberately out of scope (each needs machinery this suite doesn't build, and
 // is a conscious deferral, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
-// - usage reports, artifact content, subscribe streaming, sub-agents.
+// - artifact content, subscribe streaming, sub-agents.
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -62,6 +70,8 @@ import {
   FileDecisionScope,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -98,6 +108,24 @@ const fixtures = new FixtureTracker();
 // 24-hour start-to-close. A held turn aborts the instant the client disconnects
 // (cancel/terminate/pause), so the wall-clock cost is tiny.
 const HOLD_MS = 30_000;
+
+// Collection-time capability read: whether this target's runner reaches a
+// meter decides which of the two usage arms below runs.
+const runModelCallsMetered = createTarget().capabilities.runModelCallsMetered;
+
+// The UTC calendar day a run was created on, read from the server's own
+// stamp: the day the usage reports window and bucket it by, immune to a
+// midnight between create and read.
+function createdDayOf(run: Run): string {
+  const createdAt = run.status?.audit?.specAudit?.createdAt;
+  if (createdAt === undefined) throw new Error(`run ${run.metadata?.id ?? "?"} carries no creation stamp`);
+  return timestampDate(createdAt).toISOString().slice(0, 10);
+}
+
+// The UTC calendar day `days` after `day` (YYYY-MM-DD).
+function dayShift(day: string, days: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+}
 
 beforeAll(async () => {
   target = createTarget();
@@ -1198,24 +1226,94 @@ describe("Run conformance — subscribe & populated read surfaces", () => {
     expect(stream.messages[0]?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
-  it("[rpc:RunQueryController.getRunUsageReport] a completed run's usage report answers the zero-valued aggregate (this edition records no usage)", async () => {
+  describe.skipIf(runModelCallsMetered)("a run whose model calls no meter served", () => {
+    it("[billing.rpc.get-run-usage-report.unmetered-run-counts-runner-report] [rpc:RunQueryController.getRunUsageReport] [rpc:RunQueryController.getSessionUsageReport] [rpc:RunQueryController.getAgentUsageReport] a completed run's usage reports carry its runner's tokens, marked estimated", async () => {
+      const { org } = await target.provisionTenancy();
+      const agent = await provisionAgent(org);
+      const created = await createExecution(org, agent);
+      const ended = await awaitTerminal(clients, created.metadata!.id);
+      expect(ended.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+
+      // The runner's own report of the mock's one turn. Its input count
+      // includes the cache buckets; the usage report's does not.
+      const runner = ended.status?.streamingUsage;
+      expect(runner?.inputTokens, "the mock's turn carries 10 input tokens").toBe(10n);
+      expect(runner?.outputTokens, "and 5 output tokens").toBe(5n);
+      expect(runner?.totalTokens).toBe(15n);
+      const model = runner?.model ?? "";
+      expect(model, "the runner names the model it ran").not.toBe("");
+
+      const report = await clients.agentExecutionQuery.getRunUsageReport({ runId: created.metadata!.id });
+      const aggregate = report.aggregate;
+      expect(aggregate, "the aggregate is always present").toBeDefined();
+      expect(aggregate?.inputTokens, "input less the cache buckets").toBe(runner!.inputTokens - runner!.cacheReadTokens - runner!.cacheWriteTokens);
+      expect(aggregate?.cacheReadInputTokens).toBe(runner?.cacheReadTokens);
+      expect(aggregate?.cacheCreationInputTokens).toBe(runner?.cacheWriteTokens);
+      expect(aggregate?.outputTokens).toBe(5n);
+      expect(aggregate?.totalTokens, "the runner's own total").toBe(15n);
+      expect(aggregate?.llmCallCount, "a runner's report counts no calls").toBe(0);
+      expect(aggregate?.primaryModel).toBe(model);
+      expect(
+        aggregate?.servedBy.map((row) => [row.providerKeySource, row.totalTokens, row.llmCallCount]),
+        "no meter saw the calls, so whose key served them is unknown",
+      ).toEqual([[ProviderKeySource.UNSPECIFIED, 15n, 0]]);
+      expect(report.modelBreakdown.map((row) => [row.model, row.totalTokens, row.callCount])).toEqual([[model, 15n, 0]]);
+
+      // The conversation's report marks the run, and so itself, estimated.
+      const session = await clients.agentExecutionQuery.getSessionUsageReport({ sessionId: sessionIdOf(ended) });
+      expect(session.isEstimated).toBe(true);
+      expect(session.totalUsage?.totalTokens).toBe(15n);
+      expect(session.runs.map((run) => [run.runId, run.isEstimated, run.totalTokens])).toEqual([[created.metadata!.id, true, 15n]]);
+
+      const agentReport = await clients.agentExecutionQuery.getAgentUsageReport({ agentId: agent.metadata!.id, org });
+      expect(agentReport.totalRuns).toBe(1);
+      expect(agentReport.totalUsage?.totalTokens).toBe(15n);
+    });
+  });
+
+  describe.skipIf(!runModelCallsMetered)("a run whose model calls the server metered", () => {
+    it("a completed run's usage reports read the meter: calls counted, never estimated", async () => {
+      const { org } = await target.provisionTenancy();
+      const agent = await provisionAgent(org);
+      const created = await createExecution(org, agent);
+      const ended = await awaitTerminal(clients, created.metadata!.id);
+      expect(ended.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+
+      const report = await clients.agentExecutionQuery.getRunUsageReport({ runId: created.metadata!.id });
+      expect(report.aggregate?.llmCallCount, "the meter counts the turn's model call").toBeGreaterThan(0);
+      expect(report.aggregate?.totalTokens).toBe(15n);
+      expect(
+        report.aggregate?.servedBy.map((row) => row.providerKeySource),
+        "the meter knows whose key served each call",
+      ).not.toContain(ProviderKeySource.UNSPECIFIED);
+
+      const session = await clients.agentExecutionQuery.getSessionUsageReport({ sessionId: sessionIdOf(ended) });
+      expect(session.isEstimated).toBe(false);
+      expect(session.runs.map((run) => [run.runId, run.isEstimated, run.totalTokens])).toEqual([[created.metadata!.id, false, 15n]]);
+    });
+  });
+
+  it("[rpc:RunQueryController.getOrgUsageReport] a run is inside the organization report of the day it was created, both bounds inclusive, and outside the days around it", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org);
     const created = await createExecution(org, agent);
-    await awaitTerminal(clients, created.metadata!.id);
+    const ended = await awaitTerminal(clients, created.metadata!.id);
+    const day = createdDayOf(ended);
 
-    // The strongest form of the zero-shapes contract: the execution EXISTS
-    // (the NotFound arm is Class A), yet the aggregate is still a
-    // structurally complete zero report — OSS deliberately aggregates no
-    // usage data at all.
-    const report = await clients.agentExecutionQuery.getRunUsageReport({
-      runId: created.metadata!.id,
-    });
-    expect(report.aggregate, "the aggregate is always present").toBeDefined();
-    expect(report.aggregate?.totalTokens).toBe(0n);
-    expect(report.aggregate?.inputTokens).toBe(0n);
-    expect(report.aggregate?.outputTokens).toBe(0n);
-    expect(report.modelBreakdown).toHaveLength(0);
+    // "Today" as the console asks for it: both bounds the same UTC day. A
+    // run created at any instant of that day is inside it.
+    const today = await clients.agentExecutionQuery.getOrgUsageReport({ org, fromDate: day, toDate: day });
+    expect(today.totalRuns).toBe(1);
+    expect(today.totalAgents).toBe(1);
+    expect(today.totalUsage?.totalTokens).toBe(15n);
+    expect(today.topAgents.map((row) => [row.agentId, row.runCount, row.totalTokens])).toEqual([[agent.metadata!.id, 1, 15n]]);
+    expect(today.dailyUsage.map((row) => [row.date, row.runCount, row.totalTokens])).toEqual([[day, 1, 15n]]);
+    expect(today.harnessUsage.map((row) => [row.runCount, row.totalTokens])).toEqual([[1, 15n]]);
+
+    const before = await clients.agentExecutionQuery.getOrgUsageReport({ org, fromDate: dayShift(day, -1), toDate: dayShift(day, -1) });
+    expect(before.totalRuns, "a window ending the day before leaves the run out").toBe(0);
+    const after = await clients.agentExecutionQuery.getOrgUsageReport({ org, fromDate: dayShift(day, 1), toDate: dayShift(day, 1) });
+    expect(after.totalRuns, "a window starting the day after leaves the run out").toBe(0);
   });
 
   it("[rpc:RunCommandController.submitFileDecision] submitFileDecision refuses a run with no actionable file change sets (FailedPrecondition)", async () => {

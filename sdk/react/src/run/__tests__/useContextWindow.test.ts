@@ -1,3 +1,10 @@
+/**
+ * useContextWindow over a run's context info: the empty state for no run,
+ * no context info or no window limit; utilization health and the
+ * near-threshold flag; summarization events mapped for rendering (tokens,
+ * ratio, duration, model, message counts, and no price); stable references
+ * across re-renders.
+ */
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
@@ -52,7 +59,6 @@ function makeExecutionWithSummarization(): Run {
   event.summarizationModel = "claude-haiku-4";
   event.messagesBefore = 42;
   event.messagesAfter = 12;
-  event.summarizationCostUsd = 0.0008;
 
   exec.status!.contextInfo!.summarizationEvents.push(event);
   return exec;
@@ -151,7 +157,7 @@ describe("useContextWindow", () => {
     expect(event.model).toBe("claude-haiku-4");
     expect(event.messagesBefore).toBe(42);
     expect(event.messagesAfter).toBe(12);
-    expect(event.costUsd).toBeCloseTo(0.0008);
+    expect(event).not.toHaveProperty("costUsd");
   });
 
   it("returns stable reference across re-renders with same input", () => {

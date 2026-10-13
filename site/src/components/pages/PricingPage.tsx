@@ -1,5 +1,14 @@
-"use client";
-
+/**
+ * The public pricing page: Stigmer Cloud's four flat plans, what each adds,
+ * and the one rule behind them — models run on the customer's own provider
+ * keys, so the provider bills every token and Stigmer charges only for the
+ * platform.
+ *
+ * The plan copy is static and mirrors the console's own plan cards (fee,
+ * features, child organizations), so a visitor reads the same words before
+ * and after signing up. Nothing is fetched: there is no price list to load
+ * because no token is priced.
+ */
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -10,55 +19,71 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
-import { CostCalculator } from "@/components/pages/pricing/CostCalculator";
-import { ModelPricingTable } from "@/components/pages/pricing/ModelPricingTable";
-import type { ModelPricingEntry } from "@/components/pages/pricing/types";
 
-const CREDIT_PACKS = [
+type Plan = {
+  id: string;
+  name: string;
+  /** The fee as shown, e.g. "$99"; "Custom" for a quoted plan. */
+  price: string;
+  /** Shown after the fee for a monthly plan. */
+  period?: string;
+  description: string;
+  features: readonly string[];
+  cta: { label: string; href: string; internal?: boolean };
+  featured?: boolean;
+};
+
+const PLANS: readonly Plan[] = [
   {
-    id: "starter",
-    name: "Starter",
-    price: 10,
-    credits: "1,000",
-    description: "Try it out with a small balance.",
-  },
-  {
-    id: "growth",
-    name: "Growth",
-    price: 50,
-    credits: "5,000",
-    description: "For regular development and testing.",
-    featured: true,
+    id: "free",
+    name: "Free",
+    price: "$0",
+    period: "/month",
+    description: "Build agents and put them in front of people.",
+    features: ["Channels", "Sharing", "Unlimited members"],
+    cta: { label: "Start Free", href: SITE_CONFIG.cloudSignupUrl },
   },
   {
     id: "team",
     name: "Team",
-    price: 200,
-    credits: "20,000",
-    description: "For production workloads and teams.",
-  },
-] as const;
-
-const HOW_IT_WORKS_STEPS = [
-  {
-    number: "1",
-    title: "Sign up and get trial credits",
-    description:
-      "Create an account and receive free credits to explore the platform. No credit card required.",
+    price: "$99",
+    period: "/month",
+    description: "Organize your members and grant access by team.",
+    features: ["Everything in Free", "Teams"],
+    cta: { label: "Get Started", href: SITE_CONFIG.cloudSignupUrl },
+    featured: true,
   },
   {
-    number: "2",
-    title: "Run agents, pay per LLM call",
-    description:
-      "Each LLM call during a run is metered and debited from your balance at transparent per-token rates.",
+    id: "business",
+    name: "Business",
+    price: "$499",
+    period: "/month",
+    description: "Run organizations for your own customers under yours.",
+    features: [
+      "Everything in Team",
+      "Child organizations",
+      "5 child organizations included, then $25/month each",
+    ],
+    cta: { label: "Get Started", href: SITE_CONFIG.cloudSignupUrl },
   },
   {
-    number: "3",
-    title: "Buy more or auto-recharge",
-    description:
-      "Purchase credit packs when you need them, or enable auto-recharge to keep your balance topped up automatically.",
+    id: "enterprise",
+    name: "Enterprise",
+    price: "Custom",
+    description: "Quoted for your organization.",
+    features: [
+      "A dedicated deployment",
+      "SSO enforcement",
+      "An SLA",
+      "Annual invoicing",
+    ],
+    cta: {
+      label: "Contact Sales",
+      href: SITE_CONFIG.contactSalesUrl,
+      internal: true,
+    },
   },
-] as const;
+];
 
 type FaqItem = {
   q: string;
@@ -69,51 +94,36 @@ type FaqItem = {
 
 const FAQ_ITEMS: readonly FaqItem[] = [
   {
-    q: "What are credits?",
-    a: "Credits are dollar-denominated units used for Stigmer Cloud billing. 1 credit = $0.01 USD. When your AI agents make LLM calls, tokens are metered and the cost is debited from your credit balance.",
+    q: "Do you charge for tokens?",
+    a: "No. A plan's price is its flat monthly fee, and Stigmer never adds anything to a model call. Your token usage is still counted, so you can see it per run, session, agent and organization in the console and the CLI.",
+    link: {
+      href: "/docs/concepts/billing#see-your-usage",
+      label: "See your usage",
+    },
   },
   {
-    q: "Do credits expire?",
-    a: "Purchased credits expire 12 months after purchase. Promotional and trial credits expire after 90 days. Credits are non-refundable once used.",
+    q: "Whose model keys do my agents use?",
+    a: "Your own. An admin adds your organization's Anthropic or OpenAI key, a compatible endpoint, or a Cursor key in the console, and every model call runs on it, on every plan. Your provider bills those calls to you directly.",
+    link: {
+      href: "/docs/guides/integrations/model-provider-keys",
+      label: "Model provider keys",
+    },
   },
   {
-    q: "How does auto-recharge work?",
-    a: "Save a payment method during your first purchase. Then configure auto-recharge in your billing settings — set a threshold, recharge amount, and monthly cap. When your balance drops below the threshold, we automatically charge your saved card.",
-  },
-  {
-    q: "What happens when my balance runs out?",
-    a: "Runs in progress will finish their current LLM call, then stop gracefully. You will see low-balance warnings before that happens. New runs cannot start until credits are added.",
+    q: "How are plans billed?",
+    a: "A paid plan is invoiced through Stripe at the end of each monthly period and charged to the card on file, with tax added where it applies. Changing plans takes effect at once and is prorated; canceling keeps your plan until the end of the period you paid for. On Business, each child organization past the five included adds $25 a month.",
   },
   {
     q: "Can I self-host for free?",
-    a: "Yes. Stigmer's core is open source under Apache 2.0; Stigmer Enterprise, in the repository's ee/ directory, is public under the Stigmer Enterprise License and needs a license key in production. Self-host it anywhere — there is no vendor lock-in. Cloud billing only applies when you use Stigmer Cloud (app.stigmer.ai).",
+    a: "Yes. Stigmer's core is open source under Apache 2.0; Stigmer Enterprise, in the repository's ee/ directory, is public under the Stigmer Enterprise License and needs a license key in production. Self-host it anywhere — there is no vendor lock-in. Cloud plans only apply when you use Stigmer Cloud (app.stigmer.ai).",
     link: {
       href: "/docs/guides/self-hosting/cloud-vs-self-hosted",
       label: "Compare cloud and self-hosted",
     },
   },
-  {
-    q: "How is pricing calculated?",
-    a: "Each LLM call is priced based on the model used and the number of input and output tokens. Rates include a small platform margin over provider costs. See the pricing table above for exact per-model rates.",
-  },
-] as const;
+];
 
 function PricingPage() {
-  const [pricingData, setPricingData] = React.useState<ModelPricingEntry[]>([]);
-  const [pricingLoaded, setPricingLoaded] = React.useState(false);
-
-  React.useEffect(() => {
-    fetch(`${SITE_CONFIG.cloudApiUrl}/api/v1/public/model-pricing`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
-      .then((data: { entries: ModelPricingEntry[] }) => {
-        setPricingData(data.entries);
-        setPricingLoaded(true);
-      })
-      .catch(() => {
-        setPricingLoaded(true);
-      });
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
       <SkipLink />
@@ -128,129 +138,54 @@ function PricingPage() {
                 Pricing
               </p>
               <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-6">
-                Pay only for what you use.
+                Pay for the platform, not the tokens.
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Stigmer Cloud uses prepaid credits. Purchase credits, run your
-                AI agents, and only pay for the LLM calls they make.
-                Transparent per-token pricing with no hidden fees.
+                Every Stigmer Cloud plan is a flat monthly fee. Your agents run
+                on your own model provider keys, so your provider bills every
+                token directly and Stigmer adds nothing to it.
               </p>
             </FadeInUp>
           </div>
         </section>
 
-        {/* How It Works */}
+        {/* Plans */}
         <section className="py-12 sm:py-16 px-4">
-          <div className="max-w-5xl mx-auto">
-            <FadeInUp>
-              <h2 className="text-xs font-mono uppercase tracking-wider text-subtle mb-8 text-center">
-                How it works
-              </h2>
-            </FadeInUp>
-            <StaggerContainer
-              className="grid grid-cols-1 md:grid-cols-3 gap-8"
-              staggerDelay={0.1}
-              delayChildren={0.1}
-            >
-              {HOW_IT_WORKS_STEPS.map((step) => (
-                <StaggerItem key={step.number}>
-                  <div className="text-center">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border text-sm font-mono text-foreground mb-4">
-                      {step.number}
-                    </div>
-                    <h3 className="text-sm font-semibold text-foreground mb-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {step.description}
-                    </p>
-                  </div>
-                </StaggerItem>
-              ))}
-            </StaggerContainer>
-          </div>
-        </section>
-
-        {/* Credit Packs */}
-        <section className="py-12 sm:py-16 px-4">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <FadeInUp>
               <div className="text-center mb-12">
                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
-                  Credit Packs
+                  Plans
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Purchase credits in packs. 1 credit = $0.01 USD.
+                  Every organization starts on Free. Upgrade when you need
+                  what a plan adds.
                 </p>
               </div>
             </FadeInUp>
 
             <StaggerContainer
-              className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border rounded-lg overflow-hidden border border-border"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden border border-border"
               staggerDelay={0.1}
               delayChildren={0.1}
             >
-              {CREDIT_PACKS.map((pack) => (
-                <StaggerItem key={pack.id}>
-                  <CreditPackCard pack={pack} />
+              {PLANS.map((plan) => (
+                <StaggerItem key={plan.id}>
+                  <PlanCard plan={plan} />
                 </StaggerItem>
               ))}
             </StaggerContainer>
 
             <FadeInUp delay={0.3}>
               <div className="text-center mt-8">
-                <p className="text-sm text-subtle">
-                  All new accounts receive free trial credits. No credit card
-                  required to start.
+                <p className="text-sm text-subtle max-w-2xl mx-auto">
+                  Models run on your own provider keys, and your provider
+                  bills you directly. Stigmer never charges for tokens.
                 </p>
               </div>
             </FadeInUp>
           </div>
         </section>
-
-        {/* Model Pricing Table */}
-        {pricingLoaded && pricingData.length > 0 && (
-          <section className="py-12 sm:py-16 px-4">
-            <div className="max-w-5xl mx-auto">
-              <FadeInUp>
-                <div className="text-center mb-12">
-                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
-                    Per-Model Pricing
-                  </h2>
-                  <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-                    Prices per million tokens, including platform margin.
-                    These are what you pay — not raw provider rates.
-                  </p>
-                </div>
-              </FadeInUp>
-              <FadeInUp delay={0.1}>
-                <ModelPricingTable entries={pricingData} />
-              </FadeInUp>
-            </div>
-          </section>
-        )}
-
-        {/* Cost Calculator */}
-        {pricingLoaded && pricingData.length > 0 && (
-          <section className="py-12 sm:py-16 px-4" id="calculator">
-            <div className="max-w-4xl mx-auto">
-              <FadeInUp>
-                <div className="text-center mb-12">
-                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
-                    Estimate Your Cost
-                  </h2>
-                  <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-                    Select the models you plan to use and estimate your monthly
-                    token volume to see projected costs.
-                  </p>
-                </div>
-              </FadeInUp>
-              <FadeInUp delay={0.1}>
-                <CostCalculator models={pricingData} />
-              </FadeInUp>
-            </div>
-          </section>
-        )}
 
         {/* FAQ */}
         <section className="py-12 sm:py-16 px-4">
@@ -298,8 +233,8 @@ function PricingPage() {
                     >
                       billing documentation
                     </Link>{" "}
-                    for a full explanation of how credits, reservations,
-                    auto-recharge, and pricing policies work.
+                    for how plans are invoiced, how plan changes and
+                    cancellations work, and where to see your token usage.
                   </p>
                 </div>
               </FadeInUp>
@@ -312,11 +247,11 @@ function PricingPage() {
           <div className="max-w-3xl mx-auto text-center">
             <FadeInUp>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
-                Need custom pricing?
+                Need custom terms?
               </h2>
               <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-                For committed usage, volume discounts, invoiced billing, or
-                dedicated infrastructure — talk to our team.
+                For a dedicated deployment, SSO enforcement, an SLA or annual
+                invoicing — talk to our team.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button asChild size="lg">
@@ -344,12 +279,12 @@ function PricingPage() {
   );
 }
 
-interface CreditPackCardProps {
-  pack: (typeof CREDIT_PACKS)[number];
+interface PlanCardProps {
+  plan: Plan;
 }
 
-function CreditPackCard({ pack }: CreditPackCardProps) {
-  const featured = "featured" in pack && pack.featured;
+function PlanCard({ plan }: PlanCardProps) {
+  const featured = plan.featured === true;
   return (
     <div
       className={cn(
@@ -359,24 +294,36 @@ function CreditPackCard({ pack }: CreditPackCardProps) {
     >
       <div className="mb-6">
         <h3 className="text-xs font-mono uppercase tracking-wider text-subtle mb-3">
-          {pack.name}
+          {plan.name}
         </h3>
         <div className="flex items-baseline gap-1.5 mb-2">
           <span className="text-3xl font-bold text-foreground">
-            ${pack.price}
+            {plan.price}
           </span>
+          {plan.period && (
+            <span className="text-sm text-muted-foreground">
+              {plan.period}
+            </span>
+          )}
         </div>
-        <p className="text-sm text-muted-foreground">{pack.description}</p>
+        <p className="text-sm text-muted-foreground">{plan.description}</p>
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
-        <Icon
-          name="check"
-          size="sm"
-          className="text-foreground shrink-0"
-        />
-        <span>{pack.credits} credits included</span>
-      </div>
+      <ul className="space-y-3 mb-8" aria-label={`${plan.name} features`}>
+        {plan.features.map((feature) => (
+          <li
+            key={feature}
+            className="flex items-start gap-2 text-sm text-muted-foreground"
+          >
+            <Icon
+              name="check"
+              size="sm"
+              className="text-foreground shrink-0 mt-0.5"
+            />
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
 
       <div className="mt-auto">
         <Button
@@ -384,7 +331,11 @@ function CreditPackCard({ pack }: CreditPackCardProps) {
           variant={featured ? "default" : "outline"}
           className="w-full"
         >
-          <a href={SITE_CONFIG.cloudSignupUrl}>Get Started</a>
+          {plan.cta.internal ? (
+            <Link href={plan.cta.href}>{plan.cta.label}</Link>
+          ) : (
+            <a href={plan.cta.href}>{plan.cta.label}</a>
+          )}
         </Button>
       </div>
     </div>

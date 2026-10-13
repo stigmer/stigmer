@@ -1,9 +1,9 @@
-View token usage and cost reports at different levels of detail.
+View token usage reports at different levels of detail.
 
-`stigmer usage` shows how many tokens your agents consumed and the
-associated costs. Reports are available at three levels: per-session,
-per-agent, and per-organization. Costs are calculated using the model
-pricing at the time of each run.
+`stigmer usage` shows how many tokens your agents used and who served them.
+Reports are available at three levels: per-session, per-agent, and
+per-organization. Usage is counted in tokens; Stigmer never prices it. Your
+model provider bills the calls made on your own keys.
 
 {/* AUTO_USAGE */}
 
@@ -30,12 +30,26 @@ stigmer usage org --from 2026-03-01 --to 2026-03-31
 | `usage agent` | All sessions for an agent | Optional `--from` / `--to` |
 | `usage org` | Entire organization | Required `--from` / `--to` |
 
+A date is a UTC calendar day (`2026-03-01`) or an RFC 3339 instant
+(`2026-03-01T09:00:00Z`). Both bounds are inclusive: `--to 2026-03-31`
+counts every run created on March 31. A run counts in the range it was
+created in.
+
 ### What the report includes
 
-- **Summary**: Total tokens (input + output), total cost
-- **Per-model breakdown**: Token counts and costs by LLM model
-- **Per-run detail** (session level): Each run with its model, tokens, and cost
-- **Cache statistics**: Cached vs uncached token usage
+- **Summary**: Total tokens (input, output and cached), and the average per run
+- **Served by**: Whose provider credential served the tokens: your own keys,
+  or Stigmer's free model where one is offered, split by share when both
+  appear
+- **Per-model breakdown**: Tokens by LLM model and each model's share
+- **Per-run detail** (session level): Each run with its model, tokens, and status
+- **Organization detail**: The agents with the most tokens, the split by
+  harness, and tokens per day
+- **Cache statistics**: The share of input served from the cache
+
+Numbers marked **estimated** (or `~` beside a run) were counted from the
+run's own report rather than metered call by call. This is how every run is
+counted on a self-hosted deployment.
 
 {/* AUTO_SUBCOMMANDS */}
 

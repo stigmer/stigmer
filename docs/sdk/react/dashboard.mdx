@@ -45,9 +45,9 @@ report into a single [`DashboardSummary`](#dashboardsummary).
 
 - Run counts (active, completed, failed) come from the run
   summary over the last seven days.
-- Cost comes from `getOrgUsageReport` (billing source of truth), not
-  from summing per-run costs, so the dashboard shows what billing
-  recorded.
+- Tokens come from `getOrgUsageReport` (`total_usage.total_tokens`),
+  which counts each run once, so the dashboard and the Usage page show
+  the same number for the same window.
 
 **Signature**
 
@@ -79,9 +79,9 @@ Data hook that fetches aggregated run statistics for an
 organization. Returns phase counts, active count, average duration,
 and top failing agents.
 
-Cost is intentionally excluded from this response — the dashboard
-sources cost from `useOrgUsageReport` (billing source of truth), so
-cost is never counted from two sources.
+Usage is intentionally excluded from this response — the dashboard
+reads tokens from `useOrgUsageReport`, so usage is never counted from
+two sources.
 
 **Signature**
 
@@ -148,10 +148,10 @@ timestamp.
 ### DashboardKPICards
 
 Stat cards showing an organization's run KPIs: active,
-completed and failed runs, and total cost.
+completed and failed runs, and the organization's tokens.
 
-Cost comes from the billing source of truth (getOrgUsageReport),
-not from summing per-run costs, so the card shows what billing recorded.
+Tokens come from the org usage report (getOrgUsageReport), which counts
+each run once, so the card matches the Usage page.
 
 
 ### DashboardKPICardsProps
@@ -170,17 +170,16 @@ not from summing per-run costs, so the card shows what billing recorded.
 Dashboard summary of an organization's runs.
 
 Run counts (active, completed, failed) come from the run summary.
-Cost comes from `GetOrgUsageReportOutput` (billing source of truth),
-not from summing per-run costs, so the dashboard shows what billing
-recorded.
+Tokens come from the org usage report (`GetOrgUsageReportOutput`),
+which counts each run once, so the dashboard and the Usage page agree.
 
 <TypeTable
   type={{
     activeCount: { type: "number", description: "Active run count.", required: true },
     completedCount: { type: "number", description: "Completed run count.", required: true },
     failedCount: { type: "number", description: "Failed run count.", required: true },
-    orgUsage: { type: "GetOrgUsageReportOutput | null", description: "Org-level usage report for cost details.", required: true },
-    totalCostUsd: { type: "number", description: "Total platform cost in USD from the billing source of truth. Sourced from `getOrgUsageReport.total_billable_cost_micros`.", required: true },
+    orgUsage: { type: "GetOrgUsageReportOutput | null", description: "Org-level usage report for token details.", required: true },
+    totalTokens: { type: "number", description: "The organization's total tokens over the dashboard's window, from `getOrgUsageReport.total_usage.total_tokens`.", required: true },
   }}
 />
 
@@ -191,12 +190,11 @@ Composed dashboard widget showing an organization's run
 operational metrics.
 
 Layout:
-- Row 1: KPI stat cards (Active | Completed | Failed | Total Cost)
+- Row 1: KPI stat cards (Active | Completed | Failed | Tokens)
 - Row 2: Recent Failures
 
-Cost comes from the billing source of truth (`getOrgUsageReport`),
-not from summing per-run costs, so the dashboard shows what billing
-recorded.
+Tokens come from the org usage report (`getOrgUsageReport`), which
+counts each run once, so the dashboard matches the Usage page.
 
 ```tsx
 <OperationalDashboard

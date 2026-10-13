@@ -1986,6 +1986,7 @@ export async function composeServer(
       credentialBinding,
       authorizationLifecycle,
       listReadScope,
+      meteredUsageProvider: extensions.drivers.meteredUsageProvider,
       personAccounts,
       visitorClassifier: extensions.drivers.visitorClassifier,
       runLanes: extensions.drivers.runLanes,

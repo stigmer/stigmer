@@ -1,13 +1,11 @@
 // Billing — the customer-facing surface: subscription plans, the card on
-// file and the Stripe billing portal, provider keys, and the meter's call
-// and run counts. The platform-operator model catalog (registry baseline
+// file and the Stripe billing portal, and provider keys. Token usage lives
+// in ../usage; the platform-operator model catalog (registry baseline
 // authoring) lives in ../model-catalog.
 
 // Data hooks
 export { useBillingAccount } from "./useBillingAccount.js";
 export type { UseBillingAccountOptions, UseBillingAccountReturn } from "./useBillingAccount.js";
-export { useBillingUsageReport } from "./useBillingUsageReport.js";
-export type { UseBillingUsageReportReturn } from "./useBillingUsageReport.js";
 export { usePlans } from "./usePlans.js";
 export type { UsePlansOptions, UsePlansReturn } from "./usePlans.js";
 export { useSubscription } from "./useSubscription.js";

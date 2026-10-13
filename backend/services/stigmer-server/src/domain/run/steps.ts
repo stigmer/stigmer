@@ -1,7 +1,6 @@
 /**
  * Run domain steps — the list-side chains from list.go and
- * list_by_session.go, plus the full-scan load helper the usage reports
- * share.
+ * list_by_session.go.
  *
  * Both lists read through the list index (list-index.ts beside this file;
  * the store's contract in store/interface.ts), newest first by spec-audit
@@ -45,24 +44,6 @@ export const EXECUTION_LIST_KEY = "execution_list";
 type ListDesc = typeof RunQueryController.method.list.input;
 type ListBySessionDesc =
   typeof RunQueryController.method.listBySession.input;
-
-/**
- * Full-scan agent-execution load for the usage reports, whose org match
- * is case-insensitive (Go strings.EqualFold) where the list index's is
- * exact; malformed rows warn + skip (Go's proto.Unmarshal-continue).
- */
-export async function loadAllAgentExecutions(
-  store: Store,
-  logger: Logger,
-): Promise<Run[]> {
-  let rows: Uint8Array[];
-  try {
-    rows = await store.listResources(ApiResourceKind.run);
-  } catch (error) {
-    throw internalError(error, "failed to list agent executions");
-  }
-  return decodeExecutions(rows, logger);
-}
 
 /** ValidateListRequest — list.go: no required fields today (a no-op). */
 export function newValidateListRequestStep(): PipelineStep<ListDesc> {

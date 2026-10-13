@@ -1415,7 +1415,7 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.run.v1.Get
 
   /**
    * Whether any run in this session is counted from its runner's own report
-   * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
+   * rather than from the deployment's metered model calls.
    *
    * @generated from field: bool is_estimated = 8;
    */
@@ -1758,7 +1758,7 @@ export type RunUsageSummary = Message<"ai.stigmer.agentic.run.v1.RunUsageSummary
 
   /**
    * Whether this run is counted from its runner's own report rather than
-   * the deployment's meter (usage.proto, USAGE REPORT TYPES).
+   * from the deployment's metered model calls.
    *
    * @generated from field: bool is_estimated = 11;
    */

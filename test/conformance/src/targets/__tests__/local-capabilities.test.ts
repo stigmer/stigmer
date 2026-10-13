@@ -33,6 +33,7 @@ const HOSTED_ONLY: ReadonlyArray<keyof CapabilityFlags> = [
   "authorizationQueries",
   "guestMinting",
   "cloudTargetRefusesLocalPrograms",
+  "runModelCallsMetered",
 ];
 
 describe("the open-source targets' capability flags", () => {

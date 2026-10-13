@@ -32,7 +32,6 @@
       "useSessionConversation": "/docs/sdk/react/session",
       "useSessionUsage": "/docs/sdk/react/usage",
       "isTerminalPhase": "/docs/sdk/react/run",
-      "formatCost": "/docs/sdk/react/usage",
       "formatTokenCount": "/docs/sdk/react/usage",
       "useContextWindow": "/docs/sdk/react/run",
       "useAgentSearch": "/docs/sdk/react/agent",

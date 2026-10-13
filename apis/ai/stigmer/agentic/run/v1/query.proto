@@ -149,8 +149,9 @@ service RunQueryController {
   // Usage Report Operations
   //
   // These RPCs show token consumption at run, session, agent, and
-  // organization levels, never a price. Where the numbers come from is in
-  // usage.proto (USAGE REPORT TYPES).
+  // organization levels, never a price. A run the deployment's meter
+  // recorded is counted from its metered model calls; any other run from
+  // its runner's own report, marked estimated.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Get a usage report for a single run.

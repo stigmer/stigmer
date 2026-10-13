@@ -101,21 +101,17 @@ with StigmerClient("sk_live_abc123") as client:
 ## Billing
 
 An organization's billing account (its Stripe customer), the Stripe portal
-and card setup sessions, and the usage meter's run and call counts. Queries
-require `can_view_billing` on the org and the org's own billing commands
-require `can_manage_billing`. The operator pricing methods
+and card setup sessions. Token usage is read from the run client's usage
+reports (`get_run_usage_report`, `get_session_usage_report`,
+`get_agent_usage_report`, `get_org_usage_report`), counted in tokens and never
+priced. Queries require `can_view_billing` on the org and the org's own
+billing commands require `can_manage_billing`. The operator pricing methods
 (`list_model_pricing_baselines`, `upsert_model_pricing_baseline`,
 `retire_model_pricing_baseline`) require `can_manage_model_pricing` on the
 platform:
 
 ```python
-from datetime import datetime, timezone
-
-from stigmer import (
-    CreatePaymentMethodSetupSessionParams,
-    GetBillingUsageReportParams,
-    StigmerClient,
-)
+from stigmer import CreatePaymentMethodSetupSessionParams, StigmerClient
 
 with StigmerClient("sk_live_abc123") as client:
     account = client.billing.get_billing_account(org)
@@ -127,13 +123,6 @@ with StigmerClient("sk_live_abc123") as client:
             cancel_url="https://example.com/billing",
         )
     )
-
-    report = client.billing.get_billing_usage_report(GetBillingUsageReportParams(
-        org=org,
-        start_time=datetime(2026, 10, 1, tzinfo=timezone.utc),
-        end_time=datetime(2026, 11, 1, tzinfo=timezone.utc),
-    ))
-    print(report.run_count, report.llm_call_count)
 ```
 
 ## Error Handling

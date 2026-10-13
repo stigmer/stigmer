@@ -1133,7 +1133,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether any run in this session is counted from its runner's own report\n rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).",
+          "description": "Whether any run in this session is counted from its runner's own report\n rather than from the deployment's metered model calls.",
           "required": false
         }
       ]

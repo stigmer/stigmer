@@ -1,7 +1,9 @@
 // The post-stream epilogue, shared by every renderer (Go's streamAgentEpilogue +
 // run_display_summary.go). After the stream ends we fetch the authoritative final
-// run and a usage report, then print a compact, copy-paste-friendly exit
-// summary to stderr (AI content already went to stdout). A stream that failed
+// run and its usage report, then print a compact, copy-paste-friendly exit
+// summary to stderr (AI content already went to stdout). A completed turn
+// names its duration and its tokens, never a price; tokens counted from the
+// runner's own report rather than the meter carry a "~". A stream that failed
 // before reaching a phase is re-raised as a CLI error.
 
 import { create } from "@bufbuild/protobuf";
@@ -12,6 +14,7 @@ import type { UsageReportAggregate } from "@stigmer/protos/ai/stigmer/agentic/ru
 import type { Stigmer } from "@stigmer/sdk";
 import { CliExitError, ExitCode } from "../../errors/index.js";
 import { shouldColorize, styler } from "../../output/style.js";
+import { formatTokenCount } from "../run-format.js";
 import { mapPhaseToString } from "../stream/convert.js";
 import type { HeadlessResult } from "../stream/headless.js";
 
@@ -44,8 +47,8 @@ export async function runEpilogue(
   return exec;
 }
 
-// Best-effort usage fetch; a failure here must not fail the run (Go tolerates a
-// nil usage report and renders without the cost line).
+// Best-effort usage fetch; a failure here must not fail the run (the summary
+// renders without the token count).
 async function fetchUsage(client: Stigmer, runId: string): Promise<UsageReportAggregate | undefined> {
   try {
     const report = await client.run.getRunUsageReport(
@@ -71,11 +74,11 @@ function printSessionExit(
 ): void {
   const phase = exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const duration = formatDuration(exec.status?.startedAt ?? "", exec.status?.completedAt ?? "");
-  const cost = usage !== undefined && usage.billableCostMicros > 0n ? formatCost(usage.billableCostMicros) : "";
+  const tokens = formatRunTokens(usage);
 
   switch (phase) {
     case RunPhase.RUN_COMPLETED:
-      write(s.green(completedLine(duration, cost)));
+      write(s.green(completedLine(duration, tokens)));
       break;
     case RunPhase.RUN_FAILED:
       write(s.red(`✗ Failed: ${resolveFailureError(exec)}`));
@@ -105,10 +108,19 @@ function printCompletion(write: Write, s: Styler, exec: Run): void {
   write(s.green(`✓ Run ${mapPhaseToString(phase)}`));
 }
 
-function completedLine(duration: string, cost: string): string {
-  if (duration !== "" && cost !== "") return `✓ Completed (${duration} · ${cost})`;
-  if (duration !== "") return `✓ Completed (${duration})`;
-  return "✓ Completed";
+function completedLine(duration: string, tokens: string): string {
+  const parts = [duration, tokens].filter((part) => part !== "");
+  return parts.length > 0 ? `✓ Completed (${parts.join(" · ")})` : "✓ Completed";
+}
+
+// "18.4k tokens", or "" when the report is missing or counted none. The run
+// aggregate carries no estimated flag of its own: a run counted from its
+// runner's report adds tokens and no metered calls, so tokens with zero calls
+// read as estimated ("~18.4k tokens").
+function formatRunTokens(usage: UsageReportAggregate | undefined): string {
+  if (usage === undefined || usage.totalTokens <= 0n) return "";
+  const estimated = usage.llmCallCount === 0 ? "~" : "";
+  return `${estimated}${formatTokenCount(usage.totalTokens)} tokens`;
 }
 
 function resumeVerb(phase: RunPhase): string {
@@ -155,12 +167,4 @@ function formatDuration(startedAt: string, completedAt: string): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return seconds === 0 ? `${minutes}m` : `${minutes}m${seconds}s`;
-}
-
-// USD from micros. Mirrors usage.ts's formatCost precision tiers.
-function formatCost(micros: bigint): string {
-  const usd = Number(micros) / 1_000_000;
-  if (usd === 0) return "$0.00";
-  if (usd < 1) return `$${usd.toFixed(3)}`;
-  return `$${usd.toFixed(2)}`;
 }

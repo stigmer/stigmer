@@ -601,10 +601,12 @@ match counts) as the web console.
 
 ### UsageWidget
 
-Compact terminal widget showing session-level token usage and cost.
+Compact terminal widget showing the session's token usage: total tokens
+("estimated" when any run was counted from its runner's own report rather
+than the deployment's meter), the metered call count when there is one, and
+the primary model. Usage is counted in tokens; no price is shown.
 
-Aggregates usage data from `usageSummary` across all runs
-in the session. Renders nothing when no usage data is available.
+Renders nothing when the session has no usage yet.
 
 Uses the headless `useSessionUsage` hook from `@stigmer/react`.
 

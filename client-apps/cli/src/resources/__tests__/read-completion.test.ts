@@ -69,7 +69,7 @@ const knownSearchResult = create(SearchResultSchema, {
 const knownUsage = create(GetSessionUsageReportOutputSchema, {
   sessionId: "ses_1",
   runCount: 1,
-  modelBreakdown: [{ model: "claude-sonnet-4", inputTokens: 1000n, outputTokens: 100n, billableCostMicros: 500000n }],
+  modelBreakdown: [{ model: "claude-sonnet-4", inputTokens: 1000n, outputTokens: 100n, totalTokens: 1100n }],
 });
 
 let backend: Http2Server;
@@ -192,6 +192,8 @@ describe("session integration", () => {
 describe("usage integration", () => {
   it("fetches a session usage report and renders the table", async () => {
     const report = await getSessionUsageReport(client, "ses_1");
-    expect(renderSessionUsage(report, "table")).toContain("Session: ses_1");
+    const table = renderSessionUsage(report, "table");
+    expect(table).toContain("Session: ses_1");
+    expect(table).toMatch(/claude-sonnet-4\s+1\.0k\s+100\s+0\s+1\.1k/); // the model's tokens survive the wire
   });
 });

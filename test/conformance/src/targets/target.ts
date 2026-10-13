@@ -283,9 +283,9 @@ export interface CapabilityFlags {
   // the edition sentence, never INTERNAL; where false, the suite PINS that
   // refusal on all four lanes.
   authorizationQueries: boolean;
-  // The billing ENGINE is served here: the 9 RPCs of BillingCommandController
+  // The billing ENGINE is served here: the 8 RPCs of BillingCommandController
   // and BillingQueryController (the organization's billing account and its
-  // Stripe customer, the usage meter and its counts, the model catalog's
+  // Stripe customer, the usage meter the run reports read, the model catalog's
   // operator lanes) and the Stripe webhook at POST /webhook/stripe. Distinct
   // from `billingGates` (run admission on the organization's provider keys),
   // which a target could in principle serve without owning the engine.
@@ -303,7 +303,7 @@ export interface CapabilityFlags {
   // SubscriptionCommandController and SubscriptionQueryController (the
   // organization's binding to a plan and the entitlements it derives). A flag
   // of its own because the four controllers are separate kinds from the
-  // billing engine's 9 RPCs: a target can own the engine and not the plans,
+  // billing engine's 8 RPCs: a target can own the engine and not the plans,
   // as the Cloud did until the subscription engine landed.
   //
   // True for cloud. False for the local OSS targets by the same edition
@@ -380,6 +380,24 @@ export interface CapabilityFlags {
   // can stand in for one. A Cursor arm reads this and skips with
   // CURSOR_KEY_SKIP_REASON (targets/cloud.ts) where it is false.
   cursorRunsAdmitted: boolean;
+  // The runs an execution arm creates have their model calls served through
+  // a meter the server reads its usage reports from: the run's report then
+  // counts the calls the meter saw (llm_call_count above zero, not
+  // estimated, served_by naming whose key served them) instead of the run's
+  // own runner report.
+  //
+  // False for the local OSS targets BY THE EDITION: open source composes no
+  // meter, so every run is counted from its runner's report and marked
+  // estimated. False for the cloud targets BY THE ENVIRONMENT: the readout's
+  // runner dials the suite's mock LLM directly rather than the
+  // composition's proxy lane, so no model call an execution arm scripts
+  // reaches the meter, and the cloud counts those runs from the runner's
+  // report too, the fallback both editions share. The metered read is
+  // proven on the cloud target by the proxy suite, whose relayed calls name
+  // a run (proxy.llm.usage.*); where a target routes its runner through the
+  // meter, the execution arm gated on this flag runs instead of the
+  // estimated one.
+  runModelCallsMetered: boolean;
 }
 
 // The Stripe webhook lane as the suite drives it: where the composition

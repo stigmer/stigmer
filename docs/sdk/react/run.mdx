@@ -1995,13 +1995,14 @@ Importable on its own by platform builders composing custom tool UIs.
 
 ### UsageWidget
 
-Right-sidebar widget that displays session-level cost and token
-usage aggregated from per-message `LlmCallMetrics`.
+Right-sidebar widget that displays the session's token usage.
 
-Usage data is computed purely from messages the frontend already
-has — no server RPC is required for the real-time widget.
+Shows the session's total tokens (marked "Estimated" when any run is
+counted from its runner's own report), the model or per-model tokens,
+metered call count, the prompt/completion and cache split, and who
+served the tokens when that is known.
 
-Returns `null` when no run has usage data, matching the
+Returns `null` when the session has no usage, matching the
 conditional-render pattern of [`ArtifactsWidget`](#artifactswidget) and
 [`WriteBacksWidget`](#writebackswidget).
 
@@ -2013,7 +2014,7 @@ Console dependencies.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS classes for the root element." },
-    runs: { type: "readonly Run[]", description: "All runs for the current session — both completed and actively streaming.  The widget aggregates cost data across every run's `usageSummary` (proxy-maintained), presenting a session-level total that never resets.  Renders nothing when the list is empty or no run has usage data.", required: true },
+    runs: { type: "readonly Run[]", description: "All runs for the current session — both completed and actively streaming. The widget reads the session usage report for the session these runs belong to, and polls it while any of them is in flight.  Renders nothing when the list is empty or the session has no usage.", required: true },
   }}
 />
 
@@ -2927,18 +2928,6 @@ formatArtifactSize(2621440n); // "2.5 MB"
 ```
 
 
-### formatCost
-
-Formats a USD cost value for display.
-- Zero: "$0.00"
-- Under $1: 4 decimal places ("$0.0042")
-- $1 and above: 2 decimal places ("$1.23")
-
-```tsx
-function formatCost(usd: number): string
-```
-
-
 ### formatDuration
 
 Returns a human-readable duration string from two ISO 8601 timestamps, or
@@ -3757,7 +3746,7 @@ Collapsible badge showing summarization event history for a run.
 
 Collapsed state shows a count badge ("2 summarizations").
 Expanded state lists each event with before/after token counts,
-compression ratio, duration, and cost.
+compression ratio, duration, and model.
 
 Returns `null` when there are no events.
 
@@ -3792,7 +3781,7 @@ positioned chronologically between messages based on the event timestamp.
 Shows:
 - "Context compacted" header with compression icon
 - Token reduction (before -> after) and compression percentage
-- Duration, model, and cost when available (native harness)
+- Duration and model when available (native harness)
 - For Cursor harness (model/duration unavailable): "Detected context compaction"
 
 All visual properties flow through `--stgm-*` tokens.
@@ -3817,7 +3806,6 @@ Normalized view of a single summarization event for rendering.
 <TypeTable
   type={{
     compressionRatio: { type: "number", description: "", required: true },
-    costUsd: { type: "number", description: "", required: true },
     durationMs: { type: "number", description: "", required: true },
     messagesAfter: { type: "number", description: "", required: true },
     messagesBefore: { type: "number", description: "", required: true },

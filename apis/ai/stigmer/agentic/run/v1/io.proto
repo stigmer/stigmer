@@ -861,8 +861,10 @@ message GetArtifactContentResponse {
 //
 // Request/response messages for usage reporting RPCs that show token
 // consumption at run, session, agent, and organization levels. Usage is
-// counted in tokens and calls, never priced; token counts are int64. Where
-// the numbers come from is in usage.proto (USAGE REPORT TYPES).
+// counted in tokens and calls, never priced; token counts are int64.
+// A run the deployment's meter recorded is counted from its
+// metered model calls; any other run from its runner's own report, marked
+// estimated.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GetRunUsageReportInput requests a usage report for a single run.
@@ -915,7 +917,7 @@ message GetSessionUsageReportOutput {
   string last_run_at = 7;
 
   // Whether any run in this session is counted from its runner's own report
-  // rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
+  // rather than from the deployment's metered model calls.
   bool is_estimated = 8;
 }
 
@@ -1086,7 +1088,7 @@ message RunUsageSummary {
   RunPhase phase = 10;
 
   // Whether this run is counted from its runner's own report rather than
-  // the deployment's meter (usage.proto, USAGE REPORT TYPES).
+  // from the deployment's metered model calls.
   bool is_estimated = 11;
 
   // Total tokens for this run (cache-inclusive, as the aggregate's).

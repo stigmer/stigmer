@@ -55,56 +55,6 @@ return <div>Card: {account.defaultPaymentMethod?.last4 ?? "none"}</div>;
 ```
 
 
-### useBillingUsageReport
-
-Data hook that fetches the meter's counts for a date range.
-
-Returns the run and LLM call counts, and per model the model, its
-harness and its call count. The meter records what each call was and
-never what it cost.
-
-Pass `null` as `org` to skip fetching (stable no-op).
-
-**Signature**
-
-```tsx
-function useBillingUsageReport(org: string | null, startTime: Date, endTime: Date): UseBillingUsageReportReturn
-```
-
-<TypeTable
-  type={{
-    org: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
-    startTime: { type: "Date", description: "Start of the reporting period.", required: true },
-    endTime: { type: "Date", description: "End of the reporting period.", required: true },
-  }}
-/>
-
-**Returns** — `UseBillingUsageReportReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
-    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
-    report: { type: "BillingUsageReportResponse | null", description: "The usage report, or `null` before the first successful fetch." },
-  }}
-/>
-
-```tsx
-const { report, isLoading } = useBillingUsageReport(
-  org,
-  new Date("2026-05-01"),
-  new Date("2026-05-31"),
-);
-
-if (isLoading) return <Skeleton />;
-if (!report) return null;
-
-return <div>{report.llmCallCount} calls across {report.runCount} runs</div>;
-```
-
-
 ### useCancelSubscription
 
 Behaviour hook that cancels an organization's subscription at the end

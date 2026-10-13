@@ -1,208 +1,77 @@
 /**
- * Pins the usage aggregation helpers against Go's usage_aggregation_test.go
- * case-for-case: the OSS zero-value posture (no llm_call_usage_record
- * collection here — every aggregate is structurally valid and zero), the
- * date/org/agent filters (the agent being the one each execution recorded,
- * status.agent_id), grouping, distinct sets, daily entries, and the
- * top-agents cap.
+ * Pins the usage reports' small helpers in usage.ts: the date bounds (a
+ * date-only bound is a UTC day, `from` from its midnight and `to` through
+ * its last instant; a full RFC 3339 bound is taken as given; anything else
+ * is refused, an impossible date included), the distinct agent and
+ * session sets the organization report counts, and the chronological run
+ * order of the session and agent reports. The arithmetic is pinned in
+ * usage-fold.test.ts, the pipelines in usage-report.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 import {
-  aggregateUsageReport,
-  buildDailyCostEntries,
-  buildExecutionSummary,
-  buildSessionSummary,
   distinctAgentIds,
   distinctSessionIds,
-  earliestStartedAt,
-  extractDate,
-  filterByAgentId,
-  filterByDateRange,
-  filterByOrg,
-  groupByAgentId,
-  groupByDate,
-  groupBySessionId,
-  latestStartedAt,
-  mergeModelBreakdowns,
-  topAgentsByCost,
+  parseReportBound,
+  sortExecutionsByStartedAt,
 } from "../usage.js";
 
-function makeExecution(
-  id: string,
-  sessionId: string,
-  agentId: string,
-  org: string,
-  startedAt: string,
-  subAgentCount = 0,
-): Run {
+function makeRun(id: string, sessionId: string, agentId: string, startedAt = ""): Run {
   return create(RunSchema, {
-    metadata: { id, name: `exec-${id}`, org },
+    metadata: { id },
     spec: { target: { case: "sessionId", value: sessionId } },
-    status: {
-      agentId,
-      startedAt,
-      completedAt: startedAt,
-      phase: RunPhase.RUN_COMPLETED,
-      subAgentRuns: Array.from({ length: subAgentCount }, () => ({})),
-    },
+    status: { agentId, startedAt },
   });
 }
 
-describe("usage aggregation (OSS zero-value posture)", () => {
-  it("aggregateUsageReport returns zero", () => {
-    const agg = aggregateUsageReport();
-    expect(agg.inputTokens).toBe(0n);
-    expect(agg.outputTokens).toBe(0n);
-    expect(agg.totalTokens).toBe(0n);
-    expect(agg.llmCallCount).toBe(0);
-    expect(agg.billableCostMicros).toBe(0n);
+describe("parseReportBound", () => {
+  it("a date-only from is its UTC midnight", () => {
+    expect(parseReportBound("2026-10-13", "from")).toBe(Date.UTC(2026, 9, 13));
   });
 
-  it("mergeModelBreakdowns returns empty", () => {
-    expect(mergeModelBreakdowns()).toHaveLength(0);
+  it("a date-only to is the last millisecond of its UTC day", () => {
+    expect(parseReportBound("2026-10-13", "to")).toBe(Date.UTC(2026, 9, 14) - 1);
+    // A run created at 09:00 on the day is inside, which a text comparison
+    // of "2026-10-13T09:00:00Z" against "2026-10-13" was not.
+    expect(Date.UTC(2026, 9, 13, 9)).toBeLessThanOrEqual(parseReportBound("2026-10-13", "to") ?? 0);
   });
 
-  it("buildExecutionSummary projects identity fields with zero usage", () => {
-    const summary = buildExecutionSummary(
-      makeExecution("e1", "s1", "a1", "org", "2026-03-10T10:00:00Z", 1),
-    );
-    expect(summary.runId).toBe("e1");
-    expect(summary.startedAt).toBe("2026-03-10T10:00:00Z");
-    expect(summary.subAgentCount).toBe(1);
-    expect(summary.phase).toBe(RunPhase.RUN_COMPLETED);
-    expect(summary.inputTokens, "OSS has no usage data").toBe(0n);
-    expect(summary.billableCostMicros, "OSS has no usage data").toBe(0n);
+  it("a full RFC 3339 bound is taken as given, on either side", () => {
+    expect(parseReportBound("2026-10-13T09:30:00Z", "from")).toBe(Date.UTC(2026, 9, 13, 9, 30));
+    expect(parseReportBound("2026-10-13T09:30:00Z", "to")).toBe(Date.UTC(2026, 9, 13, 9, 30));
+    expect(parseReportBound("2026-10-13T11:30:00.250+02:00", "to")).toBe(Date.UTC(2026, 9, 13, 9, 30, 0, 250));
   });
 
-  it("filterByDateRange applies inclusive string bounds", () => {
-    const executions = [
-      makeExecution("e1", "s1", "a1", "org", "2026-03-01T10:00:00Z"),
-      makeExecution("e2", "s1", "a1", "org", "2026-03-05T10:00:00Z"),
-      makeExecution("e3", "s1", "a1", "org", "2026-03-10T10:00:00Z"),
-      makeExecution("e4", "s1", "a1", "org", "2026-03-15T10:00:00Z"),
+  it("anything else is refused, an impossible date included", () => {
+    for (const value of ["2026-02-30", "2026-13-01", "13/10/2026", "2026-10-13T09:30", "yesterday", "2026-10-13 09:30:00Z"]) {
+      expect(parseReportBound(value, "from"), value).toBeUndefined();
+    }
+  });
+});
+
+describe("the organization report's distinct sets and the reports' run order", () => {
+  it("distinct agents and sessions skip empties and sort", () => {
+    const runs = [
+      makeRun("e1", "s2", "a2"),
+      makeRun("e2", "s1", "a1"),
+      makeRun("e3", "s1", ""),
+      makeRun("e4", "", "a1"),
     ];
-    expect(filterByDateRange(executions, "2026-03-03", "2026-03-12")).toHaveLength(2);
-    expect(filterByDateRange(executions, "2026-03-10", "")).toHaveLength(2);
-    expect(filterByDateRange(executions, "", "2026-03-05T10:00:00Z")).toHaveLength(2);
-    expect(filterByDateRange(executions, "", "")).toHaveLength(4);
+    expect(distinctAgentIds(runs)).toEqual(["a1", "a2"]);
+    expect(distinctSessionIds(runs)).toEqual(["s1", "s2"]);
   });
 
-  it("groupBySessionId groups by the session each execution belongs to", () => {
-    const groups = groupBySessionId([
-      makeExecution("e1", "s1", "a1", "org", ""),
-      makeExecution("e2", "s1", "a1", "org", ""),
-      makeExecution("e3", "s2", "a1", "org", ""),
-    ]);
-    expect(groups.size).toBe(2);
-    expect(groups.get("s1")).toHaveLength(2);
-    expect(groups.get("s2")).toHaveLength(1);
-  });
-
-  it("the agent filters and groups key on the agent each execution recorded (status.agent_id)", () => {
-    const executions = [
-      makeExecution("e1", "s1", "a1", "org", ""),
-      makeExecution("e2", "s1", "a2", "org", ""),
-      makeExecution("e3", "s2", "a1", "org", ""),
-      makeExecution("e4", "s3", "", "org", ""),
+  it("sorts runs by started_at, unstarted first", () => {
+    const runs = [
+      makeRun("late", "s", "a", "2026-03-12T08:00:00Z"),
+      makeRun("early", "s", "a", "2026-03-05T09:00:00Z"),
+      makeRun("pending", "s", "a"),
     ];
-    expect(filterByAgentId(executions, "a1").map((e) => e.metadata?.id)).toEqual(["e1", "e3"]);
-    const groups = groupByAgentId(executions);
-    expect(groups.get("a1")).toHaveLength(2);
-    expect(groups.get("a2")).toHaveLength(1);
-    expect(groups.get("")).toHaveLength(1);
-    expect(distinctAgentIds(executions).sort()).toEqual(["a1", "a2"]);
-    expect(distinctSessionIds(executions).sort()).toEqual(["s1", "s2", "s3"]);
-  });
-
-  it("groupByDate groups by the YYYY-MM-DD prefix", () => {
-    const groups = groupByDate([
-      makeExecution("e1", "s1", "a1", "org", "2026-03-10T08:00:00Z"),
-      makeExecution("e2", "s1", "a1", "org", "2026-03-10T14:00:00Z"),
-      makeExecution("e3", "s1", "a1", "org", "2026-03-11T09:00:00Z"),
-    ]);
-    expect(groups.size).toBe(2);
-    expect(groups.get("2026-03-10")).toHaveLength(2);
-  });
-
-  it("buildSessionSummary carries the time span with zero usage", () => {
-    const summary = buildSessionSummary("s1", [
-      makeExecution("e1", "s1", "a1", "org", "2026-03-10T08:00:00Z"),
-      makeExecution("e2", "s1", "a1", "org", "2026-03-10T14:00:00Z"),
-    ]);
-    expect(summary.sessionId).toBe("s1");
-    expect(summary.runCount).toBe(2);
-    expect(summary.totalTokens, "OSS has no usage data").toBe(0n);
-    expect(summary.billableCostMicros, "OSS has no usage data").toBe(0n);
-    expect(summary.firstRunAt).toBe("2026-03-10T08:00:00Z");
-  });
-
-  it("buildDailyCostEntries sorts chronologically with zero cost", () => {
-    const entries = buildDailyCostEntries([
-      makeExecution("e1", "s1", "a1", "org", "2026-03-10T08:00:00Z"),
-      makeExecution("e2", "s1", "a1", "org", "2026-03-10T14:00:00Z"),
-      makeExecution("e3", "s1", "a1", "org", "2026-03-11T09:00:00Z"),
-    ]);
-    expect(entries).toHaveLength(2);
-    expect(entries[0]?.date).toBe("2026-03-10");
-    expect(entries[0]?.runCount).toBe(2);
-    expect(entries[0]?.totalTokens, "OSS has no usage data").toBe(0n);
-    expect(entries[1]?.date).toBe("2026-03-11");
-  });
-
-  it("topAgentsByCost ranks descending and caps", () => {
-    const top = topAgentsByCost(
-      [
-        create(AgentUsageSummarySchema, { agentId: "a1", billableCostMicros: 1_000_000n }),
-        create(AgentUsageSummarySchema, { agentId: "a2", billableCostMicros: 5_000_000n }),
-        create(AgentUsageSummarySchema, { agentId: "a3", billableCostMicros: 500_000n }),
-        create(AgentUsageSummarySchema, { agentId: "a4", billableCostMicros: 3_000_000n }),
-      ],
-      2,
-    );
-    expect(top).toHaveLength(2);
-    expect(top[0]?.agentId).toBe("a2");
-    expect(top[1]?.agentId).toBe("a4");
-  });
-
-  it("filterByOrg matches case-insensitively", () => {
-    const executions = [
-      makeExecution("e1", "s1", "a1", "org-a", ""),
-      makeExecution("e2", "s1", "a1", "org-b", ""),
-      makeExecution("e3", "s1", "a1", "org-a", ""),
-    ];
-    expect(filterByOrg(executions, "org-a")).toHaveLength(2);
-    // Go strings.EqualFold semantics.
-    expect(filterByOrg(executions, "ORG-A")).toHaveLength(2);
-  });
-
-  it("extractDate takes the 10-char prefix or nothing", () => {
-    expect(extractDate("2026-03-10T08:00:00Z")).toBe("2026-03-10");
-    expect(extractDate("2026-03-10")).toBe("2026-03-10");
-    expect(extractDate("short")).toBe("");
-    expect(extractDate("")).toBe("");
-  });
-
-  it("earliest/latestStartedAt skip empties and compare as strings", () => {
-    const executions = [
-      makeExecution("e1", "s1", "a1", "org", "2026-03-10T14:00:00Z"),
-      makeExecution("e2", "s1", "a1", "org", "2026-03-05T09:00:00Z"),
-      makeExecution("e3", "s1", "a1", "org", "2026-03-12T08:00:00Z"),
-    ];
-    expect(earliestStartedAt(executions)).toBe("2026-03-05T09:00:00Z");
-    expect(latestStartedAt(executions)).toBe("2026-03-12T08:00:00Z");
-  });
-
-  it("empty inputs answer zero shapes everywhere", () => {
-    expect(aggregateUsageReport().totalTokens).toBe(0n);
-    expect(mergeModelBreakdowns()).toHaveLength(0);
-    expect(buildDailyCostEntries([])).toHaveLength(0);
-    expect(earliestStartedAt([])).toBe("");
+    sortExecutionsByStartedAt(runs);
+    expect(runs.map((r) => r.metadata?.id)).toEqual(["pending", "early", "late"]);
   });
 });
