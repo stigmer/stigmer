@@ -73,15 +73,17 @@ async function refusalOf(
   throw new Error("expected the step to fail");
 }
 
-function recordingLogger(): Logger & { errors: string[] } {
+function recordingLogger(): Logger & { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
+  const warnings: string[] = [];
   return {
     errors,
+    warnings,
     error: (message: string) => errors.push(message),
-    warn: () => {},
+    warn: (message: string) => warnings.push(message),
     info: () => {},
     debug: () => {},
-  } as unknown as Logger & { errors: string[] };
+  } as unknown as Logger & { errors: string[]; warnings: string[] };
 }
 
 /** A name table that records moves and reverts; `rename` and `current` may fault. */
@@ -90,15 +92,34 @@ function names(
     currentFails?: boolean;
     renameFails?: boolean;
     revertFails?: boolean;
+    /** The current name `current` answers once a move happened: a later rename's. */
+    currentAfterMove?: string;
+    /** `current` faults once a move happened. */
+    currentFailsAfterMove?: boolean;
   } = {},
 ) {
   const moves: ResourceNameRename[] = [];
   const reverted: ResourceNameRename[] = [];
   const table: NameTable = {
     resourceNames: {
-      current: async () => {
+      current: async (kind: string, org: string, id: string) => {
         if (options.currentFails === true) {
           throw new Error("names unavailable");
+        }
+        if (moves.length > 0 && options.currentFailsAfterMove === true) {
+          throw new Error("names unavailable");
+        }
+        if (moves.length > 0 && options.currentAfterMove !== undefined) {
+          const entry: ResourceNameEntry = {
+            kind,
+            org,
+            name: options.currentAfterMove,
+            id,
+            state: "current",
+            claimedAt: "",
+            expiresAt: "",
+          };
+          return entry;
         }
         return undefined;
       },
@@ -294,6 +315,55 @@ describe("PersistRenamed", () => {
     expect(fault.code).toBe(Code.Internal);
     expect(logger.errors).toEqual([
       "rename failed and its names could not be moved back; both slugs lead to the resource until a retry",
+    ]);
+  });
+});
+
+describe("PersistRenamed's settle on the table", () => {
+  /** Rows whose writes apply the step's modify to one held agent, counting them. */
+  function heldRows() {
+    const held = agent();
+    const writes: string[] = [];
+    const renameRows: RenameRows<typeof AgentSchema> = {
+      schema: AgentSchema,
+      find: async () => held,
+      modify: async (_id, modify) => {
+        modify(held);
+        writes.push(held.metadata?.slug ?? "");
+        return held;
+      },
+      holder: { holds: async () => true },
+    };
+    return { renameRows, writes };
+  }
+
+  it("writes the row once more when a later rename moved the table past this one", async () => {
+    const { table } = names({ currentAfterMove: "helper-later" });
+    const { renameRows, writes } = heldRows();
+    const ctx = renameRequest(agent());
+    await newRenameNameStep(table, renameRows).execute(ctx);
+    await newPersistRenamedStep(table, renameRows, recordingLogger()).execute(
+      ctx,
+    );
+    expect(writes).toEqual(["helper-renamed", "helper-later"]);
+    expect((ctx.get(RENAMED_RESOURCE_KEY) as Agent).metadata?.slug).toBe(
+      "helper-later",
+    );
+  });
+
+  it("logs a settle that cannot read the table, and answers the row as written", async () => {
+    const { table } = names({ currentFailsAfterMove: true });
+    const { renameRows, writes } = heldRows();
+    const ctx = renameRequest(agent());
+    const logger = recordingLogger();
+    await newRenameNameStep(table, renameRows).execute(ctx);
+    await newPersistRenamedStep(table, renameRows, logger).execute(ctx);
+    expect(writes).toEqual(["helper-renamed"]);
+    expect((ctx.get(RENAMED_RESOURCE_KEY) as Agent).metadata?.slug).toBe(
+      "helper-renamed",
+    );
+    expect(logger.warnings).toEqual([
+      "renamed row may lag its current name; the next rename settles it",
     ]);
   });
 });

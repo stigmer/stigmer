@@ -27,7 +27,9 @@
  * the row's slug is written onto the live row inside the store's atomic
  * write (RenameRows.modify), and a failed write moves the names back. Only
  * the slug and the spec audit are written, so a rename never reverts an
- * edit that landed between its load and its write; every other writer of a
+ * edit that landed between its load and its write, and the write is
+ * followed by a read of the table's current name, so two renames that
+ * interleave still leave the row on the name the table holds; every other writer of a
  * renamable kind keeps the live row's slug in the same way (persist.ts
  * newPersistOntoLiveRowStep), so the row and the table agree.
  *
@@ -366,7 +368,10 @@ export function newPersistRenamedStep<Desc extends DescMessage>(
         failure = error;
       }
       if (written !== undefined) {
-        ctx.set(RENAMED_RESOURCE_KEY, written);
+        ctx.set(
+          RENAMED_RESOURCE_KEY,
+          await settleOnTable(names, rows, move, written, logger),
+        );
         return;
       }
       try {
@@ -392,6 +397,51 @@ export function newPersistRenamedStep<Desc extends DescMessage>(
       throw internalError(failure, "failed to save the renamed resource");
     },
   };
+}
+
+/**
+ * Brings the renamed row to the name the table holds as its current one.
+ * Two renames of one resource can interleave: each moves the table, then
+ * writes the row, and the later table move may land its row write first.
+ * So the write is followed by a read of the current name, and a row left
+ * behind it is written once more with that name, so the row and the table
+ * agree. Best-effort: a fault is logged and the row is answered as it
+ * stands; the next rename settles it.
+ */
+async function settleOnTable<Desc extends DescMessage>(
+  names: NameTable,
+  rows: RenameRows<Desc>,
+  move: ResourceNameRename,
+  written: MessageShape<Desc>,
+  logger: Logger,
+): Promise<MessageShape<Desc>> {
+  try {
+    const current = await names.resourceNames.current(
+      move.kind,
+      move.org,
+      move.id,
+    );
+    if (current === undefined || current.name === metadataOf(written)?.slug) {
+      return written;
+    }
+    const settled = await rows.modify(move.id, (row) => {
+      const metadata = metadataOf(row);
+      if (metadata !== undefined) {
+        metadata.slug = current.name;
+      }
+    });
+    return settled ?? written;
+  } catch (error) {
+    logger.warn(
+      "renamed row may lag its current name; the next rename settles it",
+      {
+        kind: move.kind,
+        id: move.id,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+    return written;
+  }
 }
 
 /** What a kind's rename chain is built from. */
