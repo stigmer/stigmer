@@ -66,7 +66,7 @@ export interface UseArtifactContentReturn {
  * rendering, resource type identification).
  *
  * Pass `null` for either parameter to skip fetching — consistent with
- * the `useRunStream(null)` convention. The caller controls when
+ * the `useSessionEvents(null)` convention. The caller controls when
  * to fetch based on artifact metadata (e.g., only for text artifacts
  * below a size threshold):
  *

@@ -1,5 +1,3 @@
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import {
   ToolKind,
@@ -7,7 +5,11 @@ import {
   resolveToolKind,
   resolveToolKindByName,
   shellIntentFromArgs,
+  type ToolUse,
 } from "@stigmer/sdk";
+
+/** What the presentation helpers read of a tool use: its name, MCP server and input. */
+type ToolIdentity = Pick<ToolUse, "name" | "mcpServerName">;
 
 /**
  * Discriminated tool categories for type-aware rendering.
@@ -250,31 +252,6 @@ export function isInternalTool(toolName: string): boolean {
   return resolveToolKindByName(toolName) === ToolKind.TODO;
 }
 
-/**
- * Returns true for a tool call the runner collapsed in place — a superseded
- * same-turn duplicate of an approval gate.
- *
- * When the agent emits one resource twice in a turn and both attempts are denied,
- * the runner overlays the FIRST as the WAITING_APPROVAL gate and blanks the
- * redundant twin to a content-less SKIPPED row (it cannot drop it — the backend's
- * append-only-at-identity guard forbids removing a committed tool-call id). This
- * predicate recognizes that blanked twin so the thread renders one card, not two.
- *
- * The signature is precise: a SKIPPED row with no approval flag, no result, no
- * error, and no args preview. A genuinely user-skipped tool always retains the
- * preview/args the user reviewed before skipping, so it is never blank and is
- * never hidden by this.
- */
-export function isCollapsedToolCall(toolCall: ToolCall): boolean {
-  return (
-    toolCall.status === ToolCallStatus.TOOL_CALL_SKIPPED &&
-    !toolCall.requiresApproval &&
-    !toolCall.result &&
-    !toolCall.error &&
-    !toolCall.argsPreview
-  );
-}
-
 /** Maps a {@link ToolKind} to its presentation metadata. */
 export function toolKindToCategoryInfo(
   kind: ToolKind,
@@ -313,8 +290,7 @@ export function toolKindToCategoryInfo(
  *
  * Classification is delegated to `@stigmer/sdk`'s name-based resolver (the same
  * table the runner and Go CLI use), then mapped to presentation metadata. When
- * the caller has the full {@link ToolCall}, prefer {@link resolveToolCategoryFromCall},
- * which also honours the wire `tool_kind` for forward compatibility.
+ * the caller holds the tool use, prefer {@link resolveToolCategoryFromCall}.
  */
 export function resolveToolCategory(
   toolName: string,
@@ -327,18 +303,16 @@ export function resolveToolCategory(
 }
 
 /**
- * Like {@link resolveToolCategory} but uses the wire `tool_kind` when present,
- * falling back to name-based resolution for legacy runs.
+ * {@link resolveToolCategory} for a tool use (its name and MCP server).
  */
-export function resolveToolCategoryFromCall(toolCall: ToolCall): ToolCategoryInfo {
-  return toolKindToCategoryInfo(resolveToolKind(toolCall), toolCall.name);
+export function resolveToolCategoryFromCall(toolUse: ToolIdentity): ToolCategoryInfo {
+  return toolKindToCategoryInfo(resolveToolKind(toolUse), toolUse.name);
 }
 
 /**
- * Resolves presentation metadata from an explicit wire {@link ToolKind} plus the
- * tool name and MCP slug. Used by surfaces that carry a denormalized `tool_kind`
- * but not a full {@link ToolCall} — notably `PendingApproval`. Falls back to
- * name-based resolution when the kind is unset (legacy runs).
+ * Resolves presentation metadata from an explicit {@link ToolKind} plus the
+ * tool name and MCP slug, for a surface that already holds the kind. Falls
+ * back to name-based resolution when the kind is unset.
  */
 export function resolveToolCategoryFromKind(
   toolKind: ToolKind,
@@ -399,16 +373,18 @@ function extractArgValue(
 }
 
 /**
- * Extracts the most relevant argument value from a tool call
+ * Extracts the most relevant argument value from a tool use
  * based on its category (command for shell tools, path for file
  * tools, slug for MCP tools, etc.).
  *
  * Returns `null` when the tool has no recognised arguments.
  */
-export function extractPrimaryArg(toolCall: ToolCall): string | null {
-  const info = resolveToolCategoryFromCall(toolCall);
+export function extractPrimaryArg(
+  toolUse: Pick<ToolUse, "name" | "mcpServerName" | "input">,
+): string | null {
+  const info = resolveToolCategoryFromCall(toolUse);
   const result = extractArgValue(
-    toolCall.args,
+    toolUse.input,
     info.primaryArgField,
     info.fallbackArgFields,
   );
@@ -417,10 +393,10 @@ export function extractPrimaryArg(toolCall: ToolCall): string | null {
 
   // The first argument that is not a secret: a secret is never a row title
   // (stigmer#1119), and `[REDACTED]` would read as content.
-  if ((info.category === "unknown" || info.category === "mcp") && toolCall.args) {
-    const first = Object.keys(toolCall.args).find((key) => !isSecretArgKey(key));
+  if (info.category === "unknown" || info.category === "mcp") {
+    const first = Object.keys(toolUse.input).find((key) => !isSecretArgKey(key));
     if (first !== undefined) {
-      const val = toolCall.args[first];
+      const val = toolUse.input[first];
       if (typeof val === "string") return val;
     }
   }
@@ -429,16 +405,13 @@ export function extractPrimaryArg(toolCall: ToolCall): string | null {
 }
 
 /**
- * Extracts the primary argument value from a JSON string
- * (typically `PendingApproval.argsPreview`). Returns `null` if
- * parsing fails or the expected field is not found.
+ * Extracts the primary argument value from a JSON string (typically an
+ * ask's `argsPreview`). Returns `null` if parsing fails or the expected field
+ * is not found.
  *
- * When the caller has the denormalized wire `tool_kind` (as `PendingApproval`
- * does), pass it so resolution honors the same kind that drives the label/icon —
- * a file tool whose NAME the classifier doesn't recognize still resolves to its
- * `path` field. This mirrors {@link extractPrimaryArg}, which uses the wire kind
- * via `resolveToolCategoryFromCall`. Falls back to name-based resolution when
- * the kind is unset (legacy runs).
+ * When the caller already holds the tool's kind, pass it so resolution honors
+ * the same kind that drives the label and icon. Falls back to name-based
+ * resolution when the kind is unset.
  */
 export function extractPrimaryArgFromPreview(
   toolName: string,
@@ -477,16 +450,18 @@ export function extractPrimaryArgFromPreview(
  * REAL argument on another kind (e.g. the sub-agent task tool's
  * `description`, which is its subject) is never misread as an intent.
  */
-export function extractIntent(toolCall: ToolCall): string | null {
-  const info = resolveToolCategoryFromCall(toolCall);
-  if (!info.intentArgField || !toolCall.args) return null;
-  const value = toolCall.args[info.intentArgField];
+export function extractIntent(
+  toolUse: Pick<ToolUse, "name" | "mcpServerName" | "input">,
+): string | null {
+  const info = resolveToolCategoryFromCall(toolUse);
+  if (!info.intentArgField) return null;
+  const value = toolUse.input[info.intentArgField];
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 /**
  * {@link extractIntent} for surfaces that carry a JSON `argsPreview` string
- * instead of a full {@link ToolCall} — notably `PendingApproval`. Same
+ * (an ask's sanitized preview) instead of the tool use's input. Same
  * kind-scoping; returns `null` on parse failure or when absent.
  */
 export function extractIntentFromPreview(
@@ -521,9 +496,9 @@ export function extractIntentFromPreview(
 export { SHELL_INTENT_ARG_FIELD, extractShellIntent } from "@stigmer/sdk";
 
 /**
- * Preview-string twin of {@link extractShellIntent} for surfaces that carry a
- * `PendingApproval` (JSON `argsPreview`) instead of a full {@link ToolCall} —
- * mirrors {@link extractPrimaryArgFromPreview}'s kind resolution.
+ * Preview-string twin of {@link extractShellIntent} for surfaces that carry an
+ * ask's JSON `argsPreview` instead of the tool use's input; mirrors
+ * {@link extractPrimaryArgFromPreview}'s kind resolution.
  */
 export function extractShellIntentFromPreview(
   toolName: string,

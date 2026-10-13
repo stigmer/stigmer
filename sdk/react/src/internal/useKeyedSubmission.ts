@@ -48,7 +48,7 @@ export interface KeyedSubmission<T> {
  * need this — they correctly share one scalar.
  *
  * `run` re-throws after recording so the propagation policy stays with the
- * caller: {@link useSubmitApproval} mirrors the failure to a scalar and
+ * caller: {@link useAnswerToolUse} mirrors the failure to a scalar and
  * rethrows.
  *
  * The return is `useMemo`'d over stable parts (empty-collection sentinels keep

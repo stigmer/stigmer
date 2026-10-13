@@ -26,10 +26,11 @@ const mockConv = {
     status: { agentId: "agt_1", agentVersionHash: "a".repeat(64) },
   },
   isLoading: false,
-  completedRuns: [] as unknown[],
-  activeStreamRun: null,
+  runs: [] as unknown[],
+  activeRun: null,
+  asks: [] as unknown[],
   workspaceEntries: [] as unknown[],
-  submitApproval: vi.fn(),
+  answerToolUse: vi.fn(),
   sendFollowUp: vi.fn(),
 };
 vi.mock("../useSessionConversation", () => ({
@@ -83,7 +84,7 @@ const AGENT_ON_NATIVE = {
 
 afterEach(() => {
   mockAgentSpec = undefined;
-  mockConv.completedRuns = [];
+  mockConv.runs = [];
   runAgentSpecCalls.length = 0;
 });
 
@@ -101,7 +102,7 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
 
   it("seeds from the last message's requested model, never the resolved one", () => {
     mockAgentSpec = AGENT_ON_NATIVE;
-    mockConv.completedRuns = [
+    mockConv.runs = [
       {
         spec: { runConfig: { modelName: "claude-haiku-4-5" } },
         status: { runConfig: { modelName: "claude-sonnet-4-6" } },
@@ -113,7 +114,7 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
 
   it("choosing the agent's default back drops the last pick until the next pick", () => {
     mockAgentSpec = AGENT_ON_NATIVE;
-    mockConv.completedRuns = [
+    mockConv.runs = [
       { spec: { runConfig: { modelName: "claude-haiku-4-5" } }, status: {} },
     ];
     const { result } = renderHook(() => useSessionPageFlow(OPTS));
@@ -128,7 +129,7 @@ describe("useSessionPageFlow — the agent's run defaults and the model seed", (
 
   it("never copies a resolved agent default into the seed", () => {
     mockAgentSpec = AGENT_ON_NATIVE;
-    mockConv.completedRuns = [
+    mockConv.runs = [
       { spec: {}, status: { runConfig: { modelName: "claude-sonnet-4-6" } } },
     ];
     const { result } = renderHook(() => useSessionPageFlow(OPTS));

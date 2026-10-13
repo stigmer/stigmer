@@ -39,11 +39,7 @@ export interface UseSessionFileChangesReturn {
  *
  * @example
  * ```tsx
- * const allRuns = [
- *   ...conv.completedRuns,
- *   ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
- * ];
- * const { fileChanges, hasFileChanges } = useSessionFileChanges(allRuns);
+ * const { fileChanges, hasFileChanges } = useSessionFileChanges(conv.runs);
  * ```
  *
  * @see useSessionWriteBacks — git-mode (PR) counterpart, which does drive the

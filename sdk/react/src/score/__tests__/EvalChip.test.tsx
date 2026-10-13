@@ -16,11 +16,7 @@ import {
   RunSchema,
   type Run,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  MessageType,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   ScoreSchema,
   type Score,
@@ -34,6 +30,8 @@ import { ScoreListSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { MessageThread } from "../../run/MessageThread";
+import type { Turn } from "@stigmer/sdk";
+import { samples } from "../../test/samples";
 
 const download = vi.hoisted(() => ({
   downloadBinaryFile: vi.fn(),
@@ -46,20 +44,19 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function completedRun(id: string, message: string): Run {
-  return create(RunSchema, {
-    metadata: { id, org: "org_acme" },
-    spec: { message, target: { case: "sessionId", value: "ses_1" } },
-    status: {
-      phase: RunPhase.RUN_COMPLETED,
-      messages: [
-        create(AgentMessageSchema, {
-          type: MessageType.MESSAGE_AI,
-          content: `Answer to ${message}.`,
-        }),
-      ],
-    },
-  });
+/** A thread of completed turns, each `[runId, message]`: the runs' records and their events, folded. */
+function completedTurns(...turns: Array<[string, string]>): { turns: readonly Turn[]; runs: Run[] } {
+  const runs = turns.map(([id, message]) =>
+    create(RunSchema, {
+      metadata: { id, org: "org_acme" },
+      spec: { message, target: { case: "sessionId", value: "ses_1" } },
+      status: { phase: RunPhase.RUN_COMPLETED },
+    }),
+  );
+  const events = turns.flatMap(([id, message]) =>
+    samples.turnEvents({ runId: id, message, reply: `Answer to ${message}.` }),
+  );
+  return { turns: samples.fold(events).turns, runs };
 }
 
 function evalScore(state: ScoreState, passed: boolean, reason = ""): Score {
@@ -128,7 +125,7 @@ describe("the eval chip", () => {
   it("opens a failed try to each check's verdict and reason", async () => {
     render(
       <MessageThread
-        runs={[completedRun("run_1", "look over my diff")]}
+        {...completedTurns(["run_1", "look over my diff"])}
         runScores
       />,
       {
@@ -149,7 +146,7 @@ describe("the eval chip", () => {
   it("says passed, and says why a try was not graded", async () => {
     render(
       <MessageThread
-        runs={[completedRun("run_1", "look over my diff")]}
+        {...completedTurns(["run_1", "look over my diff"])}
         runScores
       />,
       {
@@ -162,7 +159,7 @@ describe("the eval chip", () => {
     cleanup();
     render(
       <MessageThread
-        runs={[completedRun("run_1", "look over my diff")]}
+        {...completedTurns(["run_1", "look over my diff"])}
         runScores
       />,
       {
@@ -181,7 +178,7 @@ describe("Make a test case", () => {
   it("downloads the run as a case folder, its FAIL line from the failing check", async () => {
     render(
       <MessageThread
-        runs={[completedRun("run_1", "look over my diff")]}
+        {...completedTurns(["run_1", "look over my diff"])}
         runScores
       />,
       {
@@ -210,10 +207,7 @@ describe("Make a test case", () => {
   it("says a case from a follow-up run holds only its last request", async () => {
     render(
       <MessageThread
-        runs={[
-          completedRun("run_0", "first ask"),
-          completedRun("run_1", "then this"),
-        ]}
+        {...completedTurns(["run_0", "first ask"], ["run_1", "then this"])}
         runScores
       />,
       { wrapper: wrap(client([])) },

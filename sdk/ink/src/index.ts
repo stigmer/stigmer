@@ -31,7 +31,7 @@ export { FileLineStats } from "./components/FileReviewAtoms.js";
 // File-review pure helpers (kind letters, paths, block reasons, settled counts)
 export {
   kindLetter,
-  changeDisplayPath,
+  fileDisplayPath,
   progressEntryDisplayPath,
   blockReasonNote,
   changeSetLineStats,
@@ -43,7 +43,6 @@ export {
 export { RunProgress, type RunProgressProps } from "./components/RunProgress.js";
 export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInput.js";
 export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";
-export { ContextGauge, type ContextGaugeProps } from "./components/ContextGauge.js";
 
 // Pickers (interactive search-and-select)
 export { ResourcePicker, type ResourcePickerProps, type PickerItem } from "./components/ResourcePicker.js";

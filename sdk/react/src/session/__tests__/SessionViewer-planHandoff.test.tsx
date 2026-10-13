@@ -1,6 +1,8 @@
 // ---------------------------------------------------------------------------
 // The plan handoff between the thread and the session's plan document:
 //
+// - A plan the live Plan-mode turn is writing shows in the plan tab as it
+//   streams.
 // - "Open plan" on a turn picks which plan the plan tab shows: an earlier
 //   turn's plan opens read-only, the latest plan (or a turn with no plan)
 //   opens the editable current plan.
@@ -17,12 +19,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act, fireEvent, waitFor } from "@testing-library/react";
 import { useImperativeHandle, type ReactElement, type Ref } from "react";
 import { create } from "@bufbuild/protobuf";
-import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
+  InteractionMode,
   RunArtifactKind,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Turn } from "@stigmer/sdk";
+import { samples } from "../../test/samples";
 import type { SessionComposerHandle } from "../../composer";
 import type { SessionPlan } from "../../library/detect-plan-artifact";
 import { PLAN_DOCUMENT_ENTRY_ID } from "../plan-document";
@@ -108,20 +113,23 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  completedRuns: runs,
-  activeStreamRun: null,
+  turns: [],
+  runs: runs,
+  activeTurn: null as Turn | null,
+  activeRun: null as Run | null,
   pendingUserMessage: null,
   workspaceEntries: [],
-  fileChangeSets: [],
-  submitFileDecision: vi.fn(),
+  fileReviewSets: [],
+  fileChangeCaptures: new Map(),
+  reviewFileChanges: vi.fn(),
   submittingFileDecisionKeys: new Set<string>(),
   fileDecisionErrors: new Map<string, Error>(),
   sendError: null,
   stopError: null,
   streamError: null,
   reconnectStream: vi.fn(),
-  submittingApprovalIds: new Set<string>(),
-  approvalErrors: new Map<string, Error>(),
+  answeringToolUseIds: new Set<string>(),
+  answerErrors: new Map<string, Error>(),
   isStoppable: false,
   isStopping: false,
   isSending: false,
@@ -205,6 +213,30 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  stubConv.activeTurn = null;
+  stubConv.activeRun = null;
+});
+
+describe("SessionViewer — a plan being written", () => {
+  it("renders the live turn's plan in the plan tab as it streams", () => {
+    stubConv.activeTurn = samples.turn({
+      runId: "aex_live",
+      reply: "# Live plan\n\n1. First step",
+      phase: "running",
+    });
+    stubConv.activeRun = create(RunSchema, {
+      metadata: { id: "aex_live" },
+      spec: { interactionMode: InteractionMode.PLAN },
+    });
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+
+    const docs = surfaceProps.at(-1)?.virtualDocuments as
+      | ReadonlyArray<{ entryId: string; content: ReactElement<{ displayText: string }> }>
+      | undefined;
+    const planDoc = docs?.find((d) => d.entryId === PLAN_DOCUMENT_ENTRY_ID);
+    expect(planDoc?.content.props.displayText).toBe("# Live plan\n\n1. First step");
+  });
 });
 
 describe("SessionViewer — Open plan picks the plan tab's plan", () => {

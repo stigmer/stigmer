@@ -11,10 +11,9 @@
  * discusses is #ORD-4821, the sequence's shared order fixture.
  */
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
-import { snapshot } from "../_shared/fixtures";
+import { conversation, type DemoConversation } from "../_shared/fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -24,7 +23,7 @@ import { snapshot } from "../_shared/fixtures";
 export type EmbedAgentTourStep =
   | { view: "host-launcher" }
   | { view: "host-typing" }
-  | { view: "host-reply"; execution: Run }
+  | { view: "host-reply"; conversation: DemoConversation }
   | { view: "host-code" };
 
 /** What the depicted customer types into the embedded composer. */
@@ -35,21 +34,19 @@ export const TYPING_MESSAGE =
 // Conversation fixture (the "host-reply" step)
 // ---------------------------------------------------------------------------
 
-const customerMessage = samples.humanMessage(TYPING_MESSAGE);
-
-const agentReply = samples.aiMessage(
-  "Yes — order **#ORD-4821** (Wireless Headphones) is eligible for an " +
-    "exchange.\n\n" +
-    "Here's how it works:\n\n" +
-    "1. I'll email you a prepaid return label right away\n" +
-    "2. Ship the original back within 14 days\n" +
-    "3. The replacement size ships as soon as the carrier scans your " +
-    "return\n\n" +
-    "Which size would you like instead?",
-);
-
-export const replyExecution = snapshot(
-  [customerMessage, agentReply],
+export const replyConversation = conversation(
+  samples.turnEvents({
+    message: TYPING_MESSAGE,
+    reply:
+      "Yes — order **#ORD-4821** (Wireless Headphones) is eligible for an " +
+      "exchange.\n\n" +
+      "Here's how it works:\n\n" +
+      "1. I'll email you a prepaid return label right away\n" +
+      "2. Ship the original back within 14 days\n" +
+      "3. The replacement size ships as soon as the carrier scans your " +
+      "return\n\n" +
+      "Which size would you like instead?",
+  }),
   RunPhase.RUN_COMPLETED,
 );
 
@@ -121,7 +118,7 @@ export const embedAgentTourSteps: ScenarioStep<EmbedAgentTourStep>[] = [
   },
   {
     delayMs: 4000,
-    data: { view: "host-reply", execution: replyExecution },
+    data: { view: "host-reply", conversation: replyConversation },
     narration:
       "The agent answers from the product's own knowledge and tools — the " +
       "same session surface the Stigmer Console ships, inside your app.",

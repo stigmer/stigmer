@@ -1,149 +1,67 @@
+/**
+ * A turn paused at a gate whose provisional post-denial narration was
+ * blanked (an empty thinking, an empty agent message after the waiting
+ * call) renders cleanly: the waiting call's row and the pre-tool text show,
+ * the empty message is no thread item, and the empty thinking and message
+ * render nothing — so blanked narration never leaks into a surface.
+ */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  RunPhase,
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { buildThreadItems } from "../MessageThread";
+import { buildThreadItems, type ThreadItem } from "../MessageThread";
 import { MessageEntry } from "../MessageEntry";
+import { asked, said, status, thought, toolId, turnsOf, use, user } from "./__fixtures__/thread-events";
 
 afterEach(cleanup);
 
-// ---------------------------------------------------------------------------
-// Cursor deny-only normalization (append-only by construction).
-//
-// When a Cursor turn pauses for approval, the runner BLANKS (clears the content
-// of) the model's provisional post-denial narration in place rather than
-// removing the messages — so the WAITING_FOR_APPROVAL finalize is append-only
-// and the backend needs no shrink exception. The cleanliness then lives in the
-// DATA: the SDK's existing empty-message handling renders the blanked messages
-// as nothing, so no per-harness UI special-casing is required.
-//
-// These tests LOCK that existing handling. If a future refactor "un-hides"
-// empty messages, these fail loudly — the runner's blanked narration must never
-// silently leak back into any surface.
-// ---------------------------------------------------------------------------
+const R = "exec-hitl";
 
-function aiText(content: string): AgentMessage {
-  return create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content });
-}
-
-function thinking(content: string): AgentMessage {
-  return create(AgentMessageSchema, { type: MessageType.MESSAGE_THINKING, content });
-}
-
-function gatedAiMessage(): AgentMessage {
-  return create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_AI,
-    content: "",
-    toolCalls: [
-      create(ToolCallSchema, {
-        id: "c1",
-        name: "edit",
-        status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-      }),
-    ],
-  });
-}
-
-/**
- * The exact transcript the runner persists after redaction: pre-tool text, the
- * gated tool call (WAITING_APPROVAL), then the blanked provisional narration
- * (a THINKING and an AI message, both with empty content). Count preserved.
- */
-function waitingForApprovalExecution(): Run {
-  const exec = create(RunSchema);
-  exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-hitl" });
-  exec.spec = create(RunSpecSchema, { message: "make the change" });
-  exec.status = create(RunStatusSchema, {
-    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-    messages: [
-      aiText("Let me create the file."),
-      gatedAiMessage(),
-      thinking(""), // blanked provisional reasoning
-      aiText(""), // blanked provisional verdict
-    ],
-  });
-  return exec;
+/** The log of a turn waiting on `c1`, its provisional narration blanked. */
+function waitingTurnItems(): ThreadItem[] {
+  return buildThreadItems(
+    turnsOf(
+      user(R, "make the change"),
+      status(R, "running"),
+      said(R, 0, "Let me create the file."),
+      use(R, "c1", "edit", { path: "a.ts" }, { ask: true }),
+      asked(R, "c1"),
+      thought(R, 0, ""),
+      said(R, 1, ""),
+      status(R, "waiting"),
+    ),
+    [],
+    { includeApprovals: true },
+  );
 }
 
 describe("buildThreadItems — blanked post-denial narration", () => {
-  it("surfaces the approval tool-group but emits no narration message item", () => {
-    const exec = waitingForApprovalExecution();
+  it("surfaces the waiting call's row and the pre-tool text, and no empty message", () => {
+    const items = waitingTurnItems();
+    const groups = items.filter((i): i is Extract<ThreadItem, { kind: "tool-group" }> => i.kind === "tool-group");
 
-    const items = buildThreadItems([exec], null, null, true, undefined);
-
-    // The approval surface is driven by the WAITING_APPROVAL tool call — its
-    // tool-group is present.
-    const toolGroups = items.filter((i) => i.kind === "tool-group");
-    expect(toolGroups).toHaveLength(1);
-    expect(toolGroups[0].kind === "tool-group" && toolGroups[0].toolCalls[0].status).toBe(
-      ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    );
-
-    // The pre-tool text survives as the only non-empty AI message item; the
-    // blanked AI verdict is gone.
-    const messageItems = items.filter((i) => i.kind === "message");
-    const nonEmptyAi = messageItems.filter(
-      (i) =>
-        i.kind === "message" &&
-        i.message.type === MessageType.MESSAGE_AI &&
-        i.message.content.trim().length > 0,
-    );
-    expect(nonEmptyAi).toHaveLength(1);
-    expect(nonEmptyAi[0].kind === "message" && nonEmptyAi[0].message.content).toBe(
-      "Let me create the file.",
-    );
-
-    // No message item carries the provisional narration text. The empty AI
-    // verdict is skipped entirely; the empty THINKING (if emitted) carries no
-    // content and renders nothing (asserted below at the render layer).
-    for (const item of messageItems) {
-      if (item.kind !== "message") continue;
-      expect(item.message.content).not.toContain("enable the hook");
-    }
+    expect(groups.map((g) => g.toolUses.map((tu) => [tu.id, tu.state]))).toEqual([[[toolId(R, "c1"), "waiting"]]]);
+    const agentMessages = items.filter((i) => i.kind === "message" && i.message.kind === "message");
+    expect(agentMessages.map((i) => i.kind === "message" && i.message.text)).toEqual(["Let me create the file."]);
   });
 
-  it("the empty AI verdict is skipped and the empty THINKING carries no content", () => {
-    const exec = waitingForApprovalExecution();
+  it("keeps the blanked thinking only as an item with no text", () => {
+    const thinking = waitingTurnItems().filter((i) => i.kind === "message" && i.message.kind === "thinking");
 
-    const items = buildThreadItems([exec], null, null, true, undefined);
-    const messageItems = items.filter((i) => i.kind === "message");
-
-    // The empty AI verdict is dropped from the item list entirely (empty-AI
-    // skip). Any surviving message item (e.g. the empty THINKING) has no
-    // content, so the render layer hides it (asserted below).
-    for (const item of messageItems) {
-      if (item.kind !== "message") continue;
-      if (item.message.type === MessageType.MESSAGE_AI) {
-        expect(item.message.content.trim().length).toBeGreaterThan(0);
-      }
-    }
+    expect(thinking.map((i) => i.kind === "message" && i.message.text)).toEqual([""]);
   });
 });
 
 describe("MessageEntry — blanked narration renders nothing", () => {
-  it("renders nothing for a blanked AI narration message", () => {
-    const { container } = render(<MessageEntry message={aiText("")} />);
+  it("renders nothing for a blanked agent message", () => {
+    const { container } = render(
+      <MessageEntry message={{ kind: "message", id: "m", text: "", live: false, processedAt: "" }} />,
+    );
     expect(container.textContent?.trim()).toBe("");
   });
 
-  it("renders nothing for a blanked THINKING narration message", () => {
-    const { container } = render(<MessageEntry message={thinking("")} />);
+  it("renders nothing for a blanked thinking", () => {
+    const { container } = render(
+      <MessageEntry message={{ kind: "thinking", id: "t", text: "", live: false, processedAt: "" }} />,
+    );
     expect(container.innerHTML).toBe("");
   });
 });

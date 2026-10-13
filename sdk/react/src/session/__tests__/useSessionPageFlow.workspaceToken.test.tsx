@@ -13,6 +13,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useSessionPageFlow } from "../useSessionPageFlow";
+import { sessionEventStream } from "./session-event-stream";
 
 const MARKER = "***REDACTED***";
 
@@ -37,11 +38,12 @@ describe("useSessionPageFlow — a stored repository token", () => {
   it("is kept by a follow-up: the entry keeps its name and echoes the marker", async () => {
     const sessionUpdate = vi.fn().mockResolvedValue(STORED);
     const client = {
-      session: { get: vi.fn().mockResolvedValue(STORED), update: sessionUpdate },
+      session: { get: vi.fn().mockResolvedValue(STORED), update: sessionUpdate, streamEvents: sessionEventStream().streamEvents },
       run: {
         listBySession: vi.fn().mockResolvedValue({ entries: [] }),
         create: vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} }),
-        subscribe: vi.fn(),
+        // The sent turn's run, read while it is live; never answered here.
+        get: vi.fn(() => new Promise(() => {})),
       },
       agent: { getByReference: vi.fn().mockResolvedValue(null) },
       identityAccount: { whoAmI: vi.fn().mockRejectedValue(new Error("none")) },

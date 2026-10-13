@@ -32,6 +32,9 @@ export type {
 export { useSessionRuns } from "./useSessionRuns.js";
 export type { UseSessionRunsReturn } from "./useSessionRuns.js";
 
+export { useSessionEvents } from "./useSessionEvents.js";
+export type { UseSessionEventsOptions, UseSessionEventsReturn } from "./useSessionEvents.js";
+
 export { useSessionConversation } from "./useSessionConversation.js";
 export type {
   SendFollowUpOptions,

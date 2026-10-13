@@ -1,22 +1,32 @@
+// The terminal decision for a tool use that waits for a person: the tool, its
+// intent and sanitized arguments, why it asked, and three answers — Approve,
+// Approve all of its class for the rest of the turn, or Deny with an optional
+// reason the agent reads. The answer goes to the session (`confirmToolUse`,
+// `grantPermission`) through the caller.
 import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import TextInput from "ink-text-input";
 import {
+  ApprovalPolicySource,
   ToolKind,
-  resolveToolKindByName,
+  resolveToolKind,
   describeApprovalPolicySource,
   hookApproveAllLabel,
+  type ToolUse,
 } from "@stigmer/sdk";
-import { extractShellIntentFromPreview } from "@stigmer/react";
+import {
+  approvalPolicySourceOf,
+  extractShellIntentFromPreview,
+  type ToolUseAnswer,
+} from "@stigmer/react";
 
 /** Props for {@link ApprovalPrompt}. */
 export interface ApprovalPromptProps {
-  /** The pending approval request to render. */
-  readonly pendingApproval: PendingApproval;
-  /** Called when the user selects an action. */
-  readonly onSubmit: (action: ApprovalAction) => void;
-  /** Disables input while an approval submission is in flight. */
+  /** The tool use that waits; its `ask` says why and carries the sanitized preview. */
+  readonly toolUse: ToolUse;
+  /** Called with the person's answer (and, for a deny, the reason they typed, if any). */
+  readonly onAnswer: (answer: ToolUseAnswer, denyMessage?: string) => void;
+  /** Disables input while an answer is in flight. */
   readonly isSubmitting?: boolean;
   /**
    * Whether this prompt owns the keyboard. Defaults to `true`. When `false` the
@@ -26,41 +36,41 @@ export interface ApprovalPromptProps {
    * This is the terminal's single-active-decision-surface rule: stdin is
    * delivered to *every* mounted `useInput`, so several live `ApprovalPrompt`s
    * would each consume the same keystroke and settle at once. The caller
-   * ({@link MessageThread}) marks only the first pending approval active; the
-   * file-review prompt in turn yields to any pending approval
-   * (`FileReviewPrompt.isActive = pendingApprovals.length === 0` in `SessionView`),
-   * so the order is: first approval → else the file-review prompt.
+   * ({@link MessageThread}) marks only the first waiting tool use active; the
+   * file-review prompt in turn yields to any waiting one
+   * (`FileReviewPrompt.isActive = asks.length === 0` in `SessionView`), so the
+   * order is: first ask → else the file-review prompt.
    */
   readonly isActive?: boolean;
 }
 
 interface ActionOption {
   readonly label: string;
-  readonly action: ApprovalAction;
+  readonly answer: ToolUseAnswer;
   readonly color: string;
   readonly shortcut: string;
 }
 
 /**
- * Builds the truthful APPROVE_ALL option label for a pending approval's lease
- * class — the terminal mirror of the React card's buildApproveAllLabel.
+ * Builds the truthful approve-all option label for a tool use's grant class —
+ * the terminal mirror of the React card's buildApproveAllLabel.
  *
- * APPROVE_ALL grants a run-lifetime lease scoped to ONE class: when a hook
- * asked, that hook's asks on that one tool (`hookApproveAllLabel`); otherwise
- * the MCP server for an MCP tool, or the approval category
- * (write/delete/shell), where FILE_WRITE and FILE_EDIT collapse to one "file
- * edits" class exactly as the runner's toolApprovalCategory collapses them. The
- * label names that class so it never implies a broader, run-wide bypass.
+ * A grant is scoped to ONE class: when a hook asked, that hook's asks on that
+ * one tool (`hookApproveAllLabel`); otherwise the MCP server for an MCP tool,
+ * or the approval category (write/delete/shell), where FILE_WRITE and
+ * FILE_EDIT collapse to one "file edits" class exactly as the runner's
+ * toolApprovalCategory collapses them. The label names that class so it never
+ * implies a broader bypass.
  */
-function buildApproveAllLabel(pending: PendingApproval): string {
-  const { toolName, mcpServerSlug } = pending;
-  if (pending.approvalPolicySource === ApprovalPolicySource.HOOK) {
-    return hookApproveAllLabel(hookLeaseSubject(toolName, mcpServerSlug), pending.approvalPolicyHook);
+function buildApproveAllLabel(toolUse: ToolUse): string {
+  const { mcpServerName } = toolUse;
+  if (approvalPolicySourceOf(toolUse.ask?.policySource ?? "") === ApprovalPolicySource.HOOK) {
+    return hookApproveAllLabel(hookLeaseSubject(toolUse), toolUse.ask?.policyHook ?? "");
   }
-  if (mcpServerSlug) {
-    return `Approve all ${mcpServerSlug} tools`;
+  if (mcpServerName) {
+    return `Approve all ${mcpServerName} tools`;
   }
-  switch (resolveToolKindByName(toolName, mcpServerSlug)) {
+  switch (resolveToolKind(toolUse)) {
     case ToolKind.SHELL:
       return "Approve all shell commands";
     case ToolKind.FILE_DELETE:
@@ -73,10 +83,10 @@ function buildApproveAllLabel(pending: PendingApproval): string {
   }
 }
 
-/** What a hook lease covers, in words: one tool's calls, so a write and an edit stay apart. */
-function hookLeaseSubject(toolName: string, mcpServerSlug: string): string {
-  if (mcpServerSlug) return `${toolName} calls`;
-  switch (resolveToolKindByName(toolName, mcpServerSlug)) {
+/** What a hook grant covers, in words: one tool's calls, so a write and an edit stay apart. */
+function hookLeaseSubject(toolUse: ToolUse): string {
+  if (toolUse.mcpServerName) return `${toolUse.name} calls`;
+  switch (resolveToolKind(toolUse)) {
     case ToolKind.SHELL:
       return "shell commands";
     case ToolKind.FILE_DELETE:
@@ -86,103 +96,88 @@ function hookLeaseSubject(toolName: string, mcpServerSlug: string): string {
     case ToolKind.FILE_EDIT:
       return "file edits";
     default:
-      return `${toolName} calls`;
+      return `${toolUse.name} calls`;
   }
 }
 
 /**
- * HITL approval prompt for tool call authorization.
+ * HITL approval prompt for a tool use that waits for a person.
  *
- * Displays the tool name and args preview, then presents
- * Approve/Approve-all/Reject/Skip options navigable via arrow keys
- * or shortcut keys (y/a/n/s). Press Enter to confirm the highlighted
- * selection. The approve-all option (a) maps to APPROVE_ALL, which grants a
- * run-lifetime lease scoped to the clicked tool's CLASS (its MCP server, or its
- * file edit / delete / shell category) — other classes keep prompting. The
- * option label names that class so the scope is never a surprise.
+ * Displays the tool, its intent and sanitized arguments, then presents
+ * Approve / Approve all / Deny, navigable via arrow keys or shortcut keys
+ * (y/a/n). Enter confirms the highlighted option. Approve all (a) grants the
+ * call's CLASS for the rest of the turn (its MCP server, or its file edit /
+ * delete / shell category) — other classes keep asking; the label names that
+ * class. Deny (n) opens a one-line reason the agent reads: Enter sends it
+ * (empty sends none), Esc goes back.
  */
 export function ApprovalPrompt({
-  pendingApproval,
-  onSubmit,
+  toolUse,
+  onAnswer,
   isSubmitting = false,
   isActive = true,
 }: ApprovalPromptProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [denying, setDenying] = useState(false);
+  const [reason, setReason] = useState("");
 
   const options = useMemo<readonly ActionOption[]>(
     () => [
-      {
-        label: "Approve",
-        action: ApprovalAction.APPROVE,
-        color: "green",
-        shortcut: "y",
-      },
-      {
-        label: buildApproveAllLabel(pendingApproval),
-        action: ApprovalAction.APPROVE_ALL,
-        color: "green",
-        shortcut: "a",
-      },
-      {
-        label: "Reject",
-        action: ApprovalAction.REJECT,
-        color: "red",
-        shortcut: "n",
-      },
-      {
-        label: "Skip",
-        action: ApprovalAction.SKIP,
-        color: "yellow",
-        shortcut: "s",
-      },
+      { label: "Approve", answer: "allow", color: "green", shortcut: "y" },
+      { label: buildApproveAllLabel(toolUse), answer: "grant", color: "green", shortcut: "a" },
+      { label: "Deny", answer: "deny", color: "red", shortcut: "n" },
     ],
-    [pendingApproval.toolName, pendingApproval.mcpServerSlug],
+    [toolUse],
   );
+
+  const choose = (option: ActionOption): void => {
+    if (option.answer === "deny") {
+      setDenying(true);
+      return;
+    }
+    onAnswer(option.answer);
+  };
 
   useInput(
     (input, key) => {
-      if (isSubmitting) return;
-
+      if (denying) {
+        if (key.escape) {
+          setDenying(false);
+          setReason("");
+        }
+        return;
+      }
       if (key.upArrow || key.leftArrow) {
         setSelectedIndex((i) => (i > 0 ? i - 1 : options.length - 1));
       } else if (key.downArrow || key.rightArrow) {
         setSelectedIndex((i) => (i < options.length - 1 ? i + 1 : 0));
       } else if (key.return) {
-        onSubmit(options[selectedIndex].action);
+        choose(options[selectedIndex]!);
       } else {
-        const shortcutMatch = options.findIndex(
-          (o) => o.shortcut === input.toLowerCase(),
-        );
-        if (shortcutMatch >= 0) {
-          onSubmit(options[shortcutMatch].action);
-        }
+        const match = options.find((o) => o.shortcut === input.toLowerCase());
+        if (match) choose(match);
       }
     },
     { isActive: isActive && !isSubmitting },
   );
 
-  const serverSlug = pendingApproval.mcpServerSlug;
-  const toolLabel = serverSlug
-    ? `${serverSlug}/${pendingApproval.toolName}`
-    : pendingApproval.toolName;
+  const ask = toolUse.ask;
+  const argsPreview = ask?.argsPreview ?? "";
+  const toolLabel = toolUse.mcpServerName
+    ? `${toolUse.mcpServerName}/${toolUse.name}`
+    : toolUse.name;
 
-  // Why-gated: the authorization provenance the server projected onto the
-  // PendingApproval. Mirrors the React card's gate-reason line so the terminal
-  // surface explains the gate at parity. Empty for legacy runs.
+  // Why-gated: the rule that asked (the ask's policy source). Mirrors the
+  // React card's gate-reason line so the terminal explains the gate at parity.
   const gateReason = describeApprovalPolicySource(
-    pendingApproval.approvalPolicySource,
-    pendingApproval.approvalPolicyHook,
+    approvalPolicySourceOf(ask?.policySource ?? ""),
+    ask?.policyHook ?? "",
   );
 
   // Model-authored shell intent (stigmer#276), mirroring the React card's
   // header treatment: supplementary context only — the command in the Args
   // line stays foregrounded, because it is the content being approved.
-  const intent = extractShellIntentFromPreview(
-    pendingApproval.toolName,
-    pendingApproval.argsPreview,
-    pendingApproval.mcpServerSlug,
-    pendingApproval.toolKind,
-  );
+  const intent = extractShellIntentFromPreview(toolUse.name, argsPreview, toolUse.mcpServerName);
 
   return (
     <Box
@@ -193,16 +188,9 @@ export function ApprovalPrompt({
       borderStyle="round"
       borderColor="yellow"
     >
-      <Box gap={1}>
-        <Text color="yellow" bold>
-          ⚠ Approval required
-        </Text>
-        {pendingApproval.fromSubAgent && (
-          <Text dimColor>
-            via {pendingApproval.subAgentSubject || pendingApproval.subAgentName}
-          </Text>
-        )}
-      </Box>
+      <Text color="yellow" bold>
+        ⚠ Approval required
+      </Text>
 
       <Box paddingLeft={2} marginTop={1} flexDirection="column">
         <Box gap={1}>
@@ -215,10 +203,10 @@ export function ApprovalPrompt({
             <Text wrap="truncate-end">{intent}</Text>
           </Box>
         )}
-        {pendingApproval.argsPreview && (
+        {argsPreview && (
           <Box gap={1}>
             <Text dimColor>Args:</Text>
-            <Text wrap="truncate-end">{pendingApproval.argsPreview}</Text>
+            <Text wrap="truncate-end">{argsPreview}</Text>
           </Box>
         )}
         {gateReason && (
@@ -231,25 +219,43 @@ export function ApprovalPrompt({
         )}
       </Box>
 
-      <Box gap={2} marginTop={1} paddingLeft={2}>
-        {options.map((opt, idx) => {
-          // When inactive, no option is selected and all read dim — the active
-          // prompt's highlight (vs. these dimmed rows) is the cue for which
-          // approval owns the keyboard, so no per-prompt hint is needed.
-          const selected = isActive && idx === selectedIndex;
-          return (
-            <Text
-              key={opt.shortcut}
-              color={selected ? opt.color : undefined}
-              dimColor={!selected}
-              bold={selected}
-            >
-              {selected ? "▸ " : "  "}
-              [{opt.shortcut}] {opt.label}
-            </Text>
-          );
-        })}
-      </Box>
+      {denying ? (
+        <Box marginTop={1} paddingLeft={2} flexDirection="column">
+          <Box gap={1}>
+            <Text color="red">Deny — reason (optional):</Text>
+            <TextInput
+              value={reason}
+              onChange={setReason}
+              onSubmit={(value) => {
+                const trimmed = value.trim();
+                onAnswer("deny", trimmed === "" ? undefined : trimmed);
+              }}
+              focus={isActive && !isSubmitting}
+            />
+          </Box>
+          <Text dimColor>Enter to deny · Esc back</Text>
+        </Box>
+      ) : (
+        <Box gap={2} marginTop={1} paddingLeft={2}>
+          {options.map((opt, idx) => {
+            // When inactive, no option is selected and all read dim — the
+            // active prompt's highlight is the cue for which ask owns the
+            // keyboard.
+            const selected = isActive && idx === selectedIndex;
+            return (
+              <Text
+                key={opt.shortcut}
+                color={selected ? opt.color : undefined}
+                dimColor={!selected}
+                bold={selected}
+              >
+                {selected ? "▸ " : "  "}
+                [{opt.shortcut}] {opt.label}
+              </Text>
+            );
+          })}
+        </Box>
+      )}
 
       {isSubmitting && (
         <Box paddingLeft={2} marginTop={1}>

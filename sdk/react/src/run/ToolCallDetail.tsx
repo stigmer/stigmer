@@ -2,9 +2,8 @@
 
 import { useMemo } from "react";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { toDisplayFileChange } from "@stigmer/sdk";
-import type { ToolResultView } from "@stigmer/sdk";
+import type { ToolResultView, ToolUse } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { BoundedContent } from "../internal/BoundedContent.js";
 import { FileChangeDiff } from "./FileChangesView.js";
@@ -16,14 +15,15 @@ import { useToolPresentation } from "./tool-presenter.js";
 import type { ToolCategory } from "./tool-categories.js";
 import { CollapsiblePre } from "./tool-rendering-primitives.js";
 import {
+  approvalPolicySourceOf,
   describeApprovalPolicySource,
   isInformativePolicySource,
 } from "./approval-provenance.js";
 
 /** Props for {@link ToolCallDetail}. */
 export interface ToolCallDetailProps {
-  /** The tool call to render in detail. */
-  readonly toolCall: ToolCall;
+  /** The tool use to render in detail (from the session's fold). */
+  readonly toolUse: ToolUse;
   /**
    * Whether the owning row's header truncated the primary argument (the search
    * query / list path). A header-owned layout fact: when `true`, the search/list
@@ -48,38 +48,37 @@ export interface ToolCallDetailProps {
  * degrade to readable JSON instead of a raw dump.
  *
  * Composition varies by category to avoid redundancy: an edit shows only the
- * diff (which already names the file and quantifies the change); a stamped
- * write shows its change set's captured diff, degrading to the proposed
+ * diff (which already names the file and quantifies the change); a write
+ * shows its turn's captured diff of the file, degrading to the proposed
  * content when no capture resolves; a read shows just the path.
  *
  * Importable on its own by platform builders composing custom tool UIs.
  *
  * @example
  * ```tsx
- * <ToolCallDetail toolCall={toolCall} />
+ * <ToolCallDetail toolUse={toolUse} />
  * ```
  */
 export function ToolCallDetail({
-  toolCall,
+  toolUse,
   primaryArgTruncated = false,
   className,
 }: ToolCallDetailProps) {
-  const { category, result, primaryArg } = useToolPresentation(toolCall);
+  const { category, result, primaryArg } = useToolPresentation(toolUse);
 
-  // The captured net change a stamped write row renders as its inline diff
-  // (see the write branch below). Resolved here unconditionally (Rules of
-  // Hooks); null for every other category's rows — they are never stamped —
-  // and for every honest-degradation case, so this costs nothing outside the
-  // stamped-write path.
+  // The captured net change a write row renders as its inline diff (see the
+  // write branch below): its turn's capture of the row's file. Resolved here
+  // unconditionally (Rules of Hooks); null for every other category's rows
+  // and for every honest-degradation case.
   const capturedChange = useFileReviewRowChange(
-    toolCall.fileChangeSetId,
-    primaryArg,
+    toolUse.runId,
+    category === "write" ? primaryArg : null,
   );
 
   return (
     <div className={cn("stg:space-y-2 stg:text-xs", className)}>
       <CategoryDetail
-        toolCall={toolCall}
+        toolUse={toolUse}
         category={category}
         result={result}
         primaryArg={primaryArg}
@@ -102,28 +101,28 @@ export function ToolCallDetail({
 // ---------------------------------------------------------------------------
 
 function CategoryDetail({
-  toolCall,
+  toolUse,
   category,
   result,
   primaryArg,
   primaryArgTruncated,
   capturedChange,
 }: {
-  toolCall: ToolCall;
+  toolUse: ToolUse;
   category: ToolCategory;
   result: ToolResultView;
   primaryArg: string | null;
   primaryArgTruncated: boolean;
   capturedChange: CapturedFileChange | null;
 }) {
-  const args = <ArgsSection toolCall={toolCall} />;
+  const args = <ArgsSection toolUse={toolUse} />;
 
   switch (category) {
     case "think":
-      return <ThinkToolDetail toolCall={toolCall} />;
+      return <ThinkToolDetail toolUse={toolUse} />;
 
     case "mcp":
-      return <McpToolDetail toolCall={toolCall} />;
+      return <McpToolDetail toolUse={toolUse} />;
 
     case "search":
     case "list":
@@ -135,7 +134,7 @@ function CategoryDetail({
       // "the diff already names the file" de-duplication.
       return (
         <>
-          <ProvenanceNote toolCall={toolCall} />
+          <ProvenanceNote toolUse={toolUse} />
           {primaryArgTruncated && primaryArg && (
             <SearchQueryBlock category={category} value={primaryArg} />
           )}
@@ -152,19 +151,19 @@ function CategoryDetail({
       // alone — showing the written content as an argument would duplicate it.
       // The owning row already names the file, so the body suppresses the path.
       //
-      // An EDIT's diff is reconstructed per-call from its own args (old/new
+      // An EDIT's diff is reconstructed per-call from its own input (old/new
       // strings, or the Cursor envelope's unified diff). A whole-file WRITE has
-      // no per-call before-image in its args, so a stamped write renders the
-      // captured NET change from its change set instead — the same artifact the
-      // row's review badge refers to, resolved through the same path matcher so
-      // the two can never disagree. An unresolvable write (still streaming
-      // before the turn-boundary capture, no capture mode, legacy session, or a
+      // no per-call before-image in its input, so a write renders the captured
+      // NET change of its file from its turn's file review instead — the same
+      // artifact the row's review badge refers to, resolved through the same
+      // path matcher so the two can never disagree. An unresolvable write
+      // (still running before the turn-boundary capture, no capture mode, or a
       // non-reviewable change) keeps the honest fallback: the proposed content
-      // from the args, as a `file` view.
+      // from the input, as a `file` view.
       if (category === "write" && capturedChange) {
         return (
           <>
-            <ProvenanceNote toolCall={toolCall} />
+            <ProvenanceNote toolUse={toolUse} />
             <CapturedRowDiff change={capturedChange} />
           </>
         );
@@ -180,7 +179,7 @@ function CategoryDetail({
       );
       return (
         <>
-          <ProvenanceNote toolCall={toolCall} />
+          <ProvenanceNote toolUse={toolUse} />
           {result.type === "file" ? (
             body
           ) : (
@@ -198,7 +197,7 @@ function CategoryDetail({
       // result body when it carries new information — i.e. an error.
       return (
         <>
-          <ProvenanceNote toolCall={toolCall} />
+          <ProvenanceNote toolUse={toolUse} />
           {args}
           {result.type === "error" && <ResultView view={result} />}
         </>
@@ -212,7 +211,7 @@ function CategoryDetail({
       // show the command (args) alongside the error so it is never lost.
       return (
         <>
-          <ProvenanceNote toolCall={toolCall} />
+          <ProvenanceNote toolUse={toolUse} />
           {result.type === "error" ? (
             <>
               {args}
@@ -228,7 +227,7 @@ function CategoryDetail({
       // fetch, web-search, unknown: input + effect.
       return (
         <>
-          <ProvenanceNote toolCall={toolCall} />
+          <ProvenanceNote toolUse={toolUse} />
           {args}
           <ResultView view={result} />
         </>
@@ -257,19 +256,19 @@ function SearchQueryBlock({
   );
 }
 
-function ArgsSection({ toolCall }: { toolCall: ToolCall }) {
+function ArgsSection({ toolUse }: { toolUse: ToolUse }) {
   return (
     <ToolArgsView
-      toolName={toolCall.name}
-      args={toolCall.args as Record<string, unknown> | null}
-      mcpServerSlug={toolCall.mcpServerSlug}
+      toolName={toolUse.name}
+      args={toolUse.input}
+      mcpServerSlug={toolUse.mcpServerName}
     />
   );
 }
 
-function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
-  const thought =
-    (toolCall.args?.["thought"] as string | undefined) || toolCall.result;
+function ThinkToolDetail({ toolUse }: { toolUse: ToolUse }) {
+  const input = toolUse.input["thought"];
+  const thought = (typeof input === "string" ? input : "") || (toolUse.result?.text ?? "");
 
   if (!thought) return null;
 
@@ -287,7 +286,7 @@ function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
 // Shared sub-components
 // ---------------------------------------------------------------------------
 
-// A stamped write row's inline diff: the captured change projected onto the
+// A write row's inline diff: the captured change projected onto the
 // display FileChange and rendered through the same bounded FileChangeDiff the
 // review card's body uses — offloaded-body fetch, binary notices, and
 // truncation states included. The file name is suppressed (the owning row
@@ -300,15 +299,15 @@ function CapturedRowDiff({ change }: { change: CapturedFileChange }) {
 
 // The detail body's only metadata. Duration and the MCP slug live in the owning
 // row header (ToolCallItem / ApprovalCardHeader), so the body never restates
-// them; it surfaces the authorization provenance the runner stamped onto the
-// call (approval_policy_source) ONLY when it is genuinely informative — an
-// explicit override, a server-marked destructive tighten, or a post-hoc
-// lease/bypass that cleared it. The everyday "this category just needs approval"
-// default and legacy UNSPECIFIED are noise, so they render nothing, mirroring
-// the approval gate's smart-suppress (isInformativePolicySource).
-function ProvenanceNote({ toolCall }: { toolCall: ToolCall }) {
-  if (!isInformativePolicySource(toolCall.approvalPolicySource)) return null;
-  const provenance = describeApprovalPolicySource(toolCall.approvalPolicySource, toolCall.approvalPolicyHook);
+// them; it surfaces the rule that asked about the call (its ask's policy
+// source) ONLY when it is genuinely informative — a hook, a server-marked
+// destructive tighten, a lease or bypass. The everyday "this category just
+// needs approval" default and a call no rule asked about render nothing,
+// mirroring the approval gate's smart-suppress (isInformativePolicySource).
+function ProvenanceNote({ toolUse }: { toolUse: ToolUse }) {
+  const source = approvalPolicySourceOf(toolUse.ask?.policySource ?? "");
+  if (!isInformativePolicySource(source)) return null;
+  const provenance = describeApprovalPolicySource(source, toolUse.ask?.policyHook ?? "");
   if (!provenance) return null;
 
   return (

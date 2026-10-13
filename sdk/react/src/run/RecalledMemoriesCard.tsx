@@ -1,12 +1,12 @@
 "use client";
 
 import { memo, useId, useMemo, useState } from "react";
-import type { RecalledMemoriesReport } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RecalledMemoryFact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import type { MemoryRecall } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 
 /**
- * Resolve the report's injected memory ids against the run's
+ * Resolve the recall's injected memory ids against the run's
  * snapshot facts, preserving snapshot order (the stable prompt order —
  * the selector re-sorts its subset the same way, so this join renders
  * the facts exactly as the agent saw them).
@@ -14,20 +14,20 @@ import { cn } from "@stigmer/theme";
  * The contract guarantees injected ids are a subset of the snapshot
  * (the merge path's never-invent pin), so an unknown id can only mean a
  * bug upstream — it is skipped, never invented. The summary count stays
- * the wire truth (`injectedMemoryIds.length`) regardless.
+ * the event's truth (`injectedMemoryIds.length`) regardless.
  */
 export function resolveInjectedFacts(
-  report: RecalledMemoriesReport,
+  recall: MemoryRecall,
   facts: readonly RecalledMemoryFact[],
 ): RecalledMemoryFact[] {
-  const injected = new Set(report.injectedMemoryIds);
+  const injected = new Set(recall.injectedMemoryIds);
   return facts.filter((fact) => injected.has(fact.memoryId));
 }
 
 /** Props for {@link RecalledMemoriesCard}. */
 export interface RecalledMemoriesCardProps {
-  /** The runner's injection report from the run's status. */
-  readonly report: RecalledMemoriesReport;
+  /** Which memories the turn recalled, from the session's fold (`Turn.memory`). */
+  readonly recall: MemoryRecall;
   /** The full candidate set from `spec.recalled_memories.facts`. */
   readonly facts: readonly RecalledMemoryFact[];
   /** Additional CSS classes for the root element. */
@@ -44,8 +44,8 @@ export interface RecalledMemoriesCardProps {
  * retriever embedded, so the card reads as "for this message, these
  * memories were most relevant".
  *
- * Renders NOTHING unless the report says selection was active: an
- * absent report and `selection_active=false` both mean wholesale (every
+ * Renders NOTHING unless the recall says selection was active: an
+ * absent recall and `selectionActive=false` both mean wholesale (every
  * snapshot fact injected — the shipped Phase 2 behavior), and unchanged
  * behavior earns no UI noise. The same rule is applied by the thread
  * builder; it is repeated here so directly-embedding platform builders
@@ -53,11 +53,11 @@ export interface RecalledMemoriesCardProps {
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
- * @see resolveInjectedFacts - the report→snapshot join this card renders
+ * @see resolveInjectedFacts - the recall→snapshot join this card renders
  * @see SummarizationCard - the sibling system-event card this follows
  */
 export const RecalledMemoriesCard = memo(function RecalledMemoriesCard({
-  report,
+  recall,
   facts,
   className,
 }: RecalledMemoriesCardProps) {
@@ -65,13 +65,13 @@ export const RecalledMemoriesCard = memo(function RecalledMemoriesCard({
   const listId = useId();
 
   const injectedFacts = useMemo(
-    () => resolveInjectedFacts(report, facts),
-    [report, facts],
+    () => resolveInjectedFacts(recall, facts),
+    [recall, facts],
   );
 
-  if (!report.selectionActive) return null;
+  if (!recall.selectionActive) return null;
 
-  const injectedCount = report.injectedMemoryIds.length;
+  const injectedCount = recall.injectedMemoryIds.length;
   const summary = `Recalled ${injectedCount} of ${facts.length} memories`;
 
   return (
@@ -96,10 +96,10 @@ export const RecalledMemoriesCard = memo(function RecalledMemoriesCard({
         <MemoryIcon />
         <span className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-wrap stg:items-baseline stg:gap-x-2">
           <span className="stg:font-medium">{summary}</span>
-          {report.embeddingModel && (
+          {recall.embeddingModel && (
             <>
               <span aria-hidden="true" className="stg:text-muted-foreground/50">&middot;</span>
-              <span className="stg:text-muted-foreground/80">{report.embeddingModel}</span>
+              <span className="stg:text-muted-foreground/80">{recall.embeddingModel}</span>
             </>
           )}
         </span>

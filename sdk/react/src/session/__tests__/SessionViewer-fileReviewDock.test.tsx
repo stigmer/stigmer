@@ -6,19 +6,19 @@ import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
   FileChangeSetSchema,
+  type FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
-  DiffCompleteness,
+  FileCaptureClass,
   FileChangeKind,
-  FileChangeSetStatus,
-  FileDecisionAction,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { FileReviewSet } from "@stigmer/sdk";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract tests for the file-review surfaces on SessionViewer:
 // the pending decision bar renders in the composer-docked FileReviewDock
-// (fed from conv's seam), and the thread is records-only
+// (fed from conv's file reviews, with the runs' captures, and deciding
+// through conv's reviewFileChanges), and the thread is records-only
 // (`showFileReviewRecords`, no decision callbacks). The dock renders REAL —
 // it is the subject; the thread/composer/inspector are prop-capturing probes.
 // ---------------------------------------------------------------------------
@@ -51,22 +51,43 @@ const stubWorkspace = {
   clear: vi.fn(),
 };
 
-function pendingChangeSet(id: string) {
+/** A turn's undecided file review, one added file, as the session's fold holds it. */
+function pendingChangeSet(id: string): FileReviewSet {
+  return {
+    changeSetId: id,
+    runId: "run_1",
+    aggregateDigest: `agg-${id}`,
+    files: [
+      {
+        fileChangeId: `${id}:notes.md`,
+        path: "notes.md",
+        previousPath: "",
+        change: "added",
+        digest: "d-notes",
+        linesAdded: 1,
+        linesRemoved: 0,
+        reviewable: "complete",
+        state: "undecided",
+        decidedBy: "",
+      },
+    ],
+    decisions: [],
+    reconciles: [],
+    undecided: true,
+    processedAt: "",
+  };
+}
+
+/** The run's capture of that review's file: it was captured outside git tracking. */
+function capturedSet(id: string): FileChangeSet {
   return create(FileChangeSetSchema, {
     id,
-    status: FileChangeSetStatus.AWAITING_REVIEW,
-    aggregateDigest: `agg-${id}`,
-    diffCompleteness: DiffCompleteness.COMPLETE,
     changes: [
       create(CapturedFileChangeSchema, {
         id: `${id}:notes.md`,
-        pathBefore: "notes.md",
         pathAfter: "notes.md",
         kind: FileChangeKind.ADD,
-        before: create(FileContentSchema, { body: { case: "inline", value: "" } }),
-        after: create(FileContentSchema, { body: { case: "inline", value: "# Notes\n" } }),
-        fileDigest: "d-notes",
-        diffComplete: true,
+        captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
       }),
     ],
   });
@@ -102,8 +123,10 @@ const stubConv = {
   session: { spec: {} },
   isLoading: false,
   loadError: null,
-  completedRuns: [],
-  activeStreamRun: null,
+  turns: [],
+  runs: [],
+  activeTurn: null,
+  activeRun: null,
   activePhase: null,
   isStreaming: false,
   isConnecting: false,
@@ -116,17 +139,18 @@ const stubConv = {
   workspaceEntries: [],
   plugins: [],
   skillRefs: [],
-  pendingApprovals: [],
-  submitApproval: vi.fn(),
-  submittingApprovalIds: new Set<string>(),
-  fileChangeSets: [] as ReturnType<typeof pendingChangeSet>[],
+  asks: [],
+  answerToolUse: vi.fn(),
+  answeringToolUseIds: new Set<string>(),
+  fileReviewSets: [] as FileReviewSet[],
+  fileChangeCaptures: new Map<string, FileChangeSet>(),
   fileChangeProgress: undefined as ReturnType<typeof progressSnapshot> | undefined,
-  submitFileDecision: vi.fn(),
+  reviewFileChanges: vi.fn(),
   submittingFileDecisionKeys: new Set<string>(),
   fileDecisionErrors: new Map<string, Error>(),
   streamError: null,
   reconnectStream: vi.fn(),
-  approvalError: null,
+  answerError: null,
 };
 
 const stubSessionPageFlow = {
@@ -157,7 +181,7 @@ const stubSessionPageFlow = {
   sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
   autoApproveAll: false,
   setAutoApproveAll: vi.fn(),
-  submitApproval: vi.fn(),
+  answerToolUse: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
   displayRun: null,
@@ -187,9 +211,10 @@ import { SessionViewer } from "../SessionViewer";
 
 beforeEach(() => {
   threadProps.length = 0;
-  stubConv.fileChangeSets = [];
+  stubConv.fileReviewSets = [];
+  stubConv.fileChangeCaptures = new Map();
   stubConv.fileChangeProgress = undefined;
-  stubConv.submitFileDecision = vi.fn();
+  stubConv.reviewFileChanges = vi.fn();
 });
 
 afterEach(() => {
@@ -206,7 +231,8 @@ describe("SessionViewer — file-review dock wiring", () => {
   });
 
   it("docks a pending set above the composer, wired to conv's decision seam", () => {
-    stubConv.fileChangeSets = [pendingChangeSet("cs-1")];
+    stubConv.fileReviewSets = [pendingChangeSet("cs-1")];
+    stubConv.fileChangeCaptures = new Map([["cs-1", capturedSet("cs-1")]]);
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     const dock = document.querySelector('[data-cursor-target="file-review-dock"]');
@@ -221,16 +247,22 @@ describe("SessionViewer — file-review dock wiring", () => {
       dock!.compareDocumentPosition(composer) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
-    // A decision routes through conv.submitFileDecision with the set's id.
+    // The run's capture reaches the dock: its file carries its provenance.
+    fireEvent.click(
+      document.querySelector<HTMLButtonElement>('[data-cursor-target="file-review-expander"]')!,
+    );
+    expect(screen.getByText("gitignored")).toBeTruthy();
+
+    // A decision routes through conv.reviewFileChanges with the set's id.
     fireEvent.click(
       document.querySelector<HTMLButtonElement>(
         '[data-cursor-target="file-review-approve"]',
       )!,
     );
-    expect(stubConv.submitFileDecision).toHaveBeenCalledWith(
+    expect(stubConv.reviewFileChanges).toHaveBeenCalledWith(
       "cs-1",
-      FileDecisionAction.APPROVE,
-      expect.objectContaining({ expectedDigest: "agg-cs-1" }),
+      "keep",
+      expect.objectContaining({ scope: "change_set", expectedDigest: "agg-cs-1" }),
     );
   });
 
@@ -268,6 +300,9 @@ describe("SessionViewer — file-review dock wiring", () => {
     expect(threadProps.length).toBeGreaterThan(0);
     const props = threadProps.at(-1)!;
     expect(props.showFileReviewRecords).toBe(true);
+    // The thread renders the conversation's turns, with their runs.
+    expect(props.turns).toBe(stubConv.turns);
+    expect(props.runs).toBe(stubConv.runs);
     // The decision plumbing must not leak back into the thread.
     expect(props.onFileDecisionSubmit).toBeUndefined();
     expect(props.submittingFileDecisionKeys).toBeUndefined();

@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { redactSecretArgs } from "@stigmer/sdk";
+import { normalizeToolResult, redactSecretArgs, type ToolFullOutput, type ToolUse } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { formatDuration } from "./ToolCallDetail.js";
@@ -23,8 +22,8 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 /** Props for {@link McpToolDetail}. */
 export interface McpToolDetailProps {
-  /** The MCP tool call to render with structured formatting. */
-  readonly toolCall: ToolCall;
+  /** The MCP tool use to render with structured formatting. */
+  readonly toolUse: ToolUse;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -45,35 +44,40 @@ export interface McpToolDetailProps {
  *
  * @example
  * ```tsx
- * <McpToolDetail toolCall={toolCall} />
+ * <McpToolDetail toolUse={toolUse} />
  * ```
  */
-export function McpToolDetail({ toolCall, className }: McpToolDetailProps) {
-  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
+export function McpToolDetail({ toolUse, className }: McpToolDetailProps) {
+  const duration = formatDuration(toolUse.processedAt, toolUse.result?.processedAt ?? "");
+  const view = useMemo(() => normalizeToolResult(toolUse), [toolUse]);
+  const result = toolUse.result?.text ?? "";
 
   return (
     <div className={cn("stg:space-y-3 stg:text-xs", className)}>
       <McpMetadataRow
-        mcpServerSlug={toolCall.mcpServerSlug}
-        toolName={toolCall.name}
+        mcpServerSlug={toolUse.mcpServerName}
+        toolName={toolUse.name}
         duration={duration}
       />
 
-      {toolCall.args && Object.keys(toolCall.args).length > 0 && (
-        <McpArgsView args={toolCall.args as Record<string, unknown>} />
+      {Object.keys(toolUse.input).length > 0 && (
+        <McpArgsView args={toolUse.input} />
       )}
 
-      {toolCall.outputRef?.storageKey ? (
-        <McpOffloadedOutputView outputRef={toolCall.outputRef} />
+      {toolUse.fullOutput !== undefined && toolUse.fullOutput.storageKey !== "" ? (
+        <McpOffloadedOutputView
+          fullOutput={toolUse.fullOutput}
+          preview={view.type === "outputRef" ? view.preview : ""}
+        />
       ) : (
-        toolCall.result && <McpResultView result={toolCall.result} />
+        result && <McpResultView result={result} />
       )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Offloaded output (ToolCallOutputRef)
+// Offloaded output (ToolFullOutput)
 // ---------------------------------------------------------------------------
 
 function formatBytes(n: number): string {
@@ -90,17 +94,20 @@ function formatBytes(n: number): string {
  * outputRef treatment so MCP and non-MCP offloads look consistent.
  */
 function McpOffloadedOutputView({
-  outputRef,
+  fullOutput,
+  preview,
 }: {
-  readonly outputRef: NonNullable<ToolCall["outputRef"]>;
+  readonly fullOutput: ToolFullOutput;
+  /** The output's inline head (the result's text without the offload marker). */
+  readonly preview: string;
 }) {
   return (
     <div className="stg:space-y-1">
       <span className="stg:font-medium stg:text-muted-foreground">Result</span>
-      {outputRef.isImage ? (
-        <McpOffloadedImage storageKey={outputRef.storageKey} />
+      {fullOutput.isImage ? (
+        <McpOffloadedImage storageKey={fullOutput.storageKey} />
       ) : (
-        <McpOffloadedText outputRef={outputRef} />
+        <McpOffloadedText fullOutput={fullOutput} preview={preview} />
       )}
     </div>
   );
@@ -145,16 +152,18 @@ function McpOffloadedImage({ storageKey }: { readonly storageKey: string }) {
  * server truncates it.
  */
 function McpOffloadedText({
-  outputRef,
+  fullOutput,
+  preview,
 }: {
-  readonly outputRef: NonNullable<ToolCall["outputRef"]>;
+  readonly fullOutput: ToolFullOutput;
+  readonly preview: string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const executionId = useMemo(() => runIdFromStorageKey(outputRef.storageKey), [outputRef.storageKey]);
-  const { content, isLoading, isTruncated, error } = useToolOutputContent(outputRef, expanded);
+  const executionId = useMemo(() => runIdFromStorageKey(fullOutput.storageKey), [fullOutput.storageKey]);
+  const { content, isLoading, isTruncated, error } = useToolOutputContent(fullOutput, expanded);
   const { download, isDownloading } = useArtifactDownload(executionId);
 
-  const size = Number(outputRef.sizeBytes);
+  const size = Number(fullOutput.sizeBytes);
   const sizeSuffix = size ? ` (${formatBytes(size)})` : "";
   const previewClass = "stg:max-h-80 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle stg:p-2 stg:text-foreground";
   const linkClass = "stg:inline-block stg:text-xs stg:font-medium stg:text-primary stg:underline-offset-2 stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring";
@@ -163,8 +172,8 @@ function McpOffloadedText({
     <div className="stg:space-y-1">
       {!expanded ? (
         <>
-          {outputRef.truncatedPreview && (
-            <CollapsiblePre content={outputRef.truncatedPreview} className={previewClass} />
+          {preview && (
+            <CollapsiblePre content={preview} className={previewClass} />
           )}
           <button type="button" onClick={() => setExpanded(true)} className={linkClass}>
             View full output{sizeSuffix}
@@ -180,7 +189,7 @@ function McpOffloadedText({
           {isTruncated && (
             <button
               type="button"
-              onClick={() => download(outputRef.storageKey)}
+              onClick={() => download(fullOutput.storageKey)}
               disabled={isDownloading}
               className={cn(linkClass, "stg:disabled:opacity-50")}
             >

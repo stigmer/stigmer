@@ -1,47 +1,53 @@
+/**
+ * MessageThread rendering from a session's folded turns and their runs:
+ * file-review records (never a live turn's undecided set, read-only and in
+ * list mode, the capture provenance read from the run's bytes, none
+ * without the opt-in); the decision on a waiting tool use, inline on its row
+ * or on the bottom backstop card, routed through `onAnswerToolUse` with the
+ * tool use's id (allow, deny with a reason), its failure shown in-card, and
+ * absent without the handler; the conversation's messages, version and
+ * loaded-version markers, to-dos card, sub-agents and compactions; how a
+ * turn ended (badge, reason and Retry, a quiet cancel); the pending bubble
+ * and its Retry; editing the live turn's message; the set-up placeholder
+ * yielding to the first output; Plan turns (live collapse, the build card,
+ * the plan document, the mode badge); and the ambient liveness line.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import {
-  LoadedVersionsSchema,
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  RunSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { LoadedVersionsSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { FileContentSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-  FileReviewBaselineCapturedSchema,
-  FileReviewCandidateCapturedSchema,
-  FileReviewEventSchema,
-  FileReviewEventStreamSchema,
-  FileReviewReconciledSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   DiffCompleteness,
-  RunPhase,
+  FileCaptureClass,
   FileChangeKind,
   FileChangeSetStatus,
-  FileDecisionAction,
-  FileReviewEventType,
   InteractionMode,
-  MessageType,
-  TodoStatus,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-
-import { MessageThread } from "../MessageThread";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { Stigmer, Turn } from "@stigmer/sdk";
+import { StigmerContext } from "../../context";
+import { MessageThread, type MessageThreadProps } from "../MessageThread";
+import {
+  asked,
+  changes,
+  compaction,
+  conversation,
+  decided,
+  result,
+  said,
+  status,
+  subAgent,
+  thought,
+  toolId,
+  use,
+  type TurnFixture,
+} from "./__fixtures__/thread-events";
 
 // ---------------------------------------------------------------------------
 // DOM stubs — useAutoScroll depends on browser APIs not available in happy-dom
@@ -60,16 +66,7 @@ beforeEach(() => {
       thresholds: [0],
     })),
   );
-
-  vi.stubGlobal(
-    "ResizeObserver",
-    vi.fn(() => ({
-      observe: vi.fn(),
-      unobserve: vi.fn(),
-      disconnect: vi.fn(),
-    })),
-  );
-
+  vi.stubGlobal("ResizeObserver", vi.fn(() => ({ observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() })));
   vi.stubGlobal(
     "requestAnimationFrame",
     vi.fn((cb: FrameRequestCallback) => {
@@ -77,7 +74,6 @@ beforeEach(() => {
       return 1;
     }),
   );
-
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
 });
 
@@ -90,405 +86,200 @@ afterEach(() => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeExecution(opts: {
-  id: string;
-  specMessage?: string;
-  phase?: RunPhase;
-  interactionMode?: InteractionMode;
-  aiContent?: string;
-  error?: string;
-}): Run {
-  const exec = create(RunSchema);
+/** A client no test reaches: the review card reads the run only when it shows diffs, which records never do. */
+const CLIENT = {} as Stigmer;
 
-  const meta = create(ApiResourceMetadataSchema);
-  meta.id = opts.id;
-  exec.metadata = meta;
-
-  const spec = create(RunSpecSchema);
-  spec.message = opts.specMessage ?? "Hello";
-  if (opts.interactionMode !== undefined) {
-    spec.interactionMode = opts.interactionMode;
-  }
-  exec.spec = spec;
-
-  const status = create(RunStatusSchema);
-  status.phase = opts.phase ?? RunPhase.RUN_COMPLETED;
-  if (opts.error !== undefined) {
-    status.error = opts.error;
-  }
-
-  const humanMsg = create(AgentMessageSchema);
-  humanMsg.type = MessageType.MESSAGE_HUMAN;
-  humanMsg.content = opts.specMessage ?? "Hello";
-
-  const aiMsg = create(AgentMessageSchema);
-  aiMsg.type = MessageType.MESSAGE_AI;
-  aiMsg.content = opts.aiContent ?? "Hi there!";
-
-  status.messages = [humanMsg, aiMsg];
-  exec.status = status;
-
-  return exec;
+function renderThread(conv: { turns: readonly Turn[]; runs: Run[] }, props: Partial<MessageThreadProps> = {}) {
+  return render(
+    <StigmerContext.Provider value={CLIENT}>
+      <MessageThread turns={conv.turns} runs={conv.runs} {...props} />
+    </StigmerContext.Provider>,
+  );
 }
 
-function makeExecutionWithApproval(
-  id: string,
-  toolCallId: string,
-  toolName: string,
-): Run {
-  const exec = create(RunSchema);
-
-  const meta = create(ApiResourceMetadataSchema);
-  meta.id = id;
-  exec.metadata = meta;
-
-  const spec = create(RunSpecSchema);
-  spec.message = "Do something";
-  exec.spec = spec;
-
-  const status = create(RunStatusSchema);
-  status.phase = RunPhase.RUN_IN_PROGRESS;
-
-  const aiMsg = create(AgentMessageSchema);
-  aiMsg.type = MessageType.MESSAGE_AI;
-  aiMsg.content = "I need to run a tool.";
-  status.messages = [aiMsg];
-
-  status.pendingApprovals = [
-    create(PendingApprovalSchema, { toolCallId, toolName }),
-  ];
-  exec.status = status;
-
-  return exec;
-}
-
-/**
- * An active run whose AI turn carries a gated tool call, with a matching
- * pending approval — the case that should render the gate INLINE on the tool
- * row rather than as a detached bottom card.
- */
-function makeExecutionWithInlineApproval(
-  id: string,
-  toolCallId: string,
-  toolName: string,
-): Run {
-  const exec = create(RunSchema);
-  exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.spec = create(RunSpecSchema, { message: "Do something" });
-
-  const status = create(RunStatusSchema);
-  status.phase = RunPhase.RUN_WAITING_FOR_APPROVAL;
-
-  const aiMsg = create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_AI,
-    content: "",
-    toolCalls: [
-      create(ToolCallSchema, {
-        id: toolCallId,
-        name: toolName,
-        status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+/** A run's captured change set for `src/a.ts`, captured outside git tracking. */
+function capturedSet(id: string): ReturnType<typeof create<typeof FileChangeSetSchema>> {
+  return create(FileChangeSetSchema, {
+    id,
+    status: FileChangeSetStatus.RECONCILED,
+    aggregateDigest: "agg-1",
+    diffCompleteness: DiffCompleteness.COMPLETE,
+    changes: [
+      create(CapturedFileChangeSchema, {
+        id: "fc-a",
+        pathBefore: "src/a.ts",
+        pathAfter: "src/a.ts",
+        kind: FileChangeKind.MODIFY,
+        captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED,
+        before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
+        after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
+        fileDigest: "d-a",
+        diffComplete: true,
       }),
     ],
   });
-  status.messages = [aiMsg];
-  status.pendingApprovals = [
-    create(PendingApprovalSchema, {
-      toolCallId,
-      toolName,
-      argsPreview: '{"path":"/tmp/x"}',
-    }),
-  ];
-  exec.status = status;
-  return exec;
 }
 
-/**
- * An active run carrying one single-file change set AWAITING_REVIEW — a
- * PENDING set, which {@link MessageThread} must NOT render (the composer-docked
- * FileReviewDock owns it). Flip the set's status to a settled value to exercise
- * the read-only record rendering.
- */
-function makeExecutionWithFileReview(id: string, setId: string): Run {
-  const exec = create(RunSchema);
-  exec.metadata = create(ApiResourceMetadataSchema, { id });
-  exec.spec = create(RunSpecSchema, { message: "Edit a file" });
-
-  const status = create(RunStatusSchema);
-  status.phase = RunPhase.RUN_IN_PROGRESS;
-  status.messages = [
-    create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
-  ];
-  status.fileChangeSets = [
-    create(FileChangeSetSchema, {
-      id: setId,
-      status: FileChangeSetStatus.AWAITING_REVIEW,
-      aggregateDigest: "agg-1",
-      diffCompleteness: DiffCompleteness.COMPLETE,
-      changes: [
-        create(CapturedFileChangeSchema, {
-          id: `${setId}:src/a.ts`,
-          pathBefore: "src/a.ts",
-          pathAfter: "src/a.ts",
-          kind: FileChangeKind.MODIFY,
-          before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
-          after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
-          fileDigest: "d-a",
-          diffComplete: true,
-        }),
-      ],
-    }),
-  ];
-  exec.status = status;
-  return exec;
-}
+const FILES = [{ id: "fc-a", path: "src/a.ts" }];
 
 // ---------------------------------------------------------------------------
-// Tests
+// File-review records
+// ---------------------------------------------------------------------------
+
+describe("MessageThread file-review records", () => {
+  it("never renders a live turn's undecided set — the composer-docked dock owns it", () => {
+    renderThread(conversation({ id: "live", phase: "running", reply: "Done.", extra: [changes("live", "cs1", FILES)] }), {
+      showFileReviewRecords: true,
+    });
+
+    expect(screen.queryByText("Review file changes")).toBeNull();
+    expect(screen.queryByText("File changes")).toBeNull();
+    expect(document.querySelector('[data-cursor-target="file-review-approve"]')).toBeNull();
+  });
+
+  it("renders a settled set as a read-only record in list mode, its provenance from the run's capture", () => {
+    const conv = conversation({ id: "done", reply: "Done.", extra: [changes("done", "cs1", FILES), decided("done", "cs1", "keep")] });
+    conv.runs[0]!.status!.fileChangeSets = [capturedSet("cs1")];
+
+    renderThread(conv, { showFileReviewRecords: true });
+
+    expect(screen.getByText("File changes")).toBeTruthy();
+    expect(document.querySelector('[data-cursor-target="file-review-approve"]')).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
+    expect(document.querySelector('[data-cursor-target="file-review-list-row"]')).toBeTruthy();
+    expect(screen.getByText("gitignored")).toBeTruthy();
+    expect(screen.getByText("Kept")).toBeTruthy();
+  });
+
+  it("renders the record without provenance when no run holds the capture", () => {
+    renderThread({ turns: conversation({ id: "done", extra: [changes("done", "cs1", FILES)] }).turns, runs: [] }, { showFileReviewRecords: true });
+
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(screen.getByRole("button", { name: /Copy path: src\/a\.ts/ })).toBeTruthy();
+    expect(screen.queryByText("gitignored")).toBeNull();
+  });
+
+  it("renders no records without showFileReviewRecords (default)", () => {
+    renderThread(conversation({ id: "done", extra: [changes("done", "cs1", FILES), decided("done", "cs1", "keep")] }));
+
+    expect(screen.queryByText("File changes")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Answers to waiting tool uses
+// ---------------------------------------------------------------------------
+
+describe("MessageThread answers", () => {
+  /** A live turn waiting on `call` (`name`). */
+  function waiting(id: string, call: string, name: string): { turns: readonly Turn[]; runs: Run[] } {
+    return conversation({
+      id,
+      phase: "running",
+      message: "Do something",
+      reply: "I need to run a tool.",
+      extra: [use(id, call, name, { path: "/tmp/x" }, { ask: true }), asked(id, call), status(id, "waiting")],
+    });
+  }
+
+  it("renders a waiting call's decision INLINE on its row and routes Approve with its id", () => {
+    const onAnswer = vi.fn();
+    renderThread(waiting("w", "c1", "delete_file"), { onAnswerToolUse: onAnswer });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    expect(onAnswer).toHaveBeenCalledWith(toolId("w", "c1"), "allow", undefined);
+  });
+
+  it("shows an inline gate's failure in-card", () => {
+    const { container } = renderThread(waiting("w", "c1", "delete_file"), {
+      onAnswerToolUse: () => {},
+      answerErrors: new Map([[toolId("w", "c1"), new Error("gate already resolved")]]),
+    });
+
+    expect(container.querySelector('[data-cursor-target="approval-error"]')?.textContent).toContain("gate already resolved");
+  });
+
+  it("renders a waiting call with no row as the bottom card, routing a Deny with its reason", () => {
+    const onAnswer = vi.fn();
+    renderThread(waiting("w", "c1", "write_todos"), { onAnswerToolUse: onAnswer });
+
+    expect(screen.getByRole("alert").getAttribute("aria-label")).toContain("write_todos");
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    fireEvent.change(screen.getByLabelText("Reason for denying (optional)"), { target: { value: "not now" } });
+    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    expect(onAnswer).toHaveBeenCalledWith(toolId("w", "c1"), "deny", "not now");
+  });
+
+  it("shows the bottom card's failure and in-flight state", () => {
+    const { container } = renderThread(waiting("w", "c1", "write_todos"), {
+      onAnswerToolUse: () => {},
+      answeringToolUseIds: new Set([toolId("w", "c1")]),
+      answerErrors: new Map([[toolId("w", "c1"), new Error("network down")]]),
+    });
+
+    expect(container.querySelector('[data-cursor-target="approval-error"]')?.textContent).toContain("network down");
+    expect(screen.getByRole("button", { name: "Approve" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("renders no decision UI without onAnswerToolUse", () => {
+    renderThread(waiting("w", "c1", "write_todos"));
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The conversation
 // ---------------------------------------------------------------------------
 
 describe("MessageThread", () => {
-  it("never renders a PENDING set — the composer-docked FileReviewDock owns the decision surface", () => {
-    const exec = makeExecutionWithFileReview("exec-live", "cs-live:0");
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={exec}
-        showFileReviewRecords
-      />,
-    );
-    // Neither the interactive bar nor a record: the pending state lives on the
-    // stamped rows' badges, and the decision controls live in the dock.
-    expect(screen.queryByText("Review file changes")).toBeNull();
-    expect(screen.queryByText("File changes")).toBeNull();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-approve"]'),
-    ).toBeNull();
+  it("renders a role=log container with no turns", () => {
+    render(<MessageThread turns={[]} />);
+
+    expect(screen.getByRole("log").getAttribute("aria-live")).toBe("polite");
   });
 
-  it("renders a settled set as a read-only record (no decision controls)", () => {
-    const exec = makeExecutionWithFileReview("exec-settled", "cs-settled:0");
-    // A decided/reconciled set: history, not an action.
-    exec.status!.fileChangeSets[0].status = FileChangeSetStatus.RECONCILED;
+  it("renders the person's and the agent's messages", () => {
+    renderThread(conversation({ id: "a", message: "What is Stigmer?", reply: "Stigmer is a platform for platforms." }));
 
-    render(<MessageThread runs={[exec]} showFileReviewRecords />);
-    expect(screen.getByText("File changes")).toBeTruthy();
-    expect(screen.queryByText("Review file changes")).toBeNull();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-approve"]'),
-    ).toBeNull();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-reject"]'),
-    ).toBeNull();
-    // Record mode is list mode: the expander reveals the file list, no diffs —
-    // the stamped edit rows own the diffs.
-    fireEvent.click(screen.getByRole("button", { name: "Show" }));
-    expect(document.querySelector('[data-cursor-target="file-diff"]')).toBeNull();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-list-row"]'),
-    ).toBeTruthy();
+    expect(screen.getByText("What is Stigmer?")).toBeTruthy();
+    expect(screen.getByText("Stigmer is a platform for platforms.")).toBeTruthy();
   });
 
-  it("renders no records at all without showFileReviewRecords (default)", () => {
-    const exec = makeExecutionWithFileReview("exec-off", "cs-off:0");
-    exec.status!.fileChangeSets[0].status = FileChangeSetStatus.RECONCILED;
+  it("renders a divider naming the agent version where it starts and where it changes", () => {
+    const conv = conversation({ id: "a", message: "one" }, { id: "b", message: "two" });
+    conv.runs[0]!.status!.agentVersionHash = "h1";
+    conv.runs[1]!.status!.agentVersionHash = "h2";
 
-    render(<MessageThread runs={[exec]} />);
-    expect(screen.queryByText("File changes")).toBeNull();
+    renderThread(conv, { agentVersionLabel: (hash) => (hash === "h2" ? "v2" : hash) });
+
+    expect(screen.getAllByTestId("agent-version-marker").map((m) => m.textContent)).toEqual(["Agent version h1", "Agent version v2"]);
   });
 
-  it("folds the ledger and renders read-only for a terminal execution (empty projection)", () => {
-    // A terminal run: the server projects no actionable file_change_sets,
-    // so MessageThread must fold the durable ledger to show what changed.
-    const exec = create(RunSchema);
-    exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-terminal" });
-    exec.spec = create(RunSpecSchema, { message: "Edit a file" });
-    const status = create(RunStatusSchema);
-    status.phase = RunPhase.RUN_COMPLETED;
-    status.messages = [
-      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "Done." }),
-    ];
-    status.fileChangeSets = []; // terminal: server projects nil
-    const changeSetId = "cs-term:0";
-    status.fileReviewEventStream = create(FileReviewEventStreamSchema, {
-      runId: "exec-terminal",
-      events: [
-        create(FileReviewEventSchema, {
-          changeSetId,
-          eventType: FileReviewEventType.BASELINE_CAPTURED,
-          payload: {
-            case: "baselineCaptured",
-            value: create(FileReviewBaselineCapturedSchema, {
-              changeSetId,
-              turnId: "t1",
-              harnessId: "deep-agent",
-            }),
-          },
-        }),
-        create(FileReviewEventSchema, {
-          changeSetId,
-          eventType: FileReviewEventType.CANDIDATE_CAPTURED,
-          payload: {
-            case: "candidateCaptured",
-            value: create(FileReviewCandidateCapturedSchema, {
-              changeSetId,
-              aggregateDigest: "agg-1",
-              changes: [
-                create(CapturedFileChangeSchema, {
-                  id: `${changeSetId}:src/a.ts`,
-                  pathBefore: "src/a.ts",
-                  pathAfter: "src/a.ts",
-                  kind: FileChangeKind.MODIFY,
-                  before: create(FileContentSchema, { body: { case: "inline", value: "old\n" } }),
-                  after: create(FileContentSchema, { body: { case: "inline", value: "new\n" } }),
-                  fileDigest: "d-a",
-                  diffComplete: true,
-                }),
-              ],
-            }),
-          },
-        }),
-        create(FileReviewEventSchema, {
-          changeSetId,
-          eventType: FileReviewEventType.RECONCILED,
-          payload: {
-            case: "reconciled",
-            value: create(FileReviewReconciledSchema, { changeSetId }),
-          },
-        }),
-      ],
-    });
-    exec.status = status;
+  it("renders no agent version divider without a label function", () => {
+    const conv = conversation({ id: "a" });
+    conv.runs[0]!.status!.agentVersionHash = "h1";
 
-    render(<MessageThread runs={[exec]} showFileReviewRecords />);
-    // The read-only record renders with no decision controls; expanding it
-    // shows the folded set's changed file.
-    expect(screen.getByText("File changes")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Show" }));
-    // The changed file renders as a FilePathLink whose accessible name
-    // carries the full path (the hover reveal is the house tooltip now —
-    // native titles are banned).
-    expect(
-      screen.getByRole("button", { name: /Copy path: src\/a\.ts/ }),
-    ).toBeTruthy();
-    expect(
-      document.querySelector('[data-cursor-target="file-review-approve"]'),
-    ).toBeNull();
+    renderThread(conv);
+
+    expect(screen.queryByTestId("agent-version-marker")).toBeNull();
   });
 
-  it("threads an approvalErrors entry to an inline gate (the primary route)", () => {
-    const exec = makeExecutionWithInlineApproval("exec-ia", "tc-1", "delete_file");
-    const approvalErrors = new Map([["tc-1", new Error("gate already resolved")]]);
-
-    const { container } = render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={exec}
-        onApprovalSubmit={() => {}}
-        approvalErrors={approvalErrors}
-      />,
-    );
-
-    const alert = container.querySelector('[data-cursor-target="approval-error"]');
-    expect(alert).toBeTruthy();
-    expect(alert!.textContent).toContain("gate already resolved");
-  });
-
-  it("threads an approvalErrors entry to a bottom backstop card (orphan approval)", () => {
-    // An approval whose tool call has no inline row renders as the bottom
-    // backstop ApprovalCard; the keyed error must reach it too.
-    const exec = create(RunSchema);
-    exec.metadata = create(ApiResourceMetadataSchema, { id: "exec-orphan" });
-    exec.spec = create(RunSpecSchema, { message: "Do something" });
-    const status = create(RunStatusSchema);
-    status.phase = RunPhase.RUN_WAITING_FOR_APPROVAL;
-    status.messages = [];
-    status.pendingApprovals = [
-      create(PendingApprovalSchema, {
-        toolCallId: "tc-orphan",
-        toolName: "delete_file",
-        argsPreview: '{"path":"/tmp/x"}',
-      }),
-    ];
-    exec.status = status;
-
-    const approvalErrors = new Map([["tc-orphan", new Error("network down")]]);
-
-    const { container } = render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={exec}
-        onApprovalSubmit={() => {}}
-        approvalErrors={approvalErrors}
-      />,
-    );
-
-    const alert = container.querySelector('[data-cursor-target="approval-error"]');
-    expect(alert).toBeTruthy();
-    expect(alert!.textContent).toContain("network down");
-  });
-
-  it("renders role=log container when executions array is empty", () => {
-    render(<MessageThread runs={[]} />);
-
-    const log = screen.getByRole("log");
-    expect(log).toBeTruthy();
-    expect(log.getAttribute("aria-live")).toBe("polite");
-  });
-
-  it("renders human and AI messages from completed execution", () => {
-    const exec = makeExecution({
-      id: "exec-1",
-      specMessage: "What is Stigmer?",
-      aiContent: "Stigmer is a platform for platforms.",
-    });
-
-    render(<MessageThread runs={[exec]} />);
-
-    // spec.message renders as a synthetic human bubble, plus it may
-    // also appear in status.messages — assert at least one is present.
-    const humanMessages = screen.getAllByText("What is Stigmer?");
-    expect(humanMessages.length).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getByText("Stigmer is a platform for platforms."),
-    ).toBeTruthy();
-  });
-
-  it("renders a divider naming the agent version where the conversation starts and where it changes", () => {
-    const first = makeExecution({ id: "exec-a", specMessage: "one" });
-    first.status!.agentVersionHash = "h1";
-    const second = makeExecution({ id: "exec-b", specMessage: "two" });
-    second.status!.agentVersionHash = "h2";
-
-    render(
-      <MessageThread
-        runs={[first, second]}
-        agentVersionLabel={(hash) => (hash === "h2" ? "v2" : hash)}
-      />,
-    );
-
-    expect(
-      screen.getAllByTestId("agent-version-marker").map((m) => m.textContent),
-    ).toEqual(["Agent version h1", "Agent version v2"]);
-  });
-
-  it("marks a skill or plugin a turn ran at another version than the turn before, by its current name, and none on the first turn", () => {
+  it("marks a skill or plugin a turn ran at another version than the turn before, and none on the first turn", () => {
     const loaded = (skills: [string, string, string][], plugins: [string, string, string][] = []) =>
       create(LoadedVersionsSchema, {
         skills: skills.map(([id, slug, version]) => ({ org: "org_a", kind: ApiResourceKind.skill, id, slug, version })),
         plugins: plugins.map(([id, slug, version]) => ({ org: "org_a", kind: ApiResourceKind.plugin, id, slug, version })),
       });
-    const first = makeExecution({ id: "exec-a", specMessage: "one" });
-    first.status!.loadedVersions = loaded([["skl_1", "refunds", "v1"]], [["plg_1", "github-tools", "d1"]]);
-    // Resumed after a push: it holds both versions, and the later one is what it ran last.
-    const second = makeExecution({ id: "exec-b", specMessage: "two" });
-    second.status!.loadedVersions = loaded([["skl_1", "refunds", "v1"], ["skl_1", "refunds", "v2"]], [["plg_1", "github-tools", "d1"]]);
-    // A turn that recorded no list leaves the comparison where it stands.
-    const third = makeExecution({ id: "exec-c", specMessage: "three" });
-    // A newly loaded skill is not "updated"; the plugin moved.
-    const fourth = makeExecution({ id: "exec-d", specMessage: "four" });
-    fourth.status!.loadedVersions = loaded([["skl_1", "refunds", "v2"], ["skl_2", "triage", "v1"]], [["plg_1", "github-tools", "d2"]]);
+    const conv = conversation({ id: "a", message: "one" }, { id: "b", message: "two" }, { id: "c", message: "three" }, { id: "d", message: "four" });
+    conv.runs[0]!.status!.loadedVersions = loaded([["skl_1", "refunds", "v1"]], [["plg_1", "github-tools", "d1"]]);
+    conv.runs[1]!.status!.loadedVersions = loaded([["skl_1", "refunds", "v1"], ["skl_1", "refunds", "v2"]], [["plg_1", "github-tools", "d1"]]);
+    conv.runs[3]!.status!.loadedVersions = loaded([["skl_1", "refunds", "v2"], ["skl_2", "triage", "v1"]], [["plg_1", "github-tools", "d2"]]);
 
-    render(<MessageThread runs={[first, second, third, fourth]} />);
+    renderThread(conv);
 
     expect(screen.getAllByTestId("loaded-versions-marker").map((m) => m.textContent)).toEqual([
       "Skill refunds updated",
@@ -497,526 +288,176 @@ describe("MessageThread", () => {
   });
 
   it("names a moved skill that was deleted since as a deleted skill", () => {
-    const at = (version: string, slug: string) =>
-      create(LoadedVersionsSchema, { skills: [{ org: "org_a", kind: ApiResourceKind.skill, id: "skl_1", slug, version }] });
-    const first = makeExecution({ id: "exec-a", specMessage: "one" });
-    first.status!.loadedVersions = at("v1", "");
-    const second = makeExecution({ id: "exec-b", specMessage: "two" });
-    second.status!.loadedVersions = at("v2", "");
+    const at = (version: string) => create(LoadedVersionsSchema, { skills: [{ org: "org_a", kind: ApiResourceKind.skill, id: "skl_1", slug: "", version }] });
+    const conv = conversation({ id: "a" }, { id: "b" });
+    conv.runs[0]!.status!.loadedVersions = at("v1");
+    conv.runs[1]!.status!.loadedVersions = at("v2");
 
-    render(<MessageThread runs={[first, second]} />);
+    renderThread(conv);
 
     expect(screen.getAllByTestId("loaded-versions-marker").map((m) => m.textContent)).toEqual(["Deleted skill updated"]);
   });
 
-  it("renders no agent version divider without a label function", () => {
-    const exec = makeExecution({ id: "exec-a" });
-    exec.status!.agentVersionHash = "h1";
-
-    render(<MessageThread runs={[exec]} />);
-
-    expect(screen.queryByTestId("agent-version-marker")).toBeNull();
-  });
-
-  it("renders the agent's todos as an inline card in the thread", () => {
-    const exec = makeExecution({
-      id: "exec-todos",
-      specMessage: "Build the feature",
-      aiContent: "Here is my plan",
-    });
-    // Attach a live plan to the run status (as the runner would).
-    exec.status!.todos = {
-      t1: create(TodoItemSchema, {
-        id: "t1",
-        content: "Scaffold the component",
-        status: TodoStatus.TODO_IN_PROGRESS,
+  it("renders the turn's to-dos as an inline card", () => {
+    renderThread(
+      conversation({
+        id: "t",
+        message: "Build the feature",
+        phase: "running",
+        reply: "Here is my plan",
+        extra: [
+          use("t", "todo", "write_todos", { todos: [{ content: "Scaffold the component", status: "in_progress" }, { content: "Wire the thread", status: "pending" }] }),
+          result("t", "todo", "ok"),
+        ],
       }),
-      t2: create(TodoItemSchema, {
-        id: "t2",
-        content: "Wire the thread",
-        status: TodoStatus.TODO_PENDING,
-      }),
-    };
-
-    render(<MessageThread runs={[exec]} />);
+    );
 
     const region = screen.getByRole("region", { name: "Agent to-dos" });
-    expect(region).toBeTruthy();
-    // Active plan → expanded → tasks visible inline.
     expect(region.textContent).toContain("Scaffold the component");
     expect(region.textContent).toContain("0/2 completed");
   });
 
-  it("renders pending user message with opacity indicator", () => {
-    render(
-      <MessageThread
-        runs={[]}
-        pendingUserMessage="I am thinking..."
-      />,
+  it("renders a sub-agent's card and a context compaction", () => {
+    const threadId = toolId("s", "task1");
+    renderThread(
+      conversation({
+        id: "s",
+        reply: "Delegating.",
+        extra: [
+          use("s", "task1", "task", { description: "Research renewables" }),
+          ...subAgent("s", "task1", { agentName: "researcher", items: [said("s", 0, "Looking", threadId)], finished: "completed" }),
+          result("s", "task1", "found"),
+          compaction("s", "cmp1"),
+        ],
+      }),
     );
 
-    const pendingText = screen.getByText("I am thinking...");
-    expect(pendingText).toBeTruthy();
-
-    const article = pendingText.closest("[role='article']");
-    expect(article?.className).toContain("stg:opacity-70");
+    expect(screen.getByRole("group", { name: /Sub-agent: Research renewables/ })).toBeTruthy();
+    expect(screen.getByRole("status", { name: "Context compacted" })).toBeTruthy();
   });
 
-  it("renders approval card when onApprovalSubmit is provided and execution has pending approvals", () => {
-    const exec = makeExecutionWithApproval("exec-a", "tc-1", "write_file");
-    const onApproval = vi.fn();
+  it("renders the pending message dimmed", () => {
+    render(<MessageThread turns={[]} pendingUserMessage="I am thinking..." />);
 
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={exec}
-        onApprovalSubmit={onApproval}
-      />,
-    );
-
-    const alert = screen.getByRole("alert");
-    expect(alert).toBeTruthy();
-    expect(alert.getAttribute("aria-label")).toContain("write_file");
-  });
-
-  it("does NOT render approval cards when onApprovalSubmit is omitted", () => {
-    const exec = makeExecutionWithApproval("exec-b", "tc-2", "shell");
-
-    render(
-      <MessageThread runs={[]} activeStreamRun={exec} />,
-    );
-
-    expect(screen.queryByRole("alert")).toBeNull();
-  });
-
-  it("onApprovalSubmit fires with correct toolCallId and action", () => {
-    const exec = makeExecutionWithApproval("exec-c", "tc-approve", "read_file");
-    const onApproval = vi.fn();
-
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={exec}
-        onApprovalSubmit={onApproval}
-      />,
-    );
-
-    const approveBtn = screen.getByRole("button", { name: "Approve" });
-    fireEvent.click(approveBtn);
-
-    expect(onApproval).toHaveBeenCalledOnce();
-    expect(onApproval).toHaveBeenCalledWith(
-      "tc-approve",
-      expect.any(Number),
-      undefined,
-    );
-    // First arg is toolCallId, second is ApprovalAction.APPROVE (enum value)
-    expect(onApproval.mock.calls[0][0]).toBe("tc-approve");
-  });
-
-  it("renders a matching approval INLINE on its tool row, not as a bottom card, and routes the decision", () => {
-    const exec = makeExecutionWithInlineApproval("exec-inline", "tc-inline", "delete_file");
-    const onApproval = vi.fn();
-
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={exec}
-        onApprovalSubmit={onApproval}
-      />,
-    );
-
-    // No detached bottom card (role=alert is the standalone ApprovalCard only).
-    expect(screen.queryByRole("alert")).toBeNull();
-
-    // The gate's actions are present inline, and approving routes the decision
-    // with the gated tool's id.
-    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
-    expect(onApproval).toHaveBeenCalledOnce();
-    expect(onApproval.mock.calls[0][0]).toBe("tc-inline");
-  });
-
-  it("renders RunPhaseBadge for non-completed terminal phase", () => {
-    const exec = makeExecution({
-      id: "exec-fail",
-      phase: RunPhase.RUN_FAILED,
-    });
-
-    render(<MessageThread runs={[exec]} />);
-
-    expect(screen.getByText(/failed/i)).toBeTruthy();
-  });
-
-  it("surfaces the server failure reason for a FAILED execution", () => {
-    const exec = makeExecution({
-      id: "exec-fail-reason",
-      phase: RunPhase.RUN_FAILED,
-      error: "Activity task timed out (RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED)",
-    });
-
-    render(<MessageThread runs={[exec]} />);
-
-    expect(
-      screen.getByText(/Activity task timed out/i),
-    ).toBeTruthy();
-  });
-
-  it("does NOT surface a failure reason for a COMPLETED execution", () => {
-    const exec = makeExecution({
-      id: "exec-ok",
-      phase: RunPhase.RUN_COMPLETED,
-      error: "stale error that should be ignored",
-    });
-
-    render(<MessageThread runs={[exec]} />);
-
-    expect(screen.queryByText(/stale error/i)).toBeNull();
-  });
-
-  // Cancelled is a quiet terminal state (stigmer#282): a user-initiated Stop
-  // must never render as a failure. A CANCELLED run can legitimately
-  // carry a non-empty status.error — cancel preserves a preexisting error by
-  // design, and pre-fix servers wrote an "Execution cancelled" sentinel — so
-  // the phase, not the error field, decides whether the loud banner renders.
-  it("renders a CANCELLED execution quietly even when it carries a legacy error sentinel", () => {
-    const exec = makeExecution({
-      id: "exec-cancelled",
-      specMessage: "do the thing",
-      phase: RunPhase.RUN_CANCELLED,
-      error: "Execution cancelled",
-    });
-    const onRetryRun = vi.fn();
-
-    render(
-      <MessageThread runs={[exec]} onRetryRun={onRetryRun} />,
-    );
-
-    // The muted phase badge is the visible cancelled state.
-    expect(screen.getByText(/cancelled/i)).toBeTruthy();
-
-    // No destructive banner, no error text, no Retry.
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByText("Execution cancelled")).toBeNull();
-    expect(screen.queryByRole("button", { name: /retry/i })).toBeNull();
-  });
-
-  it("renders a CANCELLED execution with a preserved prior error quietly", () => {
-    const exec = makeExecution({
-      id: "exec-cancelled-preserved",
-      phase: RunPhase.RUN_CANCELLED,
-      error: "Execution interrupted: agent was unresponsive. Retry or resume.",
-    });
-
-    render(<MessageThread runs={[exec]} />);
-
-    expect(screen.getByText(/cancelled/i)).toBeTruthy();
-    // Neither the loud alert framing nor the neutral interrupted/Resume
-    // framing may appear — the preserved error stays out of the transcript.
-    expect(screen.queryByText(/Execution interrupted/i)).toBeNull();
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByRole("button", { name: /resume/i })).toBeNull();
-  });
-
-  it("offers a Retry that resends the originating message on failure", () => {
-    const exec = makeExecution({
-      id: "exec-retry",
-      specMessage: "do the thing",
-      phase: RunPhase.RUN_FAILED,
-      error: "boom",
-    });
-    const onRetryRun = vi.fn();
-
-    render(
-      <MessageThread runs={[exec]} onRetryRun={onRetryRun} />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
-    expect(onRetryRun).toHaveBeenCalledWith("do the thing");
+    expect(screen.getByText("I am thinking...").closest("[role='article']")?.className).toContain("stg:opacity-70");
   });
 
   it("renders a failed pending message with an inline Retry", () => {
     const onRetrySend = vi.fn();
-
-    render(
-      <MessageThread
-        runs={[]}
-        pendingUserMessage="unsent message"
-        pendingMessageFailed
-        onRetrySend={onRetrySend}
-      />,
-    );
+    render(<MessageThread turns={[]} pendingUserMessage="unsent message" pendingMessageFailed onRetrySend={onRetrySend} />);
 
     expect(screen.getByText("unsent message")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /retry/i }));
     expect(onRetrySend).toHaveBeenCalledOnce();
   });
 
-  it("shows an Edit affordance on the in-flight human turn and routes onEditMessage", () => {
-    const active = makeExecution({
-      id: "exec-active",
-      specMessage: "fix the bug",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      aiContent: "working on it",
-    });
-    const onEditMessage = vi.fn();
+  describe("how a turn ended", () => {
+    it("renders the phase badge and the reason of a failed turn, with a Retry that resends its message", () => {
+      const onRetryRun = vi.fn();
+      renderThread(conversation({ id: "f", message: "do the thing", phase: "failed", error: "Activity task timed out" }), { onRetryRun });
 
-    render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={active}
-        onEditMessage={onEditMessage}
-      />,
-    );
-
-    const editBtn = screen.getByRole("button", { name: "Edit message" });
-    fireEvent.click(editBtn);
-    expect(onEditMessage).toHaveBeenCalledWith("fix the bug");
-  });
-
-  it("shows no Edit affordance when onEditMessage is omitted", () => {
-    const active = makeExecution({
-      id: "exec-active",
-      specMessage: "fix the bug",
-      phase: RunPhase.RUN_IN_PROGRESS,
+      expect(screen.getByText(/failed/i)).toBeTruthy();
+      expect(screen.getByText(/Activity task timed out/)).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+      expect(onRetryRun).toHaveBeenCalledWith("do the thing");
     });
 
-    render(
-      <MessageThread runs={[]} activeStreamRun={active} />,
-    );
+    it("surfaces no reason for a completed turn", () => {
+      renderThread(conversation({ id: "ok", error: "stale error that should be ignored" }));
 
-    expect(
-      screen.queryByRole("button", { name: "Edit message" }),
-    ).toBeNull();
-  });
-
-  it("marks only the active-stream human turn editable, not completed turns", () => {
-    const completed = makeExecution({
-      id: "exec-done",
-      specMessage: "old turn",
-      phase: RunPhase.RUN_COMPLETED,
-    });
-    const active = makeExecution({
-      id: "exec-active",
-      specMessage: "new turn",
-      phase: RunPhase.RUN_IN_PROGRESS,
-    });
-    const onEditMessage = vi.fn();
-
-    render(
-      <MessageThread
-        runs={[completed]}
-        activeStreamRun={active}
-        onEditMessage={onEditMessage}
-      />,
-    );
-
-    const editBtns = screen.getAllByRole("button", { name: "Edit message" });
-    expect(editBtns).toHaveLength(1);
-
-    fireEvent.click(editBtns[0]);
-    expect(onEditMessage).toHaveBeenCalledWith("new turn");
-  });
-
-  // Issue #179: while a turn streams, the synthetic "Thinking…" setup
-  // placeholder must yield the moment real content (streamed reasoning or a tool
-  // call) arrives — otherwise it renders *alongside* the real cards.
-  describe("streaming trace replaces the synthetic placeholder (issue #179)", () => {
-    function makeStreamingExecution(
-      messages: ReturnType<typeof create<typeof AgentMessageSchema>>[],
-    ): Run {
-      const exec = create(RunSchema);
-      const meta = create(ApiResourceMetadataSchema);
-      meta.id = "exec-streaming";
-      exec.metadata = meta;
-      const spec = create(RunSpecSchema);
-      spec.message = "Do the thing";
-      exec.spec = spec;
-      const status = create(RunStatusSchema);
-      status.phase = RunPhase.RUN_IN_PROGRESS;
-      status.messages = messages;
-      exec.status = status;
-      return exec;
-    }
-
-    function humanMessage(text: string) {
-      const m = create(AgentMessageSchema);
-      m.type = MessageType.MESSAGE_HUMAN;
-      m.content = text;
-      return m;
-    }
-
-    function thinkingMessage(text: string) {
-      const m = create(AgentMessageSchema);
-      m.type = MessageType.MESSAGE_THINKING;
-      m.content = text;
-      m.isStreaming = true;
-      return m;
-    }
-
-    it("streamed reasoning (no AI text yet) hides the synthetic 'Thinking…' placeholder", () => {
-      const active = makeStreamingExecution([
-        humanMessage("Do the thing"),
-        thinkingMessage("Let me reason about the request"),
-      ]);
-
-      render(<MessageThread runs={[]} activeStreamRun={active} />);
-
-      // The real reasoning card is shown...
-      expect(
-        screen.getByRole("article", { name: "Model thinking" }),
-      ).toBeTruthy();
-      // ...and the synthetic placeholder (ellipsis "Thinking…") is gone. Before
-      // the fix, hasAiMessages ignored MESSAGE_THINKING and both rendered.
-      expect(screen.queryByText("Thinking\u2026")).toBeNull();
+      expect(screen.queryByText(/stale error/)).toBeNull();
     });
 
-    it("renders thinking + a running tool call mid-turn without the placeholder", () => {
-      const aiWithTool = create(AgentMessageSchema);
-      aiWithTool.type = MessageType.MESSAGE_AI;
-      aiWithTool.content = "";
-      aiWithTool.toolCalls = [
-        create(ToolCallSchema, {
-          id: "tc-1",
-          name: "read",
-          status: ToolCallStatus.TOOL_CALL_RUNNING,
-        }),
-      ];
+    it("renders a cancelled turn quietly, even with an error", () => {
+      renderThread(conversation({ id: "c", message: "do the thing", phase: "cancelled", error: "Execution cancelled" }), { onRetryRun: vi.fn() });
 
-      const active = makeStreamingExecution([
-        humanMessage("Do the thing"),
-        thinkingMessage("Planning the edit"),
-        aiWithTool,
-      ]);
-
-      render(<MessageThread runs={[]} activeStreamRun={active} />);
-
-      expect(
-        screen.getByRole("article", { name: "Model thinking" }),
-      ).toBeTruthy();
-      expect(screen.queryByText("Thinking\u2026")).toBeNull();
+      expect(screen.getByText(/cancelled/i)).toBeTruthy();
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.queryByText("Execution cancelled")).toBeNull();
+      expect(screen.queryByRole("button", { name: /retry/i })).toBeNull();
     });
   });
 
-  describe("live plan collapse (streaming Plan turn)", () => {
-    function streamingPlanExecution() {
-      return makeExecution({
-        id: "exec-live",
-        phase: RunPhase.RUN_IN_PROGRESS,
-        interactionMode: InteractionMode.PLAN,
-        aiContent: "# Rollout Plan\n\n1. First step",
-      });
-    }
+  describe("editing the live turn's message", () => {
+    it("shows an Edit affordance only on the live turn's message and routes onEditMessage", () => {
+      const onEditMessage = vi.fn();
+      renderThread(conversation({ id: "old", message: "old turn" }, { id: "new", message: "new turn", phase: "running", reply: "working on it" }), { onEditMessage });
 
-    it("collapses the streaming plan behind a live card when onOpenPlan is wired", () => {
+      const edit = screen.getAllByRole("button", { name: "Edit message" });
+      expect(edit).toHaveLength(1);
+      fireEvent.click(edit[0]!);
+      expect(onEditMessage).toHaveBeenCalledWith("new turn");
+    });
+
+    it("shows no Edit affordance without onEditMessage", () => {
+      renderThread(conversation({ id: "new", message: "fix the bug", phase: "running" }));
+
+      expect(screen.queryByRole("button", { name: "Edit message" })).toBeNull();
+    });
+  });
+
+  // Issue #179: the synthetic "Thinking…" placeholder yields the moment real
+  // output (a thinking or a tool call) arrives.
+  describe("the first output replaces the set-up placeholder (issue #179)", () => {
+    it("hides the placeholder once a thinking arrives", () => {
+      renderThread(conversation({ id: "s", phase: "running", reply: "", extra: thought("s", 0, "Let me reason") }));
+
+      expect(screen.getByRole("article", { name: "Model thinking" })).toBeTruthy();
+      expect(screen.queryByText("Thinking…")).toBeNull();
+    });
+
+    it("hides the placeholder once a tool call runs", () => {
+      renderThread(conversation({ id: "s", phase: "running", reply: "", extra: [use("s", "c1", "read_file", { path: "a" })] }));
+
+      expect(screen.queryByText("Thinking…")).toBeNull();
+    });
+  });
+
+  describe("Plan turns", () => {
+    const livePlan: TurnFixture = { id: "live", phase: "running", mode: InteractionMode.PLAN, reply: "# Rollout Plan\n\n1. First step" };
+
+    it("collapses the plan being written behind a live card when onOpenPlan is wired", () => {
       const onOpenPlan = vi.fn();
-      render(
-        <MessageThread
-          runs={[]}
-          activeStreamRun={streamingPlanExecution()}
-          onOpenPlan={onOpenPlan}
-        />,
-      );
+      renderThread(conversation(livePlan), { onOpenPlan });
 
-      const card = screen.getByRole("region", { name: "Plan being written" });
-      expect(card.textContent).toContain("Rollout Plan");
-      // The plan body lives in the panel's plan tab, not the thread.
+      expect(screen.getByRole("region", { name: "Plan being written" }).textContent).toContain("Rollout Plan");
       expect(screen.queryByText(/First step/)).toBeNull();
-
       fireEvent.click(screen.getByText("Open plan"));
-      expect(onOpenPlan).toHaveBeenCalledWith("exec-live");
+      expect(onOpenPlan).toHaveBeenCalledWith("live");
     });
 
-    it("keeps the plan streaming inline for hosts without a plan surface", () => {
-      render(
-        <MessageThread
-          runs={[]}
-          activeStreamRun={streamingPlanExecution()}
-        />,
-      );
+    it("keeps the plan inline for hosts without a plan surface", () => {
+      renderThread(conversation(livePlan));
 
-      expect(
-        screen.queryByRole("region", { name: "Plan being written" }),
-      ).toBeNull();
+      expect(screen.queryByRole("region", { name: "Plan being written" })).toBeNull();
       expect(screen.getByText(/First step/)).toBeTruthy();
     });
-  });
 
-  it("renders plan-completion card when last execution is completed Plan mode", () => {
-    const exec = makeExecution({
-      id: "exec-plan",
-      phase: RunPhase.RUN_COMPLETED,
-      interactionMode: InteractionMode.PLAN,
+    it("renders the build card of a completed Plan turn and routes Build", () => {
+      const onBuildFromPlan = vi.fn();
+      renderThread(conversation({ id: "p", mode: InteractionMode.PLAN }), { onBuildFromPlan });
+
+      fireEvent.click(screen.getByRole("button", { name: "Build" }));
+      expect(onBuildFromPlan).toHaveBeenCalledOnce();
     });
 
-    const onBuildFromPlan = vi.fn();
-
-    render(
-      <MessageThread
-        runs={[exec]}
-        onBuildFromPlan={onBuildFromPlan}
-      />,
-    );
-
-    const buildBtn = screen.getByRole("button", { name: "Build" });
-    expect(buildBtn).toBeTruthy();
-
-    fireEvent.click(buildBtn);
-    expect(onBuildFromPlan).toHaveBeenCalledOnce();
-  });
-
-  describe("plan-turn identity", () => {
-    it("marks a Plan turn's prompt bubble with the Plan badge", () => {
-      const exec = makeExecution({
-        id: "exec-plan",
-        phase: RunPhase.RUN_COMPLETED,
-        interactionMode: InteractionMode.PLAN,
-      });
-
-      render(<MessageThread runs={[exec]} />);
-
+    it("marks a Plan turn's message with the Plan badge, and an Agent turn's with none", () => {
+      renderThread(conversation({ id: "p", mode: InteractionMode.PLAN }));
       expect(screen.getByRole("status", { name: "Plan mode" })).toBeTruthy();
-    });
+      cleanup();
 
-    it("shows no mode badge on Agent turns", () => {
-      const exec = makeExecution({
-        id: "exec-agent",
-        phase: RunPhase.RUN_COMPLETED,
-        interactionMode: InteractionMode.AGENT,
-      });
-
-      render(<MessageThread runs={[exec]} />);
-
+      renderThread(conversation({ id: "a", mode: InteractionMode.AGENT }));
       expect(screen.queryByRole("status", { name: "Plan mode" })).toBeNull();
     });
 
-    it("renders a completed Plan turn's plan as a document", () => {
-      const exec = makeExecution({
-        id: "exec-plan",
-        phase: RunPhase.RUN_COMPLETED,
-        interactionMode: InteractionMode.PLAN,
-        aiContent: "# Rollout Plan\n\n1. First step",
-      });
-
-      render(<MessageThread runs={[exec]} />);
-
+    it("renders a completed Plan turn's plan as a document, and a live one as a chat message", () => {
+      renderThread(conversation({ id: "p", mode: InteractionMode.PLAN, reply: "# Rollout Plan\n\n1. First step" }));
       const doc = screen.getByRole("article", { name: "Plan document" });
       expect(doc.textContent).toContain("Rollout Plan");
-      expect(doc.textContent).toContain("First step");
-    });
+      cleanup();
 
-    it("renders a streaming Plan turn's text as an ordinary chat message", () => {
-      const exec = makeExecution({
-        id: "exec-live",
-        phase: RunPhase.RUN_IN_PROGRESS,
-        interactionMode: InteractionMode.PLAN,
-        aiContent: "Draft so far",
-      });
-
-      render(<MessageThread runs={[]} activeStreamRun={exec} />);
-
-      expect(
-        screen.queryByRole("article", { name: "Plan document" }),
-      ).toBeNull();
+      renderThread(conversation({ id: "live", phase: "running", mode: InteractionMode.PLAN, reply: "Draft so far" }));
+      expect(screen.queryByRole("article", { name: "Plan document" })).toBeNull();
       expect(screen.getByRole("article", { name: "AI response" })).toBeTruthy();
     });
   });
@@ -1029,92 +470,40 @@ describe("MessageThread", () => {
 describe("MessageThread liveness status line", () => {
   const LINE = '[data-cursor-target="liveness-status-line"]';
 
-  it("anchors the thread's tail while the execution is live between visible events", () => {
-    // IN_PROGRESS, has responded (AI content), no running tool, no gate —
-    // the model-generation gap where the screen would otherwise be still.
-    const active = makeExecution({
-      id: "exec-live",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      aiContent: "Let me look around.",
-    });
-    const { container } = render(
-      <MessageThread runs={[]} activeStreamRun={active} />,
-    );
-    expect(container.querySelector(LINE)).not.toBeNull();
+  it("anchors the thread's tail while the live turn works between visible events", () => {
+    const { container } = renderThread(conversation({ id: "l", phase: "running", reply: "Let me look around." }));
+
+    expect(container.querySelector(LINE)?.querySelector(".stgm-shimmer-label")?.textContent).toBe("Working…");
   });
 
-  it("yields to a running tool call — that row carries the live signal", () => {
-    const active = makeExecution({
-      id: "exec-tool",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      aiContent: "Running a command.",
-    });
-    const runningTool = create(ToolCallSchema, {
-      id: "tc-run",
-      name: "Shell",
-      args: { command: "sleep 5" },
-      status: ToolCallStatus.TOOL_CALL_RUNNING,
-    });
-    active.status!.messages[1].toolCalls = [runningTool];
+  it("yields to a running tool call, and to a working sub-agent", () => {
+    const tool = renderThread(conversation({ id: "l", phase: "running", reply: "Running.", extra: [use("l", "c1", "Shell", { command: "sleep 5" })] }));
+    expect(tool.container.querySelector(LINE)).toBeNull();
+    cleanup();
 
-    const { container } = render(
-      <MessageThread runs={[]} activeStreamRun={active} />,
+    const sub = renderThread(conversation({ id: "l", phase: "running", reply: "Delegating.", extra: [use("l", "task1", "task"), ...subAgent("l", "task1")] }));
+    expect(sub.container.querySelector(LINE)).toBeNull();
+  });
+
+  it("yields to a call waiting for a person", () => {
+    const { container } = renderThread(
+      conversation({ id: "l", phase: "running", reply: "I need a tool.", extra: [use("l", "c1", "write_file", {}, { ask: true }), asked("l", "c1")] }),
+      { onAnswerToolUse: () => {} },
     );
+
     expect(container.querySelector(LINE)).toBeNull();
   });
 
-  it("yields to a pending approval — shimmering 'Working…' at a gate would lie", () => {
-    const active = makeExecutionWithApproval("exec-gated", "tc-1", "write_file");
-    const { container } = render(
-      <MessageThread
-        runs={[]}
-        activeStreamRun={active}
-        onApprovalSubmit={() => {}}
-      />,
-    );
+  it("is absent once the turn ended — phase-driven", () => {
+    const { container } = renderThread(conversation({ id: "d", reply: "All set." }));
+
     expect(container.querySelector(LINE)).toBeNull();
   });
 
-  it("disappears the moment the execution settles — phase-driven, never stream-inferred", () => {
-    const done = makeExecution({
-      id: "exec-done",
-      phase: RunPhase.RUN_COMPLETED,
-      aiContent: "All set.",
-    });
-    const { container } = render(
-      <MessageThread runs={[done]} activeStreamRun={null} />,
-    );
+  it("leaves the pre-first-output window to the set-up placeholder", () => {
+    const { container } = renderThread(conversation({ id: "f", phase: "running", reply: "" }));
+
     expect(container.querySelector(LINE)).toBeNull();
-  });
-
-  it("leaves the pre-first-content window to the setup placeholder", () => {
-    const active = makeExecution({
-      id: "exec-fresh",
-      phase: RunPhase.RUN_IN_PROGRESS,
-    });
-    // No AI content, no tool calls: hasStartedResponding is false.
-    active.status!.messages = [active.status!.messages[0]];
-
-    const { container } = render(
-      <MessageThread runs={[]} activeStreamRun={active} />,
-    );
-    expect(container.querySelector(LINE)).toBeNull();
-    // The synthetic "Thinking…" setup placeholder owns this window.
-    expect(screen.getByText("Thinking\u2026")).toBeTruthy();
-  });
-
-  it("carries the shared shimmer treatment on its label", () => {
-    const active = makeExecution({
-      id: "exec-live",
-      phase: RunPhase.RUN_IN_PROGRESS,
-      aiContent: "Let me look around.",
-    });
-    const { container } = render(
-      <MessageThread runs={[]} activeStreamRun={active} />,
-    );
-    const line = container.querySelector(LINE)!;
-    expect(line.querySelector(".stgm-shimmer-label")?.textContent).toBe(
-      "Working\u2026",
-    );
+    expect(screen.getByText("Thinking…")).toBeTruthy();
   });
 });

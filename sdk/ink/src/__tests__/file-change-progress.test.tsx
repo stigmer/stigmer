@@ -1,3 +1,6 @@
+// Pins the mid-turn "N files changing…" strip (visibility, the compact
+// summary, the Ctrl+O per-file list) and the rename-aware path rule the
+// strip and the review surfaces share.
 import React from "react";
 import { describe, it, expect } from "vitest";
 import { render } from "ink-testing-library";
@@ -5,7 +8,6 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileChangeProgressSchema,
   FileChangeProgressEntrySchema,
-  CapturedFileChangeSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   FileChangeProgress,
@@ -13,7 +15,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeProgressBar } from "../components/FileChangeProgressBar.js";
-import { changeDisplayPath, progressEntryDisplayPath } from "../file-review.js";
+import { fileDisplayPath, progressEntryDisplayPath } from "../file-review.js";
 
 // --- fixtures -------------------------------------------------------------
 
@@ -209,54 +211,27 @@ describe("FileChangeProgressBar — expansion", () => {
 
 // --- path helpers (direct unit coverage) ----------------------------------
 
-interface ChangeOpts {
-  readonly pathBefore?: string;
-  readonly pathAfter?: string;
-  readonly kind: FileChangeKind;
+/** A file of a turn's review, as the fold holds it, with only the path fields set. */
+function makeFile(path: string, previousPath: string, change: string) {
+  return { path, previousPath, change };
 }
 
-function makeChange(opts: ChangeOpts) {
-  return create(CapturedFileChangeSchema, {
-    id: "c-1",
-    pathBefore: opts.pathBefore ?? "",
-    pathAfter: opts.pathAfter ?? "",
-    kind: opts.kind,
-  });
-}
-
-describe("changeDisplayPath", () => {
-  it("shows the after-path for an add", () => {
-    expect(
-      changeDisplayPath(makeChange({ pathAfter: "new.ts", kind: FileChangeKind.ADD })),
-    ).toBe("new.ts");
+describe("fileDisplayPath", () => {
+  it("shows the path for an added or modified file", () => {
+    expect(fileDisplayPath(makeFile("new.ts", "", "added"))).toBe("new.ts");
+    expect(fileDisplayPath(makeFile("app.ts", "", "modified"))).toBe("app.ts");
   });
 
-  it("shows the after-path for a modify", () => {
-    expect(
-      changeDisplayPath(
-        makeChange({ pathAfter: "app.ts", kind: FileChangeKind.MODIFY }),
-      ),
-    ).toBe("app.ts");
-  });
-
-  it("falls back to the before-path for a delete", () => {
-    expect(
-      changeDisplayPath(
-        makeChange({ pathBefore: "gone.ts", kind: FileChangeKind.DELETE }),
-      ),
-    ).toBe("gone.ts");
+  it("shows the path of a deleted file", () => {
+    expect(fileDisplayPath(makeFile("gone.ts", "", "deleted"))).toBe("gone.ts");
   });
 
   it("shows 'before → after' for a rename", () => {
-    expect(
-      changeDisplayPath(
-        makeChange({
-          pathBefore: "old.ts",
-          pathAfter: "new.ts",
-          kind: FileChangeKind.RENAME,
-        }),
-      ),
-    ).toBe("old.ts → new.ts");
+    expect(fileDisplayPath(makeFile("new.ts", "old.ts", "renamed"))).toBe("old.ts → new.ts");
+  });
+
+  it("falls back to the previous path when a file names none", () => {
+    expect(fileDisplayPath(makeFile("", "old.ts", "modified"))).toBe("old.ts");
   });
 });
 
@@ -281,7 +256,7 @@ describe("progressEntryDisplayPath", () => {
     ).toBe("gone.ts");
   });
 
-  it("shows 'before → after' for a rename — identical to changeDisplayPath", () => {
+  it("shows 'before → after' for a rename — identical to fileDisplayPath", () => {
     expect(
       progressEntryDisplayPath(
         makeEntry({

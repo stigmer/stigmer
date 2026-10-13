@@ -1,12 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import {
-  ApprovalAction,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolUse } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
@@ -19,12 +14,11 @@ import {
   SpinnerIcon,
   ClockIcon,
   XCircleIcon,
-  DotIcon,
   SlashCircleIcon,
 } from "../internal/thread-card/index.js";
 import { TerminalTail } from "./TerminalSession.js";
 import { ToolCallDetail, formatHeaderDuration } from "./ToolCallDetail.js";
-import { SubAgentSection } from "./SubAgentSection.js";
+import { SubAgentSection, subAgentSubjectOf } from "./SubAgentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval } from "./ApprovalContext.js";
@@ -39,14 +33,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
-  /** The tool call to render as a summary row. */
-  readonly toolCall: ToolCall;
   /**
-   * When present, this tool call is a sub-agent delegation. The
-   * detail panel renders a {@link SubAgentSection} instead of
-   * a {@link ToolCallDetail}.
+   * The tool use to render as a summary row (from the session's fold). A
+   * tool use that started a sub-agent (`toolUse.thread`) renders its
+   * {@link SubAgentSection} as the detail panel instead of a
+   * {@link ToolCallDetail}.
    */
-  readonly subAgentRun?: SubAgentRun | null;
+  readonly toolUse: ToolUse;
   /**
    * Forces the detail panel open on first render regardless of the
    * auto-disclosure policy. Defaults to `false`.
@@ -110,26 +103,23 @@ export interface ToolCallItemProps {
  * call carries a model-authored intent phrase is titled with that phrase
  * instead — the command becomes the subtitle (stigmer#276).
  *
- * Wrapped in `React.memo` — structural sharing preserves
- * the `ToolCall` reference when unchanged, so a settled row skips
- * re-renders while sibling tools stream.
+ * Wrapped in `React.memo` — the session fold keeps an unchanged tool use's
+ * reference, so a settled row skips re-renders while sibling tools stream.
  *
  * @example
  * ```tsx
- * <ToolCallItem toolCall={tc} />
- * <ToolCallItem toolCall={tc} subAgentRun={sub} />
+ * <ToolCallItem toolUse={toolUse} />
  * ```
  */
 export const ToolCallItem = memo(function ToolCallItem({
-  toolCall,
-  subAgentRun,
+  toolUse,
   defaultExpanded = false,
   bordered = true,
   className,
 }: ToolCallItemProps) {
-  useRenderTracer("ToolCallItem", { status: toolCall.status, id: toolCall.id });
+  useRenderTracer("ToolCallItem", { status: toolUse.state, id: toolUse.id });
 
-  const status = mapToolCallStatus(toolCall);
+  const status = ITEM_STATUS[toolUse.state];
   const isRunning = status === "running";
   // Success is the silent default: a completed row renders NO status icon —
   // a green check on every settled row teaches the eye to ignore status
@@ -138,16 +128,18 @@ export const ToolCallItem = memo(function ToolCallItem({
   const StatusIcon = STATUS_ICON[status];
   // Header chips only when the duration carries information (>= 1s); the
   // sub-second chips were noise pinned to the least interesting rows.
-  const duration = formatHeaderDuration(toolCall.startedAt, toolCall.completedAt);
-  const isSubAgent = subAgentRun != null;
+  const duration = formatHeaderDuration(toolUse.processedAt, toolUse.result?.processedAt ?? "");
+  const thread = toolUse.thread;
+  const isSubAgent = thread !== undefined;
 
   const { category, label, intent, title, primaryArg, result, resultSummary, disclosure, chrome } =
-    useToolPresentation(toolCall);
+    useToolPresentation(toolUse);
   const CategoryIcon = CATEGORY_ICON[category];
 
-  // An unresolved approval gating this exact call (parent or nested sub-agent),
-  // or null. Drives the inline approval panel and forces the row open.
-  const approval = useApproval(toolCall.id);
+  // The decision for this exact call when it waits for a person (parent or
+  // nested sub-agent), or null. Drives the inline approval panel and forces
+  // the row open.
+  const approval = useApproval(toolUse);
 
   // Tail rows (shell): a settled failure keeps the row open — the error output
   // is the content the user needs next, so it must never settle into a dimmed
@@ -156,7 +148,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   const isTailCategory = !isSubAgent && disclosure === "tail";
   const tailFailed =
     isTailCategory &&
-    (toolCall.status === ToolCallStatus.TOOL_CALL_FAILED ||
+    (toolUse.state === "failed" ||
       result.type === "error" ||
       (result.type === "terminal" &&
         result.exitCode !== undefined &&
@@ -169,7 +161,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // over from there. Called unconditionally to honour the rules of hooks even
   // though preview rows do not read `expanded`.
   const autoOpen =
-    toolCall.status === ToolCallStatus.TOOL_CALL_RUNNING ||
+    toolUse.state === "running" ||
     approval != null ||
     tailFailed;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
@@ -180,16 +172,20 @@ export const ToolCallItem = memo(function ToolCallItem({
   // the resolved presentation `title` (host label override > model-authored
   // shell intent > category label, stigmer#276).
   const displayLabel = isSubAgent
-    ? subAgentRun.subject || subAgentRun.name || label
+    ? subAgentSubjectOf(toolUse) || thread.agentName || label
     : title;
 
-  const approvalBadge = getApprovalBadge(toolCall);
+  const approvalBadge = getApprovalBadge(toolUse);
 
-  // A flowed file edit stamped with its change set id badges the set's live
-  // review state (pending review / kept / discarded) right on the row — the
-  // observational record stays in place while the decision surface is the
-  // set's own bar. Null for unstamped rows and honest-degradation cases.
-  const reviewState = useFileReviewRowState(toolCall.fileChangeSetId, primaryArg);
+  // A file edit badges the live review state of the file it changed (pending
+  // review / kept / discarded): its turn's file review, matched by the row's
+  // path. The observational record stays in place while the decision surface
+  // is the set's own bar. Null for any other row and for every
+  // honest-degradation case.
+  const reviewState = useFileReviewRowState(
+    toolUse.runId,
+    isFileEditCategory(category) ? primaryArg : null,
+  );
   const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
 
   // Search/list show their query/path as the header subtitle (truncated). Track
@@ -221,7 +217,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // frame. Nested rows (inside an expanded fold chip) stay divider rows:
   // their container owns the frame.
   const rowFailed =
-    toolCall.status === ToolCallStatus.TOOL_CALL_FAILED ||
+    toolUse.state === "failed" ||
     result.type === "error";
   const variant: ThreadCardVariant = !bordered
     ? "row"
@@ -229,14 +225,13 @@ export const ToolCallItem = memo(function ToolCallItem({
       ? "quiet"
       : "card";
 
-  // Completed/skipped Read items are non-expandable — the clickable
+  // Completed or denied Read items are non-expandable — the clickable
   // path in the row is the complete information. Failed reads remain
   // expandable to show the error.
   const isNonExpandableRead =
     !isSubAgent &&
     category === "read" &&
-    (toolCall.status === ToolCallStatus.TOOL_CALL_COMPLETED ||
-      toolCall.status === ToolCallStatus.TOOL_CALL_SKIPPED);
+    (toolUse.state === "completed" || toolUse.state === "denied");
 
   const trailingContent = (
     <>
@@ -263,9 +258,9 @@ export const ToolCallItem = memo(function ToolCallItem({
         </span>
       )}
 
-      {toolCall.mcpServerSlug && (
+      {toolUse.mcpServerName && (
         <span className="stg:shrink-0 stg:rounded stg:bg-muted stg:px-1 stg:py-0.5 stg:font-mono stg:text-muted-foreground">
-          {toolCall.mcpServerSlug}
+          {toolUse.mcpServerName}
         </span>
       )}
 
@@ -355,18 +350,23 @@ export const ToolCallItem = memo(function ToolCallItem({
   // a sub-agent shows its delegation, a settled remember call renders the
   // memory-proposal consent surface, otherwise the category detail.
   const body = isSubAgent ? (
-    <SubAgentSection subAgentRun={subAgentRun} collapsible={false} />
+    <SubAgentSection
+      thread={thread}
+      subject={subAgentSubjectOf(toolUse)}
+      startedAt={toolUse.processedAt}
+      completedAt={toolUse.result?.processedAt}
+      collapsible={false}
+    />
   ) : approval ? (
     // The row above is this approval's header, so render only the body (preview
     // + actions). The enclosing card already carries the border + warning/
     // destructive accent for a pending gate, so the body renders borderless.
-    // This row holds the call's authoritative `args`; the body reads the
-    // proposed write content from them, which the approval's sanitized preview
-    // cannot carry for a file of any real size (stigmer#1107).
+    // The body reads the proposed write content from the tool's input, which
+    // the ask's sanitized preview cannot carry for a file of any real size
+    // (stigmer#1107).
     <ApprovalCardBody
-      pendingApproval={approval.pendingApproval}
-      args={toolCall.args}
-      onSubmit={approval.onSubmit}
+      toolUse={approval.toolUse}
+      onAnswer={approval.onAnswer}
       isSubmitting={approval.isSubmitting}
       error={approval.error}
     />
@@ -378,7 +378,7 @@ export const ToolCallItem = memo(function ToolCallItem({
     <MemoryProposalCardBody memoryId={result.memoryId} fact={result.fact} />
   ) : (
     <ToolCallDetail
-      toolCall={toolCall}
+      toolUse={toolUse}
       primaryArgTruncated={primaryArgTruncated}
     />
   );
@@ -527,18 +527,25 @@ interface ApprovalBadgeInfo {
   readonly colorClass: string;
 }
 
-function getApprovalBadge(toolCall: ToolCall): ApprovalBadgeInfo | null {
-  if (!toolCall.requiresApproval) return null;
-  switch (toolCall.approvalAction) {
-    case ApprovalAction.APPROVE:
-      return { label: "Approved", colorClass: "stg:bg-success/15 stg:text-success" };
-    case ApprovalAction.SKIP:
-      return { label: "Skipped", colorClass: "stg:bg-muted stg:text-muted-foreground" };
-    case ApprovalAction.REJECT:
-      return { label: "Rejected", colorClass: "stg:bg-destructive/15 stg:text-destructive" };
-    default:
-      return null;
+/**
+ * How a person answered a call that asked: Approved (an allow, or a grant
+ * given on this call) or Denied. A call that never asked, or still waits,
+ * shows no badge.
+ */
+function getApprovalBadge(toolUse: ToolUse): ApprovalBadgeInfo | null {
+  if (toolUse.ask === undefined) return null;
+  if (toolUse.confirmation?.result === "deny") {
+    return { label: "Denied", colorClass: "stg:bg-destructive/15 stg:text-destructive" };
   }
+  if (toolUse.confirmation?.result === "allow" || toolUse.grant !== undefined) {
+    return { label: "Approved", colorClass: "stg:bg-success/15 stg:text-success" };
+  }
+  return null;
+}
+
+/** Whether a category's row edits a file, the rows a file review badges. */
+function isFileEditCategory(category: ToolCategory): boolean {
+  return category === "write" || category === "edit" || category === "delete";
 }
 
 // ---------------------------------------------------------------------------
@@ -562,43 +569,28 @@ const REVIEW_BADGE: Record<FileReviewRowState, ApprovalBadgeInfo> = {
 // Status mapping
 // ---------------------------------------------------------------------------
 
-type ItemStatus = "running" | "waiting" | "failed" | "completed" | "pending" | "interrupted";
+type ItemStatus = "running" | "waiting" | "failed" | "completed" | "interrupted";
 
-function mapToolCallStatus(toolCall: ToolCall): ItemStatus {
-  switch (toolCall.status) {
-    case ToolCallStatus.TOOL_CALL_RUNNING:
-      return "running";
-    case ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
-      if (
-        toolCall.approvalAction === ApprovalAction.APPROVE ||
-        toolCall.approvalAction === ApprovalAction.SKIP ||
-        toolCall.approvalAction === ApprovalAction.REJECT
-      ) {
-        return "completed";
-      }
-      return "waiting";
-    case ToolCallStatus.TOOL_CALL_FAILED:
-      return "failed";
-    case ToolCallStatus.TOOL_CALL_COMPLETED:
-    case ToolCallStatus.TOOL_CALL_SKIPPED:
-      return "completed";
-    // Platform-settled when the run terminalized mid-call (issue #207).
-    // A settled, neutral state: not a spinner (nothing is running), not a
-    // failure (the tool never errored), not a grey pending dot (it will never
-    // start).
-    case ToolCallStatus.TOOL_CALL_INTERRUPTED:
-      return "interrupted";
-    default:
-      return "pending";
-  }
-}
+/**
+ * The row's status from the tool use's state. A denied call settles quietly
+ * (its badge says Denied); a call its turn stopped before it returned is
+ * interrupted (issue #207): not a spinner (nothing runs), not a failure (the
+ * tool never errored).
+ */
+const ITEM_STATUS: Record<ToolUse["state"], ItemStatus> = {
+  running: "running",
+  waiting: "waiting",
+  failed: "failed",
+  completed: "completed",
+  denied: "completed",
+  stopped: "interrupted",
+};
 
 const STATUS_COLOR: Record<ItemStatus, string> = {
   running: "stg:text-foreground",
   waiting: "stg:text-warning",
   failed: "stg:text-destructive",
   completed: "stg:text-success",
-  pending: "stg:text-muted-foreground",
   interrupted: "stg:text-muted-foreground",
 };
 
@@ -752,6 +744,5 @@ const STATUS_ICON: Record<ItemStatus, (() => React.JSX.Element) | null> = {
   waiting: ClockIcon,
   failed: XCircleIcon,
   completed: null,
-  pending: DotIcon,
   interrupted: SlashCircleIcon,
 };

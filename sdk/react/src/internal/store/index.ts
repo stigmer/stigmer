@@ -1,8 +1,7 @@
 "use client";
 
 import { createContext, useContext, useRef, useSyncExternalStore } from "react";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ConversationStore, type StreamState } from "./conversation-store.js";
+import { ConversationStore } from "./conversation-store.js";
 import {
   WorkspaceFileSelectionStore,
   type SelectedWorkspaceFile,
@@ -13,7 +12,6 @@ import {
 } from "./workspace-editors-store.js";
 
 export { ConversationStore, type StreamState } from "./conversation-store.js";
-export { structuralShare } from "./structural-share.js";
 
 export { WorkspaceFileSelectionStore } from "./workspace-file-selection-store.js";
 export type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js";
@@ -32,33 +30,8 @@ export type {
 } from "./workspace-editors-store.js";
 
 // ---------------------------------------------------------------------------
-// Context
+// Conversation store
 // ---------------------------------------------------------------------------
-
-/**
- * Internal context for the conversation store. Not exported from the
- * public SDK barrel — used only within SDK hooks and components.
- */
-export const ConversationStoreContext =
-  createContext<ConversationStore | null>(null);
-
-// ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
-
-/**
- * Access the conversation store from context.
- * Throws if called outside a `ConversationStoreContext.Provider`.
- */
-export function useConversationStore(): ConversationStore {
-  const store = useContext(ConversationStoreContext);
-  if (!store) {
-    throw new Error(
-      "useConversationStore must be used within a ConversationStoreContext.Provider",
-    );
-  }
-  return store;
-}
 
 /**
  * Create or reuse a `ConversationStore` instance. The store is
@@ -70,25 +43,6 @@ export function useConversationStoreRef(): ConversationStore {
     ref.current = new ConversationStore();
   }
   return ref.current;
-}
-
-/**
- * Subscribe to the run snapshot from the conversation store.
- * Returns a stable reference when the run is unchanged
- * (structural sharing ensures this).
- */
-export function useStoreRun(
-  store: ConversationStore,
-): Run | null {
-  return useSyncExternalStore(store.subscribe, store.getExecution);
-}
-
-/**
- * Subscribe to the stream lifecycle state from the conversation store.
- * Returns a stable reference when the state is unchanged.
- */
-export function useStoreStreamState(store: ConversationStore): StreamState {
-  return useSyncExternalStore(store.subscribe, store.getStreamState);
 }
 
 // ---------------------------------------------------------------------------

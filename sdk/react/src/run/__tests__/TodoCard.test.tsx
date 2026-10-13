@@ -1,35 +1,28 @@
+// Pins TodoCard over a turn's folded to-do list: its region, header and
+// progress, nothing for an empty list, open while an item is in progress and
+// collapsed once every item is resolved (completed or cancelled), the
+// header toggle, and its by-reference memo comparator.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import {
-  TodoItemSchema,
-  type TodoItem,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Todo } from "@stigmer/sdk";
 import { TodoCard, todoCardPropsEqual } from "../TodoCard";
 
 afterEach(cleanup);
 
-function todo(id: string, content: string, status: TodoStatus): TodoItem {
-  return create(TodoItemSchema, { id, content, status });
+function todo(id: string, content: string, status: Todo["status"]): Todo {
+  return { id, content, status, createdAt: "", updatedAt: "" };
 }
 
-function map(items: TodoItem[]): { [id: string]: TodoItem } {
-  const m: { [id: string]: TodoItem } = {};
-  for (const t of items) m[t.id] = t;
-  return m;
-}
+const ACTIVE: readonly Todo[] = [
+  todo("t1", "Design the card", "completed"),
+  todo("t2", "Wire the thread", "in_progress"),
+  todo("t3", "Write tests", "pending"),
+];
 
-const ACTIVE = map([
-  todo("t1", "Design the card", TodoStatus.TODO_COMPLETED),
-  todo("t2", "Wire the thread", TodoStatus.TODO_IN_PROGRESS),
-  todo("t3", "Write tests", TodoStatus.TODO_PENDING),
-]);
-
-const DONE = map([
-  todo("t1", "Design the card", TodoStatus.TODO_COMPLETED),
-  todo("t2", "Wire the thread", TodoStatus.TODO_COMPLETED),
-]);
+const DONE: readonly Todo[] = [
+  todo("t1", "Design the card", "completed"),
+  todo("t2", "Wire the thread", "cancelled"),
+];
 
 describe("TodoCard", () => {
   it("renders an 'Agent to-dos' region with the To-dos header and progress", () => {
@@ -44,7 +37,7 @@ describe("TodoCard", () => {
   });
 
   it("renders nothing when there are no todos", () => {
-    const { container } = render(<TodoCard todos={{}} />);
+    const { container } = render(<TodoCard todos={[]} />);
     expect(container.firstChild).toBeNull();
   });
 

@@ -1,9 +1,11 @@
+// Pins MessageEntry over the thread's message kinds: an agent message
+// renders as markdown through Streamdown (mermaid diagrams included) and is
+// busy while it is still being written (`live`), a person's message renders
+// as a plain bubble, a platform note as muted italic text, and a thinking as
+// a collapsible block that hides once settled empty.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { MessageEntry } from "../MessageEntry";
+import { MessageEntry, type ThreadMessage } from "../MessageEntry";
 import type { MermaidModule } from "../../internal/mermaid-loader";
 
 // Stub only the library loader: the real MermaidDiagram + markdown overrides
@@ -25,15 +27,20 @@ afterEach(cleanup);
 // ---------------------------------------------------------------------------
 
 function makeMessage(
-  type: MessageType,
-  content: string,
+  kind: ThreadMessage["kind"],
+  text: string,
   opts?: { isStreaming?: boolean },
-) {
-  const msg = create(AgentMessageSchema);
-  msg.type = type;
-  msg.content = content;
-  if (opts?.isStreaming) msg.isStreaming = true;
-  return msg;
+): ThreadMessage {
+  const live = opts?.isStreaming ?? false;
+  switch (kind) {
+    case "user":
+      return { kind, id: "u1", text };
+    case "note":
+      return { kind, id: "n1", text, processedAt: "" };
+    case "message":
+    case "thinking":
+      return { kind, id: `${kind}-1`, text, live, processedAt: "" };
+  }
 }
 
 function queryArticle(container: HTMLElement, name: string) {
@@ -46,7 +53,7 @@ function queryArticle(container: HTMLElement, name: string) {
 
 describe("MessageEntry — AI messages (Streamdown)", () => {
   it("renders AI message content as markdown", () => {
-    const msg = makeMessage(MessageType.MESSAGE_AI, "Hello **world**");
+    const msg = makeMessage("message", "Hello **world**");
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "AI response");
@@ -60,7 +67,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
   });
 
   it("sets aria-busy=true when streaming", () => {
-    const msg = makeMessage(MessageType.MESSAGE_AI, "Streaming...", {
+    const msg = makeMessage("message", "Streaming...", {
       isStreaming: true,
     });
     const { container } = render(<MessageEntry message={msg} />);
@@ -70,7 +77,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
   });
 
   it("sets aria-busy=false when not streaming", () => {
-    const msg = makeMessage(MessageType.MESSAGE_AI, "Done.");
+    const msg = makeMessage("message", "Done.");
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "AI response");
@@ -84,7 +91,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
       "| 1 | 2 |",
     ].join("\n");
 
-    const msg = makeMessage(MessageType.MESSAGE_AI, tableMarkdown);
+    const msg = makeMessage("message", tableMarkdown);
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "AI response");
@@ -93,7 +100,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
   });
 
   it("applies MARKDOWN_COMPONENTS overrides (paragraph styling)", () => {
-    const msg = makeMessage(MessageType.MESSAGE_AI, "A paragraph");
+    const msg = makeMessage("message", "A paragraph");
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "AI response");
@@ -105,7 +112,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
 
   it("applies MARKDOWN_COMPONENTS overrides (link styling)", () => {
     const msg = makeMessage(
-      MessageType.MESSAGE_AI,
+      "message",
       "[click here](https://example.com)",
     );
     const { container } = render(<MessageEntry message={msg} />);
@@ -120,7 +127,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
 
   it("applies MARKDOWN_COMPONENTS overrides (code block styling)", () => {
     const msg = makeMessage(
-      MessageType.MESSAGE_AI,
+      "message",
       "```js\nconsole.log('hi');\n```",
     );
     const { container } = render(<MessageEntry message={msg} />);
@@ -133,7 +140,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
   });
 
   it("wraps content in stgm-prose container", () => {
-    const msg = makeMessage(MessageType.MESSAGE_AI, "Hello");
+    const msg = makeMessage("message", "Hello");
     const { container } = render(<MessageEntry message={msg} />);
 
     const prose = container.querySelector(".stgm-prose");
@@ -142,7 +149,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
 
   it("renders a model-wrapped ```markdown plan as rich markdown, not a code block", () => {
     const msg = makeMessage(
-      MessageType.MESSAGE_AI,
+      "message",
       "```markdown\n# Plan\n\n1. First step\n2. Second step\n```",
     );
     const { container } = render(<MessageEntry message={msg} />);
@@ -158,7 +165,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
 
   it("still renders a genuine ```js code block as a code block", () => {
     const msg = makeMessage(
-      MessageType.MESSAGE_AI,
+      "message",
       "```js\nconsole.log('hi');\n```",
     );
     const { container } = render(<MessageEntry message={msg} />);
@@ -169,7 +176,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
 
   it("syntax-highlights fenced code in the chat stream (Streamdown path)", () => {
     const msg = makeMessage(
-      MessageType.MESSAGE_AI,
+      "message",
       "```go\nfunc main() {}\n```",
     );
     const { container } = render(<MessageEntry message={msg} />);
@@ -185,7 +192,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
 
   it("renders a completed ```mermaid fence as a diagram, not a code block", async () => {
     const msg = makeMessage(
-      MessageType.MESSAGE_AI,
+      "message",
       "Here is the flow:\n\n```mermaid\nflowchart LR\n  A --> B\n```",
     );
     const { container } = render(<MessageEntry message={msg} />);
@@ -203,7 +210,7 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
 
   it("keeps an unclosed ```mermaid fence as a code block while streaming", () => {
     const msg = makeMessage(
-      MessageType.MESSAGE_AI,
+      "message",
       "```mermaid\nflowchart LR\n  A --> B",
       { isStreaming: true },
     );
@@ -220,12 +227,12 @@ describe("MessageEntry — AI messages (Streamdown)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Human messages — unchanged
+// A person's messages
 // ---------------------------------------------------------------------------
 
 describe("MessageEntry — Human messages", () => {
   it("renders human message as plain text", () => {
-    const msg = makeMessage(MessageType.MESSAGE_HUMAN, "User question");
+    const msg = makeMessage("user", "User question");
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "User message");
@@ -234,7 +241,7 @@ describe("MessageEntry — Human messages", () => {
   });
 
   it("applies muted background styling", () => {
-    const msg = makeMessage(MessageType.MESSAGE_HUMAN, "Hello");
+    const msg = makeMessage("user", "Hello");
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "User message");
@@ -251,7 +258,7 @@ describe("MessageEntry — Build-from-plan turns", () => {
     // The retired chip treatment lived here; today buildThreadItems skips
     // synthesizing the prompt item for a build turn entirely, so a human
     // message that DOES reach MessageEntry is always ordinary prose.
-    const msg = makeMessage(MessageType.MESSAGE_HUMAN, "Build from plan");
+    const msg = makeMessage("user", "Build from plan");
     const { container } = render(<MessageEntry message={msg} />);
 
     expect(queryArticle(container, "User message")).not.toBeNull();
@@ -260,12 +267,12 @@ describe("MessageEntry — Build-from-plan turns", () => {
 });
 
 // ---------------------------------------------------------------------------
-// System messages — unchanged
+// Platform notes
 // ---------------------------------------------------------------------------
 
-describe("MessageEntry — System messages", () => {
-  it("renders system message", () => {
-    const msg = makeMessage(MessageType.MESSAGE_SYSTEM, "System notice");
+describe("MessageEntry — Platform notes", () => {
+  it("renders a note", () => {
+    const msg = makeMessage("note", "System notice");
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "System message");
@@ -274,7 +281,7 @@ describe("MessageEntry — System messages", () => {
   });
 
   it("renders with italic muted styling", () => {
-    const msg = makeMessage(MessageType.MESSAGE_SYSTEM, "Notice");
+    const msg = makeMessage("note", "Notice");
     const { container } = render(<MessageEntry message={msg} />);
 
     const article = queryArticle(container, "System message");
@@ -286,13 +293,13 @@ describe("MessageEntry — System messages", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Thinking messages — unchanged
+// Thinking
 // ---------------------------------------------------------------------------
 
 describe("MessageEntry — Thinking messages", () => {
   it("renders thinking message with preview", () => {
     const msg = makeMessage(
-      MessageType.MESSAGE_THINKING,
+      "thinking",
       "Let me consider this problem carefully and think through all the options.",
     );
     const { container } = render(<MessageEntry message={msg} />);
@@ -302,7 +309,7 @@ describe("MessageEntry — Thinking messages", () => {
   });
 
   it("shows spinner icon when streaming", () => {
-    const msg = makeMessage(MessageType.MESSAGE_THINKING, "", {
+    const msg = makeMessage("thinking", "", {
       isStreaming: true,
     });
     const { container } = render(<MessageEntry message={msg} />);
@@ -313,30 +320,7 @@ describe("MessageEntry — Thinking messages", () => {
   });
 
   it("returns null for empty non-streaming thinking", () => {
-    const msg = makeMessage(MessageType.MESSAGE_THINKING, "");
-    const { container } = render(<MessageEntry message={msg} />);
-
-    expect(container.innerHTML).toBe("");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Tool / unspecified — renders nothing
-// ---------------------------------------------------------------------------
-
-describe("MessageEntry — Tool and unspecified messages", () => {
-  it("renders nothing for TOOL messages", () => {
-    const msg = makeMessage(MessageType.MESSAGE_TOOL, "tool result");
-    const { container } = render(<MessageEntry message={msg} />);
-
-    expect(container.innerHTML).toBe("");
-  });
-
-  it("renders nothing for UNSPECIFIED messages", () => {
-    const msg = makeMessage(
-      MessageType.MESSAGE_TYPE_UNSPECIFIED,
-      "unknown",
-    );
+    const msg = makeMessage("thinking", "");
     const { container } = render(<MessageEntry message={msg} />);
 
     expect(container.innerHTML).toBe("");

@@ -59,8 +59,10 @@ const stubConv = {
   isStopping: false,
   isLoading: false,
   loadError: null,
-  completedRuns: [],
-  activeStreamRun: null,
+  turns: [],
+  runs: [],
+  activeTurn: null,
+  activeRun: null,
   activePhase: null,
   isStreaming: false,
   isConnecting: false,
@@ -73,17 +75,18 @@ const stubConv = {
   workspaceEntries: [],
   mcpServerUsages: [],
   skillRefs: [],
-  pendingApprovals: [] as unknown[],
-  submitApproval: vi.fn(),
-  submittingApprovalIds: new Set<string>(),
-  fileChangeSets: [] as unknown[],
+  asks: [] as unknown[],
+  answerToolUse: vi.fn(),
+  answeringToolUseIds: new Set<string>(),
+  fileReviewSets: [] as unknown[],
+  fileChangeCaptures: new Map(),
   fileChangeProgress: undefined,
-  submitFileDecision: vi.fn(),
+  reviewFileChanges: vi.fn(),
   submittingFileDecisionKeys: new Set<string>(),
   fileDecisionErrors: new Map<string, Error>(),
   streamError: null,
   reconnectStream: vi.fn(),
-  approvalError: null,
+  answerError: null,
 };
 
 const stubSessionPageFlow = {
@@ -114,7 +117,7 @@ const stubSessionPageFlow = {
   sessionVariables: { entries: [], isEmpty: true, clear: vi.fn() },
   autoApproveAll: false,
   setAutoApproveAll: vi.fn(),
-  submitApproval: vi.fn(),
+  answerToolUse: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
   displayRun: null,
@@ -146,8 +149,8 @@ beforeEach(() => {
   composerProps.length = 0;
   access.canSend = true;
   access.canDecide = true;
-  stubConv.pendingApprovals = [];
-  stubConv.fileChangeSets = [];
+  stubConv.asks = [];
+  stubConv.fileReviewSets = [];
 });
 
 afterEach(() => {
@@ -164,7 +167,7 @@ describe("SessionViewer — a shared conversation", () => {
     expect(screen.queryByTestId("composer-probe")).toBeNull();
     expect(screen.getByText("You can read this conversation.")).toBeTruthy();
     const props = threadProps.at(-1)!;
-    expect(props.onApprovalSubmit).toBeUndefined();
+    expect(props.onAnswerToolUse).toBeUndefined();
     expect(props.onEditMessage).toBeUndefined();
     expect(props.onRetrySend).toBeUndefined();
     expect(props.onBuildFromPlan).toBeUndefined();
@@ -181,7 +184,7 @@ describe("SessionViewer — a shared conversation", () => {
     expect(composer.lockAgent).toBe(true);
     expect(composer.enableVaultPicker).toBe(false);
     const thread = threadProps.at(-1)!;
-    expect(thread.onApprovalSubmit).toBeUndefined();
+    expect(thread.onAnswerToolUse).toBeUndefined();
     expect(thread.onEditMessage).toBeUndefined();
     expect(thread.onBuildFromPlan).toBeDefined();
     expect(
@@ -191,7 +194,7 @@ describe("SessionViewer — a shared conversation", () => {
 
   it("tells a participant whom a pending decision waits on", () => {
     access.canDecide = false;
-    stubConv.pendingApprovals = [{ toolCallId: "call_1" }];
+    stubConv.asks = [{ id: "call_1" }];
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.getByText("Waiting for Bob Owner to approve")).toBeTruthy();
@@ -199,7 +202,7 @@ describe("SessionViewer — a shared conversation", () => {
 
   it("never tells a participant that file review holds the turn", () => {
     access.canDecide = false;
-    stubConv.fileChangeSets = [{ id: "run_1:1", changes: [] }];
+    stubConv.fileReviewSets = [{ changeSetId: "run_1:1", files: [] }];
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.queryByText(/Waiting for/)).toBeNull();
@@ -207,12 +210,12 @@ describe("SessionViewer — a shared conversation", () => {
   });
 
   it("keeps every control for an owner", () => {
-    stubConv.pendingApprovals = [{ toolCallId: "call_1" }];
+    stubConv.asks = [{ id: "call_1" }];
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.queryByText(/Waiting for/)).toBeNull();
     const composer = composerProps.at(-1)!;
     expect(composer.onStop).toBeDefined();
-    expect(threadProps.at(-1)!.onApprovalSubmit).toBeDefined();
+    expect(threadProps.at(-1)!.onAnswerToolUse).toBeDefined();
   });
 });

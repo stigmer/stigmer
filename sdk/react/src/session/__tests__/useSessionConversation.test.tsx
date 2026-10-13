@@ -1,1029 +1,791 @@
+/**
+ * Proves useSessionConversation reads a conversation from the session's
+ * event log and answers through the session's own methods: turns come from
+ * the folded events (superseded and reconcile turns left out), runs from the
+ * run list with the live turn's run read again and merged in; a send's
+ * optimistic state hands over to its turn when the turn's events arrive; the
+ * run list is read again only when another client's turn appears or a live
+ * turn ends; asks are answered with confirmToolUse / grantPermission; the
+ * newest turn's undecided file reviews are offered and decided with
+ * reviewFileChanges; a stop interrupts the session, then terminates the run
+ * on a repeat press; the follow's state is passed through; and a local
+ * session keeps its runner worker attached while open.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { create } from "@bufbuild/protobuf";
-import {
-  RunSchema,
-  RunStatusSchema,
-  type Run,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileChangeSetSchema,
-  type FileChangeSet,
+  FileChangeProgressSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  ApprovalAction,
-  FileChangeSetStatus,
-  FileDecisionAction,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
-import type { Stigmer } from "@stigmer/sdk";
+import {
+  SessionEventSchema,
+  type SessionEvent,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { Stigmer, TurnPhase } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { ExecutionTargetContext } from "../../execution-target-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
 import type { RunnerAdapter } from "../../runner-adapter";
+import { samples } from "../../test/samples";
 import { useSessionConversation } from "../useSessionConversation";
+import { sessionEventStream, type SessionEventStream } from "./session-event-stream";
 
-function makeSession(id: string): Session {
-  const session = create(SessionSchema);
-  const metadata = create(ApiResourceMetadataSchema);
-  metadata.id = id;
-  session.metadata = metadata;
-  return session;
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+function makeSession(org = ""): Session {
+  return create(SessionSchema, { metadata: { id: "session-1", org } });
 }
 
-function makeExecution(
+function makeRun(
   id: string,
   phase: RunPhase,
-  opts?: {
-    supersedes?: string;
-    reconcileFileReview?: boolean;
-    fileChangeSets?: FileChangeSet[];
-  },
+  opts?: { supersedes?: string; reconcile?: boolean; changeSetId?: string; progress?: boolean },
 ): Run {
-  const exec = create(RunSchema);
-  const metadata = create(ApiResourceMetadataSchema);
-  metadata.id = id;
-  exec.metadata = metadata;
-  const status = create(RunStatusSchema);
-  status.phase = phase;
-  status.fileChangeSets = opts?.fileChangeSets ?? [];
-  exec.status = status;
-  if (opts?.supersedes || opts?.reconcileFileReview) {
-    const spec = create(RunSpecSchema);
-    spec.supersedesRunId = opts.supersedes ?? "";
-    spec.reconcileFileReview = opts.reconcileFileReview ?? false;
-    exec.spec = spec;
+  const run = samples.run({ id, phase, sessionId: "session-1" });
+  run.spec!.supersedesRunId = opts?.supersedes ?? "";
+  run.spec!.reconcileFileReview = opts?.reconcile ?? false;
+  if (opts?.changeSetId) {
+    run.status!.fileChangeSets = [create(FileChangeSetSchema, { id: opts.changeSetId })];
   }
-  return exec;
+  if (opts?.progress) {
+    run.status!.fileChangeProgress = create(FileChangeProgressSchema, {});
+  }
+  return run;
 }
 
-function makeChangeSet(id: string, status: FileChangeSetStatus): FileChangeSet {
-  return create(FileChangeSetSchema, { id, status });
+/** A turn's opening events: its message and the phase it is in. */
+function turnOpen(runId: string, phase: TurnPhase, message = `message of ${runId}`): SessionEvent[] {
+  return [
+    samples.userMessageEvent(message, { runId }),
+    samples.runStatusEvent(phase, { runId }),
+  ];
 }
 
-/**
- * Creates a controllable async generator for streaming.
- */
-function createControllableStream<T>() {
-  let resolve: ((v: IteratorResult<T>) => void) | null = null;
-  let reject: ((err: unknown) => void) | null = null;
+type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 
-  const generator: AsyncGenerator<T> = {
-    next() {
-      return new Promise<IteratorResult<T>>((res, rej) => {
-        resolve = res;
-        reject = rej;
-      });
-    },
-    return(value?: unknown) {
-      return Promise.resolve({ done: true as const, value: value as T });
-    },
-    throw(err?: unknown) {
-      return Promise.reject(err);
-    },
-    [Symbol.asyncIterator]() {
-      return generator;
-    },
-  };
-
-  return {
-    generator,
-    push(value: T) {
-      resolve?.({ done: false, value });
-    },
-    finish() {
-      resolve?.({ done: true, value: undefined as unknown as T });
-    },
-    fail(err: Error) {
-      reject?.(err);
-    },
-  };
+function stored(runId: string, event: EventInit): SessionEvent {
+  return create(SessionEventSchema, { sessionId: "session-1", runId, event });
 }
 
-interface MockMethods {
+/** A turn's captured changes (`stigmer.file_review.changes`), one file. */
+function fileReviewChanges(runId: string, changeSetId: string): SessionEvent {
+  return stored(runId, {
+    case: "stigmerFileReviewChanges",
+    value: {
+      id: `${changeSetId}.changes`,
+      changeSetId,
+      aggregateDigest: `${changeSetId}-digest`,
+      files: [
+        {
+          fileChangeId: `${changeSetId}-f1`,
+          path: "src/a.ts",
+          change: "modified",
+          digest: "d1",
+          reviewable: "complete",
+        },
+      ],
+    },
+  });
+}
+
+/** A whole-set keep of a change set (`stigmer.file_review.decided`). */
+function keptAll(runId: string, changeSetId: string): SessionEvent {
+  return stored(runId, {
+    case: "stigmerFileReviewDecided",
+    value: {
+      id: `${changeSetId}.keep`,
+      changeSetId,
+      scope: "change_set",
+      action: "keep",
+      expectedDigest: `${changeSetId}-digest`,
+      origin: "person",
+    },
+  });
+}
+
+/** A tool use of a run that waits for a person, and its ask. */
+function waitingCall(runId: string, name: string): SessionEvent[] {
+  const use = samples.toolUseEvent(name, { command: "ls" }, { runId, evaluatedPermission: "ask" });
+  return [use, samples.permissionAskedEvent(use.event.value!.id, { runId })];
+}
+
+// ---------------------------------------------------------------------------
+// Client
+// ---------------------------------------------------------------------------
+
+interface Methods {
   sessionGet: ReturnType<typeof vi.fn>;
   listBySession: ReturnType<typeof vi.fn>;
-  executionCreate: ReturnType<typeof vi.fn>;
-  subscribe: ReturnType<typeof vi.fn>;
-  submitApproval: ReturnType<typeof vi.fn>;
-  submitFileDecision?: ReturnType<typeof vi.fn>;
-  cancel?: ReturnType<typeof vi.fn>;
-  terminate?: ReturnType<typeof vi.fn>;
+  runGet: ReturnType<typeof vi.fn>;
+  runCreate: ReturnType<typeof vi.fn>;
+  terminate: ReturnType<typeof vi.fn>;
+  confirmToolUse: ReturnType<typeof vi.fn>;
+  grantPermission: ReturnType<typeof vi.fn>;
+  interrupt: ReturnType<typeof vi.fn>;
+  reviewFileChanges: ReturnType<typeof vi.fn>;
 }
 
-function createMockStigmer(methods: MockMethods): Stigmer {
+let methods: Methods;
+let events: SessionEventStream;
+// One client per test, as the provider gives: a new object per render would
+// re-open the follow on every render.
+let stigmerClient: Stigmer;
+
+function client(): Stigmer {
   return {
     session: {
       get: methods.sessionGet,
+      streamEvents: events.streamEvents,
+      confirmToolUse: methods.confirmToolUse,
+      grantPermission: methods.grantPermission,
+      interrupt: methods.interrupt,
+      reviewFileChanges: methods.reviewFileChanges,
     },
     run: {
       listBySession: methods.listBySession,
-      create: methods.executionCreate,
-      subscribe: methods.subscribe,
-      submitApproval: methods.submitApproval,
-      submitFileDecision: methods.submitFileDecision,
-      cancel: methods.cancel,
+      get: methods.runGet,
+      create: methods.runCreate,
       terminate: methods.terminate,
     },
     // The local-worker attach asks who is signed in; answer as a
-    // single-user server does (no account), under which every local
-    // session is served as before.
+    // single-user server does (no account).
     identityAccount: {
       whoAmI: vi.fn().mockRejectedValue(new Error("Identity account not found for the authenticated user")),
     },
   } as unknown as Stigmer;
 }
 
-function createWrapper(client: Stigmer) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
-    );
-  };
+function wrapper({ children }: { children: ReactNode }) {
+  return <StigmerContext.Provider value={stigmerClient}>{children}</StigmerContext.Provider>;
 }
 
-describe("useSessionConversation", () => {
-  let methods: MockMethods;
-  let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<Run>>;
-
-  beforeEach(() => {
-    stream = createControllableStream<Run>();
-    methods = {
-      sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
-      listBySession: vi.fn().mockResolvedValue({ entries: [] }),
-      executionCreate: vi.fn(),
-      subscribe: vi.fn().mockReturnValue(stream.generator),
-      submitApproval: vi.fn().mockResolvedValue({}),
-      cancel: vi.fn().mockResolvedValue(makeExecution("e1", RunPhase.RUN_CANCELLED)),
-      terminate: vi.fn().mockResolvedValue(makeExecution("e1", RunPhase.RUN_TERMINATED)),
-    };
-    mockStigmer = createMockStigmer(methods);
+/** Lists `runs`, and answers `run.get` with the listed run of that id. */
+function listing(...runs: Run[]): void {
+  methods.listBySession.mockResolvedValue({ entries: runs });
+  methods.runGet.mockImplementation((id: string) => {
+    const run = runs.find((r) => r.metadata?.id === id);
+    return run ? Promise.resolve(run) : Promise.reject(new ConnectError("no run", Code.NotFound));
   });
+}
 
-  it("returns idle state when sessionId is null", () => {
-    const { result } = renderHook(
-      () => useSessionConversation(null, "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
+function open(sessionId: string | null = "session-1", org = "org") {
+  return renderHook(() => useSessionConversation(sessionId, org), { wrapper });
+}
 
+beforeEach(() => {
+  events = sessionEventStream();
+  methods = {
+    sessionGet: vi.fn().mockResolvedValue(makeSession()),
+    listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+    runGet: vi.fn().mockRejectedValue(new ConnectError("no run", Code.NotFound)),
+    runCreate: vi.fn(),
+    terminate: vi.fn().mockResolvedValue(makeRun("run_live", RunPhase.RUN_TERMINATED)),
+    confirmToolUse: vi.fn().mockResolvedValue({}),
+    grantPermission: vi.fn().mockResolvedValue({}),
+    interrupt: vi.fn().mockResolvedValue({ stoppedRunIds: [] }),
+    reviewFileChanges: vi.fn().mockResolvedValue({}),
+  };
+  stigmerClient = client();
+});
+
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
+describe("useSessionConversation — loading", () => {
+  it("is idle for no session: nothing is read or followed", () => {
+    const { result } = open(null);
     expect(result.current.session).toBeNull();
     expect(result.current.isLoading).toBe(false);
     expect(result.current.canSendFollowUp).toBe(true);
+    expect(result.current.turns).toEqual([]);
     expect(methods.sessionGet).not.toHaveBeenCalled();
     expect(methods.listBySession).not.toHaveBeenCalled();
+    expect(events.streamEvents).not.toHaveBeenCalled();
   });
 
-  it("isLoading is true while session and executions are loading", () => {
+  it("loads while the session and its runs load", () => {
     methods.sessionGet.mockReturnValue(new Promise(() => {}));
     methods.listBySession.mockReturnValue(new Promise(() => {}));
+    expect(open().result.current.isLoading).toBe(true);
+  });
 
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
+  it("a session with runs loads until its first events are folded", async () => {
+    listing(makeRun("run_a", RunPhase.RUN_COMPLETED));
+    const { result } = open();
+    await waitFor(() => expect(methods.listBySession).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.session).not.toBeNull());
     expect(result.current.isLoading).toBe(true);
+
+    act(() => events.push(...samples.turnEvents({ runId: "run_a" })));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.turns.map((turn) => turn.runId)).toEqual(["run_a"]);
   });
 
-  it("loads session and executions on mount", async () => {
-    const session = makeSession("session-1");
-    methods.sessionGet.mockResolvedValue(session);
-    methods.listBySession.mockResolvedValue({ entries: [] });
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => {
-      expect(result.current.session).toBe(session);
-      expect(result.current.isLoading).toBe(false);
-    });
+  it("a session with no runs has no events to wait for", async () => {
+    const { result } = open();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.turns).toEqual([]);
+    expect(result.current.activePhase).toBeNull();
   });
 
-  it("surfaces session fetch errors in loadError", async () => {
+  it("surfaces a session read failure as loadError", async () => {
     methods.sessionGet.mockRejectedValue(new Error("session not found"));
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => {
-      expect(result.current.loadError?.message).toBe("session not found");
-    });
+    const { result } = open();
+    await waitFor(() => expect(result.current.loadError?.message).toBe("session not found"));
   });
 
-  it("completedRuns excludes the active non-terminal execution", async () => {
-    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
-    const active = makeExecution("e2", RunPhase.RUN_IN_PROGRESS);
-    methods.listBySession.mockResolvedValue({
-      entries: [completed, active],
-    });
+  it("files turns under the session's organization once it has loaded (#1580)", async () => {
+    methods.sessionGet.mockReturnValue(new Promise(() => {}));
+    expect(open("session-1", "personal").result.current.org).toBe("personal");
+  });
+});
 
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
+// ---------------------------------------------------------------------------
+// Turns and runs
+// ---------------------------------------------------------------------------
 
-    await waitFor(() => {
-      expect(result.current.completedRuns).toHaveLength(1);
-      expect(result.current.completedRuns[0]).toBe(completed);
-    });
+describe("useSessionConversation — turns and runs", () => {
+  it("reads turns from the events and runs from the list", async () => {
+    const first = makeRun("run_a", RunPhase.RUN_COMPLETED);
+    const second = makeRun("run_b", RunPhase.RUN_COMPLETED);
+    listing(first, second);
+    events.push(...samples.turnEvents({ runId: "run_a" }), ...samples.turnEvents({ runId: "run_b" }));
+
+    const { result } = open();
+    await waitFor(() => expect(result.current.turns).toHaveLength(2));
+    expect(result.current.runs).toEqual([first, second]);
+    expect(result.current.activeTurn).toBeNull();
+    expect(result.current.activeRun).toBeNull();
+    expect(result.current.canSendFollowUp).toBe(true);
   });
 
-  it("canSendFollowUp is true when no active execution", async () => {
-    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
-    methods.listBySession.mockResolvedValue({ entries: [completed] });
+  it("a live turn is the active one: its run is read again and merged into the runs", async () => {
+    const listed = makeRun("run_live", RunPhase.RUN_PENDING);
+    const fresh = makeRun("run_live", RunPhase.RUN_IN_PROGRESS, { progress: true });
+    methods.listBySession.mockResolvedValue({ entries: [listed] });
+    methods.runGet.mockResolvedValue(fresh);
+    events.push(...turnOpen("run_live", "running"));
 
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => {
-      expect(result.current.canSendFollowUp).toBe(true);
-    });
+    const { result } = open();
+    await waitFor(() => expect(result.current.activeRun).toBe(fresh));
+    expect(result.current.activeTurn?.runId).toBe("run_live");
+    expect(result.current.activePhase).toBe("running");
+    expect(result.current.canSendFollowUp).toBe(false);
+    expect(result.current.runs).toEqual([fresh]);
+    expect(result.current.fileChangeProgress).toBe(fresh.status?.fileChangeProgress);
   });
 
-  it("canSendFollowUp is false while an execution is active", async () => {
-    const active = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
-    methods.listBySession.mockResolvedValue({ entries: [active] });
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => {
-      expect(result.current.canSendFollowUp).toBe(false);
-    });
+  it("a live turn with no status yet reads as pending", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_PENDING));
+    events.push(samples.userMessageEvent("hi", { runId: "run_live" }));
+    const { result } = open();
+    await waitFor(() => expect(result.current.activeTurn?.runId).toBe("run_live"));
+    expect(result.current.activePhase).toBe("pending");
   });
 
-  it("sendFollowUp sets pendingUserMessage optimistically", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
-    newExec.metadata!.id = "new-exec";
-    methods.executionCreate.mockResolvedValue(newExec);
+  it("re-reads the live run when its turn changes phase", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.activeRun).not.toBeNull());
+    const reads = methods.runGet.mock.calls.length;
 
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    act(() => {
-      result.current.sendFollowUp("Hello agent");
-    });
-
-    expect(result.current.pendingUserMessage).toBe("Hello agent");
+    act(() => events.push(samples.runStatusEvent("waiting", { runId: "run_live" })));
+    await waitFor(() => expect(result.current.activePhase).toBe("waiting"));
+    await waitFor(() => expect(methods.runGet.mock.calls.length).toBe(reads + 1));
   });
 
-  it("sendFollowUp carries the submit's attachments as pendingAttachments, cleared with the first snapshot", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
-    newExec.metadata!.id = "new-exec";
-    methods.executionCreate.mockResolvedValue(newExec);
+  it("hides superseded turns and runs, every link of a chain, and ignores a dangling link", async () => {
+    listing(
+      makeRun("run_a", RunPhase.RUN_CANCELLED),
+      makeRun("run_b", RunPhase.RUN_CANCELLED, { supersedes: "run_a" }),
+      makeRun("run_c", RunPhase.RUN_COMPLETED, { supersedes: "run_b" }),
+      makeRun("run_d", RunPhase.RUN_COMPLETED, { supersedes: "run_gone" }),
+    );
+    for (const runId of ["run_a", "run_b", "run_c", "run_d"]) events.push(...samples.turnEvents({ runId }));
 
-    const newStream = createControllableStream<Run>();
-    methods.subscribe.mockReturnValue(newStream.generator);
+    const { result } = open();
+    await waitFor(() => expect(result.current.turns.map((t) => t.runId)).toEqual(["run_c", "run_d"]));
+    expect(result.current.runs.map((r) => r.metadata?.id)).toEqual(["run_c", "run_d"]);
+  });
 
+  it("hides the turn a live run supersedes before the list carries the live run", async () => {
+    const live = makeRun("run_b", RunPhase.RUN_IN_PROGRESS, { supersedes: "run_a" });
+    methods.listBySession.mockResolvedValue({ entries: [makeRun("run_a", RunPhase.RUN_CANCELLED)] });
+    methods.runGet.mockResolvedValue(live);
+    events.push(...samples.turnEvents({ runId: "run_a", phase: "cancelled" }), ...turnOpen("run_b", "running"));
+
+    const { result } = open();
+    await waitFor(() => expect(result.current.turns.map((t) => t.runId)).toEqual(["run_b"]));
+    // The live run is not listed yet: it joins the runs from its own read.
+    expect(result.current.runs).toEqual([live]);
+  });
+
+  it("leaves reconcile turns out: listed ones, and an unlisted one with no message and no items", async () => {
+    listing(
+      makeRun("run_a", RunPhase.RUN_COMPLETED),
+      makeRun("run_b", RunPhase.RUN_COMPLETED, { reconcile: true }),
+    );
+    events.push(
+      ...samples.turnEvents({ runId: "run_a" }),
+      samples.runStatusEvent("completed", { runId: "run_b" }),
+      samples.runStatusEvent("running", { runId: "run_c" }),
+    );
+
+    const { result } = open();
+    await waitFor(() => expect(result.current.turns.map((t) => t.runId)).toEqual(["run_a"]));
+    expect(result.current.runs.map((r) => r.metadata?.id)).toEqual(["run_a"]);
+    // A reconcile turn at work never holds the composer.
+    expect(result.current.activeTurn).toBeNull();
+    expect(result.current.canSendFollowUp).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Reading the run list again
+// ---------------------------------------------------------------------------
+
+describe("useSessionConversation — reading the run list again", () => {
+  it("does not read the list again on open, for a finished or a live session", async () => {
+    listing(makeRun("run_a", RunPhase.RUN_COMPLETED), makeRun("run_b", RunPhase.RUN_IN_PROGRESS));
+    events.push(...samples.turnEvents({ runId: "run_a" }), ...turnOpen("run_b", "running"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.activeRun).not.toBeNull());
+    expect(methods.listBySession).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads it once when a live turn ends", async () => {
+    listing(makeRun("run_a", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_a", "running"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.activeTurn).not.toBeNull());
+    expect(methods.listBySession).toHaveBeenCalledTimes(1);
+
+    act(() => events.push(samples.runStatusEvent("completed", { runId: "run_a" })));
+    await waitFor(() => expect(result.current.activeTurn).toBeNull());
+    await waitFor(() => expect(methods.listBySession).toHaveBeenCalledTimes(2));
+  });
+
+  it("reads it once when another client's turn appears", async () => {
+    listing(makeRun("run_a", RunPhase.RUN_COMPLETED));
+    events.push(...samples.turnEvents({ runId: "run_a" }));
+    const { result } = open();
+    await waitFor(() => expect(result.current.turns).toHaveLength(1));
+    expect(methods.listBySession).toHaveBeenCalledTimes(1);
+
+    act(() => events.push(...turnOpen("run_b", "pending")));
+    await waitFor(() => expect(methods.listBySession).toHaveBeenCalledTimes(2));
+    act(() => events.push(samples.agentMessageEvent("still going", { runId: "run_b" })));
+    await waitFor(() => expect(result.current.turns.at(-1)?.items).toHaveLength(1));
+    expect(methods.listBySession).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sending
+// ---------------------------------------------------------------------------
+
+describe("useSessionConversation — sending", () => {
+  async function opened() {
+    const rendered = open();
+    await waitFor(() => expect(rendered.result.current.session).not.toBeNull());
+    await waitFor(() => expect(rendered.result.current.isLoading).toBe(false));
+    return rendered;
+  }
+
+  it("shows the message and its files at once, holds the composer, and hands over when the turn arrives", async () => {
+    methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
     const attachments = [
       { filename: "sketch.png", storageKey: "attachments/01AAA/sketch.png", contentType: "image/png" },
     ];
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { result } = await opened();
 
     await act(async () => {
       await result.current.sendFollowUp("Here is a sketch", { attachments });
     });
-
-    // The optimistic turn carries BOTH facets — text and files (#372).
+    expect(methods.runCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ org: "org", sessionId: "session-1", message: "Here is a sketch" }),
+    );
     expect(result.current.pendingUserMessage).toBe("Here is a sketch");
     expect(result.current.pendingAttachments).toBe(attachments);
+    expect(result.current.canSendFollowUp).toBe(false);
+    expect(result.current.activePhase).toBe("pending");
+    expect(result.current.isStoppable).toBe(false);
+    const listReads = methods.listBySession.mock.calls.length;
 
-    act(() => {
-      newStream.push(
-        makeExecution("new-exec", RunPhase.RUN_IN_PROGRESS),
-      );
-    });
-
-    // Both clear together once the real run record takes over.
-    await waitFor(() => {
-      expect(result.current.pendingUserMessage).toBeNull();
-      expect(result.current.pendingAttachments).toBeNull();
-    });
+    act(() => events.push(...turnOpen("run_new", "pending", "Here is a sketch")));
+    await waitFor(() => expect(result.current.pendingUserMessage).toBeNull());
+    expect(result.current.pendingAttachments).toBeNull();
+    expect(result.current.activeTurn?.runId).toBe("run_new");
+    // The send read the list itself; the turn's arrival does not again.
+    expect(methods.listBySession).toHaveBeenCalledTimes(listReads);
   });
 
-  it("keeps pendingAttachments when the send fails (the chips are what Retry re-sends)", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    methods.executionCreate.mockRejectedValue(new Error("create boom"));
+  it("files the turn under the session's organization (#1580)", async () => {
+    methods.sessionGet.mockResolvedValue(makeSession("acme"));
+    methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
+    const rendered = open("session-1", "personal");
+    await waitFor(() => expect(rendered.result.current.org).toBe("acme"));
+    await act(async () => {
+      await rendered.result.current.sendFollowUp("Deploy it");
+    });
+    expect(methods.runCreate).toHaveBeenCalledWith(expect.objectContaining({ org: "acme" }));
+  });
 
-    const attachments = [
-      { filename: "notes.txt", storageKey: "attachments/01BBB/notes.txt", contentType: "text/plain" },
-    ];
+  it("forwards supersedesRunId", async () => {
+    methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
+    const { result } = await opened();
+    await act(async () => {
+      await result.current.sendFollowUp("edited", { supersedesRunId: "run_old" });
+    });
+    expect(methods.runCreate).toHaveBeenCalledWith(expect.objectContaining({ supersedesRunId: "run_old" }));
+  });
 
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  it("shows no optimistic message for a build-from-plan send, but does when it fails", async () => {
+    methods.runCreate.mockResolvedValueOnce(makeRun("run_new", RunPhase.RUN_PENDING));
+    methods.runCreate.mockRejectedValueOnce(new Error("create boom"));
+    const { result } = await opened();
 
     await act(async () => {
-      await result.current.sendFollowUp("keep my files", { attachments });
+      await result.current.sendFollowUp("Build from plan", { buildFromPlan: true });
     });
-
-    expect(result.current.sendError?.message).toBe("create boom");
-    expect(result.current.pendingAttachments).toBe(attachments);
-  });
-
-  it("sendFollowUp creates execution via the SDK", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
-    newExec.metadata!.id = "new-exec";
-    methods.executionCreate.mockResolvedValue(newExec);
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.sendFollowUp("Deploy it");
-    });
-
-    expect(methods.executionCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org: "org",
-        sessionId: "session-1",
-        message: "Deploy it",
-      }),
-    );
-  });
-
-  it("sendFollowUp files the turn under the session's organization, not the org argument (#1580)", async () => {
-    const session = makeSession("session-1");
-    session.metadata!.org = "acme";
-    methods.sessionGet.mockResolvedValue(session);
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
-    methods.executionCreate.mockResolvedValue(newExec);
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "personal"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-    expect(result.current.org).toBe("acme");
-
-    await act(async () => {
-      await result.current.sendFollowUp("Deploy it");
-    });
-
-    expect(methods.executionCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ org: "acme", sessionId: "session-1" }),
-    );
-  });
-
-  it("org is the argument until the session names one", async () => {
-    methods.sessionGet.mockReturnValue(new Promise(() => {}));
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "personal"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    expect(result.current.org).toBe("personal");
-  });
-
-  it("pendingUserMessage clears when stream delivers first snapshot", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-
-    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
-    newExec.metadata!.id = "new-exec";
-    methods.executionCreate.mockResolvedValue(newExec);
-
-    const newStream = createControllableStream<Run>();
-    methods.subscribe.mockReturnValue(newStream.generator);
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.sendFollowUp("Hello");
-    });
-
-    expect(result.current.pendingUserMessage).toBe("Hello");
-
-    act(() => {
-      newStream.push(
-        makeExecution("new-exec", RunPhase.RUN_IN_PROGRESS),
-      );
-    });
-
-    await waitFor(() => {
-      expect(result.current.pendingUserMessage).toBeNull();
-    });
-  });
-
-  it("sets NO optimistic pendingUserMessage for a buildFromPlan send (the thread hides the turn)", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    const newExec = makeExecution("new-exec", RunPhase.RUN_PENDING);
-    newExec.metadata!.id = "new-exec";
-    methods.executionCreate.mockResolvedValue(newExec);
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.sendFollowUp("Build from plan", {
-        buildFromPlan: true,
-      });
-    });
-
     expect(result.current.pendingUserMessage).toBeNull();
-    expect(methods.executionCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ message: "Build from plan" }),
-    );
-  });
 
-  it("sets pendingUserMessage when a buildFromPlan send FAILS (failure must be visible)", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    methods.executionCreate.mockRejectedValue(new Error("create boom"));
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
+    act(() => events.push(...turnOpen("run_new", "completed", "Build from plan")));
+    await waitFor(() => expect(result.current.canSendFollowUp).toBe(true));
     await act(async () => {
-      await result.current.sendFollowUp("Build from plan", {
-        buildFromPlan: true,
-      });
+      await result.current.sendFollowUp("Build from plan", { buildFromPlan: true });
     });
-
     expect(result.current.sendError?.message).toBe("create boom");
     expect(result.current.pendingUserMessage).toBe("Build from plan");
   });
 
-  it("preserves the message and surfaces sendError when the send fails", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    methods.executionCreate.mockRejectedValue(new Error("create boom"));
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  it("keeps the message and files when the send fails, and Retry resends them", async () => {
+    methods.runCreate.mockRejectedValueOnce(new Error("create boom"));
+    methods.runCreate.mockResolvedValue(makeRun("run_retry", RunPhase.RUN_PENDING));
+    const attachments = [
+      { filename: "notes.txt", storageKey: "attachments/01BBB/notes.txt", contentType: "text/plain" },
+    ];
+    const { result } = await opened();
 
     await act(async () => {
-      await result.current.sendFollowUp("keep me");
+      await result.current.sendFollowUp("keep me", { attachments });
     });
-
-    // The failure is surfaced and the user's text is NOT lost.
     expect(result.current.sendError?.message).toBe("create boom");
     expect(result.current.pendingUserMessage).toBe("keep me");
-  });
+    expect(result.current.pendingAttachments).toBe(attachments);
 
-  it("retryLastSend resubmits the same message after a failure", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    methods.executionCreate.mockRejectedValueOnce(new Error("boom"));
-    const retried = makeExecution("e-retry", RunPhase.RUN_PENDING);
-    retried.metadata!.id = "e-retry";
-    methods.executionCreate.mockResolvedValue(retried);
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.sendFollowUp("retry me");
-    });
-    expect(result.current.sendError).not.toBeNull();
+    act(() => result.current.clearSendError());
+    expect(result.current.sendError).toBeNull();
 
     await act(async () => {
       result.current.retryLastSend();
     });
-
-    await waitFor(() =>
-      expect(methods.executionCreate).toHaveBeenCalledTimes(2),
-    );
-    expect(methods.executionCreate).toHaveBeenLastCalledWith(
-      expect.objectContaining({ message: "retry me" }),
-    );
-    // The retry cleared the prior failure for the new attempt.
-    expect(result.current.sendError).toBeNull();
+    await waitFor(() => expect(methods.runCreate).toHaveBeenCalledTimes(2));
+    expect(methods.runCreate).toHaveBeenLastCalledWith(expect.objectContaining({ message: "keep me" }));
   });
 
-  it("full follow-up lifecycle: active execution completes → canSendFollowUp → sendFollowUp succeeds", async () => {
-    // Start with one IN_PROGRESS run (simulates a Cursor run running)
-    const activeExec = makeExecution("exec-1", RunPhase.RUN_IN_PROGRESS);
-    methods.listBySession.mockResolvedValue({ entries: [activeExec] });
-
-    const execStream = createControllableStream<Run>();
-    methods.subscribe.mockReturnValue(execStream.generator);
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    // Initially canSendFollowUp should be false (run is active)
-    expect(result.current.canSendFollowUp).toBe(false);
-
-    // Stream delivers RUN_COMPLETED — simulating Cursor run finishing
-    const completedExec = makeExecution("exec-1", RunPhase.RUN_COMPLETED);
-    act(() => {
-      execStream.push(completedExec);
+  it("does nothing without a loaded session, and retry does nothing before a send", async () => {
+    methods.sessionGet.mockReturnValue(new Promise(() => {}));
+    const { result } = open();
+    await act(async () => {
+      await result.current.sendFollowUp("too early");
+      result.current.retryLastSend();
     });
+    expect(methods.runCreate).not.toHaveBeenCalled();
+  });
+});
 
-    // After stream completes, the hook should refetch runs.
-    // Mock the refetch to return the completed run.
-    methods.listBySession.mockResolvedValue({ entries: [completedExec] });
+// ---------------------------------------------------------------------------
+// Asks
+// ---------------------------------------------------------------------------
 
-    // Wait for canSendFollowUp to become true
-    await waitFor(() => {
-      expect(result.current.canSendFollowUp).toBe(true);
-    });
+describe("useSessionConversation — asks", () => {
+  async function waiting() {
+    listing(makeRun("run_live", RunPhase.RUN_WAITING_FOR_APPROVAL));
+    events.push(...turnOpen("run_live", "waiting"), ...waitingCall("run_live", "shell"));
+    const rendered = open();
+    await waitFor(() => expect(rendered.result.current.asks).toHaveLength(1));
+    return rendered;
+  }
 
-    // Now send a follow-up message
-    const followUpExec = makeExecution("exec-2", RunPhase.RUN_PENDING);
-    followUpExec.metadata!.id = "exec-2";
-    methods.executionCreate.mockResolvedValue(followUpExec);
+  it("lists the live turn's waiting tool uses and allows one", async () => {
+    const { result } = await waiting();
+    const ask = result.current.asks[0]!;
+    expect(ask.state).toBe("waiting");
 
     await act(async () => {
-      await result.current.sendFollowUp("Follow-up message", { modelName: "default" });
+      await result.current.answerToolUse(ask.id, "allow");
     });
+    expect(methods.confirmToolUse).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "session-1", toolUseId: ask.id, result: "allow", denyMessage: "" }),
+    );
+  });
 
-    // Verify the create call was made with the correct session and message
-    expect(methods.executionCreate).toHaveBeenCalledWith(
+  it("denies with a message, and grants a class through grantPermission", async () => {
+    const { result } = await waiting();
+    const ask = result.current.asks[0]!;
+
+    await act(async () => {
+      await result.current.answerToolUse(ask.id, "deny", "use staging");
+    });
+    expect(methods.confirmToolUse).toHaveBeenCalledWith(
+      expect.objectContaining({ toolUseId: ask.id, result: "deny", denyMessage: "use staging" }),
+    );
+
+    await act(async () => {
+      await result.current.answerToolUse(ask.id, "grant");
+    });
+    expect(methods.grantPermission).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "session-1", toolUseId: ask.id }),
+    );
+  });
+
+  it("keeps a failed answer per tool use and as the scalar, until cleared", async () => {
+    methods.confirmToolUse.mockRejectedValue(new Error("already answered"));
+    const { result } = await waiting();
+    const ask = result.current.asks[0]!;
+
+    await act(async () => {
+      await expect(result.current.answerToolUse(ask.id, "allow")).rejects.toThrow("already answered");
+    });
+    expect(result.current.answerErrors.get(ask.id)?.message).toBe("already answered");
+    expect(result.current.answerError?.message).toBe("already answered");
+
+    act(() => result.current.clearAnswerError());
+    expect(result.current.answerErrors.size).toBe(0);
+    expect(result.current.answerError).toBeNull();
+  });
+
+  it("answers nothing without a session", async () => {
+    const { result } = open(null);
+    await act(async () => {
+      await result.current.answerToolUse("t1", "allow");
+      await result.current.reviewFileChanges("cs1", "keep", { expectedDigest: "d" });
+      await result.current.stop();
+    });
+    expect(methods.confirmToolUse).not.toHaveBeenCalled();
+    expect(methods.reviewFileChanges).not.toHaveBeenCalled();
+    expect(methods.interrupt).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// File review
+// ---------------------------------------------------------------------------
+
+describe("useSessionConversation — file review", () => {
+  it("offers the newest turn's undecided sets after it ended, with the runs' captures", async () => {
+    listing(
+      makeRun("run_a", RunPhase.RUN_COMPLETED, { changeSetId: "cs_a" }),
+      makeRun("run_b", RunPhase.RUN_COMPLETED, { changeSetId: "cs_b" }),
+    );
+    events.push(
+      ...samples.turnEvents({ runId: "run_a" }),
+      fileReviewChanges("run_a", "cs_a"),
+      ...samples.turnEvents({ runId: "run_b" }),
+      fileReviewChanges("run_b", "cs_b"),
+      fileReviewChanges("run_b", "cs_b2"),
+      keptAll("run_b", "cs_b2"),
+    );
+
+    const { result } = open();
+    await waitFor(() => expect(result.current.fileReviewSets.map((s) => s.changeSetId)).toEqual(["cs_b"]));
+    expect([...result.current.fileChangeCaptures.keys()]).toEqual(["cs_a", "cs_b"]);
+  });
+
+  it("offers every set while all are undecided, and skips a reconcile turn after them", async () => {
+    listing(
+      makeRun("run_a", RunPhase.RUN_COMPLETED),
+      makeRun("run_b", RunPhase.RUN_COMPLETED, { reconcile: true }),
+    );
+    events.push(
+      ...samples.turnEvents({ runId: "run_a" }),
+      fileReviewChanges("run_a", "cs_1"),
+      fileReviewChanges("run_a", "cs_2"),
+      samples.runStatusEvent("completed", { runId: "run_b" }),
+    );
+    const { result } = open();
+    await waitFor(() => expect(result.current.fileReviewSets).toHaveLength(2));
+  });
+
+  it("decides through reviewFileChanges and keeps a failure per decision", async () => {
+    listing(makeRun("run_a", RunPhase.RUN_COMPLETED));
+    events.push(...samples.turnEvents({ runId: "run_a" }), fileReviewChanges("run_a", "cs_a"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.fileReviewSets).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.reviewFileChanges("cs_a", "undo", { fileChangeId: "cs_a-f1", expectedDigest: "d1" });
+    });
+    expect(methods.reviewFileChanges).toHaveBeenCalledWith(
       expect.objectContaining({
-        org: "org",
         sessionId: "session-1",
-        message: "Follow-up message",
-        runConfig: expect.objectContaining({ modelName: "default" }),
+        changeSetId: "cs_a",
+        scope: "file",
+        fileChangeId: "cs_a-f1",
+        action: "undo",
+        expectedDigest: "d1",
       }),
     );
+
+    methods.reviewFileChanges.mockRejectedValueOnce(new Error("digest moved"));
+    await act(async () => {
+      await expect(
+        result.current.reviewFileChanges("cs_a", "keep", { expectedDigest: "cs_a-digest" }),
+      ).rejects.toThrow("digest moved");
+    });
+    expect(result.current.fileDecisionErrors.get("cs_a")?.message).toBe("digest moved");
+    expect(result.current.fileReviewError?.message).toBe("digest moved");
+    act(() => result.current.clearFileDecisionError("cs_a"));
+    expect(result.current.fileDecisionErrors.has("cs_a")).toBe(false);
+    act(() => result.current.clearFileReviewError());
+    expect(result.current.fileReviewError).toBeNull();
   });
+});
 
-  it("isStoppable is false when no execution is active", async () => {
-    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
-    methods.listBySession.mockResolvedValue({ entries: [completed] });
+// ---------------------------------------------------------------------------
+// Stopping
+// ---------------------------------------------------------------------------
 
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
+describe("useSessionConversation — stopping", () => {
+  it.each<TurnPhase>(["pending", "running", "waiting", "paused"])(
+    "a %s turn can be stopped",
+    async (phase) => {
+      listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+      events.push(...turnOpen("run_live", phase));
+      const { result } = open();
+      await waitFor(() => expect(result.current.isStoppable).toBe(true));
+    },
+  );
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  it("an ended turn cannot be stopped, and stop does nothing", async () => {
+    listing(makeRun("run_a", RunPhase.RUN_COMPLETED));
+    events.push(...samples.turnEvents({ runId: "run_a" }));
+    const { result } = open();
+    await waitFor(() => expect(result.current.turns).toHaveLength(1));
     expect(result.current.isStoppable).toBe(false);
+    await act(async () => {
+      await result.current.stop();
+    });
+    expect(methods.interrupt).not.toHaveBeenCalled();
   });
 
-  it("isStoppable becomes true once the active execution streams IN_PROGRESS", async () => {
-    const active = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
-    methods.listBySession.mockResolvedValue({ entries: [active] });
-
-    const execStream = createControllableStream<Run>();
-    methods.subscribe.mockReturnValue(execStream.generator);
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
+  it("interrupts the session, then terminates the run on a repeat press", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    let release!: () => void;
+    methods.interrupt.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = () => resolve({ stoppedRunIds: ["run_live"] });
+      }),
     );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    act(() => {
-      execStream.push(makeExecution("e1", RunPhase.RUN_IN_PROGRESS));
-    });
-
-    await waitFor(() => expect(result.current.isStoppable).toBe(true));
-  });
-
-  it("stop() cancels the active execution, then escalates to terminate on repeat", async () => {
-    const active = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
-    methods.listBySession.mockResolvedValue({ entries: [active] });
-
-    const execStream = createControllableStream<Run>();
-    methods.subscribe.mockReturnValue(execStream.generator);
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    act(() => {
-      execStream.push(makeExecution("e1", RunPhase.RUN_IN_PROGRESS));
-    });
+    const { result } = open();
     await waitFor(() => expect(result.current.isStoppable).toBe(true));
 
-    await act(async () => {
-      await result.current.stop("Stop from chat");
+    let first!: Promise<void>;
+    act(() => {
+      first = result.current.stop("user stop");
     });
-    expect(methods.cancel).toHaveBeenCalledTimes(1);
-    expect(methods.cancel!.mock.calls[0][0]).toMatchObject({ id: "e1" });
-    expect(methods.terminate).not.toHaveBeenCalled();
+    expect(result.current.isStopping).toBe(true);
+    await act(async () => {
+      release();
+      await first;
+    });
+    expect(methods.interrupt).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "session-1" }));
+    expect(result.current.isStopping).toBe(false);
 
     await act(async () => {
-      await result.current.stop("Stop from chat");
+      await result.current.stop("still going");
     });
-    expect(methods.cancel).toHaveBeenCalledTimes(1);
-    expect(methods.terminate).toHaveBeenCalledTimes(1);
+    expect(methods.interrupt).toHaveBeenCalledTimes(1);
+    expect(methods.terminate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "run_live", reason: "still going" }),
+    );
   });
 
-  it("stop() is a no-op when nothing is stoppable", async () => {
-    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
-    methods.listBySession.mockResolvedValue({ entries: [completed] });
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  it("surfaces a failed interrupt and interrupts again on the next press", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    methods.interrupt.mockRejectedValueOnce(new Error("engine down"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.isStoppable).toBe(true));
 
     await act(async () => {
       await result.current.stop();
     });
+    expect(result.current.stopError?.message).toBe("engine down");
 
-    expect(methods.cancel).not.toHaveBeenCalled();
+    await act(async () => {
+      await result.current.stop();
+    });
+    expect(methods.interrupt).toHaveBeenCalledTimes(2);
     expect(methods.terminate).not.toHaveBeenCalled();
+    expect(result.current.stopError).toBeNull();
   });
 
-  it("submitApproval answers the gate on the active run", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [makeExecution("e1", RunPhase.RUN_IN_PROGRESS)] });
-    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
-      wrapper: createWrapper(mockStigmer),
-    });
-    await waitFor(() => expect(result.current.canSendFollowUp).toBe(false));
+  it("surfaces a failed terminate", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    methods.terminate.mockRejectedValue(new Error("no terminate"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.isStoppable).toBe(true));
 
     await act(async () => {
-      await result.current.submitApproval("tc-1", ApprovalAction.APPROVE, "looks fine");
+      await result.current.stop();
     });
-
-    expect(methods.submitApproval).toHaveBeenCalledTimes(1);
-    expect(methods.submitApproval.mock.calls[0]![0]).toMatchObject({
-      runId: "e1",
-      toolCallId: "tc-1",
-      action: ApprovalAction.APPROVE,
-      comment: "looks fine",
-    });
-  });
-
-  it("submitFileDecision decides the change set on the active run", async () => {
-    methods.submitFileDecision = vi.fn().mockResolvedValue({});
-    mockStigmer = createMockStigmer(methods);
-    methods.listBySession.mockResolvedValue({ entries: [makeExecution("e1", RunPhase.RUN_IN_PROGRESS)] });
-    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
-      wrapper: createWrapper(mockStigmer),
-    });
-    await waitFor(() => expect(result.current.canSendFollowUp).toBe(false));
-
     await act(async () => {
-      await result.current.submitFileDecision("fcs-1", FileDecisionAction.APPROVE);
+      await result.current.stop();
     });
-
-    expect(methods.submitFileDecision).toHaveBeenCalledTimes(1);
-    expect(methods.submitFileDecision.mock.calls[0]![0]).toMatchObject({
-      runId: "e1",
-      changeSetId: "fcs-1",
-      action: FileDecisionAction.APPROVE,
-    });
-  });
-
-  it("submitApproval does nothing with no active run", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [makeExecution("e1", RunPhase.RUN_COMPLETED)] });
-    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
-      wrapper: createWrapper(mockStigmer),
-    });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.submitApproval("tc-1", ApprovalAction.APPROVE);
-    });
-
-    expect(methods.submitApproval).not.toHaveBeenCalled();
-  });
-
-  it("submitFileDecision does nothing in a conversation with no turn", async () => {
-    methods.submitFileDecision = vi.fn().mockResolvedValue({});
-    mockStigmer = createMockStigmer(methods);
-    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
-      wrapper: createWrapper(mockStigmer),
-    });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.submitFileDecision("fcs-1", FileDecisionAction.APPROVE);
-    });
-
-    expect(methods.submitFileDecision).not.toHaveBeenCalled();
+    expect(result.current.stopError?.message).toBe("no terminate");
   });
 });
 
-describe("useSessionConversation — review after the turn ends", () => {
-  let methods: MockMethods;
-  let mockStigmer: Stigmer;
+// ---------------------------------------------------------------------------
+// The follow
+// ---------------------------------------------------------------------------
 
-  beforeEach(() => {
-    methods = {
-      sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
-      listBySession: vi.fn().mockResolvedValue({ entries: [] }),
-      executionCreate: vi.fn(),
-      subscribe: vi.fn().mockReturnValue(createControllableStream<Run>().generator),
-      submitApproval: vi.fn().mockResolvedValue({}),
-      submitFileDecision: vi.fn().mockResolvedValue({}),
-    };
-    mockStigmer = createMockStigmer(methods);
+describe("useSessionConversation — the follow", () => {
+  it("passes a refused follow through as streamError, and reconnects on request", async () => {
+    let refuse = true;
+    events.streamEvents.mockImplementation(async function* refusing() {
+      if (refuse) throw new ConnectError("gone", Code.NotFound);
+      yield* [];
+    });
+    const { result } = open();
+    await waitFor(() => expect(result.current.streamError).not.toBeNull());
+    expect(result.current.isReconnecting).toBe(false);
+    expect(result.current.connectTimedOut).toBe(false);
+    expect(result.current.isSlow).toBe(false);
+
+    refuse = false;
+    act(() => result.current.reconnectStream());
+    await waitFor(() => expect(events.streamEvents).toHaveBeenCalledTimes(2));
   });
 
-  it("offers the newest turn's sets awaiting review after that turn has finished", async () => {
-    const turn = makeExecution("e1", RunPhase.RUN_COMPLETED, {
-      fileChangeSets: [
-        makeChangeSet("e1:1", FileChangeSetStatus.AWAITING_REVIEW),
-        makeChangeSet("e1:0", FileChangeSetStatus.DECIDED),
-      ],
-    });
-    methods.listBySession.mockResolvedValue({ entries: [turn] });
-
-    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
-      wrapper: createWrapper(mockStigmer),
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.activeStreamRun).toBeNull();
-    expect(result.current.canSendFollowUp).toBe(true);
-    expect(result.current.fileChangeSets.map((cs) => cs.id)).toEqual(["e1:1"]);
-  });
-
-  it("never offers an earlier turn's sets once a later turn exists", async () => {
-    const earlier = makeExecution("e1", RunPhase.RUN_COMPLETED, {
-      fileChangeSets: [makeChangeSet("e1:1", FileChangeSetStatus.AWAITING_REVIEW)],
-    });
-    const later = makeExecution("e2", RunPhase.RUN_COMPLETED);
-    methods.listBySession.mockResolvedValue({ entries: [earlier, later] });
-
-    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
-      wrapper: createWrapper(mockStigmer),
-    });
-
-    await waitFor(() => expect(result.current.completedRuns).toHaveLength(2));
-    expect(result.current.fileChangeSets).toEqual([]);
-  });
-
-  it("does not show a reconcile turn: it is not listed, never streamed, and the dock keeps the turn before it", async () => {
-    const turn = makeExecution("e1", RunPhase.RUN_COMPLETED, {
-      fileChangeSets: [makeChangeSet("e1:1", FileChangeSetStatus.AWAITING_REVIEW)],
-    });
-    const reconcile = makeExecution("r1", RunPhase.RUN_IN_PROGRESS, {
-      reconcileFileReview: true,
-    });
-    methods.listBySession.mockResolvedValue({ entries: [turn, reconcile] });
-
-    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
-      wrapper: createWrapper(mockStigmer),
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.completedRuns).toEqual([turn]);
-    expect(result.current.activeStreamRun).toBeNull();
-    expect(result.current.canSendFollowUp).toBe(true);
-    expect(methods.subscribe).not.toHaveBeenCalled();
-    expect(result.current.fileChangeSets.map((cs) => cs.id)).toEqual(["e1:1"]);
-  });
-
-  it("decides on the newest finished turn, past a reconcile turn, and re-reads the runs", async () => {
-    const turn = makeExecution("e1", RunPhase.RUN_COMPLETED, {
-      fileChangeSets: [makeChangeSet("e1:1", FileChangeSetStatus.AWAITING_REVIEW)],
-    });
-    const reconcile = makeExecution("r1", RunPhase.RUN_COMPLETED, {
-      reconcileFileReview: true,
-    });
-    methods.listBySession.mockResolvedValue({ entries: [turn, reconcile] });
-
-    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
-      wrapper: createWrapper(mockStigmer),
-    });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    const listsBefore = methods.listBySession.mock.calls.length;
-
-    await act(async () => {
-      await result.current.submitFileDecision("e1:1", FileDecisionAction.REJECT);
-    });
-
-    expect(methods.submitFileDecision).toHaveBeenCalledTimes(1);
-    expect(methods.submitFileDecision!.mock.calls[0]![0]).toMatchObject({
-      runId: "e1",
-      changeSetId: "e1:1",
-      action: FileDecisionAction.REJECT,
-    });
-    await waitFor(() =>
-      expect(methods.listBySession.mock.calls.length).toBeGreaterThan(listsBefore),
-    );
+  it("reports the follow as streaming once events arrive", async () => {
+    listing(makeRun("run_a", RunPhase.RUN_COMPLETED));
+    events.push(...samples.turnEvents({ runId: "run_a" }));
+    const { result } = open();
+    expect(result.current.isConnecting).toBe(true);
+    await waitFor(() => expect(result.current.isStreaming).toBe(true));
   });
 });
 
-describe("useSessionConversation — supersede filtering (edit-and-resubmit)", () => {
-  let methods: MockMethods;
-  let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<Run>>;
-
-  beforeEach(() => {
-    stream = createControllableStream<Run>();
-    methods = {
-      sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
-      listBySession: vi.fn().mockResolvedValue({ entries: [] }),
-      executionCreate: vi.fn(),
-      subscribe: vi.fn().mockReturnValue(stream.generator),
-      submitApproval: vi.fn().mockResolvedValue({}),
-    };
-    mockStigmer = createMockStigmer(methods);
-  });
-
-  it("hides a superseded execution from completedRuns", async () => {
-    const cancelled = makeExecution("e1", RunPhase.RUN_CANCELLED);
-    const successor = makeExecution("e2", RunPhase.RUN_COMPLETED, {
-      supersedes: "e1",
-    });
-    methods.listBySession.mockResolvedValue({
-      entries: [cancelled, successor],
-    });
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.completedRuns).toHaveLength(1);
-    expect(result.current.completedRuns[0]).toBe(successor);
-  });
-
-  it("hides every link of a chained supersede (A <- B <- C)", async () => {
-    const a = makeExecution("e1", RunPhase.RUN_CANCELLED);
-    const b = makeExecution("e2", RunPhase.RUN_CANCELLED, {
-      supersedes: "e1",
-    });
-    const c = makeExecution("e3", RunPhase.RUN_COMPLETED, {
-      supersedes: "e2",
-    });
-    methods.listBySession.mockResolvedValue({ entries: [a, b, c] });
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.completedRuns).toHaveLength(1);
-    expect(result.current.completedRuns[0]).toBe(c);
-  });
-
-  it("filters via the streaming successor's link before the list refetch delivers it", async () => {
-    // The stopped turn is still the only listed run; its successor
-    // exists only as the live stream — the supersede link must be read off
-    // the stream copy for the old turn to disappear immediately.
-    const stopped = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
-    methods.listBySession.mockResolvedValue({ entries: [stopped] });
-
-    const successorStream = createControllableStream<Run>();
-    methods.subscribe.mockReturnValue(successorStream.generator);
-    methods.executionCreate.mockResolvedValue(
-      makeExecution("e2", RunPhase.RUN_PENDING),
-    );
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.sendFollowUp("corrected message", {
-        supersedesRunId: "e1",
-      });
-    });
-
-    act(() => {
-      successorStream.push(
-        makeExecution("e2", RunPhase.RUN_IN_PROGRESS, {
-          supersedes: "e1",
-        }),
-      );
-    });
-
-    await waitFor(() => {
-      expect(result.current.completedRuns).toHaveLength(0);
-    });
-  });
-
-  it("treats a dangling supersede link as a no-op", async () => {
-    const completed = makeExecution("e1", RunPhase.RUN_COMPLETED);
-    const successor = makeExecution("e2", RunPhase.RUN_COMPLETED, {
-      supersedes: "does-not-exist",
-    });
-    methods.listBySession.mockResolvedValue({
-      entries: [completed, successor],
-    });
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.completedRuns).toHaveLength(2);
-  });
-
-  it("sendFollowUp forwards supersedesRunId to execution creation", async () => {
-    methods.listBySession.mockResolvedValue({ entries: [] });
-    methods.executionCreate.mockResolvedValue(
-      makeExecution("e2", RunPhase.RUN_PENDING),
-    );
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    await act(async () => {
-      await result.current.sendFollowUp("corrected message", {
-        supersedesRunId: "e1",
-      });
-    });
-
-    expect(methods.executionCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: "corrected message",
-        supersedesRunId: "e1",
-      }),
-    );
-  });
-
-  it("keeps active-id resolution on the raw list when the superseded turn is still winding down", async () => {
-    // e1 was cancelled but has not reached a terminal phase yet; e2 (its
-    // successor) is the active turn. The display filter hides e1, but the
-    // active run must still resolve to e2 from the UNfiltered list.
-    const windingDown = makeExecution("e1", RunPhase.RUN_IN_PROGRESS);
-    const successor = makeExecution("e2", RunPhase.RUN_IN_PROGRESS, {
-      supersedes: "e1",
-    });
-    methods.listBySession.mockResolvedValue({
-      entries: [windingDown, successor],
-    });
-
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: createWrapper(mockStigmer) },
-    );
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.activeStreamRun?.metadata?.id).toBe("e2");
-    expect(result.current.completedRuns).toHaveLength(0);
-  });
-});
+// ---------------------------------------------------------------------------
+// Local runner worker
+// ---------------------------------------------------------------------------
 
 describe("useSessionConversation — local runner worker lifecycle", () => {
-  let methods: MockMethods;
-  let mockStigmer: Stigmer;
-  let stream: ReturnType<typeof createControllableStream<Run>>;
-
   function createMockAdapter(): RunnerAdapter & {
     onSessionOpened: ReturnType<typeof vi.fn>;
     onSessionClosed: ReturnType<typeof vi.fn>;
@@ -1034,69 +796,25 @@ describe("useSessionConversation — local runner worker lifecycle", () => {
     };
   }
 
-  function localWrapper(client: Stigmer, adapter: RunnerAdapter) {
-    return function Wrapper({ children }: { children: ReactNode }) {
-      return (
-        <ExecutionTargetContext.Provider value="local">
-          <RunnerAdapterContext.Provider value={adapter}>
-            <StigmerContext.Provider value={client}>
-              {children}
-            </StigmerContext.Provider>
-          </RunnerAdapterContext.Provider>
-        </ExecutionTargetContext.Provider>
-      );
-    };
-  }
-
-  beforeEach(() => {
-    stream = createControllableStream<Run>();
-    methods = {
-      sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
-      listBySession: vi.fn().mockResolvedValue({ entries: [] }),
-      executionCreate: vi.fn(),
-      subscribe: vi.fn().mockReturnValue(stream.generator),
-      submitApproval: vi.fn().mockResolvedValue({}),
-    };
-    mockStigmer = createMockStigmer(methods);
-  });
-
   it("attaches the worker once when a local session opens and detaches on close", async () => {
     const adapter = createMockAdapter();
-    const { unmount } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      { wrapper: localWrapper(mockStigmer, adapter) },
-    );
-
-    // The session loads asynchronously; the worker attaches once loaded.
-    await waitFor(() => {
-      expect(adapter.onSessionOpened).toHaveBeenCalledWith("session-1");
+    const localClient = stigmerClient;
+    const { unmount } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <ExecutionTargetContext.Provider value="local">
+          <RunnerAdapterContext.Provider value={adapter}>
+            <StigmerContext.Provider value={localClient}>{children}</StigmerContext.Provider>
+          </RunnerAdapterContext.Provider>
+        </ExecutionTargetContext.Provider>
+      ),
     });
+
+    await waitFor(() => expect(adapter.onSessionOpened).toHaveBeenCalledWith("session-1"));
     expect(adapter.onSessionOpened).toHaveBeenCalledTimes(1);
     expect(adapter.onSessionClosed).not.toHaveBeenCalled();
 
     unmount();
-
     expect(adapter.onSessionClosed).toHaveBeenCalledTimes(1);
     expect(adapter.onSessionClosed).toHaveBeenCalledWith("session-1");
-  });
-
-  it("does not attach when no adapter is configured", async () => {
-    // No adapter in the tree → no-op. Just verify the conversation still loads.
-    const { result } = renderHook(
-      () => useSessionConversation("session-1", "org"),
-      {
-        wrapper: function Wrapper({ children }: { children: ReactNode }) {
-          return (
-            <StigmerContext.Provider value={mockStigmer}>
-              {children}
-            </StigmerContext.Provider>
-          );
-        },
-      },
-    );
-
-    await waitFor(() => {
-      expect(result.current.session).not.toBeNull();
-    });
   });
 });

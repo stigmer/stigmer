@@ -57,16 +57,11 @@ export interface UseSessionRunsReturn {
  * ```tsx
  * function ConversationThread({ sessionId }: { sessionId: string }) {
  *   const { runs, isLoading } = useSessionRuns(sessionId);
- *   const stream = useRunStream(activeRunId);
+ *   const { fold } = useSessionEvents(sessionId);
  *
  *   if (isLoading) return <Skeleton />;
  *
- *   return (
- *     <MessageThread
- *       runs={runs}
- *       activeStreamRun={stream.run}
- *     />
- *   );
+ *   return <MessageThread turns={fold?.turns ?? []} runs={runs} />;
  * }
  * ```
  *

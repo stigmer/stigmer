@@ -10,8 +10,8 @@ import {
 } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { cn } from "@stigmer/theme";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolUse } from "@stigmer/sdk";
+import type { ToolUseAnswer } from "../run/useAnswerToolUse.js";
 import {
   ThreadItemRenderer,
   threadContentColumnClass,
@@ -35,14 +35,10 @@ import { ThreadItemWrapper } from "./ThreadItemWrapper.js";
 
 export interface VirtualizedThreadProps {
   readonly items: readonly ThreadItem[];
-  readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
-  readonly onApprovalSubmit?: (
-    toolCallId: string,
-    action: ApprovalAction,
-    comment?: string,
-  ) => void;
-  readonly submittingApprovalIds?: ReadonlySet<string>;
-  readonly approvalErrors?: ReadonlyMap<string, Error>;
+  readonly formatToolCallSummary?: (toolUses: readonly ToolUse[]) => string;
+  readonly onAnswerToolUse?: (toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void;
+  readonly answeringToolUseIds?: ReadonlySet<string>;
+  readonly answerErrors?: ReadonlyMap<string, Error>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
   readonly approvalCtx: ApprovalContextValue;
@@ -112,9 +108,9 @@ const NEAR_BOTTOM_THRESHOLD_PX = 80;
 export function VirtualizedThread({
   items,
   formatToolCallSummary,
-  onApprovalSubmit,
-  submittingApprovalIds,
-  approvalErrors,
+  onAnswerToolUse,
+  answeringToolUseIds,
+  answerErrors,
   filePathCtx,
   sandboxCtx,
   approvalCtx,
@@ -158,9 +154,9 @@ export function VirtualizedThread({
   const renderProps = useMemo(
     () => ({
       formatToolCallSummary,
-      onApprovalSubmit,
-      submittingApprovalIds,
-      approvalErrors,
+      onAnswerToolUse,
+      answeringToolUseIds,
+      answerErrors,
       onBuildFromPlan,
       onOpenPlan,
       org,
@@ -171,7 +167,7 @@ export function VirtualizedThread({
       onEditMessage,
       slots,
     }),
-    [formatToolCallSummary, onApprovalSubmit, submittingApprovalIds, approvalErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, onRetrySend, onRetryRun, onEditMessage, slots],
+    [formatToolCallSummary, onAnswerToolUse, answeringToolUseIds, answerErrors, onBuildFromPlan, onOpenPlan, org, planActionsDisabled, planBuildPending, onRetrySend, onRetryRun, onEditMessage, slots],
   );
 
   return (

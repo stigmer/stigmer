@@ -18,8 +18,7 @@ import {
   type SurfaceVirtualDocument,
 } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { DEMO_ORG, MOCK_WORKSPACE } from "./fixtures";
+import { DEMO_ORG, MOCK_WORKSPACE, type DemoConversation } from "./fixtures";
 import "./SessionView.css";
 
 const noop = () => {};
@@ -49,17 +48,16 @@ export type SessionPanelFacetId = "configure" | "artifacts" | "usage" | "changes
 
 interface SessionViewProps {
   /** When set, renders the conversation via `MessageThread`. */
-  readonly execution?: Run;
+  readonly conversation?: DemoConversation;
   /**
-   * Render the run's pending-approval gates inline on their tool rows.
-   * `MessageThread` gates approval UI on the presence of an
-   * `onApprovalSubmit` handler (`includeApprovals = onApprovalSubmit !=
-   * null`) — but a playback has no decision to route, so the demo layer
-   * names the *intent* and passes an inert handler to the SDK internally.
-   * The depicted run must carry `status.pendingApprovals` whose
-   * `toolCallId` matches an inline tool call, or the gate falls through to
-   * the bottom backstop card (which ticks an elapsed-time counter, and a
-   * live clock breaks a packed embed's determinism).
+   * Render the decision of each tool use that waits for a person inline on
+   * its row. `MessageThread` shows decision UI only when an
+   * `onAnswerToolUse` handler is wired — but a playback has no answer to
+   * route, so the demo layer names the *intent* and passes an inert handler
+   * to the SDK internally. A waiting tool use always renders inline on its
+   * own row (a call with no row falls through to the bottom backstop card,
+   * which ticks an elapsed-time counter that breaks a packed embed's
+   * determinism), so the depicted call must be an ordinary tool row.
    */
   readonly showApprovals?: boolean;
   /**
@@ -132,7 +130,7 @@ interface SessionViewProps {
  * depicted page is non-interactive during playback.
  */
 export function SessionView({
-  execution,
+  conversation,
   showApprovals = false,
   typingMessage,
   agentRef,
@@ -142,10 +140,10 @@ export function SessionView({
   panelView,
   openArtifactName,
 }: SessionViewProps) {
-  if (execution) {
+  if (conversation) {
     return (
       <ThreadState
-        execution={execution}
+        conversation={conversation}
         showApprovals={showApprovals}
         agentRef={agentRef}
         pluginRefs={pluginRefs}
@@ -180,21 +178,21 @@ function panelChip(isOpen: boolean, badgeCount: number) {
 }
 
 function ThreadState({
-  execution,
+  conversation,
   showApprovals,
   agentRef,
   pluginRefs,
   panelView,
   openArtifactName,
 }: {
-  readonly execution: Run;
+  readonly conversation: DemoConversation;
   readonly showApprovals: boolean;
   readonly agentRef?: ResourceRef | null;
   readonly pluginRefs: readonly ResourceRef[];
   readonly panelView?: SessionPanelFacetId;
   readonly openArtifactName?: string;
 }) {
-  const executions = useMemo(() => [execution], [execution]);
+  const executions = conversation.runs;
 
   // The Config facet the console's rail always carries, at the shape
   // SessionViewer builds from its flow state: the depicted agent (default
@@ -217,7 +215,7 @@ function ThreadState({
     [agentRef, pluginRefs],
   );
 
-  // The console's own derivations (pure aggregations over the run):
+  // The console's own derivations (pure aggregations over the runs):
   // the chip badge is writeBackCount + artifactCount, exactly as
   // SessionViewer computes it, and the rail comes from useSessionRailViews
   // so labels, icons, badges, and contextual visibility can never drift
@@ -267,8 +265,9 @@ function ThreadState({
         conversation={
           <div className="sx-session__thread">
             <MessageThread
+              turns={conversation.turns}
               runs={executions}
-              onApprovalSubmit={showApprovals ? noop : undefined}
+              onAnswerToolUse={showApprovals ? noop : undefined}
               contentColumn="center"
             />
           </div>

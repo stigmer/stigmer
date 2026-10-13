@@ -1,57 +1,27 @@
+// Pins SubAgentSection over a sub-agent's folded thread: disclosure (open
+// while it runs or one of its calls waits for a person, at any depth;
+// settled closed), its title (the task's subject, else the agent's name),
+// its status badges (running, completed, failed with the reply as error,
+// stopped), the running counter and the static duration, the flat layout,
+// and its items as rows: messages, thinking and notes on their own, runs of
+// tool calls as groups, internal to-do calls and compactions left out.
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, act } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-  type AgentMessage,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  SubAgentRunSchema,
-  type SubAgentRun,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import {
-  PendingApprovalSchema,
-  type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import {
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SubAgentSection } from "../SubAgentSection";
+import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
+import type { MessageItem, NoteItem, ThinkingItem, Thread, TurnItem } from "@stigmer/sdk";
+import { SubAgentSection, subAgentSubjectOf } from "../SubAgentSection";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
+import { thread, toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
 
-function gatedToolMessage(toolCallId: string): AgentMessage {
-  return create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_AI,
-    content: "",
-    toolCalls: [
-      create(ToolCallSchema, {
-        id: toolCallId,
-        name: "delete_file",
-        status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-      }),
-    ],
-  });
-}
+const answering: ApprovalContextValue = {
+  onAnswer: () => {},
+  submittingIds: new Set(),
+  errorsByToolUseId: new Map(),
+};
 
-function subAgent(opts: {
-  status: SubAgentStatus;
-  messages?: AgentMessage[];
-  startedAt?: string;
-  completedAt?: string;
-}): SubAgentRun {
-  return create(SubAgentRunSchema, {
-    id: "sa-1",
-    name: "researcher",
-    status: opts.status,
-    messages: opts.messages ?? [],
-    startedAt: opts.startedAt ?? "",
-    completedAt: opts.completedAt ?? "",
-  });
+function message(id: string, text: string): MessageItem {
+  return { kind: "message", id, text, live: false, processedAt: "" };
 }
 
 /** The CollapsibleCard's own toggle is the first button under its role=group. */
@@ -60,56 +30,25 @@ function sectionExpanded(container: HTMLElement): boolean {
   return toggle?.getAttribute("aria-expanded") === "true";
 }
 
-const emptyCtx: ApprovalContextValue = {
-  approvalsByToolCallId: new Map(),
-  submittingIds: new Set(),
-  errorsByToolCallId: new Map(),
-};
+function waitingCall(id: string) {
+  return toolUse({ id, name: "delete_file", ask: { argsPreview: '{"path":"/tmp/x"}' } });
+}
 
 describe("SubAgentSection auto-disclosure", () => {
   it("auto-opens while the sub-agent is running", () => {
-    const { container } = render(
-      <ApprovalContext.Provider value={emptyCtx}>
-        <SubAgentSection
-          subAgentRun={subAgent({ status: SubAgentStatus.SUB_AGENT_IN_PROGRESS })}
-        />
-      </ApprovalContext.Provider>,
-    );
+    const { container } = render(<SubAgentSection thread={thread({ state: "running" })} />);
     expect(sectionExpanded(container)).toBe(true);
   });
 
   it("stays collapsed when the sub-agent has settled", () => {
-    const { container } = render(
-      <ApprovalContext.Provider value={emptyCtx}>
-        <SubAgentSection
-          subAgentRun={subAgent({ status: SubAgentStatus.SUB_AGENT_COMPLETED })}
-        />
-      </ApprovalContext.Provider>,
-    );
+    const { container } = render(<SubAgentSection thread={thread({ state: "completed" })} />);
     expect(sectionExpanded(container)).toBe(false);
   });
 
-  it("auto-opens a settled sub-agent when a nested tool awaits approval, and shows the gate inline", () => {
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "tc-nested",
-      toolName: "delete_file",
-      argsPreview: '{"path":"/tmp/x"}',
-    });
-    const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["tc-nested", approval]]),
-      onSubmit: () => {},
-      submittingIds: new Set(),
-      errorsByToolCallId: new Map(),
-    };
-
+  it("auto-opens a settled sub-agent when a nested call waits for a person, and shows the gate inline", () => {
     const { container } = render(
-      <ApprovalContext.Provider value={ctx}>
-        <SubAgentSection
-          subAgentRun={subAgent({
-            status: SubAgentStatus.SUB_AGENT_COMPLETED,
-            messages: [gatedToolMessage("tc-nested")],
-          })}
-        />
+      <ApprovalContext.Provider value={answering}>
+        <SubAgentSection thread={thread({ state: "completed", items: [waitingCall("tc-nested")] })} />
       </ApprovalContext.Provider>,
     );
 
@@ -117,12 +56,124 @@ describe("SubAgentSection auto-disclosure", () => {
     // The nested gate's actions surface inside the sub-agent section.
     expect(screen.getByLabelText("Approve")).toBeTruthy();
   });
+
+  it("opens for a call waiting in a sub-agent the sub-agent started", () => {
+    const nested = toolUse({
+      id: "tc-task",
+      name: "task",
+      thread: thread({ id: "inner", state: "completed", items: [waitingCall("tc-deep")] }),
+      result: "",
+    });
+    const { container } = render(
+      <SubAgentSection thread={thread({ state: "completed", items: [nested] })} />,
+    );
+    expect(sectionExpanded(container)).toBe(true);
+  });
 });
 
-// The Cursor SDK delivers sub-agent internals only at completion (nothing to
-// stream mid-run), so the running card's honest live signal is a ticking
-// elapsed counter from started_at. Completed cards keep the precise static
-// duration (start -> completion), not a counter.
+describe("SubAgentSection header", () => {
+  it("titles the card with the task's subject, and the agent's name without one", () => {
+    const titled = render(<SubAgentSection thread={thread({ state: "completed" })} subject="Survey the docs" />);
+    expect(titled.getByRole("group").getAttribute("aria-label")).toBe("Sub-agent: Survey the docs, Completed");
+    cleanup();
+
+    const bare = render(<SubAgentSection thread={thread({ state: "completed", agentName: "researcher" })} />);
+    expect(bare.getByRole("group").getAttribute("aria-label")).toBe("Sub-agent: researcher, Completed");
+  });
+
+  it("labels a stopped sub-agent Stopped", () => {
+    render(<SubAgentSection thread={thread({ state: "stopped" })} />);
+    expect(screen.getByText("Stopped")).toBeTruthy();
+  });
+
+  it("shows a failed sub-agent's reply as its error once opened", () => {
+    const { container } = render(
+      <SubAgentSection thread={thread({ state: "failed", reply: "the tool crashed" })} />,
+    );
+    expect(screen.getByText("Failed")).toBeTruthy();
+    fireEvent.click(container.querySelector('[role="group"] > button')!);
+    expect(screen.getByText("the tool crashed")).toBeTruthy();
+  });
+
+  it("never shows a completed sub-agent's reply as an error", () => {
+    render(
+      <SubAgentSection thread={thread({ state: "completed", reply: "all done" })} collapsible={false} />,
+    );
+    expect(screen.queryByText("all done")).toBeNull();
+  });
+
+  it("reads the subject from a task call's description", () => {
+    expect(subAgentSubjectOf(toolUse({ name: "task", input: { description: "Find the bug" } }))).toBe("Find the bug");
+    expect(subAgentSubjectOf(toolUse({ name: "task", input: { description: 3 } }))).toBe("");
+    expect(subAgentSubjectOf(toolUse({ name: "task" }))).toBe("");
+  });
+});
+
+describe("SubAgentSection flat layout and items", () => {
+  function renderFlat(t: Thread, subject?: string) {
+    return render(<SubAgentSection thread={t} subject={subject} collapsible={false} />);
+  }
+
+  it("renders the name, subject, input and every item kind as rows", () => {
+    const thinking: ThinkingItem = { kind: "thinking", id: "t1", text: "weighing", live: false, processedAt: "" };
+    const note: NoteItem = { kind: "note", id: "n1", text: "tools are off", processedAt: "" };
+    const items: TurnItem[] = [
+      message("m1", "Looking around."),
+      thinking,
+      toolUse({ id: "r1", name: "Shell", input: { command: "ls" }, result: "a.ts" }),
+      toolUse({ id: "todo", name: "write_todos", input: { todos: [] }, result: "ok" }),
+      { kind: "compacted", id: "c1", processedAt: "" },
+      note,
+      message("m2", "Found it."),
+    ];
+    const { container } = renderFlat(
+      thread({ agentName: "researcher", input: "Find the config", state: "completed", items }),
+      "Locate config",
+    );
+    const text = container.textContent ?? "";
+    expect(text).toContain("researcher");
+    expect(text).toContain("Locate config");
+    expect(text).toContain("Find the config");
+    expect(text).toContain("Looking around.");
+    expect(text).toContain("tools are off");
+    expect(text).toContain("Found it.");
+    // The shell call renders as a row; the internal to-do call does not.
+    const rows = container.querySelectorAll('[data-cursor-target="tool-call-row"]');
+    expect(rows).toHaveLength(1);
+    expect(screen.queryByText("Context compacted")).toBeNull();
+    expect(screen.getByLabelText("Model thinking")).toBeTruthy();
+  });
+
+  it("groups consecutive tool calls into one group and splits them at a message", () => {
+    const items: TurnItem[] = [
+      toolUse({ id: "s1", name: "Shell", input: { command: "ls" }, result: "x" }),
+      toolUse({ id: "s2", name: "Shell", input: { command: "pwd" }, result: "y" }),
+      message("m1", "Between."),
+      toolUse({ id: "s3", name: "Shell", input: { command: "date" }, result: "z" }),
+    ];
+    const { container } = renderFlat(thread({ state: "completed", items }));
+    const groups = container.querySelectorAll('[data-cursor-target="tool-call-group"]');
+    expect(groups).toHaveLength(2);
+    expect(groups[0]!.querySelectorAll('[data-cursor-target="tool-call-row"]')).toHaveLength(2);
+  });
+
+  it("shows the static duration in the flat header once finished", () => {
+    render(
+      <SubAgentSection
+        thread={thread({ state: "completed" })}
+        startedAt="2026-07-02T12:00:00Z"
+        completedAt="2026-07-02T12:00:05Z"
+        collapsible={false}
+      />,
+    );
+    expect(screen.getByText("5.0s")).toBeTruthy();
+  });
+});
+
+// A sub-agent whose engine reports its work only when its task call returns
+// streams nothing mid-run, so the running card's honest live signal is a
+// ticking counter from its start. Completed cards keep the precise static
+// duration (start -> finish), not a counter.
 describe("SubAgentSection running duration", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -132,16 +183,7 @@ describe("SubAgentSection running duration", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-02T12:00:42Z"));
 
-    render(
-      <ApprovalContext.Provider value={emptyCtx}>
-        <SubAgentSection
-          subAgentRun={subAgent({
-            status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
-            startedAt: "2026-07-02T12:00:00Z",
-          })}
-        />
-      </ApprovalContext.Provider>,
-    );
+    render(<SubAgentSection thread={thread({ state: "running" })} startedAt="2026-07-02T12:00:00Z" />);
 
     expect(screen.getByText("42s")).toBeTruthy();
 
@@ -151,28 +193,18 @@ describe("SubAgentSection running duration", () => {
     expect(screen.getByText("1m 2s")).toBeTruthy();
   });
 
-  it("shows no counter while running when started_at is absent", () => {
-    render(
-      <ApprovalContext.Provider value={emptyCtx}>
-        <SubAgentSection
-          subAgentRun={subAgent({ status: SubAgentStatus.SUB_AGENT_IN_PROGRESS })}
-        />
-      </ApprovalContext.Provider>,
-    );
+  it("shows no counter while running when the start is unknown", () => {
+    render(<SubAgentSection thread={thread({ state: "running" })} />);
     expect(screen.queryByText(/^\d+s$/)).toBeNull();
   });
 
   it("shows the static duration (not a counter) once completed", () => {
     render(
-      <ApprovalContext.Provider value={emptyCtx}>
-        <SubAgentSection
-          subAgentRun={subAgent({
-            status: SubAgentStatus.SUB_AGENT_COMPLETED,
-            startedAt: "2026-07-02T12:00:00Z",
-            completedAt: "2026-07-02T12:01:14.500Z",
-          })}
-        />
-      </ApprovalContext.Provider>,
+      <SubAgentSection
+        thread={thread({ state: "completed" })}
+        startedAt="2026-07-02T12:00:00Z"
+        completedAt="2026-07-02T12:01:14.500Z"
+      />,
     );
     // formatDuration's m/s rendering for a completed 74.5s run.
     expect(screen.getByText("1m 15s")).toBeTruthy();

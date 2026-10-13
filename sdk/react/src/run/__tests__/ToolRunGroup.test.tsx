@@ -1,27 +1,20 @@
+// Pins ToolRunGroup, the folded chip of consecutive same-category tool
+// uses: its category-aware label, disclosure (closed when settled, open
+// while a folded call runs or waits for a person), its aggregate status read
+// from each `ToolUse.state` (a stopped call settles the chip), quiet chrome
+// with divider rows, the host's label formatter, and the memo comparator
+// that compares the folded tool uses one by one.
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  ToolCallSchema,
-  type ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  PendingApprovalSchema,
-  type PendingApproval,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ToolRunGroup } from "../ToolRunGroup";
+import type { ToolUse, ToolUseState } from "@stigmer/sdk";
+import { ToolRunGroup, toolRunGroupPropsEqual } from "../ToolRunGroup";
 import { ApprovalContext, type ApprovalContextValue } from "../ApprovalContext";
+import { toolUse } from "./__fixtures__/fold-values";
 
 afterEach(cleanup);
 
-function makeRead(id: string, path: string, status?: ToolCallStatus): ToolCall {
-  return create(ToolCallSchema, {
-    id,
-    name: "Read",
-    args: { path } as JsonObject,
-    status: status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
-  });
+function makeRead(id: string, path: string, state: ToolUseState = "completed"): ToolUse {
+  return toolUse({ id, name: "Read", input: { path }, state });
 }
 
 function chipExpanded(container: HTMLElement): boolean {
@@ -36,7 +29,7 @@ describe("ToolRunGroup", () => {
     const { container } = render(
       <ToolRunGroup
         category="read"
-        toolCalls={[
+        toolUses={[
           makeRead("r1", "/a.ts"),
           makeRead("r2", "/b.ts"),
           makeRead("r3", "/c.ts"),
@@ -54,7 +47,7 @@ describe("ToolRunGroup", () => {
     render(
       <ToolRunGroup
         category="read"
-        toolCalls={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
+        toolUses={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
       />,
     );
 
@@ -68,67 +61,71 @@ describe("ToolRunGroup", () => {
     const { container } = render(
       <ToolRunGroup
         category="read"
-        toolCalls={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
+        toolUses={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
       />,
     );
     expect(chipExpanded(container)).toBe(false);
   });
 
-  it("treats an interrupted call as terminal: the chip settles instead of pinning to pending", () => {
-    // A platform-settled INTERRUPTED call (issue #207) inside a folded run.
-    // Before the fix an unknown status kept allTerminal=false forever, pinning
-    // the whole chip to a live-looking pending state with a spinner-adjacent
-    // dot; a settled run must render settled.
+  it("treats a stopped call as settled: the chip settles instead of looking live", () => {
+    // A call its turn stopped before it returned (issue #207) inside a folded
+    // run: a settled run must render settled.
     const { container } = render(
       <ToolRunGroup
         category="read"
-        toolCalls={[
-          makeRead("r1", "/a.ts", ToolCallStatus.TOOL_CALL_COMPLETED),
-          makeRead("r2", "/b.ts", ToolCallStatus.TOOL_CALL_INTERRUPTED),
+        toolUses={[
+          makeRead("r1", "/a.ts", "completed"),
+          makeRead("r2", "/b.ts", "stopped"),
         ]}
       />,
     );
     expect(container.querySelector(".stg\\:animate-spin")).toBeNull();
     expect(chipExpanded(container)).toBe(false);
-    // The aggregate resolves to the terminal branch — which is silent
-    // (completed renders NO status icon, stigmer#274) — not the non-terminal
-    // pending fallback, which renders its muted dot as a third header svg
-    // beside the category icon and chevron.
+    // The aggregate resolves to the settled branch — which is silent
+    // (completed renders NO status icon, stigmer#274): only the category icon
+    // and the chevron.
     const headerSvgs = container.querySelectorAll("button svg");
     expect(headerSvgs.length).toBe(2);
     expect(screen.getByText("Read 2 files")).toBeTruthy();
   });
 
-  it("auto-opens when a folded call is awaiting approval, so the gate is reachable", () => {
-    const gated = makeRead("r2", "/b.ts", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-    const approval: PendingApproval = create(PendingApprovalSchema, {
-      toolCallId: "r2",
-      toolName: "Read",
-      argsPreview: '{"path":"/b.ts"}',
-    });
+  it("auto-opens when a folded call waits for a person, so the gate is reachable", () => {
+    const gated = toolUse({ id: "r2", name: "Read", input: { path: "/b.ts" }, ask: { argsPreview: '{"path":"/b.ts"}' } });
     const ctx: ApprovalContextValue = {
-      approvalsByToolCallId: new Map([["r2", approval]]),
-      onSubmit: () => {},
+      onAnswer: () => {},
       submittingIds: new Set(),
-      errorsByToolCallId: new Map(),
+      errorsByToolUseId: new Map(),
     };
 
     const { container } = render(
       <ApprovalContext.Provider value={ctx}>
-        <ToolRunGroup category="read" toolCalls={[makeRead("r1", "/a.ts"), gated]} />
+        <ToolRunGroup category="read" toolUses={[makeRead("r1", "/a.ts"), gated]} />
       </ApprovalContext.Provider>,
     );
 
     expect(chipExpanded(container)).toBe(true);
-    // The gate renders inline on its row inside the opened chip.
+    // The gate renders inline on its row inside the opened chip, with the
+    // waiting clock on the chip.
     expect(screen.getByLabelText("Approve")).toBeTruthy();
+    expect(container.querySelector("button .stg\\:text-warning")).not.toBeNull();
+  });
+
+  it("stays open with a spinner while a folded call runs", () => {
+    const { container } = render(
+      <ToolRunGroup
+        category="read"
+        toolUses={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts", "running")]}
+      />,
+    );
+    expect(chipExpanded(container)).toBe(true);
+    expect(container.querySelector(".stgm-shimmer-label")?.textContent).toBe("Read 2 files");
   });
 
   it("is a quiet unboxed line whose expanded children sit under a left rail as divider rows", () => {
     const { container } = render(
       <ToolRunGroup
         category="read"
-        toolCalls={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
+        toolUses={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
       />,
     );
 
@@ -158,7 +155,7 @@ describe("ToolRunGroup", () => {
     const { container } = render(
       <ToolRunGroup
         category="read"
-        toolCalls={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
+        toolUses={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
       />,
     );
     // Header svgs: the category icon and the chevron — no green check.
@@ -169,9 +166,9 @@ describe("ToolRunGroup", () => {
     const { container } = render(
       <ToolRunGroup
         category="read"
-        toolCalls={[
+        toolUses={[
           makeRead("r1", "/a.ts"),
-          makeRead("r2", "/b.ts", ToolCallStatus.TOOL_CALL_FAILED),
+          makeRead("r2", "/b.ts", "failed"),
         ]}
       />,
     );
@@ -182,10 +179,21 @@ describe("ToolRunGroup", () => {
     render(
       <ToolRunGroup
         category="read"
-        toolCalls={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
+        toolUses={[makeRead("r1", "/a.ts"), makeRead("r2", "/b.ts")]}
         formatLabel={(calls) => `Inspected ${calls.length} sources`}
       />,
     );
     expect(screen.getByText("Inspected 2 sources")).toBeTruthy();
+  });
+
+  it("re-renders only when a folded tool use, the category, the formatter or the class changes", () => {
+    const a = makeRead("r1", "/a.ts");
+    const b = makeRead("r2", "/b.ts");
+    const base = { category: "read" as const, toolUses: [a, b] };
+    expect(toolRunGroupPropsEqual(base, { ...base, toolUses: [a, b] })).toBe(true);
+    expect(toolRunGroupPropsEqual(base, { ...base, toolUses: [a, makeRead("r2", "/b.ts", "failed")] })).toBe(false);
+    expect(toolRunGroupPropsEqual(base, { ...base, toolUses: [a] })).toBe(false);
+    expect(toolRunGroupPropsEqual(base, { ...base, category: "list" })).toBe(false);
+    expect(toolRunGroupPropsEqual(base, { ...base, className: "x" })).toBe(false);
   });
 });
