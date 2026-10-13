@@ -1,0 +1,39 @@
+# demo's overlay for the console: dev's, with demo's namespace and hostnames; the sign-in tenant is the one dev and demo share.
+apiVersion: kubernetes.planton.dev/v1alpha1
+kind: KubernetesDeployment
+metadata:
+  name: stigmer-web
+spec:
+  namespace:
+    value: stigmer-demo # the environment's namespace, which the environment owns
+  createNamespace: false
+  container:
+    app:
+      env:
+        variables:
+        - name: NEXT_PUBLIC_API_URL
+          value: https://api.demo.stigmer.ai # demo's API door
+        - name: NEXT_PUBLIC_APP_URL
+          value: https://app.demo.stigmer.ai # this console's own origin
+        - name: NEXT_PUBLIC_OIDC_ISSUER
+          value: https://stigmer-preprod.us.auth0.com/ # the preprod tenant, shared by dev and demo; Auth0's issuer carries the trailing slash
+        - name: NEXT_PUBLIC_OIDC_AUDIENCE
+          value: https://api.stigmer.com/ # the tenant's API identifier
+        # The console's application in the tenant, created by demo's environment: read from it, never copied.
+        - name: NEXT_PUBLIC_OIDC_CLIENT_ID
+          valueFrom:
+            kind: Auth0Client
+            name: console
+            env: demo
+            fieldPath: status.outputs.client_id
+---
+# The console answers on demo's app hostname.
+apiVersion: kubernetes.planton.dev/v1alpha1
+kind: KubernetesHttpRoute
+metadata:
+  name: stigmer-web
+spec:
+  namespace:
+    value: stigmer-demo
+  hostnames:
+  - app.demo.stigmer.ai
