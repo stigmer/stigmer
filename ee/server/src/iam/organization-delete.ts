@@ -50,7 +50,6 @@ import type {
 } from "@stigmer/server";
 import { EXISTING_RESOURCE_KEY, internalError } from "@stigmer/server";
 
-import type { AccessMoveTicketStore } from "./access-move/store.js";
 import type { SignInGrantLedger } from "./federation/sign-in-grants.js";
 import type { InvitationRemoval } from "./invitation/removal.js";
 import type { ProviderRemoval } from "./provider/removal.js";
@@ -93,8 +92,6 @@ export const IDENTITY_PURGE_STAGE = "identity";
 export interface OrganizationIdentityPurgeDeps extends RemoveOrganizationIdentityDeps {
   /** The ledger's organization removal; the purge's alone (module header). */
   readonly signInGrants: Pick<SignInGrantLedger, "removeByOrgId">;
-  /** The organization's access move tickets (iam/access-move/store.ts). */
-  readonly accessMoves: Pick<AccessMoveTicketStore, "removeByOrgId">;
   readonly logger: Logger;
 }
 
@@ -126,10 +123,9 @@ export function newOrganizationIdentityPurgeStage(
           deps.logger.info("an organization's sign-in grants removed", { org, signInGrants });
         }
         await deps.invitations.removeByOrgId(org, actingFor);
-        await deps.accessMoves.removeByOrgId(org);
       } catch (error) {
         deps.logger.error(
-          "could not remove the identity providers, teams, sign-in grants, invitations or access move tickets of an organization being deleted",
+          "could not remove the identity providers, teams, sign-in grants or invitations of an organization being deleted",
           { org, error: error instanceof Error ? error.message : String(error) },
         );
         throw error;

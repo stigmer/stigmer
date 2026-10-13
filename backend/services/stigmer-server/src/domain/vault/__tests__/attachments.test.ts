@@ -43,7 +43,6 @@ import { myVaultLockRefusal, myVaultRefusal, newVaultAttachmentsStep } from "../
 import type { VaultAttachmentOptions } from "../attachments.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, seedMyVaultRow, seedSharedVault } from "./support.js";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 const ORG = "acme";
 
@@ -462,39 +461,6 @@ describe("faults and deleted vaults", () => {
       Promise.resolve(newVaultAttachmentsStep(failing, allowAll, SESSION).execute(ctx)),
     );
     expect(error.code).toBe(Code.Internal);
-  });
-
-  it("re-judging answers a refusal's own copy and reason where the updater is refused one (an organization's sign-in rule)", async () => {
-    const stored = await run(
-      ScheduleSchema,
-      ApiResourceKind.schedule,
-      schedule("helper", "ida_admin", "team-keys"),
-      SCHEDULE,
-      { writer: "ida_admin" },
-    );
-    const required: Authorizer = {
-      authorize: async () => ({
-        kind: "deny",
-        reason: "This organization requires you to sign in through Acme Okta.",
-        refusal: {
-          reason: "SSO_REQUIRED",
-          message: "This organization requires you to sign in through Acme Okta.",
-          metadata: { org: ORG, provider: "acme-okta" },
-        },
-      }),
-    };
-    const error = await refusalOf(
-      run(
-        ScheduleSchema,
-        ApiResourceKind.schedule,
-        schedule("other-agent", "ida_admin", "team-keys"),
-        SCHEDULE,
-        { writer: "ida_ben", existing: stored, authorizer: required },
-      ),
-    );
-    expect(error.code).toBe(Code.PermissionDenied);
-    expect(error.rawMessage).toBe("This organization requires you to sign in through Acme Okta.");
-    expect(error.findDetails(ErrorInfoSchema)[0]?.reason).toBe("SSO_REQUIRED");
   });
 
   it("answers INTERNAL when re-judging a schedule's vault cannot be evaluated", async () => {

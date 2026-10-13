@@ -10,14 +10,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { IdentityProviderSchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_identityprovider_v1_api } from "./api_pb.js";
-import type { IdentityProvidersSchema, ListIdentityProvidersByOrgInputSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema, SsoRequirementPreviewInputSchema, SsoRequirementPreviewSchema } from "./io_pb.js";
+import type { IdentityProvidersSchema, ListIdentityProvidersByOrgInputSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_identityprovider_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/identityprovider/v1/query.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxMpYHCh9JZGVudGl0eVByb3ZpZGVyUXVlcnlDb250cm9sbGVyEqMBCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBo0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3wrgYMwgBEBUiBXZhbHVlKiZ1bmF1dGhvcml6ZWQgdG8gdmlldyBpZGVudGl0eSBwcm92aWRlchKCAQoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiBNC4GAES1AEKCWxpc3RCeU9yZxJDLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuTGlzdElkZW50aXR5UHJvdmlkZXJzQnlPcmdJbnB1dBo1LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlcnMiS8K4GEcIARAeIgNvcmcqPHVuYXV0aG9yaXplZCB0byBsaXN0IGlkZW50aXR5IHByb3ZpZGVycyBpbiB0aGlzIG9yZ2FuaXphdGlvbhKGAQoOZ2V0U3NvUHJvdmlkZXISOS5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLk9yZ2FuaXphdGlvblNzb0xvb2t1cBozLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuU3NvUHJvdmlkZXJJbmZvIgTIuBgBEuEBChVwcmV2aWV3U3NvUmVxdWlyZW1lbnQSPi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLlNzb1JlcXVpcmVtZW50UHJldmlld0lucHV0GjkuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5Tc29SZXF1aXJlbWVudFByZXZpZXciTcK4GEkILxAeIgNvcmcqPnVuYXV0aG9yaXplZCB0byBwcmV2aWV3IHRoZSBvcmdhbml6YXRpb24ncyBzaWduLWluIHJlcXVpcmVtZW50GgSg/ysVYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityprovider_v1_api, file_ai_stigmer_iam_identityprovider_v1_io]);
+  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxMrIFCh9JZGVudGl0eVByb3ZpZGVyUXVlcnlDb250cm9sbGVyEqMBCgNnZXQSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBo0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3wrgYMwgBEBUiBXZhbHVlKiZ1bmF1dGhvcml6ZWQgdG8gdmlldyBpZGVudGl0eSBwcm92aWRlchKCAQoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiBNC4GAES1AEKCWxpc3RCeU9yZxJDLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuTGlzdElkZW50aXR5UHJvdmlkZXJzQnlPcmdJbnB1dBo1LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlcnMiS8K4GEcIARAeIgNvcmcqPHVuYXV0aG9yaXplZCB0byBsaXN0IGlkZW50aXR5IHByb3ZpZGVycyBpbiB0aGlzIG9yZ2FuaXphdGlvbhKGAQoOZ2V0U3NvUHJvdmlkZXISOS5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLk9yZ2FuaXphdGlvblNzb0xvb2t1cBozLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuU3NvUHJvdmlkZXJJbmZvIgTIuBgBGgSg/ysVYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityprovider_v1_api, file_ai_stigmer_iam_identityprovider_v1_io]);
 
 /**
  * IdentityProviderQueryController provides read operations for identity providers.
@@ -80,23 +80,6 @@ export const IdentityProviderQueryController: GenService<{
     methodKind: "unary";
     input: typeof OrganizationSsoLookupSchema;
     output: typeof SsoProviderInfoSchema;
-  },
-  /**
-   * Say who would stop counting in an organization if its SSO provider
-   * required sign-in through it (IdentityProviderSpec.sso_required): the
-   * members whose account the provider did not sign in, each with the open
-   * invitations they created and the automations that act as them, and the
-   * owners, who are exempt. An owner reads it before turning the
-   * requirement on.
-   *
-   * NOT_FOUND when the organization has no SSO provider.
-   *
-   * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.previewSsoRequirement
-   */
-  previewSsoRequirement: {
-    methodKind: "unary";
-    input: typeof SsoRequirementPreviewInputSchema;
-    output: typeof SsoRequirementPreviewSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_iam_identityprovider_v1_query, 0);

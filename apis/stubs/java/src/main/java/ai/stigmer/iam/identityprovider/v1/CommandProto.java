@@ -41,43 +41,35 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "o.proto\0328ai/stigmer/commons/apiresource/" +
       "rpc_service_options.proto\032+ai/stigmer/co" +
       "mmons/rpc/method_options.proto\032,ai/stigm" +
-      "er/iam/identityprovider/v1/api.proto\032+ai" +
-      "/stigmer/iam/identityprovider/v1/io.prot" +
-      "o2\241\t\n!IdentityProviderCommandController\022" +
-      "s\n\005apply\0224.ai.stigmer.iam.identityprovid" +
+      "er/iam/identityprovider/v1/api.proto2\215\007\n" +
+      "!IdentityProviderCommandController\022s\n\005ap" +
+      "ply\0224.ai.stigmer.iam.identityprovider.v1" +
+      ".IdentityProvider\0324.ai.stigmer.iam.ident" +
+      "ityprovider.v1.IdentityProvider\022\313\001\n\006crea" +
+      "te\0224.ai.stigmer.iam.identityprovider.v1." +
+      "IdentityProvider\0324.ai.stigmer.iam.identi" +
+      "typrovider.v1.IdentityProvider\"U\302\270\030Q\010\013\020\036" +
+      "\"\014metadata.org*=unauthorized to create i" +
+      "dentity provider in this organization\022\265\001" +
+      "\n\006update\0224.ai.stigmer.iam.identityprovid" +
       "er.v1.IdentityProvider\0324.ai.stigmer.iam." +
-      "identityprovider.v1.IdentityProvider\022\313\001\n" +
-      "\006create\0224.ai.stigmer.iam.identityprovide" +
-      "r.v1.IdentityProvider\0324.ai.stigmer.iam.i" +
-      "dentityprovider.v1.IdentityProvider\"U\302\270\030" +
-      "Q\010\013\020\036\"\014metadata.org*=unauthorized to cre" +
-      "ate identity provider in this organizati" +
-      "on\022\265\001\n\006update\0224.ai.stigmer.iam.identityp" +
-      "rovider.v1.IdentityProvider\0324.ai.stigmer" +
-      ".iam.identityprovider.v1.IdentityProvide" +
-      "r\"?\302\270\030;\010\002\020\025\"\013metadata.id*(unauthorized t" +
-      "o update identity provider\022\254\001\n\006rename\022+." +
-      "ai.stigmer.commons.apiresource.RenameInp" +
-      "ut\0324.ai.stigmer.iam.identityprovider.v1." +
-      "IdentityProvider\"?\302\270\030;\010\003\020\025\"\013resource_id*" +
-      "(unauthorized to rename identity provide" +
-      "r\022\267\001\n\006delete\0226.ai.stigmer.commons.apires" +
-      "ource.ApiResourceDeleteInput\0324.ai.stigme" +
-      "r.iam.identityprovider.v1.IdentityProvid" +
-      "er\"?\302\270\030;\010\003\020\025\"\013resource_id*(unauthorized " +
-      "to delete identity provider\022\205\001\n\020createAc" +
-      "cessMove\0225.ai.stigmer.iam.identityprovid" +
-      "er.v1.AccessMoveRequest\0324.ai.stigmer.iam" +
-      ".identityprovider.v1.AccessMoveTicket\"\004\320" +
-      "\270\030\001\022\211\001\n\020redeemAccessMove\0229.ai.stigmer.ia" +
-      "m.identityprovider.v1.RedeemAccessMoveIn" +
-      "put\0324.ai.stigmer.iam.identityprovider.v1" +
-      ".AccessMoveResult\"\004\320\270\030\001\032\004\240\377+\025B\273\001B\014Comman" +
-      "dProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identit" +
-      "yprovider.V1\312\002\"Ai\\Stigmer\\Iam\\Identitypr" +
-      "ovider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprovi" +
-      "der\\V1\\GPBMetadata\352\002&Ai::Stigmer::Iam::I" +
-      "dentityprovider::V1b\006proto3"
+      "identityprovider.v1.IdentityProvider\"?\302\270" +
+      "\030;\010\002\020\025\"\013metadata.id*(unauthorized to upd" +
+      "ate identity provider\022\254\001\n\006rename\022+.ai.st" +
+      "igmer.commons.apiresource.RenameInput\0324." +
+      "ai.stigmer.iam.identityprovider.v1.Ident" +
+      "ityProvider\"?\302\270\030;\010\003\020\025\"\013resource_id*(unau" +
+      "thorized to rename identity provider\022\267\001\n" +
+      "\006delete\0226.ai.stigmer.commons.apiresource" +
+      ".ApiResourceDeleteInput\0324.ai.stigmer.iam" +
+      ".identityprovider.v1.IdentityProvider\"?\302" +
+      "\270\030;\010\003\020\025\"\013resource_id*(unauthorized to de" +
+      "lete identity provider\032\004\240\377+\025B\273\001B\014Command" +
+      "ProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identity" +
+      "provider.V1\312\002\"Ai\\Stigmer\\Iam\\Identitypro" +
+      "vider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprovid" +
+      "er\\V1\\GPBMetadata\352\002&Ai::Stigmer::Iam::Id" +
+      "entityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -86,19 +78,16 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.identityprovider.v1.ApiProto.getDescriptor(),
-          ai.stigmer.iam.identityprovider.v1.IoProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.identityprovider.v1.ApiProto.getDescriptor();
-    ai.stigmer.iam.identityprovider.v1.IoProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
-    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

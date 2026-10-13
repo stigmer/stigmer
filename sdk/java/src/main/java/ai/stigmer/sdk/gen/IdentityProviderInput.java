@@ -26,7 +26,6 @@ public final class IdentityProviderInput {
     private final String externalIdClaim;
     private final boolean createAccountsOnSignIn;
     private final IamRole signInRole;
-    private final boolean ssoRequired;
 
     private IdentityProviderInput(Builder builder) {
         this.id = builder.id;
@@ -45,7 +44,6 @@ public final class IdentityProviderInput {
         this.externalIdClaim = builder.externalIdClaim;
         this.createAccountsOnSignIn = builder.createAccountsOnSignIn;
         this.signInRole = builder.signInRole;
-        this.ssoRequired = builder.ssoRequired;
     }
 
     IdentityProvider toProto() {
@@ -76,7 +74,6 @@ public final class IdentityProviderInput {
         if (this.signInRole != null) {
             spec.setSignInRole(this.signInRole);
         }
-        spec.setSsoRequired(this.ssoRequired);
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -121,7 +118,6 @@ public final class IdentityProviderInput {
         private String externalIdClaim;
         private boolean createAccountsOnSignIn;
         private IamRole signInRole;
-        private boolean ssoRequired;
 
         private Builder() {}
 
@@ -146,7 +142,6 @@ public final class IdentityProviderInput {
         public Builder externalIdClaim(String externalIdClaim) { this.externalIdClaim = externalIdClaim; return this; }
         public Builder createAccountsOnSignIn(boolean createAccountsOnSignIn) { this.createAccountsOnSignIn = createAccountsOnSignIn; return this; }
         public Builder signInRole(IamRole signInRole) { this.signInRole = signInRole; return this; }
-        public Builder ssoRequired(boolean ssoRequired) { this.ssoRequired = ssoRequired; return this; }
 
         public IdentityProviderInput build() { return new IdentityProviderInput(this); }
     }

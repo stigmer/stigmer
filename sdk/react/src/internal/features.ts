@@ -17,40 +17,29 @@ export type NamedFeature = Exclude<
   Feature.feature_unspecified | Feature.platform_client | Feature.byo_provider_keys
 >;
 
-/**
- * Label and one-line explanation per named feature, and whether the label
- * reads as a plural ("Teams are", "SSO enforcement is").
- */
+/** Label and one-line explanation per named feature. */
 export const FEATURE_COPY: Readonly<
-  Record<
-    NamedFeature,
-    { readonly label: string; readonly description: string; readonly plural: boolean }
-  >
+  Record<NamedFeature, { readonly label: string; readonly description: string }>
 > = {
   [Feature.sso_enforcement]: {
     label: "SSO enforcement",
     description: "Require members to sign in through a registered identity provider.",
-    plural: false,
   },
   [Feature.channels]: {
     label: "Channels",
     description: "Deliver agents over messaging channels through a channel runtime.",
-    plural: true,
   },
   [Feature.sharing]: {
     label: "Sharing",
     description: "Share agents through hosted links, with your organization or with anyone who has the link.",
-    plural: false,
   },
   [Feature.teams]: {
     label: "Teams",
     description: "Group members into teams and grant access to a team at once.",
-    plural: true,
   },
   [Feature.child_orgs]: {
     label: "Child organizations",
     description: "Create organizations for your own customers under this one.",
-    plural: true,
   },
 };
 

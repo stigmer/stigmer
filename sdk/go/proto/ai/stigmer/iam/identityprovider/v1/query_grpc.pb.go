@@ -20,11 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityProviderQueryController_Get_FullMethodName                   = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/get"
-	IdentityProviderQueryController_GetByReference_FullMethodName        = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getByReference"
-	IdentityProviderQueryController_ListByOrg_FullMethodName             = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/listByOrg"
-	IdentityProviderQueryController_GetSsoProvider_FullMethodName        = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getSsoProvider"
-	IdentityProviderQueryController_PreviewSsoRequirement_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/previewSsoRequirement"
+	IdentityProviderQueryController_Get_FullMethodName            = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/get"
+	IdentityProviderQueryController_GetByReference_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getByReference"
+	IdentityProviderQueryController_ListByOrg_FullMethodName      = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/listByOrg"
+	IdentityProviderQueryController_GetSsoProvider_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getSsoProvider"
 )
 
 // IdentityProviderQueryControllerClient is the client API for IdentityProviderQueryController service.
@@ -57,15 +56,6 @@ type IdentityProviderQueryControllerClient interface {
 	// signed in, so it requires no credential. The response intentionally omits
 	// internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
 	GetSsoProvider(ctx context.Context, in *OrganizationSsoLookup, opts ...grpc.CallOption) (*SsoProviderInfo, error)
-	// Say who would stop counting in an organization if its SSO provider
-	// required sign-in through it (IdentityProviderSpec.sso_required): the
-	// members whose account the provider did not sign in, each with the open
-	// invitations they created and the automations that act as them, and the
-	// owners, who are exempt. An owner reads it before turning the
-	// requirement on.
-	//
-	// NOT_FOUND when the organization has no SSO provider.
-	PreviewSsoRequirement(ctx context.Context, in *SsoRequirementPreviewInput, opts ...grpc.CallOption) (*SsoRequirementPreview, error)
 }
 
 type identityProviderQueryControllerClient struct {
@@ -116,16 +106,6 @@ func (c *identityProviderQueryControllerClient) GetSsoProvider(ctx context.Conte
 	return out, nil
 }
 
-func (c *identityProviderQueryControllerClient) PreviewSsoRequirement(ctx context.Context, in *SsoRequirementPreviewInput, opts ...grpc.CallOption) (*SsoRequirementPreview, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SsoRequirementPreview)
-	err := c.cc.Invoke(ctx, IdentityProviderQueryController_PreviewSsoRequirement_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // IdentityProviderQueryControllerServer is the server API for IdentityProviderQueryController service.
 // All implementations should embed UnimplementedIdentityProviderQueryControllerServer
 // for forward compatibility.
@@ -156,15 +136,6 @@ type IdentityProviderQueryControllerServer interface {
 	// signed in, so it requires no credential. The response intentionally omits
 	// internal IdP configuration (JWKS URI, rate limits, userinfo endpoint).
 	GetSsoProvider(context.Context, *OrganizationSsoLookup) (*SsoProviderInfo, error)
-	// Say who would stop counting in an organization if its SSO provider
-	// required sign-in through it (IdentityProviderSpec.sso_required): the
-	// members whose account the provider did not sign in, each with the open
-	// invitations they created and the automations that act as them, and the
-	// owners, who are exempt. An owner reads it before turning the
-	// requirement on.
-	//
-	// NOT_FOUND when the organization has no SSO provider.
-	PreviewSsoRequirement(context.Context, *SsoRequirementPreviewInput) (*SsoRequirementPreview, error)
 }
 
 // UnimplementedIdentityProviderQueryControllerServer should be embedded to have
@@ -185,9 +156,6 @@ func (UnimplementedIdentityProviderQueryControllerServer) ListByOrg(context.Cont
 }
 func (UnimplementedIdentityProviderQueryControllerServer) GetSsoProvider(context.Context, *OrganizationSsoLookup) (*SsoProviderInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSsoProvider not implemented")
-}
-func (UnimplementedIdentityProviderQueryControllerServer) PreviewSsoRequirement(context.Context, *SsoRequirementPreviewInput) (*SsoRequirementPreview, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PreviewSsoRequirement not implemented")
 }
 func (UnimplementedIdentityProviderQueryControllerServer) testEmbeddedByValue() {}
 
@@ -281,24 +249,6 @@ func _IdentityProviderQueryController_GetSsoProvider_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IdentityProviderQueryController_PreviewSsoRequirement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SsoRequirementPreviewInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IdentityProviderQueryControllerServer).PreviewSsoRequirement(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IdentityProviderQueryController_PreviewSsoRequirement_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityProviderQueryControllerServer).PreviewSsoRequirement(ctx, req.(*SsoRequirementPreviewInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // IdentityProviderQueryController_ServiceDesc is the grpc.ServiceDesc for IdentityProviderQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -321,10 +271,6 @@ var IdentityProviderQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getSsoProvider",
 			Handler:    _IdentityProviderQueryController_GetSsoProvider_Handler,
-		},
-		{
-			MethodName: "previewSsoRequirement",
-			Handler:    _IdentityProviderQueryController_PreviewSsoRequirement_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

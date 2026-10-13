@@ -8,9 +8,7 @@
  * resource_kind_path resolved by enum name with an unknown name = the
  * unknown kind — never a throw), the direct-handler override in both its
  * shapes (a server-side id; a server-side kind AND id), and the mid-chain
- * resolved-id pattern the traced ListVersions handlers port onto, and a
- * denial that carries a refusal the caller can act on: its copy and its
- * ErrorInfo reason replace the lane's pinned copy (deniedError).
+ * resolved-id pattern the traced ListVersions handlers port onto.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -25,7 +23,6 @@ import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampoli
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 import type {
   Authorizer,
@@ -35,10 +32,8 @@ import type {
 import { testCallerIdentity } from "../../__tests__/support.js";
 import { RequestContext } from "../../request-context.js";
 import {
-  AUTHORIZATION_DENIED_FALLBACK_MESSAGE,
   AUTHORIZATION_UNAVAILABLE_MESSAGE,
   authorizeDirect,
-  deniedError,
   authorizeResolvedResource,
   newAuthorizeStep,
   newPermissiveSingleTeamAuthorizer,
@@ -96,46 +91,6 @@ describe("decision arms (wire contract, both pinned)", () => {
     expect((error as ConnectError).rawMessage).toBe(
       "unauthorized to create agent in this organization",
     );
-  });
-
-  it("a deny carrying a refusal answers the refusal's copy with its ErrorInfo reason, not the lane's", async () => {
-    const { authorizer } = fakeAuthorizer({
-      kind: "deny",
-      reason: "This organization requires you to sign in through Acme Okta.",
-      refusal: {
-        reason: "SSO_REQUIRED",
-        message: "This organization requires you to sign in through Acme Okta.",
-        metadata: { org: "org_acme", provider: "acme-okta" },
-      },
-    });
-    const step = newAuthorizeStep<typeof AgentSchema>(
-      AgentCommandController.method.create,
-      authorizer,
-    );
-    const error = ConnectError.from(
-      await step.execute(agentCreateCtx())?.catch((e: unknown) => e),
-    );
-    expect(error.code).toBe(Code.PermissionDenied);
-    expect(error.rawMessage).toBe(
-      "This organization requires you to sign in through Acme Okta.",
-    );
-    const [info] = error.findDetails(ErrorInfoSchema);
-    expect(info?.reason).toBe("SSO_REQUIRED");
-    expect(info?.domain).toBe("stigmer.ai");
-    expect(info?.metadata).toEqual({ org: "org_acme", provider: "acme-okta" });
-  });
-
-  it("deniedError keeps the lane's copy, then the reason, then the fallback, for a denial with no refusal", () => {
-    expect(deniedError({ kind: "deny", reason: "nope" }, "lane copy").rawMessage).toBe(
-      "lane copy",
-    );
-    expect(deniedError({ kind: "deny", reason: "nope" }, "").rawMessage).toBe("nope");
-    expect(deniedError({ kind: "deny", reason: "" }, "").rawMessage).toBe(
-      AUTHORIZATION_DENIED_FALLBACK_MESSAGE,
-    );
-    expect(
-      deniedError({ kind: "deny", reason: "nope" }, "lane copy").findDetails(ErrorInfoSchema),
-    ).toEqual([]);
   });
 
   it("unavailable → INTERNAL with the sanitized static copy — NEVER a softened denial", async () => {

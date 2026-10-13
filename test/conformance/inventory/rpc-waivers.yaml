@@ -74,21 +74,6 @@ waivers:
     issue: 1545
     reason: >-
       Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderCommandController.createAccessMove
-    kind: gap
-    issue: 1545
-    reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderCommandController.redeemAccessMove
-    kind: gap
-    issue: 1545
-    reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
-  - rpc: IdentityProviderQueryController.previewSsoRequirement
-    kind: gap
-    issue: 1545
-    reason: >-
-      Served by the Enterprise and Cloud editions only; the open-source server routes no IdentityProvider service and the suite has no client for it.
   - rpc: InvitationCommandController.create
     kind: gap
     issue: 1544

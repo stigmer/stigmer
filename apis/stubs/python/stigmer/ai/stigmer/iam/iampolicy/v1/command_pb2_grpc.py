@@ -63,11 +63,6 @@ class IamPolicyCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 _registered_method=True)
-        self.bootstrapMoveOrgAccess = channel.unary_unary(
-                '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapMoveOrgAccess',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.MoveOrgAccessInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.MoveOrgAccessResult.FromString,
-                _registered_method=True)
 
 
 class IamPolicyCommandControllerServicer(object):
@@ -156,14 +151,6 @@ class IamPolicyCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def bootstrapMoveOrgAccess(self, request, context):
-        """Move one account's access inside an organization to another account,
-        via the system (bootstrap) path.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_IamPolicyCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -196,11 +183,6 @@ def add_IamPolicyCommandControllerServicer_to_server(servicer, server):
                     servicer.bootstrapRevokeOrgAccess,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            ),
-            'bootstrapMoveOrgAccess': grpc.unary_unary_rpc_method_handler(
-                    servicer.bootstrapMoveOrgAccess,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.MoveOrgAccessInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.MoveOrgAccessResult.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -381,33 +363,6 @@ class IamPolicyCommandController(object):
             '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapRevokeOrgAccess',
             ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.RevokeOrgAccessInput.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def bootstrapMoveOrgAccess(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapMoveOrgAccess',
-            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.MoveOrgAccessInput.SerializeToString,
-            ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2.MoveOrgAccessResult.FromString,
             options,
             channel_credentials,
             insecure,

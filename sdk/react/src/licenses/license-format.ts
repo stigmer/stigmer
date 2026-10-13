@@ -75,10 +75,7 @@ export const TERM_LABELS: Readonly<Record<IssuableTerm, string>> = {
 export const FEATURE_LABELS: Readonly<
   Record<GrantableFeature, { readonly label: string; readonly description: string }>
 > = {
-  [Feature.sso_enforcement]: {
-    label: FEATURE_COPY[Feature.sso_enforcement].label,
-    description: FEATURE_COPY[Feature.sso_enforcement].description,
-  },
+  [Feature.sso_enforcement]: FEATURE_COPY[Feature.sso_enforcement],
 };
 
 /** Every grantable feature, in contract order (derived from the label map). */

@@ -7,33 +7,6 @@ description: Hooks and components for federated identity provider setup and mana
 
 ## Hooks
 
-### useCreateAccessMove
-
-Mutation hook for the first half of an access move, asked while signed in
-the old way (an email login): the answer is a single-use ticket, ten
-minutes long, and what the move will do. Keep the ticket in the browser
-that asked for it and never show it; it is redeemed with
-[`useRedeemAccessMove`](#useredeemaccessmove) once signed in through the organization's
-SSO provider.
-
-**Signature**
-
-```tsx
-function useCreateAccessMove(): UseCreateAccessMoveReturn
-```
-
-**Returns** — `UseCreateAccessMoveReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "" },
-    createMove: { type: "(org: string) => Promise<AccessMoveTicket>", description: "Ask for a ticket that moves the caller's access in `org` to the account its SSO provider makes for them." },
-    error: { type: "Error | null", description: "" },
-    isCreating: { type: "boolean", description: "" },
-  }}
-/>
-
-
 ### useCreateIdentityProvider
 
 Mutation hook that wraps `identityProvider.create()` with loading
@@ -214,83 +187,6 @@ const { identityProviders } = useIdentityProviderList(org ?? null);
 ```
 
 
-### usePreviewSsoRequirement
-
-Data hook for the owners' preview of a sign-in requirement: the members
-whose account the organization's SSO provider did not sign in, each with
-the invitations they created and the automations that act as them, and
-the owners, who are exempt. Only the organization's owners may read it.
-
-Pass `null` to skip the read.
-
-**Signature**
-
-```tsx
-function usePreviewSsoRequirement(org: string | null): UsePreviewSsoRequirementReturn
-```
-
-<TypeTable
-  type={{
-    org: { type: "string | null", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UsePreviewSsoRequirementReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    preview: { type: "SsoRequirementPreview | null", description: "Who would stop counting, or `null` before the first answer." },
-    refetch: { type: "() => void", description: "" },
-  }}
-/>
-
-
-### useRedeemAccessMove
-
-Mutation hook for the second half of an access move, asked once signed
-in through the organization's SSO provider: the ticket's access moves to
-the caller, and the answer says what moved and what stopped (the My
-vault entries deleted, the automations and invitations to make again).
-
-**Signature**
-
-```tsx
-function useRedeemAccessMove(): UseRedeemAccessMoveReturn
-```
-
-**Returns** — `UseRedeemAccessMoveReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "" },
-    error: { type: "Error | null", description: "" },
-    isRedeeming: { type: "boolean", description: "" },
-    redeem: { type: "(ticket: string) => Promise<AccessMoveResult>", description: "Redeem a ticket: the access it names moves to the caller." },
-  }}
-/>
-
-
-### useRemakeAutomation
-
-**Signature**
-
-```tsx
-function useRemakeAutomation(): UseRemakeAutomationReturn
-```
-
-**Returns** — `UseRemakeAutomationReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "" },
-    remake: { type: "(automation: AccountAutomation) => Promise<string>", description: "Make the automation again as the caller; resolves with the new row's id." },
-    remaking: { type: "string | null", description: "The id of the automation being made again, or `null`." },
-  }}
-/>
-
-
 ### useSsoProvider
 
 Data hook that looks up the SSO identity provider for an organization.
@@ -397,21 +293,6 @@ refetch(); // refresh detail view
 
 ## Components
 
-### AccessMoveSummary
-
-**Props** — `AccessMoveSummaryProps`
-
-<TypeTable
-  type={{
-    automationHref: { type: "(kind: string, slug: string) => string | undefined", description: "Where an automation lives, for a link to it; absent, it is named without a link." },
-    className: { type: "string", description: "" },
-    invitationIds: { type: "readonly string[]", description: "The open invitations the old account created there.", required: true },
-    move: { type: "MoveOrgAccessResult", description: "The move's preview or result.", required: true },
-    moved: { type: "boolean", description: "Whether the move has happened; before it, nothing is offered to make again.", required: true },
-  }}
-/>
-
-
 ### CreateIdentityProviderForm
 
 Form for creating a new identity provider within an organization.
@@ -458,9 +339,7 @@ View and edit panel for an existing identity provider.
 
 In **view mode**, displays all OIDC configuration fields in a
 structured label/value layout, with an "Edit" button for a caller who
-may edit the provider (`can_edit`), and, on an SSO provider, whether the
-organization requires sign-in through it, which its owners change
-([`SsoRequirementSection`](#ssorequirementsection)).
+may edit the provider (`can_edit`).
 
 In **edit mode**, fields become editable inputs. The SSO toggle,
 OIDC client ID and sign-in settings (account creation, sign-in role,
@@ -623,7 +502,6 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
     initialOrg: { type: "string", description: "Pre-filled organization slug, typically read from a URL query parameter (e.g., `?org=acme`).  When provided, the component auto-triggers the SSO provider lookup on mount, skipping the org input step." },
-    onProviderChange: { type: "(provider: SsoProviderInfo | null) => void", description: "Called with the provider the lookup found, or `null` while there is none, so a page can say what the organization requires before anyone signs in (`SsoProviderInfo.sso_required`: the organization accepts no other sign-in, so the page hides its other ways in)." },
     onSsoLogin: { type: "(provider: SsoProviderInfo, org: string) => void", description: "Called when the user clicks the SSO sign-in button.  The consumer is responsible for the actual OIDC redirect — this component owns the discovery UI, not the authentication mechanics.", required: true },
   }}
 />
@@ -636,33 +514,6 @@ All visual properties flow through `--stgm-*` design tokens.
   }}
 />
 ```
-
-
-### SsoRequiredNotice
-
-**Props** — `SsoRequiredNoticeProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "" },
-    error: { type: "unknown", description: "The refusal; the notice renders nothing for any other error.", required: true },
-    moveHref: { type: "(org: string) => string", description: "Where the access move starts for the organization; absent, it is not offered." },
-    onSignIn: { type: "(provider: SsoProviderInfo, org: string) => void", description: "Start signing in through the provider, for the organization.", required: true },
-  }}
-/>
-
-
-### SsoRequirementSection
-
-**Props** — `SsoRequirementSectionProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "" },
-    identityProvider: { type: "IdentityProvider", description: "The organization's SSO provider.", required: true, typeDescriptionLink: "/docs/sdk/resources/identity-provider" },
-    onUpdated: { type: "(provider: IdentityProvider) => void", description: "Fired with the provider after the requirement changed." },
-  }}
-/>
 
 
 ## Types
@@ -724,39 +575,4 @@ A user-fillable variable required by a provider preset.
     type: { type: "\"text\" | \"select\"", description: "Input type: `\"text\"` for free-form input, `\"select\"` for a dropdown.", required: true },
   }}
 />
-
-
-### remakeable
-
-Whether `automation` is made again in one click.
-
-```tsx
-function remakeable(automation: Pick<AccountAutomation, "kind">): boolean
-```
-
-
-### SSO_REQUIRED
-
-The reason an organization's sign-in requirement refuses with.
-
-
-### SsoRequirement
-
-What a sign-in requirement's refusal names.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "The organization's id.", required: true },
-    provider: { type: "string", description: "The organization's SSO provider's slug.", required: true },
-  }}
-/>
-
-
-### ssoRequirementOf
-
-The requirement `error` reports, or `null` for any other error.
-
-```tsx
-function ssoRequirementOf(error: unknown): SsoRequirement | null
-```
 

@@ -116,7 +116,6 @@ import {
 import { InMemoryTeamStore } from "../../iam/team/__tests__/in-memory-team-store.js";
 import { inMemorySignInGrants } from "../../iam/federation/__tests__/in-memory-sign-in-grants.js";
 import { newEnterpriseIdentityExtension } from "../enterprise-identity.js";
-import { newInMemoryTicketStore } from "../../iam/access-move/__tests__/in-memory-ticket-store.js";
 
 const ACME = "acme";
 const GLOBEX = "globex";
@@ -367,7 +366,6 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       teams,
       invitations,
       signInGrants: inMemorySignInGrants(),
-      accessMoves: newInMemoryTicketStore(),
       accounts: noFederatedAccounts,
       schema: { ensure: () => Promise.resolve() },
       outboundFetch: guardedFetch(strictEgressPolicy(), {

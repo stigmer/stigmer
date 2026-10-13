@@ -72,40 +72,6 @@ class RevokeOrgAccessInput(_message.Message):
     org: str
     def __init__(self, identity_account_id: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...
 
-class MoveOrgAccessInput(_message.Message):
-    __slots__ = ("from_identity_account_id", "to_identity_account_id", "org", "preview_only")
-    FROM_IDENTITY_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
-    TO_IDENTITY_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
-    ORG_FIELD_NUMBER: _ClassVar[int]
-    PREVIEW_ONLY_FIELD_NUMBER: _ClassVar[int]
-    from_identity_account_id: str
-    to_identity_account_id: str
-    org: str
-    preview_only: bool
-    def __init__(self, from_identity_account_id: _Optional[str] = ..., to_identity_account_id: _Optional[str] = ..., org: _Optional[str] = ..., preview_only: bool = ...) -> None: ...
-
-class MoveOrgAccessResult(_message.Message):
-    __slots__ = ("moved_policies", "my_vault_entries", "automations")
-    MOVED_POLICIES_FIELD_NUMBER: _ClassVar[int]
-    MY_VAULT_ENTRIES_FIELD_NUMBER: _ClassVar[int]
-    AUTOMATIONS_FIELD_NUMBER: _ClassVar[int]
-    moved_policies: int
-    my_vault_entries: _containers.RepeatedScalarFieldContainer[str]
-    automations: _containers.RepeatedCompositeFieldContainer[AccountAutomation]
-    def __init__(self, moved_policies: _Optional[int] = ..., my_vault_entries: _Optional[_Iterable[str]] = ..., automations: _Optional[_Iterable[_Union[AccountAutomation, _Mapping]]] = ...) -> None: ...
-
-class AccountAutomation(_message.Message):
-    __slots__ = ("kind", "id", "slug", "name")
-    KIND_FIELD_NUMBER: _ClassVar[int]
-    ID_FIELD_NUMBER: _ClassVar[int]
-    SLUG_FIELD_NUMBER: _ClassVar[int]
-    NAME_FIELD_NUMBER: _ClassVar[int]
-    kind: str
-    id: str
-    slug: str
-    name: str
-    def __init__(self, kind: _Optional[str] = ..., id: _Optional[str] = ..., slug: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
-
 class IamPoliciesList(_message.Message):
     __slots__ = ("entries",)
     ENTRIES_FIELD_NUMBER: _ClassVar[int]

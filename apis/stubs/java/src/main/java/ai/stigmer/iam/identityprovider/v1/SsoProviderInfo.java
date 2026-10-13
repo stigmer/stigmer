@@ -265,23 +265,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int SSO_REQUIRED_FIELD_NUMBER = 5;
-  private boolean ssoRequired_ = false;
-  /**
-   * <pre>
-   * Whether the organization requires its members to sign in through this
-   * provider (IdentityProviderSpec.sso_required). The login page then
-   * offers no other way into the organization.
-   * </pre>
-   *
-   * <code>bool sso_required = 5 [json_name = "ssoRequired"];</code>
-   * @return The ssoRequired.
-   */
-  @java.lang.Override
-  public boolean getSsoRequired() {
-    return ssoRequired_;
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -308,9 +291,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(expectedAudience_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, expectedAudience_);
     }
-    if (ssoRequired_ != false) {
-      output.writeBool(5, ssoRequired_);
-    }
     getUnknownFields().writeTo(output);
   }
 
@@ -331,10 +311,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(expectedAudience_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, expectedAudience_);
-    }
-    if (ssoRequired_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(5, ssoRequired_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -359,8 +335,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getIssuer())) return false;
     if (!getExpectedAudience()
         .equals(other.getExpectedAudience())) return false;
-    if (getSsoRequired()
-        != other.getSsoRequired()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -380,9 +354,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getIssuer().hashCode();
     hash = (37 * hash) + EXPECTED_AUDIENCE_FIELD_NUMBER;
     hash = (53 * hash) + getExpectedAudience().hashCode();
-    hash = (37 * hash) + SSO_REQUIRED_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getSsoRequired());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -527,7 +498,6 @@ private static final long serialVersionUID = 0L;
       oidcClientId_ = "";
       issuer_ = "";
       expectedAudience_ = "";
-      ssoRequired_ = false;
       return this;
     }
 
@@ -573,9 +543,6 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.expectedAudience_ = expectedAudience_;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.ssoRequired_ = ssoRequired_;
-      }
     }
 
     @java.lang.Override
@@ -609,9 +576,6 @@ private static final long serialVersionUID = 0L;
         expectedAudience_ = other.expectedAudience_;
         bitField0_ |= 0x00000008;
         onChanged();
-      }
-      if (other.getSsoRequired() != false) {
-        setSsoRequired(other.getSsoRequired());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -659,11 +623,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 34
-            case 40: {
-              ssoRequired_ = input.readBool();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1085,56 +1044,6 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       expectedAudience_ = value;
       bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-
-    private boolean ssoRequired_ ;
-    /**
-     * <pre>
-     * Whether the organization requires its members to sign in through this
-     * provider (IdentityProviderSpec.sso_required). The login page then
-     * offers no other way into the organization.
-     * </pre>
-     *
-     * <code>bool sso_required = 5 [json_name = "ssoRequired"];</code>
-     * @return The ssoRequired.
-     */
-    @java.lang.Override
-    public boolean getSsoRequired() {
-      return ssoRequired_;
-    }
-    /**
-     * <pre>
-     * Whether the organization requires its members to sign in through this
-     * provider (IdentityProviderSpec.sso_required). The login page then
-     * offers no other way into the organization.
-     * </pre>
-     *
-     * <code>bool sso_required = 5 [json_name = "ssoRequired"];</code>
-     * @param value The ssoRequired to set.
-     * @return This builder for chaining.
-     */
-    public Builder setSsoRequired(boolean value) {
-
-      ssoRequired_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Whether the organization requires its members to sign in through this
-     * provider (IdentityProviderSpec.sso_required). The login page then
-     * offers no other way into the organization.
-     * </pre>
-     *
-     * <code>bool sso_required = 5 [json_name = "ssoRequired"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearSsoRequired() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      ssoRequired_ = false;
       onChanged();
       return this;
     }

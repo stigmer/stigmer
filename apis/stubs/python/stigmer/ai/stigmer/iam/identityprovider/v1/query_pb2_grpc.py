@@ -37,11 +37,6 @@ class IdentityProviderQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.OrganizationSsoLookup.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoProviderInfo.FromString,
                 _registered_method=True)
-        self.previewSsoRequirement = channel.unary_unary(
-                '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/previewSsoRequirement',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoRequirementPreviewInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoRequirementPreview.FromString,
-                _registered_method=True)
 
 
 class IdentityProviderQueryControllerServicer(object):
@@ -92,20 +87,6 @@ class IdentityProviderQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def previewSsoRequirement(self, request, context):
-        """Say who would stop counting in an organization if its SSO provider
-        required sign-in through it (IdentityProviderSpec.sso_required): the
-        members whose account the provider did not sign in, each with the open
-        invitations they created and the automations that act as them, and the
-        owners, who are exempt. An owner reads it before turning the
-        requirement on.
-
-        NOT_FOUND when the organization has no SSO provider.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_IdentityProviderQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -128,11 +109,6 @@ def add_IdentityProviderQueryControllerServicer_to_server(servicer, server):
                     servicer.getSsoProvider,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.OrganizationSsoLookup.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoProviderInfo.SerializeToString,
-            ),
-            'previewSsoRequirement': grpc.unary_unary_rpc_method_handler(
-                    servicer.previewSsoRequirement,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoRequirementPreviewInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoRequirementPreview.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -244,33 +220,6 @@ class IdentityProviderQueryController(object):
             '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/getSsoProvider',
             ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.OrganizationSsoLookup.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoProviderInfo.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def previewSsoRequirement(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController/previewSsoRequirement',
-            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoRequirementPreviewInput.SerializeToString,
-            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.SsoRequirementPreview.FromString,
             options,
             channel_credentials,
             insecure,

@@ -480,17 +480,6 @@ describe("IamPolicy conformance — the three system RPCs refuse a wire user", (
         }),
       BOOTSTRAP_REVOKE_ORG_ACCESS_DENIED_MESSAGE,
     ],
-    [
-      "[rpc:IamPolicyCommandController.bootstrapMoveOrgAccess] bootstrapMoveOrgAccess",
-      (org: string) =>
-        clients.iamPolicyCommand.bootstrapMoveOrgAccess({
-          fromIdentityAccountId: syntheticAccountId(),
-          toIdentityAccountId: syntheticAccountId(),
-          org,
-        }),
-      // The move door's annotation copy (command.proto error_msg).
-      "unauthorized to move organization access - can_bootstrap_iam permission required",
-    ],
   ] as const)(
     "%s is PERMISSION_DENIED with the annotation's copy",
     async (name, call, copy) => {

@@ -6,10 +6,8 @@
  * run that creator may see: a judge's session holds the run's
  * conversation, so a creator the authorizer refuses on the run is the
  * seam's DETERMINISTIC refusal, as is an evaluator whose stamp names no
- * person this server knows and a creator the evaluator's organization no
- * longer admits by how they signed in (asked before the run is); a missing
- * evaluator and an authorizer that cannot answer stay infrastructure
- * throws.
+ * person this server knows; a missing evaluator and an authorizer that
+ * cannot answer stay infrastructure throws.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -34,29 +32,11 @@ import {
 } from "../grading-caller.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
-import type { AuthzRefusal } from "../../extensions/authorizer.js";
-import { refusedCreatorMessage } from "../creator-sign-in.js";
-import type { CreatorSignInCheck } from "../creator-sign-in.js";
 
 const SUBJECT = "auth0|priya";
 const PRIYA = accountIdFor(SUBJECT);
 
 afterAll(dropPostgresFixture);
-
-
-const REFUSAL: AuthzRefusal = {
-  reason: "SSO_REQUIRED",
-  message: "This organization requires you to sign in through Acme Okta.",
-  metadata: { org: "acme", provider: "acme-okta" },
-};
-
-/** A binding whose sign-in rule refuses every person in `refusing` alone. */
-function signInRefusing(refusing: string): CreatorSignInCheck {
-  return {
-    signInRefusal: (_caller, org) =>
-      Promise.resolve(org === refusing ? REFUSAL : undefined),
-  };
-}
 
 describe.each(
   driverFixtures([ApiResourceKind.evaluator, ApiResourceKind.identity_account]),
@@ -126,23 +106,6 @@ describe.each(
       expect(asked, "the creator must see the graded run").toEqual([`${PRIYA} can_view run_1`]);
       await evaluator("evl_by_sub", SUBJECT);
       expect((await mint().mintGradingCaller("acme", "evl_by_sub", "run_1")).identityId).toBe(PRIYA);
-    });
-
-    it("refuses a creator the evaluator's organization no longer admits by how they signed in, before asking about the run", async () => {
-      await evaluator("evl_email", PRIYA);
-      asked.length = 0;
-      const held = newBuiltInGradingCaller({
-        store: opened.store,
-        accounts,
-        authorizer: answering("allow"),
-        signIn: signInRefusing("acme"),
-      });
-      const failure = await held
-        .mintGradingCaller("acme", "evl_email", "run_1")
-        .catch((error: unknown) => error);
-      expect(failure).toBeInstanceOf(GradingCallerRefusedError);
-      expect((failure as Error).message).toBe(refusedCreatorMessage("evaluator", "evl_email", REFUSAL));
-      expect(asked).toEqual([]);
     });
 
     it("refuses when the creator may not see the graded run, and throws when the authorizer cannot answer", async () => {

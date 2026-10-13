@@ -43,7 +43,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ons/rpc/method_options.proto\032,ai/stigmer" +
       "/iam/identityprovider/v1/api.proto\032+ai/s" +
       "tigmer/iam/identityprovider/v1/io.proto2" +
-      "\226\007\n\037IdentityProviderQueryController\022\243\001\n\003" +
+      "\262\005\n\037IdentityProviderQueryController\022\243\001\n\003" +
       "get\022-.ai.stigmer.commons.apiresource.Api" +
       "ResourceId\0324.ai.stigmer.iam.identityprov" +
       "ider.v1.IdentityProvider\"7\302\270\0303\010\001\020\025\"\005valu" +
@@ -60,17 +60,12 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "Provider\0229.ai.stigmer.iam.identityprovid" +
       "er.v1.OrganizationSsoLookup\0323.ai.stigmer" +
       ".iam.identityprovider.v1.SsoProviderInfo" +
-      "\"\004\310\270\030\001\022\341\001\n\025previewSsoRequirement\022>.ai.st" +
-      "igmer.iam.identityprovider.v1.SsoRequire" +
-      "mentPreviewInput\0329.ai.stigmer.iam.identi" +
-      "typrovider.v1.SsoRequirementPreview\"M\302\270\030" +
-      "I\010/\020\036\"\003org*>unauthorized to preview the " +
-      "organization\'s sign-in requirement\032\004\240\377+\025" +
-      "B\271\001B\nQueryProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Ia" +
-      "m.Identityprovider.V1\312\002\"Ai\\Stigmer\\Iam\\I" +
-      "dentityprovider\\V1\342\002.Ai\\Stigmer\\Iam\\Iden" +
-      "tityprovider\\V1\\GPBMetadata\352\002&Ai::Stigme" +
-      "r::Iam::Identityprovider::V1b\006proto3"
+      "\"\004\310\270\030\001\032\004\240\377+\025B\271\001B\nQueryProtoP\001\242\002\004ASII\252\002\"A" +
+      "i.Stigmer.Iam.Identityprovider.V1\312\002\"Ai\\S" +
+      "tigmer\\Iam\\Identityprovider\\V1\342\002.Ai\\Stig" +
+      "mer\\Iam\\Identityprovider\\V1\\GPBMetadata\352" +
+      "\002&Ai::Stigmer::Iam::Identityprovider::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

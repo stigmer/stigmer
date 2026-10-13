@@ -43,7 +43,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n-ai/stigmer/iam/identityprovider/v1/spe" +
       "c.proto\022\"ai.stigmer.iam.identityprovider" +
       ".v1\032\034ai/stigmer/iam/v1/enum.proto\032\033buf/v" +
-      "alidate/validate.proto\"\366\n\n\024IdentityProvi" +
+      "alidate/validate.proto\"\240\t\n\024IdentityProvi" +
       "derSpec\022+\n\014display_name\030\001 \001(\tB\010\272H\005r\003\030\310\001R" +
       "\013displayName\022#\n\010jwks_uri\030\002 \001(\tB\010\272H\005r\003\030\200\020" +
       "R\007jwksUri\022:\n\017allowed_issuers\030\003 \003(\tB\021\272H\016\222" +
@@ -57,33 +57,28 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "aim\022:\n\032create_accounts_on_sign_in\030\r \001(\010R" +
       "\026createAccountsOnSignIn\022<\n\014sign_in_role\030" +
       "\016 \001(\0162\032.ai.stigmer.iam.v1.IamRoleR\nsignI" +
-      "nRole\022!\n\014sso_required\030\017 \001(\010R\013ssoRequired" +
-      ":\314\005\272H\310\005\032\224\001\n(identity_provider.sign_in_ro" +
-      "le_not_owner\022Psign_in_role cannot be own" +
-      "er; organization ownership must be assig" +
-      "ned explicitly\032\026this.sign_in_role != 1\032\322" +
-      "\001\n2identity_provider.sso_creates_account" +
-      "s_with_a_role\022Fan SSO provider must set " +
-      "create_accounts_on_sign_in and a sign_in" +
-      "_role\032T!this.is_sso_provider || (this.cr" +
-      "eate_accounts_on_sign_in && this.sign_in" +
-      "_role != 0)\032\260\001\n1identity_provider.sso_re" +
-      "quired_needs_sso_provider\022Osso_required " +
-      "is valid only on the organization\'s SSO " +
-      "provider (is_sso_provider)\032*!this.sso_re" +
-      "quired || this.is_sso_provider\032\246\001\n0ident" +
-      "ity_provider.jwks_uri_required_with_issu" +
-      "ers\0229jwks_uri is required when allowed_i" +
-      "ssuers names an issuer\0327this.allowed_iss" +
-      "uers.size() == 0 || this.jwks_uri != \'\'J" +
-      "\004\010\005\020\006J\004\010\t\020\nJ\004\010\n\020\013J\004\010\013\020\014R\021rate_limit_budg" +
-      "etR\027auto_provision_accountsR\021auto_grant_" +
-      "on_orgR\017auto_grant_roleB\270\001B\tSpecProtoP\001\242" +
-      "\002\004ASII\252\002\"Ai.Stigmer.Iam.Identityprovider" +
-      ".V1\312\002\"Ai\\Stigmer\\Iam\\Identityprovider\\V1" +
-      "\342\002.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GP" +
-      "BMetadata\352\002&Ai::Stigmer::Iam::Identitypr" +
-      "ovider::V1b\006proto3"
+      "nRole:\231\004\272H\225\004\032\224\001\n(identity_provider.sign_" +
+      "in_role_not_owner\022Psign_in_role cannot b" +
+      "e owner; organization ownership must be " +
+      "assigned explicitly\032\026this.sign_in_role !" +
+      "= 1\032\322\001\n2identity_provider.sso_creates_ac" +
+      "counts_with_a_role\022Fan SSO provider must" +
+      " set create_accounts_on_sign_in and a si" +
+      "gn_in_role\032T!this.is_sso_provider || (th" +
+      "is.create_accounts_on_sign_in && this.si" +
+      "gn_in_role != 0)\032\246\001\n0identity_provider.j" +
+      "wks_uri_required_with_issuers\0229jwks_uri " +
+      "is required when allowed_issuers names a" +
+      "n issuer\0327this.allowed_issuers.size() ==" +
+      " 0 || this.jwks_uri != \'\'J\004\010\005\020\006J\004\010\t\020\nJ\004\010" +
+      "\n\020\013J\004\010\013\020\014R\021rate_limit_budgetR\027auto_provi" +
+      "sion_accountsR\021auto_grant_on_orgR\017auto_g" +
+      "rant_roleB\270\001B\tSpecProtoP\001\242\002\004ASII\252\002\"Ai.St" +
+      "igmer.Iam.Identityprovider.V1\312\002\"Ai\\Stigm" +
+      "er\\Iam\\Identityprovider\\V1\342\002.Ai\\Stigmer\\" +
+      "Iam\\Identityprovider\\V1\\GPBMetadata\352\002&Ai" +
+      "::Stigmer::Iam::Identityprovider::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -96,7 +91,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_iam_identityprovider_v1_IdentityProviderSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_identityprovider_v1_IdentityProviderSpec_descriptor,
-        new java.lang.String[] { "DisplayName", "JwksUri", "AllowedIssuers", "ExpectedAudience", "UserinfoEndpoint", "IsSsoProvider", "OidcClientId", "ExternalIdClaim", "CreateAccountsOnSignIn", "SignInRole", "SsoRequired", });
+        new java.lang.String[] { "DisplayName", "JwksUri", "AllowedIssuers", "ExpectedAudience", "UserinfoEndpoint", "IsSsoProvider", "OidcClientId", "ExternalIdClaim", "CreateAccountsOnSignIn", "SignInRole", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.iam.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

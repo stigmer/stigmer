@@ -119,16 +119,6 @@ export type {
 // .boundOrg), read the one way every consumer shares: a composition's
 // verifier sets the field, and its own lanes read it through this.
 export { boundOrgOf } from "./extensions/identity.js";
-// Whether a bearer is a platform token naming a PlatformClient (a person
-// spoken for by an organization's own app): a composition's rule that
-// exempts an organization's own clients reads it the library's one way.
-export { carriesPlatformClientClaim } from "./extensions/identity.js";
-// Whether a caller is a person speaking for themselves on the wire, and
-// whether a bearer is an API key: a composition's lane that only a
-// person's own sign-in may use (one that hands a credential's holder
-// another account's access) reads them the library's one way.
-export { isFirstPartyHumanOperator } from "./extensions/identity.js";
-export { isApiKeyToken } from "./domain/apikey/keymaterial.js";
 // An organization's service account: its caller class, the one predicate
 // that reads it, and the refusal every edition's membership and credential
 // lanes splice (pipeline/steps/refuse-service-account.ts), so a
@@ -173,13 +163,7 @@ export type {
   Authorizer,
   AuthzCheck,
   AuthzDecision,
-  AuthzRefusal,
 } from "./extensions/authorizer.js";
-export type { OrganizationSignInRule } from "./extensions/organization-sign-in-rule.js";
-export type {
-  AccountAutomation,
-  AccountAutomations,
-} from "./authorization/account-automations.js";
 export type { GateSlotName } from "./extensions/gate-slots.js";
 export type {
   RunResponseDecorator,
@@ -544,7 +528,6 @@ export {
   internalError,
   invalidArgumentError,
   notFoundError,
-  permissionDeniedWithReasonError,
   rethrownStatusError,
   unauthenticatedWithReasonError,
   unavailableError,
@@ -604,7 +587,7 @@ export {
   parseBearerToken,
 } from "./pipeline/interceptors/auth.js";
 export { newPipeline } from "./pipeline/pipeline.js";
-export { deniedError, newAuthorizeStep } from "./pipeline/steps/authorize.js";
+export { newAuthorizeStep } from "./pipeline/steps/authorize.js";
 // The run gate's check set: an edition's Authorizer keys its lane
 // admission on this predicate — the runtime lanes it mints (a guest
 // share, a channel, a schedule fire) were admitted upstream by their own

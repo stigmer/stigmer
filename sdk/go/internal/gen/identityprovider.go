@@ -66,16 +66,6 @@ func (i *IdentityProviderClient) Delete(ctx context.Context, input *DeleteResour
 	return resp, wrapErr(err)
 }
 
-func (i *IdentityProviderClient) CreateAccessMove(ctx context.Context, input *identityproviderv1.AccessMoveRequest) (*identityproviderv1.AccessMoveTicket, error) {
-	resp, err := i.command.CreateAccessMove(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (i *IdentityProviderClient) RedeemAccessMove(ctx context.Context, input *identityproviderv1.RedeemAccessMoveInput) (*identityproviderv1.AccessMoveResult, error) {
-	resp, err := i.command.RedeemAccessMove(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (i *IdentityProviderClient) Get(ctx context.Context, id string) (*identityproviderv1.IdentityProvider, error) {
 	resp, err := i.query.Get(ctx, &apiresource.ApiResourceId{Value: id})
 	return resp, wrapErr(err)
@@ -94,11 +84,6 @@ func (i *IdentityProviderClient) ListByOrg(ctx context.Context, input *identityp
 
 func (i *IdentityProviderClient) GetSsoProvider(ctx context.Context, input *identityproviderv1.OrganizationSsoLookup) (*identityproviderv1.SsoProviderInfo, error) {
 	resp, err := i.query.GetSsoProvider(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (i *IdentityProviderClient) PreviewSsoRequirement(ctx context.Context, input *identityproviderv1.SsoRequirementPreviewInput) (*identityproviderv1.SsoRequirementPreview, error) {
-	resp, err := i.query.PreviewSsoRequirement(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -124,7 +109,6 @@ type IdentityProviderInput struct {
 	ExternalIdClaim        string
 	CreateAccountsOnSignIn bool
 	SignInRole             iamv1.IamRole
-	SsoRequired            bool
 }
 
 func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider, error) {
@@ -151,7 +135,6 @@ func (i *IdentityProviderInput) toProto() (*identityproviderv1.IdentityProvider,
 	resource.Spec.ExternalIdClaim = i.ExternalIdClaim
 	resource.Spec.CreateAccountsOnSignIn = i.CreateAccountsOnSignIn
 	resource.Spec.SignInRole = i.SignInRole
-	resource.Spec.SsoRequired = i.SsoRequired
 	return resource, nil
 }
 
@@ -180,7 +163,6 @@ func IdentityProviderInputFromProto(p *identityproviderv1.IdentityProvider) *Ide
 		input.ExternalIdClaim = s.GetExternalIdClaim()
 		input.CreateAccountsOnSignIn = s.GetCreateAccountsOnSignIn()
 		input.SignInRole = s.GetSignInRole()
-		input.SsoRequired = s.GetSsoRequired()
 	}
 	return input
 }

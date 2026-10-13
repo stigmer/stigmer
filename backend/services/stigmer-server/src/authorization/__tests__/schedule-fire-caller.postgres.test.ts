@@ -5,10 +5,8 @@
  * in the exact identity shape `accountAsCaller` builds; a schedule whose
  * stamp names no person this server knows (`""`, `"system"`, a
  * trusted-local email, a deleted account) is the seam's DETERMINISTIC
- * refusal with the copy the schedule's status will carry, and so is a
- * creator the schedule's organization no longer admits by how they signed
- * in, worded with the organization's reason; a missing schedule row and a
- * store fault stay infrastructure throws.
+ * refusal with the copy the schedule's status will carry; a missing
+ * schedule row and a store fault stay infrastructure throws.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -29,29 +27,11 @@ import {
 } from "../schedule-fire-caller.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
-import type { AuthzRefusal } from "../../extensions/authorizer.js";
-import { refusedCreatorMessage } from "../creator-sign-in.js";
-import type { CreatorSignInCheck } from "../creator-sign-in.js";
 
 const SUBJECT = "auth0|carol";
 const CAROL = accountIdFor(SUBJECT);
 
 afterAll(dropPostgresFixture);
-
-
-const REFUSAL: AuthzRefusal = {
-  reason: "SSO_REQUIRED",
-  message: "This organization requires you to sign in through Acme Okta.",
-  metadata: { org: "acme", provider: "acme-okta" },
-};
-
-/** A binding whose sign-in rule refuses every person in `refusing` alone. */
-function signInRefusing(refusing: string): CreatorSignInCheck {
-  return {
-    signInRefusal: (_caller, org) =>
-      Promise.resolve(org === refusing ? REFUSAL : undefined),
-  };
-}
 
 describe.each(
   driverFixtures([ApiResourceKind.schedule, ApiResourceKind.identity_account]),
@@ -105,28 +85,6 @@ describe.each(
         email: "carol@example.com",
         displayName: "Carol Danvers",
       });
-    });
-
-    it("a creator the schedule's organization no longer admits by how they signed in is the deterministic refusal, with the organization's reason", async () => {
-      await schedule("sch_email", CAROL);
-      const held = newBuiltInScheduleFireCaller({
-        store: opened.store,
-        accounts,
-        signIn: signInRefusing("acme"),
-      });
-      const failure = await held
-        .mintFireCaller("acme", "sch_email")
-        .catch((error: unknown) => error);
-      expect(failure).toBeInstanceOf(ScheduleFireCallerRefusedError);
-      expect((failure as Error).message).toBe(
-        refusedCreatorMessage("schedule", "sch_email", REFUSAL),
-      );
-      const elsewhere = newBuiltInScheduleFireCaller({
-        store: opened.store,
-        accounts,
-        signIn: signInRefusing("globex"),
-      });
-      expect((await elsewhere.mintFireCaller("acme", "sch_email")).identityId).toBe(CAROL);
     });
 
     it("a schedule stamped with the raw issuer subject (the 3.14.x shape) resolves to the same account", async () => {

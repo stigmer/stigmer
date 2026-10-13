@@ -610,7 +610,6 @@ describe("toIdentityProviderUpdateInput", () => {
         externalIdClaim: "org_slug",
         createAccountsOnSignIn: true,
         signInRole: IamRole.admin,
-        ssoRequired: true,
       },
     });
 

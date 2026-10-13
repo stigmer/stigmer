@@ -444,46 +444,4 @@ public interface IdentityProviderSpecOrBuilder extends
    * @return The signInRole.
    */
   ai.stigmer.iam.v1.IamRole getSignInRole();
-
-  /**
-   * <pre>
-   * Whether people act in this organization only through this provider.
-   *
-   * When true, the organization's own people count in it only through the
-   * account this provider signed them in as. Its own people are the
-   * accounts holding a role in it, directly or through a team, and every
-   * credential bound to it. Such an account made by another sign-in (an
-   * email login, the server's own sign-in), or an API key it made, is
-   * refused there, on every read and write, with PERMISSION_DENIED carrying
-   * a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
-   *
-   * - SSO_REQUIRED: the organization requires sign-in through its SSO
-   * provider. Metadata: org (the organization's id), provider (this
-   * provider's slug). A console sends the person to the organization's
-   * SSO sign-in.
-   *
-   * A person granted one of its resources without a role in it, and a
-   * child organization's member reading what this organization shares with
-   * its children, are not its own people and are not held to it.
-   *
-   * The organization's owners are exempt, so a broken provider never locks
-   * everyone out. Service accounts, a run's own credential and the
-   * organization's platform clients are unaffected; a schedule, evaluator
-   * or eval that acts as a refused account stops, saying why. A person may
-   * move their access to the account this provider made for them
-   * (IdentityProviderCommandController.createAccessMove).
-   *
-   * Only the organization's owners may turn it on or off, and, while it is
-   * on, change whom the provider trusts (allowed_issuers, jwks_uri,
-   * expected_audience) or delete the provider (can_assign_roles on the
-   * organization).
-   * Deleting the provider ends the requirement. Valid only on the SSO
-   * provider (is_sso_provider). A change takes effect at once on the
-   * server that wrote it and within a minute on its other replicas.
-   * </pre>
-   *
-   * <code>bool sso_required = 15 [json_name = "ssoRequired"];</code>
-   * @return The ssoRequired.
-   */
-  boolean getSsoRequired();
 }

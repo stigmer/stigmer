@@ -13,8 +13,6 @@
  *   - Raj is a member and an editor of Alice's agent, then removed: his
  *     role is recorded as removed; the editor row the departure sweep does
  *     not yet remove on this posture (stigmer#2225) records nothing;
- *   - Mia moves her access to the account Acme's SSO provider signs her in
- *     as: every change is recorded as moved, acting for her new account;
  *   - Acme is deleted: every row it held is recorded as removed with the
  *     organization, and its history outlives the purge.
  * A server with no key is open source and keeps no history, whatever its
@@ -23,7 +21,7 @@
  * Postgres comes from TEST_DATABASE_URL (unset: skipped by name outside a
  * test gate); each boot gets a fresh database.
  */
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { fromBinary } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { createClient } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -33,9 +31,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
-import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
 import { InvitationCommandController } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/command_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -51,21 +46,17 @@ import { newTestSigner, writeTicket } from "../../license/__tests__/test-tickets
 import {
   bootEnterprise,
   createOrganization,
-  federatedToken,
   grant,
   licenseClaims,
-  providerRequest,
   ref,
   signIn,
   testClock,
-  transportTo,
   type BootedServer,
   type Person,
 } from "./enterprise-harness.js";
 
 const ISSUED = new Date("2026-10-01T00:00:00Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
-const OKTA = "acme-okta";
 
 /** One entry, the columns the story reads. */
 interface Entry {
@@ -230,35 +221,6 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("the permission history on a li
       .map((bytes) => fromBinary(IamPolicySchema, bytes).spec)
       .some((spec) => spec?.principal?.id === raj.accountId && spec.resource?.id === agentId);
     expect(stillHeld).toBe(true);
-  });
-
-  it("records an access move as moved, acting for the account that received it", async () => {
-    const mia = await signIn(booted, issuer, "operator|mia");
-    await createClient(IamPolicyCommandController, alice.transport).create(
-      grant(ref("identity_account", mia.accountId), "member", ref("organization", acme)),
-    );
-    const request = create(IdentityProviderSchema, providerRequest(issuer, acme, OKTA, { displayName: "Acme Okta" }));
-    if (request.spec !== undefined) {
-      request.spec.isSsoProvider = true;
-      request.spec.oidcClientId = "acme-client";
-    }
-    await createClient(IdentityProviderCommandController, alice.transport).create(request);
-    const miaOkta = transportTo(booted.port, federatedToken(issuer, OKTA, "okta|mia", "mia@acme.example"));
-    const miaOktaId = (await createClient(IdentityAccountQueryController, miaOkta).whoAmI({})).metadata?.id ?? "";
-    const from = await newest();
-
-    const ticket = await createClient(IdentityProviderCommandController, mia.transport).createAccessMove({ org: acme });
-    await createClient(IdentityProviderCommandController, miaOkta).redeemAccessMove({ ticket: ticket.ticket });
-
-    const moved = await entriesSince(from);
-    expect(moved.length).toBeGreaterThan(0);
-    expect(moved.every((entry) => entry.cause === "access_moved" && entry.actorId === miaOktaId)).toBe(true);
-    expect(moved).toContainEqual(
-      expect.objectContaining({ change: "granted", principalId: miaOktaId, relation: "member", resourceId: acme }),
-    );
-    expect(moved).toContainEqual(
-      expect.objectContaining({ change: "revoked", principalId: mia.accountId, relation: "member", resourceId: acme }),
-    );
   });
 
   it("records every row the organization's delete removes, and keeps its history after the purge", async () => {
