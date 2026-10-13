@@ -7,7 +7,8 @@ import { FEATURE_COPY, isNamedFeature } from "../internal/features.js";
 
 /**
  * The reason Stigmer Cloud refuses an act the organization's plan does not
- * include (iam/team/v1 and tenancy/organization/v1 command.proto).
+ * include (iam/team/v1, tenancy/organization/v1 and iam/identityprovider/v1
+ * command.proto).
  */
 export const PLAN_UPGRADE_REQUIRED = "PLAN_UPGRADE_REQUIRED";
 
@@ -18,6 +19,7 @@ export const DEFAULT_BILLING_HREF = "/settings/billing";
 const FEATURE_BY_WIRE_NAME: Readonly<Record<string, Feature>> = {
   teams: Feature.teams,
   child_orgs: Feature.child_orgs,
+  sso_enforcement: Feature.sso_enforcement,
 };
 
 /**
@@ -72,11 +74,13 @@ export function UpgradeNotice({
   billingHref = DEFAULT_BILLING_HREF,
   className,
 }: UpgradeNoticeProps) {
-  const label = isNamedFeature(feature) ? FEATURE_COPY[feature].label : "This feature";
+  const copy = isNamedFeature(feature) ? FEATURE_COPY[feature] : undefined;
+  const label = copy?.label ?? "This feature";
+  const plural = copy?.plural ?? false;
   const ahead =
     unlockingPlanName === undefined || unlockingPlanName === ""
-      ? `${label} are not included in this organization's plan.`
-      : `${label} need the ${unlockingPlanName} plan or above.`;
+      ? `${label} ${plural ? "are" : "is"} not included in this organization's plan.`
+      : `${label} ${plural ? "need" : "needs"} the ${unlockingPlanName} plan or above.`;
   const message = error ? getUserMessage(error) : ahead;
   return (
     <div

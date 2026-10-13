@@ -83,7 +83,11 @@ import type {
 } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { getKindName, kindByEnumName } from "../apiresource-meta.js";
-import { internalError, notFoundError } from "../errors.js";
+import {
+  internalError,
+  notFoundError,
+  permissionDeniedWithReasonError,
+} from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 
@@ -97,6 +101,35 @@ export const AUTHORIZATION_UNAVAILABLE_MESSAGE =
 
 /** The deny copy when the method's annotation carries no error_msg. */
 export const AUTHORIZATION_DENIED_FALLBACK_MESSAGE = "permission denied";
+
+/**
+ * The PERMISSION_DENIED a denial answers, the one mapping every seat that
+ * turns a deny into an error shares: a denial carrying a refusal answers
+ * the refusal's copy with its reason as an ErrorInfo detail, so a person
+ * reads what to do and a client acts on the reason; any other denial
+ * answers `laneCopy`, the lane's byte-pinned sentence, then the
+ * Authorizer's reason, then the shared fallback.
+ */
+export function deniedError(
+  decision: Extract<AuthzDecision, { kind: "deny" }>,
+  laneCopy: string,
+): ConnectError {
+  const refusal = decision.refusal;
+  if (refusal !== undefined) {
+    return permissionDeniedWithReasonError(refusal.message, {
+      reason: refusal.reason,
+      metadata: refusal.metadata,
+    });
+  }
+  return new ConnectError(
+    laneCopy !== ""
+      ? laneCopy
+      : decision.reason !== ""
+        ? decision.reason
+        : AUTHORIZATION_DENIED_FALLBACK_MESSAGE,
+    Code.PermissionDenied,
+  );
+}
 
 /**
  * The permissive single-team Authorizer: one trust domain,
@@ -265,14 +298,7 @@ export async function authorizeResolvedResource(
     case "allow":
       return;
     case "deny":
-      throw new ConnectError(
-        errorMsg !== ""
-          ? errorMsg
-          : decision.reason !== ""
-            ? decision.reason
-            : AUTHORIZATION_DENIED_FALLBACK_MESSAGE,
-        Code.PermissionDenied,
-      );
+      throw deniedError(decision, errorMsg);
     case "not-found": {
       // The not-found arm: the exact copy the load-first chain would
       // answer for the missing id (LoadTarget's notFoundError), so

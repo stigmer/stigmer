@@ -44,7 +44,7 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { createdByOf } from "../../pipeline/steps/authorization-facts.js";
-import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
+import { deniedError, evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
   collectSpecReferences,
@@ -196,6 +196,11 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
             });
             if (decision.kind === "unavailable") {
               throw internalError(decision.cause, "failed to authorize an attached vault");
+            }
+            if (decision.kind === "deny" && decision.refusal !== undefined) {
+              // A refusal the caller can act on (their organization
+              // requires another sign-in) says so, not the vault's copy.
+              throw deniedError(decision, "");
             }
             if (decision.kind !== "allow") {
               throw permissionDeniedError(

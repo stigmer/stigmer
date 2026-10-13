@@ -113,6 +113,8 @@ import type {
   ListAuthorizedPrincipalIdsInput,
   ListAuthorizedResourceIdsInput,
   ListResourceAccessInput,
+  MoveOrgAccessInput,
+  MoveOrgAccessResult,
   PrincipalResourceInput,
   RevokeOrgAccessInput,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
@@ -124,6 +126,7 @@ import {
   PrincipalsCountSchema,
   ResourceAccessByPrincipalListSchema,
   RevokeOrgAccessInputSchema,
+  MoveOrgAccessInputSchema,
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import type {
@@ -137,8 +140,10 @@ import {
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
+import type { AccountAutomations } from "../../authorization/account-automations.js";
 import type { Logger } from "../../boot/logger.js";
 import type { AuthorizationQueryEngine } from "../../extensions/authorization-queries.js";
+import type { ComposedCredentialBinding } from "../../authorization/credential-binding.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
@@ -198,6 +203,8 @@ import {
   orgAccessOwnerRoleChange,
   specOwnerRoleChange,
 } from "./steps.js";
+import { MOVED_ORG_ACCESS_KEY, newMoveOrgAccessStep } from "./move.js";
+import type { MyVaultEntries } from "./move.js";
 import type { IamPolicyStore } from "./store.js";
 import {
   refsOf,
@@ -226,17 +233,23 @@ export interface IamPolicyControllerDeps {
   /** The composed query engine — undefined = the tuple-half RPCs refuse UNIMPLEMENTED. */
   readonly queries: AuthorizationQueryEngine | undefined;
   /**
-   * The credential binding (authorization/credential-binding.ts): the two
+   * The credential binding (authorization/credential-binding.ts): the
    * self-query lanes ask the engine, which takes no caller, so a bound
-   * person's answers are narrowed here to what the credential may reach.
+   * person's answers are narrowed here to what the credential may reach,
+   * and a person's to what their organization's sign-in rule leaves them.
    */
-  readonly credentialBinding: CredentialBinding;
+  readonly credentialBinding: CredentialBinding &
+    Pick<ComposedCredentialBinding, "signInRefusalOn" | "narrowSignInIds">;
   /** The composed principal display — undefined = a non-person grantee renders in the id fallback shape. */
   readonly principalDisplay: PrincipalDisplay | undefined;
   /** The merged gate steps; `create` splices `iam-policy-create:pre-side-effect-gate`. */
   readonly gateSteps: ResolvedGateSteps;
   /** The served edition — `checkMyPermission`'s first arm reads a kind's tier against it. */
   readonly edition: ServerEdition;
+  /** What a move's departure deletes: the source account's My vault entries (move.ts). */
+  readonly myVaultEntries: MyVaultEntries;
+  /** The automations that act as an account, which stop with a move (move.ts). */
+  readonly automations: AccountAutomations;
   readonly logger: Logger;
 }
 
@@ -277,6 +290,10 @@ export function registerIamPolicyServices(
         ctx,
         false,
       );
+    },
+    bootstrapMoveOrgAccess: (input, ctx) => {
+      guardSystemRpc(command.bootstrapMoveOrgAccess, callerIdentityOf(ctx));
+      return moveOrgAccess(deps, input, ctx);
     },
   });
 
@@ -462,6 +479,43 @@ async function revokeOrgAccess(
   return create(EmptySchema);
 }
 
+/**
+ * `bootstrapMoveOrgAccess`, the system door that moves one account's access
+ * inside an organization to another account of the same person: Authorize
+ * → ValidateProto → MoveOrgAccess (move.ts). Its platform-pipeline callers
+ * hold no organization role, and the edition that calls it has proved both
+ * accounts are the one person's.
+ */
+async function moveOrgAccess(
+  deps: IamPolicyControllerDeps,
+  input: MoveOrgAccessInput,
+  ctx: HandlerContext,
+): Promise<MoveOrgAccessResult> {
+  const method = IamPolicyCommandController.method.bootstrapMoveOrgAccess;
+  const reqCtx = new RequestContext(
+    MoveOrgAccessInputSchema,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof MoveOrgAccessInputSchema>(
+    `iampolicy-${method.localName}`,
+    deps.logger,
+  )
+    .addStep(newAuthorizeStep(method, deps.authorizer))
+    .addStep(newValidateProtoStep())
+    .addStep(
+      newMoveOrgAccessStep({
+        grantPath: deps.grantPath,
+        myVaultEntries: deps.myVaultEntries,
+        automations: deps.automations,
+      }),
+    )
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(MOVED_ORG_ACCESS_KEY) as MoveOrgAccessResult;
+}
+
 async function cleanupResourcePolicies(
   deps: IamPolicyControllerDeps,
   ref: ApiResourceRef,
@@ -628,20 +682,29 @@ async function checkAuthorization(
  * is passed as asked, so the one cross-organization path (a blueprint
  * the bound organization's parent shares with its children) answers only to the permission names that
  * read or run it; a role relation such as `viewer` on such a blueprint
- * answers false for a bound caller, the narrower answer.
+ * answers false for a bound caller, the narrower answer. A person the
+ * resource's organization refuses by how they signed in (its sign-in rule)
+ * is answered false too, as the composed Authorizer would deny them.
  */
 async function bindingReaches(
   deps: IamPolicyControllerDeps,
   caller: CallerIdentity,
   policy: IamPolicySpec,
 ): Promise<boolean> {
+  const target = {
+    kind: kindByEnumName(policy.resource?.kind ?? ""),
+    id: policy.resource?.id ?? "",
+    permission: policy.relation,
+  };
   try {
-    const verdict = await deps.credentialBinding.verdict(caller, {
-      kind: kindByEnumName(policy.resource?.kind ?? ""),
-      id: policy.resource?.id ?? "",
-      permission: policy.relation,
-    });
-    return verdict !== "outside";
+    const verdict = await deps.credentialBinding.verdict(caller, target);
+    if (verdict === "outside") {
+      return false;
+    }
+    return (
+      (await deps.credentialBinding.signInRefusalOn(caller, target)) ===
+      undefined
+    );
   } catch (error) {
     throw internalError(error, AUTHORIZATION_UNAVAILABLE_MESSAGE);
   }
@@ -667,10 +730,17 @@ async function listAuthorizedResourceIds(
   );
   let reachable: ReadonlySet<string>;
   try {
-    reachable = await deps.credentialBinding.narrowIds(
+    const kind = kindByEnumName(input.resourceKind);
+    const bound = await deps.credentialBinding.narrowIds(
       caller,
-      kindByEnumName(input.resourceKind),
+      kind,
       new Set(resourceIds),
+      input.relation,
+    );
+    reachable = await deps.credentialBinding.narrowSignInIds(
+      caller,
+      kind,
+      bound,
       input.relation,
     );
   } catch (error) {

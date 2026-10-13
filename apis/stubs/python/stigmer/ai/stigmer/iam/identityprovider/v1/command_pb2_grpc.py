@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.iam.identityprovider.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2
+from ai.stigmer.iam.identityprovider.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2
 
 
 class IdentityProviderCommandControllerStub(object):
@@ -40,6 +41,16 @@ class IdentityProviderCommandControllerStub(object):
                 '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.FromString,
+                _registered_method=True)
+        self.createAccessMove = channel.unary_unary(
+                '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/createAccessMove',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveTicket.FromString,
+                _registered_method=True)
+        self.redeemAccessMove = channel.unary_unary(
+                '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/redeemAccessMove',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.RedeemAccessMoveInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveResult.FromString,
                 _registered_method=True)
 
 
@@ -93,6 +104,16 @@ class IdentityProviderCommandControllerServicer(object):
 
         - SLUG_RESERVED — another identity provider held the slug until a recent
         rename, and it still leads there. Metadata: slug.
+
+        A create that sets sso_required also needs can_assign_roles on the
+        organization, which only its owners hold (PERMISSION_DENIED otherwise):
+        requiring sign-in through a provider decides how every member gets in.
+        Where the organization's plan decides it, a plan without SSO
+        enforcement refuses it with FAILED_PRECONDITION carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+        SSO enforcement. Metadata: feature ("sso_enforcement"), org.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -110,6 +131,19 @@ class IdentityProviderCommandControllerServicer(object):
         - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
         identity provider keeps signing people in as it is, and can still
         be deleted. No metadata.
+
+        An update whose only change is turning sso_required off is never
+        refused this way: an organization may always stop requiring its SSO
+        provider.
+
+        An update that changes sso_required, or that changes whom a provider
+        with sso_required on trusts (allowed_issuers, jwks_uri,
+        expected_audience), also needs can_assign_roles on the organization,
+        which only its owners hold (PERMISSION_DENIED otherwise).
+        Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
+        organization's plan does not include SSO enforcement (see create);
+        an organization that already requires it keeps it, and may always
+        turn it off.
 
         An update names the identity provider by its id, and the slug changes
         only through rename.
@@ -142,6 +176,49 @@ class IdentityProviderCommandControllerServicer(object):
         The federated accounts the provider vouches for are
         deleted with it, with every role they hold, so a provider created again
         under the same slug inherits none of them.
+
+        Deleting a provider that sets sso_required ends the requirement, so it
+        also needs can_assign_roles on the organization, which only its owners
+        hold (PERMISSION_DENIED otherwise).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def createAccessMove(self, request, context):
+        """Start moving your access in an organization to the account its SSO
+        provider signs you in as.
+
+        For someone who worked in an organization under another sign-in (an
+        email login) before the organization connected its SSO provider. The
+        caller, signed in the old way, asks for a ticket; the answer says what
+        the move will do (AccessMoveTicket.preview: the access that moves, the
+        My vault entries it deletes, the automations that stop); the person
+        then signs in through the organization's SSO provider and redeems the
+        ticket with redeemAccessMove. The ticket works once, for ten minutes,
+        for this account and this organization only.
+
+        Refused with FAILED_PRECONDITION when the caller holds no access in the
+        organization, is one of its owners (owners keep their own sign-in), or
+        already signed in through an SSO provider; with NOT_FOUND when the
+        organization has no SSO provider (the same copy getSsoProvider answers).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def redeemAccessMove(self, request, context):
+        """Redeem an access move ticket: the access it names moves to the caller.
+
+        The caller must be signed in through the organization's SSO provider,
+        as the account it made for them; anyone else is refused with
+        PERMISSION_DENIED and the ticket stays usable until it expires. A
+        ticket that is unknown, expired or already redeemed is refused with
+        FAILED_PRECONDITION. A move that stops partway may be redeemed again
+        with the same ticket while it lasts, and completes.
+
+        Every change is recorded in the organization's permission history as a
+        move, acting for the caller.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -174,6 +251,16 @@ def add_IdentityProviderCommandControllerServicer_to_server(servicer, server):
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.SerializeToString,
+            ),
+            'createAccessMove': grpc.unary_unary_rpc_method_handler(
+                    servicer.createAccessMove,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveTicket.SerializeToString,
+            ),
+            'redeemAccessMove': grpc.unary_unary_rpc_method_handler(
+                    servicer.redeemAccessMove,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.RedeemAccessMoveInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveResult.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -312,6 +399,60 @@ class IdentityProviderCommandController(object):
             '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/delete',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createAccessMove(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/createAccessMove',
+            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveRequest.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveTicket.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def redeemAccessMove(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/redeemAccessMove',
+            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.RedeemAccessMoveInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_io__pb2.AccessMoveResult.FromString,
             options,
             channel_credentials,
             insecure,

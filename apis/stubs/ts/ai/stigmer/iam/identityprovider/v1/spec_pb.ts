@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/identityprovider/v1/spec.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEihAgKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEioKD2FsbG93ZWRfaXNzdWVycxgDIAMoCUIRukgOkgELEAoiB3IFEAEYgBASJQoRZXhwZWN0ZWRfYXVkaWVuY2UYBCABKAlCCrpIB3IFEAEYyAESIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISIwoRZXh0ZXJuYWxfaWRfY2xhaW0YDCABKAlCCLpIBXIDGIACEiIKGmNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luGA0gASgIEjAKDHNpZ25faW5fcm9sZRgOIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGU6mQS6SJUEGpQBCihpZGVudGl0eV9wcm92aWRlci5zaWduX2luX3JvbGVfbm90X293bmVyElBzaWduX2luX3JvbGUgY2Fubm90IGJlIG93bmVyOyBvcmdhbml6YXRpb24gb3duZXJzaGlwIG11c3QgYmUgYXNzaWduZWQgZXhwbGljaXRseRoWdGhpcy5zaWduX2luX3JvbGUgIT0gMRrSAQoyaWRlbnRpdHlfcHJvdmlkZXIuc3NvX2NyZWF0ZXNfYWNjb3VudHNfd2l0aF9hX3JvbGUSRmFuIFNTTyBwcm92aWRlciBtdXN0IHNldCBjcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbiBhbmQgYSBzaWduX2luX3JvbGUaVCF0aGlzLmlzX3Nzb19wcm92aWRlciB8fCAodGhpcy5jcmVhdGVfYWNjb3VudHNfb25fc2lnbl9pbiAmJiB0aGlzLnNpZ25faW5fcm9sZSAhPSAwKRqmAQowaWRlbnRpdHlfcHJvdmlkZXIuandrc191cmlfcmVxdWlyZWRfd2l0aF9pc3N1ZXJzEjlqd2tzX3VyaSBpcyByZXF1aXJlZCB3aGVuIGFsbG93ZWRfaXNzdWVycyBuYW1lcyBhbiBpc3N1ZXIaN3RoaXMuYWxsb3dlZF9pc3N1ZXJzLnNpemUoKSA9PSAwIHx8IHRoaXMuandrc191cmkgIT0gJydKBAgFEAZKBAgJEApKBAgKEAtKBAgLEAxSEXJhdGVfbGltaXRfYnVkZ2V0UhdhdXRvX3Byb3Zpc2lvbl9hY2NvdW50c1IRYXV0b19ncmFudF9vbl9vcmdSD2F1dG9fZ3JhbnRfcm9sZWIGcHJvdG8z", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEizQkKFElkZW50aXR5UHJvdmlkZXJTcGVjEh4KDGRpc3BsYXlfbmFtZRgBIAEoCUIIukgFcgMYyAESGgoIandrc191cmkYAiABKAlCCLpIBXIDGIAQEioKD2FsbG93ZWRfaXNzdWVycxgDIAMoCUIRukgOkgELEAoiB3IFEAEYgBASJQoRZXhwZWN0ZWRfYXVkaWVuY2UYBCABKAlCCrpIB3IFEAEYyAESIwoRdXNlcmluZm9fZW5kcG9pbnQYBiABKAlCCLpIBXIDGIAQEhcKD2lzX3Nzb19wcm92aWRlchgHIAEoCBIgCg5vaWRjX2NsaWVudF9pZBgIIAEoCUIIukgFcgMYgAISIwoRZXh0ZXJuYWxfaWRfY2xhaW0YDCABKAlCCLpIBXIDGIACEiIKGmNyZWF0ZV9hY2NvdW50c19vbl9zaWduX2luGA0gASgIEjAKDHNpZ25faW5fcm9sZRgOIAEoDjIaLmFpLnN0aWdtZXIuaWFtLnYxLklhbVJvbGUSFAoMc3NvX3JlcXVpcmVkGA8gASgIOswFukjIBRqUAQooaWRlbnRpdHlfcHJvdmlkZXIuc2lnbl9pbl9yb2xlX25vdF9vd25lchJQc2lnbl9pbl9yb2xlIGNhbm5vdCBiZSBvd25lcjsgb3JnYW5pemF0aW9uIG93bmVyc2hpcCBtdXN0IGJlIGFzc2lnbmVkIGV4cGxpY2l0bHkaFnRoaXMuc2lnbl9pbl9yb2xlICE9IDEa0gEKMmlkZW50aXR5X3Byb3ZpZGVyLnNzb19jcmVhdGVzX2FjY291bnRzX3dpdGhfYV9yb2xlEkZhbiBTU08gcHJvdmlkZXIgbXVzdCBzZXQgY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4gYW5kIGEgc2lnbl9pbl9yb2xlGlQhdGhpcy5pc19zc29fcHJvdmlkZXIgfHwgKHRoaXMuY3JlYXRlX2FjY291bnRzX29uX3NpZ25faW4gJiYgdGhpcy5zaWduX2luX3JvbGUgIT0gMCkasAEKMWlkZW50aXR5X3Byb3ZpZGVyLnNzb19yZXF1aXJlZF9uZWVkc19zc29fcHJvdmlkZXIST3Nzb19yZXF1aXJlZCBpcyB2YWxpZCBvbmx5IG9uIHRoZSBvcmdhbml6YXRpb24ncyBTU08gcHJvdmlkZXIgKGlzX3Nzb19wcm92aWRlcikaKiF0aGlzLnNzb19yZXF1aXJlZCB8fCB0aGlzLmlzX3Nzb19wcm92aWRlchqmAQowaWRlbnRpdHlfcHJvdmlkZXIuandrc191cmlfcmVxdWlyZWRfd2l0aF9pc3N1ZXJzEjlqd2tzX3VyaSBpcyByZXF1aXJlZCB3aGVuIGFsbG93ZWRfaXNzdWVycyBuYW1lcyBhbiBpc3N1ZXIaN3RoaXMuYWxsb3dlZF9pc3N1ZXJzLnNpemUoKSA9PSAwIHx8IHRoaXMuandrc191cmkgIT0gJydKBAgFEAZKBAgJEApKBAgKEAtKBAgLEAxSEXJhdGVfbGltaXRfYnVkZ2V0UhdhdXRvX3Byb3Zpc2lvbl9hY2NvdW50c1IRYXV0b19ncmFudF9vbl9vcmdSD2F1dG9fZ3JhbnRfcm9sZWIGcHJvdG8z", [file_ai_stigmer_iam_v1_enum, file_buf_validate_validate]);
 
 /**
  * IdentityProviderSpec defines the configuration for an external identity provider.
@@ -299,6 +299,45 @@ export type IdentityProviderSpec = Message<"ai.stigmer.iam.identityprovider.v1.I
    * @generated from field: ai.stigmer.iam.v1.IamRole sign_in_role = 14;
    */
   signInRole: IamRole;
+
+  /**
+   * Whether people act in this organization only through this provider.
+   *
+   * When true, the organization's own people count in it only through the
+   * account this provider signed them in as. Its own people are the
+   * accounts holding a role in it, directly or through a team, and every
+   * credential bound to it. Such an account made by another sign-in (an
+   * email login, the server's own sign-in), or an API key it made, is
+   * refused there, on every read and write, with PERMISSION_DENIED carrying
+   * a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   *   - SSO_REQUIRED: the organization requires sign-in through its SSO
+   *     provider. Metadata: org (the organization's id), provider (this
+   *     provider's slug). A console sends the person to the organization's
+   *     SSO sign-in.
+   *
+   * A person granted one of its resources without a role in it, and a
+   * child organization's member reading what this organization shares with
+   * its children, are not its own people and are not held to it.
+   *
+   * The organization's owners are exempt, so a broken provider never locks
+   * everyone out. Service accounts, a run's own credential and the
+   * organization's platform clients are unaffected; a schedule, evaluator
+   * or eval that acts as a refused account stops, saying why. A person may
+   * move their access to the account this provider made for them
+   * (IdentityProviderCommandController.createAccessMove).
+   *
+   * Only the organization's owners may turn it on or off, and, while it is
+   * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+   * expected_audience) or delete the provider (can_assign_roles on the
+   * organization).
+   * Deleting the provider ends the requirement. Valid only on the SSO
+   * provider (is_sso_provider). A change takes effect at once on the
+   * server that wrote it and within a minute on its other replicas.
+   *
+   * @generated from field: bool sso_required = 15;
+   */
+  ssoRequired: boolean;
 };
 
 /**

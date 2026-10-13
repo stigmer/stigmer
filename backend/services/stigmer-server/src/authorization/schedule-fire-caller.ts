@@ -40,6 +40,10 @@
  * `user` with no issuer and no token — open source reads no fire-scoped
  * claims downstream, and the propagation lane stamps `origin:
  * "in-process"` on it.
+ *
+ * A creator the schedule's organization no longer admits by how they
+ * signed in (creator-sign-in.ts) is the same deterministic refusal, with
+ * the organization's own reason: the schedule pauses saying why.
  */
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -51,11 +55,18 @@ import type { ScheduleFireCallerMint } from "../extensions/schedule-fire-caller.
 import { ScheduleFireCallerRefusedError } from "../extensions/schedule-fire-caller.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
+import {
+  creatorSignInRefusal,
+  refusedCreatorMessage,
+} from "./creator-sign-in.js";
+import type { CreatorSignInCheck } from "./creator-sign-in.js";
 
 export interface BuiltInScheduleFireCallerDeps {
   readonly store: Store;
   /** The account port: the stamp is resolved as an account id, then as a direct subject. */
   readonly accounts: AccountsByCaller;
+  /** The composed binding's sign-in refusal; absent, no organization requires anything (a test's mint). */
+  readonly signIn?: CreatorSignInCheck;
 }
 
 /** The refusal's copy — written for the person who scheduled the run (the schedule's status carries it). */
@@ -67,7 +78,7 @@ export function newBuiltInScheduleFireCaller(
   deps: BuiltInScheduleFireCallerDeps,
 ): ScheduleFireCallerMint {
   return {
-    async mintFireCaller(_org, scheduleId) {
+    async mintFireCaller(org, scheduleId) {
       const schedule = await deps.store.getResource(
         ApiResourceKind.schedule,
         scheduleId,
@@ -81,7 +92,14 @@ export function newBuiltInScheduleFireCaller(
           scheduleHasNoPersonMessage(scheduleId),
         );
       }
-      return accountAsCaller(account);
+      const caller = accountAsCaller(account);
+      const refusal = await creatorSignInRefusal(deps.signIn, caller, org);
+      if (refusal !== undefined) {
+        throw new ScheduleFireCallerRefusedError(
+          refusedCreatorMessage("schedule", scheduleId, refusal),
+        );
+      }
+      return caller;
     },
   };
 }

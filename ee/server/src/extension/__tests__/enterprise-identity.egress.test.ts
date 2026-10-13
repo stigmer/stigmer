@@ -66,6 +66,8 @@ import { inMemorySignInGrants } from "../../iam/federation/__tests__/in-memory-s
 import { UNBOUND_CREDENTIAL_BINDING } from "../../__test-utils__/unbound-credential-binding.js";
 import { newEnterpriseIdentityExtension } from "../enterprise-identity.js";
 import { inMemoryNames } from "../../__test-utils__/in-memory-names.js";
+import { newInMemoryTicketStore } from "../../iam/access-move/__tests__/in-memory-ticket-store.js";
+import type { AccountAutomations } from "@stigmer/server";
 
 const ISSUER = "https://idp.acme.test";
 const DISCOVERY = `${ISSUER}/.well-known/openid-configuration`;
@@ -187,6 +189,7 @@ function rig(store: InMemoryProviderStore = new InMemoryProviderStore()): Rig {
     teams: refusingPort("teams"),
     invitations: refusingPort("invitations"),
     signInGrants: inMemorySignInGrants(),
+    accessMoves: newInMemoryTicketStore(),
     accounts: accountService(created),
     schema: { ensure: () => Promise.resolve() },
     outboundFetch: recording,
@@ -202,6 +205,7 @@ function rig(store: InMemoryProviderStore = new InMemoryProviderStore()): Rig {
     childOrganizations: refusingPort<ChildOrganizations>("childOrganizations"),
     identityAccounts: refusingPort<ComposedIdentityAccounts>("identityAccounts"),
     iamPolicies: refusingPort<ComposedIamPolicies>("iamPolicies"),
+    accountAutomations: refusingPort<AccountAutomations>("accountAutomations"),
     inProcessTransport: organizations,
     resourceNames: inMemoryNames().resourceNames,
   });
