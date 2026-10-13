@@ -129,13 +129,12 @@ each adapter to another protocol (A2A, OpenTelemetry GenAI, AG-UI).
   specification's own clients cannot see or send, and a Stigmer-only step that
   needs one stays off unless a Stigmer client turns it on.
 
-Two surfaces predate the rule: the run transcript on `RunStatus`
-(`apis/ai/stigmer/agentic/run/v1/api.proto` and `message.proto` beside it) and
-the CLI's NDJSON run stream
-(`client-apps/cli/src/resources/stream/render-ndjson.ts`), both paths from the
-repository root. They are maintained, and may still gain new kinds of output,
-until a compatible surface replaces them; from then on new output goes only to
-the compatible surface.
+One surface predates the rule: the run transcript on `RunStatus`
+(`apis/ai/stigmer/agentic/run/v1/api.proto` and `message.proto` beside it, paths
+from the repository root). No client reads it: every client reads the session's
+event log, and the CLI's `--json` writes one Managed Agents event per line. It
+is maintained until it leaves the contract, and new output goes only to the
+session's events.
 
 ## Development Workflow
 
