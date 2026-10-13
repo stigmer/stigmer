@@ -25,6 +25,28 @@ The package's process entry is `main.js` at the root of its build output, a one-
 | `DATABASE_URL` | Required with a key: Stigmer Enterprise runs on Postgres. |
 | `STIGMER_PLATFORM_TOKEN_KEY` | The key the server signs its own tokens with. Unset, the server generates one and keeps it under its home directory; a server run as several replicas sets it so they share one key. |
 
+## The server image
+
+Every release also publishes this server as a container image, `ghcr.io/stigmer/stigmer-server-ee`, for linux/amd64 and linux/arm64. It is the open-source `stigmer-server` image built from the same Dockerfile (`backend/services/stigmer-server/README.md`, "Docker image": the same `/data` volume, ports and health check, the web console included) plus this package: its `/app` is the server's slim bundle with this package's `main.js` as the entry. The npm package ships no console, so the image is how a self-hosted Enterprise server gets one.
+
+```bash
+# No key: the open-source server exactly.
+docker run -d -p 7234:7234 -p 7235:7235 -v stigmer-data:/data \
+  ghcr.io/stigmer/stigmer-server-ee:latest
+
+# A license key, on Postgres.
+docker run -d -p 7234:7234 -p 7235:7235 -v stigmer-data:/data \
+  -e STIGMER_LICENSE_KEY="<the key>" \
+  -e DATABASE_URL="postgres://<user>:<password>@<host>:5432/<database>" \
+  ghcr.io/stigmer/stigmer-server-ee:latest
+```
+
+The image reads the variables in the table above, and everything the open-source image reads. A key it cannot verify stops the container with exit code 1 and one `boot failed:` line saying why. An image only trusts the signing keys compiled into its release, and none is compiled in yet: until a release carries the production key, every image refuses every key, and runs as open source without one.
+
+Its labels say what it holds: `org.opencontainers.image.title` is `stigmer-server-ee`, and `org.opencontainers.image.licenses` is `LicenseRef-Stigmer-Enterprise AND Apache-2.0`, this package under `LICENSE` (which sits beside `main.js` in `/app`) and the open-source server under the Apache License 2.0.
+
+Tags: `vX.Y.Z` for each release; `latest` moves only to a stable release, after the pushed image has passed its smoke on native runners of both architectures. Local build and smoke: `make smoke-ee-image`, which bundles the tree (`make bundle-ee-slim`) and runs `scripts/smoke-image.mjs`: the labels, the open-source server's own image smoke with no key, and two keys it cannot verify refused.
+
 ## Using it as a library
 
 A host that composes the Enterprise identity unit beside units of its own imports it from the package's one entry, `@stigmer/enterprise`: the unit's builder and its ports, the Postgres side built over the host's pool and its schema chain, the license verifier and the state a verified license is in, the growth gate, and the contract kits an adapter of the unit's ports must pass. The server's own composition from a license verdict, the license status it reports and the growth freeze it builds are not exported: a server that runs Stigmer Enterprise runs this package's entry, whose trusted keys are compiled in.

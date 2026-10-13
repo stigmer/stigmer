@@ -67,11 +67,24 @@
  *
  * Usage:
  *   node scripts/bundle-slim.mjs [--platform=<darwin-arm64|darwin-x64|linux-x64|linux-arm64|win32-x64>] [--emit-packages] [--version=<semver>]
+ *                                [--entry-package=<dir> --out=<dir>]
  *
  * --version stamps the emitted manifests instead of the package's own
  * version. The release lane stamps package.json in its ephemeral checkout; a
  * from-source staging (the all-in-one image) passes the version here and
  * leaves the checkout clean.
+ *
+ * --entry-package bundles another package's process entry in place of the
+ * server's: a package built against this server, whose dist/main.js (where
+ * every standalone Stigmer server keeps its entry) composes the server
+ * through its library exports. Everything else in the tree is still the
+ * server's (the workflow bundles, the worker thread, the console, the
+ * native bridge), the entry package's bare imports resolve from the
+ * server's tree (resolveFromServerPlugin), and the tree's package.json and
+ * LICENSE are the entry package's. --out names the tree's directory instead
+ * of dist-slim/, so the server's own tree is never overwritten. A package
+ * bundled this way ships as a self-contained tree only: --emit-packages is
+ * refused with --entry-package.
  */
 
 import { build } from "esbuild";
@@ -81,13 +94,15 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
-import { join, relative } from "node:path";
+import { createRequire, isBuiltin } from "node:module";
+import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { entryPackageCopies } from "../../../../scripts/lib/slim-entry-inputs.mjs";
 import { stripExternalSourceMapPragma } from "../../../../scripts/lib/source-map-pragma.mjs";
 
 const require = createRequire(import.meta.url);
@@ -95,7 +110,11 @@ const require = createRequire(import.meta.url);
 const serverRoot = fileURLToPath(new URL("..", import.meta.url));
 const distDir = join(serverRoot, "dist");
 const nodeModulesDir = join(serverRoot, "node_modules");
-const outDir = join(serverRoot, "dist-slim");
+// The tree's directory; --out moves it (see the header).
+let outDir = join(serverRoot, "dist-slim");
+// With --entry-package: { entry, root, pkg, version } of the package whose
+// dist/main.js is bundled.
+let entryPackage;
 const pkgsDir = join(serverRoot, "dist-slim-pkgs");
 
 /**
@@ -169,11 +188,17 @@ function parseArgs() {
   let platform = hostPlatform;
   let emitPackages = false;
   let version;
+  let entryPackageDir;
+  let out;
   for (const arg of process.argv.slice(2)) {
     const m = arg.match(/^--platform=(.+)$/);
     const v = arg.match(/^--version=(.+)$/);
+    const e = arg.match(/^--entry-package=(.+)$/);
+    const o = arg.match(/^--out=(.+)$/);
     if (m) platform = m[1];
     else if (v) version = v[1];
+    else if (e) entryPackageDir = resolve(e[1]);
+    else if (o) out = resolve(o[1]);
     else if (arg === "--emit-packages") emitPackages = true;
     else fail(`unknown argument: ${arg}`);
   }
@@ -182,7 +207,19 @@ function parseArgs() {
       `Unsupported platform "${platform}". Supported: ${Object.keys(CORE_BRIDGE_TRIPLES).join(", ")}`,
     );
   }
-  return { platform, emitPackages, version };
+  if (entryPackageDir !== undefined && out === undefined) {
+    fail(
+      "--entry-package needs --out: without it the tree would replace the server's own dist-slim/, " +
+        "and every reader of that tree would run the entry package as the open-source server",
+    );
+  }
+  if (entryPackageDir !== undefined && emitPackages) {
+    fail(
+      "--emit-packages is refused with --entry-package: the npm packages are the server's own, " +
+        "and a tree bundled from another entry ships only as a self-contained directory",
+    );
+  }
+  return { platform, emitPackages, version, entryPackageDir, out };
 }
 
 function fail(message) {
@@ -364,6 +401,63 @@ const patchThreadedVmPlugin = {
 };
 
 /**
+ * With --entry-package: resolves every bare import made by a file of the entry's
+ * package as if the server had made it. That package keeps its own lockfile
+ * and node_modules, so following its imports as the checkout lays them out
+ * would put a second instance of every package the two share into one
+ * process (scripts/lib/slim-entry-inputs.mjs says why that breaks).
+ * Resolving from the server's root gives one instance, at the server
+ * lockfile's version. That is exact only while the entry package's runtime
+ * dependencies carry the server's specs, a rule its repository keeps; the
+ * metafile check in buildMainBundle fails the build the day one does not.
+ *
+ * The server's own name resolves through its exports map from its root (a
+ * package self-reference) and must land in the server's own files: a walk
+ * up to an outer node_modules could find a stale published copy. Imports
+ * made by every other file (the server, its linked libraries) resolve
+ * exactly as they do in the server's own bundle.
+ */
+function resolveFromServerPlugin(entryRoot) {
+  const serverRealRoot = realpathSync(serverRoot);
+  const ownFiles = `${entryRoot}${sep}`;
+  const ownNodeModules = `${join(entryRoot, "node_modules")}${sep}`;
+  const isServerName = (specifier) =>
+    specifier === serverPkg.name || specifier.startsWith(`${serverPkg.name}/`);
+  return {
+    name: "resolve-entry-imports-from-the-server",
+    setup(buildApi) {
+      buildApi.onResolve({ filter: /^[^./]/ }, async (args) => {
+        // The resolve below re-enters this callback with no importer.
+        if (!args.importer.startsWith(ownFiles)) return undefined;
+        if (args.importer.startsWith(ownNodeModules)) return undefined;
+        if (isBuiltin(args.path)) return undefined;
+        const resolved = await buildApi.resolve(args.path, {
+          kind: args.kind,
+          resolveDir: serverRealRoot,
+        });
+        if (resolved.errors.length > 0) return { errors: resolved.errors };
+        if (isServerName(args.path)) {
+          const inServer = relative(serverRealRoot, resolved.path).split(sep)[0];
+          if (inServer === ".." || inServer === "node_modules") {
+            fail(
+              `${args.path} resolved to ${resolved.path}, outside the server's own files ` +
+                `(${serverRealRoot}); the entry must bundle this checkout's server`,
+            );
+          }
+        }
+        return {
+          path: resolved.path,
+          external: resolved.external,
+          namespace: resolved.namespace,
+          sideEffects: resolved.sideEffects,
+          suffix: resolved.suffix,
+        };
+      });
+    },
+  };
+}
+
+/**
  * CJS-output preamble (runner recipe): `require`, `__filename`, `__dirname`
  * are native under CJS. `import.meta.url` — used by the workers' sibling
  * workflow-bundle discovery — is mapped to this banner's file URL of the
@@ -379,9 +473,10 @@ globalThis.__stigmerWorkflowWorkerThreadPath = () => __stigmerJoin(__dirname, "w
 `;
 
 async function buildMainBundle() {
-  console.log("[3/6] Bundling server entry (dist/main.js)...");
+  const entryFile = entryPackage?.entry ?? join(distDir, "main.js");
+  console.log(`[3/6] Bundling server entry (${relative(process.cwd(), entryFile)})...`);
   const result = await build({
-    entryPoints: [join(distDir, "main.js")],
+    entryPoints: [entryFile],
     outfile: join(outDir, "main.js"),
     bundle: true,
     platform: "node",
@@ -414,11 +509,30 @@ async function buildMainBundle() {
     // exists and then crash calling into it.
     external: ["pg-native"],
     banner: { js: CJS_BANNER },
-    plugins: [stubTemporalBundlerPlugin, patchThreadedVmPlugin],
+    plugins: [
+      stubTemporalBundlerPlugin,
+      patchThreadedVmPlugin,
+      ...(entryPackage === undefined ? [] : [resolveFromServerPlugin(entryPackage.root)]),
+    ],
     metafile: true,
     logLevel: "warning",
   });
   writeFileSync(join(outDir, "meta.json"), JSON.stringify(result.metafile));
+
+  if (entryPackage !== undefined) {
+    // The metafile's input paths are relative to the working directory.
+    const copies = entryPackageCopies(
+      Object.keys(result.metafile.inputs),
+      relative(process.cwd(), join(entryPackage.root, "node_modules")),
+    );
+    if (copies.length > 0) {
+      fail(
+        "the bundle took these packages from the entry package's own node_modules, " +
+          "a second copy of what the server's tree provides:\n" +
+          copies.map(({ name, dir }) => `  ${name}  (${dir})`).join("\n"),
+      );
+    }
+  }
 
   for (const asset of BUNDLED_MODULE_ASSETS) {
     const src = join(nodeModulesDir, asset.from);
@@ -559,6 +673,27 @@ function metaPackageJson() {
   };
 }
 
+/**
+ * The self-contained tree's package.json: the server's meta manifest, or
+ * with --entry-package the same shape under the entry package's name,
+ * version, description, license and repository, private because that tree
+ * is never published.
+ */
+function treePackageJson() {
+  const meta = metaPackageJson();
+  if (entryPackage === undefined) return meta;
+  const { name, description, license, repository } = entryPackage.pkg;
+  return {
+    ...meta,
+    name,
+    version: entryPackage.version,
+    description,
+    license,
+    repository,
+    private: true,
+  };
+}
+
 // ─── Step 4: Stage the web console's static export ──────────────────────────
 
 /**
@@ -650,8 +785,15 @@ function stageSelfContained(platform) {
 
   writeFileSync(
     join(outDir, "package.json"),
-    JSON.stringify(metaPackageJson(), null, 2) + "\n",
+    JSON.stringify(treePackageJson(), null, 2) + "\n",
   );
+  // The entry package's license governs its bundled code; it rides beside
+  // main.js so the tree, and an image made from it, says so.
+  if (entryPackage !== undefined) {
+    const license = join(entryPackage.root, "LICENSE");
+    if (!existsSync(license)) fail(`the entry package has no LICENSE: ${license}`);
+    cpSync(license, join(outDir, "LICENSE"));
+  }
 }
 
 // ─── Step 5 (optional): publishable npm package directories ─────────────────
@@ -755,12 +897,26 @@ function printSizeReport(platform) {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-const { platform, emitPackages, version } = parseArgs();
+/** The --entry-package's manifest and built entry, by real path (esbuild reports real paths). */
+function readEntryPackage(dir, version) {
+  if (!existsSync(join(dir, "package.json"))) fail(`--entry-package has no package.json: ${dir}`);
+  const root = realpathSync(dir);
+  const entry = join(root, "dist", "main.js");
+  if (!existsSync(entry)) fail(`${entry} not found — build the --entry-package first`);
+  const pkg = readPackageJson(root);
+  return { entry, root, pkg, version: version ?? pkg.version };
+}
+
+const { platform, emitPackages, version, entryPackageDir, out } = parseArgs();
 // The emitted manifests' version: the package's own unless --version stamps it.
 if (version !== undefined) serverPkg.version = version;
+if (out !== undefined) outDir = out;
 
 if (!existsSync(join(distDir, "main.js"))) {
   fail("dist/main.js not found — run `npm run build` first");
+}
+if (entryPackageDir !== undefined) {
+  entryPackage = readEntryPackage(entryPackageDir, version);
 }
 
 rmSync(outDir, { recursive: true, force: true });
