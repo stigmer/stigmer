@@ -1,14 +1,15 @@
 /**
  * SessionEventEmitter: writes what the agent did into its session's event
  * log (`SessionCommandController.appendEvents`), in Claude Managed Agents'
- * events, from the rows the turn's status already holds.
+ * events, from the rows the turn holds (`TurnRows`, the runner's own proto).
  *
  * Where it reads. The persist chokepoint calls {@link flush} on every write
  * of the status, after the secret backstop and the tool-output offload of
  * that write and before the status itself is sent (`persist-chokepoint.ts`),
- * so the log sees exactly what the status carries, redacted and bounded,
- * in both process modes (the agent host's rows reach this status on every
- * persist). One reader of the rows, never a second writer of them.
+ * so the log sees the rows redacted and bounded, in both process modes (the
+ * agent host's rows reach the runtime's on every persist). The status
+ * carries no rows: the log is where they go. One reader of the rows, never
+ * a second writer of them.
  *
  * What it writes: only sealed facts, in order. Each thread (the root, or
  * one sub-agent) is walked in its rows' order: per message, the message,
@@ -36,7 +37,7 @@
  * reaches neither the log nor a preview.
  *
  * File review. A change set the turn captured (a CANDIDATE_CAPTURED on the
- * run's own ledger, `status.file_review_event_stream`) is written as one
+ * turn's own ledger, `rows.file_review_event_stream`) is written as one
  * `stigmer.file_review.changes`, read from that ledger at the same
  * chokepoint, once. The undo a turn's start does for an earlier turn
  * (`harness/owed-undos.ts`) is written as `stigmer.file_review.reconciled`
@@ -44,17 +45,22 @@
  * and before the workspace lock is released. A decision is never the
  * runner's to write: `stigmer.file_review.decided` is the server's.
  *
- * Which rows are its to write. Seeded SYSTEM rows never are (the server's
- * stop rows, or notes an earlier invocation wrote); the rows a terminal arm
- * appends are reported ({@link skipRootRows}) and skipped, because the
- * session's status events and the run's stop cause say it; every other
- * SYSTEM row is a note of the harness (`stigmer.harness.note`).
+ * Which rows are its to write. The rows a terminal arm appends are
+ * reported ({@link skipRootRows}) and skipped, because the session's status
+ * events and the run's stop cause say it; every other SYSTEM row is a note
+ * of the harness (`stigmer.harness.note`). A reinvocation's seeded asks
+ * (`harness/resume-seed.ts`) sit on messages with no text, which write
+ * nothing, and their tool uses are already in the log.
  *
  * Its memory is the log. A resumed or retried turn first lists its run's
  * events ({@link begin}) and treats those ids as sent, so it resends
  * nothing whatever later edits did to the rows; a fresh turn skips the
  * read. Ids are derived (`ids.ts`), so a fact is named the same way by
- * every invocation.
+ * every invocation. A message, thinking or note is named by its place in
+ * its scope, and a resumed invocation's rows are its own: the asks it
+ * seeded sit on messages before them that write nothing, so each scope's
+ * own places are numbered on from the highest index the log already holds
+ * there ({@link nextScopeIndexes}), and no id is reused.
  *
  * Previews. The transcript builder's observer hands every token delta to
  * {@link observe}; the previews ride the next append. A message is
@@ -74,7 +80,6 @@
 import { create, toBinary } from "@bufbuild/protobuf";
 import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileChangeKind,
   FileReviewBlockReason,
@@ -105,7 +110,7 @@ import {
   toolResultFullOutputEventId,
   toolUseEventId,
 } from "./ids.js";
-import type { AgentMessage, ToolCall, SubAgentRun } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import type { AgentMessage, ToolCall, SubAgentRun, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalPolicySource,
   MessageType,
@@ -233,8 +238,10 @@ export class SessionEventEmitter {
   private readonly previewStarted = new Set<string>();
   /** Message ids never to preview again (their previews were held back once). */
   private readonly previewWithheld = new Set<string>();
-  /** Per scope (root ""), how many messages the reinvocation seeded: their SYSTEM rows are not this turn's to write. */
-  private readonly seeded = new Map<string, number>();
+  /** Per scope prefix (`ids.ts` `scopeEventPrefix`), the index this invocation's own first place takes. */
+  private scopeBases: ReadonlyMap<string, number> = new Map();
+  /** Per scope (root ""), where this invocation's own messages begin: after the seeded asks' messages. */
+  private readonly ownFrom = new Map<string, number>();
   /** Root positions of the rows a terminal arm appended. */
   private readonly armRows = new Set<number>();
   /** Per scope (root ""), where its last walk stopped. */
@@ -247,21 +254,27 @@ export class SessionEventEmitter {
   constructor(private readonly deps: SessionEventEmitterDeps) {}
 
   /**
-   * Start writing: record what the reinvocation seeded, and on a resumed or
-   * retried turn read back what this run already wrote. Before this call
-   * every flush writes nothing, and the rows wait for the first flush after
-   * it. A failed read is logged and the turn writes on: what it resends
-   * with the same bytes the log accepts again, and anything else is
-   * refused and dropped, never fatal.
+   * Start writing: note where each scope's own messages begin in `rows`
+   * (after the asks a reinvocation seeded, which write nothing), and on a
+   * resumed or retried turn read back what this run already wrote and where
+   * each scope's numbering stands. Before this call every flush writes
+   * nothing, and the rows wait for the first flush after it. A failed read
+   * is logged and the turn writes on: what it resends with the same bytes
+   * the log accepts again, and anything else is refused and dropped, never
+   * fatal.
    */
-  async begin(args: { readonly sessionId: string; readonly resumed: boolean; readonly status: RunStatus }): Promise<void> {
-    this.seeded.set("", args.status.messages.length);
-    for (const row of args.status.subAgentRuns) this.seeded.set(row.id, row.messages.length);
+  async begin(args: { readonly sessionId: string; readonly resumed: boolean; readonly rows: TurnRows }): Promise<void> {
+    this.ownFrom.set("", args.rows.messages.length);
+    for (const row of args.rows.subAgentRuns) this.ownFrom.set(row.id, row.messages.length);
     if (args.resumed) {
       try {
+        const ids: string[] = [];
         for (const event of await this.deps.client.listRunSessionEvents(args.sessionId, this.deps.runId)) {
-          if (event.event.case !== undefined) this.sent.add(event.event.value.id);
+          if (event.event.case === undefined) continue;
+          this.sent.add(event.event.value.id);
+          ids.push(event.event.value.id);
         }
+        this.scopeBases = nextScopeIndexes(this.deps.runId, ids);
       } catch (err) {
         console.warn(`[session-events] run=${this.deps.runId}: reading what the run already wrote failed; writing on: ${String(err)}`);
       }
@@ -301,10 +314,10 @@ export class SessionEventEmitter {
    * the status write that follows it. `final` is the turn's terminal write:
    * every row is past the boundary and nothing streams. Never throws.
    */
-  async flush(status: RunStatus, opts: { readonly final: boolean }): Promise<void> {
+  async flush(rows: TurnRows, opts: { readonly final: boolean }): Promise<void> {
     if (!this.began) return;
     try {
-      this.collect(status, opts.final);
+      this.collect(rows, opts.final);
     } catch (err) {
       console.error(`[session-events] run=${this.deps.runId}: reading the rows failed: ${String(err)}`);
     }
@@ -315,9 +328,9 @@ export class SessionEventEmitter {
 
   // ── Reading the rows ──────────────────────────────────────────────────────
 
-  private collect(status: RunStatus, final: boolean): void {
+  private collect(rows: TurnRows, final: boolean): void {
     const runId = this.deps.runId;
-    const report = status.recalledMemoriesReport;
+    const report = rows.recalledMemoriesReport;
     if (report !== undefined) {
       this.push("", memoryRecalledEventId(runId), {
         case: "stigmerMemoryRecalled",
@@ -330,15 +343,15 @@ export class SessionEventEmitter {
       });
     }
 
-    const subAgents = new Map(status.subAgentRuns.map((row) => [row.id, row]));
+    const subAgents = new Map(rows.subAgentRuns.map((row) => [row.id, row]));
     this.threads = new Map(
-      status.subAgentRuns.map((row) => [
+      rows.subAgentRuns.map((row) => [
         row.id,
         { subAgentId: row.id, threadId: threadId(runId, row.id), prefix: scopeEventPrefix(runId, row.id), messages: row.messages },
       ]),
     );
     const threads: Thread[] = [
-      { threadId: "", prefix: scopeEventPrefix(runId, undefined), messages: status.messages },
+      { threadId: "", prefix: scopeEventPrefix(runId, undefined), messages: rows.messages },
       ...this.threads.values(),
     ];
     // A sub-agent's thread is walked where it opens and again where it
@@ -350,19 +363,19 @@ export class SessionEventEmitter {
       if (this.queue.length === before) break;
     }
 
-    this.collectFileReviewChanges(status);
+    this.collectFileReviewChanges(rows);
 
-    if (status.structuredOutput !== undefined && this.frontiers.get("")?.kind === "end" && final) {
+    if (rows.structuredOutput !== undefined && this.frontiers.get("")?.kind === "end" && final) {
       this.push("", structuredOutputEventId(runId), {
         case: "stigmerAgentStructuredOutput",
-        value: { id: structuredOutputEventId(runId), output: status.structuredOutput },
+        value: { id: structuredOutputEventId(runId), output: rows.structuredOutput },
       });
     }
   }
 
-  /** One `stigmer.file_review.changes` per change set the run's own ledger captured (the module header). */
-  private collectFileReviewChanges(status: RunStatus): void {
-    for (const event of status.fileReviewEventStream?.events ?? []) {
+  /** One `stigmer.file_review.changes` per change set the turn's own ledger captured (the module header). */
+  private collectFileReviewChanges(rows: TurnRows): void {
+    for (const event of rows.fileReviewEventStream?.events ?? []) {
       if (event.payload.case !== "candidateCaptured") continue;
       const candidate = event.payload.value;
       const id = fileReviewChangesEventId(candidate.changeSetId);
@@ -422,10 +435,9 @@ export class SessionEventEmitter {
       this.frontiers.set(scope, { kind: "blocked" });
       return;
     }
-    const seeded = this.seeded.get(scope) ?? 0;
     for (let index = 0; index < thread.messages.length; index++) {
       const message = thread.messages[index]!;
-      if (!this.writeMessage(thread, message, index, seeded, final)) {
+      if (!this.writeMessage(thread, message, index, final)) {
         this.frontiers.set(scope, { kind: "message", index });
         return;
       }
@@ -445,28 +457,36 @@ export class SessionEventEmitter {
     this.frontiers.set(scope, { kind: "end", nextIndex: thread.messages.length });
   }
 
+  /**
+   * The index a row's place in its scope is named by: the scope's own rows
+   * numbered on from what the log already holds there. A seeded ask's
+   * message sits before them and writes nothing.
+   */
+  private placeIndex(scope: string, prefix: string, index: number): number {
+    return (this.scopeBases.get(prefix) ?? 0) + index - (this.ownFrom.get(scope) ?? 0);
+  }
+
   /** The message's events, or false when it still streams. */
-  private writeMessage(thread: Thread, message: AgentMessage, index: number, seeded: number, final: boolean): boolean {
+  private writeMessage(thread: Thread, message: AgentMessage, index: number, final: boolean): boolean {
     switch (message.type) {
       case MessageType.MESSAGE_AI: {
         if (message.isStreaming && !final) return false;
         if (message.content === "") return true;
-        const id = messageEventId(thread.prefix, index);
+        const id = messageEventId(thread.prefix, this.placeIndex(thread.subAgentId ?? "", thread.prefix, index));
         this.push(thread.threadId, id, { case: "agentMessage", value: { id, content: [{ type: "text", text: message.content }] } });
         return true;
       }
       case MessageType.MESSAGE_THINKING: {
         if (message.isStreaming && !final) return false;
-        const id = thinkingEventId(thread.prefix, index);
+        const id = thinkingEventId(thread.prefix, this.placeIndex(thread.subAgentId ?? "", thread.prefix, index));
         this.push(thread.threadId, id, { case: "agentThinking", value: { id } });
         const textId = thinkingTextEventId(id);
         this.push(thread.threadId, textId, { case: "stigmerAgentThinking", value: { id: textId, thinkingId: id, text: message.content } });
         return true;
       }
       case MessageType.MESSAGE_SYSTEM: {
-        if (index < seeded) return true;
         if (thread.subAgentId === undefined && this.armRows.has(index)) return true;
-        const id = harnessNoteEventId(thread.prefix, index);
+        const id = harnessNoteEventId(thread.prefix, this.placeIndex(thread.subAgentId ?? "", thread.prefix, index));
         this.push(thread.threadId, id, { case: "stigmerHarnessNote", value: { id, text: message.content } });
         return true;
       }
@@ -651,7 +671,8 @@ export class SessionEventEmitter {
         continue;
       }
       const prefix = scopeEventPrefix(this.deps.runId, preview.subAgentId);
-      const id = preview.kind === "text" ? messageEventId(prefix, preview.index) : thinkingEventId(prefix, preview.index);
+      const place = this.placeIndex(preview.subAgentId ?? "", prefix, preview.index);
+      const id = preview.kind === "text" ? messageEventId(prefix, place) : thinkingEventId(prefix, place);
       if (this.known(id) || this.previewWithheld.has(id)) continue;
       const frontier = this.frontiers.get(preview.subAgentId ?? "");
       const reached =
@@ -756,6 +777,29 @@ export class SessionEventEmitter {
   private forget(count: number): void {
     this.settle(count);
   }
+}
+
+/** A place-named id (`ids.ts`): a message, a thinking (and its text) or a note, `<scope prefix>.<m|t|n><index>`. */
+const PLACE_ID = /^(.+)\.[mtn](\d+)(?:\.text)?$/;
+
+/**
+ * For each scope prefix the run's logged ids name, the index after the
+ * highest place the log holds there: where a resumed invocation numbers its
+ * own rows from, so it never reuses an id an earlier invocation wrote under
+ * other bytes. Ids that are not place-named are ignored.
+ */
+export function nextScopeIndexes(runId: string, ids: readonly string[]): Map<string, number> {
+  const next = new Map<string, number>();
+  for (const id of ids) {
+    if (!id.startsWith(`${runId}.`)) continue;
+    const match = PLACE_ID.exec(id);
+    if (match === null) continue;
+    const prefix = match[1]!;
+    const index = Number(match[2]);
+    if (!Number.isSafeInteger(index)) continue;
+    next.set(prefix, Math.max(next.get(prefix) ?? 0, index + 1));
+  }
+  return next;
 }
 
 function idOf(event: SessionEvent): string {
