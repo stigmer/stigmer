@@ -9,8 +9,8 @@
  * Who writes what. The server writes the turn's user message, the
  * session's status and each turn's (`stigmer.run.status`,
  * domain/session/events/transitions.ts), every
- * file-review decision (`stigmer.file_review.decided`, with its ledger
- * event, run-writes.ts), every answer to a waiting tool use
+ * file-review decision (`stigmer.file_review.decided`,
+ * ../../run/filereview/decided.ts), every answer to a waiting tool use
  * (`user.tool_confirmation`, `stigmer.permission.grant`,
  * ../hitl/answer.ts) and the session's stop (`user.interrupt`,
  * ../hitl/interrupt.ts); a runner writes what the agent did, its threads,

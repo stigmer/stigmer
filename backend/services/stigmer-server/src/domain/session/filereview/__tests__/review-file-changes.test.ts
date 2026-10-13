@@ -2,20 +2,16 @@
  * Pins SessionCommandController.reviewFileChanges (../review-file-changes.ts):
  * served on the session's command service, it asks can_edit on the
  * session the input names before anything is read, refuses a word outside
- * the contract's, maps keep and undo, change_set and file, to the ledger's
- * decision, and answers the reconcile turn an undo on an ended turn
- * started.
+ * the contract's, records keep and undo, change_set and file, as the
+ * decided event in the same words naming the caller, and answers the
+ * reconcile turn an undo on an ended turn started.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileDecisionAction,
-  FileDecisionScope,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ReviewFileChangesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -35,10 +31,10 @@ import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/au
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { fileReviewSeed } from "../../../run/__tests__/file-review-seed.js";
-import { StreamBroker } from "../../../run/stream-broker.js";
 import { registerSessionServices } from "../../controller.js";
 import type { SessionControllerDeps } from "../../controller.js";
 import { SessionEventBroker } from "../../events/broker.js";
+import { eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents } from "../../events/run-writes.js";
 import { reviewFileChanges } from "../review-file-changes.js";
 import type { ReviewFileChangesDeps } from "../review-file-changes.js";
@@ -69,7 +65,6 @@ function deps(
     store: temp.store,
     logger: silentLogger,
     authorizer,
-    broker: new StreamBroker(silentLogger),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     reconcileTurns: () => ({
       create: async (run) => {
@@ -138,17 +133,19 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected a refusal");
 }
 
+/** The decided events of `run_1` in the session's log: scope, action, file and decider. */
 async function decisions() {
-  const run = await temp.store.getResource(
-    ApiResourceKind.run,
-    "run_1",
-    RunSchema,
+  const records = await temp.store.sessionEvents.list(SESSION, {
+    order: "asc",
+    runId: "run_1",
+    types: ["stigmer.file_review.decided"],
+    limit: 10,
+  });
+  return records.map(eventOf).flatMap((event) =>
+    event.event.case === "stigmerFileReviewDecided"
+      ? [[event.event.value.scope, event.event.value.action, event.event.value.fileChangeId, event.event.value.decidedBy]]
+      : [],
   );
-  return (run.status?.fileChangeSets[0]?.decisions ?? []).map((d) => [
-    d.scope,
-    d.action,
-    d.fileChangeId,
-  ]);
 }
 
 describe("reviewFileChanges", () => {
@@ -200,17 +197,15 @@ describe("reviewFileChanges", () => {
     );
   });
 
-  it("a keep of the whole set is the ledger's CHANGE_SET APPROVE, and starts no turn", async () => {
+  it("a keep of the whole set is recorded as said, naming the caller, and starts no turn", async () => {
     const seed = await seedEndedTurn();
     const response = await review({ expectedDigest: seed.aggregate });
     expect(response.reconcileRunId).toBe("");
-    expect(await decisions()).toEqual([
-      [FileDecisionScope.CHANGE_SET, FileDecisionAction.APPROVE, ""],
-    ]);
+    expect(await decisions()).toEqual([["change_set", "keep", "", "usr_person"]]);
     expect(reconcileCreates).toBe(0);
   });
 
-  it("an undo of one file is the ledger's FILE REJECT, and names the reconcile turn it started", async () => {
+  it("an undo of one file is recorded as said, and names the reconcile turn it started", async () => {
     const seed = await seedEndedTurn();
     const response = await review({
       scope: "file",
@@ -219,9 +214,7 @@ describe("reviewFileChanges", () => {
       expectedDigest: seed.change.fileDigest,
     });
     expect(response.reconcileRunId).toBe("run_reconcile");
-    expect(await decisions()).toEqual([
-      [FileDecisionScope.FILE, FileDecisionAction.REJECT, seed.change.id],
-    ]);
+    expect(await decisions()).toEqual([["file", "undo", seed.change.id, "usr_person"]]);
     expect(reconcileCreates).toBe(1);
   });
 

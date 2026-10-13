@@ -1,50 +1,33 @@
 /**
- * ReconcileFileChangeProgress — ports filereview/progress.go: the
- * defense-in-depth clear for the transient
- * RunStatus.file_change_progress field (mid-run live capture).
+ * The clear of RunStatus.file_change_progress, the live "N files changed
+ * so far" strip a turn shows before its change set is captured.
  *
- * Progress is a runner-owned, latest-snapshot DISPLAY field (the
- * file-review analogue of setup_progress), NOT part of the append-only
- * ledger. The runner overwrites it on each mid-run persist while its
- * change set is CAPTURING; this seam clears it once that set leaves
- * CAPTURING, so a stale mid-run delta never outlives the turn.
+ * Progress is a runner-owned, latest-snapshot display field (the
+ * file-review sibling of setup_progress). The runner overwrites it on each
+ * mid-run write; the merge keeps it only while the change set it previews
+ * is not yet captured on the run's file record (record.ts) and the run has
+ * not finished, so it never outlives its turn. Keyed on the change set id:
+ * a progress for a set the record already holds captured is a stale one,
+ * and clears.
  *
- * It runs AFTER projectFileChangeSets so it reads the just-folded
- * projection: progress is KEPT only while a CAPTURING change set with the
- * matching change_set_id exists. A terminal execution is subsumed — the
- * projection is empty there. Keying on change_set_id (not merely "any
- * CAPTURING set") is what makes resume correct: a new turn's new set id
- * no longer matches the stale prior-turn progress, which clears.
+ * Proven by __tests__/progress.test.ts and the merge's tests.
  */
-import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
   FileChangeProgress,
   FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
+import { isCaptured } from "./record.js";
+
+/** The progress the run keeps after a write (module header). */
 export function reconcileFileChangeProgress(
-  sets: FileChangeSet[],
+  sets: ReadonlyArray<FileChangeSet>,
   progress: FileChangeProgress | undefined,
+  finished: boolean,
 ): FileChangeProgress | undefined {
-  if (progress === undefined) {
+  if (progress === undefined || finished || progress.changeSetId === "") {
     return undefined;
   }
-  if (hasCapturingSet(sets, progress.changeSetId)) {
-    return progress;
-  }
-  return undefined;
-}
-
-function hasCapturingSet(
-  sets: FileChangeSet[],
-  changeSetId: string,
-): boolean {
-  if (changeSetId === "") {
-    return false;
-  }
-  return sets.some(
-    (cs) =>
-      cs.id === changeSetId &&
-      cs.status === FileChangeSetStatus.CAPTURING,
-  );
+  const captured = sets.some((cs) => cs.id === progress.changeSetId && isCaptured(cs));
+  return captured ? undefined : progress;
 }
