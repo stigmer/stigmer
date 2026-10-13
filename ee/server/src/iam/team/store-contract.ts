@@ -13,7 +13,7 @@
  *     only the organization's slug is a claim another team can hold;
  *   - replace changes a held team's payload, and the team keeps its
  *     organization and slug, a slug the replace carries included (rename's
- *     door is modifyById);
+ *     door is modifyById); a replace of an unknown id writes nothing;
  *   - modifyById changes the payload and the slug together and answers the
  *     written team, so the old slug is free in the table and the new one
  *     taken; an unknown id answers undefined and writes nothing;
@@ -128,17 +128,20 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
       assert.equal(held?.metadata?.name, "After");
       assert.equal(held?.metadata?.slug, "kept");
       assert.equal(stale.metadata?.slug, "kept", "the handed team answers the stored slug");
+      await store.replace(team({ id: "tm_c6u", org: "acme", slug: "unknown" }));
+      assert.equal(await store.findById("tm_c6u"), undefined, "a replace of an unknown id writes nothing");
     },
   ],
   [
     "modifyById changes the payload and the slug together, and an unknown id writes nothing",
     async ({ store }) => {
       await store.insert(team({ id: "tm_c6m", org: "acme", slug: "before-move", name: "Moved" }));
-      const written = await store.modifyById("tm_c6m", (held) => {
+      const moveTo = (slug: string) => (held: Team) => {
         if (held.metadata !== undefined) {
-          held.metadata.slug = "after-move";
+          held.metadata.slug = slug;
         }
-      });
+      };
+      const written = await store.modifyById("tm_c6m", moveTo("after-move"));
       assert.equal(written?.metadata?.slug, "after-move");
       assert.equal((await store.findById("tm_c6m"))?.metadata?.slug, "after-move");
       assert.deepEqual(
@@ -151,7 +154,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<TeamStore>> = [
         { kind: "inserted" },
         "the old slug is free in the table",
       );
-      assert.equal(await store.modifyById("tm_unknown", () => undefined), undefined);
+      assert.equal(await store.modifyById("tm_unknown", moveTo("anything")), undefined);
       assert.equal(await store.findById("tm_unknown"), undefined);
     },
   ],

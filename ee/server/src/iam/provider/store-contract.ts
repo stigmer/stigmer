@@ -108,11 +108,12 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
     "modifyById changes the payload and the slug together and keeps the routes; a claim change is refused, and an unknown id writes nothing",
     async ({ store }) => {
       await store.insert(provider({ id: "idp_r2", org: "acme", slug: "before-move", issuers: ["https://moved.contract.test"] }));
-      const written = await store.modifyById("idp_r2", (held) => {
+      const moveTo = (slug: string) => (held: IdentityProvider) => {
         if (held.metadata !== undefined) {
-          held.metadata.slug = "after-move";
+          held.metadata.slug = slug;
         }
-      });
+      };
+      const written = await store.modifyById("idp_r2", moveTo("after-move"));
       assert.equal(written?.metadata?.slug, "after-move");
       assert.equal((await store.findById("idp_r2"))?.metadata?.slug, "after-move");
       assert.equal(await store.findProviderIdByRoute("https://moved.contract.test", AUDIENCE), "idp_r2", "the routes stay");
@@ -135,7 +136,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
         "a route change is replace's",
       );
       assert.equal(await store.findProviderIdByRoute("https://moved.contract.test", AUDIENCE), "idp_r2");
-      assert.equal(await store.modifyById("idp_unknown", () => undefined), undefined);
+      assert.equal(await store.modifyById("idp_unknown", moveTo("anything")), undefined);
     },
   ],
   [
