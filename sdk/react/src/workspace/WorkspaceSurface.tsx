@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@stigmer/theme";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import {
   Tooltip,
@@ -168,11 +168,11 @@ export interface WorkspaceSurfaceProps {
   /** Collapses the surface back to the chat-dominant layout. */
   readonly onCollapse: () => void;
   /**
-   * The session {@link FileChange} that touched the open file, when it was
+   * The session {@link DisplayFileChange} that touched the open file, when it was
    * changed this session. When present the editor defaults to the authoritative
    * `baseline→candidate` diff, matching the inspector's Viewer tab.
    */
-  readonly change?: FileChange;
+  readonly change?: DisplayFileChange;
   /**
    * Jump-to-line reveal for the **active** editor (already scoped by the owner
    * to `reveal.key === activeKey`), or `undefined`. Forwarded to the editor's
@@ -642,7 +642,7 @@ function EditorArea({
   readonly editors: readonly OpenEditor[];
   readonly selectedFile: SelectedWorkspaceFile | null;
   readonly virtualDocuments?: readonly SurfaceVirtualDocument[];
-  readonly change?: FileChange;
+  readonly change?: DisplayFileChange;
   readonly reveal?: RevealTarget;
   readonly onActivateEditor: (entryId: string, path: string) => void;
   readonly onPinEditor: (entryId: string, path: string) => void;

@@ -129,7 +129,7 @@ export type { ToolSegment } from "./segment-tool-calls.js";
 export { ToolCallDetail, formatDuration } from "./ToolCallDetail.js";
 export type { ToolCallDetailProps } from "./ToolCallDetail.js";
 
-export { describeApprovalPolicySource, approvalPolicySourceOf } from "./approval-provenance.js";
+export { describeApprovalPolicySource } from "./approval-provenance.js";
 
 export { McpToolDetail, McpArgsView, McpMetadataRow, parseMcpResult } from "./McpToolDetail.js";
 export type {
@@ -248,12 +248,15 @@ export type {
   FileReviewRowState,
 } from "./file-review-status.js";
 
-// Settled/historical file-review display: the ledger fold + its read seam +
-// the display-projection adapter, re-exported from @stigmer/sdk (pure, shared).
+// The run's file record (its captured change sets) and the display
+// projection of one captured file, re-exported from @stigmer/sdk (pure,
+// shared). What was decided about the files is the session's events.
 export {
-  foldFileReviewEventStream,
   displayFileChangeSets,
+  fileChangeSetOf,
   toDisplayFileChange,
+  type DisplayFileChange,
+  type DisplayFileChangeType,
 } from "@stigmer/sdk";
 
 export { ApprovalCard, ApprovalCardHeader, ApprovalCardBody } from "./ApprovalCard.js";

@@ -1,11 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type {
-  FileChange,
-  FileContent,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { runIdFromStorageKey } from "@stigmer/sdk";
+import type { FileContent } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { runIdFromStorageKey, type DisplayFileChange } from "@stigmer/sdk";
 import { useArtifactContent } from "./useArtifactContent.js";
 import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 
@@ -44,7 +41,7 @@ export interface UseFileChangeContentReturn {
 }
 
 /**
- * Behavior hook that resolves a {@link FileChange}'s before/after sides to the
+ * Behavior hook that resolves a {@link DisplayFileChange}'s before/after sides to the
  * text the diff renderer needs.
  *
  * Small bodies are carried inline on the proto and returned with zero cost.
@@ -67,7 +64,7 @@ export interface UseFileChangeContentReturn {
  * @see FileChangeDiff — renders the resolved content
  */
 export function useFileChangeContent(
-  change: FileChange,
+  change: DisplayFileChange,
 ): UseFileChangeContentReturn {
   const beforeRef = refOf(change.before);
   const afterRef = refOf(change.after);

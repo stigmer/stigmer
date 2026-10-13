@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import {
-  FileChangeSchema,
-  type FileChange,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { DisplayFileChange, DisplayFileChangeType } from "@stigmer/sdk";
 import { findChangeForSelection } from "../findChangeForSelection";
 import type { WorkspaceEntry } from "../useWorkspaceEntries";
 
@@ -17,13 +12,17 @@ function local(id: string, name: string, localPath: string): WorkspaceEntry {
 }
 
 function change(
-  fields: { path?: string; absolutePath?: string; changeType?: FileChangeType },
-): FileChange {
-  return create(FileChangeSchema, {
+  fields: { path?: string; changeType?: DisplayFileChangeType },
+): DisplayFileChange {
+  return {
     path: fields.path ?? "",
-    absolutePath: fields.absolutePath ?? "",
-    changeType: fields.changeType ?? FileChangeType.MODIFY,
-  });
+    changeType: fields.changeType ?? "modified",
+    before: undefined,
+    after: undefined,
+    linesAdded: 0,
+    linesRemoved: 0,
+    renameFrom: "",
+  };
 }
 
 const DAYTONA = "/home/daytona/workspace";
@@ -90,24 +89,24 @@ describe("findChangeForSelection", () => {
     ).toBe(changes[0]);
   });
 
-  it("falls back to absolutePath when path is empty", () => {
+  it("resolves an absolute capture path against a local entry", () => {
     const entries = [local("e1", "app", "/Users/dev/app")];
-    const changes = [change({ path: "", absolutePath: "/Users/dev/app/src/main.go" })];
+    const changes = [change({ path: "/Users/dev/app/src/main.go" })];
     expect(
       findChangeForSelection({ entryId: "e1", path: "src/main.go" }, changes, entries),
     ).toBe(changes[0]);
   });
 
-  it("matches a DELETE change (viewer decides diff-only, not this resolver)", () => {
+  it("matches a deletion (viewer decides diff-only, not this resolver)", () => {
     const entries = [git("e1", "org/repo")];
-    const changes = [change({ path: "src/gone.ts", changeType: FileChangeType.DELETE })];
+    const changes = [change({ path: "src/gone.ts", changeType: "deleted" })];
     const found = findChangeForSelection(
       { entryId: "e1", path: "src/gone.ts" },
       changes,
       entries,
     );
     expect(found).toBe(changes[0]);
-    expect(found?.changeType).toBe(FileChangeType.DELETE);
+    expect(found?.changeType).toBe("deleted");
   });
 
   it("degrades to null for an ambiguous multi-entry change path", () => {

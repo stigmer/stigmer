@@ -26,7 +26,6 @@ import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
-  FileChangeSetStatus,
   InteractionMode,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -101,7 +100,6 @@ function renderThread(conv: { turns: readonly Turn[]; runs: Run[] }, props: Part
 function capturedSet(id: string): ReturnType<typeof create<typeof FileChangeSetSchema>> {
   return create(FileChangeSetSchema, {
     id,
-    status: FileChangeSetStatus.RECONCILED,
     aggregateDigest: "agg-1",
     diffCompleteness: DiffCompleteness.COMPLETE,
     changes: [
@@ -139,7 +137,7 @@ describe("MessageThread file-review records", () => {
 
   it("renders a settled set as a read-only record in list mode, its provenance from the run's capture", () => {
     const conv = conversation({ id: "done", reply: "Done.", extra: [changes("done", "cs1", FILES), decided("done", "cs1", "keep")] });
-    conv.runs[0]!.status!.fileChangeSets = [capturedSet("cs1")];
+    conv.runs[0]!.status!.fileChanges = [capturedSet("cs1")];
 
     renderThread(conv, { showFileReviewRecords: true });
 

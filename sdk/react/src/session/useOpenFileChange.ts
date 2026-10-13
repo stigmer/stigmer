@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
 import type { SelectedWorkspaceFile } from "../internal/store/workspace-file-selection-store.js";
 import { findChangeForSelection } from "../workspace/findChangeForSelection.js";
@@ -16,7 +16,7 @@ import { useSessionFileChanges } from "./useSessionFileChanges.js";
 const EMPTY_EXECUTIONS: readonly Run[] = [];
 
 /**
- * Correlate the open workspace file with the one session {@link FileChange} that
+ * Correlate the open workspace file with the one session {@link DisplayFileChange} that
  * touched it, so a changed file can default to its authoritative
  * `baseline→candidate` diff.
  *
@@ -35,7 +35,7 @@ export function useOpenFileChange(
   allRuns: readonly Run[],
   entries: readonly WorkspaceEntry[] | undefined,
   sandboxWorkspaceRoot: string | undefined,
-): FileChange | null {
+): DisplayFileChange | null {
   const { fileChanges } = useSessionFileChanges(
     selectedFile ? allRuns : EMPTY_EXECUTIONS,
   );

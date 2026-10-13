@@ -15,7 +15,6 @@ import { useToolPresentation } from "./tool-presenter.js";
 import type { ToolCategory } from "./tool-categories.js";
 import { CollapsiblePre } from "./tool-rendering-primitives.js";
 import {
-  approvalPolicySourceOf,
   describeApprovalPolicySource,
   isInformativePolicySource,
 } from "./approval-provenance.js";
@@ -305,7 +304,7 @@ function CapturedRowDiff({ change }: { change: CapturedFileChange }) {
 // needs approval" default and a call no rule asked about render nothing,
 // mirroring the approval gate's smart-suppress (isInformativePolicySource).
 function ProvenanceNote({ toolUse }: { toolUse: ToolUse }) {
-  const source = approvalPolicySourceOf(toolUse.ask?.policySource ?? "");
+  const source = toolUse.ask?.policySource ?? "";
   if (!isInformativePolicySource(source)) return null;
   const provenance = describeApprovalPolicySource(source, toolUse.ask?.policyHook ?? "");
   if (!provenance) return null;

@@ -2,15 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  FileChangeSchema,
   FileContentSchema,
-  type FileChange,
   type FileContent,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  FileChangeCaptureLevel,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import type { UseFileChangeContentReturn } from "../useFileChangeContent";
 
 // ---------------------------------------------------------------------------
@@ -49,52 +44,30 @@ function inlineSide(value: string): FileContent {
   return create(FileContentSchema, { body: { case: "inline", value } });
 }
 
-function wholeFile(path: string, before: string, after: string): FileChange {
-  return create(FileChangeSchema, {
-    path,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-    before: inlineSide(before),
-    after: inlineSide(after),
-  });
+function change(init: Partial<DisplayFileChange> & { path: string }): DisplayFileChange {
+  return {
+    changeType: "modified",
+    before: undefined,
+    after: undefined,
+    linesAdded: 0,
+    linesRemoved: 0,
+    renameFrom: "",
+    ...init,
+  };
 }
 
-function hunkChange(path: string): FileChange {
-  return create(FileChangeSchema, {
-    path,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-    unifiedDiff: "@@ -1 +1 @@\n-alpha\n+beta",
-    linesAdded: 1,
-    linesRemoved: 1,
-  });
+function wholeFile(path: string, before: string, after: string): DisplayFileChange {
+  return change({ path, before: inlineSide(before), after: inlineSide(after) });
 }
 
-/** A whole-file CREATE with no content — a genuinely empty new file. */
-function emptyCreate(path: string): FileChange {
-  return create(FileChangeSchema, {
-    path,
-    changeType: FileChangeType.CREATE,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-  });
+/** An added file with no content — a genuinely empty new file. */
+function emptyCreate(path: string): DisplayFileChange {
+  return change({ path, changeType: "added" });
 }
 
-/** A whole-file MODIFY that resolves to no change — a contentless edit. */
-function emptyModify(path: string): FileChange {
-  return create(FileChangeSchema, {
-    path,
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
-  });
-}
-
-/** A hunk-only CREATE whose diff never materialized (no unifiedDiff). */
-function emptyHunkCreate(path: string): FileChange {
-  return create(FileChangeSchema, {
-    path,
-    changeType: FileChangeType.CREATE,
-    captureLevel: FileChangeCaptureLevel.HUNK_ONLY,
-  });
+/** A modification that resolves to no change — a contentless edit. */
+function emptyModify(path: string): DisplayFileChange {
+  return change({ path });
 }
 
 // ---------------------------------------------------------------------------
@@ -130,21 +103,6 @@ describe("FileChangeDiff", () => {
     expect(screen.getByText("a.ts")).toBeTruthy();
     expect(screen.getByText("src/")).toBeTruthy();
     // computeDiff over the resolved text drives the +/- header stats.
-    expect(screen.getByText("+1")).toBeTruthy();
-    expect(screen.getByText("-1")).toBeTruthy();
-  });
-
-  it("renders a hunk-only unified diff through the DiffViewer table (no raw preamble)", () => {
-    const { container } = render(<FileChangeDiff change={hunkChange("src/h.ts")} />);
-    // The hunk-only patch is parsed into the accessible table, not dumped raw:
-    // the +/- prefixes live in a gutter cell, so the content cells hold the
-    // bare line text.
-    expect(container.querySelector("table")).not.toBeNull();
-    expect(screen.getByText("beta")).toBeTruthy();
-    expect(screen.getByText("alpha")).toBeTruthy();
-    // No raw unified-diff preamble or marker leaks into the content.
-    expect(container.textContent).not.toContain("@@");
-    // The authoritative counts still render in the header stats.
     expect(screen.getByText("+1")).toBeTruthy();
     expect(screen.getByText("-1")).toBeTruthy();
   });
@@ -210,18 +168,13 @@ describe("FileChangeDiff", () => {
     expect(screen.queryByText("-1")).toBeNull();
   });
 
-  it("shows 'New empty file' for an empty whole-file CREATE", () => {
+  it("shows 'New empty file' for an empty added file", () => {
     setContent({ beforeText: "", afterText: "" });
     render(<FileChangeDiff change={emptyCreate("src/new.md")} />);
     expect(screen.getByText("New empty file")).toBeTruthy();
   });
 
-  it("shows 'New empty file' for an empty hunk-only CREATE (no diff yet)", () => {
-    render(<FileChangeDiff change={emptyHunkCreate("src/e.ts")} />);
-    expect(screen.getByText("New empty file")).toBeTruthy();
-  });
-
-  it("shows a neutral 'no preview' notice for a contentless MODIFY", () => {
+  it("shows a neutral 'no preview' notice for a contentless modification", () => {
     setContent({ beforeText: "", afterText: "" });
     render(<FileChangeDiff change={emptyModify("src/x.ts")} />);
     expect(screen.getByText("No preview available for this change")).toBeTruthy();

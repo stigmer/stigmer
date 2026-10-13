@@ -2,15 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  FileChangeSchema,
   FileContentSchema,
   ToolCallOutputRefSchema,
   type FileContent,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  FileChangeCaptureLevel,
-  FileChangeType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { DisplayFileChange } from "@stigmer/sdk";
 import type { UseArtifactContentReturn } from "../useArtifactContent";
 
 // ---------------------------------------------------------------------------
@@ -91,14 +87,19 @@ function binarySide(): FileContent {
   return create(FileContentSchema, { isBinary: true });
 }
 
-function wholeFile(before: FileContent | undefined, after: FileContent | undefined) {
-  return create(FileChangeSchema, {
+function wholeFile(
+  before: FileContent | undefined,
+  after: FileContent | undefined,
+): DisplayFileChange {
+  return {
     path: "src/a.ts",
-    changeType: FileChangeType.MODIFY,
-    captureLevel: FileChangeCaptureLevel.WHOLE_FILE,
+    changeType: "modified",
     before,
     after,
-  });
+    linesAdded: 0,
+    linesRemoved: 0,
+    renameFrom: "",
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -135,8 +136,7 @@ describe("useFileChangeContent", () => {
   });
 
   it("treats an absent side as an empty file", () => {
-    const change = wholeFile(undefined, inlineSide("created"));
-    change.changeType = FileChangeType.CREATE;
+    const change = { ...wholeFile(undefined, inlineSide("created")), changeType: "added" as const };
     const { result } = renderHook(() => useFileChangeContent(change));
     expect(result.current.beforeText).toBe("");
     expect(result.current.afterText).toBe("created");
