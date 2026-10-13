@@ -145,6 +145,27 @@ function checkScope(
   });
 }
 
+/** The turn of a golden whose run wrote no event. */
+const emptyTurn = foldSession([
+  fromJson(SessionEventSchema, { run_id: "run_empty", user_message: { id: "run_empty.user" } }),
+]).turns[0]!;
+
+/** How many rows of the status the runner writes as events: messages with text, thinking, and uncollapsed tool calls. */
+function writtenRows(status: RunStatus): number {
+  return status.messages.reduce(
+    (count, row) =>
+      count +
+      (row.type === MessageType.MESSAGE_AI && row.content !== "" ? 1 : 0) +
+      (row.type === MessageType.MESSAGE_THINKING ? 1 : 0) +
+      row.toolCalls.filter((call) => !hidden(call)).length,
+    0,
+  );
+}
+
+function equalJson(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 describe.each(ALL)("$harness $name", (golden) => {
   const events = (JSON.parse(readFileSync(golden.eventsPath, "utf8")) as JsonValue[]).map((json) =>
     fromJson(SessionEventSchema, json),
@@ -160,11 +181,11 @@ describe.each(ALL)("$harness $name", (golden) => {
   });
 
   it("names the same items as the status golden", () => {
-    // The status is the run that wrote last.
-    const turn = fold.turns.at(-1);
-    if (turn === undefined) {
-      return;
-    }
+    // The status is the run that wrote last; a golden whose turn wrote no
+    // event (it failed before its engine ran) folds to no turn, and its
+    // status holds nothing the runner writes.
+    const turn = fold.turns.at(-1) ?? emptyTurn;
+    expect(fold.turns.length > 0 || writtenRows(status) === 0, `${label}: a turn, or nothing to write`).toBe(true);
     checkScope(label, turn.runId, "root", status.messages, turn.items, both);
 
     const threads = new Map<string, Thread>();
@@ -191,20 +212,22 @@ describe.each(ALL)("$harness $name", (golden) => {
   });
 
   it("holds the turn's to-do list, structured output and change sets", () => {
-    const turn = fold.turns.at(-1);
-    if (turn === undefined || !both) {
-      return;
-    }
-    expect(turn.todos.map((todo) => [todo.id, todo.content, todo.status])).toEqual(
-      Object.values(status.todos).map((todo) => [todo.id, todo.content, TODO_WORDS[todo.status]]),
-    );
-    if (turn.structuredOutput !== undefined) {
-      expect(turn.structuredOutput).toEqual(status.structuredOutput);
-    }
+    const turn = fold.turns.at(-1) ?? emptyTurn;
+    const todos = turn.todos.map((todo) => [todo.id, todo.content, todo.status]);
+    const statusTodos = Object.values(status.todos).map((todo) => [todo.id, todo.content, TODO_WORDS[todo.status]]);
     const captured = (status.fileReviewEventStream?.events ?? []).flatMap((event) =>
       event.payload.case === "candidateCaptured" ? [event.payload.value.changeSetId] : [],
     );
-    expect(turn.fileReview.map((set) => set.changeSetId)).toEqual(captured);
+    const sets = turn.fileReview.map((set) => set.changeSetId);
+    if (both) {
+      expect(todos).toEqual(statusTodos);
+      expect(sets).toEqual(captured);
+    } else {
+      // A resumed invocation's golden holds only what it wrote.
+      expect(statusTodos).toEqual(expect.arrayContaining(todos));
+      expect(captured).toEqual(expect.arrayContaining(sets));
+    }
+    expect(turn.structuredOutput === undefined || equalJson(turn.structuredOutput, status.structuredOutput), `${label}: structured output`).toBe(true);
   });
 });
 
