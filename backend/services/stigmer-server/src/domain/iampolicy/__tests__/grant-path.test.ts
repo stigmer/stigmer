@@ -262,6 +262,22 @@ describe("the row for a triple is found by triple, so legacy ids converge", () =
     ]);
   });
 
+  it("a refused save with no winner to read back is not a race: the refusal propagates", async () => {
+    const policies = fakeIamPolicyStore();
+    policies.save = async () => {
+      throw new DuplicatePolicyError("refused, and nobody holds it");
+    };
+    const path = newIamPolicyGrantPath({
+      resources: NO_STORED_RESOURCES,
+      policies,
+      lifecycle: undefined,
+      logger: silentLogger,
+    });
+    await expect(path.grant(orgRole(ALICE, "admin", "acme"), alice, "grant")).rejects.toBeInstanceOf(
+      DuplicatePolicyError,
+    );
+  });
+
   it("the loser of a concurrent grant answers the winner's row as a duplicate and still fires the hook", async () => {
     const recorded: RecordedEvent[] = [];
     const policies = fakeIamPolicyStore(recorded);

@@ -171,6 +171,9 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
       const unaudited = provider({ id: "idp_c0", org: "acme", slug: "unshaped", issuers: ["https://unshaped.contract.test"] });
       unaudited.status = undefined;
       await assert.rejects(store.insert(unaudited), "an insert without its audit is refused");
+      const unnamed = provider({ id: "idp_c0", org: "acme", slug: "unshaped", issuers: ["https://unshaped.contract.test"] });
+      unnamed.metadata = undefined;
+      await assert.rejects(store.insert(unnamed), "an insert without its metadata is refused");
       assert.equal(await store.findById("idp_c0"), undefined);
       assert.equal(await store.findProviderIdByRoute("https://unshaped.contract.test", AUDIENCE), undefined);
       await store.insert(provider({ id: "idp_c0b", org: "acme", slug: "shaped", issuers: ["https://shaped.contract.test"] }));
