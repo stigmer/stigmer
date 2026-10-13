@@ -3,7 +3,7 @@
  * gateway contract observes from outside: the custom-stream events it
  * writes (a hook's refusal, and which hook decided a call that runs), the
  * card's payload for a hook's ask, the hook recorded beside an unattended
- * skip, a rewrite checked again against the secret block, and the hooks'
+ * skip (and the skip's refusal event, which opens its row), a rewrite checked again against the secret block, and the hooks'
  * feedback appended to the result, a graph command's tool message included.
  * `interrupt()` is mocked; the hooks are
  * the real evaluator over a scripted process runner.
@@ -155,12 +155,24 @@ describe("the gate's hooks", () => {
     expect(writer).toHaveBeenCalledWith(expect.objectContaining({ policy_source: "approval_lease", policy_hook: "safety" }));
   });
 
-  it("unattended, an ask is skipped and the hook recorded beside it", async () => {
+  it("unattended, an ask is skipped and the hook recorded beside it, in the registry and on the custom stream", async () => {
     const unattendedSkips = new Map<string, string | null>();
     const handler = vi.fn();
-    await gate(hooksAnswering(decide("ask")), { unattended: true, unattendedSkips }).wrapToolCall!(call("execute", SHELL_ARGS).request, handler);
+    const { request, writer } = call("execute", SHELL_ARGS);
+    await gate(hooksAnswering(decide("ask")), { unattended: true, unattendedSkips }).wrapToolCall!(request, handler);
     expect(handler).not.toHaveBeenCalled();
     expect(unattendedSkips.get("call_1")).toBe("safety");
+    expect(writer).toHaveBeenCalledWith(
+      expect.objectContaining({ name: TOOL_REFUSED_EVENT, tool_call_id: "call_1", tool_name: "execute", policy_source: "unattended_skip", policy_hook: "safety" }),
+    );
+  });
+
+  it("unattended, the default's ask is skipped with no hook named on the custom stream", async () => {
+    const unattendedSkips = new Map<string, string | null>();
+    const { request, writer } = call("execute", SHELL_ARGS);
+    await gate(hooksAnswering(decide("ask")), { unattended: true, unattendedSkips, hooks: undefined }).wrapToolCall!(request, vi.fn());
+    expect(unattendedSkips.get("call_1")).toBeNull();
+    expect(writer).toHaveBeenCalledWith(expect.objectContaining({ name: TOOL_REFUSED_EVENT, policy_source: "unattended_skip", policy_hook: "" }));
   });
 
   it("a rewrite into a secret-like path is blocked like the call it became", async () => {

@@ -4,7 +4,8 @@
  * boundary rewrites rows (a hook-blocked call writes nothing until the
  * terminal write, and narration after it reaches neither the log nor a
  * preview), the rows that are not the runner's to write, the ask's policy
- * source words, the turn-start
+ * source words, the permission word a tool use carries (an unattended skip
+ * is the policy's deny, a hook's refusal is not), the turn-start
  * read, the per-event bound, previews, what a failed or refused append
  * does, and the two file-review events the runner writes (a captured
  * change set's `changes`, once; an undo's `reconciled`, at once and before
@@ -173,6 +174,36 @@ describe("the ask's policy source", () => {
     await e.flush(st, { final: true });
     const asks = log.events.flatMap((ev) => (ev.event.case === "stigmerPermissionAsked" ? [ev.event.value] : []));
     expect(asks.map((ask) => [ask.toolUseId.slice(RUN.length + 1), ask.contentDigest])).toEqual([["w", "d1"], ["s", ""]]);
+  });
+});
+
+describe("the permission a tool use carries", () => {
+  it("is deny for a call an unattended turn skipped, ask for a call that asks, and empty for the rest, a hook's refusal included", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const st = status({
+      messages: [
+        {
+          type: AI,
+          content: "Trying four calls.",
+          toolCalls: [
+            row("skipped", { name: "shell", status: S.TOOL_CALL_FAILED, result: "", error: "skipped", approvalPolicySource: ApprovalPolicySource.UNATTENDED_SKIP }),
+            row("asked", { name: "shell", status: S.TOOL_CALL_WAITING_APPROVAL, result: "", requiresApproval: true }),
+            row("refused", { name: "shell", status: S.TOOL_CALL_FAILED, result: "", error: "a hook said no", approvalPolicySource: ApprovalPolicySource.HOOK }),
+            row("ran"),
+          ],
+        },
+      ],
+    });
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(st, { final: true });
+    const uses = log.events.flatMap((ev) => (ev.event.case === "agentToolUse" ? [ev.event.value] : []));
+    expect(uses.map((use) => [use.id.slice(RUN.length + 1), use.evaluatedPermission])).toEqual([
+      ["skipped", "deny"],
+      ["asked", "ask"],
+      ["refused", ""],
+      ["ran", ""],
+    ]);
   });
 });
 

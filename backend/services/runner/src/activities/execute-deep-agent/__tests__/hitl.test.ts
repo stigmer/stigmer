@@ -249,6 +249,18 @@ describe("reconcileUnattendedSkips", () => {
     expect(tc.approvedBy).toBe("");
   });
 
+  it("settles the row the gate's refusal event failed: a skip with the skip message as its result and no error", () => {
+    const status = statusWithCalls([{ id: "call-1", status: ToolCallStatus.TOOL_CALL_FAILED }]);
+    status.messages[0].toolCalls[0].error = "the skip message the stream carried";
+
+    reconcileUnattendedSkips(status, new Map([["call-1", null]]));
+
+    const tc = status.messages[0].toolCalls[0];
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(tc.error).toBe("");
+    expect(tc.result).toContain("skipped automatically");
+  });
+
   it("backfills the skip result on a row whose tool events never fired", () => {
     const status = statusWithCalls([
       { id: "call-1", status: ToolCallStatus.TOOL_CALL_RUNNING },

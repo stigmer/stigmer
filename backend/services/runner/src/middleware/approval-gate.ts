@@ -484,14 +484,27 @@ function personDecisionMessage(call: ToolCallRequest, action: "skip" | "reject",
   return new ToolMessage({ content: personDecisionSentence(toolName, action, comment), tool_call_id: call.toolCall.id, name: toolName });
 }
 
-/** Resolve an ask on an unattended surface as a skip; `hook` names the hook that asked, `null` the default. */
+/**
+ * Resolve an ask on an unattended surface as a skip; `hook` names the hook
+ * that asked, `null` the default. The skipped call fires no tool events, so
+ * the gate says so on the custom stream as a refusal does, with
+ * `unattended_skip` as its provenance: the call's row opens already known to
+ * be skipped, before anything writes it to the session's log.
+ */
 function skipUnattended(config: ApprovalGateConfig, call: ToolCallRequest, hook: string | null): ToolMessage {
-  config.unattendedSkips?.set(call.toolCall.id, hook);
-  return new ToolMessage({
-    content: unattendedSkipMessage(call.toolCall.name),
-    tool_call_id: call.toolCall.id,
-    name: call.toolCall.name,
+  const { id, name, args } = call.toolCall;
+  const message = unattendedSkipMessage(name);
+  config.unattendedSkips?.set(id, hook);
+  customStreamWriterOf<ToolRefusedPayload>(call.runtime)?.({
+    name: TOOL_REFUSED_EVENT,
+    tool_call_id: id,
+    tool_name: name,
+    input: args,
+    message,
+    policy_source: "unattended_skip",
+    policy_hook: hook ?? "",
   });
+  return new ToolMessage({ content: message, tool_call_id: id, name });
 }
 
 /**
