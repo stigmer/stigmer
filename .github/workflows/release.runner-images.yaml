@@ -1,7 +1,39 @@
 name: release.runner-images
 
+# Builds, smoke-tests and publishes the sandbox runner images for one commit:
+# ghcr.io/stigmer/runner (amd64, the hosted edition's sandbox image),
+# ghcr.io/stigmer/runner-base and ghcr.io/stigmer/runner-layer (amd64 and
+# arm64). A reusable lane with two callers, which decide when it runs:
+#   - release.sandbox-cloud.yaml: a main push that touches the runner, a v*
+#     tag, or a dispatch from either. It owns the failure notice, which this
+#     file must not carry: a called workflow may ask no more than its caller
+#     grants, and release.dev grants no issue permission.
+#   - release.dev.yaml's npm target, with `dev_version`: a dev build's runner,
+#     published before its server, so a server version on npm always has
+#     runner:v<that version> beside it (stigmer/stigmer#2255).
+#
+# What a build is called, by caller (the tag list is release.sandbox-cloud's
+# header):
+#   - stage tag, pushed before the smoke: main-<sha>, or dev-<sha12> for a
+#     dev build, which may come from a branch and so never writes main-*;
+#   - version tag, after the smoke: v<git tag> for a v* tag, v<dev_version>
+#     for a dev build, none for a main push;
+#   - latest, after the smoke: every build but a dev build;
+#   - prod: a release tag only.
+# A dev build's layer is a development layer (empty /runner/RELEASE): a dev
+# server sends the runner no release to hold it against (layer/start.sh).
+
 on:
   workflow_call:
+    inputs:
+      dev_version:
+        description: >-
+          A dev build's npm version (X.Y.Z-dev.<14-digit stamp>.g<12-hex sha>,
+          scripts/lib/dev-version.mjs), naming the checked-out commit. Empty
+          for a main push or a v* tag.
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -46,8 +78,9 @@ jobs:
       packages: write
     # The same on both legs: one commit, one ref.
     outputs:
-      short_sha: ${{ steps.tags.outputs.short_sha }}
+      stage: ${{ steps.tags.outputs.stage }}
       version_tag: ${{ steps.tags.outputs.version_tag }}
+      moves_latest: ${{ steps.tags.outputs.moves_latest }}
 
     steps:
       - name: Checkout code
@@ -70,23 +103,49 @@ jobs:
         env:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
+          DEV_VERSION: ${{ inputs.dev_version }}
         run: |
-          SHORT_SHA="$(git rev-parse --short HEAD)"
-          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
-          # A v* tag's build (pushed or dispatched from the tag) publishes
-          # its version tag after the smoke; only a release, not a
-          # prerelease (v1.2.3-rc.1), also moves prod.
           VERSION_TAG=""
+          LAYER_RELEASE=""
+          MOVES_LATEST="true"
           MOVES_PROD="false"
-          if [ "$REF_TYPE" = "tag" ] && [[ "$REF_NAME" == v* ]]; then
-            VERSION_TAG="$REF_NAME"
-            if [[ "$REF_NAME" != *-* ]]; then
-              MOVES_PROD="true"
+          if [ -n "$DEV_VERSION" ]; then
+            # A dev build: its tag must name the commit it was built from,
+            # in the one shape scripts/lib/dev-version.mjs stamps.
+            if ! [[ "$DEV_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]{14}\.g[0-9a-f]{12}$ ]]; then
+              echo "dev_version '$DEV_VERSION' is not X.Y.Z-dev.<14-digit stamp>.g<12-hex sha>" >&2
+              exit 1
+            fi
+            HEAD12="$(git rev-parse HEAD | cut -c1-12)"
+            if [ "${DEV_VERSION##*.g}" != "$HEAD12" ]; then
+              echo "dev_version '$DEV_VERSION' names commit ${DEV_VERSION##*.g}, but this checkout is $HEAD12" >&2
+              exit 1
+            fi
+            STAGE="dev-$HEAD12"
+            VERSION_TAG="v$DEV_VERSION"
+            MOVES_LATEST="false"
+          else
+            STAGE="main-$(git rev-parse --short HEAD)"
+            # A v* tag's build (pushed or dispatched from the tag) publishes
+            # its version tag after the smoke and writes its release into the
+            # layer; only a release, not a prerelease (v1.2.3-rc.1), also
+            # moves prod.
+            if [ "$REF_TYPE" = "tag" ] && [[ "$REF_NAME" == v* ]]; then
+              VERSION_TAG="$REF_NAME"
+              LAYER_RELEASE="${REF_NAME#v}"
+              if [[ "$REF_NAME" != *-* ]]; then
+                MOVES_PROD="true"
+              fi
             fi
           fi
-          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
-          echo "moves_prod=$MOVES_PROD" >> "$GITHUB_OUTPUT"
-          echo "Building: main-$SHORT_SHA; after the checks: latest, version tag '${VERSION_TAG:-none}', moves prod: $MOVES_PROD"
+          {
+            echo "stage=$STAGE"
+            echo "version_tag=$VERSION_TAG"
+            echo "layer_release=$LAYER_RELEASE"
+            echo "moves_latest=$MOVES_LATEST"
+            echo "moves_prod=$MOVES_PROD"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building: $STAGE; after the checks: version tag '${VERSION_TAG:-none}', moves latest: $MOVES_LATEST, moves prod: $MOVES_PROD, layer release '${LAYER_RELEASE:-none}'"
 
       # --target sandbox: the Dockerfile's final stage is the self-host
       # compose runner (sandbox + stigmer CLI, published separately as
@@ -106,7 +165,8 @@ jobs:
       # A v* tag's build writes its release into the runner layer
       # (/runner/RELEASE, the tag without its v), which the start script
       # holds against the server's release (stigmer/stigmer#1831); every
-      # other build leaves the file empty, a development layer. The file is
+      # other build, a dev build included, leaves the file empty, a
+      # development layer. The file is
       # the layer's last, so the release costs one tiny layer and the
       # bundles stay the cached bytes.
       - name: Build the sandbox image (amd64 pushes it)
@@ -114,17 +174,17 @@ jobs:
           ARCH: ${{ matrix.arch }}
           CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-${{ matrix.arch }}
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner
-          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
-          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
+          STAGE: ${{ steps.tags.outputs.stage }}
+          LAYER_RELEASE: ${{ steps.tags.outputs.layer_release }}
         run: |
           if [ "$ARCH" = "amd64" ]; then
-            OUTPUT=(--tag "$IMAGE:main-$SHORT_SHA" --push)
+            OUTPUT=(--tag "$IMAGE:$STAGE" --push)
           else
             OUTPUT=(--output type=cacheonly)
           fi
           RELEASE=()
-          if [ -n "$VERSION_TAG" ]; then
-            RELEASE=(--build-arg "RUNNER_LAYER_RELEASE=${VERSION_TAG#v}")
+          if [ -n "$LAYER_RELEASE" ]; then
+            RELEASE=(--build-arg "RUNNER_LAYER_RELEASE=$LAYER_RELEASE")
           fi
           docker buildx build \
             --platform "linux/$ARCH" \
@@ -167,12 +227,12 @@ jobs:
       # RUNNING, the manager lifecycle, and a warm-pool member booted with an
       # OTLP endpoint set, as production sets one. A broken image or a runner
       # that dies at boot (the 2026-04 stale-image failure mode) fails here,
-      # and no tag but main-<sha> names it.
+      # and no tag but the stage tag names it.
       - name: Smoke-test the runner in the image
         if: matrix.arch == 'amd64'
         timeout-minutes: 8
         env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/runner:main-${{ steps.tags.outputs.short_sha }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/runner:${{ steps.tags.outputs.stage }}
         run: |
           docker run --rm --network host \
             --volume "$GITHUB_WORKSPACE/backend/services/runner/scripts:/verify:ro" \
@@ -181,19 +241,20 @@ jobs:
             /runner/bin/node /verify/verify-slim-artifact.mjs --in-place --node /runner/bin/start --artifact /runner/dist
 
       - name: Promote the smoke-tested image
-        if: matrix.arch == 'amd64'
+        if: matrix.arch == 'amd64' && steps.tags.outputs.moves_latest == 'true'
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner
-          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
-        run: docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE:main-$SHORT_SHA"
+          STAGE: ${{ steps.tags.outputs.stage }}
+        run: docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE:$STAGE"
 
-      - name: Promote the tested release image
-        # Only a smoke-tested build of a v* tag gets here: the version tag
-        # names that release's runner, and prod moves for a release only.
+      - name: Promote the tested version image
+        # Only a smoke-tested build of a v* tag or a dev build gets here: the
+        # version tag names that version's runner, and prod moves for a
+        # release only.
         if: matrix.arch == 'amd64' && steps.tags.outputs.version_tag != ''
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner
-          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+          STAGE: ${{ steps.tags.outputs.stage }}
           VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
           MOVES_PROD: ${{ steps.tags.outputs.moves_prod }}
         run: |
@@ -201,7 +262,7 @@ jobs:
           if [ "$MOVES_PROD" = "true" ]; then
             TAGS+=(--tag "$IMAGE:prod")
           fi
-          docker buildx imagetools create "${TAGS[@]}" "$IMAGE:main-$SHORT_SHA"
+          docker buildx imagetools create "${TAGS[@]}" "$IMAGE:$STAGE"
 
       # The runner layer carries the same release as the sandbox image; the
       # base builds no runner, so it takes none.
@@ -210,13 +271,13 @@ jobs:
           ARCH: ${{ matrix.arch }}
           CACHE_REF: ghcr.io/${{ github.repository_owner }}/runner-buildcache:sandbox-${{ matrix.arch }}
           OWNER: ${{ github.repository_owner }}
-          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
-          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
+          STAGE: ${{ steps.tags.outputs.stage }}
+          LAYER_RELEASE: ${{ steps.tags.outputs.layer_release }}
         run: |
           for target in base runner-layer; do
             RELEASE=()
-            if [ "$target" = runner-layer ] && [ -n "$VERSION_TAG" ]; then
-              RELEASE=(--build-arg "RUNNER_LAYER_RELEASE=${VERSION_TAG#v}")
+            if [ "$target" = runner-layer ] && [ -n "$LAYER_RELEASE" ]; then
+              RELEASE=(--build-arg "RUNNER_LAYER_RELEASE=$LAYER_RELEASE")
             fi
             docker buildx build \
               --platform "linux/$ARCH" \
@@ -224,7 +285,7 @@ jobs:
               "${RELEASE[@]}" \
               --cache-from "type=registry,ref=$CACHE_REF" \
               --file backend/services/runner/Dockerfile.sandbox \
-              --tag "ghcr.io/$OWNER/runner-${target#runner-}:main-$SHORT_SHA-$ARCH" \
+              --tag "ghcr.io/$OWNER/runner-${target#runner-}:$STAGE-$ARCH" \
               --push \
               .
           done
@@ -241,8 +302,8 @@ jobs:
         timeout-minutes: 10
         env:
           ARCH: ${{ matrix.arch }}
-          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
-          VERSION_TAG: ${{ steps.tags.outputs.version_tag }}
+          STAGE: ${{ steps.tags.outputs.stage }}
+          LAYER_RELEASE: ${{ steps.tags.outputs.layer_release }}
         run: |
           docker buildx build --builder default --tag probe-base/ubuntu-git - <<'EOF'
           FROM ubuntu:24.04
@@ -250,7 +311,7 @@ jobs:
           EOF
           docker buildx build --builder default \
             --build-arg BASE_IMAGE=probe-base/ubuntu-git \
-            --build-arg STIGMER_VERSION="main-$SHORT_SHA-$ARCH" \
+            --build-arg STIGMER_VERSION="$STAGE-$ARCH" \
             --file deploy/runner-layer/Dockerfile \
             --tag probe/ubuntu-joined \
             deploy/runner-layer
@@ -269,18 +330,18 @@ jobs:
           fi
           echo "start script: arguments unchanged, NODE_OPTIONS and NODE_PATH cleared"
           release="$(docker run --rm probe/ubuntu-joined cat /runner/RELEASE)"
-          if [ "$release" != "${VERSION_TAG#v}" ]; then
-            echo "the layer's /runner/RELEASE says '$release', expected '${VERSION_TAG#v}'" >&2
+          if [ "$release" != "$LAYER_RELEASE" ]; then
+            echo "the layer's /runner/RELEASE says '$release', expected '$LAYER_RELEASE'" >&2
             exit 1
           fi
           echo "layer release: '${release:-none, a development layer}'"
-          if [ -n "$VERSION_TAG" ]; then
+          if [ -n "$LAYER_RELEASE" ]; then
             set +e
             message="$(docker run --rm --env STIGMER_SERVER_RELEASE=0.0.0 probe/ubuntu-joined /runner/bin/start /runner/dist/main.js 2>&1)"
             status=$?
             set -e
             echo "$message"
-            if [ "$status" != 78 ] || [[ "$message" != *"this runner layer is from release ${VERSION_TAG#v}, but the server is 0.0.0"* ]]; then
+            if [ "$status" != 78 ] || [[ "$message" != *"this runner layer is from release $LAYER_RELEASE, but the server is 0.0.0"* ]]; then
               echo "expected the start script to refuse server release 0.0.0 (exit 78), got exit $status" >&2
               exit 1
             fi
@@ -289,11 +350,11 @@ jobs:
       - name: Prove the layer refuses a musl base (alpine)
         env:
           ARCH: ${{ matrix.arch }}
-          SHORT_SHA: ${{ steps.tags.outputs.short_sha }}
+          STAGE: ${{ steps.tags.outputs.stage }}
         run: |
           docker buildx build --builder default \
             --build-arg BASE_IMAGE=alpine \
-            --build-arg STIGMER_VERSION="main-$SHORT_SHA-$ARCH" \
+            --build-arg STIGMER_VERSION="$STAGE-$ARCH" \
             --file deploy/runner-layer/Dockerfile \
             --tag probe/alpine-joined \
             deploy/runner-layer
@@ -314,10 +375,10 @@ jobs:
           done
 
   # After both legs' checks: one multi-arch tag per image, then its moving
-  # tags. `latest` follows main like runner's; a v* tag's build also gets
-  # its version tag, which the self-hosting guide's join names (a server's
-  # release is the layer's). Never prod: that tag is the cloud's, and only
-  # runner's.
+  # tags. `latest` follows main like runner's; a v* tag's build and a dev
+  # build also get their version tag, which the self-hosting guide's join
+  # names (a server's version is the layer's). Never prod: that tag is the
+  # cloud's, and only runner's.
   publish-layer-and-base:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -334,33 +395,44 @@ jobs:
       - name: Merge the per-arch tags and move latest (and the version tag)
         env:
           OWNER: ${{ github.repository_owner }}
-          SHORT_SHA: ${{ needs.build-and-push.outputs.short_sha }}
+          STAGE: ${{ needs.build-and-push.outputs.stage }}
           VERSION_TAG: ${{ needs.build-and-push.outputs.version_tag }}
+          MOVES_LATEST: ${{ needs.build-and-push.outputs.moves_latest }}
         run: |
           for image in runner-base runner-layer; do
             ref="ghcr.io/$OWNER/$image"
-            docker buildx imagetools create --tag "$ref:main-$SHORT_SHA" \
-              "$ref:main-$SHORT_SHA-amd64" "$ref:main-$SHORT_SHA-arm64"
-            TAGS=(--tag "$ref:latest")
+            docker buildx imagetools create --tag "$ref:$STAGE" \
+              "$ref:$STAGE-amd64" "$ref:$STAGE-arm64"
+            TAGS=()
+            if [ "$MOVES_LATEST" = "true" ]; then
+              TAGS+=(--tag "$ref:latest")
+            fi
             if [ -n "$VERSION_TAG" ]; then
               TAGS+=(--tag "$ref:$VERSION_TAG")
             fi
-            docker buildx imagetools create "${TAGS[@]}" "$ref:main-$SHORT_SHA"
-            docker buildx imagetools inspect "$ref:main-$SHORT_SHA"
+            if [ "${#TAGS[@]}" -gt 0 ]; then
+              docker buildx imagetools create "${TAGS[@]}" "$ref:$STAGE"
+            fi
+            docker buildx imagetools inspect "$ref:$STAGE"
           done
 
       - name: Summary
         env:
           OWNER: ${{ github.repository_owner }}
-          SHORT_SHA: ${{ needs.build-and-push.outputs.short_sha }}
+          STAGE: ${{ needs.build-and-push.outputs.stage }}
           VERSION_TAG: ${{ needs.build-and-push.outputs.version_tag }}
+          MOVES_LATEST: ${{ needs.build-and-push.outputs.moves_latest }}
         run: |
+          LATEST=""
+          if [ "$MOVES_LATEST" = "true" ]; then
+            LATEST=", \`latest\`"
+          fi
           {
             echo "## Cloud Sandbox, Runner Layer and Base Images Published"
             echo ""
-            echo "**Cloud sandbox image:** \`ghcr.io/$OWNER/runner\` (linux/amd64): \`main-$SHORT_SHA\`, after the smoke \`latest\`${VERSION_TAG:+, \`$VERSION_TAG\`}; prod moves on a release tag only"
-            echo "**Runner layer:** \`ghcr.io/$OWNER/runner-layer\` (linux/amd64, linux/arm64): \`main-$SHORT_SHA\`, \`latest\`${VERSION_TAG:+, \`$VERSION_TAG\`}"
-            echo "**Default base:** \`ghcr.io/$OWNER/runner-base\` (linux/amd64, linux/arm64): \`main-$SHORT_SHA\`, \`latest\`${VERSION_TAG:+, \`$VERSION_TAG\`}"
+            echo "**Cloud sandbox image:** \`ghcr.io/$OWNER/runner\` (linux/amd64): \`$STAGE\`, after the smoke${LATEST}${VERSION_TAG:+, \`$VERSION_TAG\`}; prod moves on a release tag only"
+            echo "**Runner layer:** \`ghcr.io/$OWNER/runner-layer\` (linux/amd64, linux/arm64): \`$STAGE\`${LATEST}${VERSION_TAG:+, \`$VERSION_TAG\`}"
+            echo "**Default base:** \`ghcr.io/$OWNER/runner-base\` (linux/amd64, linux/arm64): \`$STAGE\`${LATEST}${VERSION_TAG:+, \`$VERSION_TAG\`}"
             echo ""
             echo "Both legs booted the layer on ubuntu:24.04 and saw it refuse alpine."
           } >> "$GITHUB_STEP_SUMMARY"

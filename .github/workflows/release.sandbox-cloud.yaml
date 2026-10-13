@@ -8,22 +8,33 @@ name: release.sandbox-cloud
 # own with deploy/runner-layer/Dockerfile. `runner` is amd64; the base and
 # the layer are amd64 and arm64.
 #
-# This pipeline is a pure artifact publisher: build -> push (main-<sha>) ->
+# This workflow decides when main and the release tags build them, and owns
+# the failure notice; the build, smoke and publish jobs are
+# release.runner-images.yaml, which release.dev.yaml also calls to publish a
+# dev build's runner (stigmer/stigmer#2255).
+#
+# The lane is a pure artifact publisher: build -> push (the stage tag) ->
 # smoke-test -> promote what passed. The base and the layer are pushed per
-# arch (main-<sha>-<arch>), proven on foreign bases, then merged into
-# main-<sha>, latest and v<X.Y.Z> (never prod). The runner tags:
-#   - main-<sha>: every build, before the smoke; the bytes the smoke tests.
-#   - latest: every build that passed the smoke (development, and an OSS
-#     server with no release of its own, follow latest).
+# arch (<stage>-<arch>), proven on foreign bases, then merged into the stage
+# tag, latest and the version tag (never prod). The runner tags:
+#   - main-<sha>: every build from here, before the smoke; the bytes the
+#     smoke tests. A dev build's is dev-<sha12> instead.
+#   - latest: every build from here that passed the smoke (development, and
+#     an OSS server with no release of its own, follow latest). Never a dev
+#     build's.
 #   - v<X.Y.Z>: a v* tag's build that passed the smoke, so a version tag
 #     existing means that release's runner booted. A server release launches
 #     the runner of the same release by it (the OSS default and the cloud).
+#   - v<X.Y.Z-dev.<stamp>.g<sha12>>: a dev build's runner that passed the
+#     smoke, published by release.dev before the server of that version, so
+#     a composition pinning a dev build launches its runner by the same rule.
 #   - prod: the latest smoke-tested release. Moved only on a release tag,
-#     never on a main push, a prerelease tag, or a rebuild dispatched from
-#     main, so nothing unreleased reaches a deployment that follows it.
-# Every tag but main-<sha> is added after the smoke, not before as the
+#     never on a main push, a prerelease tag, a dev build, or a rebuild
+#     dispatched from main, so nothing unreleased reaches a deployment that
+#     follows it.
+# Every tag but the stage tag is added after the smoke, not before as the
 # self-host lane does: that lane smokes the pushed version tag itself, while
-# this one smokes the pushed main-<sha> bytes the other tags then name.
+# this one smokes the pushed stage bytes the other tags then name.
 # A dispatch runs the workflow of the ref it is dispatched from: from a tag
 # whose workflow predates the in-image smoke below, that workflow pushes
 # latest at build time, which would move latest back to an image without
@@ -38,8 +49,11 @@ name: release.sandbox-cloud
 #     pushes/merges and silently skipped the v2.0.0 merge).
 #   - push of a v* tag: always rebuild so every release ships a matching
 #     cloud sandbox image.
-#   - workflow_dispatch: manual rebuild; dispatched from a v* tag it
-#     re-publishes that release's version tag (and prod, for a release).
+#   - workflow_dispatch: manual rebuild from main or a v* tag; dispatched
+#     from a v* tag it re-publishes that release's version tag (and prod,
+#     for a release). Refused from any other ref: it would push main-<sha>
+#     and move latest to code that is not on main. A branch's runner is a
+#     dev build's (release.dev).
 #
 # A red main push files (or comments on) a `ci-sandbox-cloud-failure` issue
 # (notify-failure.yaml): nobody watches a main push, and a smoke that failed
@@ -67,6 +81,18 @@ jobs:
     outputs:
       should_build: ${{ steps.decide.outputs.should_build }}
     steps:
+      - name: Refuse a dispatch from a branch other than main
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          REF: ${{ github.ref }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ] && ! { [ "$REF_TYPE" = "tag" ] && [[ "$REF_NAME" == v* ]]; }; then
+            echo "release.sandbox-cloud runs from main or a v* tag, not $REF: it would move latest to code that is not on main. Dispatch release.dev with targets=npm for a branch's runner." >&2
+            exit 1
+          fi
+
       - name: Checkout code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -96,6 +122,9 @@ jobs:
               - 'scripts/lib/source-map-pragma.mjs'
               - 'apis/stubs/ts/**'
               - 'backend/libs/ts/**'
+              # The lane itself, so a change to it runs it on merge.
+              - '.github/workflows/release.sandbox-cloud.yaml'
+              - '.github/workflows/release.runner-images.yaml'
 
       - name: Decide whether to build
         id: decide
