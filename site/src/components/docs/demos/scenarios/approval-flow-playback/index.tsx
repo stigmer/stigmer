@@ -24,27 +24,39 @@ import {
 /** The gate's answer handler, as `MessageThread` calls it. */
 type AnswerHandler = NonNullable<MessageThreadProps["onAnswerToolUse"]>;
 
+/**
+ * The demo's answer state. An approval (Approve, or Approve all) lands the
+ * completed frame; a Deny leaves the gate waiting, as the demo has no denied
+ * ending. `reset` returns to the waiting frame on a step change.
+ */
+export function useApprovalAnswer(): {
+  readonly approved: boolean;
+  readonly onAnswer: AnswerHandler;
+  readonly reset: () => void;
+} {
+  const [approved, setApproved] = useState(false);
+  const onAnswer: AnswerHandler = useCallback((_toolUseId, answer) => {
+    if (answer !== "deny") setApproved(true);
+  }, []);
+  const reset = useCallback(() => setApproved(false), []);
+  return { approved, onAnswer, reset };
+}
+
 export function ApprovalFlowPlayback() {
   const narrationManifest = useNarrationManifest("approval-flow-playback");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
   const [stepIndex, setStepIndex] = useState(0);
-  const [approved, setApproved] = useState(false);
+  const { approved, onAnswer, reset } = useApprovalAnswer();
 
   const handleStepChange = useCallback(
     (_step: ApprovalFlowStep, index: number) => {
       setCursorTarget(undefined);
       setStepIndex(index);
-      setApproved(false);
+      reset();
     },
-    [],
+    [reset],
   );
-
-  // An approval (Approve, or Approve all) lands the completed frame; a
-  // Deny leaves the gate waiting, as the demo has no denied ending.
-  const handleAnswer: AnswerHandler = useCallback((_toolUseId, answer) => {
-    if (answer !== "deny") setApproved(true);
-  }, []);
 
   useStepInteractions({
     stepIndex,
@@ -62,7 +74,7 @@ export function ApprovalFlowPlayback() {
           narrationManifest={narrationManifest}
           onStepChange={handleStepChange}
         >
-          {(step) => renderStep(step, approved, handleAnswer)}
+          {(step) => renderStep(step, approved, onAnswer)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
@@ -70,7 +82,8 @@ export function ApprovalFlowPlayback() {
   );
 }
 
-function renderStep(
+/** One step's frame: the waiting gate, or the completed turn once approved. */
+export function renderStep(
   step: ApprovalFlowStep,
   approved: boolean,
   onAnswer: AnswerHandler,
