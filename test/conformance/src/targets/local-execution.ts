@@ -112,6 +112,7 @@ export class LocalExecutionTarget implements TargetProfile {
     // Organization-only grants and no query engine, as on `local`.
     perResourceGrants: false,
     authorizationQueries: false,
+    accessHistory: "unimplemented",
   };
 
   private temporal: RunningTemporal | undefined;

@@ -71,6 +71,13 @@ export const PER_RESOURCE_GRANTS_UNIMPLEMENTED_MESSAGE =
 export const AUTHORIZATION_QUERIES_UNIMPLEMENTED_MESSAGE =
   "authorization queries are served by the Enterprise and Cloud editions";
 
+// listAccessHistory's annotation copy, for a caller who may not read it.
+export const VIEW_ACCESS_HISTORY_DENIED_MESSAGE = "unauthorized to view the access history";
+
+// listAccessHistory on open source, which keeps no history.
+export const ACCESS_HISTORY_UNIMPLEMENTED_MESSAGE =
+  "the access history is served by the Enterprise and Cloud editions";
+
 // checkMyPermission with a relation that is no IamPermission name.
 export function unknownPermissionMessage(relation: string): string {
   return `unknown permission '${relation}'`;
