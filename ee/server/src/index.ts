@@ -29,6 +29,9 @@ export type { EnterpriseIdentityPorts } from "./extension/enterprise-identity.js
 export { newGrowthGateStep } from "./iam/growth-gate.js";
 export type { GrowthGate } from "./iam/growth-gate.js";
 export type { TeamPlanGate } from "./iam/team/plan-gate.js";
+export type { SsoPlanGate } from "./iam/provider/sso-required-steps.js";
+export { SSO_ENFORCEMENT_FEATURE } from "./iam/provider/sso-required-steps.js";
+export { SSO_REQUIRED } from "./iam/provider/sign-in-rule.js";
 
 // ─── Its Postgres side: the adapters over a host's pool, and the schema chain ─
 
@@ -64,6 +67,8 @@ export { invitationStoreContract } from "./iam/invitation/store-contract.js";
 export type { InvitationStoreContractFixture } from "./iam/invitation/store-contract.js";
 export { signInGrantLedgerContract } from "./iam/federation/sign-in-grants-contract.js";
 export type { SignInGrantLedgerContractFixture } from "./iam/federation/sign-in-grants-contract.js";
+export { accessMoveTicketStoreContract } from "./iam/access-move/store-contract.js";
+export type { AccessMoveTicketStoreContractFixture } from "./iam/access-move/store-contract.js";
 
 // ─── Host building blocks ────────────────────────────────────────────────────
 //

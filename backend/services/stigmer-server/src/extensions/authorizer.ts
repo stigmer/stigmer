@@ -45,12 +45,36 @@ export interface AuthzCheck {
  */
 export type AuthzDecision =
   | { readonly kind: "allow" }
-  /** A genuine denial — maps to PERMISSION_DENIED on the wire. */
-  | { readonly kind: "deny"; readonly reason: string }
+  /**
+   * A genuine denial — maps to PERMISSION_DENIED on the wire. `reason` is
+   * the log's sentence; the wire carries the lane's own pinned copy. A
+   * denial the caller can act on carries `refusal`, and then its copy and
+   * reason reach the wire instead (deniedError, pipeline/steps/authorize.ts).
+   */
+  | {
+      readonly kind: "deny";
+      readonly reason: string;
+      readonly refusal?: AuthzRefusal;
+    }
   /** The resource-scoped target does not exist — maps to NOT_FOUND. */
   | { readonly kind: "not-found" }
   /** An evaluation failure — maps to INTERNAL on the wire, never a denial. */
   | { readonly kind: "unavailable"; readonly cause: Error };
+
+/**
+ * A denial that tells the caller what to do: the copy a person reads, and
+ * the reason a client acts on without parsing that copy, carried as a
+ * google.rpc.ErrorInfo detail (domain "stigmer.ai") with its metadata. The
+ * reason is a wire identifier the contract documents where the rule that
+ * refuses lives (an organization that requires sign-in through its SSO
+ * provider answers SSO_REQUIRED). A denial without one keeps the lane's
+ * pinned copy, which says nothing the caller could act on.
+ */
+export interface AuthzRefusal {
+  readonly reason: string;
+  readonly message: string;
+  readonly metadata: Readonly<Record<string, string>>;
+}
 
 /**
  * The pure decision interface. Exactly ONE implementation is composed per

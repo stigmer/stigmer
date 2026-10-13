@@ -19,8 +19,10 @@
  * longer edit it, or has left the organization, is the seam's
  * deterministic refusal, the try not graded "the eval's creator can no
  * longer run it", as is a stamp that resolves to no account (the laptop's
- * "system", a deleted account); a missing eval, a store fault or an
- * authorizer that cannot answer is an infrastructure throw.
+ * "system", a deleted account), and a creator the eval's organization no
+ * longer admits by how they signed in (creator-sign-in.ts), whose try is
+ * not graded for the organization's own reason; a missing eval, a store
+ * fault or an authorizer that cannot answer is an infrastructure throw.
  *
  * Proven by __tests__/plugin-eval-caller.postgres.test.ts on both store
  * drivers.
@@ -39,6 +41,11 @@ import type { PluginEvalCallerMint } from "../extensions/plugin-eval-caller.js";
 import { PluginEvalCallerRefusedError } from "../extensions/plugin-eval-caller.js";
 import { auditOf } from "../pipeline/steps/defaults.js";
 import type { Store } from "../store/interface.js";
+import {
+  creatorSignInRefusal,
+  refusedCreatorMessage,
+} from "./creator-sign-in.js";
+import type { CreatorSignInCheck } from "./creator-sign-in.js";
 
 export interface BuiltInPluginEvalCallerDeps {
   readonly store: Store;
@@ -46,6 +53,8 @@ export interface BuiltInPluginEvalCallerDeps {
   readonly accounts: AccountsByCaller;
   /** The composed authorizer: may the creator still edit the eval's parent (`can_edit`). */
   readonly authorizer: Authorizer;
+  /** The composed binding's sign-in refusal; absent, no organization requires anything (a test's mint). */
+  readonly signIn?: CreatorSignInCheck;
 }
 
 /** The refusal's log copy when the stamp names nobody. */
@@ -74,7 +83,7 @@ export function newBuiltInPluginEvalCaller(
   deps: BuiltInPluginEvalCallerDeps,
 ): PluginEvalCallerMint {
   return {
-    async mintPluginEvalCaller(_org, evalId) {
+    async mintPluginEvalCaller(org, evalId) {
       const evaluated = await evaluatedRowOf(deps.store, evalId);
       const stamp = evaluated.stamp;
       const account = await accountForStamp(deps.accounts, stamp);
@@ -84,6 +93,17 @@ export function newBuiltInPluginEvalCaller(
         );
       }
       const caller = accountAsCaller(account);
+      const refusal = await creatorSignInRefusal(deps.signIn, caller, org);
+      if (refusal !== undefined) {
+        throw new PluginEvalCallerRefusedError(
+          refusedCreatorMessage(
+            evaluated.parentKind === ApiResourceKind.agent ? "agent eval" : "plugin eval",
+            evalId,
+            refusal,
+          ),
+          refusal.message,
+        );
+      }
       const decision = await deps.authorizer.authorize(caller, {
         permission: IamPermission.can_edit,
         resourceKind: evaluated.parentKind,

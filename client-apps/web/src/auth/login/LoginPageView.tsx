@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Stigmer, isResourceAvailable } from "@stigmer/sdk";
@@ -11,11 +11,9 @@ import type { SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identitypro
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
 import { createUserManager } from "@/auth/oidc/oidc-manager";
-import { saveSsoLoginState } from "@/auth/oidc/sso-session";
+import { REDIRECT_PATH_KEY, startSsoLogin } from "@/auth/oidc/start-sso-login";
 import { StigmerLogo } from "@/auth/StigmerLogo";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
-
-const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 
 /**
  * The sign-in page — and the signed-out landing.
@@ -40,6 +38,12 @@ const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
  *   a later holder of a released slug can never sit behind it; a typed
  *   slug (`/login?org=acme`) resolves the same way.
  * - `/login` — shows an org input for the user to type their org slug
+ *
+ * An organization that requires sign-in through its SSO provider
+ * (`SsoProviderInfo.sso_required`) accepts no other way in, so once the
+ * prompt has found its provider the page offers no "Sign in with email"
+ * button: only a quiet link for its owners, who keep their own sign-in as
+ * the way back in when the provider breaks.
  */
 export function LoginPageView() {
   const searchParams = useSearchParams();
@@ -59,30 +63,12 @@ export function LoginPageView() {
 
   const handleSsoLogin = useCallback(
     (provider: SsoProviderInfo, org: string) => {
-      saveSsoLoginState({
-        issuer: provider.issuer,
-        clientId: provider.oidcClientId,
-        audience: provider.expectedAudience,
-        org,
-      });
-
-      sessionStorage.setItem(REDIRECT_PATH_KEY, "/");
-
-      const extraQueryParams: Record<string, string> = {};
-      if (provider.expectedAudience) {
-        extraQueryParams.audience = provider.expectedAudience;
-      }
-
-      const ssoManager = createUserManager({
-        issuer: provider.issuer,
-        clientId: provider.oidcClientId,
-        audience: provider.expectedAudience,
-      });
-
-      ssoManager.signinRedirect({ extraQueryParams });
+      void startSsoLogin(provider, org);
     },
     [],
   );
+  const [found, setFound] = useState<SsoProviderInfo | null>(null);
+  const requiresSso = offersSso && found?.ssoRequired === true;
 
   // The configured issuer's own flow: Cloud's Auth0 tenant, or the
   // self-host's issuer from /config.json. One code path, two labels.
@@ -129,28 +115,44 @@ export function LoginPageView() {
               <SsoLoginPrompt
                 initialOrg={orgParam}
                 onSsoLogin={handleSsoLogin}
+                onProviderChange={setFound}
               />
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="border-border w-full border-t" />
+              {!requiresSso && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="border-border w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-background text-muted-foreground px-2">
+                      or
+                    </span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-background text-muted-foreground px-2">
-                    or
-                  </span>
-                </div>
-              </div>
+              )}
             </>
           )}
 
-          <button
-            type="button"
-            onClick={handleIssuerLogin}
-            className="border-input bg-background text-foreground hover:bg-accent focus-visible:ring-ring block w-full rounded-md border px-4 py-2.5 text-center text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-          >
-            {offersSso ? "Sign in with email" : "Sign in"}
-          </button>
+          {requiresSso ? (
+            <p className="text-muted-foreground text-center text-xs">
+              This organization requires sign-in through {found?.displayName}.{" "}
+              <button
+                type="button"
+                onClick={handleIssuerLogin}
+                className="text-foreground underline-offset-2 hover:underline"
+              >
+                Owner? Sign in with email
+              </button>
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleIssuerLogin}
+              className="border-input bg-background text-foreground hover:bg-accent focus-visible:ring-ring block w-full rounded-md border px-4 py-2.5 text-center text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            >
+              {offersSso ? "Sign in with email" : "Sign in"}
+            </button>
+          )}
         </div>
       </div>
     </StigmerProvider>

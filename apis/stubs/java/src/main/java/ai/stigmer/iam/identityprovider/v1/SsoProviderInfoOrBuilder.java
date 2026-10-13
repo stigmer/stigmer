@@ -105,4 +105,16 @@ public interface SsoProviderInfoOrBuilder extends
    */
   com.google.protobuf.ByteString
       getExpectedAudienceBytes();
+
+  /**
+   * <pre>
+   * Whether the organization requires its members to sign in through this
+   * provider (IdentityProviderSpec.sso_required). The login page then
+   * offers no other way into the organization.
+   * </pre>
+   *
+   * <code>bool sso_required = 5 [json_name = "ssoRequired"];</code>
+   * @return The ssoRequired.
+   */
+  boolean getSsoRequired();
 }

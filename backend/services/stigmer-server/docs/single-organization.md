@@ -179,6 +179,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 
 | Method | Fills |
 |---|---|
+| IamPolicyCommandController.bootstrapMoveOrgAccess | org |
 | IamPolicyCommandController.bootstrapRevokeOrgAccess | org |
 | IamPolicyCommandController.revokeOrgAccess | org |
 | IamPolicyQueryController.getPrincipalsCount | org |

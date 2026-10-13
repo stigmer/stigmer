@@ -780,6 +780,53 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.iam.v1.IamRole.UNRECOGNIZED : result;
   }
 
+  public static final int SSO_REQUIRED_FIELD_NUMBER = 15;
+  private boolean ssoRequired_ = false;
+  /**
+   * <pre>
+   * Whether people act in this organization only through this provider.
+   *
+   * When true, the organization's own people count in it only through the
+   * account this provider signed them in as. Its own people are the
+   * accounts holding a role in it, directly or through a team, and every
+   * credential bound to it. Such an account made by another sign-in (an
+   * email login, the server's own sign-in), or an API key it made, is
+   * refused there, on every read and write, with PERMISSION_DENIED carrying
+   * a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   * - SSO_REQUIRED: the organization requires sign-in through its SSO
+   * provider. Metadata: org (the organization's id), provider (this
+   * provider's slug). A console sends the person to the organization's
+   * SSO sign-in.
+   *
+   * A person granted one of its resources without a role in it, and a
+   * child organization's member reading what this organization shares with
+   * its children, are not its own people and are not held to it.
+   *
+   * The organization's owners are exempt, so a broken provider never locks
+   * everyone out. Service accounts, a run's own credential and the
+   * organization's platform clients are unaffected; a schedule, evaluator
+   * or eval that acts as a refused account stops, saying why. A person may
+   * move their access to the account this provider made for them
+   * (IdentityProviderCommandController.createAccessMove).
+   *
+   * Only the organization's owners may turn it on or off, and, while it is
+   * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+   * expected_audience) or delete the provider (can_assign_roles on the
+   * organization).
+   * Deleting the provider ends the requirement. Valid only on the SSO
+   * provider (is_sso_provider). A change takes effect at once on the
+   * server that wrote it and within a minute on its other replicas.
+   * </pre>
+   *
+   * <code>bool sso_required = 15 [json_name = "ssoRequired"];</code>
+   * @return The ssoRequired.
+   */
+  @java.lang.Override
+  public boolean getSsoRequired() {
+    return ssoRequired_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -823,6 +870,9 @@ private static final long serialVersionUID = 0L;
     }
     if (signInRole_ != ai.stigmer.iam.v1.IamRole.iam_role_unspecified.getNumber()) {
       output.writeEnum(14, signInRole_);
+    }
+    if (ssoRequired_ != false) {
+      output.writeBool(15, ssoRequired_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -871,6 +921,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(14, signInRole_);
     }
+    if (ssoRequired_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(15, ssoRequired_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -905,6 +959,8 @@ private static final long serialVersionUID = 0L;
     if (getCreateAccountsOnSignIn()
         != other.getCreateAccountsOnSignIn()) return false;
     if (signInRole_ != other.signInRole_) return false;
+    if (getSsoRequired()
+        != other.getSsoRequired()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -940,6 +996,9 @@ private static final long serialVersionUID = 0L;
         getCreateAccountsOnSignIn());
     hash = (37 * hash) + SIGN_IN_ROLE_FIELD_NUMBER;
     hash = (53 * hash) + signInRole_;
+    hash = (37 * hash) + SSO_REQUIRED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getSsoRequired());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1179,6 +1238,7 @@ private static final long serialVersionUID = 0L;
       externalIdClaim_ = "";
       createAccountsOnSignIn_ = false;
       signInRole_ = 0;
+      ssoRequired_ = false;
       return this;
     }
 
@@ -1243,6 +1303,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.signInRole_ = signInRole_;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.ssoRequired_ = ssoRequired_;
+      }
     }
 
     @java.lang.Override
@@ -1305,6 +1368,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.signInRole_ != 0) {
         setSignInRoleValue(other.getSignInRoleValue());
+      }
+      if (other.getSsoRequired() != false) {
+        setSsoRequired(other.getSsoRequired());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1382,6 +1448,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 112
+            case 120: {
+              ssoRequired_ = input.readBool();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 120
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2840,6 +2911,146 @@ private static final long serialVersionUID = 0L;
     public Builder clearSignInRole() {
       bitField0_ = (bitField0_ & ~0x00000200);
       signInRole_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private boolean ssoRequired_ ;
+    /**
+     * <pre>
+     * Whether people act in this organization only through this provider.
+     *
+     * When true, the organization's own people count in it only through the
+     * account this provider signed them in as. Its own people are the
+     * accounts holding a role in it, directly or through a team, and every
+     * credential bound to it. Such an account made by another sign-in (an
+     * email login, the server's own sign-in), or an API key it made, is
+     * refused there, on every read and write, with PERMISSION_DENIED carrying
+     * a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     * - SSO_REQUIRED: the organization requires sign-in through its SSO
+     * provider. Metadata: org (the organization's id), provider (this
+     * provider's slug). A console sends the person to the organization's
+     * SSO sign-in.
+     *
+     * A person granted one of its resources without a role in it, and a
+     * child organization's member reading what this organization shares with
+     * its children, are not its own people and are not held to it.
+     *
+     * The organization's owners are exempt, so a broken provider never locks
+     * everyone out. Service accounts, a run's own credential and the
+     * organization's platform clients are unaffected; a schedule, evaluator
+     * or eval that acts as a refused account stops, saying why. A person may
+     * move their access to the account this provider made for them
+     * (IdentityProviderCommandController.createAccessMove).
+     *
+     * Only the organization's owners may turn it on or off, and, while it is
+     * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+     * expected_audience) or delete the provider (can_assign_roles on the
+     * organization).
+     * Deleting the provider ends the requirement. Valid only on the SSO
+     * provider (is_sso_provider). A change takes effect at once on the
+     * server that wrote it and within a minute on its other replicas.
+     * </pre>
+     *
+     * <code>bool sso_required = 15 [json_name = "ssoRequired"];</code>
+     * @return The ssoRequired.
+     */
+    @java.lang.Override
+    public boolean getSsoRequired() {
+      return ssoRequired_;
+    }
+    /**
+     * <pre>
+     * Whether people act in this organization only through this provider.
+     *
+     * When true, the organization's own people count in it only through the
+     * account this provider signed them in as. Its own people are the
+     * accounts holding a role in it, directly or through a team, and every
+     * credential bound to it. Such an account made by another sign-in (an
+     * email login, the server's own sign-in), or an API key it made, is
+     * refused there, on every read and write, with PERMISSION_DENIED carrying
+     * a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     * - SSO_REQUIRED: the organization requires sign-in through its SSO
+     * provider. Metadata: org (the organization's id), provider (this
+     * provider's slug). A console sends the person to the organization's
+     * SSO sign-in.
+     *
+     * A person granted one of its resources without a role in it, and a
+     * child organization's member reading what this organization shares with
+     * its children, are not its own people and are not held to it.
+     *
+     * The organization's owners are exempt, so a broken provider never locks
+     * everyone out. Service accounts, a run's own credential and the
+     * organization's platform clients are unaffected; a schedule, evaluator
+     * or eval that acts as a refused account stops, saying why. A person may
+     * move their access to the account this provider made for them
+     * (IdentityProviderCommandController.createAccessMove).
+     *
+     * Only the organization's owners may turn it on or off, and, while it is
+     * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+     * expected_audience) or delete the provider (can_assign_roles on the
+     * organization).
+     * Deleting the provider ends the requirement. Valid only on the SSO
+     * provider (is_sso_provider). A change takes effect at once on the
+     * server that wrote it and within a minute on its other replicas.
+     * </pre>
+     *
+     * <code>bool sso_required = 15 [json_name = "ssoRequired"];</code>
+     * @param value The ssoRequired to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSsoRequired(boolean value) {
+
+      ssoRequired_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether people act in this organization only through this provider.
+     *
+     * When true, the organization's own people count in it only through the
+     * account this provider signed them in as. Its own people are the
+     * accounts holding a role in it, directly or through a team, and every
+     * credential bound to it. Such an account made by another sign-in (an
+     * email login, the server's own sign-in), or an API key it made, is
+     * refused there, on every read and write, with PERMISSION_DENIED carrying
+     * a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     * - SSO_REQUIRED: the organization requires sign-in through its SSO
+     * provider. Metadata: org (the organization's id), provider (this
+     * provider's slug). A console sends the person to the organization's
+     * SSO sign-in.
+     *
+     * A person granted one of its resources without a role in it, and a
+     * child organization's member reading what this organization shares with
+     * its children, are not its own people and are not held to it.
+     *
+     * The organization's owners are exempt, so a broken provider never locks
+     * everyone out. Service accounts, a run's own credential and the
+     * organization's platform clients are unaffected; a schedule, evaluator
+     * or eval that acts as a refused account stops, saying why. A person may
+     * move their access to the account this provider made for them
+     * (IdentityProviderCommandController.createAccessMove).
+     *
+     * Only the organization's owners may turn it on or off, and, while it is
+     * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+     * expected_audience) or delete the provider (can_assign_roles on the
+     * organization).
+     * Deleting the provider ends the requirement. Valid only on the SSO
+     * provider (is_sso_provider). A change takes effect at once on the
+     * server that wrote it and within a minute on its other replicas.
+     * </pre>
+     *
+     * <code>bool sso_required = 15 [json_name = "ssoRequired"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSsoRequired() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      ssoRequired_ = false;
       onChanged();
       return this;
     }

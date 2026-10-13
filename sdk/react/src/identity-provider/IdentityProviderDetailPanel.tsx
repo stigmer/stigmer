@@ -14,6 +14,7 @@ import {
   toSignInInput,
   useSignInSettings,
 } from "./SignInSettings.js";
+import { SsoRequirementSection } from "./SsoRequirementSection.js";
 import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -47,7 +48,9 @@ export interface IdentityProviderDetailPanelProps {
  *
  * In **view mode**, displays all OIDC configuration fields in a
  * structured label/value layout, with an "Edit" button for a caller who
- * may edit the provider (`can_edit`).
+ * may edit the provider (`can_edit`), and, on an SSO provider, whether the
+ * organization requires sign-in through it, which its owners change
+ * ({@link SsoRequirementSection}).
  *
  * In **edit mode**, fields become editable inputs. The SSO toggle,
  * OIDC client ID and sign-in settings (account creation, sign-in role,
@@ -147,6 +150,9 @@ export function IdentityProviderDetailPanel({
           userinfoEndpoint: userinfoEndpoint.trim() || undefined,
           isSsoProvider: isSso,
           oidcClientId: isSso ? oidcClientId.trim() : undefined,
+          // Only an SSO provider can require its sign-in: a provider that
+          // stops being one stops requiring it (its owners' decision).
+          ssoRequired: isSso ? spec?.ssoRequired : false,
           ...toSignInInput(signIn, isSso),
         });
         setMode("view");
@@ -236,12 +242,18 @@ export function IdentityProviderDetailPanel({
 
       {/* Body */}
       {mode === "view" ? (
-        <ViewMode
-          spec={spec}
-          ssoLoginUrl={ssoLoginUrl}
-          createdAt={createdAt}
-          updatedAt={updatedAt}
-        />
+        <>
+          <ViewMode
+            spec={spec}
+            ssoLoginUrl={ssoLoginUrl}
+            createdAt={createdAt}
+            updatedAt={updatedAt}
+          />
+          <SsoRequirementSection
+            identityProvider={identityProvider}
+            {...(onUpdated === undefined ? {} : { onUpdated })}
+          />
+        </>
       ) : (
         <form onSubmit={handleSave} className="stg:space-y-3">
           <FieldInput

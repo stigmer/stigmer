@@ -102,6 +102,68 @@ message RevokeOrgAccessInput {
   ];
 }
 
+// MoveOrgAccessInput names the account whose access moves, the account it
+// moves to, and the organization it moves inside.
+message MoveOrgAccessInput {
+  option (buf.validate.message).cel = {
+    id: "move_org_access.target_required"
+    message: "to_identity_account_id is required unless preview_only is set"
+    expression: "this.preview_only || this.to_identity_account_id != ''"
+  };
+
+  // The account whose access moves.
+  string from_identity_account_id = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // The account the access moves to; empty only with preview_only.
+  string to_identity_account_id = 2;
+
+  // The organization the access moves inside.
+  string org = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Say what a move would do and write nothing.
+  bool preview_only = 4;
+}
+
+// MoveOrgAccessResult says what a move moved, or would move, and what
+// stops with the source account's departure from the organization.
+message MoveOrgAccessResult {
+  // How many policies the target account was granted (or would be): the
+  // source account's policies inside the organization, and owner on each
+  // resource there the source account created.
+  int32 moved_policies = 1;
+
+  // The names of the secrets and the addresses of the connections in the
+  // source account's My vault in the organization, which the move deletes.
+  // Empty when it keeps none.
+  repeated string my_vault_entries = 2;
+
+  // The schedules, evaluators and evals the source account created in the
+  // organization. Each acts as its creator, so each stops with the move.
+  repeated AccountAutomation automations = 3;
+}
+
+// AccountAutomation is a resource that runs as the account that created
+// it: a schedule, an evaluator, a plugin eval or an agent eval.
+message AccountAutomation {
+  // The resource's kind, as an ApiResourceKind name (e.g. "schedule").
+  string kind = 1;
+
+  // The resource's id.
+  string id = 2;
+
+  // The resource's slug, for a link to it.
+  string slug = 3;
+
+  // The resource's display name.
+  string name = 4;
+}
+
 // IamPoliciesList contains a list of IAM policy resources.
 message IamPoliciesList {
   // IAM policy entries.

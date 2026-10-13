@@ -56,6 +56,18 @@ class IdentityProviderClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def create_access_move(self, input: io_pb2.AccessMoveRequest) -> io_pb2.AccessMoveTicket:
+        try:
+            return self._command.createAccessMove(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def redeem_access_move(self, input: io_pb2.RedeemAccessMoveInput) -> io_pb2.AccessMoveResult:
+        try:
+            return self._command.redeemAccessMove(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.IdentityProvider:
         try:
             return self._query.get(apiresource_io_pb2.ApiResourceId(value=id))
@@ -82,6 +94,12 @@ class IdentityProviderClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def preview_sso_requirement(self, input: io_pb2.SsoRequirementPreviewInput) -> io_pb2.SsoRequirementPreview:
+        try:
+            return self._query.previewSsoRequirement(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class IdentityProviderInput:
@@ -103,6 +121,7 @@ class IdentityProviderInput:
     external_id_claim: str = ""
     create_accounts_on_sign_in: bool = False
     sign_in_role: int = 0
+    sso_required: bool = False
 
     def _to_proto(self) -> api_pb2.IdentityProvider:
         spec = spec_pb2.IdentityProviderSpec(
@@ -115,6 +134,7 @@ class IdentityProviderInput:
             external_id_claim=self.external_id_claim,
             create_accounts_on_sign_in=self.create_accounts_on_sign_in,
             sign_in_role=self.sign_in_role,
+            sso_required=self.sso_required,
         )
         if self.allowed_issuers:
             spec.allowed_issuers.extend(self.allowed_issuers)

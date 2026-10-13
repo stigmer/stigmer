@@ -6,7 +6,7 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
 import { IdentityProvider } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { IdentityProviders, ListIdentityProvidersByOrgInput, OrganizationSsoLookup, SsoProviderInfo } from "./io_pbjs";
+import { IdentityProviders, ListIdentityProvidersByOrgInput, OrganizationSsoLookup, SsoProviderInfo, SsoRequirementPreview, SsoRequirementPreviewInput } from "./io_pbjs";
 
 /**
  * IdentityProviderQueryController provides read operations for identity providers.
@@ -74,6 +74,24 @@ export const IdentityProviderQueryController = {
       name: "getSsoProvider",
       I: OrganizationSsoLookup,
       O: SsoProviderInfo,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Say who would stop counting in an organization if its SSO provider
+     * required sign-in through it (IdentityProviderSpec.sso_required): the
+     * members whose account the provider did not sign in, each with the open
+     * invitations they created and the automations that act as them, and the
+     * owners, who are exempt. An owner reads it before turning the
+     * requirement on.
+     *
+     * NOT_FOUND when the organization has no SSO provider.
+     *
+     * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.previewSsoRequirement
+     */
+    previewSsoRequirement: {
+      name: "previewSsoRequirement",
+      I: SsoRequirementPreviewInput,
+      O: SsoRequirementPreview,
       kind: MethodKind.Unary,
     },
   }
