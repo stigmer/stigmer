@@ -43,7 +43,12 @@
  * minted, and the resource reads back under the minted id
  * (stigmer/stigmer#1489, the rule the OSS conformance suite holds for the
  * open-source kinds). Each row founds an organization of its own, so the
- * cases above never see its rows.
+ * cases above never see its rows. The rows are complete by rule, not by
+ * list: a case walks the methods of the services the unit registers and
+ * refuses a create, or an apply, whose request carries metadata and has no
+ * row, so a create a later contract adds to an Enterprise kind fails here
+ * until its row exists. A host that serves these kinds keeps its own
+ * inventory of the whole contract and names this suite as their home.
  *
  * The in-memory IamPolicy store is first held to the library's own
  * port-contract kit, so the answers below rest on a store the contract
@@ -55,8 +60,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
+import type { DescService } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import { Code, ConnectError, createClient } from "@connectrpc/connect";
+import { Code, ConnectError, createClient, createConnectRouter } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -200,6 +206,8 @@ describe("the Enterprise identity unit on open source's own authorization (compo
   let server: ComposedServer;
   let port: number;
   let dir: string;
+  // The services the unit registers, read from its registrations.
+  let served: ReadonlyArray<DescService> = [];
   const policyStore = new InMemoryIamPolicyStore();
   const providers = new InMemoryProviderStore();
   const invitations = new InMemoryInvitationStore();
@@ -367,6 +375,11 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       reservedIssuers: [],
       logger: silentLogger,
     });
+    const router = createConnectRouter();
+    for (const register of unit.services ?? []) {
+      register(router);
+    }
+    served = [...new Set(router.handlers.map((handler) => handler.service))];
     server = await composeServer({
       config: loadConfig({
         STIGMER_MODEL_REGISTRY_REFRESH: "off",
@@ -780,5 +793,26 @@ describe("the Enterprise identity unit on open source's own authorization (compo
         expect(await row.read(answered), `${row.key}: a read of ${answered}`).toBe(answered);
       },
     );
+
+    it("has a row for every create and apply the unit serves whose request carries metadata, and no other", () => {
+      const needingRow: string[] = [];
+      for (const service of served) {
+        for (const method of service.methods) {
+          if (method.name !== "create" && method.name !== "apply") continue;
+          // The OSS inventory's exemption: an input with no metadata carries no id to choose.
+          if (method.input.fields.every((field) => field.name !== "metadata")) continue;
+          needingRow.push(`${service.name}.${method.name}`);
+        }
+      }
+      expect(served.length, "services the unit registers (an empty walk would pass vacuously)").toBeGreaterThan(0);
+      const keyed = ROWS.map((row) => row.key);
+      expect(
+        {
+          missing: needingRow.filter((key) => !keyed.includes(key)).sort(),
+          extra: keyed.filter((key) => !needingRow.includes(key)).sort(),
+        },
+        "the unit's creates and ROWS disagree: add a row for a new create, or drop the row of one that is gone",
+      ).toEqual({ missing: [], extra: [] });
+    });
   });
 });
