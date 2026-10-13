@@ -135,7 +135,7 @@ import { EXECUTION_CONFIG_PAGE_SIZE } from "../../execution-config-retired.js";
 import { SESSION_VALUES_PAGE_SIZE } from "../../session-values-retired.js";
 import { SESSION_HARNESS_PAGE_SIZE } from "../../session-harness-state-moved.js";
 import { ETAG_STAMP_PAGE_SIZE } from "../../resource-etags-stamped.js";
-import { etagOf } from "../../etag.js";
+import { etagOf, stampEtag } from "../../etag.js";
 import { currentSessionRow, sessionRowWithValues } from "../../__tests__/retired-session-rows.js";
 import { sessionListIndex } from "../../../domain/session/list-index.js";
 import { WORKFLOW_RETIREMENT_PAGE_SIZE } from "../../workflow-instance-retired.js";
@@ -172,6 +172,13 @@ import {
 } from "./support.js";
 
 /** Builds the database a step starts from: the chain run up to `version`. */
+/** `bytes` as the head's store holds them: stamped with their etag (v28). */
+function stampedBytes(schema: DescMessage, bytes: Uint8Array): Uint8Array {
+  const resource = fromBinary(schema, bytes);
+  stampEtag(schema, resource);
+  return toBinary(schema, resource);
+}
+
 async function migrateTo(databaseUrl: string, version: number): Promise<void> {
   const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
   const client = await pool.connect();
@@ -2259,12 +2266,14 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             const run = await store.getResource(ApiResourceKind.run, id, RunSchema);
             const atHead = fromBinary(RunSchema, bytes);
             atHead.kind = "Run";
+            // The head (v28) stamps every resource with its etag.
+            stampEtag(RunSchema, atHead);
             expect(toBinary(RunSchema, run), id).toEqual(toBinary(RunSchema, atHead));
           }
           const agent = await store.getResource(ApiResourceKind.agent, "agt_1", AgentSchema);
-          expect(toBinary(AgentSchema, agent)).toEqual(agentBytes);
+          expect(toBinary(AgentSchema, agent)).toEqual(stampedBytes(AgentSchema, agentBytes));
           const session = await store.getResource(ApiResourceKind.session, "ses_1", SessionSchema);
-          expect(toBinary(SessionSchema, session)).toEqual(sessionBytesSeeded);
+          expect(toBinary(SessionSchema, session)).toEqual(stampedBytes(SessionSchema, sessionBytesSeeded));
           const ids = async (
             index: Parameters<typeof store.queryResources>[0],
             name: string,
