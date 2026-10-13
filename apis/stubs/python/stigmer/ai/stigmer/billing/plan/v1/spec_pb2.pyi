@@ -30,11 +30,13 @@ class PlanSpec(_message.Message):
     def __init__(self, instrument: _Optional[_Union[PlanInstrument, str]] = ..., entitlements: _Optional[_Union[_entitlement_pb2.Entitlements, _Mapping]] = ..., terms: _Optional[_Union[PlanTerms, _Mapping]] = ..., description: _Optional[str] = ...) -> None: ...
 
 class PlanTerms(_message.Message):
-    __slots__ = ("monthly_minimum_micros", "per_extra_org_micros", "annual_price_micros")
+    __slots__ = ("monthly_minimum_micros", "per_extra_org_micros", "annual_price_micros", "per_agent_hour_micros")
     MONTHLY_MINIMUM_MICROS_FIELD_NUMBER: _ClassVar[int]
     PER_EXTRA_ORG_MICROS_FIELD_NUMBER: _ClassVar[int]
     ANNUAL_PRICE_MICROS_FIELD_NUMBER: _ClassVar[int]
+    PER_AGENT_HOUR_MICROS_FIELD_NUMBER: _ClassVar[int]
     monthly_minimum_micros: int
     per_extra_org_micros: int
     annual_price_micros: int
-    def __init__(self, monthly_minimum_micros: _Optional[int] = ..., per_extra_org_micros: _Optional[int] = ..., annual_price_micros: _Optional[int] = ...) -> None: ...
+    per_agent_hour_micros: int
+    def __init__(self, monthly_minimum_micros: _Optional[int] = ..., per_extra_org_micros: _Optional[int] = ..., annual_price_micros: _Optional[int] = ..., per_agent_hour_micros: _Optional[int] = ...) -> None: ...

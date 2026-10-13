@@ -228,6 +228,47 @@ private static final long serialVersionUID = 0L;
     return archivedWorkspaceRetentionDays_;
   }
 
+  public static final int INCLUDED_AGENT_HOURS_FIELD_NUMBER = 7;
+  private int includedAgentHours_ = 0;
+  /**
+   * <pre>
+   * The working agent hours an organization may use each month before its
+   * plan's hourly price applies or, on a plan with none, before new work
+   * pauses until the next month. An hour is counted only while an agent is
+   * working, never while it waits for a person. How a month is counted is
+   * the edition's: a subscription counts its billing period. Absent is no
+   * limit. A child organization draws on its paying organization's
+   * allowance. Read by a subscription. A license ignores it, because a
+   * self-hosted deployment runs its agents on its own computers.
+   * </pre>
+   *
+   * <code>optional int32 included_agent_hours = 7 [json_name = "includedAgentHours", (.buf.validate.field) = { ... }</code>
+   * @return Whether the includedAgentHours field is set.
+   */
+  @java.lang.Override
+  public boolean hasIncludedAgentHours() {
+    return ((bitField0_ & 0x00000020) != 0);
+  }
+  /**
+   * <pre>
+   * The working agent hours an organization may use each month before its
+   * plan's hourly price applies or, on a plan with none, before new work
+   * pauses until the next month. An hour is counted only while an agent is
+   * working, never while it waits for a person. How a month is counted is
+   * the edition's: a subscription counts its billing period. Absent is no
+   * limit. A child organization draws on its paying organization's
+   * allowance. Read by a subscription. A license ignores it, because a
+   * self-hosted deployment runs its agents on its own computers.
+   * </pre>
+   *
+   * <code>optional int32 included_agent_hours = 7 [json_name = "includedAgentHours", (.buf.validate.field) = { ... }</code>
+   * @return The includedAgentHours.
+   */
+  @java.lang.Override
+  public int getIncludedAgentHours() {
+    return includedAgentHours_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -257,6 +298,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000010) != 0)) {
       output.writeInt32(6, archivedWorkspaceRetentionDays_);
     }
+    if (((bitField0_ & 0x00000020) != 0)) {
+      output.writeInt32(7, includedAgentHours_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -285,6 +329,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000010) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(6, archivedWorkspaceRetentionDays_);
+    }
+    if (((bitField0_ & 0x00000020) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(7, includedAgentHours_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -326,6 +374,11 @@ private static final long serialVersionUID = 0L;
       if (getArchivedWorkspaceRetentionDays()
           != other.getArchivedWorkspaceRetentionDays()) return false;
     }
+    if (hasIncludedAgentHours() != other.hasIncludedAgentHours()) return false;
+    if (hasIncludedAgentHours()) {
+      if (getIncludedAgentHours()
+          != other.getIncludedAgentHours()) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -356,6 +409,10 @@ private static final long serialVersionUID = 0L;
     if (hasArchivedWorkspaceRetentionDays()) {
       hash = (37 * hash) + ARCHIVED_WORKSPACE_RETENTION_DAYS_FIELD_NUMBER;
       hash = (53 * hash) + getArchivedWorkspaceRetentionDays();
+    }
+    if (hasIncludedAgentHours()) {
+      hash = (37 * hash) + INCLUDED_AGENT_HOURS_FIELD_NUMBER;
+      hash = (53 * hash) + getIncludedAgentHours();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -501,6 +558,7 @@ private static final long serialVersionUID = 0L;
       includedChildOrgs_ = 0;
       maxActiveSessionSandboxes_ = 0;
       archivedWorkspaceRetentionDays_ = 0;
+      includedAgentHours_ = 0;
       return this;
     }
 
@@ -555,6 +613,10 @@ private static final long serialVersionUID = 0L;
         result.archivedWorkspaceRetentionDays_ = archivedWorkspaceRetentionDays_;
         to_bitField0_ |= 0x00000010;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.includedAgentHours_ = includedAgentHours_;
+        to_bitField0_ |= 0x00000020;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -584,6 +646,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasArchivedWorkspaceRetentionDays()) {
         setArchivedWorkspaceRetentionDays(other.getArchivedWorkspaceRetentionDays());
+      }
+      if (other.hasIncludedAgentHours()) {
+        setIncludedAgentHours(other.getIncludedAgentHours());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -636,6 +701,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 48
+            case 56: {
+              includedAgentHours_ = input.readInt32();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 56
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1001,6 +1071,90 @@ private static final long serialVersionUID = 0L;
     public Builder clearArchivedWorkspaceRetentionDays() {
       bitField0_ = (bitField0_ & ~0x00000010);
       archivedWorkspaceRetentionDays_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int includedAgentHours_ ;
+    /**
+     * <pre>
+     * The working agent hours an organization may use each month before its
+     * plan's hourly price applies or, on a plan with none, before new work
+     * pauses until the next month. An hour is counted only while an agent is
+     * working, never while it waits for a person. How a month is counted is
+     * the edition's: a subscription counts its billing period. Absent is no
+     * limit. A child organization draws on its paying organization's
+     * allowance. Read by a subscription. A license ignores it, because a
+     * self-hosted deployment runs its agents on its own computers.
+     * </pre>
+     *
+     * <code>optional int32 included_agent_hours = 7 [json_name = "includedAgentHours", (.buf.validate.field) = { ... }</code>
+     * @return Whether the includedAgentHours field is set.
+     */
+    @java.lang.Override
+    public boolean hasIncludedAgentHours() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * The working agent hours an organization may use each month before its
+     * plan's hourly price applies or, on a plan with none, before new work
+     * pauses until the next month. An hour is counted only while an agent is
+     * working, never while it waits for a person. How a month is counted is
+     * the edition's: a subscription counts its billing period. Absent is no
+     * limit. A child organization draws on its paying organization's
+     * allowance. Read by a subscription. A license ignores it, because a
+     * self-hosted deployment runs its agents on its own computers.
+     * </pre>
+     *
+     * <code>optional int32 included_agent_hours = 7 [json_name = "includedAgentHours", (.buf.validate.field) = { ... }</code>
+     * @return The includedAgentHours.
+     */
+    @java.lang.Override
+    public int getIncludedAgentHours() {
+      return includedAgentHours_;
+    }
+    /**
+     * <pre>
+     * The working agent hours an organization may use each month before its
+     * plan's hourly price applies or, on a plan with none, before new work
+     * pauses until the next month. An hour is counted only while an agent is
+     * working, never while it waits for a person. How a month is counted is
+     * the edition's: a subscription counts its billing period. Absent is no
+     * limit. A child organization draws on its paying organization's
+     * allowance. Read by a subscription. A license ignores it, because a
+     * self-hosted deployment runs its agents on its own computers.
+     * </pre>
+     *
+     * <code>optional int32 included_agent_hours = 7 [json_name = "includedAgentHours", (.buf.validate.field) = { ... }</code>
+     * @param value The includedAgentHours to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIncludedAgentHours(int value) {
+
+      includedAgentHours_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The working agent hours an organization may use each month before its
+     * plan's hourly price applies or, on a plan with none, before new work
+     * pauses until the next month. An hour is counted only while an agent is
+     * working, never while it waits for a person. How a month is counted is
+     * the edition's: a subscription counts its billing period. Absent is no
+     * limit. A child organization draws on its paying organization's
+     * allowance. Read by a subscription. A license ignores it, because a
+     * self-hosted deployment runs its agents on its own computers.
+     * </pre>
+     *
+     * <code>optional int32 included_agent_hours = 7 [json_name = "includedAgentHours", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearIncludedAgentHours() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      includedAgentHours_ = 0;
       onChanged();
       return this;
     }

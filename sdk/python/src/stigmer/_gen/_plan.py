@@ -101,6 +101,7 @@ class PlanTermsInput:
     monthly_minimum_micros: int | None = None
     per_extra_org_micros: int | None = None
     annual_price_micros: int | None = None
+    per_agent_hour_micros: int | None = None
 
     def _to_proto(self) -> spec_pb2.PlanTerms:
         msg = spec_pb2.PlanTerms()
@@ -110,5 +111,7 @@ class PlanTermsInput:
             msg.per_extra_org_micros = self.per_extra_org_micros
         if self.annual_price_micros is not None:
             msg.annual_price_micros = self.annual_price_micros
+        if self.per_agent_hour_micros is not None:
+            msg.per_agent_hour_micros = self.per_agent_hour_micros
         return msg
 

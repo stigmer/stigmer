@@ -27,7 +27,8 @@ public enum PlanInstrument
   /**
    * <pre>
    * Bought as a Subscription by an organization on Stigmer Cloud, invoiced
-   * a flat fee each month.
+   * each month: its fee, plus the child organizations and agent hours past
+   * what it includes.
    * </pre>
    *
    * <code>subscription = 1;</code>
@@ -60,7 +61,8 @@ public enum PlanInstrument
   /**
    * <pre>
    * Bought as a Subscription by an organization on Stigmer Cloud, invoiced
-   * a flat fee each month.
+   * each month: its fee, plus the child organizations and agent hours past
+   * what it includes.
    * </pre>
    *
    * <code>subscription = 1;</code>

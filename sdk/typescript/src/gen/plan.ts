@@ -85,6 +85,7 @@ export interface EntitlementLimitsInput {
   includedChildOrgs?: number;
   maxActiveSessionSandboxes?: number;
   archivedWorkspaceRetentionDays?: number;
+  includedAgentHours?: number;
 }
 
 /** SDK input type for PlanTerms. */
@@ -92,6 +93,7 @@ export interface PlanTermsInput {
   monthlyMinimumMicros?: bigint;
   perExtraOrgMicros?: bigint;
   annualPriceMicros?: bigint;
+  perAgentHourMicros?: bigint;
 }
 
 function buildEntitlementLimitsProto(input: EntitlementLimitsInput) {
@@ -101,6 +103,7 @@ function buildEntitlementLimitsProto(input: EntitlementLimitsInput) {
     includedChildOrgs: input.includedChildOrgs,
     maxActiveSessionSandboxes: input.maxActiveSessionSandboxes,
     archivedWorkspaceRetentionDays: input.archivedWorkspaceRetentionDays,
+    includedAgentHours: input.includedAgentHours,
   }));
 }
 
@@ -116,6 +119,7 @@ function buildPlanTermsProto(input: PlanTermsInput) {
     monthlyMinimumMicros: input.monthlyMinimumMicros,
     perExtraOrgMicros: input.perExtraOrgMicros,
     annualPriceMicros: input.annualPriceMicros,
+    perAgentHourMicros: input.perAgentHourMicros,
   }));
 }
 

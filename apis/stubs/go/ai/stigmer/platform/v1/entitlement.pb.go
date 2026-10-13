@@ -229,8 +229,17 @@ type EntitlementLimits struct {
 	// as the session exists. Read by a subscription. A license ignores it
 	// until a self-hosted sandbox lifecycle reads it.
 	ArchivedWorkspaceRetentionDays *int32 `protobuf:"varint,6,opt,name=archived_workspace_retention_days,json=archivedWorkspaceRetentionDays,proto3,oneof" json:"archived_workspace_retention_days,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	// The working agent hours an organization may use each month before its
+	// plan's hourly price applies or, on a plan with none, before new work
+	// pauses until the next month. An hour is counted only while an agent is
+	// working, never while it waits for a person. How a month is counted is
+	// the edition's: a subscription counts its billing period. Absent is no
+	// limit. A child organization draws on its paying organization's
+	// allowance. Read by a subscription. A license ignores it, because a
+	// self-hosted deployment runs its agents on its own computers.
+	IncludedAgentHours *int32 `protobuf:"varint,7,opt,name=included_agent_hours,json=includedAgentHours,proto3,oneof" json:"included_agent_hours,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *EntitlementLimits) Reset() {
@@ -298,6 +307,13 @@ func (x *EntitlementLimits) GetArchivedWorkspaceRetentionDays() int32 {
 	return 0
 }
 
+func (x *EntitlementLimits) GetIncludedAgentHours() int32 {
+	if x != nil && x.IncludedAgentHours != nil {
+		return *x.IncludedAgentHours
+	}
+	return 0
+}
+
 var File_ai_stigmer_platform_v1_entitlement_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
@@ -305,19 +321,21 @@ const file_ai_stigmer_platform_v1_entitlement_proto_rawDesc = "" +
 	"(ai/stigmer/platform/v1/entitlement.proto\x12\x16ai.stigmer.platform.v1\x1a\x1bbuf/validate/validate.proto\"\xa1\x01\n" +
 	"\fEntitlements\x12A\n" +
 	"\x06limits\x18\x01 \x01(\v2).ai.stigmer.platform.v1.EntitlementLimitsR\x06limits\x12N\n" +
-	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xec\x03\n" +
+	"\bfeatures\x18\x02 \x03(\x0e2\x1f.ai.stigmer.platform.v1.FeatureB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\bfeatures\"\xc5\x04\n" +
 	"\x11EntitlementLimits\x12'\n" +
 	"\bmax_orgs\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x00R\amaxOrgs\x88\x01\x01\x12)\n" +
 	"\tmax_users\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x01R\bmaxUsers\x88\x01\x01\x12<\n" +
 	"\x13included_child_orgs\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x02R\x11includedChildOrgs\x88\x01\x01\x12M\n" +
 	"\x1cmax_active_session_sandboxes\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x03R\x19maxActiveSessionSandboxes\x88\x01\x01\x12W\n" +
-	"!archived_workspace_retention_days\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x04R\x1earchivedWorkspaceRetentionDays\x88\x01\x01B\v\n" +
+	"!archived_workspace_retention_days\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x04R\x1earchivedWorkspaceRetentionDays\x88\x01\x01\x12>\n" +
+	"\x14included_agent_hours\x18\a \x01(\x05B\a\xbaH\x04\x1a\x02 \x00H\x05R\x12includedAgentHours\x88\x01\x01B\v\n" +
 	"\t_max_orgsB\f\n" +
 	"\n" +
 	"_max_usersB\x16\n" +
 	"\x14_included_child_orgsB\x1f\n" +
 	"\x1d_max_active_session_sandboxesB$\n" +
-	"\"_archived_workspace_retention_daysJ\x04\b\x05\x10\x06R\x1dmax_active_workflow_sandboxes*\x99\x01\n" +
+	"\"_archived_workspace_retention_daysB\x17\n" +
+	"\x15_included_agent_hoursJ\x04\b\x05\x10\x06R\x1dmax_active_workflow_sandboxes*\x99\x01\n" +
 	"\aFeature\x12\x17\n" +
 	"\x13feature_unspecified\x10\x00\x12\x13\n" +
 	"\x0fsso_enforcement\x10\x01\x12\x13\n" +

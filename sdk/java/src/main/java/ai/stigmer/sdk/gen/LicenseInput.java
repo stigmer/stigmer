@@ -235,6 +235,7 @@ public final class LicenseInput {
         private final Integer includedChildOrgs;
         private final Integer maxActiveSessionSandboxes;
         private final Integer archivedWorkspaceRetentionDays;
+        private final Integer includedAgentHours;
 
         private EntitlementLimitsInput(Builder builder) {
             this.maxOrgs = builder.maxOrgs;
@@ -242,6 +243,7 @@ public final class LicenseInput {
             this.includedChildOrgs = builder.includedChildOrgs;
             this.maxActiveSessionSandboxes = builder.maxActiveSessionSandboxes;
             this.archivedWorkspaceRetentionDays = builder.archivedWorkspaceRetentionDays;
+            this.includedAgentHours = builder.includedAgentHours;
         }
 
         EntitlementLimits toProto() {
@@ -261,6 +263,9 @@ public final class LicenseInput {
             if (this.archivedWorkspaceRetentionDays != null) {
                 builder.setArchivedWorkspaceRetentionDays(this.archivedWorkspaceRetentionDays);
             }
+            if (this.includedAgentHours != null) {
+                builder.setIncludedAgentHours(this.includedAgentHours);
+            }
             return builder.build();
         }
 
@@ -272,6 +277,7 @@ public final class LicenseInput {
             private Integer includedChildOrgs;
             private Integer maxActiveSessionSandboxes;
             private Integer archivedWorkspaceRetentionDays;
+            private Integer includedAgentHours;
 
             private Builder() {}
 
@@ -280,6 +286,7 @@ public final class LicenseInput {
             public Builder includedChildOrgs(int includedChildOrgs) { this.includedChildOrgs = includedChildOrgs; return this; }
             public Builder maxActiveSessionSandboxes(int maxActiveSessionSandboxes) { this.maxActiveSessionSandboxes = maxActiveSessionSandboxes; return this; }
             public Builder archivedWorkspaceRetentionDays(int archivedWorkspaceRetentionDays) { this.archivedWorkspaceRetentionDays = archivedWorkspaceRetentionDays; return this; }
+            public Builder includedAgentHours(int includedAgentHours) { this.includedAgentHours = includedAgentHours; return this; }
 
             public EntitlementLimitsInput build() { return new EntitlementLimitsInput(this); }
         }

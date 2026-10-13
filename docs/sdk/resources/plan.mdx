@@ -285,6 +285,7 @@ The numeric limits an entitlement carries.
     includedChildOrgs: { type: "number", description: "The child organizations a subscription includes before the per-organization fee applies." },
     maxActiveSessionSandboxes: { type: "number", description: "The most session sandboxes an organization may hold provisioning or running at once." },
     archivedWorkspaceRetentionDays: { type: "number", description: "How many days an archived session workspace is kept before it is deleted, its files and snapshot included." },
+    includedAgentHours: { type: "number", description: "The working agent hours an organization may use each month before its plan's hourly price applies or, on a plan with none, before new work pauses until the next month." },
   }}
 />
 
@@ -297,6 +298,7 @@ The commercial terms of a plan.
     monthlyMinimumMicros: { type: "number", description: "The plan's monthly fee: what a subscription plan bills per month, in micro-USD." },
     perExtraOrgMicros: { type: "number", description: "What a subscription plan bills per month for each child organization beyond the ones its entitlements include, in micro-USD." },
     annualPriceMicros: { type: "number", description: "What a license plan invoices for a one-year term, in micro-USD." },
+    perAgentHourMicros: { type: "number", description: "What a subscription plan bills for each working agent hour past its entitlements' included_agent_hours, in micro-USD." },
   }}
 />
 
@@ -361,7 +363,7 @@ The instrument a plan is bought through.
 
 | Value | Description |
 |-------|-------------|
-| `subscription` | Bought as a Subscription by an organization on Stigmer Cloud, invoiced a flat fee each month. |
+| `subscription` | Bought as a Subscription by an organization on Stigmer Cloud, invoiced each month: its fee, plus the child organizations and agent hours past what it includes. |
 | `license` | Bought as a License by a self-hosting customer, invoiced for a term. |
 
 ### Feature

@@ -141,6 +141,7 @@ class EntitlementLimitsInput:
     included_child_orgs: int | None = None
     max_active_session_sandboxes: int | None = None
     archived_workspace_retention_days: int | None = None
+    included_agent_hours: int | None = None
 
     def _to_proto(self) -> platform_entitlement_pb2.EntitlementLimits:
         msg = platform_entitlement_pb2.EntitlementLimits()
@@ -154,5 +155,7 @@ class EntitlementLimitsInput:
             msg.max_active_session_sandboxes = self.max_active_session_sandboxes
         if self.archived_workspace_retention_days is not None:
             msg.archived_workspace_retention_days = self.archived_workspace_retention_days
+        if self.included_agent_hours is not None:
+            msg.included_agent_hours = self.included_agent_hours
         return msg
 
