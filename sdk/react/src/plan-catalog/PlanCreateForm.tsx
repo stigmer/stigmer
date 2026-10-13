@@ -31,8 +31,8 @@ export interface PlanCreateFormProps {
 
 /**
  * Adds a subscription plan to the catalog: its name and handle, its
- * monthly fee, its features, and the child
- * organizations it includes. The form states before submitting that a
+ * monthly fee, its features, the child organizations it includes, and the
+ * agent hours it includes with the price of each hour past them. The form states before submitting that a
  * plan's terms are final: a change of terms is a new plan, and the old
  * one is retired.
  */
@@ -131,6 +131,27 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
           </Field>
         </div>
       )}
+
+      <div className="stg:grid stg:gap-3 stg:sm:grid-cols-2">
+        <Field label="Agent hours included each month (empty: unlimited)">
+          <input
+            className={INPUT_CLASSES}
+            inputMode="numeric"
+            value={draft.includedAgentHours}
+            onChange={(e) => set("includedAgentHours", e.target.value)}
+          />
+          {fieldError("includedAgentHours")}
+        </Field>
+        <Field label="Each hour over, USD (empty: the organization pauses at the allowance)">
+          <input
+            className={INPUT_CLASSES}
+            inputMode="decimal"
+            value={draft.perAgentHourUsd}
+            onChange={(e) => set("perAgentHourUsd", e.target.value)}
+          />
+          {fieldError("perAgentHourUsd")}
+        </Field>
+      </div>
 
       {confirming && (
         <p className="stg:rounded-md stg:bg-muted-subtle stg:px-3 stg:py-2 stg:text-xs stg:text-foreground" role="status">

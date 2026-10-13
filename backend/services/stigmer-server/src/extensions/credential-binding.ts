@@ -4,7 +4,8 @@
  * it to the lanes that act on an organization without asking the
  * Authorizer (organization create, API key create, the self-query lanes,
  * and a composition's own such lanes, which receive it through
- * `ComposedServices.credentialBinding`).
+ * `ComposedServices.credentialBinding`), and the refusal an organization's
+ * sign-in rule gives a person there (`signInRefusal`).
  *
  * One implementation, built by the composition root over the rows every
  * posture reads (authorization/credential-binding.ts, which also carries
@@ -15,6 +16,7 @@
  */
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import type { AuthzRefusal } from "./authorizer.js";
 import type { CallerIdentity } from "./identity.js";
 import type { RowAuthorizationFacts } from "./resource-authorization.js";
 
@@ -53,6 +55,20 @@ export interface CredentialBinding {
    * parent's management of a child goes through the Authorizer).
    */
   admitsOrganization(caller: CallerIdentity, org: string): boolean;
+  /**
+   * The refusal the organization's sign-in rule gives `caller` in `org`
+   * (extensions/organization-sign-in-rule.ts), or undefined when it gives
+   * none: always undefined with no rule composed, for a caller that is not
+   * a person, and in an organization that requires nothing. The async twin
+   * of `admitsOrganization` for the lanes that act on an organization
+   * without the Authorizer (an invitation's redeem, an automation acting as
+   * its creator); the composed Authorizer and list read scope already ask
+   * it. Throws on a read fault.
+   */
+  signInRefusal(
+    caller: CallerIdentity,
+    org: string,
+  ): Promise<AuthzRefusal | undefined>;
   /**
    * Whether a list candidate may be shown to the caller, from the facts the
    * candidate carries and, for a blueprint another organization shares with

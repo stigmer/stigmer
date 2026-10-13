@@ -14,7 +14,9 @@ package ai.stigmer.billing.plan.v1;
  * which is how a subscription plan and a license plan share one message. A
  * monthly plan costs its monthly fee, monthly_minimum_micros, plus
  * per_extra_org_micros for each child organization beyond the ones it
- * includes. Usage is never part of a plan's price.
+ * includes, plus per_agent_hour_micros for each working agent hour beyond
+ * the ones it includes. Model tokens are never part of a plan's price;
+ * working agent hours past the plan's allowance are.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanTerms}
@@ -149,6 +151,43 @@ private static final long serialVersionUID = 0L;
     return annualPriceMicros_;
   }
 
+  public static final int PER_AGENT_HOUR_MICROS_FIELD_NUMBER = 5;
+  private long perAgentHourMicros_ = 0L;
+  /**
+   * <pre>
+   * What a subscription plan bills for each working agent hour past its
+   * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+   * has no overage: an organization on it pauses at its allowance. Zero is
+   * refused, unlike the other terms, because a zero price on an allowance
+   * would be a second way to say "unlimited hours", which an absent
+   * allowance already says. Absent on a license plan.
+   * </pre>
+   *
+   * <code>optional int64 per_agent_hour_micros = 5 [json_name = "perAgentHourMicros", (.buf.validate.field) = { ... }</code>
+   * @return Whether the perAgentHourMicros field is set.
+   */
+  @java.lang.Override
+  public boolean hasPerAgentHourMicros() {
+    return ((bitField0_ & 0x00000008) != 0);
+  }
+  /**
+   * <pre>
+   * What a subscription plan bills for each working agent hour past its
+   * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+   * has no overage: an organization on it pauses at its allowance. Zero is
+   * refused, unlike the other terms, because a zero price on an allowance
+   * would be a second way to say "unlimited hours", which an absent
+   * allowance already says. Absent on a license plan.
+   * </pre>
+   *
+   * <code>optional int64 per_agent_hour_micros = 5 [json_name = "perAgentHourMicros", (.buf.validate.field) = { ... }</code>
+   * @return The perAgentHourMicros.
+   */
+  @java.lang.Override
+  public long getPerAgentHourMicros() {
+    return perAgentHourMicros_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -172,6 +211,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeInt64(4, annualPriceMicros_);
     }
+    if (((bitField0_ & 0x00000008) != 0)) {
+      output.writeInt64(5, perAgentHourMicros_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -192,6 +234,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(4, annualPriceMicros_);
+    }
+    if (((bitField0_ & 0x00000008) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(5, perAgentHourMicros_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -223,6 +269,11 @@ private static final long serialVersionUID = 0L;
       if (getAnnualPriceMicros()
           != other.getAnnualPriceMicros()) return false;
     }
+    if (hasPerAgentHourMicros() != other.hasPerAgentHourMicros()) return false;
+    if (hasPerAgentHourMicros()) {
+      if (getPerAgentHourMicros()
+          != other.getPerAgentHourMicros()) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -248,6 +299,11 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ANNUAL_PRICE_MICROS_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
           getAnnualPriceMicros());
+    }
+    if (hasPerAgentHourMicros()) {
+      hash = (37 * hash) + PER_AGENT_HOUR_MICROS_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getPerAgentHourMicros());
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -355,7 +411,9 @@ private static final long serialVersionUID = 0L;
    * which is how a subscription plan and a license plan share one message. A
    * monthly plan costs its monthly fee, monthly_minimum_micros, plus
    * per_extra_org_micros for each child organization beyond the ones it
-   * includes. Usage is never part of a plan's price.
+   * includes, plus per_agent_hour_micros for each working agent hour beyond
+   * the ones it includes. Model tokens are never part of a plan's price;
+   * working agent hours past the plan's allowance are.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanTerms}
@@ -394,6 +452,7 @@ private static final long serialVersionUID = 0L;
       monthlyMinimumMicros_ = 0L;
       perExtraOrgMicros_ = 0L;
       annualPriceMicros_ = 0L;
+      perAgentHourMicros_ = 0L;
       return this;
     }
 
@@ -440,6 +499,10 @@ private static final long serialVersionUID = 0L;
         result.annualPriceMicros_ = annualPriceMicros_;
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.perAgentHourMicros_ = perAgentHourMicros_;
+        to_bitField0_ |= 0x00000008;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -463,6 +526,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasAnnualPriceMicros()) {
         setAnnualPriceMicros(other.getAnnualPriceMicros());
+      }
+      if (other.hasPerAgentHourMicros()) {
+        setPerAgentHourMicros(other.getPerAgentHourMicros());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -505,6 +571,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 32
+            case 40: {
+              perAgentHourMicros_ = input.readInt64();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -702,6 +773,82 @@ private static final long serialVersionUID = 0L;
     public Builder clearAnnualPriceMicros() {
       bitField0_ = (bitField0_ & ~0x00000004);
       annualPriceMicros_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long perAgentHourMicros_ ;
+    /**
+     * <pre>
+     * What a subscription plan bills for each working agent hour past its
+     * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+     * has no overage: an organization on it pauses at its allowance. Zero is
+     * refused, unlike the other terms, because a zero price on an allowance
+     * would be a second way to say "unlimited hours", which an absent
+     * allowance already says. Absent on a license plan.
+     * </pre>
+     *
+     * <code>optional int64 per_agent_hour_micros = 5 [json_name = "perAgentHourMicros", (.buf.validate.field) = { ... }</code>
+     * @return Whether the perAgentHourMicros field is set.
+     */
+    @java.lang.Override
+    public boolean hasPerAgentHourMicros() {
+      return ((bitField0_ & 0x00000008) != 0);
+    }
+    /**
+     * <pre>
+     * What a subscription plan bills for each working agent hour past its
+     * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+     * has no overage: an organization on it pauses at its allowance. Zero is
+     * refused, unlike the other terms, because a zero price on an allowance
+     * would be a second way to say "unlimited hours", which an absent
+     * allowance already says. Absent on a license plan.
+     * </pre>
+     *
+     * <code>optional int64 per_agent_hour_micros = 5 [json_name = "perAgentHourMicros", (.buf.validate.field) = { ... }</code>
+     * @return The perAgentHourMicros.
+     */
+    @java.lang.Override
+    public long getPerAgentHourMicros() {
+      return perAgentHourMicros_;
+    }
+    /**
+     * <pre>
+     * What a subscription plan bills for each working agent hour past its
+     * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+     * has no overage: an organization on it pauses at its allowance. Zero is
+     * refused, unlike the other terms, because a zero price on an allowance
+     * would be a second way to say "unlimited hours", which an absent
+     * allowance already says. Absent on a license plan.
+     * </pre>
+     *
+     * <code>optional int64 per_agent_hour_micros = 5 [json_name = "perAgentHourMicros", (.buf.validate.field) = { ... }</code>
+     * @param value The perAgentHourMicros to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPerAgentHourMicros(long value) {
+
+      perAgentHourMicros_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What a subscription plan bills for each working agent hour past its
+     * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+     * has no overage: an organization on it pauses at its allowance. Zero is
+     * refused, unlike the other terms, because a zero price on an allowance
+     * would be a second way to say "unlimited hours", which an absent
+     * allowance already says. Absent on a license plan.
+     * </pre>
+     *
+     * <code>optional int64 per_agent_hour_micros = 5 [json_name = "perAgentHourMicros", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPerAgentHourMicros() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      perAgentHourMicros_ = 0L;
       onChanged();
       return this;
     }

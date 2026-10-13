@@ -10,7 +10,10 @@
  * eval and an authorizer that cannot answer stay infrastructure throws. An
  * agent eval, named by its id, is read from its own row: its tries act as
  * its creator while that creator may still edit the eval's agent, and a
- * creator who may no longer is the same refusal, naming the agent.
+ * creator who may no longer is the same refusal, naming the agent. A
+ * creator the eval's organization no longer admits by how they signed in
+ * is refused before the parent is asked about, the try not graded for the
+ * organization's own reason.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -38,11 +41,29 @@ import {
 } from "../plugin-eval-caller.js";
 import { driverFixtures, dropPostgresFixture } from "./drivers.js";
 import type { OpenedStore } from "./drivers.js";
+import type { AuthzRefusal } from "../../extensions/authorizer.js";
+import { refusedCreatorMessage } from "../creator-sign-in.js";
+import type { CreatorSignInCheck } from "../creator-sign-in.js";
 
 const SUBJECT = "auth0|priya";
 const PRIYA = accountIdFor(SUBJECT);
 
 afterAll(dropPostgresFixture);
+
+
+const REFUSAL: AuthzRefusal = {
+  reason: "SSO_REQUIRED",
+  message: "This organization requires you to sign in through Acme Okta.",
+  metadata: { org: "acme", provider: "acme-okta" },
+};
+
+/** A binding whose sign-in rule refuses every person in `refusing` alone. */
+function signInRefusing(refusing: string): CreatorSignInCheck {
+  return {
+    signInRefusal: (_caller, org) =>
+      Promise.resolve(org === refusing ? REFUSAL : undefined),
+  };
+}
 
 describe.each(
   driverFixtures([ApiResourceKind.plugin_eval, ApiResourceKind.agent_eval, ApiResourceKind.identity_account]),
@@ -125,6 +146,25 @@ describe.each(
       expect(asked, "the creator must still edit the eval's plugin").toEqual([`${PRIYA} can_edit plg_1`]);
       await pluginEval("pev_by_sub", SUBJECT);
       expect((await mint().mintPluginEvalCaller("acme", "pev_by_sub")).identityId).toBe(PRIYA);
+    });
+
+    it("refuses a creator the eval's organization no longer admits by how they signed in, the try not graded for its reason", async () => {
+      await pluginEval("pev_email", PRIYA);
+      await agentEval("aev_email", PRIYA);
+      asked.length = 0;
+      const held = newBuiltInPluginEvalCaller({
+        store: opened.store,
+        accounts,
+        authorizer: answering("allow"),
+        signIn: signInRefusing("acme"),
+      });
+      const plugin = await held.mintPluginEvalCaller("acme", "pev_email").catch((error: unknown) => error);
+      expect(plugin).toBeInstanceOf(PluginEvalCallerRefusedError);
+      expect((plugin as Error).message).toBe(refusedCreatorMessage("plugin eval", "pev_email", REFUSAL));
+      expect((plugin as PluginEvalCallerRefusedError).notGradedReason).toBe(REFUSAL.message);
+      const agent = await held.mintPluginEvalCaller("acme", "aev_email").catch((error: unknown) => error);
+      expect((agent as Error).message).toBe(refusedCreatorMessage("agent eval", "aev_email", REFUSAL));
+      expect(asked).toEqual([]);
     });
 
     it("refuses when the creator may no longer edit the plugin, and throws when the authorizer cannot answer", async () => {

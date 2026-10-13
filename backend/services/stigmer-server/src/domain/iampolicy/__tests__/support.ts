@@ -12,7 +12,10 @@ import { create } from "@bufbuild/protobuf";
 
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { IamPolicySpec } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
-import { IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import {
+  ApiResourceRefSchema,
+  IamPolicySpecSchema,
+} from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
 import type {
   PolicyGrantedEvent,
@@ -65,7 +68,9 @@ export const NO_STORED_RESOURCES: StoredResources = storedResources({});
 /**
  * Stored rows by `kind:id`: the creator the removal sweep keeps authorship
  * by, and the organization a record falls back to when the resource's
- * scope links are gone. A row named in neither map is not stored.
+ * scope links are gone. A row named in neither map is not stored. A row in
+ * both is one its creator made in that organization, what a move grants
+ * the target as owner.
  */
 export function storedResources(rows: {
   readonly creators?: Readonly<Record<string, string>>;
@@ -77,6 +82,18 @@ export function storedResources(rows: {
     },
     async organizationOf(kind, id) {
       return rows.organizations?.[`${kind}:${id}`] ?? "";
+    },
+    async authoredIn(organizationId, accountId) {
+      return Object.entries(rows.creators ?? {})
+        .filter(
+          ([key, creator]) =>
+            creator === accountId &&
+            rows.organizations?.[key] === organizationId,
+        )
+        .map(([key]) => {
+          const [kind = "", id = ""] = key.split(":");
+          return create(ApiResourceRefSchema, { kind, id });
+        });
     },
   };
 }

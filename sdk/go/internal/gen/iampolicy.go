@@ -53,6 +53,11 @@ func (i *IamPolicyClient) BootstrapRevokeOrgAccess(ctx context.Context, input *i
 	return wrapErr(err)
 }
 
+func (i *IamPolicyClient) BootstrapMoveOrgAccess(ctx context.Context, input *iampolicyv1.MoveOrgAccessInput) (*iampolicyv1.MoveOrgAccessResult, error) {
+	resp, err := i.command.BootstrapMoveOrgAccess(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IamPolicyClient) Get(ctx context.Context, id string) (*iampolicyv1.IamPolicy, error) {
 	resp, err := i.query.Get(ctx, &iampolicyv1.IamPolicyId{Value: id})
 	return resp, wrapErr(err)

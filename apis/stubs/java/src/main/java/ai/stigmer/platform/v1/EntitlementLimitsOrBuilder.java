@@ -140,4 +140,37 @@ public interface EntitlementLimitsOrBuilder extends
    * @return The archivedWorkspaceRetentionDays.
    */
   int getArchivedWorkspaceRetentionDays();
+
+  /**
+   * <pre>
+   * The working agent hours an organization may use each month before its
+   * plan's hourly price applies or, on a plan with none, before new work
+   * pauses until the next month. An hour is counted only while an agent is
+   * working, never while it waits for a person. How a month is counted is
+   * the edition's: a subscription counts its billing period. Absent is no
+   * limit. A child organization draws on its paying organization's
+   * allowance. Read by a subscription. A license ignores it, because a
+   * self-hosted deployment runs its agents on its own computers.
+   * </pre>
+   *
+   * <code>optional int32 included_agent_hours = 7 [json_name = "includedAgentHours", (.buf.validate.field) = { ... }</code>
+   * @return Whether the includedAgentHours field is set.
+   */
+  boolean hasIncludedAgentHours();
+  /**
+   * <pre>
+   * The working agent hours an organization may use each month before its
+   * plan's hourly price applies or, on a plan with none, before new work
+   * pauses until the next month. An hour is counted only while an agent is
+   * working, never while it waits for a person. How a month is counted is
+   * the edition's: a subscription counts its billing period. Absent is no
+   * limit. A child organization draws on its paying organization's
+   * allowance. Read by a subscription. A license ignores it, because a
+   * self-hosted deployment runs its agents on its own computers.
+   * </pre>
+   *
+   * <code>optional int32 included_agent_hours = 7 [json_name = "includedAgentHours", (.buf.validate.field) = { ... }</code>
+   * @return The includedAgentHours.
+   */
+  int getIncludedAgentHours();
 }

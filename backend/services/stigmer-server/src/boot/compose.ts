@@ -44,6 +44,7 @@ import {
   kindsWithoutRows,
 } from "../authorization/posture.js";
 import { newStoredResources } from "../authorization/stored-resources.js";
+import { newAccountAutomations } from "../authorization/account-automations.js";
 import { newBuiltInGradingCaller } from "../authorization/grading-caller.js";
 import { newBuiltInPluginEvalCaller } from "../authorization/plugin-eval-caller.js";
 import { newBuiltInScheduleFireCaller } from "../authorization/schedule-fire-caller.js";
@@ -130,7 +131,10 @@ import { createOAuthClientDocumentLane } from "../transport/oauth-client/lane.js
 import type { SignInFreshener } from "../domain/vault/resolve.js";
 import { newVaultService } from "../domain/vault/service.js";
 import { deleteAllMyVaultsOf } from "../domain/vault/delete.js";
-import { newMyVaultDeparture } from "../domain/iampolicy/departure.js";
+import {
+  newMyVaultDeparture,
+  newMyVaultEntries,
+} from "../domain/iampolicy/departure.js";
 import type { OrganizationDepartureHandler } from "../domain/iampolicy/grant-path.js";
 import { registerGitHubServices } from "../domain/github/controller.js";
 import { registerMemoryServices } from "../domain/memory/controller.js";
@@ -581,7 +585,11 @@ export async function composeServer(
   let myVaultDeparture: OrganizationDepartureHandler | undefined;
   const iamPolicyGrantPath = newIamPolicyGrantPath({
     policies: iamPolicies,
-    resources: newStoredResources(store),
+    resources: newStoredResources(
+      store,
+      extensions.drivers.resourceRowReaders,
+      identityAccounts,
+    ),
     lifecycle: extensions.drivers.resourceAuthorizationLifecycle,
     logger,
     departures: (identityAccountId, organizationId, caller) => {
@@ -704,11 +712,6 @@ export async function composeServer(
           rowReaders: extensions.drivers.resourceRowReaders,
         })
       : undefined);
-  const scheduleFireCaller: ScheduleFireCallerMint | undefined =
-    extensions.drivers.scheduleFireCaller ??
-    (authorizationPosture === "built-in"
-      ? newBuiltInScheduleFireCaller({ store, accounts: identityAccounts })
-      : undefined);
   // The ONE list read scope (the seam's single-instance point), bound
   // here under the same posture and handed to every list-shaped consumer
   // below — the post-scan lanes through restrictListByReadScope, the
@@ -747,11 +750,27 @@ export async function composeServer(
     platformClients,
     identityAccounts,
     lifecycle: organizationLifecycle,
+    signInRule: extensions.drivers.organizationSignInRule,
   });
   const authorizer: Authorizer = bindAuthorizer(
     postureAuthorizer,
     credentialBinding,
   );
+  // Who a schedule fire acts as: a unit's fire caller (the hosted
+  // edition's per-organization schedule account), else the schedule's
+  // creator under the built-in posture, else the server itself on the
+  // trusted-local laptop (extensions/schedule-fire-caller.ts). The three
+  // creator mints ask the binding whether the creator's sign-in still
+  // counts in the row's organization (authorization/creator-sign-in.ts).
+  const scheduleFireCaller: ScheduleFireCallerMint | undefined =
+    extensions.drivers.scheduleFireCaller ??
+    (authorizationPosture === "built-in"
+      ? newBuiltInScheduleFireCaller({
+          store,
+          accounts: identityAccounts,
+          signIn: credentialBinding,
+        })
+      : undefined);
   // Who an AI judge run acts as: a unit's grading caller (the hosted
   // edition's per-organization grading account), else the evaluator's
   // creator under the built-in posture, for runs that creator may see,
@@ -760,7 +779,12 @@ export async function composeServer(
   const gradingCaller: GradingCallerMint | undefined =
     extensions.drivers.gradingCaller ??
     (authorizationPosture === "built-in"
-      ? newBuiltInGradingCaller({ store, accounts: identityAccounts, authorizer })
+      ? newBuiltInGradingCaller({
+          store,
+          accounts: identityAccounts,
+          authorizer,
+          signIn: credentialBinding,
+        })
       : undefined);
   // Who a plugin eval's tries and AI-graded checks act as: a unit's eval
   // caller (the hosted edition's per-organization eval account), else the
@@ -771,8 +795,34 @@ export async function composeServer(
   const pluginEvalCaller: PluginEvalCallerMint | undefined =
     extensions.drivers.pluginEvalCaller ??
     (authorizationPosture === "built-in"
-      ? newBuiltInPluginEvalCaller({ store, accounts: identityAccounts, authorizer })
+      ? newBuiltInPluginEvalCaller({
+          store,
+          accounts: identityAccounts,
+          authorizer,
+          signIn: credentialBinding,
+        })
       : undefined);
+  // The automations that act as their creator are the rows of the kinds
+  // whose built-in creator mint was composed just above: a unit's mint acts
+  // as an account of its own, so its rows never stop with their creator.
+  const accountAutomations = newAccountAutomations({
+    store,
+    accounts: identityAccounts,
+    kinds: new Set<ApiResourceKind>([
+      ...(scheduleFireCaller !== undefined &&
+      extensions.drivers.scheduleFireCaller === undefined
+        ? [ApiResourceKind.schedule]
+        : []),
+      ...(gradingCaller !== undefined &&
+      extensions.drivers.gradingCaller === undefined
+        ? [ApiResourceKind.evaluator]
+        : []),
+      ...(pluginEvalCaller !== undefined &&
+      extensions.drivers.pluginEvalCaller === undefined
+        ? [ApiResourceKind.plugin_eval, ApiResourceKind.agent_eval]
+        : []),
+    ]),
+  });
   const organizationDirectory: OrganizationDirectory | undefined =
     postureOrganizationDirectory === undefined
       ? undefined
@@ -1771,6 +1821,8 @@ export async function composeServer(
       principalDisplay: extensions.drivers.principalDisplay,
       gateSteps: extensions.gateSteps,
       edition: extensions.edition,
+      myVaultEntries: newMyVaultEntries(vaultService),
+      automations: accountAutomations,
       logger,
     });
     registerVaultServices(router, {
@@ -2312,6 +2364,7 @@ export async function composeServer(
     },
     iamPolicies,
     resourceNames: store.resourceNames,
+    accountAutomations,
   };
   for (const { hook } of extensions.onComposed) {
     hook(composedServices);

@@ -25,6 +25,14 @@ export interface SsoLoginPromptProps {
    */
   readonly onSsoLogin: (provider: SsoProviderInfo, org: string) => void;
 
+  /**
+   * Called with the provider the lookup found, or `null` while there is
+   * none, so a page can say what the organization requires before anyone
+   * signs in (`SsoProviderInfo.sso_required`: the organization accepts no
+   * other sign-in, so the page hides its other ways in).
+   */
+  readonly onProviderChange?: (provider: SsoProviderInfo | null) => void;
+
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -67,6 +75,7 @@ type Phase =
 export function SsoLoginPrompt({
   initialOrg,
   onSsoLogin,
+  onProviderChange,
   className,
 }: SsoLoginPromptProps) {
   const [orgInput, setOrgInput] = useState(initialOrg ?? "");
@@ -77,6 +86,10 @@ export function SsoLoginPrompt({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const phase = resolvePhase(submittedOrg, isLoading, ssoProvider, error);
+
+  useEffect(() => {
+    onProviderChange?.(submittedOrg === null ? null : ssoProvider);
+  }, [onProviderChange, submittedOrg, ssoProvider]);
 
   // Focus the org input when returning to the input phase.
   useEffect(() => {

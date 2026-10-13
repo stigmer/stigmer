@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/plan/v1/spec.proto.
  */
 export const file_ai_stigmer_billing_plan_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2JpbGxpbmcvcGxhbi92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmJpbGxpbmcucGxhbi52MSLJBAoIUGxhblNwZWMSTQoKaW5zdHJ1bWVudBgBIAEoDjIqLmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLlBsYW5JbnN0cnVtZW50Qg26SArIAQGCAQQQASAAEkIKDGVudGl0bGVtZW50cxgCIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRW50aXRsZW1lbnRzQga6SAPIAQESNAoFdGVybXMYAyABKAsyJS5haS5zdGlnbWVyLmJpbGxpbmcucGxhbi52MS5QbGFuVGVybXMSHQoLZGVzY3JpcHRpb24YBCABKAlCCLpIBXIDGIAIOtQCukjQAhqsAQomcGxhbl9zcGVjLmxpY2Vuc2VfaGFzX25vX21vbnRobHlfdGVybXMSQWEgbGljZW5zZSBwbGFuIGNhcnJpZXMgbm8gbW9udGhseV9taW5pbXVtX21pY3JvcywgdGhlIG1vbnRobHkgZmVlGj90aGlzLmluc3RydW1lbnQgIT0gMiB8fCAhaGFzKHRoaXMudGVybXMubW9udGhseV9taW5pbXVtX21pY3JvcykangEKKnBsYW5fc3BlYy5zdWJzY3JpcHRpb25faGFzX25vX2FubnVhbF9wcmljZRIyYSBzdWJzY3JpcHRpb24gcGxhbiBjYXJyaWVzIG5vIGFubnVhbF9wcmljZV9taWNyb3MaPHRoaXMuaW5zdHJ1bWVudCAhPSAxIHx8ICFoYXModGhpcy50ZXJtcy5hbm51YWxfcHJpY2VfbWljcm9zKSL8AQoJUGxhblRlcm1zEiwKFm1vbnRobHlfbWluaW11bV9taWNyb3MYASABKANCB7pIBCICKABIAIgBARIqChRwZXJfZXh0cmFfb3JnX21pY3JvcxgDIAEoA0IHukgEIgIoAEgBiAEBEikKE2FubnVhbF9wcmljZV9taWNyb3MYBCABKANCB7pIBCICKABIAogBAUIZChdfbW9udGhseV9taW5pbXVtX21pY3Jvc0IXChVfcGVyX2V4dHJhX29yZ19taWNyb3NCFgoUX2FubnVhbF9wcmljZV9taWNyb3NKBAgCEANSGHVzYWdlX3NoYXJlX2Jhc2lzX3BvaW50cypQCg5QbGFuSW5zdHJ1bWVudBIfChtwbGFuX2luc3RydW1lbnRfdW5zcGVjaWZpZWQQABIQCgxzdWJzY3JpcHRpb24QARILCgdsaWNlbnNlEAJiBnByb3RvMw", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2JpbGxpbmcvcGxhbi92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmJpbGxpbmcucGxhbi52MSLZBwoIUGxhblNwZWMSTQoKaW5zdHJ1bWVudBgBIAEoDjIqLmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLlBsYW5JbnN0cnVtZW50Qg26SArIAQGCAQQQASAAEkIKDGVudGl0bGVtZW50cxgCIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRW50aXRsZW1lbnRzQga6SAPIAQESNAoFdGVybXMYAyABKAsyJS5haS5zdGlnbWVyLmJpbGxpbmcucGxhbi52MS5QbGFuVGVybXMSHQoLZGVzY3JpcHRpb24YBCABKAlCCLpIBXIDGIAIOuQFukjgBRqsAQomcGxhbl9zcGVjLmxpY2Vuc2VfaGFzX25vX21vbnRobHlfdGVybXMSQWEgbGljZW5zZSBwbGFuIGNhcnJpZXMgbm8gbW9udGhseV9taW5pbXVtX21pY3JvcywgdGhlIG1vbnRobHkgZmVlGj90aGlzLmluc3RydW1lbnQgIT0gMiB8fCAhaGFzKHRoaXMudGVybXMubW9udGhseV9taW5pbXVtX21pY3JvcykangEKKnBsYW5fc3BlYy5zdWJzY3JpcHRpb25faGFzX25vX2FubnVhbF9wcmljZRIyYSBzdWJzY3JpcHRpb24gcGxhbiBjYXJyaWVzIG5vIGFubnVhbF9wcmljZV9taWNyb3MaPHRoaXMuaW5zdHJ1bWVudCAhPSAxIHx8ICFoYXModGhpcy50ZXJtcy5hbm51YWxfcHJpY2VfbWljcm9zKRqcAQopcGxhbl9zcGVjLmxpY2Vuc2VfaGFzX25vX2FnZW50X2hvdXJfcHJpY2USL2EgbGljZW5zZSBwbGFuIGNhcnJpZXMgbm8gcGVyX2FnZW50X2hvdXJfbWljcm9zGj50aGlzLmluc3RydW1lbnQgIT0gMiB8fCAhaGFzKHRoaXMudGVybXMucGVyX2FnZW50X2hvdXJfbWljcm9zKRruAQoqcGxhbl9zcGVjLmFnZW50X2hvdXJfcHJpY2VfbmVlZHNfYWxsb3dhbmNlEmJwZXJfYWdlbnRfaG91cl9taWNyb3MgbmVlZHMgZW50aXRsZW1lbnRzLmxpbWl0cy5pbmNsdWRlZF9hZ2VudF9ob3VycywgdGhlIGhvdXJzIGl0IGlzIGNoYXJnZWQgcGFzdBpcIWhhcyh0aGlzLnRlcm1zLnBlcl9hZ2VudF9ob3VyX21pY3JvcykgfHwgaGFzKHRoaXMuZW50aXRsZW1lbnRzLmxpbWl0cy5pbmNsdWRlZF9hZ2VudF9ob3VycykiwwIKCVBsYW5UZXJtcxIsChZtb250aGx5X21pbmltdW1fbWljcm9zGAEgASgDQge6SAQiAigASACIAQESKgoUcGVyX2V4dHJhX29yZ19taWNyb3MYAyABKANCB7pIBCICKABIAYgBARIpChNhbm51YWxfcHJpY2VfbWljcm9zGAQgASgDQge6SAQiAigASAKIAQESKwoVcGVyX2FnZW50X2hvdXJfbWljcm9zGAUgASgDQge6SAQiAiAASAOIAQFCGQoXX21vbnRobHlfbWluaW11bV9taWNyb3NCFwoVX3Blcl9leHRyYV9vcmdfbWljcm9zQhYKFF9hbm51YWxfcHJpY2VfbWljcm9zQhgKFl9wZXJfYWdlbnRfaG91cl9taWNyb3NKBAgCEANSGHVzYWdlX3NoYXJlX2Jhc2lzX3BvaW50cypQCg5QbGFuSW5zdHJ1bWVudBIfChtwbGFuX2luc3RydW1lbnRfdW5zcGVjaWZpZWQQABIQCgxzdWJzY3JpcHRpb24QARILCgdsaWNlbnNlEAJiBnByb3RvMw", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate]);
 
 /**
  * PlanSpec defines what a plan grants and what buys it.
@@ -23,11 +23,16 @@ export const file_ai_stigmer_billing_plan_v1_spec: GenFile = /*@__PURE__*/
  * a term of one specific plan row, and no row ships in the contract, so the
  * contract itself carries no price.
  *
- * The instrument decides which terms a plan may carry, and the two rules
- * below refuse the cross: a license plan is invoiced for a term, so monthly
- * terms have no meaning on it; a subscription plan bills monthly, so an
- * annual price has none. per_extra_org_micros is bound to the
- * entitlements' child organizations, not to the instrument, and stays free.
+ * The instrument decides which terms a plan may carry, and the four rules
+ * below refuse what cannot be billed. A license plan is invoiced for a
+ * term, so monthly terms have no meaning on it; a subscription plan bills
+ * monthly, so an annual price has none. A license never meters a
+ * self-hosted computer, so it carries no hourly price. And an hourly price
+ * needs an allowance of agent hours to exceed, since a price with nothing
+ * to exceed is never charged. per_extra_org_micros is bound to the
+ * entitlements' child organizations, not to the instrument, and no rule
+ * ties it to included_child_orgs yet (#2229): without an included count
+ * the children are unlimited and the fee is likewise never charged.
  *
  * @generated from message ai.stigmer.billing.plan.v1.PlanSpec
  */
@@ -78,7 +83,9 @@ export const PlanSpecSchema: GenMessage<PlanSpec> = /*@__PURE__*/
  * which is how a subscription plan and a license plan share one message. A
  * monthly plan costs its monthly fee, monthly_minimum_micros, plus
  * per_extra_org_micros for each child organization beyond the ones it
- * includes. Usage is never part of a plan's price.
+ * includes, plus per_agent_hour_micros for each working agent hour beyond
+ * the ones it includes. Model tokens are never part of a plan's price;
+ * working agent hours past the plan's allowance are.
  *
  * @generated from message ai.stigmer.billing.plan.v1.PlanTerms
  */
@@ -107,6 +114,18 @@ export type PlanTerms = Message<"ai.stigmer.billing.plan.v1.PlanTerms"> & {
    * @generated from field: optional int64 annual_price_micros = 4;
    */
   annualPriceMicros?: bigint;
+
+  /**
+   * What a subscription plan bills for each working agent hour past its
+   * entitlements' included_agent_hours, in micro-USD. Absent means the plan
+   * has no overage: an organization on it pauses at its allowance. Zero is
+   * refused, unlike the other terms, because a zero price on an allowance
+   * would be a second way to say "unlimited hours", which an absent
+   * allowance already says. Absent on a license plan.
+   *
+   * @generated from field: optional int64 per_agent_hour_micros = 5;
+   */
+  perAgentHourMicros?: bigint;
 };
 
 /**
@@ -134,7 +153,8 @@ export enum PlanInstrument {
 
   /**
    * Bought as a Subscription by an organization on Stigmer Cloud, invoiced
-   * a flat fee each month.
+   * each month: its fee, plus the child organizations and agent hours past
+   * what it includes.
    *
    * @generated from enum value: subscription = 1;
    */

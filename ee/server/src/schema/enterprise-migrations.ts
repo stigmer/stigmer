@@ -19,7 +19,8 @@
  *
  * v1 is these tables' first version in this chain, with the names the
  * adapters key on (each unique constraint and index), so an adapter's
- * refusal reads the constraint it expects.
+ * refusal reads the constraint it expects. v2 adds the access move
+ * tickets.
  *
  * The tables carry no foreign keys: an organization's rows go with it
  * through the unit's purge stage, and the policy rows that reference a
@@ -28,7 +29,7 @@
 import type { PoolClient } from "pg";
 
 /** Whatever version a database at this build's schema holds. */
-export const ENTERPRISE_SCHEMA_VERSION = 1;
+export const ENTERPRISE_SCHEMA_VERSION = 2;
 
 /** Advisory lock key for this chain: ASCII "STGMRE" + 0x01. */
 export const ENTERPRISE_MIGRATION_LOCK_KEY = 0x5354474d524501n;
@@ -113,6 +114,27 @@ export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
        )`,
       `CREATE INDEX iam_sign_in_grants_org
          ON ee.iam_sign_in_grants (org)`,
+    ],
+  },
+  {
+    version: 2,
+    statements: [
+      // Access move tickets: a hash of each single-use ticket that moves an
+      // account's access in one organization to the account its SSO
+      // provider signs the same person in as (iam/access-move/store.ts).
+      `CREATE TABLE ee.iam_access_move_tickets (
+         token_hash TEXT PRIMARY KEY,
+         account_id TEXT NOT NULL,
+         org TEXT NOT NULL,
+         expires_at TIMESTAMPTZ NOT NULL,
+         redeemed_at TIMESTAMPTZ,
+         redeemer_id TEXT,
+         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       )`,
+      `CREATE INDEX iam_access_move_tickets_org
+         ON ee.iam_access_move_tickets (org)`,
+      `CREATE INDEX iam_access_move_tickets_expires
+         ON ee.iam_access_move_tickets (expires_at)`,
     ],
   },
 ];

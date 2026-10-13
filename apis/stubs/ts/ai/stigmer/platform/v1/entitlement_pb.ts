@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/entitlement.proto.
  */
 export const file_ai_stigmer_platform_v1_entitlement: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAiiwMKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESKQoTaW5jbHVkZWRfY2hpbGRfb3JncxgDIAEoBUIHukgEGgIgAEgCiAEBEjIKHG1heF9hY3RpdmVfc2Vzc2lvbl9zYW5kYm94ZXMYBCABKAVCB7pIBBoCIABIA4gBARI3CiFhcmNoaXZlZF93b3Jrc3BhY2VfcmV0ZW50aW9uX2RheXMYBiABKAVCB7pIBBoCIABIBIgBAUILCglfbWF4X29yZ3NCDAoKX21heF91c2Vyc0IWChRfaW5jbHVkZWRfY2hpbGRfb3Jnc0IfCh1fbWF4X2FjdGl2ZV9zZXNzaW9uX3NhbmRib3hlc0IkCiJfYXJjaGl2ZWRfd29ya3NwYWNlX3JldGVudGlvbl9kYXlzSgQIBRAGUh1tYXhfYWN0aXZlX3dvcmtmbG93X3NhbmRib3hlcyqZAQoHRmVhdHVyZRIXChNmZWF0dXJlX3Vuc3BlY2lmaWVkEAASEwoPc3NvX2VuZm9yY2VtZW50EAESEwoPcGxhdGZvcm1fY2xpZW50EAISFQoRYnlvX3Byb3ZpZGVyX2tleXMQAxIMCghjaGFubmVscxAEEgsKB3NoYXJpbmcQBRIJCgV0ZWFtcxAGEg4KCmNoaWxkX29yZ3MQB0ISQhBFbnRpdGxlbWVudFByb3RvYgZwcm90bzM", [file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL2VudGl0bGVtZW50LnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIo8BCgxFbnRpdGxlbWVudHMSOQoGbGltaXRzGAEgASgLMikuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnRpdGxlbWVudExpbWl0cxJECghmZWF0dXJlcxgCIAMoDjIfLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRmVhdHVyZUIRukgOkgELGAEiB4IBBBABIAAi0AMKEUVudGl0bGVtZW50TGltaXRzEh4KCG1heF9vcmdzGAEgASgFQge6SAQaAiAASACIAQESHwoJbWF4X3VzZXJzGAIgASgFQge6SAQaAiAASAGIAQESKQoTaW5jbHVkZWRfY2hpbGRfb3JncxgDIAEoBUIHukgEGgIgAEgCiAEBEjIKHG1heF9hY3RpdmVfc2Vzc2lvbl9zYW5kYm94ZXMYBCABKAVCB7pIBBoCIABIA4gBARI3CiFhcmNoaXZlZF93b3Jrc3BhY2VfcmV0ZW50aW9uX2RheXMYBiABKAVCB7pIBBoCIABIBIgBARIqChRpbmNsdWRlZF9hZ2VudF9ob3VycxgHIAEoBUIHukgEGgIgAEgFiAEBQgsKCV9tYXhfb3Jnc0IMCgpfbWF4X3VzZXJzQhYKFF9pbmNsdWRlZF9jaGlsZF9vcmdzQh8KHV9tYXhfYWN0aXZlX3Nlc3Npb25fc2FuZGJveGVzQiQKIl9hcmNoaXZlZF93b3Jrc3BhY2VfcmV0ZW50aW9uX2RheXNCFwoVX2luY2x1ZGVkX2FnZW50X2hvdXJzSgQIBRAGUh1tYXhfYWN0aXZlX3dvcmtmbG93X3NhbmRib3hlcyqZAQoHRmVhdHVyZRIXChNmZWF0dXJlX3Vuc3BlY2lmaWVkEAASEwoPc3NvX2VuZm9yY2VtZW50EAESEwoPcGxhdGZvcm1fY2xpZW50EAISFQoRYnlvX3Byb3ZpZGVyX2tleXMQAxIMCghjaGFubmVscxAEEgsKB3NoYXJpbmcQBRIJCgV0ZWFtcxAGEg4KCmNoaWxkX29yZ3MQB0ISQhBFbnRpdGxlbWVudFByb3RvYgZwcm90bzM", [file_buf_validate_validate]);
 
 /**
  * What an edition permits its customer: a set of limits and a set of features.
@@ -113,6 +113,20 @@ export type EntitlementLimits = Message<"ai.stigmer.platform.v1.EntitlementLimit
    * @generated from field: optional int32 archived_workspace_retention_days = 6;
    */
   archivedWorkspaceRetentionDays?: number;
+
+  /**
+   * The working agent hours an organization may use each month before its
+   * plan's hourly price applies or, on a plan with none, before new work
+   * pauses until the next month. An hour is counted only while an agent is
+   * working, never while it waits for a person. How a month is counted is
+   * the edition's: a subscription counts its billing period. Absent is no
+   * limit. A child organization draws on its paying organization's
+   * allowance. Read by a subscription. A license ignores it, because a
+   * self-hosted deployment runs its agents on its own computers.
+   *
+   * @generated from field: optional int32 included_agent_hours = 7;
+   */
+  includedAgentHours?: number;
 };
 
 /**

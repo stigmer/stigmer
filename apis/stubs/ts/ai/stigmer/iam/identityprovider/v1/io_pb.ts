@@ -4,18 +4,20 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { AccountAutomation, MoveOrgAccessResult } from "../../iampolicy/v1/io_pb.js";
+import { file_ai_stigmer_iam_iampolicy_v1_io } from "../../iampolicy/v1/io_pb.js";
 import type { IdentityProvider } from "./api_pb.js";
 import { file_ai_stigmer_iam_identityprovider_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
-import type { FieldMask } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/iam/identityprovider/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASItChVPcmdhbml6YXRpb25Tc29Mb29rdXASFAoDb3JnGAEgASgJQge6SARyAhABImoKD1Nzb1Byb3ZpZGVySW5mbxIUCgxkaXNwbGF5X25hbWUYASABKAkSFgoOb2lkY19jbGllbnRfaWQYAiABKAkSDgoGaXNzdWVyGAMgASgJEhkKEWV4cGVjdGVkX2F1ZGllbmNlGAQgASgJIvICChtVcGRhdGVJZGVudGl0eVByb3ZpZGVySW5wdXQSTgoIcmVzb3VyY2UYASABKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXJCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATrJAbpIxQEawgEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0ElFyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBpZGVudGl0eSBwcm92aWRlciBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASItChVPcmdhbml6YXRpb25Tc29Mb29rdXASFAoDb3JnGAEgASgJQge6SARyAhABIoABCg9Tc29Qcm92aWRlckluZm8SFAoMZGlzcGxheV9uYW1lGAEgASgJEhYKDm9pZGNfY2xpZW50X2lkGAIgASgJEg4KBmlzc3VlchgDIAEoCRIZChFleHBlY3RlZF9hdWRpZW5jZRgEIAEoCRIUCgxzc29fcmVxdWlyZWQYBSABKAgiKQoRQWNjZXNzTW92ZVJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABIoECChBBY2Nlc3NNb3ZlVGlja2V0Eg4KBnRpY2tldBgBIAEoCRIuCgpleHBpcmVzX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBILCgNvcmcYAyABKAkSRQoIcHJvdmlkZXIYBCABKAsyMy5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLlNzb1Byb3ZpZGVySW5mbxJBCgdwcmV2aWV3GAUgASgLMjAuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLk1vdmVPcmdBY2Nlc3NSZXN1bHQSFgoOaW52aXRhdGlvbl9pZHMYBiADKAkiMwoVUmVkZWVtQWNjZXNzTW92ZUlucHV0EhoKBnRpY2tldBgBIAEoCUIKukgHcgUQARiAAiJ4ChBBY2Nlc3NNb3ZlUmVzdWx0EgsKA29yZxgBIAEoCRI/CgVtb3ZlZBgCIAEoCzIwLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5Nb3ZlT3JnQWNjZXNzUmVzdWx0EhYKDmludml0YXRpb25faWRzGAMgAygJIjIKGlNzb1JlcXVpcmVtZW50UHJldmlld0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASKzAQoVU3NvUmVxdWlyZW1lbnRQcmV2aWV3EkkKB21lbWJlcnMYASADKAsyOC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLlNzb1JlcXVpcmVtZW50TWVtYmVyEk8KDWV4ZW1wdF9vd25lcnMYAiADKAsyOC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLlNzb1JlcXVpcmVtZW50TWVtYmVyIrUBChRTc29SZXF1aXJlbWVudE1lbWJlchIbChNpZGVudGl0eV9hY2NvdW50X2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCRIWCg5pbnZpdGF0aW9uX2lkcxgEIAMoCRJDCgthdXRvbWF0aW9ucxgFIAMoCzIuLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BY2NvdW50QXV0b21hdGlvbmIGcHJvdG8z", [file_ai_stigmer_iam_iampolicy_v1_io, file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * IdentityProviderId identifies an identity provider by its unique identifier.
@@ -179,6 +181,15 @@ export type SsoProviderInfo = Message<"ai.stigmer.iam.identityprovider.v1.SsoPro
    * @generated from field: string expected_audience = 4;
    */
   expectedAudience: string;
+
+  /**
+   * Whether the organization requires its members to sign in through this
+   * provider (IdentityProviderSpec.sso_required). The login page then
+   * offers no other way into the organization.
+   *
+   * @generated from field: bool sso_required = 5;
+   */
+  ssoRequired: boolean;
 };
 
 /**
@@ -189,35 +200,248 @@ export const SsoProviderInfoSchema: GenMessage<SsoProviderInfo> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 5);
 
 /**
- * The changes an update makes to an identity provider: the fields update_mask names,
- * taken from resource.
+ * AccessMoveRequest asks to start moving the caller's access in an
+ * organization to the account its SSO provider signs them in as.
  *
- * @generated from message ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput
+ * @generated from message ai.stigmer.iam.identityprovider.v1.AccessMoveRequest
  */
-export type UpdateIdentityProviderInput = Message<"ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput"> & {
+export type AccessMoveRequest = Message<"ai.stigmer.iam.identityprovider.v1.AccessMoveRequest"> & {
   /**
-   * The identity provider carrying the new values, named by metadata.id. Only the fields
-   * update_mask names are read, so the others may be left empty; the result
-   * is validated as a whole.
+   * The organization: its id or its slug.
    *
-   * @generated from field: ai.stigmer.iam.identityprovider.v1.IdentityProvider resource = 1;
+   * @generated from field: string org = 1;
    */
-  resource?: IdentityProvider;
-
-  /**
-   * The paths the update changes, as proto field names (spec.instructions,
-   * metadata.labels). A list or map at a named path is replaced whole; "*"
-   * names every path an update may change.
-   *
-   * @generated from field: google.protobuf.FieldMask update_mask = 2;
-   */
-  updateMask?: FieldMask;
+  org: string;
 };
 
 /**
- * Describes the message ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.
- * Use `create(UpdateIdentityProviderInputSchema)` to create a new message.
+ * Describes the message ai.stigmer.iam.identityprovider.v1.AccessMoveRequest.
+ * Use `create(AccessMoveRequestSchema)` to create a new message.
  */
-export const UpdateIdentityProviderInputSchema: GenMessage<UpdateIdentityProviderInput> = /*@__PURE__*/
+export const AccessMoveRequestSchema: GenMessage<AccessMoveRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 6);
+
+/**
+ * AccessMoveTicket is a single-use ticket that moves the access of the
+ * account that asked for it, in one organization, to the account the
+ * organization's SSO provider signs the same person in as.
+ *
+ * The ticket is the authorization: whoever redeems it while signed in
+ * through the organization's SSO provider receives the access. A console
+ * keeps it in the browser that asked for it and never shows it.
+ *
+ * @generated from message ai.stigmer.iam.identityprovider.v1.AccessMoveTicket
+ */
+export type AccessMoveTicket = Message<"ai.stigmer.iam.identityprovider.v1.AccessMoveTicket"> & {
+  /**
+   * The ticket, redeemed with redeemAccessMove.
+   *
+   * @generated from field: string ticket = 1;
+   */
+  ticket: string;
+
+  /**
+   * When the ticket stops working, ten minutes after it was made.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 2;
+   */
+  expiresAt?: Timestamp;
+
+  /**
+   * The organization's id.
+   *
+   * @generated from field: string org = 3;
+   */
+  org: string;
+
+  /**
+   * The organization's SSO provider, to sign in through next.
+   *
+   * @generated from field: ai.stigmer.iam.identityprovider.v1.SsoProviderInfo provider = 4;
+   */
+  provider?: SsoProviderInfo;
+
+  /**
+   * What the move will do.
+   *
+   * @generated from field: ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult preview = 5;
+   */
+  preview?: MoveOrgAccessResult;
+
+  /**
+   * The open invitations the account created in the organization, which
+   * stop redeeming once its role moves: their creator no longer holds it.
+   *
+   * @generated from field: repeated string invitation_ids = 6;
+   */
+  invitationIds: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.
+ * Use `create(AccessMoveTicketSchema)` to create a new message.
+ */
+export const AccessMoveTicketSchema: GenMessage<AccessMoveTicket> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 7);
+
+/**
+ * RedeemAccessMoveInput redeems an access move ticket.
+ *
+ * @generated from message ai.stigmer.iam.identityprovider.v1.RedeemAccessMoveInput
+ */
+export type RedeemAccessMoveInput = Message<"ai.stigmer.iam.identityprovider.v1.RedeemAccessMoveInput"> & {
+  /**
+   * The ticket createAccessMove answered.
+   *
+   * @generated from field: string ticket = 1;
+   */
+  ticket: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityprovider.v1.RedeemAccessMoveInput.
+ * Use `create(RedeemAccessMoveInputSchema)` to create a new message.
+ */
+export const RedeemAccessMoveInputSchema: GenMessage<RedeemAccessMoveInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 8);
+
+/**
+ * AccessMoveResult says what a redeemed ticket moved.
+ *
+ * @generated from message ai.stigmer.iam.identityprovider.v1.AccessMoveResult
+ */
+export type AccessMoveResult = Message<"ai.stigmer.iam.identityprovider.v1.AccessMoveResult"> & {
+  /**
+   * The organization's id.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * What moved, the My vault entries deleted and the automations that
+   * stopped, to make again as the new account.
+   *
+   * @generated from field: ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult moved = 2;
+   */
+  moved?: MoveOrgAccessResult;
+
+  /**
+   * The open invitations the old account created in the organization,
+   * which stopped redeeming, to make again as the new account.
+   *
+   * @generated from field: repeated string invitation_ids = 3;
+   */
+  invitationIds: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityprovider.v1.AccessMoveResult.
+ * Use `create(AccessMoveResultSchema)` to create a new message.
+ */
+export const AccessMoveResultSchema: GenMessage<AccessMoveResult> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 9);
+
+/**
+ * SsoRequirementPreviewInput names the organization to preview.
+ *
+ * @generated from message ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput
+ */
+export type SsoRequirementPreviewInput = Message<"ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput"> & {
+  /**
+   * The organization's id or slug.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput.
+ * Use `create(SsoRequirementPreviewInputSchema)` to create a new message.
+ */
+export const SsoRequirementPreviewInputSchema: GenMessage<SsoRequirementPreviewInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 10);
+
+/**
+ * SsoRequirementPreview lists who would stop counting in an organization if
+ * its SSO provider required sign-in through it: its members whose account
+ * that provider did not sign in.
+ *
+ * @generated from message ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview
+ */
+export type SsoRequirementPreview = Message<"ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview"> & {
+  /**
+   * The members who would be refused, each with what acts as them.
+   *
+   * @generated from field: repeated ai.stigmer.iam.identityprovider.v1.SsoRequirementMember members = 1;
+   */
+  members: SsoRequirementMember[];
+
+  /**
+   * The owners whose account the provider did not sign in. They are
+   * exempt and keep their own sign-in.
+   *
+   * @generated from field: repeated ai.stigmer.iam.identityprovider.v1.SsoRequirementMember exempt_owners = 2;
+   */
+  exemptOwners: SsoRequirementMember[];
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview.
+ * Use `create(SsoRequirementPreviewSchema)` to create a new message.
+ */
+export const SsoRequirementPreviewSchema: GenMessage<SsoRequirementPreview> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 11);
+
+/**
+ * SsoRequirementMember is one member an SSO requirement would affect.
+ *
+ * @generated from message ai.stigmer.iam.identityprovider.v1.SsoRequirementMember
+ */
+export type SsoRequirementMember = Message<"ai.stigmer.iam.identityprovider.v1.SsoRequirementMember"> & {
+  /**
+   * The member's identity account id.
+   *
+   * @generated from field: string identity_account_id = 1;
+   */
+  identityAccountId: string;
+
+  /**
+   * The member's email, as their account records it.
+   *
+   * @generated from field: string email = 2;
+   */
+  email: string;
+
+  /**
+   * The member's display name, as their account records it.
+   *
+   * @generated from field: string display_name = 3;
+   */
+  displayName: string;
+
+  /**
+   * The open invitations the member created, which stop redeeming once
+   * they move their access or are refused.
+   *
+   * @generated from field: repeated string invitation_ids = 4;
+   */
+  invitationIds: string[];
+
+  /**
+   * The schedules, evaluators and evals the member created in the
+   * organization, which stop once the requirement is on.
+   *
+   * @generated from field: repeated ai.stigmer.iam.iampolicy.v1.AccountAutomation automations = 5;
+   */
+  automations: AccountAutomation[];
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityprovider.v1.SsoRequirementMember.
+ * Use `create(SsoRequirementMemberSchema)` to create a new message.
+ */
+export const SsoRequirementMemberSchema: GenMessage<SsoRequirementMember> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 12);
 

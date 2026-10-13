@@ -6,15 +6,19 @@ import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.iam.identityprovider.v1.AccessMoveRequest;
+import ai.stigmer.iam.identityprovider.v1.AccessMoveResult;
+import ai.stigmer.iam.identityprovider.v1.AccessMoveTicket;
 import ai.stigmer.iam.identityprovider.v1.IdentityProvider;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviders;
 import ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput;
 import ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup;
+import ai.stigmer.iam.identityprovider.v1.RedeemAccessMoveInput;
 import ai.stigmer.iam.identityprovider.v1.SsoProviderInfo;
-import ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput;
-import com.google.protobuf.FieldMask;
+import ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview;
+import ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -40,12 +44,9 @@ public final class IdentityProviderClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public IdentityProvider update(IdentityProvider resource, java.util.List<String> paths) {
+    public IdentityProvider update(IdentityProviderInput input) {
         try {
-            return command.update(UpdateIdentityProviderInput.newBuilder()
-                .setResource(resource)
-                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
-                .build());
+            return command.update(input.toProto());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -64,6 +65,18 @@ public final class IdentityProviderClient {
                 req.setVersionMessage(input.getVersionMessage());
             }
             return command.delete(req.build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AccessMoveTicket createAccessMove(AccessMoveRequest input) {
+        try {
+            return command.createAccessMove(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AccessMoveResult redeemAccessMove(RedeemAccessMoveInput input) {
+        try {
+            return command.redeemAccessMove(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -88,6 +101,12 @@ public final class IdentityProviderClient {
     public SsoProviderInfo getSsoProvider(OrganizationSsoLookup input) {
         try {
             return query.getSsoProvider(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SsoRequirementPreview previewSsoRequirement(SsoRequirementPreviewInput input) {
+        try {
+            return query.previewSsoRequirement(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

@@ -20,11 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityProviderCommandController_Apply_FullMethodName  = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/apply"
-	IdentityProviderCommandController_Create_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/create"
-	IdentityProviderCommandController_Update_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/update"
-	IdentityProviderCommandController_Rename_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/rename"
-	IdentityProviderCommandController_Delete_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/delete"
+	IdentityProviderCommandController_Apply_FullMethodName            = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/apply"
+	IdentityProviderCommandController_Create_FullMethodName           = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/create"
+	IdentityProviderCommandController_Update_FullMethodName           = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/update"
+	IdentityProviderCommandController_Rename_FullMethodName           = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/rename"
+	IdentityProviderCommandController_Delete_FullMethodName           = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/delete"
+	IdentityProviderCommandController_CreateAccessMove_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/createAccessMove"
+	IdentityProviderCommandController_RedeemAccessMove_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/redeemAccessMove"
 )
 
 // IdentityProviderCommandControllerClient is the client API for IdentityProviderCommandController service.
@@ -73,9 +75,18 @@ type IdentityProviderCommandControllerClient interface {
 	//
 	//   - SLUG_RESERVED — another identity provider held the slug until a recent
 	//     rename, and it still leads there. Metadata: slug.
+	//
+	// A create that sets sso_required also needs can_assign_roles on the
+	// organization, which only its owners hold (PERMISSION_DENIED otherwise):
+	// requiring sign-in through a provider decides how every member gets in.
+	// Where the organization's plan decides it, a plan without SSO
+	// enforcement refuses it with FAILED_PRECONDITION carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+	//     SSO enforcement. Metadata: feature ("sso_enforcement"), org.
 	Create(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
-	// Update an identity provider: the fields update_mask names change, every other
-	// field keeps its stored value.
+	// Update an existing identity provider.
 	//
 	// On Stigmer Enterprise, changing how people sign in is growth the
 	// server's license pays for. Once the license and its grace period have
@@ -87,20 +98,22 @@ type IdentityProviderCommandControllerClient interface {
 	//     identity provider keeps signing people in as it is, and can still
 	//     be deleted. No metadata.
 	//
-	// resource.metadata.id names the identity provider; apply finds one by slug. The slug
-	// changes only through rename, and a mask naming a field another door
-	// owns, or a path the identity provider does not have, is refused with
-	// INVALID_ARGUMENT naming the path.
+	// An update whose only change is turning sso_required off is never
+	// refused this way: an organization may always stop requiring its SSO
+	// provider.
 	//
-	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
-	// (domain "stigmer.ai"):
+	// An update that changes sso_required, or that changes whom a provider
+	// with sso_required on trusts (allowed_issuers, jwks_uri,
+	// expected_audience), also needs can_assign_roles on the organization,
+	// which only its owners hold (PERMISSION_DENIED otherwise).
+	// Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
+	// organization's plan does not include SSO enforcement (see create);
+	// an organization that already requires it keeps it, and may always
+	// turn it off.
 	//
-	//   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed
-	//     since that etag was read: read it again and make the change again.
-	//     No metadata.
-	//   - WRITE_CONFLICT — the identity provider kept changing while the update was
-	//     being saved: try again. No metadata.
-	Update(ctx context.Context, in *UpdateIdentityProviderInput, opts ...grpc.CallOption) (*IdentityProvider, error)
+	// An update names the identity provider by its id, and the slug changes
+	// only through rename.
+	Update(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Rename an identity provider: change its slug, the name people type.
 	//
 	// The identity provider keeps its id, so everything that names it keeps
@@ -119,7 +132,40 @@ type IdentityProviderCommandControllerClient interface {
 	// The federated accounts the provider vouches for are
 	// deleted with it, with every role they hold, so a provider created again
 	// under the same slug inherits none of them.
+	//
+	// Deleting a provider that sets sso_required ends the requirement, so it
+	// also needs can_assign_roles on the organization, which only its owners
+	// hold (PERMISSION_DENIED otherwise).
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*IdentityProvider, error)
+	// Start moving your access in an organization to the account its SSO
+	// provider signs you in as.
+	//
+	// For someone who worked in an organization under another sign-in (an
+	// email login) before the organization connected its SSO provider. The
+	// caller, signed in the old way, asks for a ticket; the answer says what
+	// the move will do (AccessMoveTicket.preview: the access that moves, the
+	// My vault entries it deletes, the automations that stop); the person
+	// then signs in through the organization's SSO provider and redeems the
+	// ticket with redeemAccessMove. The ticket works once, for ten minutes,
+	// for this account and this organization only.
+	//
+	// Refused with FAILED_PRECONDITION when the caller holds no access in the
+	// organization, is one of its owners (owners keep their own sign-in), or
+	// already signed in through an SSO provider; with NOT_FOUND when the
+	// organization has no SSO provider (the same copy getSsoProvider answers).
+	CreateAccessMove(ctx context.Context, in *AccessMoveRequest, opts ...grpc.CallOption) (*AccessMoveTicket, error)
+	// Redeem an access move ticket: the access it names moves to the caller.
+	//
+	// The caller must be signed in through the organization's SSO provider,
+	// as the account it made for them; anyone else is refused with
+	// PERMISSION_DENIED and the ticket stays usable until it expires. A
+	// ticket that is unknown, expired or already redeemed is refused with
+	// FAILED_PRECONDITION. A move that stops partway may be redeemed again
+	// with the same ticket while it lasts, and completes.
+	//
+	// Every change is recorded in the organization's permission history as a
+	// move, acting for the caller.
+	RedeemAccessMove(ctx context.Context, in *RedeemAccessMoveInput, opts ...grpc.CallOption) (*AccessMoveResult, error)
 }
 
 type identityProviderCommandControllerClient struct {
@@ -150,7 +196,7 @@ func (c *identityProviderCommandControllerClient) Create(ctx context.Context, in
 	return out, nil
 }
 
-func (c *identityProviderCommandControllerClient) Update(ctx context.Context, in *UpdateIdentityProviderInput, opts ...grpc.CallOption) (*IdentityProvider, error) {
+func (c *identityProviderCommandControllerClient) Update(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdentityProvider)
 	err := c.cc.Invoke(ctx, IdentityProviderCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -174,6 +220,26 @@ func (c *identityProviderCommandControllerClient) Delete(ctx context.Context, in
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdentityProvider)
 	err := c.cc.Invoke(ctx, IdentityProviderCommandController_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityProviderCommandControllerClient) CreateAccessMove(ctx context.Context, in *AccessMoveRequest, opts ...grpc.CallOption) (*AccessMoveTicket, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccessMoveTicket)
+	err := c.cc.Invoke(ctx, IdentityProviderCommandController_CreateAccessMove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityProviderCommandControllerClient) RedeemAccessMove(ctx context.Context, in *RedeemAccessMoveInput, opts ...grpc.CallOption) (*AccessMoveResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccessMoveResult)
+	err := c.cc.Invoke(ctx, IdentityProviderCommandController_RedeemAccessMove_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -226,9 +292,18 @@ type IdentityProviderCommandControllerServer interface {
 	//
 	//   - SLUG_RESERVED — another identity provider held the slug until a recent
 	//     rename, and it still leads there. Metadata: slug.
+	//
+	// A create that sets sso_required also needs can_assign_roles on the
+	// organization, which only its owners hold (PERMISSION_DENIED otherwise):
+	// requiring sign-in through a provider decides how every member gets in.
+	// Where the organization's plan decides it, a plan without SSO
+	// enforcement refuses it with FAILED_PRECONDITION carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
+	//     SSO enforcement. Metadata: feature ("sso_enforcement"), org.
 	Create(context.Context, *IdentityProvider) (*IdentityProvider, error)
-	// Update an identity provider: the fields update_mask names change, every other
-	// field keeps its stored value.
+	// Update an existing identity provider.
 	//
 	// On Stigmer Enterprise, changing how people sign in is growth the
 	// server's license pays for. Once the license and its grace period have
@@ -240,20 +315,22 @@ type IdentityProviderCommandControllerServer interface {
 	//     identity provider keeps signing people in as it is, and can still
 	//     be deleted. No metadata.
 	//
-	// resource.metadata.id names the identity provider; apply finds one by slug. The slug
-	// changes only through rename, and a mask naming a field another door
-	// owns, or a path the identity provider does not have, is refused with
-	// INVALID_ARGUMENT naming the path.
+	// An update whose only change is turning sso_required off is never
+	// refused this way: an organization may always stop requiring its SSO
+	// provider.
 	//
-	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
-	// (domain "stigmer.ai"):
+	// An update that changes sso_required, or that changes whom a provider
+	// with sso_required on trusts (allowed_issuers, jwks_uri,
+	// expected_audience), also needs can_assign_roles on the organization,
+	// which only its owners hold (PERMISSION_DENIED otherwise).
+	// Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
+	// organization's plan does not include SSO enforcement (see create);
+	// an organization that already requires it keeps it, and may always
+	// turn it off.
 	//
-	//   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed
-	//     since that etag was read: read it again and make the change again.
-	//     No metadata.
-	//   - WRITE_CONFLICT — the identity provider kept changing while the update was
-	//     being saved: try again. No metadata.
-	Update(context.Context, *UpdateIdentityProviderInput) (*IdentityProvider, error)
+	// An update names the identity provider by its id, and the slug changes
+	// only through rename.
+	Update(context.Context, *IdentityProvider) (*IdentityProvider, error)
 	// Rename an identity provider: change its slug, the name people type.
 	//
 	// The identity provider keeps its id, so everything that names it keeps
@@ -272,7 +349,40 @@ type IdentityProviderCommandControllerServer interface {
 	// The federated accounts the provider vouches for are
 	// deleted with it, with every role they hold, so a provider created again
 	// under the same slug inherits none of them.
+	//
+	// Deleting a provider that sets sso_required ends the requirement, so it
+	// also needs can_assign_roles on the organization, which only its owners
+	// hold (PERMISSION_DENIED otherwise).
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*IdentityProvider, error)
+	// Start moving your access in an organization to the account its SSO
+	// provider signs you in as.
+	//
+	// For someone who worked in an organization under another sign-in (an
+	// email login) before the organization connected its SSO provider. The
+	// caller, signed in the old way, asks for a ticket; the answer says what
+	// the move will do (AccessMoveTicket.preview: the access that moves, the
+	// My vault entries it deletes, the automations that stop); the person
+	// then signs in through the organization's SSO provider and redeems the
+	// ticket with redeemAccessMove. The ticket works once, for ten minutes,
+	// for this account and this organization only.
+	//
+	// Refused with FAILED_PRECONDITION when the caller holds no access in the
+	// organization, is one of its owners (owners keep their own sign-in), or
+	// already signed in through an SSO provider; with NOT_FOUND when the
+	// organization has no SSO provider (the same copy getSsoProvider answers).
+	CreateAccessMove(context.Context, *AccessMoveRequest) (*AccessMoveTicket, error)
+	// Redeem an access move ticket: the access it names moves to the caller.
+	//
+	// The caller must be signed in through the organization's SSO provider,
+	// as the account it made for them; anyone else is refused with
+	// PERMISSION_DENIED and the ticket stays usable until it expires. A
+	// ticket that is unknown, expired or already redeemed is refused with
+	// FAILED_PRECONDITION. A move that stops partway may be redeemed again
+	// with the same ticket while it lasts, and completes.
+	//
+	// Every change is recorded in the organization's permission history as a
+	// move, acting for the caller.
+	RedeemAccessMove(context.Context, *RedeemAccessMoveInput) (*AccessMoveResult, error)
 }
 
 // UnimplementedIdentityProviderCommandControllerServer should be embedded to have
@@ -288,7 +398,7 @@ func (UnimplementedIdentityProviderCommandControllerServer) Apply(context.Contex
 func (UnimplementedIdentityProviderCommandControllerServer) Create(context.Context, *IdentityProvider) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedIdentityProviderCommandControllerServer) Update(context.Context, *UpdateIdentityProviderInput) (*IdentityProvider, error) {
+func (UnimplementedIdentityProviderCommandControllerServer) Update(context.Context, *IdentityProvider) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedIdentityProviderCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*IdentityProvider, error) {
@@ -296,6 +406,12 @@ func (UnimplementedIdentityProviderCommandControllerServer) Rename(context.Conte
 }
 func (UnimplementedIdentityProviderCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedIdentityProviderCommandControllerServer) CreateAccessMove(context.Context, *AccessMoveRequest) (*AccessMoveTicket, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateAccessMove not implemented")
+}
+func (UnimplementedIdentityProviderCommandControllerServer) RedeemAccessMove(context.Context, *RedeemAccessMoveInput) (*AccessMoveResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedeemAccessMove not implemented")
 }
 func (UnimplementedIdentityProviderCommandControllerServer) testEmbeddedByValue() {}
 
@@ -354,7 +470,7 @@ func _IdentityProviderCommandController_Create_Handler(srv interface{}, ctx cont
 }
 
 func _IdentityProviderCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateIdentityProviderInput)
+	in := new(IdentityProvider)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -366,7 +482,7 @@ func _IdentityProviderCommandController_Update_Handler(srv interface{}, ctx cont
 		FullMethod: IdentityProviderCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityProviderCommandControllerServer).Update(ctx, req.(*UpdateIdentityProviderInput))
+		return srv.(IdentityProviderCommandControllerServer).Update(ctx, req.(*IdentityProvider))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -407,6 +523,42 @@ func _IdentityProviderCommandController_Delete_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityProviderCommandController_CreateAccessMove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccessMoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityProviderCommandControllerServer).CreateAccessMove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityProviderCommandController_CreateAccessMove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityProviderCommandControllerServer).CreateAccessMove(ctx, req.(*AccessMoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityProviderCommandController_RedeemAccessMove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RedeemAccessMoveInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityProviderCommandControllerServer).RedeemAccessMove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityProviderCommandController_RedeemAccessMove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityProviderCommandControllerServer).RedeemAccessMove(ctx, req.(*RedeemAccessMoveInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IdentityProviderCommandController_ServiceDesc is the grpc.ServiceDesc for IdentityProviderCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -433,6 +585,14 @@ var IdentityProviderCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _IdentityProviderCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "createAccessMove",
+			Handler:    _IdentityProviderCommandController_CreateAccessMove_Handler,
+		},
+		{
+			MethodName: "redeemAccessMove",
+			Handler:    _IdentityProviderCommandController_RedeemAccessMove_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

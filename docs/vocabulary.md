@@ -56,29 +56,30 @@ definitions, API names, and examples follow below.
 
 <!-- vale Stigmer.terms = NO -->
 
-| Term                  | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                             | README            |
-| --------------------- | ---------------- | -------------------------------------- | ---------------------- | ------------------------------------------- | ----------------- |
-| **Agent**             | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                        | Agent             |
-| **Skill**             | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                         | Skill             |
-| **Plugin**            | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                      | plugin            |
-| **Marketplace**       | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`      | marketplace       |
-| **MCP server**        | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`       | MCP server        |
-| **Session**           | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                    | Session           |
-| **Runner**            | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                      | runner            |
-| **Harness**           | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`              | harness           |
-| **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`         | HITL, approval    |
-| **Organization**      | Organization     | Organization                           | Organization           | Organization, `kind: organization`          | Organization      |
-| **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                          | Team              |
-| **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                        | vault             |
-| **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`         | Preference        |
-| **Identity Provider** | ---              | identity provider                      | Identity Provider      | IdentityProvider, `kind: identity_provider` | Identity Provider |
-| **Identity Account**  | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`   | Identity Account  |
-| **PlatformClient**    | ---              | ---                                    | PlatformClient         | PlatformClient, `kind: platform_client`     | PlatformClient    |
-| **Run**               | ---              | run                                    | run                    | Run, `kind: Run`                            | Run               |
-| **Subagent**          | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`   | subagent          |
-| **Agent Channel**     | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`          | Agent Channel     |
-| **Channel App**       | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`              | Channel App       |
-| **Schedule**          | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                  | Schedule          |
+| Term                  | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                                 | README            |
+| --------------------- | ---------------- | -------------------------------------- | ---------------------- | ----------------------------------------------- | ----------------- |
+| **Agent**             | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                            | Agent             |
+| **Skill**             | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                             | Skill             |
+| **Plugin**            | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                          | plugin            |
+| **Marketplace**       | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`          | marketplace       |
+| **MCP server**        | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`           | MCP server        |
+| **Session**           | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                        | Session           |
+| **Runner**            | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                          | runner            |
+| **Harness**           | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`                  | harness           |
+| **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`             | HITL, approval    |
+| **Organization**      | Organization     | Organization                           | Organization           | Organization, `kind: organization`              | Organization      |
+| **Agent hour**        | agent hours      | ---                                    | agent hours            | `included_agent_hours`, `per_agent_hour_micros` | agent hours       |
+| **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                              | Team              |
+| **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                            | vault             |
+| **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`             | Preference        |
+| **Identity Provider** | ---              | identity provider                      | Identity Provider      | IdentityProvider, `kind: identity_provider`     | Identity Provider |
+| **Identity Account**  | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`       | Identity Account  |
+| **PlatformClient**    | ---              | ---                                    | PlatformClient         | PlatformClient, `kind: platform_client`         | PlatformClient    |
+| **Run**               | ---              | run                                    | run                    | Run, `kind: Run`                                | Run               |
+| **Subagent**          | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`       | subagent          |
+| **Agent Channel**     | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`              | Agent Channel     |
+| **Channel App**       | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`                  | Channel App       |
+| **Schedule**          | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                      | Schedule          |
 
 <!-- vale Stigmer.terms = YES -->
 
@@ -721,6 +722,26 @@ An admin of a parent organization, as seen from one of its child organizations.
   list and access history show; nothing impersonates a child's user.
 - **Context rule**: Use in concepts and reference. In how-to, say "your
   Organization's admins" when the reader is the parent.
+
+---
+
+#### Agent hour
+
+An hour an agent spends working on a Session: thinking, calling tools, writing
+files. Time spent waiting for a person, for an approval or for the next message,
+is never an agent hour.
+
+- **Capitalize**: No. Write "agent hours", "working agent hours".
+- **API surface**: the plan limit `included_agent_hours` on `EntitlementLimits`
+  (the hours an Organization may use each month) and the plan term
+  `per_agent_hour_micros` on `PlanTerms` (the price of each hour past them;
+  absent, the Organization pauses at its allowance).
+- **Note**: Stigmer Cloud counts agent hours, because its agents run on
+  Stigmer's computers; a child organization draws on its parent's hours. A
+  self-hosted deployment runs on its own computers and counts none; a license
+  ignores both fields. Model tokens are never counted or priced as agent hours.
+- **Context rule**: "agent hours" in every context. Never "compute hours" or
+  "session hours".
 
 ---
 

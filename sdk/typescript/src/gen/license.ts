@@ -91,6 +91,7 @@ export interface EntitlementLimitsInput {
   includedChildOrgs?: number;
   maxActiveSessionSandboxes?: number;
   archivedWorkspaceRetentionDays?: number;
+  includedAgentHours?: number;
 }
 
 function buildLicenseCustomerProto(input: LicenseCustomerInput) {
@@ -109,6 +110,7 @@ function buildEntitlementLimitsProto(input: EntitlementLimitsInput) {
     includedChildOrgs: input.includedChildOrgs,
     maxActiveSessionSandboxes: input.maxActiveSessionSandboxes,
     archivedWorkspaceRetentionDays: input.archivedWorkspaceRetentionDays,
+    includedAgentHours: input.includedAgentHours,
   }));
 }
 

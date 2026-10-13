@@ -27,14 +27,16 @@ var File_ai_stigmer_iam_iampolicy_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_iampolicy_v1_command_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/iam/iampolicy/v1/command.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a\x1bgoogle/protobuf/empty.proto2\xda\b\n" +
+	")ai/stigmer/iam/iampolicy/v1/command.proto\x12\x1bai.stigmer.iam.iampolicy.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a%ai/stigmer/iam/iampolicy/v1/api.proto\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1a&ai/stigmer/iam/iampolicy/v1/spec.proto\x1a\x1bgoogle/protobuf/empty.proto2\xbd\n" +
+	"\n" +
 	"\x1aIamPolicyCommandController\x12\x9e\x01\n" +
 	"\x06create\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"@¸\x18<\b\x04\x1a\rresource.kind\"\vresource.id*\x1cunauthorized to grant access\x12\x9f\x01\n" +
 	"\x06delete\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"A¸\x18=\b\x04\x1a\rresource.kind\"\vresource.id*\x1dunauthorized to revoke access\x12\xc2\x01\n" +
 	"\x0fbootstrapPolicy\x12*.ai.stigmer.iam.iampolicy.v1.IamPolicySpec\x1a&.ai.stigmer.iam.iampolicy.v1.IamPolicy\"[¸\x18W\b\x11\x10\x1f*Hunauthorized to bootstrap policy - can_bootstrap_iam permission required2\astigmer\x12\xc4\x01\n" +
 	"\x17cleanupResourcePolicies\x12+.ai.stigmer.iam.iampolicy.v1.ApiResourceRef\x1a\x16.google.protobuf.Empty\"d¸\x18`\b\x11\x10\x1f*Qunauthorized to cleanup resource policies - can_bootstrap_iam permission required2\astigmer\x12\x97\x01\n" +
 	"\x0frevokeOrgAccess\x121.ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput\x1a\x16.google.protobuf.Empty\"9¸\x185\b\x04\x10\x1e\"\x03org**unauthorized to revoke organization access\x12\xcc\x01\n" +
-	"\x18bootstrapRevokeOrgAccess\x121.ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput\x1a\x16.google.protobuf.Empty\"e¸\x18a\b\x11\x10\x1f*Runauthorized to revoke organization access - can_bootstrap_iam permission required2\astigmer\x1a\x04\xa0\xff+\n" +
+	"\x18bootstrapRevokeOrgAccess\x121.ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput\x1a\x16.google.protobuf.Empty\"e¸\x18a\b\x11\x10\x1f*Runauthorized to revoke organization access - can_bootstrap_iam permission required2\astigmer\x12\xe0\x01\n" +
+	"\x16bootstrapMoveOrgAccess\x12/.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput\x1a0.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult\"c¸\x18_\b\x11\x10\x1f*Punauthorized to move organization access - can_bootstrap_iam permission required2\astigmer\x1a\x04\xa0\xff+\n" +
 	"B\x94\x02\n" +
 	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
 
@@ -42,8 +44,10 @@ var file_ai_stigmer_iam_iampolicy_v1_command_proto_goTypes = []any{
 	(*IamPolicySpec)(nil),        // 0: ai.stigmer.iam.iampolicy.v1.IamPolicySpec
 	(*ApiResourceRef)(nil),       // 1: ai.stigmer.iam.iampolicy.v1.ApiResourceRef
 	(*RevokeOrgAccessInput)(nil), // 2: ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput
-	(*IamPolicy)(nil),            // 3: ai.stigmer.iam.iampolicy.v1.IamPolicy
-	(*emptypb.Empty)(nil),        // 4: google.protobuf.Empty
+	(*MoveOrgAccessInput)(nil),   // 3: ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput
+	(*IamPolicy)(nil),            // 4: ai.stigmer.iam.iampolicy.v1.IamPolicy
+	(*emptypb.Empty)(nil),        // 5: google.protobuf.Empty
+	(*MoveOrgAccessResult)(nil),  // 6: ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
 }
 var file_ai_stigmer_iam_iampolicy_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.create:input_type -> ai.stigmer.iam.iampolicy.v1.IamPolicySpec
@@ -52,14 +56,16 @@ var file_ai_stigmer_iam_iampolicy_v1_command_proto_depIdxs = []int32{
 	1, // 3: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.cleanupResourcePolicies:input_type -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
 	2, // 4: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.revokeOrgAccess:input_type -> ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput
 	2, // 5: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.bootstrapRevokeOrgAccess:input_type -> ai.stigmer.iam.iampolicy.v1.RevokeOrgAccessInput
-	3, // 6: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.create:output_type -> ai.stigmer.iam.iampolicy.v1.IamPolicy
-	3, // 7: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.delete:output_type -> ai.stigmer.iam.iampolicy.v1.IamPolicy
-	3, // 8: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.bootstrapPolicy:output_type -> ai.stigmer.iam.iampolicy.v1.IamPolicy
-	4, // 9: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.cleanupResourcePolicies:output_type -> google.protobuf.Empty
-	4, // 10: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.revokeOrgAccess:output_type -> google.protobuf.Empty
-	4, // 11: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.bootstrapRevokeOrgAccess:output_type -> google.protobuf.Empty
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	3, // 6: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.bootstrapMoveOrgAccess:input_type -> ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput
+	4, // 7: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.create:output_type -> ai.stigmer.iam.iampolicy.v1.IamPolicy
+	4, // 8: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.delete:output_type -> ai.stigmer.iam.iampolicy.v1.IamPolicy
+	4, // 9: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.bootstrapPolicy:output_type -> ai.stigmer.iam.iampolicy.v1.IamPolicy
+	5, // 10: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.cleanupResourcePolicies:output_type -> google.protobuf.Empty
+	5, // 11: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.revokeOrgAccess:output_type -> google.protobuf.Empty
+	5, // 12: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.bootstrapRevokeOrgAccess:output_type -> google.protobuf.Empty
+	6, // 13: ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.bootstrapMoveOrgAccess:output_type -> ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

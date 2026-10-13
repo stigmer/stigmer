@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
-import { create, type MessageInitShape } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -11,7 +11,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IdentityProviderSchema, type IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { UpdateIdentityProviderInputSchema, ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders, type OrganizationSsoLookup, type SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import { AccessMoveRequestSchema, AccessMoveTicketSchema, RedeemAccessMoveInputSchema, AccessMoveResultSchema, ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, OrganizationSsoLookupSchema, SsoProviderInfoSchema, SsoRequirementPreviewInputSchema, SsoRequirementPreviewSchema, type AccessMoveRequest, type AccessMoveTicket, type RedeemAccessMoveInput, type AccessMoveResult, type ListIdentityProvidersByOrgInput, type IdentityProviders, type OrganizationSsoLookup, type SsoProviderInfo, type SsoRequirementPreviewInput, type SsoRequirementPreview } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -38,9 +38,9 @@ export class IdentityProviderClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(resource: IdentityProvider | MessageInitShape<typeof IdentityProviderSchema>, paths: string[]): Promise<IdentityProvider> {
+  async update(input: IdentityProviderInput): Promise<IdentityProvider> {
     try {
-      return await this.command.update(create(UpdateIdentityProviderInputSchema, { resource, updateMask: { paths } }));
+      return await this.command.update(buildIdentityProviderProto(input));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -57,6 +57,18 @@ export class IdentityProviderClient {
         versionMessage: input.versionMessage,
         force: input.force,
       }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async createAccessMove(input: AccessMoveRequest): Promise<AccessMoveTicket> {
+    try {
+      return await this.command.createAccessMove(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async redeemAccessMove(input: RedeemAccessMoveInput): Promise<AccessMoveResult> {
+    try {
+      return await this.command.redeemAccessMove(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -83,15 +95,21 @@ export class IdentityProviderClient {
       return await this.query.getSsoProvider(input);
     } catch (e) { throw wrapError(e); }
   }
+
+  async previewSsoRequirement(input: SsoRequirementPreviewInput): Promise<SsoRequirementPreview> {
+    try {
+      return await this.query.previewSsoRequirement(input);
+    } catch (e) { throw wrapError(e); }
+  }
 }
 
-/** Input for creating or applying an IdentityProvider. */
+/** Input for creating/updating an IdentityProvider. */
 export interface IdentityProviderInput {
   /**
-   * The resource's `metadata.id`: an apply that carries it changes that
-   * resource, whatever its slug. Ignored on create: the server assigns
-   * every new resource's id. An update takes the resource itself and
-   * the paths it changes.
+   * The resource's `metadata.id`, for exact update addressing when set
+   * from a loaded resource. Required for updates to platform-scoped
+   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
+   * on create: the server assigns every new resource's id.
    */
   id?: string;
   name: string;
@@ -109,6 +127,7 @@ export interface IdentityProviderInput {
   externalIdClaim?: string;
   createAccountsOnSignIn?: boolean;
   signInRole?: IamRole;
+  ssoRequired?: boolean;
 }
 
 export function buildIdentityProviderProto(input: IdentityProviderInput): IdentityProvider {
@@ -134,6 +153,46 @@ export function buildIdentityProviderProto(input: IdentityProviderInput): Identi
       externalIdClaim: input.externalIdClaim,
       createAccountsOnSignIn: input.createAccountsOnSignIn,
       signInRole: input.signInRole,
+      ssoRequired: input.ssoRequired,
     })),
   }) as IdentityProvider;
+}
+
+/**
+ * Maps a fetched {@link IdentityProvider} to a complete {@link IdentityProviderInput} for `update()`.
+ *
+ * The update RPC replaces the ENTIRE spec — spread this mapper's output
+ * and override only the fields you edit (spread nested objects the same
+ * way):
+ *
+ *   await client.update({ ...toIdentityProviderUpdateInput(res), description: next });
+ *
+ * Proto3 defaults normalize to `undefined`; resource references keep
+ * `version` (pinned refs) and `kind`.
+ */
+export function toIdentityProviderUpdateInput(resource: IdentityProvider): IdentityProviderInput {
+  const meta = resource.metadata;
+  const spec = resource.spec ?? create(IdentityProviderSpecSchema);
+  return {
+    // Exact update addressing (id-first in the update pipeline) — for
+    // platform-scoped (org-less) kinds the org+slug fallback cannot
+    // match, so the id is the ONLY working address.
+    id: meta?.id || undefined,
+    name: meta?.name ?? "",
+    slug: meta?.slug || undefined,
+    org: meta?.org ?? "",
+    labels: meta?.labels && Object.keys(meta.labels).length > 0 ? { ...meta.labels } : undefined,
+    visibility: meta?.visibility || undefined,
+    displayName: spec.displayName || undefined,
+    jwksUri: spec.jwksUri || undefined,
+    allowedIssuers: spec.allowedIssuers?.length ? [...spec.allowedIssuers] : undefined,
+    expectedAudience: spec.expectedAudience || undefined,
+    userinfoEndpoint: spec.userinfoEndpoint || undefined,
+    isSsoProvider: spec.isSsoProvider || undefined,
+    oidcClientId: spec.oidcClientId || undefined,
+    externalIdClaim: spec.externalIdClaim || undefined,
+    createAccountsOnSignIn: spec.createAccountsOnSignIn || undefined,
+    signInRole: spec.signInRole || undefined,
+    ssoRequired: spec.ssoRequired || undefined,
+  };
 }
