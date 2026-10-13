@@ -99,7 +99,9 @@ export function checkUpdateMask(
 /**
  * Copies every path from `request` onto `merged` (both of `schema`): a set
  * field is copied, an unset one is cleared. A refused field under a copied
- * path is put back from `stored`, so it keeps its stored value.
+ * path is put back from `stored`, so it keeps its stored value. The paths
+ * are ones checkUpdateMask admitted and the kind's refused paths, each a
+ * field of the kind (docs/update-paths.md's test proves the refused ones).
  */
 export function applyUpdateMask<M extends Message>(
   schema: DescMessage,
@@ -111,59 +113,54 @@ export function applyUpdateMask<M extends Message>(
 ): void {
   const source = clone(schema, request);
   for (const path of paths) {
-    copyPath(reflect(schema, source), reflect(schema, merged), path.split("."));
+    copyPath(reflect(schema, source), reflect(schema, merged), fieldsAlong(schema, path) as PathFields);
   }
   for (const entry of refused) {
     if (paths.some((path) => entry.path.startsWith(`${path}.`))) {
-      copyPath(reflect(schema, clone(schema, stored)), reflect(schema, merged), entry.path.split("."));
+      copyPath(reflect(schema, clone(schema, stored)), reflect(schema, merged), fieldsAlong(schema, entry.path) as PathFields);
     }
   }
 }
 
-/** The fields a path names, outermost first; undefined when a segment is no field or goes through a list or map. */
-function fieldsAlong(schema: DescMessage, path: string): DescField[] | undefined {
-  const fields: DescField[] = [];
-  let current: DescMessage | undefined = schema;
+/** A message field a path goes through. */
+type MessageField = Extract<DescField, { fieldKind: "message" }>;
+
+/** The fields a path names: the message fields it goes through, then the one it names. */
+interface PathFields {
+  readonly through: ReadonlyArray<MessageField>;
+  readonly last: DescField;
+}
+
+/** The fields a path names; undefined when a segment is no field or goes through a list or map. */
+function fieldsAlong(schema: DescMessage, path: string): PathFields | undefined {
   const segments = path.split(".");
-  for (const [index, segment] of segments.entries()) {
-    const field: DescField | undefined = current?.fields.find((candidate) => candidate.name === segment);
-    if (field === undefined) {
+  const through: MessageField[] = [];
+  let current: DescMessage = schema;
+  for (const segment of segments.slice(0, -1)) {
+    const field = current.fields.find((candidate) => candidate.name === segment);
+    if (field === undefined || field.fieldKind !== "message") {
       return undefined;
     }
-    fields.push(field);
-    const last = index === segments.length - 1;
-    if (!last) {
-      if (field.fieldKind !== "message") {
-        return undefined;
-      }
-      current = field.message;
-    }
+    through.push(field);
+    current = field.message;
   }
-  return fields;
+  const last = current.fields.find((candidate) => candidate.name === segments[segments.length - 1]);
+  return last === undefined ? undefined : { through, last };
 }
 
-function copyPath(source: ReflectMessage, target: ReflectMessage, segments: string[]): void {
-  const [segment, ...rest] = segments;
-  const field = source.desc.fields.find((candidate) => candidate.name === segment);
-  if (field === undefined) {
-    return;
-  }
-  if (rest.length === 0) {
-    if (source.isSet(field)) {
-      target.set(field, source.get(field));
-    } else {
-      target.clear(field);
+function copyPath(source: ReflectMessage, target: ReflectMessage, { through, last }: PathFields): void {
+  let from = source;
+  let to = target;
+  for (const field of through) {
+    if (!to.isSet(field)) {
+      to.set(field, reflect(field.message, create(field.message)));
     }
-    return;
+    from = from.isSet(field) ? (from.get(field) as ReflectMessage) : reflect(field.message, create(field.message));
+    to = to.get(field) as ReflectMessage;
   }
-  if (field.fieldKind !== "message") {
-    return;
+  if (from.isSet(last)) {
+    to.set(last, from.get(last));
+  } else {
+    to.clear(last);
   }
-  if (!target.isSet(field)) {
-    target.set(field, reflect(field.message, create(field.message)));
-  }
-  const sourceChild = source.isSet(field)
-    ? (source.get(field) as ReflectMessage)
-    : reflect(field.message, create(field.message));
-  copyPath(sourceChild, target.get(field) as ReflectMessage, rest);
 }

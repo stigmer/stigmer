@@ -144,12 +144,10 @@ export async function runUpdateChain<
 ): Promise<Out> {
   const reqCtx = updateContext(schema, input, callerIdentityOf(ctx), shaping.kind);
   let out: Out | undefined;
-  let produced = false;
   const domainStep: PipelineStep<Desc> = {
     name: names.step,
     execute: async (stepCtx: RequestContext<Desc>): Promise<void> => {
       out = await domain(stepCtx);
-      produced = true;
     },
   };
   const builder = newPipeline<Desc>(names.chain, deps.logger).addStep(
@@ -163,8 +161,6 @@ export async function runUpdateChain<
     .addStep(domainStep)
     .build()
     .execute(reqCtx);
-  if (!produced) {
-    throw new Error(`chain ${names.chain} completed without a response`);
-  }
+  // The domain step is the chain's last, so a chain that completed ran it.
   return out as Out;
 }

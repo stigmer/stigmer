@@ -158,4 +158,32 @@ describe("bindHarnessState", () => {
     const gone = await refusal(bind("run_orphan", "hs-1", auth.mintRunCredential("run_orphan")));
     expect(gone.code).toBe(Code.NotFound);
   });
+
+  it("answers INTERNAL, naming no store detail, when the store fails reading the run or writing the session", async () => {
+    await seedSession("ses_a");
+    await seedRun("run_a", { case: "sessionId", value: "ses_a" });
+    const token = auth.mintRunCredential("run_a");
+    const failing = (method: "getResource" | "updateResource") =>
+      new Proxy(temp.store, {
+        get(target, key, receiver) {
+          if (key === method) {
+            return () => Promise.reject(new Error("disk unplugged"));
+          }
+          const value: unknown = Reflect.get(target, key, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+
+    for (const method of ["getResource", "updateResource"] as const) {
+      const error = await refusal(
+        bindHarnessState(
+          { ...deps, store: failing(method) },
+          create(BindHarnessStateInputSchema, { runId: "run_a", harnessStateId: "hs-1" }),
+          bearer(token),
+        ),
+      );
+      expect(error.code, method).toBe(Code.Internal);
+      expect(error.rawMessage, method).not.toContain("disk unplugged");
+    }
+  });
 });

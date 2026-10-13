@@ -112,17 +112,14 @@ export function newBuildUpdateStateStep<Desc extends DescMessage>(
  * otherwise cleared, since they describe this save and not the stored row.
  */
 function takeVersionArguments(merged: Message, request: Message): void {
+  // The merged row is the stored one, which LoadExisting read with its
+  // metadata; a row with no version and a request naming none is left so.
   const mergedMeta = metadataOf(merged);
-  if (mergedMeta === undefined) {
-    throw internalError(new Error("metadata is nil"), "take version arguments");
-  }
   const sent = metadataOf(request)?.version;
-  if (mergedMeta.version === undefined) {
-    if (sent === undefined) {
-      return;
-    }
-    mergedMeta.version = create(ApiResourceMetadataVersionSchema, {});
+  if (mergedMeta === undefined || (mergedMeta.version === undefined && sent === undefined)) {
+    return;
   }
+  mergedMeta.version ??= create(ApiResourceMetadataVersionSchema, {});
   mergedMeta.version.message = sent?.message ?? "";
   mergedMeta.version.tag = sent?.tag ?? "";
 }

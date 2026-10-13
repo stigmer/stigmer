@@ -18,7 +18,10 @@
  *   - an update without the id is refused before anything is read;
  *   - an update that names neither its secrets nor its provider keeps
  *     them: the sealed values it merges onto are the stored ones, never
- *     refused as forged ciphertext (an OAuth app, a channel app).
+ *     refused as forged ciphertext (an OAuth app, a channel app);
+ *   - an apply of an existing resource is an update naming every path
+ *     (an OAuth app, a session);
+ *   - the runner's harness door is served, and refuses a person.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -34,6 +37,7 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -84,6 +88,7 @@ describe("the update contract, through a composed server", () => {
   const vaultQuery = () => createClient(VaultQueryController, wire);
   const oauthApps = () => createClient(OAuthAppCommandController, wire);
   const channelApps = () => createClient(ChannelAppCommandController, wire);
+  const sessions = () => createClient(SessionCommandController, wire);
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "update-contract-"));
@@ -310,5 +315,48 @@ describe("the update contract, through a composed server", () => {
     expect(updated.metadata?.name).toBe("Team Slack app");
     const storedAfter = await server.store.getResource(ApiResourceKind.channel_app, channelApp.metadata!.id, ChannelAppSchema);
     expect(storedAfter.spec?.providerConfig).toEqual(storedBefore.spec?.providerConfig);
+  });
+
+  it("applies an existing OAuth app and session as an update naming every path", async () => {
+    const appInput = {
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "OAuthApp",
+      metadata: { name: "Applied login", org: ORG },
+      spec: {
+        provider: "Vendor",
+        clientId: "applied-client-id",
+        clientSecret: "applied-client-secret",
+        authorizationUrl: "https://applied.example.com/oauth/authorize",
+        tokenUrl: "https://applied.example.com/oauth/token",
+        addresses: ["https://mcp.applied.example.com/mcp"],
+      },
+    };
+    const app = await oauthApps().apply(appInput);
+    const reapplied = await oauthApps().apply({ ...appInput, spec: { ...appInput.spec, provider: "Vendor Two" } });
+    expect(reapplied.metadata?.id).toBe(app.metadata?.id);
+    expect(reapplied.spec?.provider).toBe("Vendor Two");
+
+    const sessionInput = {
+      apiVersion: AGENTIC,
+      kind: "Session",
+      metadata: { name: "Applied chat", org: ORG },
+      spec: { subject: "First words" },
+    };
+    const session = await sessions().apply(sessionInput);
+    const again = await sessions().apply({
+      ...sessionInput,
+      metadata: { ...sessionInput.metadata, slug: session.metadata!.slug },
+      spec: { subject: "Second words" },
+    });
+    expect(again.metadata?.id).toBe(session.metadata?.id);
+    expect(again.spec?.subject).toBe("Second words");
+  });
+
+  it("serves the runner's harness door, which refuses a person", async () => {
+    const refused = await grpcError(() =>
+      sessions().bindHarnessState({ runId: "run_01notarunner", harnessStateId: "thread-forged" }),
+    );
+    expect(refused.code).toBe(Code.PermissionDenied);
+    expect(refused.rawMessage).toBe("only the runner acting for this run may record its session's harness state");
   });
 });

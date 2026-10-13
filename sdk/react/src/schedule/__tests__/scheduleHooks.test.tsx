@@ -25,6 +25,7 @@ import { useResumeSchedule } from "../useResumeSchedule";
 import { useTriggerSchedule } from "../useTriggerSchedule";
 import { useScheduleFires } from "../useScheduleFires";
 import { useSetScheduleEnabled } from "../useSetScheduleEnabled";
+import { useUpdateScheduleSpec } from "../useUpdateScheduleSpec";
 
 vi.mock("../../feedback/toast", () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
@@ -382,3 +383,31 @@ describe("useSetScheduleEnabled", () => {
   });
 });
 
+describe("useUpdateScheduleSpec", () => {
+  it("names only the spec field the edit changed, sends nothing for no change, and says to reload a schedule changed since", async () => {
+    const update = vi.fn(async () => SCHEDULE);
+    const client = { schedule: { update } };
+    const { result } = renderHook(() => useUpdateScheduleSpec(), { wrapper: wrapper(client) });
+
+    await result.current.updateSpec(SCHEDULE, (spec) => {
+      spec.cron = "0 10 * * *";
+    });
+    const sent = sentUpdate<Schedule>(update);
+    expect(sent.paths).toEqual(["spec.cron"]);
+    expect(sent.resource.metadata?.id).toBe("sch_01example");
+
+    await result.current.updateSpec(SCHEDULE, () => {});
+    expect(update).toHaveBeenCalledTimes(1);
+
+    update.mockRejectedValueOnce(
+      new ConnectError("changed", Code.Aborted, undefined, [
+        { desc: ErrorInfoSchema, value: { domain: "stigmer.ai", reason: "ETAG_MISMATCH", metadata: {} } },
+      ]),
+    );
+    await expect(
+      result.current.updateSpec(SCHEDULE, (spec) => {
+        spec.timeZone = "UTC";
+      }),
+    ).rejects.toThrow(/^This schedule changed since you opened it/);
+  });
+});

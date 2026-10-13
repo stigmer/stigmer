@@ -9,6 +9,9 @@ import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { openMenu } from "../../__tests__/helpers/open-menu";
 import { AgentChannelsPanel } from "../AgentChannelsPanel";
+import { toast } from "../../feedback/toast";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 // Toasts are visual feedback owned by the feedback module; keep them inert.
 vi.mock("../../feedback/toast", () => ({
@@ -259,6 +262,32 @@ describe("AgentChannelsPanel", () => {
     const sent = sentUpdate<AgentChannel>(update);
     expect(sent.paths).toEqual(["spec.enabled"]);
     expect(sent.resource.spec?.enabled).toBe(false);
+  });
+
+  it("says the channel changed since it was opened when the toggle's save meets a newer channel", async () => {
+    const update = vi.fn().mockRejectedValue(
+      new ConnectError("changed", Code.Aborted, undefined, [
+        { desc: ErrorInfoSchema, value: { domain: "stigmer.ai", reason: "ETAG_MISMATCH", metadata: {} } },
+      ]),
+    );
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+      update,
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByRole("switch")).toBeTruthy());
+    fireEvent.click(screen.getByRole("switch"));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "This channel changed since you opened it. Reload it to see the change, then make your edit again.",
+      ),
+    );
   });
 
   it("confirms before disconnecting and deletes on confirm", async () => {
