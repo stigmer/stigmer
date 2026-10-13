@@ -37,7 +37,8 @@ export type PlanOnlyFeature =
   | Feature.channels
   | Feature.sharing
   | Feature.teams
-  | Feature.child_orgs;
+  | Feature.child_orgs
+  | Feature.access_history;
 
 /**
  * Features the contract names but nothing gates: every edition serves them

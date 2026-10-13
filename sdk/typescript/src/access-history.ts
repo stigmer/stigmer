@@ -54,7 +54,7 @@ export async function* exportAccessHistory(
     const page = await client.listAccessHistory(
       create(ListAccessHistoryInputSchema, {
         org,
-        afterSequence: options.after ?? 0n,
+        afterSequence: options.after ?? BigInt(0),
         pageSize: EXPORT_PAGE_SIZE,
         pageToken,
       }),

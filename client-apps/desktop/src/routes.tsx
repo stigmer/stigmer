@@ -5,6 +5,7 @@ import {
   type RouteObject,
 } from "react-router-dom";
 import {
+  AccessHistorySection,
   AccountPreferencesSection,
   ApiKeysSection,
   ChannelAppsSection,
@@ -273,6 +274,7 @@ const routes: RouteObject[] = [
               { path: "identity-providers", element: <IdentityProvidersSection /> },
               { path: "platform-clients", element: <PlatformClientsSection /> },
               { path: "service-accounts", element: <ServiceAccountsSection /> },
+              { path: "access-history", element: <AccessHistorySection /> },
               { path: "oauth-apps", element: <OAuthAppsSection /> },
               { path: "channel-apps", element: <ChannelAppsSection /> },
               { path: "usage", element: <UsageSection /> },

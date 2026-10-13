@@ -71,6 +71,11 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
     "can_create_identity_account",
     { fail: "closed" },
   );
+  const accessHistory = useCheckPermission(
+    orgId ? { kind: "organization", id: orgId } : null,
+    "can_view_access_history",
+    { fail: "closed" },
+  );
   const pricing = useCheckPermission(
     PLATFORM_RESOURCE,
     "can_manage_model_pricing",
@@ -91,6 +96,7 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   const licensesAllowed = licenses.allowed;
   const plansAllowed = plans.allowed;
   const serviceAccountsAllowed = serviceAccounts.allowed;
+  const accessHistoryAllowed = accessHistory.allowed;
   const singleOrg = useSingleOrg();
   const baseGroups =
     singleOrg === undefined
@@ -116,6 +122,7 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
 
     const orgVerdicts: Record<string, boolean> = {
       can_create_identity_account: serviceAccountsAllowed,
+      can_view_access_history: accessHistoryAllowed,
     };
     const orgItems = ORG_ADMIN_SETTINGS_NAV_ITEMS.filter(
       (item) =>
@@ -144,6 +151,7 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
     licensesAllowed,
     plansAllowed,
     serviceAccountsAllowed,
+    accessHistoryAllowed,
   ]);
 }
 
