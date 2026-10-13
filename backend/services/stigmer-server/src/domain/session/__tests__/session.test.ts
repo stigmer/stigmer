@@ -577,7 +577,7 @@ describe("session state — computed from the log on every read, never stored", 
       (await server.store.getResource(ApiResourceKind.session, id, SessionSchema)).status?.state;
     expect(await storedState()).toBe("");
 
-    await command.update({ ...updateInput(created, { subject: "renamed" }), status: { state: "running" } });
+    await command.update({ resource: { ...updateInput(created, { subject: "renamed" }), status: { state: "running" } }, updateMask: { paths: ["*"] } });
     expect(await storedState()).toBe("");
     expect((await query.get({ value: id })).status?.state).toBe("idle");
 

@@ -197,13 +197,13 @@ describe("Session conformance — CRUD & identity", () => {
     expect((await clients.sessionQuery.get({ value: created.metadata!.id })).status?.state).toBe("idle");
 
     const { id, name, slug } = created.metadata!;
-    await clients.sessionCommand.update({
+    await clients.sessionCommand.update({ resource: {
       apiVersion: SESSION_API_VERSION,
       kind: SESSION_KIND,
       metadata: { id, name, slug, org },
       spec: makeSessionSpec({ agentRef, subject: "renamed" }),
       status: { state: "running" },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect((await clients.sessionQuery.get({ value: id })).status?.state).toBe("idle");
   });
 

@@ -47,9 +47,28 @@ type SessionStatus struct {
 	// waits for input), the newest session.status_running or
 	// session.status_idle event's word. A session none of whose turns ever
 	// worked reads idle.
-	State         string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	State string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	// Harness-specific state identifier for conversation continuity.
+	//
+	// Populated after the first run completes; empty until then.
+	// Each harness uses this field differently:
+	//
+	//   - NATIVE: LangGraph thread ID, derived deterministically as
+	//     "thread-{session_id}" by the EnsureThread activity. Stored here
+	//     so the immutability sentinel works uniformly across harnesses.
+	//
+	//   - CURSOR: Cursor SDK agent ID (e.g., "agent-xxx" or "bc-xxx")
+	//     returned by Agent.create(). Used for Agent.resume() on
+	//     subsequent runs.
+	HarnessStateId string `protobuf:"bytes,5,opt,name=harness_state_id,json=harnessStateId,proto3" json:"harness_state_id,omitempty"`
+	// Prior harness state identifiers this session has owned, oldest first.
+	//
+	// A session can span multiple harness-side conversations: when the
+	// cursor-runner's resume fails, it creates a fresh Cursor agent and
+	// replaces harness_state_id, and the replaced id lands here.
+	HarnessStateIdHistory []string `protobuf:"bytes,6,rep,name=harness_state_id_history,json=harnessStateIdHistory,proto3" json:"harness_state_id_history,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *SessionStatus) Reset() {
@@ -117,17 +136,33 @@ func (x *SessionStatus) GetState() string {
 	return ""
 }
 
+func (x *SessionStatus) GetHarnessStateId() string {
+	if x != nil {
+		return x.HarnessStateId
+	}
+	return ""
+}
+
+func (x *SessionStatus) GetHarnessStateIdHistory() []string {
+	if x != nil {
+		return x.HarnessStateIdHistory
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_session_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xe4\x02\n" +
+	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xc7\x03\n" +
 	"\rSessionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12,\n" +
 	"\x12agent_version_hash\x18\x02 \x01(\tR\x10agentVersionHash\x12i\n" +
 	"\x0fvault_attachers\x18\x03 \x03(\v2@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x12\x14\n" +
-	"\x05state\x18\x04 \x01(\tR\x05state\x1aA\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x12(\n" +
+	"\x10harness_state_id\x18\x05 \x01(\tR\x0eharnessStateId\x127\n" +
+	"\x18harness_state_id_history\x18\x06 \x03(\tR\x15harnessStateIdHistory\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x9b\x02\n" +
