@@ -368,8 +368,10 @@ public final class IdentityProviderCommandControllerGrpc {
      * An update whose only change is turning sso_required off is never
      * refused this way: an organization may always stop requiring its SSO
      * provider.
-     * An update that changes sso_required also needs can_assign_roles on the
-     * organization, which only its owners hold (PERMISSION_DENIED otherwise).
+     * An update that changes sso_required, or that changes whom a provider
+     * with sso_required on trusts (allowed_issuers, jwks_uri,
+     * expected_audience), also needs can_assign_roles on the organization,
+     * which only its owners hold (PERMISSION_DENIED otherwise).
      * Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
      * organization's plan does not include SSO enforcement (see create);
      * an organization that already requires it keeps it, and may always
@@ -565,8 +567,10 @@ public final class IdentityProviderCommandControllerGrpc {
      * An update whose only change is turning sso_required off is never
      * refused this way: an organization may always stop requiring its SSO
      * provider.
-     * An update that changes sso_required also needs can_assign_roles on the
-     * organization, which only its owners hold (PERMISSION_DENIED otherwise).
+     * An update that changes sso_required, or that changes whom a provider
+     * with sso_required on trusts (allowed_issuers, jwks_uri,
+     * expected_audience), also needs can_assign_roles on the organization,
+     * which only its owners hold (PERMISSION_DENIED otherwise).
      * Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
      * organization's plan does not include SSO enforcement (see create);
      * an organization that already requires it keeps it, and may always
@@ -751,8 +755,10 @@ public final class IdentityProviderCommandControllerGrpc {
      * An update whose only change is turning sso_required off is never
      * refused this way: an organization may always stop requiring its SSO
      * provider.
-     * An update that changes sso_required also needs can_assign_roles on the
-     * organization, which only its owners hold (PERMISSION_DENIED otherwise).
+     * An update that changes sso_required, or that changes whom a provider
+     * with sso_required on trusts (allowed_issuers, jwks_uri,
+     * expected_audience), also needs can_assign_roles on the organization,
+     * which only its owners hold (PERMISSION_DENIED otherwise).
      * Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
      * organization's plan does not include SSO enforcement (see create);
      * an organization that already requires it keeps it, and may always
@@ -932,8 +938,10 @@ public final class IdentityProviderCommandControllerGrpc {
      * An update whose only change is turning sso_required off is never
      * refused this way: an organization may always stop requiring its SSO
      * provider.
-     * An update that changes sso_required also needs can_assign_roles on the
-     * organization, which only its owners hold (PERMISSION_DENIED otherwise).
+     * An update that changes sso_required, or that changes whom a provider
+     * with sso_required on trusts (allowed_issuers, jwks_uri,
+     * expected_audience), also needs can_assign_roles on the organization,
+     * which only its owners hold (PERMISSION_DENIED otherwise).
      * Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
      * organization's plan does not include SSO enforcement (see create);
      * an organization that already requires it keeps it, and may always
@@ -1115,8 +1123,10 @@ public final class IdentityProviderCommandControllerGrpc {
      * An update whose only change is turning sso_required off is never
      * refused this way: an organization may always stop requiring its SSO
      * provider.
-     * An update that changes sso_required also needs can_assign_roles on the
-     * organization, which only its owners hold (PERMISSION_DENIED otherwise).
+     * An update that changes sso_required, or that changes whom a provider
+     * with sso_required on trusts (allowed_issuers, jwks_uri,
+     * expected_audience), also needs can_assign_roles on the organization,
+     * which only its owners hold (PERMISSION_DENIED otherwise).
      * Turning it on is refused with PLAN_UPGRADE_REQUIRED where the
      * organization's plan does not include SSO enforcement (see create);
      * an organization that already requires it keeps it, and may always

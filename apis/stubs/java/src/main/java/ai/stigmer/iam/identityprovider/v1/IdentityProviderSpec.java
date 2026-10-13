@@ -805,8 +805,10 @@ private static final long serialVersionUID = 0L;
    * move their access to the account this provider made for them
    * (IdentityProviderCommandController.createAccessMove).
    *
-   * Only the organization's owners may turn it on or off, or delete the
-   * provider while it is on (can_assign_roles on the organization).
+   * Only the organization's owners may turn it on or off, and, while it is
+   * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+   * expected_audience) or delete the provider (can_assign_roles on the
+   * organization).
    * Deleting the provider ends the requirement. Valid only on the SSO
    * provider (is_sso_provider). A change takes effect at once on the
    * server that wrote it and within a minute on its other replicas.
@@ -2932,8 +2934,10 @@ private static final long serialVersionUID = 0L;
      * move their access to the account this provider made for them
      * (IdentityProviderCommandController.createAccessMove).
      *
-     * Only the organization's owners may turn it on or off, or delete the
-     * provider while it is on (can_assign_roles on the organization).
+     * Only the organization's owners may turn it on or off, and, while it is
+     * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+     * expected_audience) or delete the provider (can_assign_roles on the
+     * organization).
      * Deleting the provider ends the requirement. Valid only on the SSO
      * provider (is_sso_provider). A change takes effect at once on the
      * server that wrote it and within a minute on its other replicas.
@@ -2969,8 +2973,10 @@ private static final long serialVersionUID = 0L;
      * move their access to the account this provider made for them
      * (IdentityProviderCommandController.createAccessMove).
      *
-     * Only the organization's owners may turn it on or off, or delete the
-     * provider while it is on (can_assign_roles on the organization).
+     * Only the organization's owners may turn it on or off, and, while it is
+     * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+     * expected_audience) or delete the provider (can_assign_roles on the
+     * organization).
      * Deleting the provider ends the requirement. Valid only on the SSO
      * provider (is_sso_provider). A change takes effect at once on the
      * server that wrote it and within a minute on its other replicas.
@@ -3010,8 +3016,10 @@ private static final long serialVersionUID = 0L;
      * move their access to the account this provider made for them
      * (IdentityProviderCommandController.createAccessMove).
      *
-     * Only the organization's owners may turn it on or off, or delete the
-     * provider while it is on (can_assign_roles on the organization).
+     * Only the organization's owners may turn it on or off, and, while it is
+     * on, change whom the provider trusts (allowed_issuers, jwks_uri,
+     * expected_audience) or delete the provider (can_assign_roles on the
+     * organization).
      * Deleting the provider ends the requirement. Valid only on the SSO
      * provider (is_sso_provider). A change takes effect at once on the
      * server that wrote it and within a minute on its other replicas.
