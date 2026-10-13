@@ -67,12 +67,12 @@ with StigmerClient("sk_live_abc123") as client:
     # Get by reference (org + slug)
     agent = client.agents.get_by_reference(ResourceRef(org="my-org", slug="my-agent"))
 
-    # Update
-    updated = client.agents.update(AgentInput(
-        name="my-agent",
-        org="my-org",
-        description="Updated description",
-    ))
+    # Update: read, change, then name the fields you changed. Every other
+    # field keeps its stored value. The read's etag makes the save fail with
+    # "aborted" if someone changed the agent since.
+    current = client.agents.get("agent-id")
+    current.spec.description = "Updated description"
+    updated = client.agents.update(current, ["spec.description"])
 
     # Delete
     deleted = client.agents.delete("agent-id")

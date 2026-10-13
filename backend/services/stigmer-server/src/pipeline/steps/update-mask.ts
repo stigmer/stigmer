@@ -148,19 +148,35 @@ function fieldsAlong(schema: DescMessage, path: string): PathFields | undefined 
   return last === undefined ? undefined : { through, last };
 }
 
+/**
+ * Copies one path from `source` onto `target`. A set field creates the
+ * messages it goes through; a cleared one creates none, so clearing a field
+ * under a message the target lacks leaves the target as it was.
+ */
 function copyPath(source: ReflectMessage, target: ReflectMessage, { through, last }: PathFields): void {
-  let from = source;
+  const from = messageAlong(source, through);
+  if (from === undefined || !from.isSet(last)) {
+    messageAlong(target, through)?.clear(last);
+    return;
+  }
   let to = target;
   for (const field of through) {
     if (!to.isSet(field)) {
       to.set(field, reflect(field.message, create(field.message)));
     }
-    from = from.isSet(field) ? (from.get(field) as ReflectMessage) : reflect(field.message, create(field.message));
     to = to.get(field) as ReflectMessage;
   }
-  if (from.isSet(last)) {
-    to.set(last, from.get(last));
-  } else {
-    to.clear(last);
+  to.set(last, from.get(last));
+}
+
+/** The message `through` reaches from `message`; undefined when one along the way is unset. */
+function messageAlong(message: ReflectMessage, through: ReadonlyArray<MessageField>): ReflectMessage | undefined {
+  let at = message;
+  for (const field of through) {
+    if (!at.isSet(field)) {
+      return undefined;
+    }
+    at = at.get(field) as ReflectMessage;
   }
+  return at;
 }

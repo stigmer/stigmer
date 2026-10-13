@@ -46,6 +46,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { ApiResourceAuditSchema, ApiResourceAuditStatusSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import { AuditNotFoundError, ResourceNotFoundError } from "../interface.js";
 import type {
@@ -57,6 +58,7 @@ import type {
 import { declareListIndex, field, label } from "../list-index.js";
 import type { ListIndexRow } from "../list-index.js";
 import { makeOrganization } from "./support.js";
+import { etagOf } from "../etag.js";
 
 /** The kit's own declaration, so the arms do not depend on the server's list. */
 export const CONTRACT_SESSION_INDEX = declareListIndex({
@@ -591,6 +593,36 @@ export function describeStoreContract(
 
   // The guarded write an update chain persists by (pipeline/guarded-write.ts):
   // a read that keeps the stored bytes, and a swap on them.
+  describe("the etag every write stores (etag.ts)", () => {
+    it("save, updateResource and swapResource each store the etag the content gives; a status write leaves it as it was", async () => {
+      const org = makeOrganization({ id: "etag-org", description: "first" });
+      org.metadata!.etag = "sent-by-a-client";
+      await fx.store.saveResource(KIND, "etag-org", OrganizationSchema, org);
+      const saved = await fx.store.getResource(KIND, "etag-org", OrganizationSchema);
+      expect(saved.metadata?.etag, "a client-sent etag is never stored").not.toBe("sent-by-a-client");
+      expect(saved.metadata?.etag).toBe(etagOf(OrganizationSchema, saved));
+
+      const edited = await fx.store.updateResource(KIND, "etag-org", OrganizationSchema, (row) => {
+        row.spec!.description = "second";
+      });
+      expect(edited.metadata?.etag).toBe(etagOf(OrganizationSchema, edited));
+      expect(edited.metadata?.etag).not.toBe(saved.metadata?.etag);
+
+      const statusOnly = await fx.store.updateResource(KIND, "etag-org", OrganizationSchema, (row) => {
+        const status = (row.status ??= create(ApiResourceAuditStatusSchema));
+        status.audit = create(ApiResourceAuditSchema, { statusAudit: { event: "touched" } });
+      });
+      expect(statusOnly.metadata?.etag, "a status write leaves the etag as it was").toBe(edited.metadata?.etag);
+
+      const read = await fx.store.readResourceForWrite(KIND, "etag-org", OrganizationSchema);
+      read.resource.spec!.description = "third";
+      expect(await fx.store.swapResource(KIND, "etag-org", OrganizationSchema, read.bytes, read.resource)).toBe(true);
+      const swapped = await fx.store.getResource(KIND, "etag-org", OrganizationSchema);
+      expect(swapped.metadata?.etag).toBe(etagOf(OrganizationSchema, swapped));
+      expect(swapped.metadata?.etag).not.toBe(edited.metadata?.etag);
+    });
+  });
+
   describe("guarded write: readResourceForWrite + swapResource", () => {
     it("readResourceForWrite answers the row with its exact stored bytes, and NotFound for none", async () => {
       await fx.store.saveResource(

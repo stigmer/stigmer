@@ -106,12 +106,14 @@ const agent = await stigmer.agent.getByReference({
   slug: "my-agent",
 });
 
-// Update
-const updated = await stigmer.agent.update({
-  name: "my-agent",
-  org: "my-org",
-  description: "Updated description",
-});
+// Update: read, change, then name the fields you changed. Every other
+// field keeps its stored value. The read's etag makes the save fail with
+// "aborted" if someone changed the agent since.
+const current = await stigmer.agent.get("agent-id");
+const updated = await stigmer.agent.update(
+  { ...current, spec: { ...current.spec, description: "Updated description" } },
+  ["spec.description"],
+);
 
 // Delete
 const deleted = await stigmer.agent.delete("agent-id");

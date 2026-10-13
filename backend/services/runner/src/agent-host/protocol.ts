@@ -51,7 +51,7 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 5;
+export const AGENT_HOST_PROTOCOL_VERSION = 6;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -295,7 +295,7 @@ export interface RunnerCalls {
     readonly result: { readonly runtime: RuntimeFieldsWire; readonly offloads: readonly WireOffload[] };
   };
   readonly reportProgress: { readonly args: { readonly turnId: string; readonly label: string }; readonly result: null };
-  /** `TurnSink.bindHarnessState`, with the session spec as the adapter left it (base64 `SessionSpec`). */
+  /** `TurnSink.bindHarnessState`: the engine-minted id alone; the runtime records it through the session's door. */
   readonly bindHarnessState: {
     readonly args: { readonly turnId: string; readonly harnessStateId: string };
     readonly result: null;

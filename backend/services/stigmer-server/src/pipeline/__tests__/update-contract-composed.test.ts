@@ -9,6 +9,11 @@
  *     with the current etag it lands, and the answer carries the new one,
  *     which is the stored row's; without an etag, last write wins on what
  *     it names;
+ *   - an update that loses its write to an edit made after its read reads
+ *     again and compares its etag with that row, so it ends refused with
+ *     ETAG_MISMATCH, never merged onto the edit;
+ *   - a create, and an apply that creates, store the etag of what they
+ *     wrote, never one the client sent;
  *   - what the platform writes (a visibility change) leaves the etag as
  *     it was, so an editor's save never conflicts with it;
  *   - a read whose values are hidden (a vault's secrets) saves with its
@@ -52,6 +57,7 @@ import type { ComposedServer } from "../../boot/compose.js";
 import { seedOrganizations } from "../../domain/organization/__tests__/support.js";
 import { baseConfig, silentLogger } from "../../extensions/__tests__/composed-support.js";
 import { ETAG_MISMATCH_REASON } from "../guarded-write.js";
+import { writeLandsMidUpdate } from "./race-support.js";
 
 const ORG = "update-contract";
 const AGENTIC = "agentic.stigmer.ai/v1";
@@ -193,6 +199,48 @@ describe("the update contract, through a composed server", () => {
       spec: { ...read.spec!, description: "the file's words" },
     });
     expect(applied.spec?.description).toBe("the file's words");
+  });
+
+  it("re-checks the etag on the attempt after a lost write, so an edit landing mid-update refuses it", async () => {
+    const created = await agents().create(agentInput("etag-retry"));
+    const id = created.metadata!.id;
+    const read = await agentQuery().get({ value: id });
+
+    // The edit lands when the update first writes, after its read.
+    const error = await grpcError(() =>
+      writeLandsMidUpdate(
+        server.store,
+        ApiResourceKind.agent,
+        id,
+        () =>
+          server.store.updateResource(ApiResourceKind.agent, id, AgentSchema, (row) => {
+            row.spec!.description = "the teammate's words";
+          }),
+        () =>
+          agents().update({
+            resource: { metadata: { id, etag: read.metadata!.etag }, spec: { instructions: "review only the drafts, please" } },
+            updateMask: { paths: ["spec.instructions"] },
+          }),
+      ),
+    );
+    expect(error.code).toBe(Code.Aborted);
+    expect(error.findDetails(ErrorInfoSchema)[0]?.reason).toBe(ETAG_MISMATCH_REASON);
+    const stored = await server.store.getResource(ApiResourceKind.agent, id, AgentSchema);
+    expect([stored.spec?.description, stored.spec?.instructions]).toEqual([
+      "the teammate's words",
+      "help the people of this test",
+    ]);
+  });
+
+  it("stores the etag of what a create, or an apply that creates, wrote; never one the client sent", async () => {
+    const forged = "f".repeat(64);
+    const created = await agents().create({ ...agentInput("etag-create"), metadata: { ...agentInput("etag-create").metadata, etag: forged } });
+    const applied = await agents().apply({ ...agentInput("etag-apply"), metadata: { ...agentInput("etag-apply").metadata, etag: forged } });
+    for (const answer of [created, applied]) {
+      const stored = await server.store.getResource(ApiResourceKind.agent, answer.metadata!.id, AgentSchema);
+      expect(answer.metadata?.etag).not.toBe(forged);
+      expect(answer.metadata?.etag).toBe(stored.metadata?.etag);
+    }
   });
 
   it("leaves the etag as it was when the platform writes (a visibility change)", async () => {

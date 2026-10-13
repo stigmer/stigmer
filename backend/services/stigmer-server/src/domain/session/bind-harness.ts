@@ -6,10 +6,11 @@
  *
  * The id is runner-owned state, so it lives in the session's status and
  * has this one door: no person writes it, and an editor's etag never moves
- * when a turn binds it. The door is admitted exactly as appendEvents is
+ * when a turn binds it. The door admits a runner as appendEvents does
  * (events/append.ts mayAppend): a runner credential for this run, the run
- * not finished, and the session the run's own, never one the request
- * names. The write names its fields inside the store's atomic write on the
+ * not finished when the door reads it, and the session the run's own,
+ * never one the request names. Unlike appendEvents it does not check the
+ * run again under the write (stigmer#2244). The write names its fields inside the store's atomic write on the
  * live row, so it never undoes an edit and two binds never lose each
  * other's id.
  *

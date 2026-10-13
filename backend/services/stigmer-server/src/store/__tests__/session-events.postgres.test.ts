@@ -42,6 +42,7 @@ import { tempStore } from "../sqlite/__tests__/support.js";
 
 /** The kit's contract lines, pinned: a dropped or renamed case is a visible diff here. */
 const CONTRACT_CASE_NAMES = [
+  "the row a write appending events puts is stored with the etag its content gives",
   "append numbers a session's events from 1 in order and stamps each append with one fixed-width accepted time",
   "concurrent appends to one session leave no gap and no repeated number",
   "a resent event with the same bytes answers its stored record and is not appended again",
