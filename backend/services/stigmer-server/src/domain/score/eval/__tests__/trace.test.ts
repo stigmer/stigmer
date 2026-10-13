@@ -9,9 +9,10 @@
  * the plugin's mounted tree as `Skill` named `<plugin>:<name>`, the name
  * looked up by the skill's path in the plugin's list and, for a path the
  * list lacks, the path's last segment; the trace as Claude Code's JSON lines, the final message, created paths
- * from the ledger's last candidate per change set, contents inline, read
- * back from the artifact store, binary, deleted or unreadable, and a run
- * with no capture event read as "not recorded". A tool use after the
+ * from each change set on the run's file record, as its last capture left
+ * it, contents inline, read back from the artifact store, binary, deleted
+ * or unreadable, and a run whose record holds no change set read as "not
+ * recorded". A tool use after the
  * previous uses' results opens an assistant line of its own, and a call
  * that never returned reads as an empty result; an event type this
  * server does not know (a writer newer than it), a thinking and a harness
@@ -29,17 +30,13 @@ import {
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  FileChangeKind,
-  FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  CapturedFileChangeSchema,
-  FileReviewEventSchema,
-  FileReviewEventStreamSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { CapturedFileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { CapturedFileChange, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
+import { capturedSet } from "../../../run/__tests__/file-review-seed.js";
+import { upsertFileChanges } from "../../../run/filereview/record.js";
 
 import {
   PluginEvalCaseContextSchema,
@@ -72,19 +69,14 @@ function call(
   };
 }
 
-function candidate(changeSetId: string, changes: CapturedFileChange[]) {
-  return create(FileReviewEventSchema, {
-    changeSetId,
-    eventType: FileReviewEventType.CANDIDATE_CAPTURED,
-    payload: { case: "candidateCaptured", value: { changeSetId, changes } },
-  });
+/** A change set as its turn's capture records it, with `changes`. */
+function candidate(changeSetId: string, changes: CapturedFileChange[]): FileChangeSet {
+  return capturedSet(changeSetId, changes);
 }
 
-function baseline(changeSetId: string) {
-  return create(FileReviewEventSchema, {
-    changeSetId,
-    eventType: FileReviewEventType.BASELINE_CAPTURED,
-  });
+/** A change set the record holds with its baseline alone. */
+function baseline(changeSetId: string): FileChangeSet {
+  return capturedSet(changeSetId, [], false);
 }
 
 function runOf(
@@ -97,7 +89,9 @@ function runOf(
     metadata: { id: "run_try", org: "acme" },
     spec: { message: "rename getUser" },
     status: create(RunStatusSchema, {
-      fileReviewEventStream: create(FileReviewEventStreamSchema, { events }),
+      // Each write of the record is merged by change set id, as the
+      // status merge does: the last capture of a set stands.
+      fileChanges: events.reduce<FileChangeSet[]>((record, set) => upsertFileChanges(record, [set]), []),
     }),
   });
   return {

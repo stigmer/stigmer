@@ -23,25 +23,25 @@
  *     never compared, so three equal calls that each fail are a repeat
  *     whatever each error said, as they were when the result and the
  *     error were kept apart.
- * A tool use's state reads as the row status it stands for (../turn.ts).
+ * A tool use's state is the fold's (../turn.ts).
  *
  * Sub-agent threads are not traversed: whose fault a sub-agent's loop is
  * belongs to an evaluator that can read both.
  */
 import { createHash } from "node:crypto";
 
-import type { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ToolUseState } from "@stigmer/session-log";
 
 import { canonicalJson } from "../../../pipeline/steps/spec-hash.js";
 import type { RunTranscript } from "../../session/events/run-events.js";
-import { toolCallStatusOf, toolUsesOf, turnOfTranscript } from "../turn.js";
+import { toolUsesOf, turnOfTranscript } from "../turn.js";
 
 /** One top-level tool call, as the checks see it. */
 export interface RunAction {
   readonly name: string;
   readonly argsKey: string;
   readonly resultKey: string;
-  readonly status: ToolCallStatus;
+  readonly status: ToolUseState;
   /** 1-based position among the run's top-level tool calls. */
   readonly step: number;
 }
@@ -69,7 +69,7 @@ export function actionsOf(transcript: RunTranscript): RunActions {
         use.fullOutput !== undefined && use.fullOutput.contentHash !== ""
           ? `ref:${use.fullOutput.contentHash}`
           : `sha256:${sha256(errored ? "" : (use.result?.text ?? ""))}`,
-      status: toolCallStatusOf(use.state),
+      status: use.state,
       step: actions.length + 1,
     });
   }
