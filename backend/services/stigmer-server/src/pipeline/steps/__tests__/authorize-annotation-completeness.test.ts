@@ -173,6 +173,7 @@ describe("the IamPolicy contract names its targets (read by descriptor)", () => 
     "listResourceAccessByPrincipal",
     "getPrincipalResourceRoles",
     "getPrincipalsCount",
+    "listAccessHistory",
     "listAuthorizedPrincipalIds",
   ])("%s names a resource kind AND where its id comes from", (method) => {
     const target = byName.get(method);

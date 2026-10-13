@@ -1579,6 +1579,9 @@ export const fakeExtension: ServerExtension = {
     // edition removes, or refuses to leave behind, what it keeps for the
     // organization. It reads the loaded organization off the exported key.
     ["org-delete:pre-delete", [consumerGateStep()]],
+    // The tenth: the access history's read before anything is read — where
+    // a host refuses a read its own rules forbid (the Cloud, by plan).
+    ["iam-policy-list-access-history:pre-read", [consumerGateStep()]],
   ]),
   statusTransitionHooks: {
     observers: [statusObserver],

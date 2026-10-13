@@ -171,6 +171,7 @@ import {
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { accountForCaller } from "../identityaccount/resolve.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
+import { listAccessHistory } from "./access-history.js";
 import { buildPrincipalAccessList, resolveHierarchy } from "./access-lists.js";
 import {
   AUTHENTICATION_REQUIRED_MESSAGE,
@@ -242,9 +243,17 @@ export interface IamPolicyControllerDeps {
     Pick<ComposedCredentialBinding, "signInRefusalOn" | "narrowSignInIds">;
   /** The composed principal display — undefined = a non-person grantee renders in the id fallback shape. */
   readonly principalDisplay: PrincipalDisplay | undefined;
-  /** The merged gate steps; `create` splices `iam-policy-create:pre-side-effect-gate`. */
+  /**
+   * The merged gate steps; `create` splices
+   * `iam-policy-create:pre-side-effect-gate` and `listAccessHistory`
+   * `iam-policy-list-access-history:pre-read`.
+   */
   readonly gateSteps: ResolvedGateSteps;
-  /** The served edition — `checkMyPermission`'s first arm reads a kind's tier against it. */
+  /**
+   * The served edition — `checkMyPermission`'s first arm reads a kind's
+   * tier against it, and `listAccessHistory` is refused on open source,
+   * which keeps no history (access-history.ts).
+   */
   readonly edition: ServerEdition;
   /** What a move's departure deletes: the source account's My vault entries (move.ts). */
   readonly myVaultEntries: MyVaultEntries;
@@ -310,6 +319,8 @@ export function registerIamPolicyServices(
     getPrincipalResourceRoles: (input, ctx) =>
       getPrincipalResourceRoles(deps, input, ctx),
     getPrincipalsCount: (input, ctx) => getPrincipalsCount(deps, input, ctx),
+    listAccessHistory: (input, ctx) =>
+      listAccessHistory(deps, displayResolver, input, ctx),
   });
 }
 
