@@ -68,9 +68,9 @@ The client provides sub-clients for each resource type:
 | `client.Agent`          | Agent           | Get, GetByReference, Create, Update, Apply, Delete, List |
 | `client.Skill`          | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
 | `client.Plugin`         | Plugin          | Get, GetByReference, Push, ListTools, GetArtifact, ListVersions, UpdateVisibility, Delete, List |
-| `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent |
+| `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent, ListEvents, StreamEvents, ConfirmToolUse, GrantPermission, Interrupt, ReviewFileChanges |
 | `client.Vault`          | Vault           | Get, GetByReference, GetMine, GetByExternalId, Create, Update, UpdateVisibility, Delete, List, SetSecrets, RemoveSecrets, SetConnection, RemoveConnections, StartSignIn, CompleteSignIn, CreateConnectLink, GetConnectLink, StartConnectLink, CompleteConnectLink |
-| `client.Run`            | Run             | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
+| `client.Run`            | Run             | Get, Create, List, ListBySession, Pause, Resume, Terminate, Recover, UploadAttachment, GetArtifactDownloadUrl |
 | `client.Search`         | Cross-resource  | Query |
 | `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, CreateBillingPortalSession, CreatePaymentMethodSetupSession + operator pricing methods |
 
@@ -130,18 +130,27 @@ if stigmer.IsPermissionDenied(err) {
 
 ## Streaming
 
-Subscribe to real-time run updates:
+A session's output is one ordered log of Claude Managed Agents events. Follow it
+from the start (`AfterSeq` 0: every stored event, then each new one):
 
 ```go
-stream, err := client.Run.Subscribe(ctx, "run-id")
+stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
+    SessionId: "ses-id",
+    AfterSeq:  proto.Int64(0),
+})
 for {
-    run, err := stream.Recv()
-    if err == io.EOF {
+    frame, err := stream.Recv()
+    if err != nil {
         break
     }
-    fmt.Println(run.GetStatus().GetPhase())
+    if status := frame.GetEvent().GetStigmerRunStatus(); status != nil {
+        fmt.Println(frame.GetEvent().GetRunId(), status.GetPhase())
+    }
 }
 ```
+
+`sessionv1` is `github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`.
+Answer a tool use that waits for approval with `client.Session.ConfirmToolUse`.
 
 ## Types
 
@@ -153,6 +162,6 @@ for {
 
 See the `examples/` directory for complete usage patterns:
 - `basic_crud.go` — Create, get, list, delete agents
-- `streaming_run.go` — Create and stream a run
+- `streaming_run.go` — Create a run and follow its session's events
 - `error_handling.go` — Handle SDK errors
 - `search.go` — Cross-resource search

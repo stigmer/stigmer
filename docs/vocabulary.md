@@ -66,7 +66,7 @@ definitions, API names, and examples follow below.
 | **Session**           | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                    | Session           |
 | **Runner**            | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                      | runner            |
 | **Harness**           | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`              | harness           |
-| **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `submitApproval`         | HITL, approval    |
+| **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `confirmToolUse`         | HITL, approval    |
 | **Organization**      | Organization     | Organization                           | Organization           | Organization, `kind: organization`          | Organization      |
 | **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                          | Team              |
 | **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                        | vault             |
@@ -495,9 +495,11 @@ action before proceeding.
   commands, file writes and deletes, and MCP tools whose server marks them
   destructive (`destructiveHint`). An Agent's hooks (`hooks`) decide call by
   call: refuse, ask, or allow. Its `tools` and `disallowed_tools` lists decide
-  which tools it has at all. Submitted via
-  `RunCommandController.submitApproval`. Statuses: `TOOL_CALL_WAITING_APPROVAL`,
-  `TOOL_CALL_SKIPPED`. Actions: `APPROVE`, `SKIP`, `REJECT`.
+  which tools it has at all. A call that asks is an `agent.tool_use` with
+  `evaluated_permission` `ask`, announced by `stigmer.permission.asked`.
+  Answered on the Session: `SessionCommandController.confirmToolUse` (`allow` or
+  `deny`, recorded as `user.tool_confirmation`) or `grantPermission` (the call's
+  class for the rest of the run).
 
 **Good examples**:
 

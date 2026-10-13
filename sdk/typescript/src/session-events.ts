@@ -39,6 +39,13 @@ import { SessionLog, type ToolUse, type Turn, type TurnPhase } from "@stigmer/se
 import { StigmerError, wrapError } from "./gen/errors.js";
 import type { RunInput } from "./gen/run.js";
 
+/**
+ * The place before the first event: a follow from it replays the whole log.
+ * Written as a call, not a literal, because consumers compile this source
+ * for targets older than BigInt literals (the docs site's ES2017).
+ */
+const NO_PLACE = BigInt(0);
+
 /** The preview types a follow can ask for (`StreamSessionEventsRequest.event_deltas`). */
 export type SessionPreviewType = "agent.message" | "agent.thinking" | "stigmer.tool_output_delta";
 
@@ -102,7 +109,7 @@ export async function* followSession(
   const sleep = options.sleep ?? sleepFor;
   const base = options.backoffMs ?? 500;
   const max = options.maxBackoffMs ?? 5_000;
-  let afterSeq = options.afterSeq ?? 0n;
+  let afterSeq = options.afterSeq ?? NO_PLACE;
   let failures = 0;
   while (!isAborted(signal)) {
     const request = create(StreamSessionEventsRequestSchema, {
@@ -140,7 +147,7 @@ export async function newestSeq(client: SessionEventsClient, sessionId: string):
   const page = await client.session.listEvents(
     create(ListSessionEventsRequestSchema, { sessionId, order: "desc", pageSize: 1 }),
   );
-  return page.events[0]?.seq ?? 0n;
+  return page.events[0]?.seq ?? NO_PLACE;
 }
 
 /** How a waited-for turn stands when the wait returns. */
@@ -213,7 +220,7 @@ export async function sendAndWait(
 ): Promise<TurnOutcome> {
   const existing = input.sessionId ?? "";
   // A new session's log is empty; an existing one is read from its newest place.
-  const afterSeq = existing === "" ? 0n : await newestSeq(client, existing);
+  const afterSeq = existing === "" ? NO_PLACE : await newestSeq(client, existing);
   const run = await client.run.create({ ...input, name: input.name ?? `run-${Date.now()}` });
   const runId = run.metadata?.id ?? "";
   const sessionId = run.spec?.target.case === "sessionId" ? run.spec.target.value : existing;
@@ -237,7 +244,7 @@ async function waitIn(
   try {
     for await (const frame of followSession(client, sessionId, {
       signal: controller.signal,
-      afterSeq: options.afterSeq ?? 0n,
+      afterSeq: options.afterSeq ?? NO_PLACE,
       ...(options.sleep === undefined ? {} : { sleep: options.sleep }),
     })) {
       if (!log.applyFrame(frame)) {

@@ -196,8 +196,8 @@ two components:
    tutorials.
 2. `onSessionCreated` handed the new Session's ID to your state, and your
    component swapped in `SessionViewer`.
-3. `SessionViewer` subscribed to the run stream and rendered it live — messages,
-   tool calls, and approval gates, with a composer for follow-ups.
+3. `SessionViewer` followed the Session's events and rendered them live —
+   messages, tool calls, and approval gates, with a composer for follow-ups.
 
 Every piece is independently replaceable. Want your own UI? The same package
 exports the hooks these components are built on — start with

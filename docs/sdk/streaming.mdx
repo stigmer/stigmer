@@ -1,180 +1,232 @@
 ---
 title: Streaming
-description:
-  Consume real-time run updates as they arrive.
+description: Follow a Session's events as they arrive.
 ---
 
-The `subscribe` method opens a server stream that pushes run snapshots as the
-agent works. Each snapshot is the **complete** run state at that point in time —
-not a diff or a delta. The stream closes when the run reaches a terminal phase.
+A Session's output is one ordered log of events, in the Claude Managed Agents
+event format. The Agent's messages, its tool uses and their results, the calls
+waiting for an approval, and each run's phase are all events in that log.
+`streamEvents` follows it: with `after_seq` set, it first sends every stored
+event after that place, then each new one as it's appended, with none missing
+and none repeated.
+
+The stream follows the whole Session, not one run. Your code decides when to
+stop reading, usually when the run it follows has ended.
 
 If you are new to streaming, the
-[Quickstart](/docs/getting-started/quickstart) walks through a minimal subscribe
-loop. This guide covers the production patterns you need after that.
+[Quickstart](/docs/getting-started/quickstart) walks through a minimal loop.
+This guide covers the production patterns you need after that.
 
-## Subscribe to a run
+## Follow a run
 
-Call `subscribe` with the run ID after creating a run. Iterate the stream and
-check `status.phase` on each snapshot to decide what to do.
+Create a run, then stream its Session from the start (`after_seq` 0). Keep the
+events of your run, print what the Agent does, and stop when the run's
+`stigmer.run.status` event says it ended.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-for await (const snapshot of stigmer.run.subscribe(runId)) {
-  const phase = snapshot.status?.phase;
-  const messages = snapshot.status?.messages ?? [];
+import { followSession } from "@stigmer/sdk";
 
-  if (phase === "RUN_COMPLETED" || phase === "RUN_FAILED") {
-    const last = messages[messages.length - 1];
-    if (last?.content) {
-      console.log(last.content);
-    }
-    if (phase === "RUN_FAILED") {
-      console.error("Run failed:", snapshot.status?.error);
-    }
+const ended = ["completed", "failed", "cancelled", "terminated"];
+for await (const frame of followSession(stigmer, sessionId)) {
+  if (frame.frame.case !== "event") continue;
+  const { runId: eventRunId, threadId, event } = frame.frame.value;
+  if (eventRunId !== runId || threadId !== "") continue;
+
+  if (event.case === "agentMessage") {
+    console.log(event.value.content.map((block) => block.text).join(""));
+  } else if (event.case === "agentToolUse") {
+    console.log(`Tool: ${event.value.name}`);
+  } else if (event.case === "stigmerRunStatus" && ended.includes(event.value.phase)) {
+    if (event.value.phase === "failed") console.error("Run failed:", event.value.error);
     break;
   }
 }
 ```
+
+`followSession` wraps `streamEvents`: it streams from the start by default and
+reconnects from the last event it delivered when the stream drops.
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.Run.Subscribe(ctx, runID)
+stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
+    SessionId: sessionID,
+    AfterSeq:  proto.Int64(0),
+})
 if err != nil {
     log.Fatal(err)
 }
 
 for {
-    snapshot, err := stream.Recv()
-    if err == io.EOF {
-        break
-    }
+    frame, err := stream.Recv()
     if err != nil {
         log.Fatal(err)
     }
-
-    status := snapshot.GetStatus()
-    phase := status.GetPhase()
-
-    if phase == runv1.RunPhase_RUN_COMPLETED || phase == runv1.RunPhase_RUN_FAILED {
-        msgs := status.GetMessages()
-        if len(msgs) > 0 {
-            fmt.Println(msgs[len(msgs)-1].GetContent())
+    event := frame.GetEvent()
+    if event.GetRunId() != runID || event.GetThreadId() != "" {
+        continue
+    }
+    switch {
+    case event.GetAgentMessage() != nil:
+        for _, block := range event.GetAgentMessage().GetContent() {
+            fmt.Print(block.GetText())
         }
-        if phase == runv1.RunPhase_RUN_FAILED {
-            log.Fatalf("Run failed: %s", status.GetError())
+        fmt.Println()
+    case event.GetAgentToolUse() != nil:
+        fmt.Printf("Tool: %s\n", event.GetAgentToolUse().GetName())
+    case event.GetStigmerRunStatus() != nil:
+        if status := event.GetStigmerRunStatus(); turnEnded(status.GetPhase()) {
+            if status.GetPhase() == "failed" {
+                log.Fatalf("Run failed: %s", status.GetError())
+            }
+            return
         }
-        break
     }
 }
 ```
+
+`sessionv1` is
+`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1`, and
+`proto` is `google.golang.org/protobuf/proto`. `turnEnded` is defined in
+[Detect the end of a run](#detect-the-end-of-a-run).
 </Tab>
 <Tab value="Python">
 ```python
-for snapshot in client.runs.subscribe(run_id):
-    phase = snapshot.status.phase
-    messages = snapshot.status.messages
+from ai.stigmer.agentic.session.v1 import io_pb2
 
-    if phase in ("RUN_COMPLETED", "RUN_FAILED"):
-        if messages and messages[-1].content:
-            print(messages[-1].content)
-        if phase == "RUN_FAILED":
-            print(f"Run failed: {snapshot.status.error}")
+request = io_pb2.StreamSessionEventsRequest(session_id=session_id, after_seq=0)
+for frame in client.sessions.stream_events(request):
+    event = frame.event
+    if event.run_id != run_id or event.thread_id:
+        continue
+    kind = event.WhichOneof("event")
+
+    if kind == "agent_message":
+        print("".join(block.text for block in event.agent_message.content))
+    elif kind == "agent_tool_use":
+        print(f"Tool: {event.agent_tool_use.name}")
+    elif kind == "stigmer_run_status" and is_ended(event.stigmer_run_status.phase):
+        if event.stigmer_run_status.phase == "failed":
+            print(f"Run failed: {event.stigmer_run_status.error}")
         break
 ```
+
+`is_ended` is defined in [Detect the end of a run](#detect-the-end-of-a-run).
 </Tab>
 <Tab value="Java">
 ```java
-var stream = client.run.subscribe(runId);
+var stream = client.session.streamEvents(StreamSessionEventsRequest.newBuilder()
+    .setSessionId(sessionId)
+    .setAfterSeq(0)
+    .build());
 
 while (stream.hasNext()) {
-    var snapshot = stream.next();
-    var status = snapshot.getStatus();
-    var phase = status.getPhase();
-
-    if (phase == RunPhase.RUN_COMPLETED || phase == RunPhase.RUN_FAILED) {
-        var messages = status.getMessagesList();
-        if (!messages.isEmpty()) {
-            System.out.println(messages.get(messages.size() - 1).getContent());
+    var event = stream.next().getEvent();
+    if (!event.getRunId().equals(runId) || !event.getThreadId().isEmpty()) {
+        continue;
+    }
+    if (event.hasAgentMessage()) {
+        for (var block : event.getAgentMessage().getContentList()) {
+            System.out.print(block.getText());
         }
-        if (phase == RunPhase.RUN_FAILED) {
-            System.err.println("Run failed: " + status.getError());
+        System.out.println();
+    } else if (event.hasAgentToolUse()) {
+        System.out.println("Tool: " + event.getAgentToolUse().getName());
+    } else if (event.hasStigmerRunStatus() && isEnded(event.getStigmerRunStatus().getPhase())) {
+        if (event.getStigmerRunStatus().getPhase().equals("failed")) {
+            System.err.println("Run failed: " + event.getStigmerRunStatus().getError());
         }
         break;
     }
 }
 ```
+
+`StreamSessionEventsRequest` is in `ai.stigmer.agentic.session.v1`. `isEnded` is
+defined in [Detect the end of a run](#detect-the-end-of-a-run).
 </Tab>
 </SDKTabs>
 
-## Read the snapshot
+## Read the events
 
-Every snapshot is a full `Run` resource. The fields you inspect most
-often are on `status`:
+Each event carries its place in the log (`seq`), the run it belongs to
+(`run_id`), and its thread (`thread_id`). The thread is empty for the Agent's
+own events; a sub-agent's events carry the id of the `task` call that started
+it. The events you read most often:
 
-| Field | What it contains |
-|-------|------------------|
-| `phase` | Current lifecycle phase. See [Detect completion](#detect-completion). |
-| `messages` | Conversation history — human messages, AI responses, tool results, and system notices. Each message has a `type`, `content`, and optional `toolCalls`. |
-| `error` | Failure reason. Populated when phase is `RUN_FAILED` or `RUN_TERMINATED`. |
-| `pendingApprovals` | Tool calls waiting for human approval. See [Connect Tools](/docs/getting-started/connect-tools) for the full approval handling pattern. |
-| `todos` | Task list the agent maintains to track multi-step work. |
-| `subAgentRuns` | Child agent invocations with their own messages and status. |
-| `artifacts` | Files the agent published for download. |
-| `setupProgress` | Setup phase label, reported while phase is `RUN_PENDING`. |
+| Event | What it says |
+| --- | --- |
+| `user.message` | The message that started a run. |
+| `agent.message` | Text the Agent wrote. `content` is a list of blocks; join the `text` blocks. |
+| `agent.thinking` | The Agent thought. The `stigmer.agent.thinking` event that follows carries the text. |
+| `agent.tool_use`, `agent.mcp_tool_use` | A tool call: its `name`, `input`, and `evaluated_permission` (`ask` when it waits for an approval). Its `id` is the `tool_use_id` an answer names. |
+| `agent.tool_result`, `agent.mcp_tool_result` | A call's result, naming the call it answers. |
+| `stigmer.tool_result.full_output` | Where a large result is stored whole. The result event holds its head. |
+| `stigmer.permission.asked` | A call waits for a person's answer, with the message to show them. |
+| `session.status_idle` | The Session stopped working. A `stop_reason` of `requires_action` names the calls that wait. |
+| `stigmer.run.status` | A run's phase changed. See [Detect the end of a run](#detect-the-end-of-a-run). |
+| `session.error` | A run hit an error. |
 
 <Callout type="info">
-  For the complete field reference, see
-  [Run > RunStatus](/docs/sdk/resources/run#runstatus).
+  For every event type and field, see
+  [Session > SessionEvent](/docs/sdk/resources/session#sessionevent).
 </Callout>
 
-## Detect completion
+In TypeScript, the SDK folds events into the conversation for you.
+`SessionLog` (or `foldSession` for a list of events) turns them into runs, each
+with its items in order, the calls waiting for an answer (`asks`), its to-do
+list, its status, and its final `answer`:
 
-Run phases fall into two categories:
+```typescript
+import { SessionLog, followSession } from "@stigmer/sdk";
 
-**Terminal** — the run is finished and the stream will close:
+const log = new SessionLog();
+for await (const frame of followSession(stigmer, sessionId)) {
+  if (!log.applyFrame(frame)) continue;
+  const turn = log.snapshot().turns.find((t) => t.runId === runId);
+  if (turn?.ended) {
+    console.log(turn.answer);
+    break;
+  }
+}
+```
+
+## Detect the end of a run
+
+The newest `stigmer.run.status` event of a run gives its phase. These phases
+end it:
 
 | Phase | Meaning |
-|-------|---------|
-| `RUN_COMPLETED` | Agent finished successfully. |
-| `RUN_FAILED` | Agent encountered an error. |
-| `RUN_CANCELLED` | User stopped the run gracefully. |
-| `RUN_TERMINATED` | Platform stopped the run (timeout, budget, or force-kill). |
+| --- | --- |
+| `completed` | The Agent finished. |
+| `failed` | The run hit an error. `error` holds the reason. |
+| `cancelled` | Someone stopped the run. |
+| `terminated` | The platform stopped the run (timeout, budget, or force-kill). |
 
-**Non-terminal** — the run is still active or paused:
+These phases don't:
 
 | Phase | Meaning |
-|-------|---------|
-| `RUN_PENDING` | Queued, waiting for a worker. |
-| `RUN_IN_PROGRESS` | Agent is working. |
-| `RUN_WAITING_FOR_APPROVAL` | Blocked on a human approval decision. |
-| `RUN_PAUSED` | Paused by the user, can be resumed. |
-
-Check for any terminal phase to decide when to stop processing:
+| --- | --- |
+| `pending` | Queued, waiting for a runner. |
+| `running` | The Agent is working. |
+| `waiting` | A call waits for an approval. See [Answer a call that waits](#answer-a-call-that-waits). |
+| `paused` | Paused, and can be resumed. |
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const TERMINAL_PHASES = new Set([
-  "RUN_COMPLETED",
-  "RUN_FAILED",
-  "RUN_CANCELLED",
-  "RUN_TERMINATED",
-]);
+import { TURN_ENDED_PHASES, type TurnPhase } from "@stigmer/sdk";
 
-function isTerminal(phase: string | undefined): boolean {
-  return TERMINAL_PHASES.has(phase ?? "");
+function isEnded(phase: string): boolean {
+  return TURN_ENDED_PHASES.has(phase as TurnPhase);
 }
 ```
 </Tab>
 <Tab value="Go">
 ```go
-func isTerminal(phase runv1.RunPhase) bool {
+func turnEnded(phase string) bool {
     switch phase {
-    case runv1.RunPhase_RUN_COMPLETED,
-        runv1.RunPhase_RUN_FAILED,
-        runv1.RunPhase_RUN_CANCELLED,
-        runv1.RunPhase_RUN_TERMINATED:
+    case "completed", "failed", "cancelled", "terminated":
         return true
     }
     return false
@@ -183,133 +235,245 @@ func isTerminal(phase runv1.RunPhase) bool {
 </Tab>
 <Tab value="Python">
 ```python
-TERMINAL_PHASES = {
-    "RUN_COMPLETED",
-    "RUN_FAILED",
-    "RUN_CANCELLED",
-    "RUN_TERMINATED",
-}
+ENDED_PHASES = {"completed", "failed", "cancelled", "terminated"}
 
-def is_terminal(phase: str) -> bool:
-    return phase in TERMINAL_PHASES
+def is_ended(phase: str) -> bool:
+    return phase in ENDED_PHASES
 ```
 </Tab>
 <Tab value="Java">
 ```java
-static boolean isTerminal(RunPhase phase) {
-    return phase == RunPhase.RUN_COMPLETED
-        || phase == RunPhase.RUN_FAILED
-        || phase == RunPhase.RUN_CANCELLED
-        || phase == RunPhase.RUN_TERMINATED;
+static boolean isEnded(String phase) {
+    return Set.of("completed", "failed", "cancelled", "terminated").contains(phase);
 }
 ```
 </Tab>
 </SDKTabs>
 
-## Handle stream errors
+## Answer a call that waits
 
-Transport errors (network failures, server unavailability) surface as SDK
-exceptions during iteration. Wrap the subscribe loop to catch them separately
-from run-level failures reported in `status.error`.
+A call that needs a person's answer is a tool use with `evaluated_permission`
+`ask`. The log records a `stigmer.permission.asked` event for it, the run's
+phase becomes `waiting`, and the Session goes idle with `requires_action`. Answer
+each waiting call on the Session with `confirmToolUse`, naming it by its
+`tool_use_id`. `allow` runs the call; `deny` refuses it, and the Agent reads
+your `deny_message` and adapts. The run resumes once every waiting call is
+answered.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-import { StigmerError, isRetryable } from "@stigmer/sdk";
+import { create } from "@bufbuild/protobuf";
+import { ConfirmToolUseInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
-try {
-  for await (const snapshot of stigmer.run.subscribe(runId)) {
-    // process snapshot
-  }
-} catch (err) {
-  if (isRetryable(err)) {
-    // transient failure — wait and re-subscribe
-  }
-  throw err;
-}
+await stigmer.session.confirmToolUse(
+  create(ConfirmToolUseInputSchema, {
+    sessionId,
+    toolUseId,
+    result: "deny",
+    denyMessage: "Use the staging database instead.",
+  }),
+);
 ```
+
+`waitForTurn` follows a Session until a run ends or waits. When its `phase` is
+`waiting`, answer each of its `asks`, then call it again with its `lastSeq`.
+`sendAndWait` starts the run and waits in one call.
 </Tab>
 <Tab value="Go">
 ```go
-stream, err := client.Run.Subscribe(ctx, runID)
+_, err := client.Session.ConfirmToolUse(ctx, &sessionv1.ConfirmToolUseInput{
+    SessionId:   sessionID,
+    ToolUseId:   toolUseID,
+    Result:      "deny",
+    DenyMessage: "Use the staging database instead.",
+})
 if err != nil {
     log.Fatal(err)
-}
-
-for {
-    snapshot, err := stream.Recv()
-    if err == io.EOF {
-        break // stream closed normally
-    }
-    if err != nil {
-        if stigmer.IsRetryable(err) {
-            // transient failure — wait and re-subscribe
-            break
-        }
-        log.Fatal(err)
-    }
-    // process snapshot
 }
 ```
 </Tab>
 <Tab value="Python">
 ```python
-from stigmer import StigmerError, is_retryable
-
-try:
-    for snapshot in client.runs.subscribe(run_id):
-        # process snapshot
-        pass
-except StigmerError as err:
-    if is_retryable(err):
-        pass  # transient failure — wait and re-subscribe
-    raise
+client.sessions.confirm_tool_use(io_pb2.ConfirmToolUseInput(
+    session_id=session_id,
+    tool_use_id=tool_use_id,
+    result="deny",
+    deny_message="Use the staging database instead.",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
+client.session.confirmToolUse(ConfirmToolUseInput.newBuilder()
+    .setSessionId(sessionId)
+    .setToolUseId(toolUseId)
+    .setResult("deny")
+    .setDenyMessage("Use the staging database instead.")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+To allow a call and every call of its kind for the rest of the run (its built-in
+category, its MCP server, or the hook that asked), call `grantPermission` with
+the same `session_id` and `tool_use_id`.
+
+## Resume a dropped stream
+
+Transport errors (network failures, server unavailability) surface as SDK
+errors while you read. Remember the `seq` of the last event you handled, and
+reopen the stream with `after_seq` set to it: the stream sends what you missed,
+then continues. A stream that falls too far behind the log is ended with
+`RESOURCE_EXHAUSTED`; resume it the same way. Wait a moment between attempts.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+`followSession` resumes for you, waiting longer after each failure in a row.
+It throws only when a retry can't help, such as a Session you can't read:
+
+```typescript
+import { followSession, isNotFound } from "@stigmer/sdk";
+
 try {
-    var stream = client.run.subscribe(runId);
-    while (stream.hasNext()) {
-        var snapshot = stream.next();
-        // process snapshot
+  for await (const frame of followSession(stigmer, sessionId)) {
+    // process frame
+  }
+} catch (err) {
+  if (isNotFound(err)) {
+    console.error("The Session does not exist");
+  }
+  throw err;
+}
+```
+
+</Tab>
+<Tab value="Go">
+```go
+var lastSeq int64
+for {
+    stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
+        SessionId: sessionID,
+        AfterSeq:  proto.Int64(lastSeq),
+    })
+    if err != nil {
+        log.Fatal(err)
     }
-} catch (StigmerException e) {
-    if (e.isRetryable()) {
-        // transient failure — wait and re-subscribe
+    for {
+        frame, err := stream.Recv()
+        var sErr *stigmer.Error
+        if err == io.EOF || (errors.As(err, &sErr) &&
+            (sErr.Code == stigmer.CodeUnavailable || sErr.Code == stigmer.CodeResourceExhausted)) {
+            break // reopen after lastSeq
+        }
+        if err != nil {
+            log.Fatal(err)
+        }
+        if event := frame.GetEvent(); event != nil {
+            lastSeq = event.GetSeq()
+            // process event
+        }
     }
-    throw e;
+    time.Sleep(time.Second)
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+import time
+
+from stigmer import ErrorCode, StigmerError, is_retryable
+
+last_seq = 0
+while True:
+    request = io_pb2.StreamSessionEventsRequest(session_id=session_id, after_seq=last_seq)
+    try:
+        for frame in client.sessions.stream_events(request):
+            if frame.WhichOneof("frame") == "event":
+                last_seq = frame.event.seq
+                # process frame.event
+    except StigmerError as err:
+        if not (is_retryable(err) or err.code == ErrorCode.RESOURCE_EXHAUSTED):
+            raise
+    time.sleep(1)
+```
+</Tab>
+<Tab value="Java">
+```java
+long lastSeq = 0;
+while (true) {
+    var request = StreamSessionEventsRequest.newBuilder()
+        .setSessionId(sessionId)
+        .setAfterSeq(lastSeq)
+        .build();
+    try {
+        var stream = client.session.streamEvents(request);
+        while (stream.hasNext()) {
+            var frame = stream.next();
+            if (frame.hasEvent()) {
+                lastSeq = frame.getEvent().getSeq();
+                // process frame.getEvent()
+            }
+        }
+    } catch (StigmerException e) {
+        if (!e.isRetryable() && e.getCode() != ErrorCode.RESOURCE_EXHAUSTED) {
+            throw e;
+        }
+    }
+    Thread.sleep(1000);
 }
 ```
 </Tab>
 </SDKTabs>
 
-Run failures are not transport errors. When an agent fails, the stream
-delivers a snapshot with `phase` set to `RUN_FAILED` and `error`
-containing the failure reason. The stream then closes normally.
+A failed run is not a transport error. The log records it as a
+`stigmer.run.status` event with phase `failed` and the reason in `error`, and
+the stream continues.
 
 For more on error classification, see
 [SDK Overview > Error handling](/docs/sdk/overview#error-handling).
 
-## Cancel a stream
+## Show text as it's written
 
-To stop consuming updates before the run finishes, cancel the stream from
-the client side.
+Stored events arrive once they're complete. To show a message while the Agent
+writes it, ask for previews with `event_deltas` (`agent.message`,
+`agent.thinking`, or `stigmer.tool_output_delta` for a running tool's output).
+The stream then also sends `event_start` and `event_delta` frames. The stored
+event that follows carries the same `id` and replaces the preview.
+
+In TypeScript, pass `previews` to `followSession`, and let `SessionLog` place
+each preview:
+
+```typescript
+import { ALL_SESSION_PREVIEWS, SessionLog, followSession } from "@stigmer/sdk";
+
+const log = new SessionLog();
+for await (const frame of followSession(stigmer, sessionId, {
+  previews: ALL_SESSION_PREVIEWS,
+})) {
+  if (log.applyFrame(frame)) render(log.snapshot());
+}
+```
+
+## Stop following
+
+To stop reading before the run finishes, end the stream from the client side.
 
 <SDKTabs>
 <Tab value="TypeScript">
 
-Pass an `AbortSignal` to `subscribe`. Abort the controller to close the stream:
+Pass an `AbortSignal` to `followSession`. Abort the controller to end the
+stream:
 
 ```typescript
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 30_000);
 
-for await (const snapshot of stigmer.run.subscribe(
-  runId,
-  controller.signal,
-)) {
-  // process snapshot
+for await (const frame of followSession(stigmer, sessionId, {
+  signal: controller.signal,
+})) {
+  // process frame
 }
 ```
 
@@ -322,17 +486,16 @@ Cancel the `context.Context` to close the stream:
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
-stream, err := client.Run.Subscribe(ctx, runID)
+stream, err := client.Session.StreamEvents(ctx, request)
 if err != nil {
     log.Fatal(err)
 }
-
 for {
-    snapshot, err := stream.Recv()
+    frame, err := stream.Recv()
     if err != nil {
         break
     }
-    // process snapshot
+    // process frame
 }
 ```
 
@@ -343,7 +506,7 @@ Break out of the iterator to stop reading. The underlying gRPC channel cleans
 up when the iterator is garbage collected:
 
 ```python
-for snapshot in client.runs.subscribe(run_id):
+for frame in client.sessions.stream_events(request):
     if should_stop():
         break
 ```
@@ -355,9 +518,9 @@ Break out of the iteration loop. The underlying gRPC stream cleans up when the
 `StigmerStream` is garbage collected:
 
 ```java
-var stream = client.run.subscribe(runId);
+var stream = client.session.streamEvents(request);
 while (stream.hasNext()) {
-    var snapshot = stream.next();
+    var frame = stream.next();
     if (shouldStop()) {
         break;
     }
@@ -368,23 +531,23 @@ while (stream.hasNext()) {
 </SDKTabs>
 
 <Callout type="warn">
-  Cancelling a stream stops your client from receiving updates. It does not
-  cancel the run itself. To cancel the run, call
-  [`cancel`](/docs/sdk/resources/run#cancel) or
-  [`terminate`](/docs/sdk/resources/run#terminate).
+  Ending a stream stops your client from receiving events. It does not stop the
+  run. To stop it, call the Session's
+  [`interrupt`](/docs/sdk/resources/session#interrupt), which stops every
+  unfinished run of the Session.
 </Callout>
 
 ## What's next
 
 <Cards>
   <Card
-    title="Run"
-    description="Full method and type reference for runs."
-    href="/docs/sdk/resources/run"
+    title="Session"
+    description="Full method and type reference for Sessions and their events."
+    href="/docs/sdk/resources/session"
   />
   <Card
     title="Connect Tools"
-    description="Handle tool approvals inside a subscribe loop."
+    description="Answer tool approvals while you follow a run."
     href="/docs/getting-started/connect-tools"
   />
 </Cards>
