@@ -72,6 +72,7 @@ import {
   awaitFileReview,
   awaitReconciled,
   fileReviewersOf,
+  isCapturedSet,
   readFileReviewLog,
   recordedSet,
   requireChangeByPath,
@@ -889,7 +890,7 @@ describe("Run file review — the next message closes the review", () => {
     const ended = await awaitTerminal(clients, first);
     expect(ended.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     expect((await awaitTerminal(clients, second)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const set = (await getRun(first)).status?.fileChanges[0];
+    const set = (await getRun(first)).status?.fileChanges.find(isCapturedSet);
     expect(set, `execution ${first} captured its edit`).toBeDefined();
     const review = await reviewSetNow(clients, session.sessionId, set!.id);
     expect(review.undecided, "the set is settled the moment it lands").toBe(false);

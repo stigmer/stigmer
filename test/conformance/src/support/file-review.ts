@@ -188,9 +188,17 @@ function renderProgress(progress: FileChangeProgress): string {
   return `files=${progress.filesChanged} [${rows.join(", ")}]`;
 }
 
-// The first change set of the run's file record that captured files, if any.
+// Whether a change set of the run's file record has been captured. The runner
+// records each set twice: mid-turn, right after its baseline is pinned, with
+// no candidate and no files (still being captured, as the server reads it),
+// and again at the turn's boundary with its candidate and captured files.
+export function isCapturedSet(set: FileChangeSet): boolean {
+  return set.candidateSnapshot !== undefined;
+}
+
+// The first change set of the run's file record that was captured with files, if any.
 function capturedSet(exec: Run): FileChangeSet | undefined {
-  return exec.status?.fileChanges.find((set) => set.changes.length > 0);
+  return exec.status?.fileChanges.find((set) => isCapturedSet(set) && set.changes.length > 0);
 }
 
 // The change set the turn captured, which every decide-and-continue arm
@@ -202,17 +210,22 @@ export function requireReviewSet(exec: Run): FileChangeSet {
   if (set === undefined) {
     throw new Error(
       `execution ${exec.metadata?.id ?? "?"} captured no change set ` +
-        `(file record: ${JSON.stringify(exec.status?.fileChanges.map((s) => [s.id, s.changes.length]) ?? [])})`,
+        `(file record: ${JSON.stringify(exec.status?.fileChanges.map((s) => [s.id, isCapturedSet(s), s.changes.length]) ?? [])})`,
     );
   }
   return set;
 }
 
-// The change set `id` of the run's file record, as the run reads now.
+// The captured change set `id` of the run's file record, as the run reads
+// now. Throws when the record holds no such set, or holds it only pinned
+// (its baseline recorded, its candidate not yet captured).
 export function recordedSet(exec: Run, id: string): FileChangeSet {
   const set = exec.status?.fileChanges.find((candidate) => candidate.id === id);
   if (set === undefined) {
     throw new Error(`execution ${exec.metadata?.id ?? "?"} has no change set ${id} on its file record`);
+  }
+  if (!isCapturedSet(set)) {
+    throw new Error(`execution ${exec.metadata?.id ?? "?"}: change set ${id} is still being captured (no candidate snapshot)`);
   }
   return set;
 }

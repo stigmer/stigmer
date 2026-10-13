@@ -8,8 +8,10 @@
 // latest-snapshot-wins DISPLAY field (paths, kinds, line counts — no bytes, no
 // digests, never decidable), attached to the runner's streaming persists while
 // the turn works and its change set is not yet captured, and cleared once the
-// turn boundary records the set on the run's file record (status.file_changes;
-// filereview.proto FileChangeProgress). The recorded set stays the one
+// turn boundary captures the set on the run's file record (status.file_changes;
+// filereview.proto FileChangeProgress). The record names the set mid-turn too,
+// right after its baseline is pinned, but with no candidate snapshot: it is
+// captured, with its files, only at the boundary (`isCapturedSet`). The recorded set stays the one
 // reviewable diff.
 //
 // THE CONTRACT THIS FILE PINS, and the one it deliberately does not. Before

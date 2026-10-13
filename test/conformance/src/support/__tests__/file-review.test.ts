@@ -6,7 +6,9 @@
 //   at the helper, naming the paths it does hold, before anything is
 //   submitted;
 // - the review wait answers the ended turn whose file record holds a captured
-//   set, and is red, naming the record, when the turn ended with none;
+//   set (one with a candidate snapshot), and is red, naming the record, when
+//   the turn ended with none; a set the record only pinned mid-turn is not
+//   captured, and the recorded-set read refuses it;
 // - the log readers split the three file-review event types out of a log in
 //   order, name who decided each decision, fold a set's file states from the
 //   log, and the reconcile wait returns a change set's reconciled event only
@@ -16,7 +18,7 @@
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase, SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { type SessionEvent, SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { ReviewFileChangesResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -28,6 +30,7 @@ import {
   fileReviewersOf,
   fileReviewLogOf,
   readFileReviewLog,
+  recordedSet,
   reviewChangeSet,
   reviewFileByPath,
   reviewSetNow,
@@ -143,7 +146,13 @@ describe("awaitFileReview", () => {
       metadata: { id: "aex_unit" },
       status: {
         phase: RunPhase.RUN_COMPLETED,
-        fileChanges: [{ id: "aex_unit:1", changes: [{ id: "fc_1", pathAfter: "a.txt" }] }],
+        fileChanges: [
+          {
+            id: "aex_unit:1",
+            candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF },
+            changes: [{ id: "fc_1", pathAfter: "a.txt" }],
+          },
+        ],
       },
     });
     const q = queryClient([working, ended]);
@@ -154,11 +163,42 @@ describe("awaitFileReview", () => {
   it("is red naming the file record when the turn ended with nothing captured", async () => {
     const ended = create(RunSchema, {
       metadata: { id: "aex_unit" },
-      status: { phase: RunPhase.RUN_COMPLETED, fileChanges: [{ id: "aex_unit:1" }] },
+      status: {
+        phase: RunPhase.RUN_COMPLETED,
+        fileChanges: [{ id: "aex_unit:1", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF } }],
+      },
     });
     await expect(awaitFileReview(queryClient([ended]).clients, "aex_unit", { pollMs: 1 })).rejects.toThrow(
-      'execution aex_unit captured no change set (file record: [["aex_unit:1",0]])',
+      'execution aex_unit captured no change set (file record: [["aex_unit:1",true,0]])',
     );
+  });
+
+  it("does not read a set the record only pinned (no candidate yet) as captured", async () => {
+    const ended = create(RunSchema, {
+      metadata: { id: "aex_unit" },
+      status: {
+        phase: RunPhase.RUN_COMPLETED,
+        fileChanges: [{ id: "aex_unit:1", changes: [{ id: "fc_1", pathAfter: "a.txt" }] }],
+      },
+    });
+    await expect(awaitFileReview(queryClient([ended]).clients, "aex_unit", { pollMs: 1 })).rejects.toThrow(
+      'execution aex_unit captured no change set (file record: [["aex_unit:1",false,1]])',
+    );
+  });
+});
+
+describe("recordedSet", () => {
+  const pinned = { id: "aex_unit:1" };
+  const captured = { id: "aex_unit:2", candidateSnapshot: { kind: SnapshotKind.GIT_TREE_REF } };
+  const run = create(RunSchema, { metadata: { id: "aex_unit" }, status: { fileChanges: [pinned, captured] } });
+
+  it("answers a captured set by its id", () => {
+    expect(recordedSet(run, "aex_unit:2").id).toBe("aex_unit:2");
+  });
+
+  it("refuses a set still being captured, and an unknown id", () => {
+    expect(() => recordedSet(run, "aex_unit:1")).toThrow("change set aex_unit:1 is still being captured");
+    expect(() => recordedSet(run, "aex_unit:9")).toThrow("has no change set aex_unit:9");
   });
 });
 
