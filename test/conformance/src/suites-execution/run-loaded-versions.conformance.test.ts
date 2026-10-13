@@ -19,7 +19,7 @@
 // The gate is the approval suite's: a plugin whose one server is the HTTP MCP
 // fixture's destructive echo, scripted on the mock LLM (a tool_use turn, then
 // a terminating text turn).
-import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -36,8 +36,9 @@ import {
   pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
-  submitApprovalPerContract,
+  sessionIdOf,
 } from "../support/runs";
+import { awaitRequiresAction, confirmPerContract } from "../support/answers";
 import { uniqueName } from "../support/naming";
 import { makeSkillArtifact } from "../support/skills";
 import { createTarget, type TargetProfile } from "../targets";
@@ -116,15 +117,15 @@ describe("Run — what a run loaded", () => {
     const v2 = second.status!.versionHash;
     expect(v2, "the changed push is a new version").not.toBe(v1);
 
-    await submitApprovalPerContract({
+    const sessionId = sessionIdOf(gated);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    await confirmPerContract({
+      clients,
+      sessionId,
+      runId: executionId,
       expectedRemaining: 0,
-      label: "approve clears the pending gate",
-      submit: () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
-          action: ApprovalAction.APPROVE,
-        }),
+      label: "the allow clears the gate",
+      answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: toolUseId!, result: "allow" }),
     });
     const final = await awaitTerminal(clients, executionId);
     expect(final.status?.phase, `the approved run completes; reached ${RunPhase[final.status?.phase ?? 0]}`).toBe(RunPhase.RUN_COMPLETED);

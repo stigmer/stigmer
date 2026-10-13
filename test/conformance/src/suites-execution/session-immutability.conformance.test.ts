@@ -84,7 +84,7 @@ async function provisionAgentRef(org: string): Promise<AgentRefInit> {
 /**
  * Sets the sentinel as the runner does (the module header): a held turn on
  * the session, the run's credential, bindHarnessState, then the turn
- * cancelled. Answers the session as read back, its sentinel set.
+ * interrupted. Answers the session as read back, its sentinel set.
  */
 async function seedSentinel(org: string, sessionId: string): Promise<void> {
   mock.enqueue(anthropicText("Held while the runner binds."), { delayMs: HOLD_MS });
@@ -97,7 +97,7 @@ async function seedSentinel(org: string, sessionId: string): Promise<void> {
   const minted = await clients.platformQuery.getRunnerScopedToken({ scope: { case: "runId", value: runId } });
   const runner = target.clientsPresenting(minted.runnerScopedToken);
   await runner.sessionCommand.bindHarnessState({ runId, harnessStateId: SEED_STATE });
-  await clients.agentExecutionCommand.cancel({ id: runId });
+  await clients.sessionCommand.interrupt({ sessionId });
   await awaitTerminal(clients, runId);
   mock.releaseHolds();
   const seeded = await clients.sessionQuery.get({ value: sessionId });

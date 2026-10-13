@@ -1,7 +1,8 @@
 // Conformance suite for the semantic memory retriever's deployment posture
 // (stigmer/stigmer#293 Phase 3).
 // Domain: agentic / agentexecution — the runner-side selection of recalled
-// memories, observed through the RecalledMemoriesReport on execution status.
+// memories, observed through the turn's stigmer.memory.recalled event in the
+// session's log.
 //
 // The conformance environment runs with NO embeddings-capable provider (the
 // mock proxy speaks only Anthropic and fences every other provider path with
@@ -30,6 +31,7 @@ import {
 } from "../support/runs";
 import { provisionOrgWithConfirmedFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
+import { turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 
 // Lockstep pin for the runner's activation threshold (RETRIEVAL_K in
@@ -94,7 +96,7 @@ describe("Run memory retrieval (no-embedder posture)", () => {
     expect(snapshot?.enabled).toBe(true);
     expect(snapshot?.facts).toHaveLength(1);
 
-    const report = settled.status?.recalledMemoriesReport;
+    const report = (await turnOfRun(clients, settled)).memory;
     expect(report).toBeDefined();
     expect(report?.selectionActive).toBe(false);
     expect(report?.injectedMemoryIds ?? []).toHaveLength(0);
@@ -122,7 +124,7 @@ describe("Run memory retrieval (no-embedder posture)", () => {
     const embedAttempts = mock.requests().filter((r) => r.path.includes("/embeddings"));
     expect(embedAttempts).toHaveLength(1);
 
-    const report = settled.status?.recalledMemoriesReport;
+    const report = (await turnOfRun(clients, settled)).memory;
     expect(report).toBeDefined();
     expect(report?.selectionActive).toBe(false);
     expect(report?.injectedMemoryIds ?? []).toHaveLength(0);
@@ -131,8 +133,8 @@ describe("Run memory retrieval (no-embedder posture)", () => {
 
   it.skipIf(!capabilities.firstPartyMemoryCapture)("writes no report when recall is disabled — absent report = wholesale by construction", async () => {
     // Memory switched OFF: the compose step stamps a disabled snapshot,
-    // the runner injects nothing, and the report field must stay ABSENT so
-    // pre-3a executions and no-injection executions read identically.
+    // the runner injects nothing, and the turn's recall event must stay ABSENT
+    // so older executions and no-injection executions read identically.
     const org = await clients.organizationCommand.create({
       apiVersion: "tenancy.stigmer.ai/v1",
       kind: "Organization",
@@ -145,6 +147,6 @@ describe("Run memory retrieval (no-embedder posture)", () => {
     const settled = await runExecution(org.metadata!.slug);
 
     expect(settled.status?.recalledMemories?.enabled ?? false).toBe(false);
-    expect(settled.status?.recalledMemoriesReport).toBeUndefined();
+    expect((await turnOfRun(clients, settled)).memory, "no stigmer.memory.recalled in the log").toBeUndefined();
   });
 });

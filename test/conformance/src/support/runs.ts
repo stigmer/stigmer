@@ -154,6 +154,15 @@ export function isTerminalPhase(phase: RunPhase | undefined): boolean {
   return phase !== undefined && TERMINAL_PHASES.has(phase);
 }
 
+// Stops a turn that may still be working the way a person does: the session's
+// interrupt, which stops every unfinished turn of the run's session (each
+// ends CANCELLED with stop cause user). A run already finished is left as it
+// is.
+export async function interruptRunSession(clients: ConformanceClients, runId: string): Promise<void> {
+  const run = await clients.agentExecutionQuery.get({ value: runId });
+  await clients.sessionCommand.interrupt({ sessionId: sessionIdOf(run) });
+}
+
 export interface PollOptions extends PollCoreOptions {
   // Used in the timeout error for diagnosis.
   label?: string;

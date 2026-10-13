@@ -32,6 +32,7 @@ import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { uniqueName } from "../support/naming";
+import { turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -135,8 +136,8 @@ describe("Run provider-error attribution (proxy mode)", () => {
     expect(error.indexOf("Plans & Billing"), "Anthropic's prose appears only quoted").toBeGreaterThan(quoted);
     expect(error, "never worded as the platform").not.toContain("Stigmer platform");
     expect(error, "the LangChain wrapper class never labels the user-visible error").not.toContain("MiddlewareError");
-    for (const message of final.status?.messages ?? []) {
-      expect(message.content, "the wrapper tag must not leak into the transcript").not.toContain("MiddlewareError");
+    for (const text of await transcriptTextsOf(final)) {
+      expect(text, "the wrapper tag must not leak into the transcript").not.toContain("MiddlewareError");
     }
   }, FAILURE_ARM_TIMEOUT_MS);
 
@@ -145,7 +146,7 @@ describe("Run provider-error attribution (proxy mode)", () => {
 
     const final = await runToFailure();
 
-    expectClassifiedByStatus(final);
+    await expectClassifiedByStatus(final);
   }, FAILURE_ARM_TIMEOUT_MS);
 
   it("a 401 on the organization's own key is attributed to that key", async () => {
@@ -153,7 +154,7 @@ describe("Run provider-error attribution (proxy mode)", () => {
 
     const final = await runToFailure();
 
-    expectClassifiedByStatus(final);
+    await expectClassifiedByStatus(final);
     const error = final.status?.error ?? "";
     expect(error, `the failure is the organization's key (status.error was: ${error})`).toContain(
       "rejected your organization's own key",
@@ -165,12 +166,22 @@ describe("Run provider-error attribution (proxy mode)", () => {
 // A failure the runner can only classify by its HTTP status: the stable code
 // present, and neither the wrapper class nor LangChain's troubleshooting link
 // on status.error or in the transcript.
-function expectClassifiedByStatus(final: Run): void {
+async function expectClassifiedByStatus(final: Run): Promise<void> {
   const error = final.status?.error ?? "";
   expect(error, `the status-classified code (status.error was: ${error})`).toContain(AUTHENTICATION_CODE);
   expect(error, "the LangChain wrapper class never labels the user-visible error").not.toContain("MiddlewareError");
   expect(error, "LangChain's troubleshooting link never reaches the customer").not.toContain("Troubleshooting URL");
-  for (const message of final.status?.messages ?? []) {
-    expect(message.content, "the wrapper tag must not leak into the transcript").not.toContain("MiddlewareError");
+  for (const text of await transcriptTextsOf(final)) {
+    expect(text, "the wrapper tag must not leak into the transcript").not.toContain("MiddlewareError");
   }
+}
+
+// Every text the turn's transcript shows: its messages, thinking and notes,
+// and the errors the log reported for it.
+async function transcriptTextsOf(final: Run): Promise<string[]> {
+  const turn = await turnOfRun(clients, final);
+  return [
+    ...turn.items.flatMap((item) => (item.kind === "tool_use" || item.kind === "compacted" ? [] : [item.text])),
+    ...turn.errors.map((error) => error.message),
+  ];
 }

@@ -1,8 +1,8 @@
 // Conformance suite for the semantic memory retriever WITH an embedder present
 // (stigmer/stigmer#293 Phase 3) — the selection-active posture.
 // Domain: agentic / agentexecution — the runner-side selection of recalled
-// memories, observed through the RecalledMemoriesReport on execution status
-// and through the one embeddings call the retriever makes.
+// memories, observed through the turn's stigmer.memory.recalled event in the
+// session's log and through the one embeddings call the retriever makes.
 //
 // run-memory-retrieval.conformance.test.ts pins the NO-embedder
 // posture (the mock fences the OpenAI path, the retriever degrades to wholesale
@@ -31,6 +31,7 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import { provisionOrgWithConfirmedFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
+import { turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 
 // Lockstep pins for the runner's retriever (shared/memory-retrieval.ts):
@@ -103,7 +104,7 @@ describe.skipIf(!canSeedMemories)(
 
       expect(settled.status?.recalledMemories?.enabled).toBe(true);
       expect(settled.status?.recalledMemories?.facts).toHaveLength(RETRIEVAL_ACTIVATION_THRESHOLD);
-      const report = settled.status?.recalledMemoriesReport;
+      const report = (await turnOfRun(clients, settled)).memory;
       expect(report, "a recall-enabled execution writes a report").toBeDefined();
       expect(report?.selectionActive, "at or below k, top-k degenerates to wholesale").toBe(false);
       expect(report?.injectedMemoryIds ?? []).toHaveLength(0);
@@ -120,7 +121,7 @@ describe.skipIf(!canSeedMemories)(
         RETRIEVAL_ACTIVATION_THRESHOLD + 1,
       );
 
-      const report = settled.status?.recalledMemoriesReport;
+      const report = (await turnOfRun(clients, settled)).memory;
       expect(report, "selection-active executions write a report").toBeDefined();
       expect(report?.selectionActive).toBe(true);
       expect(report?.embeddingModel).toBe(RETRIEVAL_EMBEDDING_MODEL);

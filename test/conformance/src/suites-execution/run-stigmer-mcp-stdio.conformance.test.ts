@@ -29,7 +29,8 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
-import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { toolUsesOf, turnOfRun } from "../support/turn";
 import { agentRefOf } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
@@ -127,13 +128,12 @@ async function runRead(agent: StdioAgent): Promise<Run> {
   return final;
 }
 
-// The run's get_agent ToolCall, or a named failure.
-function readCall(final: Run) {
-  const call = allToolCalls(final).find((tc) => tc.name === STDIO_READ_TOOL);
+// The run's get_agent tool use, from the session's log, or a named failure.
+async function readCall(final: Run) {
+  const uses = toolUsesOf(await turnOfRun(clients, final));
+  const call = uses.find((use) => use.name === STDIO_READ_TOOL);
   if (call === undefined) {
-    throw new Error(
-      `no ${STDIO_READ_TOOL} call on the transcript: ${JSON.stringify(allToolCalls(final).map((tc) => tc.name))}`,
-    );
+    throw new Error(`no ${STDIO_READ_TOOL} call in the log: ${JSON.stringify(uses.map((use) => use.name))}`);
   }
   return call;
 }
@@ -145,9 +145,9 @@ describe.skipIf(!dialsAnonymously)("An agent on the stigmer mcp-server over stdi
 
     const final = await runRead(agent);
 
-    const call = readCall(final);
-    expect(call.error, "the stdio tool call succeeded").toBe("");
-    expect(call.result, "the result carries the agent's description, which only this server holds").toContain(
+    const call = await readCall(final);
+    expect(call.state, "the stdio tool call succeeded").toBe("completed");
+    expect(call.result?.text, "the result carries the agent's description, which only this server holds").toContain(
       agent.description,
     );
     expect(mock.remaining(), "the agent consumed exactly its script").toBe(0);
@@ -162,7 +162,7 @@ describe.skipIf(!dialsAnonymously)("An agent on the stigmer mcp-server over stdi
     const second = await runRead(agent);
 
     for (const final of [first, second]) {
-      expect(readCall(final).result).toContain(agent.description);
+      expect((await readCall(final)).result?.text).toContain(agent.description);
     }
     expect(mock.remaining(), "both runs consumed exactly the shared script").toBe(0);
   });

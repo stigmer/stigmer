@@ -4,13 +4,13 @@
 //
 // The contract under test: a run parked at an approval gate is live in the
 // engine. Deleting its organization answers at once; from then the run
-// answers NOT_FOUND to a read and to a decision on its gate, so nobody can
+// answers NOT_FOUND to a read and to an answer to its waiting call, so nobody can
 // resume it. The purge terminates the run before it removes the run's row
 // (it does not finish while the engine holds a run that may still be live),
 // and only then releases the organization's slug, so a slug that comes free
 // is the purge's proof that the run was stopped and removed.
 import { Code } from "@connectrpc/connect";
-import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUses } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -26,6 +26,7 @@ import {
   pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
+  sessionIdOf,
 } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createOrganizationOnceReleased, organizationSlug } from "../support/organizations";
@@ -55,7 +56,7 @@ afterAll(async () => {
 });
 
 describe("Organization purge with a live run", () => {
-  it("[rpc:OrganizationCommandController.delete] [rpc:RunQueryController.get] [rpc:RunCommandController.submitApproval] a run parked at a gate answers not found once its organization is deleted, and the purge stops and removes it before the slug comes free", async () => {
+  it("[rpc:OrganizationCommandController.delete] [rpc:RunQueryController.get] [rpc:SessionCommandController.confirmToolUse] a run parked at a gate answers not found once its organization is deleted, and the purge stops and removes it before the slug comes free", async () => {
     const { org } = await target.provisionTenancy();
     const slug = await organizationSlug(clients.organizationQuery, org);
     const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
@@ -89,13 +90,13 @@ describe("Organization purge with a live run", () => {
     );
     await expectGrpcCode(
       () =>
-        clients.agentExecutionCommand.submitApproval({
-          runId: executionId,
-          toolCallId: gated.status!.pendingApprovals[0]!.toolCallId,
-          action: ApprovalAction.APPROVE,
+        clients.sessionCommand.confirmToolUse({
+          sessionId: sessionIdOf(gated),
+          toolUseId: `${executionId}.call_purge_echo`,
+          result: "allow",
         }),
       Code.NotFound,
-      "a decision on its gate",
+      "an answer to its waiting call",
     );
 
     const next = await createOrganizationOnceReleased(clients.organizationCommand, slug);

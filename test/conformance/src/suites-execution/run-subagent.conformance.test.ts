@@ -4,7 +4,8 @@
 // Domain: agentic / run — what a hand-off gives the subagent, read where the
 // model and the client see it: the requests the mock provider captured (each
 // request's model, its offered tools, its system prompt and what a tool round
-// fed back) and the run's transcript, the subagent's record included.
+// fed back) and the turn's transcript in the session's log, the subagent's
+// thread included.
 //
 // Delegation is the built-in `task` tool: the parent emits a tool_use naming
 // the subagent (`subagent_type`, the listed agent's slug, or `<plugin>:<agent>`
@@ -17,7 +18,7 @@
 //   - a saved subagent runs its own model (its run defaults, chosen for this
 //     engine), its own plugins' tools, which the parent lacks, and its own
 //     tool lists, never the parent's: a tool the parent disallows runs in the
-//     subagent; its record carries the delegation's full shape;
+//     subagent; its thread carries the delegation's full shape;
 //   - a plugin's agent whose file names a model id the engine lists runs on
 //     that model, under its plugin's lists for it;
 //   - a subagent's declared value reaches its shell alone, and the parent's
@@ -52,7 +53,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ExecutionTarget, Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { readAnthropicRequest } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
@@ -79,7 +80,6 @@ import { FIXTURE_SERVER, oneServerPlugin, pluginRefOf, pluginToolName, pushPlugi
 import { RunValueDeclarerKind, runSourcesOf, sourcesFor } from "../support/run-values";
 import {
   type AgentExecutionOptions,
-  allToolCalls,
   awaitTerminal,
   makeAgentExecution,
   pushFixturePlugin,
@@ -87,6 +87,7 @@ import {
   requireMcpFixture,
 } from "../support/runs";
 import { STIGMER_STDIO_SERVER, stigmerMcpPlugin } from "../support/stigmer-mcp-stdio";
+import { threadsOf, toolUseByCallId, toolUsesOf, turnOfRun } from "../support/turn";
 import { createTarget, type TargetProfile } from "../targets";
 import { CURSOR_KEY_SKIP_REASON } from "../targets/cloud";
 
@@ -221,12 +222,13 @@ function wireAt(index: number): string {
 }
 
 
-/** The subagent's record on a finished turn, asserted completed. */
-function subagentRecordOf(final: Run, name: string) {
-  const record = (final.status?.subAgentRuns ?? []).find((run) => run.name === name);
-  expect(record, `the subagent ran as ${name} (ran: ${(final.status?.subAgentRuns ?? []).map((run) => run.name).join(", ")})`).toBeDefined();
-  expect(SubAgentStatus[record!.status]).toBe(SubAgentStatus[SubAgentStatus.SUB_AGENT_COMPLETED]);
-  return record!;
+/** The subagent's thread on a finished turn, from the session's log, asserted completed. */
+async function subagentRecordOf(final: Run, name: string) {
+  const threads = threadsOf(await turnOfRun(clients, final));
+  const thread = threads.find((candidate) => candidate.agentName === name);
+  expect(thread, `the subagent ran as ${name} (ran: ${threads.map((candidate) => candidate.agentName).join(", ")})`).toBeDefined();
+  expect(thread!.state).toBe("completed");
+  return thread!;
 }
 
 describe("Run — a subagent runs its own definition", () => {
@@ -289,31 +291,30 @@ describe("Run — a subagent runs its own definition", () => {
     expect(subagentOffered, "the parent's lists do not reach the subagent").toContain(NATIVE_SHELL_TOOL);
     expect(subagentOffered, "one level: a subagent is never offered the hand-off").not.toContain(TASK_TOOL_NAME);
 
-    const calls = allToolCalls(final);
-    const echo = calls.find((call) => call.id === "call_sub_echo");
-    expect(ToolCallStatus[echo?.status ?? 0], "the subagent's plugin tool ran").toBe(
-      ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED],
-    );
-    expect(echo!.result).toContain("from the subagent");
-    const shell = calls.find((call) => call.id === "call_sub_shell");
-    expect(ToolCallStatus[shell?.status ?? 0], "the shell the parent disallows ran in the subagent").toBe(
-      ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED],
-    );
-    expect(shell!.result).toContain("shell-ran-in-subagent");
+    const turn = await turnOfRun(clients, final);
+    const echo = toolUseByCallId(turn, "call_sub_echo");
+    expect(echo?.state, "the subagent's plugin tool ran").toBe("completed");
+    expect(echo!.result?.text).toContain("from the subagent");
+    const shell = toolUseByCallId(turn, "call_sub_shell");
+    expect(shell?.state, "the shell the parent disallows ran in the subagent").toBe("completed");
+    expect(shell!.result?.text).toContain("shell-ran-in-subagent");
 
     // The parent's transcript: a completed `task` call whose result is the
-    // subagent's answer; the subagent's record, the shape a console reads.
-    const task = (final.status?.messages ?? []).flatMap((m) => m.toolCalls).find((tc) => tc.name === TASK_TOOL_NAME);
-    expect(task, "the parent recorded the hand-off").toBeDefined();
-    expect(ToolCallStatus[task!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
-    expect(task!.result, "the hand-off's result is the subagent's answer").toContain(SUBAGENT_ANSWER);
-    expect((final.status?.subAgentRuns ?? []).map((run) => run.name), "exactly the listed agent ran").toEqual([name]);
-    const record = subagentRecordOf(final, name);
-    expect(record.id, "a subagent's run has its own id").not.toBe("");
-    expect(record.subject, "the hand-off's description is the subagent's subject").not.toBe("");
-    expect(record.startedAt).not.toBe("");
-    expect(record.completedAt).not.toBe("");
-    expect(record.output, "the subagent's final text is its output").toContain(SUBAGENT_ANSWER);
+    // subagent's answer; the subagent's thread, the shape a console reads.
+    const task = turn.items.find((item) => item.kind === "tool_use" && item.name === TASK_TOOL_NAME);
+    expect(task, "the parent recorded the hand-off on its own thread").toBeDefined();
+    if (task?.kind !== "tool_use") return;
+    expect(task.state).toBe("completed");
+    expect(task.result?.text, "the hand-off's result is the subagent's answer").toContain(SUBAGENT_ANSWER);
+    expect(threadsOf(turn).map((thread) => thread.agentName), "exactly the listed agent ran").toEqual([name]);
+    const record = await subagentRecordOf(final, name);
+    expect(record.id, "a subagent's thread has its own id").not.toBe("");
+    expect(record.input, "the hand-off's message is what the subagent was asked").not.toBe("");
+    expect(record.reply, "the subagent's final text is its reply").toContain(SUBAGENT_ANSWER);
+    expect(
+      toolUsesOf(record).map((use) => use.id),
+      "the subagent's calls are on its own thread",
+    ).toEqual([`${final.metadata!.id}.call_sub_echo`, `${final.metadata!.id}.call_sub_shell`]);
   });
 
   it("a turn hands off to a plugin's agent whose file names a model id the engine lists, which runs on that model under its plugin's lists", async () => {
@@ -358,7 +359,7 @@ describe("Run — a subagent runs its own definition", () => {
 
     const final = await completedTurn({ org, agentRef: agentRefOf(agent) });
     expect(mock.remaining(), "parent, subagent, subagent, parent: every scripted turn was consumed").toBe(0);
-    subagentRecordOf(final, name);
+    await subagentRecordOf(final, name);
 
     const parentModel = await providerIdOf(PARENT_MODEL);
     const subagentModel = await providerIdOf(SUBAGENT_MODEL);
@@ -372,8 +373,8 @@ describe("Run — a subagent runs its own definition", () => {
     expect(offered, "the tool its list names is offered").toContain(ECHO_TOOL_NAME);
     expect(offered, "a tool its list does not name is not offered").not.toContain(FAIL_TOOL_NAME);
     expect(offered, "one level: a plugin's agent is never offered the hand-off").not.toContain(TASK_TOOL_NAME);
-    const echo = allToolCalls(final).find((call) => call.id === "call_desk_echo");
-    expect(ToolCallStatus[echo?.status ?? 0]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_COMPLETED]);
+    const echo = toolUseByCallId(await turnOfRun(clients, final), "call_desk_echo");
+    expect(echo?.state).toBe("completed");
   });
 
   it("[rpc:RunCommandController.create] a subagent's declared value reaches its own shell alone, and the parent's never reaches the subagent's", async () => {
@@ -457,13 +458,12 @@ describe("Run — a subagent runs its own definition", () => {
     mock.enqueue(anthropicText("Done."));
 
     const final = await completedTurn({ org, agentRef: agentRefOf(agent) });
-    const record = subagentRecordOf(final, name);
-    const refused = record.messages.flatMap((message) => message.toolCalls).find((call) => call.id === "call_subagent_rm");
-    expect(refused, "the subagent's refused delete has a row on its record").toBeDefined();
-    expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
-    // The hook's own refusal text: the parent's plugin decided the call. A
-    // row inside a subagent carries no decider attribution (#1133).
-    expect(refused!.error).toContain("recursive deletes are not allowed");
+    const record = await subagentRecordOf(final, name);
+    const refused = toolUsesOf(record).find((use) => use.id === `${final.metadata!.id}.call_subagent_rm`);
+    expect(refused, "the subagent's refused delete is on its thread").toBeDefined();
+    expect(refused!.state).toBe("failed");
+    // The hook's own refusal text: the parent's plugin decided the call.
+    expect(refused!.result?.text).toContain("recursive deletes are not allowed");
   });
 });
 
@@ -483,7 +483,7 @@ describe("Run — what a subagent is not given", () => {
     mock.enqueue(anthropicText("Done."));
 
     const final = await completedTurn({ org, agentRef: agentRefOf(agent), sessionSpec: { plugins: [pluginRefOf(plugin)] } });
-    subagentRecordOf(final, name);
+    await subagentRecordOf(final, name);
     expect(offeredAt(0), "the conversation's plugin is the parent's").toContain(ECHO_TOOL_NAME);
     expect(offeredAt(1), "the conversation's plugin is not the subagent's").not.toContain(ECHO_TOOL_NAME);
   });
@@ -503,7 +503,7 @@ describe("Run — what a subagent is not given", () => {
         mock.enqueue(anthropicText("Done."));
 
         const final = await completedTurn({ org, agentRef: agentRefOf(agent) });
-        subagentRecordOf(final, name);
+        await subagentRecordOf(final, name);
         expect(offeredAt(0), "memory is on: the parent is offered the memory tool").toContain(MEMORY_TOOL_NAME);
         const offered = offeredAt(1);
         expect(offered, "the platform's memory tool is not the subagent's").not.toContain(MEMORY_TOOL_NAME);
@@ -537,7 +537,7 @@ describe("Run — the parent pinned its subagent at save", () => {
       mock.enqueue(anthropicText(SUBAGENT_ANSWER));
       mock.enqueue(anthropicText("Done."));
       const final = await completedTurn({ org, agentRef: agentRefOf(agent) });
-      subagentRecordOf(final, name);
+      await subagentRecordOf(final, name);
       return wireAt(1);
     }
 
@@ -583,7 +583,7 @@ describe("Run — the parent pinned its subagent at save", () => {
     mock.enqueue(anthropicText("Done."));
     const final = await completedTurn({ org, agentRef: agentRefOf(agent) });
 
-    subagentRecordOf(final, newName);
+    await subagentRecordOf(final, newName);
     const parentRequest = wireAt(0);
     expect(parentRequest, "the hand-off offers the subagent by its current name").toContain(newName);
     expect(parentRequest, "and never by the name it had when it was pinned").not.toContain(oldName);
