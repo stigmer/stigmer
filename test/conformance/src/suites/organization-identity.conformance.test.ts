@@ -185,6 +185,13 @@ describe("Organization identity conformance", () => {
       ["apply", () => clients.organizationCommand.apply({ apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } })],
       ["update", () => clients.organizationCommand.update({ apiVersion: API_VERSION, kind: KIND, metadata: { name: before, slug: before } })],
     ] as const) {
+      if (verb === "update" && target.capabilities.enforcingAuthorizer) {
+        // An update authorizes its metadata.id: without one it is refused
+        // at Authorize, before its slug is read.
+        const denied = await expectGrpcCode(write, Code.PermissionDenied, "an update without an id");
+        expect(denied.rawMessage).toBe("unauthorized to update organization");
+        continue;
+      }
       const refused = await expectGrpcCode(write, Code.FailedPrecondition, `an ${verb} by the old slug`);
       const [reason] = refused.findDetails(ErrorInfoSchema);
       expect(reason?.reason, verb).toBe("SLUG_RENAMED");

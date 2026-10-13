@@ -117,8 +117,10 @@ export const OrganizationCommandController = {
      * Update an existing organization.
      *
      * The slug is not changed by an update; rename changes it. An update
-     * that names the organization by a slug it was renamed away from,
-     * without its id, is refused with SLUG_RENAMED (see apply).
+     * authorizes the id it names, so wherever the server authorizes
+     * requests, an update without an id is refused before its slug is read;
+     * where it reads one, a slug the organization was renamed away from is
+     * refused with SLUG_RENAMED (see apply).
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.update
      */

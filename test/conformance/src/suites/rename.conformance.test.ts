@@ -12,7 +12,10 @@
 //   - a write that names the old slug without the id is refused
 //     FAILED_PRECONDITION with SLUG_RENAMED, whose words never name the new
 //     slug, because the refusal is answered before the write authorizes its
-//     target.
+//     target. An update authorizes its metadata.id, so a target whose
+//     authorizer enforces refuses one without an id at Authorize, before
+//     its slug is read; the vault's and the platform client's arms (they
+//     have no apply) expect that refusal there.
 // Then the references that named a renamed resource (a session's, a
 // schedule's and a channel's agent, a parent's subagent, a channel's app)
 // come back with its new slug, and an apply carrying the id finds the
@@ -80,6 +83,11 @@ interface RenamableKind {
   readByReference(org: string, slug: string): Promise<Named>;
   // A write naming `slug` and no id: apply where the kind has one, else update.
   writeBySlug(org: string, slug: string): Promise<unknown>;
+  // Which RPC writeBySlug sends. An update authorizes its metadata.id, so a
+  // target whose authorizer enforces refuses one without an id at
+  // Authorize, before its slug is read; only a server that admits every
+  // caller reads it and answers SLUG_RENAMED.
+  readonly writeVerb: "apply" | "update";
 }
 
 async function agentInOrg(
@@ -103,6 +111,7 @@ const KINDS: readonly RenamableKind[] = [
     writeTitle:
       "[rpc:AgentCommandController.rename] [rpc:AgentCommandController.apply] an agent's",
     noun: "Agent",
+    writeVerb: "apply",
     create: (org, name) => agentInOrg(org, name),
     rename: async (id, slug) =>
       namedOf(await clients.agentCommand.rename({ resourceId: id, slug })),
@@ -119,6 +128,7 @@ const KINDS: readonly RenamableKind[] = [
     writeTitle:
       "[rpc:VaultCommandController.rename] [rpc:VaultCommandController.update] a vault's",
     noun: "Vault",
+    writeVerb: "update",
     create: async (org, name) => {
       const vault = await clients.vaultCommand.create(
         makeSharedVault({ org, name }),
@@ -145,6 +155,7 @@ const KINDS: readonly RenamableKind[] = [
     writeTitle:
       "[rpc:ScheduleCommandController.rename] [rpc:ScheduleCommandController.apply] a schedule's",
     noun: "Schedule",
+    writeVerb: "apply",
     create: async (org, name) => {
       const agent = await agentInOrg(org, uniqueName("sched-agent"));
       const schedule = await clients.scheduleCommand.create(
@@ -174,6 +185,7 @@ const KINDS: readonly RenamableKind[] = [
     writeTitle:
       "[rpc:ChannelAppCommandController.rename] [rpc:ChannelAppCommandController.apply] a channel app's",
     noun: "Channel app",
+    writeVerb: "apply",
     create: async (org, name) => {
       const app = await clients.channelAppCommand.create(
         makeSlackChannelApp(org, name),
@@ -200,6 +212,7 @@ const KINDS: readonly RenamableKind[] = [
     writeTitle:
       "[rpc:OAuthAppCommandController.rename] [rpc:OAuthAppCommandController.apply] an OAuth app's",
     noun: "OAuth app",
+    writeVerb: "apply",
     create: async (org, name) => {
       const app = await clients.oauthAppCommand.create(makeOAuthApp(org, name));
       fixtures.defer(() =>
@@ -224,6 +237,7 @@ const KINDS: readonly RenamableKind[] = [
     writeTitle:
       "[rpc:PlatformClientCommandController.rename] [rpc:PlatformClientCommandController.update] a platform client's",
     noun: "Platform client",
+    writeVerb: "update",
     create: async (org, name) => {
       const created = await clients.platformClientCommand.create({
         apiVersion: "iam.stigmer.ai/v1",
@@ -297,6 +311,24 @@ describe("a renamed resource keeps its id, and its old slug leads to it", () => 
       const after = uniqueName("fresh-name");
       await kind.rename(before.id, after);
 
+      if (
+        kind.writeVerb === "update" &&
+        target.capabilities.enforcingAuthorizer
+      ) {
+        const denied = await expectGrpcCode(
+          () => kind.writeBySlug(org, before.slug),
+          Code.PermissionDenied,
+          "an update without an id, refused at Authorize before its slug is read",
+        );
+        expect(denied.rawMessage).toBe(
+          `unauthorized to update ${kind.noun.toLowerCase()}`,
+        );
+        expect(
+          await kind.readByReference(org, after),
+          "nothing was written",
+        ).toEqual({ id: before.id, slug: after });
+        return;
+      }
       const refused = await expectGrpcCode(
         () => kind.writeBySlug(org, before.slug),
         Code.FailedPrecondition,

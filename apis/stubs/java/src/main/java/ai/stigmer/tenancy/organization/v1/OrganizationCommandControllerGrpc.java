@@ -351,8 +351,10 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Update an existing organization.
      * The slug is not changed by an update; rename changes it. An update
-     * that names the organization by a slug it was renamed away from,
-     * without its id, is refused with SLUG_RENAMED (see apply).
+     * authorizes the id it names, so wherever the server authorizes
+     * requests, an update without an id is refused before its slug is read;
+     * where it reads one, a slug the organization was renamed away from is
+     * refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     default void update(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -544,8 +546,10 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Update an existing organization.
      * The slug is not changed by an update; rename changes it. An update
-     * that names the organization by a slug it was renamed away from,
-     * without its id, is refused with SLUG_RENAMED (see apply).
+     * authorizes the id it names, so wherever the server authorizes
+     * requests, an update without an id is refused before its slug is read;
+     * where it reads one, a slug the organization was renamed away from is
+     * refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public void update(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -725,8 +729,10 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Update an existing organization.
      * The slug is not changed by an update; rename changes it. An update
-     * that names the organization by a slug it was renamed away from,
-     * without its id, is refused with SLUG_RENAMED (see apply).
+     * authorizes the id it names, so wherever the server authorizes
+     * requests, an update without an id is refused before its slug is read;
+     * where it reads one, a slug the organization was renamed away from is
+     * refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -902,8 +908,10 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Update an existing organization.
      * The slug is not changed by an update; rename changes it. An update
-     * that names the organization by a slug it was renamed away from,
-     * without its id, is refused with SLUG_RENAMED (see apply).
+     * authorizes the id it names, so wherever the server authorizes
+     * requests, an update without an id is refused before its slug is read;
+     * where it reads one, a slug the organization was renamed away from is
+     * refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -1081,8 +1089,10 @@ public final class OrganizationCommandControllerGrpc {
      * <pre>
      * Update an existing organization.
      * The slug is not changed by an update; rename changes it. An update
-     * that names the organization by a slug it was renamed away from,
-     * without its id, is refused with SLUG_RENAMED (see apply).
+     * authorizes the id it names, so wherever the server authorizes
+     * requests, an update without an id is refused before its slug is read;
+     * where it reads one, a slug the organization was renamed away from is
+     * refused with SLUG_RENAMED (see apply).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> update(

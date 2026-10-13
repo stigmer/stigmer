@@ -60,9 +60,10 @@ type AgentCommandControllerClient interface {
 	Create(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
 	// Update an existing agent.
 	//
-	// The slug changes only through rename. An update that names the agent by a
-	// slug it was renamed away from, without its id, is refused with SLUG_RENAMED
-	// (see apply).
+	// The slug changes only through rename. An update authorizes the id it names,
+	// so wherever the server authorizes requests, an update without an id is
+	// refused before its slug is read; where it reads one, a slug the agent was
+	// renamed away from is refused with SLUG_RENAMED (see apply).
 	Update(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
 	// Update the visibility of an existing agent.
 	//
@@ -215,9 +216,10 @@ type AgentCommandControllerServer interface {
 	Create(context.Context, *Agent) (*Agent, error)
 	// Update an existing agent.
 	//
-	// The slug changes only through rename. An update that names the agent by a
-	// slug it was renamed away from, without its id, is refused with SLUG_RENAMED
-	// (see apply).
+	// The slug changes only through rename. An update authorizes the id it names,
+	// so wherever the server authorizes requests, an update without an id is
+	// refused before its slug is read; where it reads one, a slug the agent was
+	// renamed away from is refused with SLUG_RENAMED (see apply).
 	Update(context.Context, *Agent) (*Agent, error)
 	// Update the visibility of an existing agent.
 	//

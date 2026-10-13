@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Update an existing organization.\n\n The slug is not changed by an update; rename changes it. An update\n that names the organization by a slug it was renamed away from,\n without its id, is refused with SLUG_RENAMED (see apply)."
+          "description": "Update an existing organization.\n\n The slug is not changed by an update; rename changes it. An update\n authorizes the id it names, so wherever the server authorizes\n requests, an update without an id is refused before its slug is read;\n where it reads one, a slug the organization was renamed away from is\n refused with SLUG_RENAMED (see apply)."
         },
         {
           "name": "UpdatePolicies",

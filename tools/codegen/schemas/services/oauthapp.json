@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Update an existing OAuth app.\n\n The slug changes only through rename. An update that names the OAuth app by\n a slug it was renamed away from, without its id, is refused with\n SLUG_RENAMED (see apply)."
+          "description": "Update an existing OAuth app.\n\n The slug changes only through rename. An update authorizes the id it names,\n so wherever the server authorizes requests, an update without an id is\n refused before its slug is read; where it reads one, a slug the OAuth app\n was renamed away from is refused with SLUG_RENAMED (see apply)."
         },
         {
           "name": "Rename",
