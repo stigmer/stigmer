@@ -105,40 +105,6 @@ describe("classify — a key created before sign-in was turned on (stigmer/stigm
   });
 });
 
-describe("classify: an organization that requires sign-in through its SSO provider", () => {
-  const sentence = "This organization requires you to sign in through Acme Okta.";
-  function refusal(): ConnectError {
-    return new ConnectError(sentence, Code.PermissionDenied, undefined, [
-      {
-        desc: ErrorInfoSchema,
-        value: create(ErrorInfoSchema, {
-          reason: "SSO_REQUIRED",
-          domain: "stigmer.ai",
-          metadata: { org: "org_acme", provider: "acme-okta" },
-        }),
-      },
-    ]);
-  }
-
-  it("prints the organization's sentence and the key to make in the console, never 'sign in again'", () => {
-    expect(classify(refusal())).toMatchObject({
-      exitCode: ExitCode.Auth,
-      message: sentence,
-      hints: [
-        "Sign in to the Stigmer console through your organization's SSO,",
-        "create an API key under Settings > API keys, then:",
-        "  export STIGMER_API_KEY=<the key>",
-      ],
-    });
-  });
-
-  it("leaves every other PermissionDenied as it was", () => {
-    expect(classify(new ConnectError("unauthorized to view agent", Code.PermissionDenied))).toMatchObject({
-      message: "Permission denied: unauthorized to view agent",
-    });
-  });
-});
-
 describe("classify — non-RPC and edge cases", () => {
   it("returns null for null/undefined", () => {
     expect(classify(null)).toBeNull();

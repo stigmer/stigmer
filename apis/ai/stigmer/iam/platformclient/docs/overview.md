@@ -15,7 +15,7 @@ Use PlatformClient when a platform builder wants to embed Stigmer UI components 
 | Setup complexity | Minimal — just create a PlatformClient and call `mintUserToken` | Requires JWKS endpoint, issuer configuration, audience setup |
 | Token issuer | Stigmer signs the JWT | External IdP (Auth0, Okta, etc.) signs the JWT |
 | User identity source | Platform builder provides user_id, email, name in the mint request | JWT claims from the external IdP |
-| Best for | Quick integration, embedded components, platform builders without their own IdP | Enterprises with existing IdP infrastructure, SSO requirements |
+| Best for | Quick integration, embedded components, platform builders without their own IdP | Platforms with their own identity provider, whose tokens Stigmer trusts |
 
 ## Credential Lifecycle
 

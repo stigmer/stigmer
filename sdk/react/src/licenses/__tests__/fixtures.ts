@@ -4,7 +4,7 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { LicenseSchema, type License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import type { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 
 export interface LicenseFixture {
@@ -18,6 +18,7 @@ export interface LicenseFixture {
   readonly graceUntil?: string;
   readonly maxUsers?: number;
   readonly maxOrgs?: number;
+  /** Features a license issued before licenses stopped listing them carries; none when absent. */
   readonly features?: readonly Feature[];
   readonly ticket?: string;
   readonly notes?: string;
@@ -41,7 +42,7 @@ export function license(f: LicenseFixture): License {
           ...(f.maxUsers !== undefined && { maxUsers: f.maxUsers }),
           ...(f.maxOrgs !== undefined && { maxOrgs: f.maxOrgs }),
         },
-        features: [...(f.features ?? [Feature.sso_enforcement])],
+        features: [...(f.features ?? [])],
       },
       term: f.term ?? LicenseTerm.paid,
       expiresAt: timestampFromDate(new Date(f.expiresAt)),

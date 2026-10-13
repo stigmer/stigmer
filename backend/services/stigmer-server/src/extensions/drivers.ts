@@ -42,9 +42,6 @@
  *   - run lanes (the lanes an edition's visitors' turns come through, with
  *     their saved settings, operator profile and approval mode, read by the
  *     server's one settings resolution) — landed 2026-10-05
- *   - organization sign-in rule (what an organization requires of how its
- *     people signed in, which the credential binding asks and which can
- *     only refuse) — landed with single sign-on enforcement
  *
  * Merge rules (enforced by resolveExtensions): the two
  * provider kinds are single-instance points — a second declaring unit is
@@ -85,7 +82,6 @@ import type { ResourceRowReader } from "./resource-row-reader.js";
 import type { GradingCallerMint } from "./grading-caller.js";
 import type { PluginEvalCallerMint } from "./plugin-eval-caller.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
-import type { OrganizationSignInRule } from "./organization-sign-in-rule.js";
 import type { RunLanes } from "./run-lanes.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
 
@@ -348,15 +344,6 @@ export interface ExtensionDrivers {
    * lane; when absent, every turn is a core lane's — OSS behavior.
    */
   readonly runLanes?: RunLanes;
-  /**
-   * The organization sign-in rule (single-instance point): what an
-   * organization requires of how its people signed in
-   * (extensions/organization-sign-in-rule.ts carries the contract). When
-   * composed, the credential binding asks it after every other question
-   * admitted a person, and it can only refuse; when absent, no
-   * organization requires anything — OSS behavior byte-identical.
-   */
-  readonly organizationSignInRule?: OrganizationSignInRule;
   /**
    * Row readers keyed by the kind whose rows they read
    * (extensions/resource-row-reader.ts): the built-in authorizer's loader

@@ -334,25 +334,6 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
-  it("resolves one OrganizationSignInRule and throws on a second, naming both units", () => {
-    const rule = {
-      requiringOrgs: () => Promise.resolve(new Set<string>()),
-      refusal: () => Promise.resolve(undefined),
-    };
-    expect(
-      resolveExtensions([{ name: "rule-a", drivers: { organizationSignInRule: rule } }])
-        .drivers.organizationSignInRule,
-    ).toBe(rule);
-    expect(() =>
-      resolveExtensions([
-        { name: "rule-a", drivers: { organizationSignInRule: rule } },
-        { name: "rule-b", drivers: { organizationSignInRule: rule } },
-      ]),
-    ).toThrowError(
-      /extension 'rule-b' registers an OrganizationSignInRule, but 'rule-a' already did/,
-    );
-  });
-
   it("resolves one GradingCallerMint and throws on a second, naming both units", () => {
     const mint = {
       mintGradingCaller: () =>

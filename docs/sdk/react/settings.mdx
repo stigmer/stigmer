@@ -85,21 +85,14 @@ registered.
 
 ### IdentityProvidersSection
 
-Settings section for configuring OIDC identity providers.
+Settings section for configuring OIDC identity providers: the other
+platforms whose tokens the organization trusts.
 
 "New identity provider" is offered once the server confirms the caller
 holds `can_create_idp` on the organization. The list shows only the
 providers the caller may view, so a caller who may not create providers
 is told that the organization's admins manage them rather than that none
 is configured.
-
-**Props** — `IdentityProvidersSectionProps`
-
-<TypeTable
-  type={{
-    ssoLoginBaseUrl: { type: "string", description: "Base URL used to construct the SSO login link shown in the detail panel. Defaults to `window.location.origin` when omitted (correct for web apps). Desktop apps should pass the cloud console origin instead." },
-  }}
-/>
 
 
 ### InvitationsSection

@@ -125,7 +125,7 @@ Subscription subscription = client.subscriptions().getForOrg(GetSubscriptionForO
 
 Estimate what the organization's current period will be invoiced.
 
-The estimate is the invoice the period would close with: the plan's monthly fee over the whole period (not prorated to the time elapsed), plus the child organizations beyond those the plan includes. It is rated by the same rule the monthly close invoices by, so an estimate read at a period's end equals that period's invoice. Every other read derives it the same way; nothing is stored.
+The estimate is the invoice the period would close with: the plan's monthly fee over the whole period (not prorated to the time elapsed), plus the child organizations beyond those the plan includes, plus the agent hours worked so far beyond those the plan includes. It is rated by the same rule the monthly close invoices by, so an estimate read at a period's end equals that period's invoice once every turn's end is recorded. Every other read derives it the same way; nothing is stored.
 
 NOT_FOUND when the organization has no live subscription: it is on Free, or it is a child organization on its parent's plan, and neither is invoiced a plan of its own.
 
@@ -344,6 +344,7 @@ PeriodEstimate is what an organization's current subscription period would be in
     childOrgCount: { type: "number", description: "The child organizations counted against the plan this period." },
     lines: { type: "PeriodEstimateLineInput[]", description: "The invoice's lines in the order they print, zero lines omitted." },
     totalMicros: { type: "number", description: "The estimated invoice total: the sum of the lines." },
+    workingSeconds: { type: "number", description: "The working agent seconds counted against the plan this period so far: the organization's and its child organizations', never an automatic grade's." },
   }}
 />
 
@@ -391,7 +392,7 @@ A capability an entitlement can unlock.
 
 | Value | Description |
 |-------|-------------|
-| `sso_enforcement` | Enforcing sign-in through a registered identity provider, so members cannot use another login. |
+| `sso_enforcement` | No longer used: gates nothing. |
 | `platform_client` | Gates nothing: every edition serves PlatformClient credentials to every customer, so a plan or license that lists it grants nothing more. |
 | `byo_provider_keys` | No longer used: gates nothing. |
 | `channels` | Delivering agents over messaging channels (Slack, WhatsApp) through a channel runtime. |
@@ -408,4 +409,5 @@ PeriodEstimateLineKind names what an estimated invoice line is for.
 |-------|-------------|
 | `plan` | The plan's monthly fee. |
 | `child_orgs` | The child organizations beyond those the plan includes, at the plan's fee for each. |
+| `agent_hours` | The working agent hours beyond those the plan includes, at the plan's hourly price; the period's allowance is prorated when the period is cut short. |
 

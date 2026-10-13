@@ -22,14 +22,12 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.iam.iampolicy.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_iampolicy_dot_v1_dot_io__pb2
 from ai.stigmer.iam.identityprovider.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
-from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"5\n\x12IdentityProviderId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"c\n\x11IdentityProviders\x12N\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\x07\x65ntries\"\x87\x01\n\x14IdentityProviderList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12N\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\x07\x65ntries\"<\n\x1fListIdentityProvidersByOrgInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"2\n\x15OrganizationSsoLookup\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\xc2\x01\n\x0fSsoProviderInfo\x12!\n\x0c\x64isplay_name\x18\x01 \x01(\tR\x0b\x64isplayName\x12$\n\x0eoidc_client_id\x18\x02 \x01(\tR\x0coidcClientId\x12\x16\n\x06issuer\x18\x03 \x01(\tR\x06issuer\x12+\n\x11\x65xpected_audience\x18\x04 \x01(\tR\x10\x65xpectedAudience\x12!\n\x0csso_required\x18\x05 \x01(\x08R\x0bssoRequired\".\n\x11\x41\x63\x63\x65ssMoveRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\xbb\x02\n\x10\x41\x63\x63\x65ssMoveTicket\x12\x16\n\x06ticket\x18\x01 \x01(\tR\x06ticket\x12\x39\n\nexpires_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\x12O\n\x08provider\x18\x04 \x01(\x0b\x32\x33.ai.stigmer.iam.identityprovider.v1.SsoProviderInfoR\x08provider\x12J\n\x07preview\x18\x05 \x01(\x0b\x32\x30.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultR\x07preview\x12%\n\x0einvitation_ids\x18\x06 \x03(\tR\rinvitationIds\";\n\x15RedeemAccessMoveInput\x12\"\n\x06ticket\x18\x01 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80\x02R\x06ticket\"\x93\x01\n\x10\x41\x63\x63\x65ssMoveResult\x12\x10\n\x03org\x18\x01 \x01(\tR\x03org\x12\x46\n\x05moved\x18\x02 \x01(\x0b\x32\x30.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultR\x05moved\x12%\n\x0einvitation_ids\x18\x03 \x03(\tR\rinvitationIds\"7\n\x1aSsoRequirementPreviewInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\xca\x01\n\x15SsoRequirementPreview\x12R\n\x07members\x18\x01 \x03(\x0b\x32\x38.ai.stigmer.iam.identityprovider.v1.SsoRequirementMemberR\x07members\x12]\n\rexempt_owners\x18\x02 \x03(\x0b\x32\x38.ai.stigmer.iam.identityprovider.v1.SsoRequirementMemberR\x0c\x65xemptOwners\"\xf8\x01\n\x14SsoRequirementMember\x12.\n\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x14\n\x05\x65mail\x18\x02 \x01(\tR\x05\x65mail\x12!\n\x0c\x64isplay_name\x18\x03 \x01(\tR\x0b\x64isplayName\x12%\n\x0einvitation_ids\x18\x04 \x03(\tR\rinvitationIds\x12P\n\x0b\x61utomations\x18\x05 \x03(\x0b\x32..ai.stigmer.iam.iampolicy.v1.AccountAutomationR\x0b\x61utomations\"\x88\x03\n\x1bUpdateIdentityProviderInput\x12X\n\x08resource\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc9\x01\xbaH\xc5\x01\x1a\xc2\x01\n\x17update_names_its_target\x12Qresource.metadata.id is required: an update names the identity provider by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xde\x01\n&com.ai.stigmer.iam.identityprovider.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"5\n\x12IdentityProviderId\x12\x1f\n\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"c\n\x11IdentityProviders\x12N\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\x07\x65ntries\"\x87\x01\n\x14IdentityProviderList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12N\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\x07\x65ntries\"<\n\x1fListIdentityProvidersByOrgInput\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"\x88\x03\n\x1bUpdateIdentityProviderInput\x12X\n\x08resource\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.iam.identityprovider.v1.IdentityProviderB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xc9\x01\xbaH\xc5\x01\x1a\xc2\x01\n\x17update_names_its_target\x12Qresource.metadata.id is required: an update names the identity provider by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xde\x01\n&com.ai.stigmer.iam.identityprovider.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,46 +39,20 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IDENTITYPROVIDERID'].fields_by_name['value']._serialized_options = b'\272H\006r\004\020\001\030@'
   _globals['_LISTIDENTITYPROVIDERSBYORGINPUT'].fields_by_name['org']._loaded_options = None
   _globals['_LISTIDENTITYPROVIDERSBYORGINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_ORGANIZATIONSSOLOOKUP'].fields_by_name['org']._loaded_options = None
-  _globals['_ORGANIZATIONSSOLOOKUP'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_ACCESSMOVEREQUEST'].fields_by_name['org']._loaded_options = None
-  _globals['_ACCESSMOVEREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_REDEEMACCESSMOVEINPUT'].fields_by_name['ticket']._loaded_options = None
-  _globals['_REDEEMACCESSMOVEINPUT'].fields_by_name['ticket']._serialized_options = b'\272H\007r\005\020\001\030\200\002'
-  _globals['_SSOREQUIREMENTPREVIEWINPUT'].fields_by_name['org']._loaded_options = None
-  _globals['_SSOREQUIREMENTPREVIEWINPUT'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_UPDATEIDENTITYPROVIDERINPUT'].fields_by_name['resource']._loaded_options = None
   _globals['_UPDATEIDENTITYPROVIDERINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
   _globals['_UPDATEIDENTITYPROVIDERINPUT'].fields_by_name['update_mask']._loaded_options = None
   _globals['_UPDATEIDENTITYPROVIDERINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
   _globals['_UPDATEIDENTITYPROVIDERINPUT']._loaded_options = None
   _globals['_UPDATEIDENTITYPROVIDERINPUT']._serialized_options = b'\272H\305\001\032\302\001\n\027update_names_its_target\022Qresource.metadata.id is required: an update names the identity provider by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
-  _globals['_IDENTITYPROVIDERID']._serialized_start=263
-  _globals['_IDENTITYPROVIDERID']._serialized_end=316
-  _globals['_IDENTITYPROVIDERS']._serialized_start=318
-  _globals['_IDENTITYPROVIDERS']._serialized_end=417
-  _globals['_IDENTITYPROVIDERLIST']._serialized_start=420
-  _globals['_IDENTITYPROVIDERLIST']._serialized_end=555
-  _globals['_LISTIDENTITYPROVIDERSBYORGINPUT']._serialized_start=557
-  _globals['_LISTIDENTITYPROVIDERSBYORGINPUT']._serialized_end=617
-  _globals['_ORGANIZATIONSSOLOOKUP']._serialized_start=619
-  _globals['_ORGANIZATIONSSOLOOKUP']._serialized_end=669
-  _globals['_SSOPROVIDERINFO']._serialized_start=672
-  _globals['_SSOPROVIDERINFO']._serialized_end=866
-  _globals['_ACCESSMOVEREQUEST']._serialized_start=868
-  _globals['_ACCESSMOVEREQUEST']._serialized_end=914
-  _globals['_ACCESSMOVETICKET']._serialized_start=917
-  _globals['_ACCESSMOVETICKET']._serialized_end=1232
-  _globals['_REDEEMACCESSMOVEINPUT']._serialized_start=1234
-  _globals['_REDEEMACCESSMOVEINPUT']._serialized_end=1293
-  _globals['_ACCESSMOVERESULT']._serialized_start=1296
-  _globals['_ACCESSMOVERESULT']._serialized_end=1443
-  _globals['_SSOREQUIREMENTPREVIEWINPUT']._serialized_start=1445
-  _globals['_SSOREQUIREMENTPREVIEWINPUT']._serialized_end=1500
-  _globals['_SSOREQUIREMENTPREVIEW']._serialized_start=1503
-  _globals['_SSOREQUIREMENTPREVIEW']._serialized_end=1705
-  _globals['_SSOREQUIREMENTMEMBER']._serialized_start=1708
-  _globals['_SSOREQUIREMENTMEMBER']._serialized_end=1956
-  _globals['_UPDATEIDENTITYPROVIDERINPUT']._serialized_start=1959
-  _globals['_UPDATEIDENTITYPROVIDERINPUT']._serialized_end=2351
+  _globals['_IDENTITYPROVIDERID']._serialized_start=192
+  _globals['_IDENTITYPROVIDERID']._serialized_end=245
+  _globals['_IDENTITYPROVIDERS']._serialized_start=247
+  _globals['_IDENTITYPROVIDERS']._serialized_end=346
+  _globals['_IDENTITYPROVIDERLIST']._serialized_start=349
+  _globals['_IDENTITYPROVIDERLIST']._serialized_end=484
+  _globals['_LISTIDENTITYPROVIDERSBYORGINPUT']._serialized_start=486
+  _globals['_LISTIDENTITYPROVIDERSBYORGINPUT']._serialized_end=546
+  _globals['_UPDATEIDENTITYPROVIDERINPUT']._serialized_start=549
+  _globals['_UPDATEIDENTITYPROVIDERINPUT']._serialized_end=941
 # @@protoc_insertion_point(module_scope)

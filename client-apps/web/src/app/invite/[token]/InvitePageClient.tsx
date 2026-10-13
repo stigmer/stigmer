@@ -10,34 +10,11 @@ import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/ap
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
 import { createUserManager } from "@/auth/oidc/oidc-manager";
-import { getSsoSession, isValidSsoState } from "@/auth/oidc/sso-session";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { StigmerLogo } from "@/auth/StigmerLogo";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 const AUTO_ACCEPT_KEY = "stigmer:invite:auto_accept";
-
-/**
- * Resolve the UserManager for the current session.
- *
- * Checks for an active SSO session first (same precedence as
- * OidcAuthProvider), falling back to the default Auth0 manager.
- */
-function resolveActiveManager(auth0Config: {
-  issuer: string;
-  clientId: string;
-  audience: string;
-}) {
-  const ssoSession = getSsoSession();
-  if (ssoSession && isValidSsoState(ssoSession)) {
-    return createUserManager({
-      issuer: ssoSession.issuer,
-      clientId: ssoSession.clientId,
-      audience: ssoSession.audience,
-    });
-  }
-  return createUserManager(auth0Config);
-}
 
 /**
  * Public invite redemption page.
@@ -98,7 +75,7 @@ export default function InvitePageClient() {
     if (config.mode !== "oidc") return;
     sessionStorage.setItem(REDIRECT_PATH_KEY, window.location.pathname);
     sessionStorage.setItem(AUTO_ACCEPT_KEY, "1");
-    resolveActiveManager(config.oidc).signinRedirect();
+    createUserManager(config.oidc).signinRedirect();
   }, []);
 
   return (
@@ -162,7 +139,7 @@ function useInviteAuth(): InviteAuthState {
     const config = resolveAuthConfig();
     if (config.mode !== "oidc") return;
 
-    const manager = resolveActiveManager(config.oidc);
+    const manager = createUserManager(config.oidc);
     manager.getUser().then((user) => {
       if (user && !user.expired) {
         const shouldAutoAccept =

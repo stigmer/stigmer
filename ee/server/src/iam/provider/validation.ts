@@ -11,13 +11,10 @@
  *     check so equivalent spellings collide — and de-duplicates, so two
  *     spellings of one issuer are kept once rather than colliding with
  *     their own provider.
- *   - ValidateSsoFields: oidc_client_id pairing with is_sso_provider, and
- *     ONE SSO provider per org (excluding self on updates).
- *   - ValidateSignInFields: an `external_id_claim` is refused on an SSO
- *     provider (SSO signs people in to the provider's own organization;
- *     the claim routes them to its children) and on a provider in a child
- *     organization (a child has no children, so every sign-in it routed
- *     would be refused; one read of the provider's organization).
+ *   - ValidateSignInFields: an `external_id_claim` is refused on a
+ *     provider in a child organization (a child has no children, so every
+ *     sign-in it routed would be refused; one read of the provider's
+ *     organization).
  *   - ValidateSignInRole: a set `sign_in_role` is a role an organization
  *     grants (`grantableRolesFor`, the contract's kind_meta), or every
  *     sign-in's grant would fail and refuse the person. The roles offered
@@ -25,9 +22,7 @@
  *     nothing. The contract holds the rest, run by
  *     the chain's ValidateProto: an owner sign-in role
  *     (`identity_provider.sign_in_role_not_owner`; the federated verifier
- *     also refuses a row stored before that at sign-in) and an SSO
- *     provider without both sign-in settings
- *     (`identity_provider.sso_creates_accounts_with_a_role`).
+ *     also refuses a row stored before that at sign-in).
  *   - ValidateReservedIssuers: an issuer the host's own sign-in lanes
  *     claim (its own platform tenant or operator issuer) is never an
  *     organization's. The host's verifier order keeps such a row inert as
@@ -99,7 +94,7 @@ import type { IdentityProviderStore } from "./store.js";
 const JWKS_VALIDATION_TIMEOUT_MS = 5_000;
 
 export interface ProviderValidationDeps {
-  readonly store: Pick<IdentityProviderStore, "findSsoProviderByOrg" | "findProviderIdByRoute">;
+  readonly store: Pick<IdentityProviderStore, "findProviderIdByRoute">;
   /** The provider's organization, read for its parent when the provider routes to children. */
   readonly organizations: OrganizationLookup;
   /** The egress-guarded fetch every live read dials through (the composition's one). */
@@ -137,45 +132,12 @@ export async function validateProvider(
     throw new ConnectError("spec is required", Code.InvalidArgument);
   }
 
-  // ── ValidateSsoFields ──
-  const isSso = spec.isSsoProvider;
-  const hasClientId = spec.oidcClientId !== "";
-  if (isSso && !hasClientId) {
-    throw new ConnectError(
-      "oidc_client_id is required when is_sso_provider is true",
-      Code.InvalidArgument,
-    );
-  }
-  if (!isSso && hasClientId) {
-    throw new ConnectError(
-      "oidc_client_id must be empty when is_sso_provider is false",
-      Code.InvalidArgument,
-    );
-  }
-  if (isSso) {
-    const existingSso = await deps.store.findSsoProviderByOrg(org);
-    if (existingSso !== undefined && existingSso.metadata?.id !== id) {
-      throw ssoTakenError(org);
-    }
-  }
-
   // ── ValidateSignInFields ──
-  // The contract refuses an owner sign-in role and an SSO provider without
-  // both sign-in settings (protovalidate, before this matrix). What it
-  // cannot say: the claim routes a sign-in to one of the provider
-  // organization's children, which neither an SSO provider (it signs
-  // people in to its own organization) nor a child organization's
-  // provider (a child has no children) can do.
+  // The contract refuses an owner sign-in role (protovalidate, before this
+  // matrix). What it cannot say: the claim routes a sign-in to one of the
+  // provider organization's children, which a child organization's
+  // provider cannot do (a child has no children).
   if (spec.externalIdClaim !== "") {
-    if (isSso) {
-      throw new ConnectError(
-        "external_id_claim cannot be set when is_sso_provider is true: the " +
-          "claim routes a sign-in to one of this organization's child " +
-          "organizations, and an SSO provider signs people in to its own. " +
-          "Use a separate identity provider for child organizations.",
-        Code.InvalidArgument,
-      );
-    }
     if (((await deps.organizations.find(org))?.parentOrg ?? "") !== "") {
       throw new ConnectError(
         "external_id_claim cannot be set on an identity provider of a child " +
@@ -238,18 +200,6 @@ function signInRoleNotGrantableError(role: IamRole): ConnectError {
     `sign_in_role '${IamRole[role]}' cannot be granted on an organization; ` +
       `set one of ${offered.join(", ")}, or leave it unset to grant nothing.`,
     Code.InvalidArgument,
-  );
-}
-
-/**
- * The one-SSO copy, for the app-level check and for the constraint
- * backstop when a racing write took the organization's SSO place first.
- */
-export function ssoTakenError(org: string): ConnectError {
-  return new ConnectError(
-    `Organization '${org}' already has an SSO identity provider. ` +
-      "Only one SSO provider per organization is allowed.",
-    Code.AlreadyExists,
   );
 }
 

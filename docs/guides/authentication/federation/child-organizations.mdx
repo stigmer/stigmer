@@ -389,9 +389,8 @@ grants roles from its backend, as the next sections show. To have Stigmer create
 accounts and grant a role as well, see
 [Create accounts and grant a role at sign-in](#create-accounts-and-grant-a-role-at-sign-in).
 
-An SSO Identity Provider cannot set `externalIdClaim` (SSO signs people in to
-the provider's own Organization), and neither can an Identity Provider in a
-child organization, which has no children to route to.
+An Identity Provider in a child organization cannot set `externalIdClaim`: a
+child organization has no children to route to.
 
 ### What a bound token can reach
 

@@ -1,11 +1,10 @@
 // The issue form's arithmetic: the derived name, the UTC calendar presets
 // (a renewal continues the coverage it renews), the draft-to-input mapping
 // (expiry at 00:00 UTC after the last covered day, the empty org, absent
-// limits for unlimited) and the customer id minter's shape. Instants are
+// limits for unlimited, no features) and the customer id minter's shape. Instants are
 // fixed and the arithmetic is UTC-only, so the suite passes in any zone.
 
 import { describe, it, expect } from "vitest";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 import {
   coverageStartDay,
@@ -79,7 +78,6 @@ describe("toLicenseInput", () => {
     graceDays: 30,
     maxUsers: 50,
     maxOrgs: undefined,
-    features: [Feature.sso_enforcement],
     notes: "  PO 4411  ",
   };
 
@@ -100,16 +98,13 @@ describe("toLicenseInput", () => {
     expect(input.org).toBe("");
     expect(input.name).toBe("Paid license for Acme Corp until 2027-09-22");
     expect(input.customer).toEqual({ id: "cus_acme", displayName: "Acme Corp", contactEmail: "ops@acme.test" });
-    expect(input.entitlements).toEqual({
-      limits: { maxUsers: 50 },
-      features: [Feature.sso_enforcement],
-    });
+    expect(input.entitlements).toEqual({ limits: { maxUsers: 50 } });
     expect(input.notes).toBe("PO 4411");
   });
 
   it("omits the limits entirely when both are unlimited", () => {
     const input = toLicenseInput({ ...draft, maxUsers: undefined, notes: "" });
-    expect(input.entitlements).toEqual({ features: [Feature.sso_enforcement] });
+    expect(input.entitlements).toEqual({});
     expect(input.notes).toBeUndefined();
   });
 });

@@ -7,33 +7,6 @@ description: Hooks and components for federated identity provider setup and mana
 
 ## Hooks
 
-### useCreateAccessMove
-
-Mutation hook for the first half of an access move, asked while signed in
-the old way (an email login): the answer is a single-use ticket, ten
-minutes long, and what the move will do. Keep the ticket in the browser
-that asked for it and never show it; it is redeemed with
-[`useRedeemAccessMove`](#useredeemaccessmove) once signed in through the organization's
-SSO provider.
-
-**Signature**
-
-```tsx
-function useCreateAccessMove(): UseCreateAccessMoveReturn
-```
-
-**Returns** — `UseCreateAccessMoveReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "" },
-    createMove: { type: "(org: string) => Promise<AccessMoveTicket>", description: "Ask for a ticket that moves the caller's access in `org` to the account its SSO provider makes for them." },
-    error: { type: "Error | null", description: "" },
-    isCreating: { type: "boolean", description: "" },
-  }}
-/>
-
-
 ### useCreateIdentityProvider
 
 Mutation hook that wraps `identityProvider.create()` with loading
@@ -65,7 +38,7 @@ function useCreateIdentityProvider(): UseCreateIdentityProviderReturn
 const { create, isCreating, error } = useCreateIdentityProvider();
 
 const idp = await create({
-  name: "Acme Corp SSO",
+  name: "Acme Platform",
   org: "acme",
   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
   allowedIssuers: ["https://acme.us.auth0.com/"],
@@ -116,7 +89,7 @@ Pass `null` to skip fetching (stable no-op). When the `id` changes,
 the previous in-flight request is discarded and a fresh fetch begins.
 
 Returns the full proto `IdentityProvider` resource so consumers
-have access to metadata, spec (JWKS URI, issuers, SSO config), and
+have access to metadata, spec (JWKS URI, issuers, sign-in settings), and
 status without additional calls.
 
 **Signature**
@@ -214,144 +187,6 @@ const { identityProviders } = useIdentityProviderList(org ?? null);
 ```
 
 
-### usePreviewSsoRequirement
-
-Data hook for the owners' preview of a sign-in requirement: the members
-whose account the organization's SSO provider did not sign in, each with
-the invitations they created and the automations that act as them, and
-the owners, who are exempt. Only the organization's owners may read it.
-
-Pass `null` to skip the read.
-
-**Signature**
-
-```tsx
-function usePreviewSsoRequirement(org: string | null): UsePreviewSsoRequirementReturn
-```
-
-<TypeTable
-  type={{
-    org: { type: "string | null", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UsePreviewSsoRequirementReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "" },
-    isLoading: { type: "boolean", description: "" },
-    preview: { type: "SsoRequirementPreview | null", description: "Who would stop counting, or `null` before the first answer." },
-    refetch: { type: "() => void", description: "" },
-  }}
-/>
-
-
-### useRedeemAccessMove
-
-Mutation hook for the second half of an access move, asked once signed
-in through the organization's SSO provider: the ticket's access moves to
-the caller, and the answer says what moved and what stopped (the My
-vault entries deleted, the automations and invitations to make again).
-
-**Signature**
-
-```tsx
-function useRedeemAccessMove(): UseRedeemAccessMoveReturn
-```
-
-**Returns** — `UseRedeemAccessMoveReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "" },
-    error: { type: "Error | null", description: "" },
-    isRedeeming: { type: "boolean", description: "" },
-    redeem: { type: "(ticket: string) => Promise<AccessMoveResult>", description: "Redeem a ticket: the access it names moves to the caller." },
-  }}
-/>
-
-
-### useRemakeAutomation
-
-**Signature**
-
-```tsx
-function useRemakeAutomation(): UseRemakeAutomationReturn
-```
-
-**Returns** — `UseRemakeAutomationReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "" },
-    remake: { type: "(automation: AccountAutomation) => Promise<string>", description: "Make the automation again as the caller; resolves with the new row's id." },
-    remaking: { type: "string | null", description: "The id of the automation being made again, or `null`." },
-  }}
-/>
-
-
-### useSsoProvider
-
-Data hook that looks up the SSO identity provider for an organization.
-
-Returns the minimal OIDC configuration needed to render an SSO login
-button and initiate the Authorization Code flow: display name, OIDC
-client ID, and issuer URL.
-
-This is the only identity-provider hook that works **unauthenticated**
-— the backend skips authorization because it is called by the login
-page before the user has signed in.
-
-When the organization has no SSO provider configured, `ssoProvider`
-is `null` and `error` remains `null` — absence is not an error.
-
-Pass `null` to skip the lookup (stable no-op).
-
-**Signature**
-
-```tsx
-function useSsoProvider(org: string | null): UseSsoProviderReturn
-```
-
-<TypeTable
-  type={{
-    org: { type: "string | null", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseSsoProviderReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy. `null` when the org simply has no SSO configured (NOT_FOUND is treated as absent, not an error)." },
-    isLoading: { type: "boolean", description: "`true` while the lookup is in flight." },
-    ssoProvider: { type: "SsoProviderInfo | null", description: "SSO provider info for the organization, or `null` if not configured, loading, or on error." },
-  }}
-/>
-
-```tsx
-function LoginPage({ org }: { org: string }) {
-  const { ssoProvider, isLoading } = useSsoProvider(org);
-
-  if (isLoading) return <Skeleton />;
-
-  return (
-    <div>
-      <EmailPasswordForm />
-      {ssoProvider && (
-        <SsoLoginButton
-          label={`Sign in with ${ssoProvider.displayName}`}
-          clientId={ssoProvider.oidcClientId}
-          issuer={ssoProvider.issuer}
-        />
-      )}
-    </div>
-  );
-}
-```
-
-
 ### useUpdateIdentityProvider
 
 Mutation hook that wraps `identityProvider.update(resource, paths)` with
@@ -387,7 +222,7 @@ const { update, isUpdating, error } = useUpdateIdentityProvider();
 await update(
   {
     metadata: { id: provider.metadata!.id, etag: provider.metadata!.etag },
-    spec: { displayName: "Acme Corp SSO" },
+    spec: { displayName: "Acme Platform" },
   },
   ["spec.display_name"],
 );
@@ -396,32 +231,16 @@ await update(
 
 ## Components
 
-### AccessMoveSummary
-
-**Props** — `AccessMoveSummaryProps`
-
-<TypeTable
-  type={{
-    automationHref: { type: "(kind: string, slug: string) => string | undefined", description: "Where an automation lives, for a link to it; absent, it is named without a link." },
-    className: { type: "string", description: "" },
-    invitationIds: { type: "readonly string[]", description: "The open invitations the old account created there.", required: true },
-    move: { type: "MoveOrgAccessResult", description: "The move's preview or result.", required: true },
-    moved: { type: "boolean", description: "Whether the move has happened; before it, nothing is offered to make again.", required: true },
-  }}
-/>
-
-
 ### CreateIdentityProviderForm
 
-Form for creating a new identity provider within an organization.
+Form for creating a new identity provider within an organization: the
+organization's trust in tokens another platform issues.
 
 Collects the required OIDC trust configuration: **name** (display
-name), **JWKS URI**, **allowed issuers**, and **expected audience**.
-Optionally enables SSO by toggling the SSO switch and providing an
-**OIDC client ID**, and sets what a sign-in does: whether it creates
-the person's account, the role granted on their first sign-in to the
-organization, and the claim that binds a token to an organization. An
-SSO provider starts with account creation on and the viewer role.
+name), **JWKS URI**, **allowed issuers**, and **expected audience**,
+and sets what a sign-in does: whether it creates the person's account,
+the role granted on their first sign-in to the organization, and the
+claim that binds a token to an organization.
 
 On success it fires `onCreated` with the full `IdentityProvider`
 response.
@@ -453,17 +272,15 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### IdentityProviderDetailPanel
 
-View and edit panel for an existing identity provider.
+View and edit panel for an existing identity provider: the
+organization's trust in tokens another platform issues.
 
 In **view mode**, displays all OIDC configuration fields in a
 structured label/value layout, with an "Edit" button for a caller who
-may edit the provider (`can_edit`), and, on an SSO provider, whether the
-organization requires sign-in through it, which its owners change
-([`SsoRequirementSection`](#ssorequirementsection)).
+may edit the provider (`can_edit`).
 
-In **edit mode**, fields become editable inputs. The SSO toggle,
-OIDC client ID and sign-in settings (account creation, sign-in role,
-customer id claim) are editable. "Save" submits the update via
+In **edit mode**, fields become editable inputs, the sign-in settings
+(account creation, sign-in role, customer id claim) among them. "Save" submits the update via
 [`useUpdateIdentityProvider`](#useupdateidentityprovider); "Cancel" discards changes and
 returns to view mode.
 
@@ -477,7 +294,6 @@ All visual properties flow through `--stgm-*` design tokens.
     identityProvider: { type: "IdentityProvider", description: "The identity provider resource to display and edit.", required: true, typeDescriptionLink: "/docs/sdk/resources/identity-provider" },
     onBack: { type: "() => void", description: "Fired when the user clicks the back button." },
     onUpdated: { type: "(idp: IdentityProvider) => void", description: "Fired with the updated resource after a successful save." },
-    ssoLoginUrl: { type: "string", description: "Pre-computed SSO login URL to display when the IdP is an SSO provider. Omit to hide the field. The consumer is responsible for constructing the URL (e.g., `${window.location.origin}/login?org=${orgId}`), naming the organization by its permanent id so a later holder of its slug can never put their own sign-in behind the link. The login page accepts a typed slug too." },
   }}
 />
 
@@ -495,8 +311,8 @@ All visual properties flow through `--stgm-*` design tokens.
 Displays a list of `IdentityProvider` resources for an
 organization with inline delete confirmation.
 
-Each provider is rendered as a row showing name, slug, SSO badge
-(when `is_sso_provider` is true), and creation date. The edit and
+Each provider is rendered as a row showing name, slug, a JIT badge
+(when a first sign-in creates the person's account), and creation date. The edit and
 delete buttons appear only on rows the caller may edit or delete
 (`can_edit`, `can_delete`); delete opens an inline confirmation.
 
@@ -532,16 +348,17 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### IdentityProviderWizard
 
-Multi-step wizard for creating a new identity provider.
+Multi-step wizard for creating a new identity provider: the
+organization's trust in tokens another platform issues.
 
 Guides the user through three steps:
 
 1. **Pick** — select a well-known provider preset or "Custom OIDC"
 2. **Configure** — fill in provider-specific variables (e.g., Auth0
    tenant name) plus the IdP display name and expected audience
-3. **Review** — verify auto-populated OIDC configuration, optionally
-   enable SSO, set what a sign-in does (account creation, sign-in role,
-   customer id claim), and submit
+3. **Review** — verify auto-populated OIDC configuration, set what a
+   sign-in does (account creation, sign-in role, customer id claim), and
+   submit
 
 For known presets, URLs are constructed from deterministic templates
 (no network call). For "Custom OIDC", the wizard attempts OIDC
@@ -595,73 +412,6 @@ All visual properties flow through `--stgm-*` design tokens.
 ```tsx
 <ProviderPicker onSelect={(preset) => setSelectedPreset(preset)} />
 ```
-
-
-### SsoLoginPrompt
-
-Org-aware SSO discovery prompt.
-
-Guides the user through finding and connecting to their
-organization's SSO provider:
-
-1. Enter an organization slug (or receive one via `initialOrg`)
-2. The component calls [`useSsoProvider`](#usessoprovider) to look up the SSO
-   configuration
-3. If found, displays a prominent "Sign in with [provider]" button
-4. If not found, displays a clear message
-
-Platform builders embed this component in their own login pages to
-offer SSO authentication. The Console composes it with an Auth0
-fallback and OIDC redirect handling.
-
-All visual properties flow through `--stgm-*` design tokens.
-
-**Props** — `SsoLoginPromptProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root container." },
-    initialOrg: { type: "string", description: "Pre-filled organization slug, typically read from a URL query parameter (e.g., `?org=acme`).  When provided, the component auto-triggers the SSO provider lookup on mount, skipping the org input step." },
-    onProviderChange: { type: "(provider: SsoProviderInfo | null) => void", description: "Called with the provider the lookup found, or `null` while there is none, so a page can say what the organization requires before anyone signs in (`SsoProviderInfo.sso_required`: the organization accepts no other sign-in, so the page hides its other ways in)." },
-    onSsoLogin: { type: "(provider: SsoProviderInfo, org: string) => void", description: "Called when the user clicks the SSO sign-in button.  The consumer is responsible for the actual OIDC redirect — this component owns the discovery UI, not the authentication mechanics.", required: true },
-  }}
-/>
-
-```tsx
-<SsoLoginPrompt
-  initialOrg="acme"
-  onSsoLogin={(provider, org) => {
-    // Initiate OIDC redirect with provider.issuer, provider.oidcClientId
-  }}
-/>
-```
-
-
-### SsoRequiredNotice
-
-**Props** — `SsoRequiredNoticeProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "" },
-    error: { type: "unknown", description: "The refusal; the notice renders nothing for any other error.", required: true },
-    moveHref: { type: "(org: string) => string", description: "Where the access move starts for the organization; absent, it is not offered." },
-    onSignIn: { type: "(provider: SsoProviderInfo, org: string) => void", description: "Start signing in through the provider, for the organization.", required: true },
-  }}
-/>
-
-
-### SsoRequirementSection
-
-**Props** — `SsoRequirementSectionProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "" },
-    identityProvider: { type: "IdentityProvider", description: "The organization's SSO provider.", required: true, typeDescriptionLink: "/docs/sdk/resources/identity-provider" },
-    onUpdated: { type: "(provider: IdentityProvider) => void", description: "Fired with the provider after the requirement changed." },
-  }}
-/>
 
 
 ## Types
@@ -723,39 +473,4 @@ A user-fillable variable required by a provider preset.
     type: { type: "\"text\" | \"select\"", description: "Input type: `\"text\"` for free-form input, `\"select\"` for a dropdown.", required: true },
   }}
 />
-
-
-### remakeable
-
-Whether `automation` is made again in one click.
-
-```tsx
-function remakeable(automation: Pick<AccountAutomation, "kind">): boolean
-```
-
-
-### SSO_REQUIRED
-
-The reason an organization's sign-in requirement refuses with.
-
-
-### SsoRequirement
-
-What a sign-in requirement's refusal names.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "The organization's id.", required: true },
-    provider: { type: "string", description: "The organization's SSO provider's slug.", required: true },
-  }}
-/>
-
-
-### ssoRequirementOf
-
-The requirement `error` reports, or `null` for any other error.
-
-```tsx
-function ssoRequirementOf(error: unknown): SsoRequirement | null
-```
 

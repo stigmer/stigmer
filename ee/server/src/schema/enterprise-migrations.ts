@@ -19,8 +19,12 @@
  *
  * v1 is these tables' first version in this chain, with the names the
  * adapters key on (each unique constraint and index), so an adapter's
- * refusal reads the constraint it expects. v2 adds the access move
- * tickets.
+ * refusal reads the constraint it expects. v2 added the access move
+ * tickets. v3 drops them, with v1's single sign-on column and index:
+ * Stigmer has no single sign-on of its own, and an identity provider is
+ * trust in another platform's tokens. The two versions stay as written so
+ * a database that ran them moves forward instead of sitting ahead of the
+ * chain.
  *
  * The tables carry no foreign keys: an organization's rows go with it
  * through the unit's purge stage, and the policy rows that reference a
@@ -29,7 +33,7 @@
 import type { PoolClient } from "pg";
 
 /** Whatever version a database at this build's schema holds. */
-export const ENTERPRISE_SCHEMA_VERSION = 2;
+export const ENTERPRISE_SCHEMA_VERSION = 3;
 
 /** Advisory lock key for this chain: ASCII "STGMRE" + 0x01. */
 export const ENTERPRISE_MIGRATION_LOCK_KEY = 0x5354474d524501n;
@@ -48,9 +52,9 @@ export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
        )`,
       `INSERT INTO ee.schema_version (version) VALUES (1)`,
       // Identity providers: the payload is the truth; org and slug are the
-      // reference read, is_sso the login page's discovery, deleting_since
-      // the delete mark (iam/provider/postgres-store.ts says why each
-      // column exists).
+      // reference read, is_sso the login page's discovery (dropped at v3),
+      // deleting_since the delete mark (iam/provider/postgres-store.ts says
+      // why each column exists).
       `CREATE TABLE ee.iam_identity_provider (
          id TEXT PRIMARY KEY,
          data BYTEA NOT NULL,
@@ -119,9 +123,9 @@ export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
   {
     version: 2,
     statements: [
-      // Access move tickets: a hash of each single-use ticket that moves an
-      // account's access in one organization to the account its SSO
-      // provider signs the same person in as (iam/access-move/store.ts).
+      // Access move tickets: a hash of each single-use ticket that moved an
+      // account's access in one organization to the account its single
+      // sign-on provider signed the same person in as. v3 drops them.
       `CREATE TABLE ee.iam_access_move_tickets (
          token_hash TEXT PRIMARY KEY,
          account_id TEXT NOT NULL,
@@ -135,6 +139,17 @@ export const ENTERPRISE_MIGRATIONS: ReadonlyArray<{
          ON ee.iam_access_move_tickets (org)`,
       `CREATE INDEX iam_access_move_tickets_expires
          ON ee.iam_access_move_tickets (expires_at)`,
+    ],
+  },
+  {
+    version: 3,
+    statements: [
+      // Single sign-on leaves the platform: the access move's tickets, the
+      // one-live-SSO-provider index and the column it read. Dropping the
+      // table drops its indexes.
+      `DROP TABLE ee.iam_access_move_tickets`,
+      `DROP INDEX ee.iam_identity_provider_one_live_sso`,
+      `ALTER TABLE ee.iam_identity_provider DROP COLUMN is_sso`,
     ],
   },
 ];

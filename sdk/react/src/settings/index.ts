@@ -20,7 +20,6 @@ export { MemorySection } from "./MemorySection.js";
 export { VaultsSection } from "./VaultsSection.js";
 export { InvitationsSection } from "./InvitationsSection.js";
 export { IdentityProvidersSection } from "./IdentityProvidersSection.js";
-export type { IdentityProvidersSectionProps } from "./IdentityProvidersSection.js";
 export { PlatformClientsSection } from "./PlatformClientsSection.js";
 export { ServiceAccountsSection } from "./ServiceAccountsSection.js";
 export { TeamsSection } from "./TeamsSection.js";

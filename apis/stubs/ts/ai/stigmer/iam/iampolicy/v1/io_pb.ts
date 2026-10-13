@@ -21,7 +21,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/iampolicy/v1/io.proto.
  */
 export const file_ai_stigmer_iam_iampolicy_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MSLDAgoSQXBpUmVzb3VyY2VSZWZWaWV3EgwKBGtpbmQYASABKAkSCgoCaWQYAiABKAkSEAoIcmVsYXRpb24YAyABKAkSDAoEbmFtZRgEIAEoCRINCgVlbWFpbBgFIAEoCRIMCgRzbHVnGAYgASgJEg4KBmF2YXRhchgHIAEoCRJACgdtZW1iZXJzGAggAygLMi8uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmVmlldxI+CgV0ZWFtcxgJIAMoCzIvLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZlZpZXcSRAoPaWRlbnRpdHlfb3JpZ2luGAogASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklkZW50aXR5T3JpZ2luIo4BCg5JZGVudGl0eU9yaWdpbhJdChFwcm92aXNpb25pbmdfbW9kZRgBIAEoDjJCLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEh0KFXByb3ZpZGVyX2Rpc3BsYXlfbmFtZRgCIAEoCSIkCgtJYW1Qb2xpY3lJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIqcBChZQcmluY2lwYWxSZXNvdXJjZUlucHV0EkYKCXByaW5jaXBhbBgBIAEoCzIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZkIGukgDyAEBEkUKCHJlc291cmNlGAIgASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmQga6SAPIAQEiqQEKF1Jlc291cmNlUHJpbmNpcGFsc0lucHV0EkUKCHJlc291cmNlGAEgASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmQga6SAPIAQESRwoKcHJpbmNpcGFscxgCIAMoCzIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZkIGukgDyAEBIlgKFFJldm9rZU9yZ0FjY2Vzc0lucHV0EicKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAlCCrpIB8gBAXICEAESFwoDb3JnGAIgASgJQgq6SAfIAQFyAhABIrMCChJNb3ZlT3JnQWNjZXNzSW5wdXQSLAoYZnJvbV9pZGVudGl0eV9hY2NvdW50X2lkGAEgASgJQgq6SAfIAQFyAhABEh4KFnRvX2lkZW50aXR5X2FjY291bnRfaWQYAiABKAkSFwoDb3JnGAMgASgJQgq6SAfIAQFyAhABEhQKDHByZXZpZXdfb25seRgEIAEoCDqfAbpImwEamAEKH21vdmVfb3JnX2FjY2Vzcy50YXJnZXRfcmVxdWlyZWQSPXRvX2lkZW50aXR5X2FjY291bnRfaWQgaXMgcmVxdWlyZWQgdW5sZXNzIHByZXZpZXdfb25seSBpcyBzZXQaNnRoaXMucHJldmlld19vbmx5IHx8IHRoaXMudG9faWRlbnRpdHlfYWNjb3VudF9pZCAhPSAnJyKMAQoTTW92ZU9yZ0FjY2Vzc1Jlc3VsdBIWCg5tb3ZlZF9wb2xpY2llcxgBIAEoBRIYChBteV92YXVsdF9lbnRyaWVzGAIgAygJEkMKC2F1dG9tYXRpb25zGAMgAygLMi4uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFjY291bnRBdXRvbWF0aW9uIkkKEUFjY291bnRBdXRvbWF0aW9uEgwKBGtpbmQYASABKAkSCgoCaWQYAiABKAkSDAoEc2x1ZxgDIAEoCRIMCgRuYW1lGAQgASgJIkoKD0lhbVBvbGljaWVzTGlzdBI3CgdlbnRyaWVzGAEgAygLMiYuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeSJ7ChdMaXN0UmVzb3VyY2VBY2Nlc3NJbnB1dBJFCghyZXNvdXJjZRgBIAEoCzIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZkIGukgDyAEBEhkKEWluY2x1ZGVfaW5oZXJpdGVkGAIgASgIIl4KHVJlc291cmNlQWNjZXNzQnlQcmluY2lwYWxMaXN0Ej0KB2VudHJpZXMYASADKAsyLC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuUHJpbmNpcGFsQWNjZXNzIowBCg9QcmluY2lwYWxBY2Nlc3MSQgoJcHJpbmNpcGFsGAEgASgLMi8uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmVmlldxI1CgVyb2xlcxgCIAMoCzImLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5Sb2xlR3JhbnQimwEKCVJvbGVHcmFudBIzCgRyb2xlGAEgASgLMiUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJvbGVJbmZvEkMKDm93bmVyX3Jlc291cmNlGAIgASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmEhQKDGlzX2luaGVyaXRlZBgDIAEoCCJUChhSZXNvdXJjZUFjY2Vzc0J5Um9sZUxpc3QSOAoHZW50cmllcxgBIAMoCzInLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5Sb2xlQWNjZXNzIocBCgpSb2xlQWNjZXNzEjQKBHJvbGUYASABKAsyJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuUm9sZUdyYW50EkMKCnByaW5jaXBhbHMYAiADKAsyLy5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQXBpUmVzb3VyY2VSZWZWaWV3IkcKCFJvbGVJbmZvEgoKAmlkGAEgASgJEgwKBGNvZGUYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCSJOChZQcmluY2lwYWxSZXNvdXJjZVJvbGVzEjQKBXJvbGVzGAEgAygLMiUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJvbGVJbmZvIqYBChdDaGVja0F1dGhvcml6YXRpb25JbnB1dBJCCgZwb2xpY3kYASABKAsyKi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5U3BlY0IGukgDyAEBEkcKE2NvbnRleHR1YWxfcG9saWNpZXMYAiADKAsyKi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5U3BlYyIxChhDaGVja0F1dGhvcml6YXRpb25SZXN1bHQSFQoNaXNfYXV0aG9yaXplZBgBIAEoCCLIAQoWQ2hlY2tNeVBlcm1pc3Npb25JbnB1dBJFCghyZXNvdXJjZRgBIAEoCzIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZkIGukgDyAEBEh4KCHJlbGF0aW9uGAIgASgJQgy6SAnIAQFyBBABGEASRwoTY29udGV4dHVhbF9wb2xpY2llcxgDIAMoCzIqLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5JYW1Qb2xpY3lTcGVjIvIBCh5MaXN0QXV0aG9yaXplZFJlc291cmNlSWRzSW5wdXQSRgoJcHJpbmNpcGFsGAEgASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmQga6SAPIAQESIQoNcmVzb3VyY2Vfa2luZBgCIAEoCUIKukgHyAEBcgIQARIcCghyZWxhdGlvbhgDIAEoCUIKukgHyAEBcgIQARJHChNjb250ZXh0dWFsX3BvbGljaWVzGAQgAygLMiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMiMQoZQXV0aG9yaXplZFJlc291cmNlSWRzTGlzdBIUCgxyZXNvdXJjZV9pZHMYASADKAki8wEKH0xpc3RBdXRob3JpemVkUHJpbmNpcGFsSWRzSW5wdXQSRQoIcmVzb3VyY2UYASABKAsyKy5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQXBpUmVzb3VyY2VSZWZCBrpIA8gBARIiCg5wcmluY2lwYWxfa2luZBgCIAEoCUIKukgHyAEBcgIQARIcCghyZWxhdGlvbhgDIAEoCUIKukgHyAEBcgIQARJHChNjb250ZXh0dWFsX3BvbGljaWVzGAQgAygLMiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMiMwoaQXV0aG9yaXplZFByaW5jaXBhbElkc0xpc3QSFQoNcHJpbmNpcGFsX2lkcxgBIAMoCSJWChdHZXRQcmluY2lwYWxzQ291bnRJbnB1dBIXCgNvcmcYASABKAlCCrpIB8gBAXICEAESIgoOcHJpbmNpcGFsX2tpbmQYAiABKAlCCrpIB8gBAXICEAEiIAoPUHJpbmNpcGFsc0NvdW50Eg0KBWNvdW50GAEgASgFIqYBChZMaXN0QWNjZXNzSGlzdG9yeUlucHV0EhcKA29yZxgBIAEoCUIKukgHyAEBcgIQARIcCglwYWdlX3NpemUYAiABKAVCCbpIBhoEGGQoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBIkCg5hZnRlcl9zZXF1ZW5jZRgEIAEoA0IHukgEIgIoAEgAiAEBQhEKD19hZnRlcl9zZXF1ZW5jZSJuChFBY2Nlc3NIaXN0b3J5UGFnZRJACgdlbnRyaWVzGAEgAygLMi8uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFjY2Vzc0hpc3RvcnlFbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki5wMKEkFjY2Vzc0hpc3RvcnlFbnRyeRIQCghzZXF1ZW5jZRgBIAEoAxIvCgtvY2N1cnJlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOQoGY2hhbmdlGAMgASgOMikuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFjY2Vzc0NoYW5nZRI9CgVjYXVzZRgEIAEoDjIuLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BY2Nlc3NDaGFuZ2VDYXVzZRI+CgVhY3RvchgFIAEoCzIvLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZlZpZXcSEwoLYWN0b3JfY2xhc3MYBiABKAkSQgoJcHJpbmNpcGFsGAcgASgLMi8uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmVmlldxIzCgRyb2xlGAggASgLMiUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJvbGVJbmZvEkYKCHJlc291cmNlGAkgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlKkcKDEFjY2Vzc0NoYW5nZRIdChlhY2Nlc3NfY2hhbmdlX3Vuc3BlY2lmaWVkEAASCwoHZ3JhbnRlZBABEgsKB3Jldm9rZWQQAirDAgoRQWNjZXNzQ2hhbmdlQ2F1c2USIwofYWNjZXNzX2NoYW5nZV9jYXVzZV91bnNwZWNpZmllZBAAEgkKBWdyYW50EAESCgoGcmV2b2tlEAISDgoKc3RydWN0dXJhbBADEh8KG29yZ2FuaXphdGlvbl9hY2Nlc3NfcmV2b2tlZBAEEhUKEWxlZnRfb3JnYW5pemF0aW9uEAUSFAoQcmVzb3VyY2VfZGVsZXRlZBAGEhgKFG9yZ2FuaXphdGlvbl9jcmVhdGVkEAcSEQoNZmlyc3Rfc2lnbl9pbhAIEhcKE3JvbGVfcmVjb25jaWxpYXRpb24QCRIWChJvcGVyYXRvcl9vd25lcnNoaXAQChIZChVwbGF0Zm9ybV9jbGllbnRfZ3JhbnQQCxIbChdzZXJ2aWNlX2FjY291bnRfY3JlYXRlZBAMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_spec, file_ai_stigmer_iam_identityaccount_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiRhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MSLDAgoSQXBpUmVzb3VyY2VSZWZWaWV3EgwKBGtpbmQYASABKAkSCgoCaWQYAiABKAkSEAoIcmVsYXRpb24YAyABKAkSDAoEbmFtZRgEIAEoCRINCgVlbWFpbBgFIAEoCRIMCgRzbHVnGAYgASgJEg4KBmF2YXRhchgHIAEoCRJACgdtZW1iZXJzGAggAygLMi8uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmVmlldxI+CgV0ZWFtcxgJIAMoCzIvLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZlZpZXcSRAoPaWRlbnRpdHlfb3JpZ2luGAogASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklkZW50aXR5T3JpZ2luIo4BCg5JZGVudGl0eU9yaWdpbhJdChFwcm92aXNpb25pbmdfbW9kZRgBIAEoDjJCLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEh0KFXByb3ZpZGVyX2Rpc3BsYXlfbmFtZRgCIAEoCSIkCgtJYW1Qb2xpY3lJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIqcBChZQcmluY2lwYWxSZXNvdXJjZUlucHV0EkYKCXByaW5jaXBhbBgBIAEoCzIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZkIGukgDyAEBEkUKCHJlc291cmNlGAIgASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmQga6SAPIAQEiqQEKF1Jlc291cmNlUHJpbmNpcGFsc0lucHV0EkUKCHJlc291cmNlGAEgASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmQga6SAPIAQESRwoKcHJpbmNpcGFscxgCIAMoCzIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZkIGukgDyAEBIlgKFFJldm9rZU9yZ0FjY2Vzc0lucHV0EicKE2lkZW50aXR5X2FjY291bnRfaWQYASABKAlCCrpIB8gBAXICEAESFwoDb3JnGAIgASgJQgq6SAfIAQFyAhABIkoKD0lhbVBvbGljaWVzTGlzdBI3CgdlbnRyaWVzGAEgAygLMiYuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeSJ7ChdMaXN0UmVzb3VyY2VBY2Nlc3NJbnB1dBJFCghyZXNvdXJjZRgBIAEoCzIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZkIGukgDyAEBEhkKEWluY2x1ZGVfaW5oZXJpdGVkGAIgASgIIl4KHVJlc291cmNlQWNjZXNzQnlQcmluY2lwYWxMaXN0Ej0KB2VudHJpZXMYASADKAsyLC5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuUHJpbmNpcGFsQWNjZXNzIowBCg9QcmluY2lwYWxBY2Nlc3MSQgoJcHJpbmNpcGFsGAEgASgLMi8uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmVmlldxI1CgVyb2xlcxgCIAMoCzImLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5Sb2xlR3JhbnQimwEKCVJvbGVHcmFudBIzCgRyb2xlGAEgASgLMiUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJvbGVJbmZvEkMKDm93bmVyX3Jlc291cmNlGAIgASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmEhQKDGlzX2luaGVyaXRlZBgDIAEoCCJUChhSZXNvdXJjZUFjY2Vzc0J5Um9sZUxpc3QSOAoHZW50cmllcxgBIAMoCzInLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5Sb2xlQWNjZXNzIocBCgpSb2xlQWNjZXNzEjQKBHJvbGUYASABKAsyJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuUm9sZUdyYW50EkMKCnByaW5jaXBhbHMYAiADKAsyLy5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQXBpUmVzb3VyY2VSZWZWaWV3IkcKCFJvbGVJbmZvEgoKAmlkGAEgASgJEgwKBGNvZGUYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCSJOChZQcmluY2lwYWxSZXNvdXJjZVJvbGVzEjQKBXJvbGVzGAEgAygLMiUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJvbGVJbmZvIqYBChdDaGVja0F1dGhvcml6YXRpb25JbnB1dBJCCgZwb2xpY3kYASABKAsyKi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5U3BlY0IGukgDyAEBEkcKE2NvbnRleHR1YWxfcG9saWNpZXMYAiADKAsyKi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5U3BlYyIxChhDaGVja0F1dGhvcml6YXRpb25SZXN1bHQSFQoNaXNfYXV0aG9yaXplZBgBIAEoCCLIAQoWQ2hlY2tNeVBlcm1pc3Npb25JbnB1dBJFCghyZXNvdXJjZRgBIAEoCzIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZkIGukgDyAEBEh4KCHJlbGF0aW9uGAIgASgJQgy6SAnIAQFyBBABGEASRwoTY29udGV4dHVhbF9wb2xpY2llcxgDIAMoCzIqLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5JYW1Qb2xpY3lTcGVjIvIBCh5MaXN0QXV0aG9yaXplZFJlc291cmNlSWRzSW5wdXQSRgoJcHJpbmNpcGFsGAEgASgLMisuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmQga6SAPIAQESIQoNcmVzb3VyY2Vfa2luZBgCIAEoCUIKukgHyAEBcgIQARIcCghyZWxhdGlvbhgDIAEoCUIKukgHyAEBcgIQARJHChNjb250ZXh0dWFsX3BvbGljaWVzGAQgAygLMiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMiMQoZQXV0aG9yaXplZFJlc291cmNlSWRzTGlzdBIUCgxyZXNvdXJjZV9pZHMYASADKAki8wEKH0xpc3RBdXRob3JpemVkUHJpbmNpcGFsSWRzSW5wdXQSRQoIcmVzb3VyY2UYASABKAsyKy5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuQXBpUmVzb3VyY2VSZWZCBrpIA8gBARIiCg5wcmluY2lwYWxfa2luZBgCIAEoCUIKukgHyAEBcgIQARIcCghyZWxhdGlvbhgDIAEoCUIKukgHyAEBcgIQARJHChNjb250ZXh0dWFsX3BvbGljaWVzGAQgAygLMiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMiMwoaQXV0aG9yaXplZFByaW5jaXBhbElkc0xpc3QSFQoNcHJpbmNpcGFsX2lkcxgBIAMoCSJWChdHZXRQcmluY2lwYWxzQ291bnRJbnB1dBIXCgNvcmcYASABKAlCCrpIB8gBAXICEAESIgoOcHJpbmNpcGFsX2tpbmQYAiABKAlCCrpIB8gBAXICEAEiIAoPUHJpbmNpcGFsc0NvdW50Eg0KBWNvdW50GAEgASgFIqYBChZMaXN0QWNjZXNzSGlzdG9yeUlucHV0EhcKA29yZxgBIAEoCUIKukgHyAEBcgIQARIcCglwYWdlX3NpemUYAiABKAVCCbpIBhoEGGQoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBIkCg5hZnRlcl9zZXF1ZW5jZRgEIAEoA0IHukgEIgIoAEgAiAEBQhEKD19hZnRlcl9zZXF1ZW5jZSJuChFBY2Nlc3NIaXN0b3J5UGFnZRJACgdlbnRyaWVzGAEgAygLMi8uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFjY2Vzc0hpc3RvcnlFbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki5wMKEkFjY2Vzc0hpc3RvcnlFbnRyeRIQCghzZXF1ZW5jZRgBIAEoAxIvCgtvY2N1cnJlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOQoGY2hhbmdlGAMgASgOMikuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFjY2Vzc0NoYW5nZRI9CgVjYXVzZRgEIAEoDjIuLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BY2Nlc3NDaGFuZ2VDYXVzZRI+CgVhY3RvchgFIAEoCzIvLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZlZpZXcSEwoLYWN0b3JfY2xhc3MYBiABKAkSQgoJcHJpbmNpcGFsGAcgASgLMi8uYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLkFwaVJlc291cmNlUmVmVmlldxIzCgRyb2xlGAggASgLMiUuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLlJvbGVJbmZvEkYKCHJlc291cmNlGAkgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlKkcKDEFjY2Vzc0NoYW5nZRIdChlhY2Nlc3NfY2hhbmdlX3Vuc3BlY2lmaWVkEAASCwoHZ3JhbnRlZBABEgsKB3Jldm9rZWQQAirDAgoRQWNjZXNzQ2hhbmdlQ2F1c2USIwofYWNjZXNzX2NoYW5nZV9jYXVzZV91bnNwZWNpZmllZBAAEgkKBWdyYW50EAESCgoGcmV2b2tlEAISDgoKc3RydWN0dXJhbBADEh8KG29yZ2FuaXphdGlvbl9hY2Nlc3NfcmV2b2tlZBAEEhUKEWxlZnRfb3JnYW5pemF0aW9uEAUSFAoQcmVzb3VyY2VfZGVsZXRlZBAGEhgKFG9yZ2FuaXphdGlvbl9jcmVhdGVkEAcSEQoNZmlyc3Rfc2lnbl9pbhAIEhcKE3JvbGVfcmVjb25jaWxpYXRpb24QCRIWChJvcGVyYXRvcl9vd25lcnNoaXAQChIZChVwbGF0Zm9ybV9jbGllbnRfZ3JhbnQQCxIbChdzZXJ2aWNlX2FjY291bnRfY3JlYXRlZBAMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_spec, file_ai_stigmer_iam_identityaccount_v1_enum, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * ApiResourceRefView represents a reference to ANY API resource in the system
@@ -255,133 +255,6 @@ export const RevokeOrgAccessInputSchema: GenMessage<RevokeOrgAccessInput> = /*@_
   messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 5);
 
 /**
- * MoveOrgAccessInput names the account whose access moves, the account it
- * moves to, and the organization it moves inside.
- *
- * @generated from message ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput
- */
-export type MoveOrgAccessInput = Message<"ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput"> & {
-  /**
-   * The account whose access moves.
-   *
-   * @generated from field: string from_identity_account_id = 1;
-   */
-  fromIdentityAccountId: string;
-
-  /**
-   * The account the access moves to; empty only with preview_only.
-   *
-   * @generated from field: string to_identity_account_id = 2;
-   */
-  toIdentityAccountId: string;
-
-  /**
-   * The organization the access moves inside.
-   *
-   * @generated from field: string org = 3;
-   */
-  org: string;
-
-  /**
-   * Say what a move would do and write nothing.
-   *
-   * @generated from field: bool preview_only = 4;
-   */
-  previewOnly: boolean;
-};
-
-/**
- * Describes the message ai.stigmer.iam.iampolicy.v1.MoveOrgAccessInput.
- * Use `create(MoveOrgAccessInputSchema)` to create a new message.
- */
-export const MoveOrgAccessInputSchema: GenMessage<MoveOrgAccessInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 6);
-
-/**
- * MoveOrgAccessResult says what a move moved, or would move, and what
- * stops with the source account's departure from the organization.
- *
- * @generated from message ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
- */
-export type MoveOrgAccessResult = Message<"ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult"> & {
-  /**
-   * How many policies the target account was granted (or would be): the
-   * source account's policies inside the organization, and owner on each
-   * resource there the source account created.
-   *
-   * @generated from field: int32 moved_policies = 1;
-   */
-  movedPolicies: number;
-
-  /**
-   * The names of the secrets and the addresses of the connections in the
-   * source account's My vault in the organization, which the move deletes.
-   * Empty when it keeps none.
-   *
-   * @generated from field: repeated string my_vault_entries = 2;
-   */
-  myVaultEntries: string[];
-
-  /**
-   * The schedules, evaluators and evals the source account created in the
-   * organization. Each acts as its creator, so each stops with the move.
-   *
-   * @generated from field: repeated ai.stigmer.iam.iampolicy.v1.AccountAutomation automations = 3;
-   */
-  automations: AccountAutomation[];
-};
-
-/**
- * Describes the message ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult.
- * Use `create(MoveOrgAccessResultSchema)` to create a new message.
- */
-export const MoveOrgAccessResultSchema: GenMessage<MoveOrgAccessResult> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 7);
-
-/**
- * AccountAutomation is a resource that runs as the account that created
- * it: a schedule, an evaluator, a plugin eval or an agent eval.
- *
- * @generated from message ai.stigmer.iam.iampolicy.v1.AccountAutomation
- */
-export type AccountAutomation = Message<"ai.stigmer.iam.iampolicy.v1.AccountAutomation"> & {
-  /**
-   * The resource's kind, as an ApiResourceKind name (e.g. "schedule").
-   *
-   * @generated from field: string kind = 1;
-   */
-  kind: string;
-
-  /**
-   * The resource's id.
-   *
-   * @generated from field: string id = 2;
-   */
-  id: string;
-
-  /**
-   * The resource's slug, for a link to it.
-   *
-   * @generated from field: string slug = 3;
-   */
-  slug: string;
-
-  /**
-   * The resource's display name.
-   *
-   * @generated from field: string name = 4;
-   */
-  name: string;
-};
-
-/**
- * Describes the message ai.stigmer.iam.iampolicy.v1.AccountAutomation.
- * Use `create(AccountAutomationSchema)` to create a new message.
- */
-export const AccountAutomationSchema: GenMessage<AccountAutomation> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 8);
-
-/**
  * IamPoliciesList contains a list of IAM policy resources.
  *
  * @generated from message ai.stigmer.iam.iampolicy.v1.IamPoliciesList
@@ -400,7 +273,7 @@ export type IamPoliciesList = Message<"ai.stigmer.iam.iampolicy.v1.IamPoliciesLi
  * Use `create(IamPoliciesListSchema)` to create a new message.
  */
 export const IamPoliciesListSchema: GenMessage<IamPoliciesList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 9);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 6);
 
 /**
  * ListResourceAccessInput defines input for querying access grants on a resource.
@@ -428,7 +301,7 @@ export type ListResourceAccessInput = Message<"ai.stigmer.iam.iampolicy.v1.ListR
  * Use `create(ListResourceAccessInputSchema)` to create a new message.
  */
 export const ListResourceAccessInputSchema: GenMessage<ListResourceAccessInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 10);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 7);
 
 /**
  * ResourceAccessByPrincipalList groups access grants by principal, showing each
@@ -450,7 +323,7 @@ export type ResourceAccessByPrincipalList = Message<"ai.stigmer.iam.iampolicy.v1
  * Use `create(ResourceAccessByPrincipalListSchema)` to create a new message.
  */
 export const ResourceAccessByPrincipalListSchema: GenMessage<ResourceAccessByPrincipalList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 11);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 8);
 
 /**
  * PrincipalAccess represents a principal and all their role grants on a resource.
@@ -478,7 +351,7 @@ export type PrincipalAccess = Message<"ai.stigmer.iam.iampolicy.v1.PrincipalAcce
  * Use `create(PrincipalAccessSchema)` to create a new message.
  */
 export const PrincipalAccessSchema: GenMessage<PrincipalAccess> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 12);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 9);
 
 /**
  * RoleGrant represents a single role assignment with metadata.
@@ -513,7 +386,7 @@ export type RoleGrant = Message<"ai.stigmer.iam.iampolicy.v1.RoleGrant"> & {
  * Use `create(RoleGrantSchema)` to create a new message.
  */
 export const RoleGrantSchema: GenMessage<RoleGrant> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 13);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 10);
 
 /**
  * ResourceAccessByRoleList groups access grants by role, showing each role and
@@ -535,7 +408,7 @@ export type ResourceAccessByRoleList = Message<"ai.stigmer.iam.iampolicy.v1.Reso
  * Use `create(ResourceAccessByRoleListSchema)` to create a new message.
  */
 export const ResourceAccessByRoleListSchema: GenMessage<ResourceAccessByRoleList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 14);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 11);
 
 /**
  * RoleAccess represents a role and all principals that have it.
@@ -563,7 +436,7 @@ export type RoleAccess = Message<"ai.stigmer.iam.iampolicy.v1.RoleAccess"> & {
  * Use `create(RoleAccessSchema)` to create a new message.
  */
 export const RoleAccessSchema: GenMessage<RoleAccess> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 15);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 12);
 
 /**
  * RoleInfo contains basic information about an IAM role.
@@ -605,7 +478,7 @@ export type RoleInfo = Message<"ai.stigmer.iam.iampolicy.v1.RoleInfo"> & {
  * Use `create(RoleInfoSchema)` to create a new message.
  */
 export const RoleInfoSchema: GenMessage<RoleInfo> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 16);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 13);
 
 /**
  * PrincipalResourceRoles contains all roles a principal has on a specific resource.
@@ -626,7 +499,7 @@ export type PrincipalResourceRoles = Message<"ai.stigmer.iam.iampolicy.v1.Princi
  * Use `create(PrincipalResourceRolesSchema)` to create a new message.
  */
 export const PrincipalResourceRolesSchema: GenMessage<PrincipalResourceRoles> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 17);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 14);
 
 /**
  * CheckAuthorizationInput defines input for checking if a principal is authorized.
@@ -654,7 +527,7 @@ export type CheckAuthorizationInput = Message<"ai.stigmer.iam.iampolicy.v1.Check
  * Use `create(CheckAuthorizationInputSchema)` to create a new message.
  */
 export const CheckAuthorizationInputSchema: GenMessage<CheckAuthorizationInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 18);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 15);
 
 /**
  * CheckAuthorizationResult contains the result of an authorization check.
@@ -675,7 +548,7 @@ export type CheckAuthorizationResult = Message<"ai.stigmer.iam.iampolicy.v1.Chec
  * Use `create(CheckAuthorizationResultSchema)` to create a new message.
  */
 export const CheckAuthorizationResultSchema: GenMessage<CheckAuthorizationResult> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 19);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 16);
 
 /**
  * CheckMyPermissionInput defines input for checking whether the AUTHENTICATED
@@ -720,7 +593,7 @@ export type CheckMyPermissionInput = Message<"ai.stigmer.iam.iampolicy.v1.CheckM
  * Use `create(CheckMyPermissionInputSchema)` to create a new message.
  */
 export const CheckMyPermissionInputSchema: GenMessage<CheckMyPermissionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 20);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 17);
 
 /**
  * ListAuthorizedResourceIdsInput defines input for listing resources a principal can access.
@@ -762,7 +635,7 @@ export type ListAuthorizedResourceIdsInput = Message<"ai.stigmer.iam.iampolicy.v
  * Use `create(ListAuthorizedResourceIdsInputSchema)` to create a new message.
  */
 export const ListAuthorizedResourceIdsInputSchema: GenMessage<ListAuthorizedResourceIdsInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 21);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 18);
 
 /**
  * AuthorizedResourceIdsList contains all resource IDs a principal can access.
@@ -783,7 +656,7 @@ export type AuthorizedResourceIdsList = Message<"ai.stigmer.iam.iampolicy.v1.Aut
  * Use `create(AuthorizedResourceIdsListSchema)` to create a new message.
  */
 export const AuthorizedResourceIdsListSchema: GenMessage<AuthorizedResourceIdsList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 22);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 19);
 
 /**
  * ListAuthorizedPrincipalIdsInput defines input for listing principals that can access a resource.
@@ -825,7 +698,7 @@ export type ListAuthorizedPrincipalIdsInput = Message<"ai.stigmer.iam.iampolicy.
  * Use `create(ListAuthorizedPrincipalIdsInputSchema)` to create a new message.
  */
 export const ListAuthorizedPrincipalIdsInputSchema: GenMessage<ListAuthorizedPrincipalIdsInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 23);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 20);
 
 /**
  * AuthorizedPrincipalIdsList contains all principal IDs that can access a resource.
@@ -846,7 +719,7 @@ export type AuthorizedPrincipalIdsList = Message<"ai.stigmer.iam.iampolicy.v1.Au
  * Use `create(AuthorizedPrincipalIdsListSchema)` to create a new message.
  */
 export const AuthorizedPrincipalIdsListSchema: GenMessage<AuthorizedPrincipalIdsList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 24);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 21);
 
 /**
  * GetPrincipalsCountInput defines input for counting principals in an organization.
@@ -874,7 +747,7 @@ export type GetPrincipalsCountInput = Message<"ai.stigmer.iam.iampolicy.v1.GetPr
  * Use `create(GetPrincipalsCountInputSchema)` to create a new message.
  */
 export const GetPrincipalsCountInputSchema: GenMessage<GetPrincipalsCountInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 25);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 22);
 
 /**
  * PrincipalsCount contains the count of principals.
@@ -895,7 +768,7 @@ export type PrincipalsCount = Message<"ai.stigmer.iam.iampolicy.v1.PrincipalsCou
  * Use `create(PrincipalsCountSchema)` to create a new message.
  */
 export const PrincipalsCountSchema: GenMessage<PrincipalsCount> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 26);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 23);
 
 /**
  * ListAccessHistoryInput names the organization whose access history to
@@ -942,7 +815,7 @@ export type ListAccessHistoryInput = Message<"ai.stigmer.iam.iampolicy.v1.ListAc
  * Use `create(ListAccessHistoryInputSchema)` to create a new message.
  */
 export const ListAccessHistoryInputSchema: GenMessage<ListAccessHistoryInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 27);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 24);
 
 /**
  * AccessHistoryPage is one page of an organization's access history.
@@ -972,7 +845,7 @@ export type AccessHistoryPage = Message<"ai.stigmer.iam.iampolicy.v1.AccessHisto
  * Use `create(AccessHistoryPageSchema)` to create a new message.
  */
 export const AccessHistoryPageSchema: GenMessage<AccessHistoryPage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 28);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 25);
 
 /**
  * AccessHistoryEntry is one change to who has access to what: someone was
@@ -1061,7 +934,7 @@ export type AccessHistoryEntry = Message<"ai.stigmer.iam.iampolicy.v1.AccessHist
  * Use `create(AccessHistoryEntrySchema)` to create a new message.
  */
 export const AccessHistoryEntrySchema: GenMessage<AccessHistoryEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 29);
+  messageDesc(file_ai_stigmer_iam_iampolicy_v1_io, 26);
 
 /**
  * AccessChange says what happened to someone's access.

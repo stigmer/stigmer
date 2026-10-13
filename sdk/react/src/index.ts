@@ -1425,7 +1425,6 @@ export { MemorySection } from "./settings/index.js";
 export { VaultsSection } from "./settings/index.js";
 export { InvitationsSection } from "./settings/index.js";
 export { IdentityProvidersSection } from "./settings/index.js";
-export type { IdentityProvidersSectionProps } from "./settings/index.js";
 export { PlatformClientsSection } from "./settings/index.js";
 export { ServiceAccountsSection } from "./settings/index.js";
 export { TeamsSection } from "./settings/index.js";
@@ -1571,11 +1570,10 @@ export type {
   SlackChannelAppManifestInput,
 } from "./channel-app/index.js";
 
-// Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for IdP management and SSO discovery
+// Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for managing the platforms whose tokens an organization trusts
 export {
   useIdentityProviderList,
   useIdentityProvider,
-  useSsoProvider,
   useCreateIdentityProvider,
   useUpdateIdentityProvider,
   useDeleteIdentityProvider,
@@ -1586,22 +1584,10 @@ export {
   ProviderPicker,
   IdentityProviderWizard,
   IdentityProviderDetailPanel,
-  SsoLoginPrompt,
-  SSO_REQUIRED,
-  ssoRequirementOf,
-  usePreviewSsoRequirement,
-  useCreateAccessMove,
-  useRedeemAccessMove,
-  remakeable,
-  useRemakeAutomation,
-  AccessMoveSummary,
-  SsoRequiredNotice,
-  SsoRequirementSection,
 } from "./identity-provider/index.js";
 export type {
   UseIdentityProviderListReturn,
   UseIdentityProviderReturn,
-  UseSsoProviderReturn,
   UseCreateIdentityProviderReturn,
   UseUpdateIdentityProviderReturn,
   UseDeleteIdentityProviderReturn,
@@ -1613,15 +1599,6 @@ export type {
   ProviderPickerProps,
   IdentityProviderWizardProps,
   IdentityProviderDetailPanelProps,
-  SsoLoginPromptProps,
-  SsoRequirement,
-  UsePreviewSsoRequirementReturn,
-  UseCreateAccessMoveReturn,
-  UseRedeemAccessMoveReturn,
-  UseRemakeAutomationReturn,
-  AccessMoveSummaryProps,
-  SsoRequiredNoticeProps,
-  SsoRequirementSectionProps,
 } from "./identity-provider/index.js";
 
 // Teams — an organization's named groups of people that access is shared

@@ -7,8 +7,7 @@ import { FEATURE_COPY, isNamedFeature } from "../internal/features.js";
 
 /**
  * The reason Stigmer Cloud refuses an act the organization's plan does not
- * include (iam/team/v1, tenancy/organization/v1 and iam/identityprovider/v1
- * command.proto).
+ * include (iam/team/v1 and tenancy/organization/v1 command.proto).
  */
 export const PLAN_UPGRADE_REQUIRED = "PLAN_UPGRADE_REQUIRED";
 
@@ -20,7 +19,6 @@ const FEATURE_BY_WIRE_NAME: Readonly<Record<string, Feature>> = {
   teams: Feature.teams,
   child_orgs: Feature.child_orgs,
   access_history: Feature.access_history,
-  sso_enforcement: Feature.sso_enforcement,
 };
 
 /**

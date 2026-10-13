@@ -32,7 +32,7 @@ export interface UseCreateIdentityProviderReturn {
  * const { create, isCreating, error } = useCreateIdentityProvider();
  *
  * const idp = await create({
- *   name: "Acme Corp SSO",
+ *   name: "Acme Platform",
  *   org: "acme",
  *   jwksUri: "https://acme.us.auth0.com/.well-known/jwks.json",
  *   allowedIssuers: ["https://acme.us.auth0.com/"],

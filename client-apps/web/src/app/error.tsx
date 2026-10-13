@@ -8,9 +8,7 @@ import {
   getUserMessage,
   type ErrorCategory,
 } from "@stigmer/sdk";
-import { ssoRequirementOf } from "@stigmer/react";
 import { Button } from "@/domain/_shared/ui/button";
-import { SsoRequiredError } from "@/domain/access-move/SsoRequiredError";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -35,12 +33,6 @@ export default function RootError({ error, reset }: ErrorPageProps) {
   useEffect(() => {
     console.error("[RootErrorBoundary]", error);
   }, [error]);
-
-  // An organization that requires sign-in through its SSO provider says
-  // how to get in, rather than a bare "Access denied".
-  if (ssoRequirementOf(error) !== null) {
-    return <SsoRequiredError error={error} />;
-  }
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">

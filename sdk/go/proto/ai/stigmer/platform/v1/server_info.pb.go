@@ -54,9 +54,9 @@ const (
 	// Serves every resource, including cloud_only.
 	ServerEdition_cloud ServerEdition = 2
 	// Stigmer Enterprise, the self-hosted paid edition: the open-source
-	// core plus the Enterprise units (many organizations, SSO, fine-grained
-	// authorization, audit). Serves open_source- and enterprise-tier
-	// resources.
+	// core plus the Enterprise units (many organizations, federation with
+	// other platforms, fine-grained authorization, audit). Serves
+	// open_source- and enterprise-tier resources.
 	ServerEdition_enterprise ServerEdition = 3
 )
 

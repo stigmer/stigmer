@@ -49,4 +49,12 @@ describe("UpgradeNotice", () => {
     expect(screen.getByText("Teams are not included in this organization's plan.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View plans" }).getAttribute("href")).toBe("/settings/billing");
   });
+
+  it("agrees its verb with a singular feature and with a feature it does not name", () => {
+    render(<UpgradeNotice feature={Feature.sharing} unlockingPlanName="Team" />);
+    expect(screen.getByText("Sharing needs the Team plan or above.")).toBeTruthy();
+    cleanup();
+    render(<UpgradeNotice feature={Feature.sso_enforcement} />);
+    expect(screen.getByText("This feature is not included in this organization's plan.")).toBeTruthy();
+  });
 });

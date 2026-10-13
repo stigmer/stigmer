@@ -75,7 +75,6 @@ import type { GradingCallerMint } from "./grading-caller.js";
 import type { PluginEvalCallerMint } from "./plugin-eval-caller.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
-import type { OrganizationSignInRule } from "./organization-sign-in-rule.js";
 import type { RunLanes } from "./run-lanes.js";
 import { BUILT_IN_SANDBOX_PROVISIONER_TYPES } from "../sandbox/provisioner.js";
 import type { WorkerFactory } from "../temporal/manager.js";
@@ -410,11 +409,6 @@ export interface ResolvedExtensionDrivers {
    */
   readonly runLanes: RunLanes | undefined;
   /**
-   * The organization sign-in rule — undefined = no organization requires
-   * anything of how its people signed in.
-   */
-  readonly organizationSignInRule: OrganizationSignInRule | undefined;
-  /**
    * Kind → the reader of that kind's rows (extensions/resource-row-reader.ts),
    * validated against the kinds open source keeps itself. Empty = the
    * built-in authorizer reads every row from the generic Store and identity
@@ -504,8 +498,6 @@ export function resolveExtensions(
   let visitorClassifierDeclaredBy: string | undefined;
   let runLanes: RunLanes | undefined;
   let runLanesDeclaredBy: string | undefined;
-  let organizationSignInRule: OrganizationSignInRule | undefined;
-  let organizationSignInRuleDeclaredBy: string | undefined;
   const artifactStorageDrivers = new Map<
     string,
     ArtifactStorageDriverFactory
@@ -824,16 +816,6 @@ export function resolveExtensions(
       runLanesDeclaredBy = unit.name;
     }
 
-    if (unit.drivers?.organizationSignInRule !== undefined) {
-      if (organizationSignInRuleDeclaredBy !== undefined) {
-        throw new Error(
-          `extension '${unit.name}' registers an OrganizationSignInRule, but '${organizationSignInRuleDeclaredBy}' already did — exactly one may be composed`,
-        );
-      }
-      organizationSignInRule = unit.drivers.organizationSignInRule;
-      organizationSignInRuleDeclaredBy = unit.name;
-    }
-
     if (unit.drivers?.artifactStorageDrivers !== undefined) {
       for (const [name, factory] of unit.drivers.artifactStorageDrivers) {
         if ((BUILT_IN_STORAGE_TYPES as ReadonlyArray<string>).includes(name)) {
@@ -1043,7 +1025,6 @@ export function resolveExtensions(
       guestTokenMinting,
       visitorClassifier,
       runLanes,
-      organizationSignInRule,
       resourceRowReaders,
     },
     services,

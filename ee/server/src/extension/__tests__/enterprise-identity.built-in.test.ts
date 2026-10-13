@@ -19,10 +19,9 @@
  *     link and no owner row; its organization's admins read it by id, by
  *     name and in the list, and its members, viewers and outsiders do not;
  *     an admin who did not create it edits it, a member does not; its
- *     creator demoted below admin cannot edit it, and restored can; SSO
- *     discovery answers without a token while every other read refuses an
- *     unauthenticated caller; an organization's delete removes its
- *     providers;
+ *     creator demoted below admin cannot edit it, and restored can; every
+ *     read refuses an unauthenticated caller; an organization's delete
+ *     removes its providers;
  *   - invitations: its organization's admins read and list it, token
  *     included; a viewer can do neither, and cannot revoke one; a valid
  *     single-use link redeems once for a person outside the organization;
@@ -116,7 +115,6 @@ import {
 import { InMemoryTeamStore } from "../../iam/team/__tests__/in-memory-team-store.js";
 import { inMemorySignInGrants } from "../../iam/federation/__tests__/in-memory-sign-in-grants.js";
 import { newEnterpriseIdentityExtension } from "../enterprise-identity.js";
-import { newInMemoryTicketStore } from "../../iam/access-move/__tests__/in-memory-ticket-store.js";
 
 const ACME = "acme";
 const GLOBEX = "globex";
@@ -265,7 +263,6 @@ describe("the Enterprise identity unit on open source's own authorization (compo
     name: string,
     org: string,
     admin: string,
-    sso?: { audience: string },
   ): Promise<string> {
     const issuer = `https://${name.toLowerCase().replaceAll(" ", "-")}.${org}.test`;
     const provider = await createClient(IdentityProviderCommandController, as(admin)).create({
@@ -275,15 +272,7 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       spec: {
         displayName: name,
         ...publishedIssuer(issuer),
-        expectedAudience: sso?.audience ?? `${issuer}/stigmer`,
-        ...(sso === undefined
-          ? {}
-          : {
-              isSsoProvider: true,
-              oidcClientId: `${org}-client`,
-              createAccountsOnSignIn: true,
-              signInRole: IamRole.viewer,
-            }),
+        expectedAudience: `${issuer}/stigmer`,
       },
     });
     return provider.metadata?.id ?? "";
@@ -367,7 +356,6 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       teams,
       invitations,
       signInGrants: inMemorySignInGrants(),
-      accessMoves: newInMemoryTicketStore(),
       accounts: noFederatedAccounts,
       schema: { ensure: () => Promise.resolve() },
       outboundFetch: guardedFetch(strictEgressPolicy(), {
@@ -500,18 +488,14 @@ describe("the Enterprise identity unit on open source's own authorization (compo
       );
     });
 
-    it("SSO discovery answers without a token, with the audience; every other provider read refuses an unauthenticated caller", async () => {
-      await createProvider("Acme SSO", ACME, CAROL, { audience: "https://api.acme.test" });
+    it("every provider read refuses an unauthenticated caller", async () => {
+      await createProvider("Acme Partner", ACME, CAROL);
       const tokenless = createClient(IdentityProviderQueryController, transport());
 
-      const info = await tokenless.getSsoProvider({ org: ACME });
-      expect(info.oidcClientId).toBe("acme-client");
-      expect(info.issuer).toBe("https://acme-sso.acme.test");
-      expect(info.expectedAudience).toBe("https://api.acme.test");
-      expect((await refusalOf(tokenless.getSsoProvider({ org: GLOBEX }))).code).toBe(Code.NotFound);
-      expect((await refusalOf(tokenless.getByReference({ org: ACME, slug: "acme-sso" }))).code).toBe(
+      expect((await refusalOf(tokenless.getByReference({ org: ACME, slug: "acme-partner" }))).code).toBe(
         Code.Unauthenticated,
       );
+      expect((await refusalOf(tokenless.listByOrg({ org: ACME }))).code).toBe(Code.Unauthenticated);
       expect((await refusalOf(tokenless.get({ value: providerId }))).code).toBe(Code.Unauthenticated);
     });
 

@@ -12,7 +12,7 @@
  *     no route;
  *   - a unique violation that is no claim (the id's primary key) is not
  *     misread as one: it fails as the fault it is;
- *   - replace rewrites the payload, the SSO flag and the route claims and
+ *   - replace rewrites the payload and the route claims and
  *     keeps the lookup columns; a claimed route rolls the whole replace
  *     back; a row that is gone is `missing`, and nothing is written;
  *   - findByOrg is newest first, findIdsByOrg every one; deleteById
@@ -145,7 +145,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     expect((await store.findByOrg("acme")).map((held) => held.metadata?.slug)).not.toContain("dup-2");
   });
 
-  it("swaps the payload, the SSO flag and the route claims, keeps the lookup columns, and refuses a slug change", async () => {
+  it("swaps the payload and the route claims, keeps the lookup columns, and refuses a slug change", async () => {
     const provider = storedProvider({
       id: "idp_rp",
       org: "acme",
@@ -160,8 +160,6 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     const changed = clone(IdentityProviderSchema, provider);
     changed.metadata!.name = "After";
     changed.spec!.allowedIssuers = ["https://after.test"];
-    changed.spec!.isSsoProvider = true;
-    changed.spec!.oidcClientId = "client";
 
     expect(await swapOnCurrent(changed)).toEqual({ kind: "replaced" });
     expect((await store.findById("idp_rp"))?.metadata?.name).toBe("After");
@@ -170,7 +168,6 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
       ["idp_rp"],
     );
     expect(columns.rows, "the lookup columns are kept").toEqual([{ org: "acme", slug: "rp" }]);
-    expect((await store.findSsoProviderByOrg("acme"))?.metadata?.id).toBe("idp_rp");
     expect(await store.findProviderIdByRoute("https://after.test", AUDIENCE)).toBe("idp_rp");
     expect(await store.findProviderIdByRoute("https://before.test", AUDIENCE)).toBeUndefined();
   });

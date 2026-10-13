@@ -36,6 +36,16 @@ public enum PeriodEstimateLineKind
    * <code>child_orgs = 3;</code>
    */
   child_orgs(3),
+  /**
+   * <pre>
+   * The working agent hours beyond those the plan includes, at the plan's
+   * hourly price; the period's allowance is prorated when the period is
+   * cut short.
+   * </pre>
+   *
+   * <code>agent_hours = 4;</code>
+   */
+  agent_hours(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -69,6 +79,16 @@ public enum PeriodEstimateLineKind
    * <code>child_orgs = 3;</code>
    */
   public static final int child_orgs_VALUE = 3;
+  /**
+   * <pre>
+   * The working agent hours beyond those the plan includes, at the plan's
+   * hourly price; the period's allowance is prorated when the period is
+   * cut short.
+   * </pre>
+   *
+   * <code>agent_hours = 4;</code>
+   */
+  public static final int agent_hours_VALUE = 4;
 
 
   public final int getNumber() {
@@ -98,6 +118,7 @@ public enum PeriodEstimateLineKind
       case 0: return period_estimate_line_kind_unspecified;
       case 1: return plan;
       case 3: return child_orgs;
+      case 4: return agent_hours;
       default: return null;
     }
   }

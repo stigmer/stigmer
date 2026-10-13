@@ -234,7 +234,7 @@ enum IamPermission {
 
   // 46 was can_manage_credits, the platform grant to add or remove an
   // organization's prepaid credit by hand. Runs use the organization's own
-  // provider keys and plans are invoiced as flat fees, so no organization
+  // provider keys and plans are invoiced in arrears, so no organization
   // holds credit; the number and the name are reserved so neither is ever
   // reused for a different permission.
   reserved 46;

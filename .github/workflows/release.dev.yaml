@@ -18,7 +18,10 @@ name: release.dev
 #                   public npm (never touches `latest`/`next`); the version
 #                   names the commit it was built from.
 #       * PyPI   -> `X.Y.Z.dev<N>` to TestPyPI (the purpose-built throwaway PyPI).
-#       * Docker -> `ghcr.io/stigmer/mcp-server-stigmer:dev-<sha>` on GHCR.
+#       * Docker -> `ghcr.io/stigmer/mcp-server-stigmer:dev-<sha>` on GHCR;
+#                   with npm, the sandbox runner images at the npm version,
+#                   `ghcr.io/stigmer/runner:v<npm version>` (and runner-layer,
+#                   runner-base), before the server that launches them.
 #   - Consumers configure each channel ONCE; thereafter switching a dev<->prod
 #     dependency is only a version-string change (see the consumer doc).
 #   - Go SDK and the Rust crate have no dev publish step: their native dev
@@ -329,6 +332,23 @@ jobs:
           done
           cd dist-slim-pkgs/runner-slim && npm publish --access public --tag dev
 
+  # The sandbox runner images of this build (release.runner-images.yaml, the
+  # lane release.sandbox-cloud runs for main and the release tags), tagged
+  # v<npm version> after the in-image smoke: a composition that selects its
+  # runner by its pin (the cloud's runnerImageFor) finds it by the version it
+  # pins, so it names no image by hand. Never latest or prod, and the layer is a development
+  # layer (a dev server sends no release). Read and write packages only:
+  # the lane's failure notice stays with release.sandbox-cloud.
+  publish-runner-image:
+    needs: determine-version
+    if: contains(needs.determine-version.outputs.targets, 'npm')
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/release.runner-images.yaml
+    with:
+      dev_version: ${{ needs.determine-version.outputs.npm_version }}
+
   # @stigmer/server as a library — the dev twin of release.npm-libs.yaml's
   # publish-server. This is the lane a cross-repo seam change rides: once the
   # OSS pull request has merged, dispatch this workflow on `main`, and the
@@ -336,9 +356,12 @@ jobs:
   # merges on it (the cloud is expected to refuse a commit not on `main`).
   # Same publish-standalone.mjs sequence as production; the consumer-install
   # smoke boots the staged install against a Temporal dev server and requires
-  # every worker to start.
+  # every worker to start. It waits for this build's runner image, so a
+  # server version on npm always has its runner (about two minutes: the
+  # runner lane ends shortly after publish-npm, which the server waits for
+  # anyway).
   publish-npm-server:
-    needs: [determine-version, publish-npm]
+    needs: [determine-version, publish-npm, publish-runner-image]
     if: contains(needs.determine-version.outputs.targets, 'npm')
     runs-on: ubuntu-latest
     steps:
@@ -643,7 +666,7 @@ jobs:
   # copy-paste block the other developer uses to upgrade their references.
   # ---------------------------------------------------------------------------
   summary:
-    needs: [determine-version, publish-maven, publish-npm, publish-npm-runner, publish-npm-server, publish-npm-enterprise, publish-python-protos, publish-python-sdk, publish-mcp]
+    needs: [determine-version, publish-maven, publish-npm, publish-runner-image, publish-npm-runner, publish-npm-server, publish-npm-enterprise, publish-python-protos, publish-python-sdk, publish-mcp]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -657,6 +680,8 @@ jobs:
           DOCKER_TAG: ${{ needs.determine-version.outputs.docker_tag }}
           SHORT_SHA: ${{ needs.determine-version.outputs.short_sha }}
           REF_NAME: ${{ github.ref_name }}
+          RUNNER_RESULT: ${{ needs.publish-runner-image.result }}
+          SERVER_RESULT: ${{ needs.publish-npm-server.result }}
         run: |
           {
             echo "# Stigmer dev build published"
@@ -686,11 +711,27 @@ jobs:
               echo '```'
               echo "The \`dev\` dist-tag always resolves to the newest dev build."
               echo ""
+              echo "## Sandbox runner images (GHCR)"
+              if [ "$RUNNER_RESULT" = "success" ]; then
+                echo '```text'
+                echo "ghcr.io/stigmer/runner:v$NPM_VERSION         (linux/amd64)"
+                echo "ghcr.io/stigmer/runner-layer:v$NPM_VERSION   (linux/amd64, linux/arm64)"
+                echo "ghcr.io/stigmer/runner-base:v$NPM_VERSION    (linux/amd64, linux/arm64)"
+                echo '```'
+                echo "Booted in the image before publishing. A composition that selects its runner by its pin launches \`runner:v$NPM_VERSION\`; the open-source server itself follows \`latest\` on a dev version."
+              else
+                echo "Not published (\`publish-runner-image\`: $RUNNER_RESULT)."
+              fi
+              echo ""
               echo "## npm (@stigmer/server library — a composition's pin)"
-              echo '```json'
-              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
-              echo '```'
-              echo "Exact versions, all equal. Built from \`main\`, this is a build a composition may merge on; built from a branch, its commit is not on \`main\`, so it is for trying, not for merging."
+              if [ "$SERVER_RESULT" = "success" ]; then
+                echo '```json'
+                echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/protos\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
+                echo '```'
+                echo "Exact versions, all equal. Built from \`main\`, this is a build a composition may merge on; built from a branch, its commit is not on \`main\`, so it is for trying, not for merging."
+              else
+                echo "Not pinnable: \`@stigmer/server@$NPM_VERSION\` was not published (\`publish-npm-server\`: $SERVER_RESULT; it waits for the runner images, \`publish-runner-image\`: $RUNNER_RESULT)."
+              fi
               echo ""
             fi
 

@@ -8,7 +8,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IamPolicySchema, type IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
-import { IamPolicyIdSchema, RevokeOrgAccessInputSchema, MoveOrgAccessInputSchema, MoveOrgAccessResultSchema, CheckMyPermissionInputSchema, CheckAuthorizationResultSchema, CheckAuthorizationInputSchema, ListAuthorizedResourceIdsInputSchema, AuthorizedResourceIdsListSchema, ListAuthorizedPrincipalIdsInputSchema, AuthorizedPrincipalIdsListSchema, ListResourceAccessInputSchema, ResourceAccessByPrincipalListSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, GetPrincipalsCountInputSchema, PrincipalsCountSchema, ListAccessHistoryInputSchema, AccessHistoryPageSchema, type RevokeOrgAccessInput, type MoveOrgAccessInput, type MoveOrgAccessResult, type CheckMyPermissionInput, type CheckAuthorizationResult, type CheckAuthorizationInput, type ListAuthorizedResourceIdsInput, type AuthorizedResourceIdsList, type ListAuthorizedPrincipalIdsInput, type AuthorizedPrincipalIdsList, type ListResourceAccessInput, type ResourceAccessByPrincipalList, type PrincipalResourceInput, type PrincipalResourceRoles, type GetPrincipalsCountInput, type PrincipalsCount, type ListAccessHistoryInput, type AccessHistoryPage } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
+import { IamPolicyIdSchema, RevokeOrgAccessInputSchema, CheckMyPermissionInputSchema, CheckAuthorizationResultSchema, CheckAuthorizationInputSchema, ListAuthorizedResourceIdsInputSchema, AuthorizedResourceIdsListSchema, ListAuthorizedPrincipalIdsInputSchema, AuthorizedPrincipalIdsListSchema, ListResourceAccessInputSchema, ResourceAccessByPrincipalListSchema, PrincipalResourceInputSchema, PrincipalResourceRolesSchema, GetPrincipalsCountInputSchema, PrincipalsCountSchema, ListAccessHistoryInputSchema, AccessHistoryPageSchema, type RevokeOrgAccessInput, type CheckMyPermissionInput, type CheckAuthorizationResult, type CheckAuthorizationInput, type ListAuthorizedResourceIdsInput, type AuthorizedResourceIdsList, type ListAuthorizedPrincipalIdsInput, type AuthorizedPrincipalIdsList, type ListResourceAccessInput, type ResourceAccessByPrincipalList, type PrincipalResourceInput, type PrincipalResourceRoles, type GetPrincipalsCountInput, type PrincipalsCount, type ListAccessHistoryInput, type AccessHistoryPage } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { IamPolicyQueryController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/query_pb";
 import { ApiResourceRefSchema, IamPolicySpecSchema, type IamPolicySpec, type ApiResourceRef } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
@@ -55,12 +55,6 @@ export class IamPolicyClient {
   async bootstrapRevokeOrgAccess(input: RevokeOrgAccessInput): Promise<void> {
     try {
       await this.command.bootstrapRevokeOrgAccess(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async bootstrapMoveOrgAccess(input: MoveOrgAccessInput): Promise<MoveOrgAccessResult> {
-    try {
-      return await this.command.bootstrapMoveOrgAccess(input);
     } catch (e) { throw wrapError(e); }
   }
 

@@ -6,13 +6,13 @@
 // InvitationRedemption; what this shell owns, and this suite pins, is:
 //
 //   - disabled auth: the visitor counts as signed in, with no token;
-//   - OIDC: the UserManager is built for the SSO issuer only when a valid SSO
-//     session is stored, else for the configured issuer; an unexpired user's
-//     token is what the page's client sends; an expired user is signed out;
+//   - OIDC: the UserManager is built for the configured issuer; an unexpired
+//     user's token is what the page's client sends; an expired user is
+//     signed out;
 //   - the auto-accept flag written before the sign-in redirect is consumed
 //     exactly once, on the return with a live session;
 //   - "sign in to accept" stores the way back and the flag, and redirects
-//     through the right issuer; an accepted invitation lands in its org.
+//     through the configured issuer; an accepted invitation lands in its org.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -23,7 +23,6 @@ import type { OidcConfig } from "@/auth/oidc/types";
 
 const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 const AUTO_ACCEPT_KEY = "stigmer:invite:auto_accept";
-const SSO_SESSION_KEY = "stigmer:sso:session";
 
 const CONFIGURED: OidcConfig = {
   issuer: "https://auth.example.com/",
@@ -168,47 +167,11 @@ describe("InvitePageClient", () => {
       authConfig.value = { mode: "oidc", oidc: CONFIGURED };
     });
 
-    it("starts signed out and builds the manager for the configured issuer when no SSO session is stored", async () => {
+    it("starts signed out and builds the manager for the configured issuer", async () => {
       render(<InvitePageClient />);
 
       expect(latest().isAuthenticated).toBe(false);
       await waitFor(() => expect(oidc.built).toEqual([CONFIGURED]));
-    });
-
-    it("builds the manager for the stored SSO issuer when the SSO session is valid", async () => {
-      sessionStorage.setItem(
-        SSO_SESSION_KEY,
-        JSON.stringify({
-          issuer: "https://sso.acme.example/",
-          clientId: "acme-client",
-          audience: "https://api.example.com/",
-          org: "acme",
-        }),
-      );
-      render(<InvitePageClient />);
-
-      await waitFor(() =>
-        expect(oidc.built.at(-1)).toEqual({
-          issuer: "https://sso.acme.example/",
-          clientId: "acme-client",
-          audience: "https://api.example.com/",
-        }),
-      );
-    });
-
-    it("ignores an invalid SSO session and uses the configured issuer", async () => {
-      sessionStorage.setItem(
-        SSO_SESSION_KEY,
-        JSON.stringify({
-          issuer: "https://sso.acme.example/",
-          clientId: "acme-client",
-          audience: "",
-          org: "",
-        }),
-      );
-      render(<InvitePageClient />);
-
-      await waitFor(() => expect(oidc.built.at(-1)).toEqual(CONFIGURED));
     });
 
     it("signs in an unexpired user and sends their token", async () => {

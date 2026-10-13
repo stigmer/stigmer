@@ -602,12 +602,9 @@ describe("toIdentityProviderInput", () => {
         allowedIssuers: ["https://acme.okta.example"],
         expectedAudience: "stigmer",
         userinfoEndpoint: "https://acme.okta.example/userinfo",
-        isSsoProvider: true,
-        oidcClientId: "oidc-123",
         externalIdClaim: "org_slug",
         createAccountsOnSignIn: true,
         signInRole: IamRole.admin,
-        ssoRequired: true,
       },
     });
 

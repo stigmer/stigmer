@@ -153,9 +153,11 @@ export enum Feature {
   feature_unspecified = 0,
 
   /**
-   * Enforcing sign-in through a registered identity provider, so members
-   * cannot use another login. The identity-provider kind is Enterprise and
-   * Cloud; this feature is what a plan or license turns on for it.
+   * No longer used: gates nothing. It enforced sign-in through an
+   * organization's single sign-on provider, and Stigmer has no single
+   * sign-on of its own. It stays because plans and licenses already issued
+   * carry it and an enum value is a wire identifier. A new plan or license
+   * does not list it.
    *
    * @generated from enum value: sso_enforcement = 1;
    */

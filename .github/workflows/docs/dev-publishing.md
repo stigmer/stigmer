@@ -54,6 +54,8 @@ setup (below), switching a dependency between a dev build and a prod release is
    - Python → **TestPyPI**, the throwaway PyPI.
    - Go / Rust → a **git ref** (no publish step at all).
    - MCP server → a `dev-<sha>` **Docker tag** on GHCR.
+   - Sandbox runner → a `v<npm version>` **Docker tag** on GHCR, published with
+     npm and before the server, by the workflow only.
 
 3. **One-time consumer setup, then version-string-only switching.** For Maven and
    Python the dev channel lives at a different URL than the prod channel, so the
@@ -82,6 +84,7 @@ suffix it expects:
 | npm | `X.Y.Z-dev.<UTCstamp>.g<sha12>` under tag `dev` | Unique per publish; `@dev` always resolves the newest. `g<sha12>` is the first 12 characters of the commit the build came from; the local lane writes it only from a clean tree (`scripts/lib/dev-version.mjs`). |
 | Python | `X.Y.Z.dev<epoch>` on TestPyPI | PEP 440 dev release. |
 | Docker | `:dev-<shortsha>` (and a moving `:dev`) | On GHCR. |
+| Sandbox runner | `runner:v<npm version>`, `runner-layer:v<npm version>`, `runner-base:v<npm version>` | On GHCR, from the workflow's npm target only, after the image's smoke. Never `latest`; the layer is a development layer (empty `/runner/RELEASE`). |
 
 ---
 
@@ -219,8 +222,8 @@ full `3.0.1-dev.<stamp>.g<sha12>` version from the run summary.
 **`@stigmer/server` (the library a composition pins).** A composition that pins the library at an exact release has three ways to run against an unreleased server change, fastest first:
 
 1. **No publish at all: `make stage-server-library`.** It packs the server, the `@stigmer/*` libraries it links and `@stigmer/enterprise` (`ee/server`, built against that server) from your working tree, at one `0.0.0-local.<stamp>` version, into `backend/services/stigmer-server/stage/library` (`out=<dir>` moves it). The consumer installs every tarball in one `npm install --no-save <dir>/pkgs/*.tgz`, which changes neither its `package.json` nor its lockfile; its next `npm ci` puts the pinned release back. This is the everyday loop: minutes from an edit to the consumer's own suite, and nothing leaves your machine. `npm link` is not a substitute: a linked package resolves its dependencies from this repository's `node_modules`, which gives the consumer a second copy of every package the server declares in `stigmerPublish.consumerCheck.singleCopy`.
-2. **A dev build from your working tree: `make publish-dev-local targets=npm`.** It publishes `@stigmer/server` with the libs and the runner, through the same `scripts/publish-standalone.mjs` sequence as the workflow, consumer smoke included (it needs the `temporal` CLI, and uses a Temporal already answering on `127.0.0.1:7233` or starts a dev server for the step). Use it when another machine or session must install the build.
-3. **A dev build of a pushed commit: dispatch this workflow** (`targets=npm`), when the build must trace to a commit. Dispatched on `main` once the OSS pull request has merged, it is the build the cloud composition merges on.
+2. **A dev build from your working tree: `make publish-dev-local targets=npm`.** It publishes `@stigmer/server` with the libs and the runner, through the same `scripts/publish-standalone.mjs` sequence as the workflow, consumer smoke included (it needs the `temporal` CLI, and uses a Temporal already answering on `127.0.0.1:7233` or starts a dev server for the step). Use it when another machine or session must install the build. It builds no sandbox runner image, so a composition that launches sandboxes finds no `runner:v<version>` for it.
+3. **A dev build of a pushed commit: dispatch this workflow** (`targets=npm`), when the build must trace to a commit. Dispatched on `main` once the OSS pull request has merged, it is the build the cloud composition merges on. Its npm target also publishes the sandbox runner images at the same version (`ghcr.io/stigmer/runner:v<version>`, with `runner-layer` and `runner-base`), smoke-tested in the image, and publishes `@stigmer/server` only after them: a server pinned from this lane always has its runner, for a composition that selects the runner by its pin.
 
 **`@stigmer/enterprise` (Stigmer Enterprise, `ee/server`).** The workflow's npm target publishes it after the server, at the same dev version, through `publish-npm-enterprise` (the dev twin of the release's `publish-enterprise`), so the run summary's pin line names it beside `@stigmer/server`. A composition that runs Enterprise pins it at that one version with every other `@stigmer/*` package. `make publish-dev-local` does not publish it.
 
@@ -278,6 +281,14 @@ stigmer-runner-host = { git = "https://github.com/stigmer/stigmer", branch = "my
 docker pull ghcr.io/stigmer/mcp-server-stigmer:dev-<sha>
 ```
 
+### Sandbox runner (Docker)
+
+A composition that selects its runner by its pin (the cloud's does: `runner:v<pinned version>`) needs nothing more. The open-source server itself still launches `runner:latest` for a dev-channel version, because it cannot tell a workflow build from a local one. To pull one by hand:
+
+```bash
+docker pull ghcr.io/stigmer/runner:v3.0.1-dev.<stamp>.g<sha12>
+```
+
 ---
 
 ## Infrastructure prerequisites
@@ -314,9 +325,9 @@ One-time account/secret setup. There are **two credential planes**:
 - CI: reuses the existing `NPM_TOKEN` GitHub secret.
 - Local: uses the `npm-token` Planton secret.
 
-### GHCR (MCP Docker)
+### GHCR (MCP Docker, sandbox runner)
 
-- CI: uses the workflow's `GITHUB_TOKEN`.
+- CI: uses the workflow's `GITHUB_TOKEN` (the runner images: `packages: write` on `publish-runner-image`).
 - Local: uses the existing `ghcr-stigmer-pat` Planton secret.
 
 ### Planton CLI (local path only)
@@ -330,8 +341,9 @@ guard.
 
 ## What's intentionally out of scope
 
-- **Desktop installers, the website, and the cloud sandbox image** are apps /
-  deployables, not dependencies another developer references, so they have no dev
-  channel here.
+- **Desktop installers and the website** are apps / deployables, not
+  dependencies another developer references, so they have no dev channel here.
+  The sandbox runner images do: a composition that selects its runner by
+  its pin launches the runner of that version.
 - **Signing / provenance / lockstep** are production-release concerns. Dev builds
   are explicitly throwaway and skip them for speed.

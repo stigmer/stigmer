@@ -38,6 +38,20 @@ breaking:
   # This block exists for that one pull request. While it stays, buf
   # breaking does not report these rules on the listed files, so the pull
   # request that removes it lands straight after the merge (#2241).
+  #
+  # One pull request removes Stigmer's own single sign-on: company sign-in
+  # is the identity providers' job, and an IdentityProvider is trust in
+  # another platform's tokens. It deletes getSsoProvider and
+  # previewSsoRequirement from IdentityProviderQueryController,
+  # createAccessMove and redeemAccessMove from
+  # IdentityProviderCommandController, bootstrapMoveOrgAccess from
+  # IamPolicyCommandController, their messages, and IdentityProviderSpec's
+  # is_sso_provider, oidc_client_id and sso_required, whose numbers and names
+  # are reserved. It is made before launch: the release notes name the
+  # change under Upgrading. This block exists for that one pull request.
+  # While it stays, buf breaking does not report these rules on the listed
+  # files, so the pull request that removes it lands straight after the
+  # merge (#2259).
   ignore_only:
     RPC_SAME_REQUEST_TYPE:
       - ai/stigmer/agentic/agent/v1/command.proto
@@ -58,5 +72,13 @@ breaking:
       - ai/stigmer/iam/platformclient/v1/command.proto
       - ai/stigmer/iam/team/v1/command.proto
       - ai/stigmer/tenancy/organization/v1/command.proto
+    RPC_NO_DELETE:
+      - ai/stigmer/iam/iampolicy/v1/command.proto
+      - ai/stigmer/iam/identityprovider/v1/command.proto
+      - ai/stigmer/iam/identityprovider/v1/query.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/iam/iampolicy/v1/io.proto
+      - ai/stigmer/iam/identityprovider/v1/io.proto
     FIELD_NO_DELETE:
       - ai/stigmer/agentic/session/v1/spec.proto
+      - ai/stigmer/iam/identityprovider/v1/spec.proto

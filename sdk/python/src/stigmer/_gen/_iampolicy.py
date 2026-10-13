@@ -59,12 +59,6 @@ class IamPolicyClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def bootstrap_move_org_access(self, input: io_pb2.MoveOrgAccessInput) -> io_pb2.MoveOrgAccessResult:
-        try:
-            return self._command.bootstrapMoveOrgAccess(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def get(self, id: str) -> api_pb2.IamPolicy:
         try:
             return self._query.get(io_pb2.IamPolicyId(value=id))

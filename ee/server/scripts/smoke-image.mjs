@@ -54,7 +54,7 @@ const serverRoot = join(packageRoot, "..", "..", "backend", "services", "stigmer
 const LABELS = {
   "org.opencontainers.image.title": "stigmer-server-ee",
   "org.opencontainers.image.description":
-    "Stigmer Enterprise: the Stigmer control plane with single sign-on, many organizations, teams and invitations, turned on by a license key; unified gRPC/Connect/REST port with the bundled web console",
+    "Stigmer Enterprise: the Stigmer control plane with many organizations, federation with other platforms, teams and invitations, turned on by a license key; unified gRPC/Connect/REST port with the bundled web console",
   "org.opencontainers.image.licenses": "LicenseRef-Stigmer-Enterprise AND Apache-2.0",
 };
 

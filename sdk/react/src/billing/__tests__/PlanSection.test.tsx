@@ -149,6 +149,23 @@ describe("PlanSection", () => {
     expect(screen.getByText("$40.00")).toBeTruthy();
   });
 
+  it("names an estimate's agent hours beyond those included, with the hours worked so far", async () => {
+    const client = mockClient({ subscribed: subscription(SubscriptionState.active) });
+    client.subscription.getPeriodEstimate.mockResolvedValue(
+      create(PeriodEstimateSchema, {
+        ...TEAM_ESTIMATE,
+        lines: [
+          ...TEAM_ESTIMATE.lines,
+          create(PeriodEstimateLineSchema, { kind: PeriodEstimateLineKind.agent_hours, amountMicros: 3_100_000n }),
+        ],
+        workingSeconds: 112_320n,
+      }),
+    );
+    renderSection(client);
+    expect(await screen.findByText("Agent hours beyond those included (31.2 h worked this period)")).toBeTruthy();
+    expect(screen.getByText("$3.10")).toBeTruthy();
+  });
+
   it("lists the plans cheapest first, and names what a switch down gives up but not a switch up", async () => {
     const client = mockClient({ subscribed: subscription(SubscriptionState.active, "pln_business") });
     renderSection(client);

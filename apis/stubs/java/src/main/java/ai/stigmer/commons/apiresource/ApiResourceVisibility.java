@@ -77,7 +77,7 @@ public enum ApiResourceVisibility
   /**
    * <pre>
    * Everyone in the owning organization can access (read) this resource —
-   * all org roles including read-only viewers (the role SSO auto-provisioning
+   * all org roles including read-only viewers (the role just-in-time provisioning
    * grants by default). Running or otherwise spending against the resource
    * still requires the org-level member-or-guest permissions
    * (can_create_session / can_create_run_in); org visibility widens
@@ -164,7 +164,7 @@ public enum ApiResourceVisibility
   /**
    * <pre>
    * Everyone in the owning organization can access (read) this resource —
-   * all org roles including read-only viewers (the role SSO auto-provisioning
+   * all org roles including read-only viewers (the role just-in-time provisioning
    * grants by default). Running or otherwise spending against the resource
    * still requires the org-level member-or-guest permissions
    * (can_create_session / can_create_run_in); org visibility widens

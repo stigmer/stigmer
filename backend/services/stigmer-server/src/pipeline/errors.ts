@@ -88,22 +88,6 @@ export function permissionDeniedError(message: string): ConnectError {
 }
 
 /**
- * A PermissionDenied refusal a client acts on without parsing text: the
- * authored message, and the reason carried as an ErrorInfo detail. The
- * code stays PermissionDenied, so a caller that keys on the code alone
- * still treats it as a denial (an organization that requires sign-in
- * through its SSO provider, refusing an account it did not sign in).
- */
-export function permissionDeniedWithReasonError(
-  message: string,
-  reason: RefusalReason,
-): ConnectError {
-  return new ConnectError(message, Code.PermissionDenied, undefined, [
-    reasonDetail(reason),
-  ]);
-}
-
-/**
  * Go FailedPreconditionError — the system is not in a state required for
  * the operation (vs AlreadyExists, which tells the caller to stop). With a
  * reason, the refusal also carries it as an ErrorInfo detail.

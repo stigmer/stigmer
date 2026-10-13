@@ -7,9 +7,9 @@
  * The panel itself is proven by its own tests; it is stubbed here.
  *
  * Also pins the sign-in notice: it says people appear here on their first
- * sign-in only when a provider grants a sign-in role (an SSO provider
- * always does); a provider that creates accounts without a role adds no
- * one to the organization, so it shows no notice.
+ * sign-in only when a provider grants a sign-in role; a provider that
+ * creates accounts without a role adds no one to the organization, so it
+ * shows no notice.
  *
  * And that the host's link to the service-accounts page reaches the panel
  * as given, so a hash-routed host (the desktop app) is linked correctly.
@@ -61,7 +61,6 @@ afterEach(() => {
 const SIGN_IN_NOTICE = /People appear here the first time they sign in/;
 
 function provider(spec: {
-  isSsoProvider?: boolean;
   createAccountsOnSignIn?: boolean;
   signInRole?: IamRole;
 }): IdentityProvider {
@@ -98,12 +97,6 @@ describe("MembersSection sign-in notice", () => {
     providers.list = [
       provider({ createAccountsOnSignIn: true, signInRole: IamRole.member }),
     ];
-    renderSection("cloud");
-    expect(screen.getByText(SIGN_IN_NOTICE)).toBeTruthy();
-  });
-
-  it("shows the notice for an SSO provider", () => {
-    providers.list = [provider({ isSsoProvider: true })];
     renderSection("cloud");
     expect(screen.getByText(SIGN_IN_NOTICE)).toBeTruthy();
   });

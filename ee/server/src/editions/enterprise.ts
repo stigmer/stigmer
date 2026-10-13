@@ -42,7 +42,7 @@
  * host meets them (editions/__tests__/enterprise-host-wiring.postgres.test.ts pins
  * each by composing):
  *
- *   - its adapters behind their ports: the five stores and the `ee` schema
+ *   - its adapters behind their ports: the four stores and the `ee` schema
  *     over one `enterprise` pool on `DATABASE_URL` (postgres/pool.ts), the
  *     chain run by the unit's own start;
  *   - every URL a person writes is dialed under one egress posture, the
@@ -205,7 +205,6 @@ export async function composeEnterprise(
     teams: postgres.teams,
     invitations: postgres.invitations,
     signInGrants: postgres.signInGrants,
-    accessMoves: postgres.accessMoves,
     schema: postgres.schema,
     accounts: accounts.service,
     outboundFetch,
