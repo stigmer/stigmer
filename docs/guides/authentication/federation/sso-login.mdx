@@ -320,6 +320,73 @@ for the full pattern in all SDK languages.
   the user at your Identity Provider.
 </Callout>
 
+## Require sign-in through your Identity Provider
+
+Enabling SSO adds a way in. Requiring it makes it the only way in: once your
+Organization requires sign-in through its SSO provider, a person acts in the
+Organization only through the account your Identity Provider signed them in as.
+Someone who signs in another way (an email login) is refused everywhere in the
+Organization with a message that names your provider and a button to sign in
+through it. An API key acts as the account that made it, so a key made by an
+email account stops working in the Organization and a key made while signed in
+through SSO keeps working.
+
+Only the Organization's owners can turn the requirement on or off, from the SSO
+provider's page in the console. Before it turns on, the console shows who would
+stop counting: the members your Identity Provider hasn't signed in yet, and the
+schedules, evaluators and invitations that act for them.
+
+The requirement never applies to:
+
+- **The Organization's owners.** They keep their own sign-in, so a broken
+  Identity Provider never locks everyone out.
+- **Service accounts and runs.** Their credentials aren't a person's sign-in.
+- **Your Organization's own platform clients.** A user token your app mints acts
+  for a person your app vouched for.
+
+Deleting the SSO provider ends the requirement, and is also an owner's decision
+while the requirement is on.
+
+<Callout type="info">
+  On Stigmer Cloud, requiring SSO is a plan feature: an Organization whose plan
+  doesn't include it can't turn it on, and one that already requires it keeps it
+  and can always turn it off. On a self-hosted Stigmer Enterprise server whose
+  license has ended, turning the requirement off is still allowed.
+</Callout>
+
+### Bring your access with you
+
+A person who worked in the Organization under another sign-in before it required
+SSO has two accounts: the old one, and the one your Identity Provider creates at
+their first SSO sign-in. From the refusal, they choose **Bring my access with
+me**, see what moves, and sign in through your Identity Provider. Their roles,
+team memberships, shares and the resources they own in the Organization move to
+their SSO account, and the Organization's access history records each change as
+a move. Nothing outside the Organization moves.
+
+Some things don't move:
+
+- **Their My vault in the Organization.** Its secrets and saved sign-ins are
+  deleted with the old account's access; the move lists them first so they can
+  save them again.
+- **Schedules, evaluators and evals they created.** Each runs as the account
+  that created it, so each stops; after the move, the console offers to make
+  each schedule and evaluator again as the new account.
+- **Invitations they created.** They stop working; create them again.
+- **API keys.** Make new ones while signed in through SSO.
+
+An owner's access is never moved: owners keep their own sign-in.
+
+### Use the CLI in an Organization that requires SSO
+
+The CLI signs in through Stigmer's own sign-in, which the Organization refuses.
+Sign in to the console through your Identity Provider, create an API key under
+**Settings > API keys**, and set it for the CLI:
+
+```bash
+export STIGMER_API_KEY=<the key>
+```
+
 ## Troubleshooting
 
 <Steps>
