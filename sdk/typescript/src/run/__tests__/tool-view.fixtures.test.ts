@@ -9,9 +9,8 @@ import { dirname, resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { toolUseOf } from "./tool-use.js";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  ToolKind,
+  type ToolKind,
   resolveToolKindByName,
   normalizeToolResult,
   extractShellIntent,
@@ -38,7 +37,10 @@ describe("classification fixtures", () => {
   });
 
   for (const c of cases) {
-    const expected = ToolKind[c.toolKind.replace(/^TOOL_KIND_/, "") as keyof typeof ToolKind];
+    // The fixture names the runner's kinds (TOOL_KIND_FILE_READ); the SDK's
+    // kind is the same word, lower-case (file_read), and UNSPECIFIED is unknown.
+    const word = c.toolKind.replace(/^TOOL_KIND_/, "").toLowerCase();
+    const expected = (word === "unspecified" ? "unknown" : word) as ToolKind;
     it(`classifies ${c.name || "(empty)"}${c.mcpServerSlug ? ` @${c.mcpServerSlug}` : ""}`, () => {
       expect(resolveToolKindByName(c.name, c.mcpServerSlug)).toBe(expected);
     });
@@ -76,10 +78,7 @@ describe("result-view fixtures", () => {
 
   for (const c of cases) {
     it(`normalizes ${c.name} -> ${c.expected.type}`, () => {
-      const status =
-        c.status === "TOOL_CALL_FAILED"
-          ? ToolCallStatus.TOOL_CALL_FAILED
-          : ToolCallStatus.TOOL_CALL_COMPLETED;
+      const status = c.status === "TOOL_CALL_FAILED" ? "failed" : "completed";
 
       const toolCall = toolUseOf({
         id: c.name,
@@ -195,18 +194,18 @@ describe("secret-args fixtures", () => {
 describe("resolveToolKind reads the name", () => {
   it("classifies a tool use by its name: the same output reads as a terminal under a shell name only", () => {
     const output = "done\n[Command succeeded]";
-    expect(normalizeToolResult(toolUseOf({ name: "Shell", result: output, status: ToolCallStatus.TOOL_CALL_COMPLETED })).type).toBe("terminal");
-    expect(normalizeToolResult(toolUseOf({ name: "some_unknown_name", result: output, status: ToolCallStatus.TOOL_CALL_COMPLETED })).type).toBe("text");
+    expect(normalizeToolResult(toolUseOf({ name: "Shell", result: output, status: "completed" })).type).toBe("terminal");
+    expect(normalizeToolResult(toolUseOf({ name: "some_unknown_name", result: output, status: "completed" })).type).toBe("text");
   });
 
   it("degrades unknown results to json or text", () => {
     const jsonView = normalizeToolResult(
-      toolUseOf({ name: "mystery", result: '{"a":1}', status: ToolCallStatus.TOOL_CALL_COMPLETED }),
+      toolUseOf({ name: "mystery", result: '{"a":1}', status: "completed" }),
     );
     expect(jsonView.type).toBe("json");
 
     const textView = normalizeToolResult(
-      toolUseOf({ name: "mystery", result: "plain", status: ToolCallStatus.TOOL_CALL_COMPLETED }),
+      toolUseOf({ name: "mystery", result: "plain", status: "completed" }),
     );
     expect(textView.type).toBe("text");
   });

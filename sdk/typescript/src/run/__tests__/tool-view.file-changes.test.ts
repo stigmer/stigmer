@@ -7,9 +7,6 @@
 import { describe, it, expect } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { toolUseOf } from "./tool-use.js";
-import {
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { normalizeToolResult } from "../tool-view";
 
 /** A completed FILE_EDIT tool call carrying the given args/result. */
@@ -17,7 +14,7 @@ function editToolCall(opts: { args?: Record<string, unknown>; result?: string })
   return toolUseOf({
     id: "tc-1",
     name: "edit_file",
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
+    status: "completed",
     args: (opts.args ?? {}) as JsonObject,
     result: opts.result ?? "",
   });
@@ -28,7 +25,7 @@ function writeToolCall(opts: { args?: Record<string, unknown> }) {
   return toolUseOf({
     id: "tc-w",
     name: "write_file",
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
+    status: "completed",
     args: (opts.args ?? {}) as JsonObject,
   });
 }
@@ -46,8 +43,6 @@ describe("normalizeEdit — from args", () => {
     expect(view.oldText).toBe("foo");
     expect(view.newText).toBe("bar");
     expect(view.path).toBe("legacy.ts");
-    // The row carries no whole-file capture; captureLevel is left unset.
-    expect(view.captureLevel).toBeUndefined();
   });
 
   it("parses the Cursor result envelope stats when present", () => {
@@ -64,7 +59,6 @@ describe("normalizeEdit — from args", () => {
     expect(view.linesAdded).toBe(3);
     expect(view.linesRemoved).toBe(2);
     expect(view.unifiedDiff).toBe("@@ patch @@");
-    expect(view.captureLevel).toBeUndefined();
   });
 
   it("resolves the path from the args (path / file_path / file / filename)", () => {
