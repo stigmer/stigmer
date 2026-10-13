@@ -7,28 +7,63 @@ description: Hooks and components for real-time streaming, tool calls, approvals
 
 ## Hooks
 
+### useAnswerToolUse
+
+Behavior hook that answers the tool uses a session waits on, through the
+session's own methods (`confirmToolUse`, `grantPermission`), with
+per-tool-use loading and error state.
+
+Platform builders who render their own approval UI use this hook
+directly; [`ApprovalCard`](#approvalcard) takes the answer callback it produces.
+
+**Signature**
+
+```tsx
+function useAnswerToolUse(): UseAnswerToolUseReturn
+```
+
+**Returns** — `UseAnswerToolUseReturn`
+
+<TypeTable
+  type={{
+    answerToolUse: { type: "(sessionId: string, toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => Promise<void>", description: "Answer a waiting tool use of a session. Resolves when the server recorded the answer; the session's events then carry it (the tool use's `confirmation` and `grant`). `denyMessage` is read only with `\"deny\"`. Rejects with the server's error, which is also kept per tool use." },
+    clearError: { type: "() => void", description: "Reset every answer error (both errorsByToolUseId and error)." },
+    error: { type: "Error | null", description: "The most recent failure, or `null`: a single value for a headless consumer (a banner, the terminal surface). The map is authoritative." },
+    errorsByToolUseId: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed answer, keyed like submittingToolUseIds, so a failure shows beside the one gate it belongs to. Cleared for a tool use when it is answered again." },
+    submittingToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose answer is in flight, by id: one gate's spinner never blocks another's while several wait at once." },
+  }}
+/>
+
+```tsx
+const { answerToolUse, submittingToolUseIds } = useAnswerToolUse();
+
+await answerToolUse(sessionId, toolUse.id, "allow");
+await answerToolUse(sessionId, toolUse.id, "deny", "Use the staging database instead");
+```
+
+
 ### useApproval
 
-Returns the inline-approval state for a tool call, or `null` when the call
-is not currently gated (no matching approval, or no submit handler wired).
+Returns the inline-approval state for a tool use, or `null` when it does
+not wait for a person (or no answer handler is wired).
 
-The returned `onSubmit` is pre-bound to `toolCallId` and stable across
+The returned `onAnswer` is bound to the tool use's id and stable across
 renders, so it can flow straight into a memoized approval body.
 
 **Signature**
 
 ```tsx
-function useApproval(toolCallId: string): UseApprovalResult | null
+function useApproval(toolUse: ToolUse): UseApprovalResult | null
 ```
 
 <TypeTable
   type={{
-    toolCallId: { type: "string", description: "", required: true },
+    toolUse: { type: "ToolUse", description: "", required: true },
   }}
 />
 
 ```tsx
-const approval = useApproval(toolCall.id);
+const approval = useApproval(toolUse);
 if (approval) {
   return <ApprovalCardBody {...approval} />;
 }
@@ -46,7 +81,7 @@ read artifact content programmatically (YAML detection, preview
 rendering, resource type identification).
 
 Pass `null` for either parameter to skip fetching — consistent with
-the `useRunStream(null)` convention. The caller controls when
+the `useSessionEvents(null)` convention. The caller controls when
 to fetch based on artifact metadata (e.g., only for text artifacts
 below a size threshold):
 
@@ -315,56 +350,40 @@ function useArtifactInspection(artifact: RunArtifact, executionId: string, org: 
 />
 
 
-### useContextWindow
+### useChangeSetCapture
 
-Extracts context window information from a run's status.
+Data hook that loads the captured bytes of one change set on demand: the
+diff bodies a review card renders. A turn's review (what changed, what was
+decided) comes from the session's events; the bytes stay on the turn's run
+as its file record, read here through `run.get` and the run's file-review
+projection (`displayFileChangeSets`).
 
-Provides real-time visibility into context utilization, summarization
-thresholds, and summarization history for the native harness. Returns
-a stable empty state when `ContextInfo` is absent (e.g., Cursor harness
-where context is managed externally).
-
-The derived `health` and `isNearThreshold` fields are intended for
-driving visual indicators (gauge color, alert badges) without coupling
-rendering components to threshold arithmetic.
+Idle until `enabled`, so a card reads the run only when its diffs are
+shown. The read is cached per run across mounts.
 
 **Signature**
 
 ```tsx
-function useContextWindow(execution: Run | null): UseContextWindowReturn
+function useChangeSetCapture(runId: string, changeSetId: string, enabled: boolean): UseChangeSetCaptureReturn
 ```
 
 <TypeTable
   type={{
-    execution: { type: "Run | null", description: "", required: true },
+    runId: { type: "string", description: "The run that changed the files (`FileReviewSet.runId`).", required: true },
+    changeSetId: { type: "string", description: "The change set to find in that run.", required: true },
+    enabled: { type: "boolean", description: "When `false`, nothing is read.", required: true },
   }}
 />
 
-**Returns** — `UseContextWindowReturn`
+**Returns** — `UseChangeSetCaptureReturn`
 
 <TypeTable
   type={{
-    contextWindowLimit: { type: "number", description: "Model's maximum context window size in tokens. 0 when unavailable." },
-    currentTokenCount: { type: "number", description: "Current token count in the context window. 0 when unavailable." },
-    hasContextInfo: { type: "boolean", description: "`true` when real `ContextInfo` data is available (native harness)." },
-    health: { type: "ContextHealth", description: "Derived health state based on utilization thresholds.", typeDescriptionLink: "#contexthealth" },
-    isNearThreshold: { type: "boolean", description: "`true` when utilization is within 5% of the trigger threshold." },
-    summarizationEnabled: { type: "boolean", description: "Whether automatic summarization is enabled for this run." },
-    summarizationEvents: { type: "readonly SummarizationEventView[]", description: "Summarization events ordered chronologically (oldest first)." },
-    targetTokens: { type: "number", description: "Target token count after summarization. 0 when unavailable." },
-    triggerThreshold: { type: "number", description: "Token threshold that triggers summarization. 0 when unavailable." },
-    utilizationPercent: { type: "number", description: "Context utilization as a percentage (0-100). 0 when unavailable." },
+    capture: { type: "FileChangeSet | null", description: "The captured change set (its files' before/after bytes), or `null` while loading or when the run holds none." },
+    error: { type: "Error | null", description: "Error from the read, or `null`." },
+    isLoading: { type: "boolean", description: "`true` while the run is being read." },
   }}
 />
-
-```tsx
-const { run } = useRunStream(executionId);
-const ctx = useContextWindow(run);
-
-if (ctx.hasContextInfo) {
-  return <ContextGauge {...ctx} />;
-}
-```
 
 
 ### useCreateRun
@@ -484,111 +503,60 @@ function useFileChangeContent(change: FileChange): UseFileChangeContentReturn
 />
 
 
-### useFileReview
-
-Behavior hook that wraps `run.submitFileDecision()` with per-decision
-loading state and error management — the file-review sibling of
-[`useSubmitApproval`](#usesubmitapproval).
-
-File edits are reviewed as a captured change set (the `file_change_sets`
-projection), NOT as tool-call approvals. Platform builders who want full
-control over the review UI use this hook directly; those who prefer a drop-in
-surface use [`FileReviewCard`](#filereviewcard), which accepts the callback shape this
-hook produces.
-
-**Signature**
-
-```tsx
-function useFileReview(): UseFileReviewReturn
-```
-
-**Returns** — `UseFileReviewReturn`
-
-<TypeTable
-  type={{
-    clearDecisionError: { type: "(key: string) => void", description: "Clear the error for one decision key (e.g. before a retry of that target)." },
-    clearError: { type: "() => void", description: "Reset every decision error (both decisionErrors and error)." },
-    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed exactly like submittingDecisionKeys (via fileDecisionKey). This is the per-target parallel of the in-flight Set: a review card has many decision targets (the whole set plus each file), so a failure must be attributable to the *one* control that failed — a single scalar cannot say which file. FileReviewCard consumes this map to render the error in-card, beside the failed control." },
-    error: { type: "Error | null", description: "The most-recent decision failure, or `null` when healthy — a convenience mirror of decisionErrors for a headless consumer that wants a single error value (a banner). The map is authoritative for per-control surfacing." },
-    submitFileDecision: { type: "(executionId: string, changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => Promise<void>", description: "Submit an approve/reject decision for a change set (or one file within it). Resolves when the backend accepts the decision; the run stream will deliver the updated `file_change_sets` projection." },
-    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "Keys (`changeSetId` for a whole-set decision, `changeSetId:fileChangeId` for a per-file one) currently being submitted — drives per-button loading state when a reviewer decides files independently. Build a key with fileDecisionKey." },
-  }}
-/>
-
-```tsx
-const { submitFileDecision, submittingDecisionKeys } = useFileReview();
-
-// Approve the whole change set:
-await submitFileDecision(executionId, changeSet.id, FileDecisionAction.APPROVE, {
-  expectedDigest: changeSet.aggregateDigest,
-});
-```
-
-
 ### useFileReviewRowChange
 
-The captured change a stamped tool row should render as its inline diff, or
-`null` to keep the row's own content view (unstamped row, unknown set, path
-miss, or a non-reviewable change — see [`fileReviewRowChange`](#filereviewrowchange) for the
-honest-degradation rules).
+The captured change a write row should render as its inline diff, or
+`null` to keep the row's own content view: no review for its turn, a path
+miss, a capture the runs do not hold, or a non-reviewable change (see
+[`fileReviewRowChange`](#filereviewrowchange)).
 
-The diff sibling of [`useFileReviewRowState`](#usefilereviewrowstate): both read the same
-context entry through the same path matcher, so a row's badge and its diff
-always describe the same captured artifact.
+The diff sibling of [`useFileReviewRowState`](#usefilereviewrowstate): both match the row's
+path against the same turn's review, so a row's badge and its diff always
+describe the same file.
 
 **Signature**
 
 ```tsx
-function useFileReviewRowChange(fileChangeSetId: string, rowPath: string | null): CapturedFileChange | null
+function useFileReviewRowChange(runId: string, rowPath: string | null): CapturedFileChange | null
 ```
 
 <TypeTable
   type={{
-    fileChangeSetId: { type: "string", description: "The row's `ToolCall.file_change_set_id` (may be \"\").", required: true },
-    rowPath: { type: "string | null", description: "The row's file path (the presenter's primary arg).", required: true },
+    runId: { type: "string", description: "The row's turn (`ToolUse.runId`).", required: true },
+    rowPath: { type: "string | null", description: "The row's file path; `null` for a row that writes no file.", required: true },
   }}
 />
 
 
 ### useFileReviewRowState
 
-The review state a stamped tool row should badge, or `null` for no badge
-(unstamped row, unknown set, or a file absent from its set — see
-[`fileReviewRowState`](#filereviewrowstate) for the honest-degradation rules).
+The review state a file-edit row should badge, or `null` for no badge (no
+review for its turn yet, or a file absent from it — see
+[`fileReviewRowState`](#filereviewrowstate)).
 
 **Signature**
 
 ```tsx
-function useFileReviewRowState(fileChangeSetId: string, rowPath: string | null): FileReviewRowState | null
+function useFileReviewRowState(runId: string, rowPath: string | null): FileReviewRowState | null
 ```
 
 <TypeTable
   type={{
-    fileChangeSetId: { type: "string", description: "The row's `ToolCall.file_change_set_id` (may be \"\").", required: true },
-    rowPath: { type: "string | null", description: "The row's file path (the presenter's primary arg), used to   resolve this file's verdict once the set is decided.", required: true },
+    runId: { type: "string", description: "The row's turn (`ToolUse.runId`).", required: true },
+    rowPath: { type: "string | null", description: "The row's file path (the presenter's primary arg); pass   `null` for a row that edits no file.", required: true },
   }}
 />
 
 
 ### useLiveRun
 
-Behavior hook for a single `Run` that is live only while
-it needs to be: fetch the snapshot, stream only what is running.
+Data hook for a single `Run`'s lifecycle that stays current only
+while it needs to: a run that has ended is read once; one that has not is
+read again every few seconds until it ends (or `live` turns off).
 
-This is the single-execution analog of the session's canonical
-composition (`useSessionRuns` GET for history + `useRunStream`
-for the active turn): a terminal run is served entirely by one
-`run.get()` — never a subscription — while a running one layers
-the streaming pipeline on top of the fetched snapshot.
-
-- The snapshot fetch is cached (`agent-execution:<id>`), so a
-  remount (e.g. returning to a transcript tab) renders instantly from the
-  previous result with a background refresh — no loading flash.
-- The stream starts only after the fetch proves the phase non-terminal;
-  `useRunStream` then owns the live lifecycle (rAF coalescing,
-  auto-reconnect, terminal-phase completion).
-- Once streaming, the stream's snapshot supersedes the fetched one (it is
-  always at least as fresh, including the terminal state the fetch missed).
+- The read is cached (`agent-execution:<id>`), so a remount renders
+  instantly from the previous result with a background refresh.
+- The reads stop on the run's terminal phase: completion is phase-driven.
 
 Pass `null` to skip entirely (stable no-op).
 
@@ -609,13 +577,12 @@ function useLiveRun(executionId: string | null, options?: UseLiveRunOptions): Us
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "Snapshot-fetch error, or the stream's terminal error (auto-reconnect exhausted). `null` when healthy. Not-found is NOT an error — it yields `execution: null` with no error." },
-    isLoading: { type: "boolean", description: "`true` while the initial snapshot fetch is in flight (nothing to show yet)." },
-    isReconnecting: { type: "boolean", description: "`true` while a transient stream drop is being retried in the background. The last snapshot stays visible — surface a subtle affordance, not an error." },
-    isStreaming: { type: "boolean", description: "`true` while live updates are arriving from the stream." },
-    phase: { type: "RunPhase", description: "Convenience extraction of `execution.status.phase`; returns `RUN_PHASE_UNSPECIFIED` when `execution` is `null`." },
-    reconnect: { type: "() => void", description: "Recover from either failure mode: re-fetches the snapshot AND resets the stream (one retry affordance for consumers, whichever side failed)." },
-    run: { type: "Run | null", description: "The freshest run snapshot available: the live stream's while streaming, the fetched one otherwise. `null` while loading or when the run does not exist." },
+    error: { type: "Error | null", description: "The last read's error, or `null` when healthy. Not-found is NOT an error — it yields `run: null` with no error." },
+    isLive: { type: "boolean", description: "`true` while the run has not ended and is being read again." },
+    isLoading: { type: "boolean", description: "`true` while the first read is in flight (nothing to show yet)." },
+    phase: { type: "RunPhase", description: "Convenience extraction of `run.status.phase`; returns `RUN_PHASE_UNSPECIFIED` when `run` is `null`." },
+    refetch: { type: "() => void", description: "Read the run again now." },
+    run: { type: "Run | null", description: "The run record, as last read: its lifecycle (phase, error, usage, setup progress) and files. `null` while loading or when the run does not exist. What the agent did is the session's events, not this record (see `useSessionEvents`)." },
   }}
 />
 
@@ -666,9 +633,49 @@ function DrillDown({ agentExecutionId }: { agentExecutionId: string }) {
 ```
 
 
+### useReviewFileChanges
+
+Behavior hook that decides a turn's file changes, through the session's
+`reviewFileChanges`, with per-decision loading and error state. A turn's
+edits are reviewed as a set (keep or undo every file, or each file on its
+own), not as tool-call approvals; what is decided is read back from the
+session's events (`FileReviewSet`).
+
+Platform builders who render their own review UI use this hook directly;
+[`FileReviewCard`](#filereviewcard) takes the decision callback it produces.
+
+**Signature**
+
+```tsx
+function useReviewFileChanges(): UseReviewFileChangesReturn
+```
+
+**Returns** — `UseReviewFileChangesReturn`
+
+<TypeTable
+  type={{
+    clearDecisionError: { type: "(key: string) => void", description: "Clear the error for one decision key (e.g. before a retry of that target)." },
+    clearError: { type: "() => void", description: "Reset every decision error (both decisionErrors and error)." },
+    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Each decision's last failure, keyed like submittingDecisionKeys." },
+    error: { type: "Error | null", description: "The most recent failure, or `null`: a single value for a headless consumer." },
+    reviewFileChanges: { type: "(sessionId: string, changeSetId: string, action: FileReviewAction, options: ReviewFileChangesOptions) => Promise<void>", description: "Keep or undo a turn's changes (one file, or the whole set) through the session's `reviewFileChanges`. Resolves when the server recorded the decision; the session's events then carry it, and an undo's outcome once the files are put back. Rejects with the server's error." },
+    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys in flight (fileDecisionKey: the set's id for a whole-set decision, `setId:fileChangeId` for one file), so each control of a review card carries its own spinner." },
+  }}
+/>
+
+```tsx
+const { reviewFileChanges } = useReviewFileChanges();
+
+await reviewFileChanges(sessionId, set.changeSetId, "keep", {
+  expectedDigest: set.aggregateDigest,
+});
+```
+
+
 ### useRunActions
 
-Behavior hook that encapsulates run lifecycle actions.
+Behavior hook that encapsulates one run's lifecycle actions: terminate,
+pause and resume.
 
 Each action calls the corresponding RPC and returns the updated run, or
 `null` on failure (with `error` populated).
@@ -676,9 +683,9 @@ Each action calls the corresponding RPC and returns the updated run, or
 Pass `null` for `executionId` to disable all actions (they become no-ops
 that return `null`).
 
-Headless by design — embedders can wire a custom Stop/Cancel control
-directly to this hook. The session chat uses it via
-[`useSessionConversation`](/docs/sdk/react/session#usesessionconversation)'s `stop` / `isStoppable`.
+Stopping a conversation's turn is the session's interrupt, not a run
+action: [`useSessionConversation`](/docs/sdk/react/session#usesessionconversation)'s `stop` interrupts the session
+and escalates to `UseRunActionsReturn.terminate` on a repeat press.
 
 **Signature**
 
@@ -697,13 +704,11 @@ function useRunActions(executionId: string | null, options?: UseRunActionsOption
 
 <TypeTable
   type={{
-    cancel: { type: "(reason?: string) => Promise<Run | null>", description: "Cancel a running run gracefully (PENDING or IN_PROGRESS only)." },
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed action, or `null`." },
     isSubmitting: { type: "boolean", description: "`true` while any action is in flight." },
     pause: { type: "(reason?: string) => Promise<Run | null>", description: "Pause a running run (PENDING or IN_PROGRESS only)." },
     resume: { type: "() => Promise<Run | null>", description: "Resume a paused run." },
-    stop: { type: "(reason?: string) => Promise<Run | null>", description: "Stop a running run with progressive escalation.  The first call gracefully cancels — the agent gets a chance to checkpoint and clean up. If the user presses Stop again because the run is still winding down, this escalates to a forceful terminate. The escalation state is keyed to the run id, so a fresh run always starts from a graceful cancel." },
     terminate: { type: "(reason?: string) => Promise<Run | null>", description: "Terminate a running run immediately (PENDING or IN_PROGRESS only)." },
   }}
 />
@@ -713,9 +718,8 @@ const actions = useRunActions(executionId, {
   onSuccess: () => refetch(),
 });
 
-// A single Stop button that escalates on repeat press.
-<button onClick={() => actions.stop()} disabled={actions.isSubmitting}>
-  Stop
+<button onClick={() => actions.pause()} disabled={actions.isSubmitting}>
+  Pause
 </button>
 ```
 
@@ -727,7 +731,7 @@ Pure derivation hook that extracts artifact metadata from an
 
 Follows the same pattern as [`useSessionUsage`](/docs/sdk/react/session#usesessionusage): a `useMemo`-based
 derivation with no side effects and no data fetching. The run
-object (typically from [`useRunStream`](#userunstream)) is the single input.
+object (typically from [`useLiveRun`](#useliverun)) is the single input.
 
 Returns an empty array when the run is `null` or has no artifacts,
 eliminating null-checking at every consumer call site.
@@ -760,7 +764,7 @@ function useRunArtifacts(execution: Run | null): UseRunArtifactsReturn
 />
 
 ```tsx
-const { run } = useRunStream(executionId);
+const { run } = useLiveRun(executionId);
 const { artifacts, hasArtifacts } = useRunArtifacts(run);
 
 if (hasArtifacts) {
@@ -769,130 +773,10 @@ if (hasArtifacts) {
 ```
 
 
-### useRunStream
-
-Behavior hook that subscribes to real-time `Run`
-updates via `stigmer.run.subscribe()`.
-
-Manages the full subscription lifecycle through a finite state
-machine: connection establishment, rAF-coalesced snapshot streaming,
-terminal-phase detection, automatic reconnection with exponential
-backoff on transient drops, and manual reconnection as the fallback.
-
-**Resilience:** a non-terminal stream drop — whether a thrown transport
-error (WebKit "Load failed", `fetch failed`, `Unavailable`) or a graceful
-server close mid-run (idle timeout, load-balancer recycle) — is retried
-automatically with backoff. The last snapshot stays visible
-(`isReconnecting`), the access token is re-read on each attempt via the
-per-request interceptor, and `error` is surfaced only once attempts are
-exhausted. Completion is decided by the terminal phase, never by the
-stream merely ending (a graceful close of a running run reconnects
-rather than falsely reporting "complete"). Opt out via `autoReconnect: false`.
-
-**Performance characteristics:**
-- Non-terminal snapshots are coalesced via `requestAnimationFrame`
-  so React commits at most once per display frame (~60Hz)
-- Terminal snapshots (complete/failed/cancelled) flush immediately
-- Store updates are wrapped in `startTransition` so thread renders
-  don't block urgent interactions (e.g. composer typing)
-
-Pass `null` as `executionId` to skip subscribing (stable no-op).
-When `executionId` changes, the previous subscription is aborted
-and a fresh one begins.
-
-**Signature**
-
-```tsx
-function useRunStream(executionId: string | null, options?: UseRunStreamOptions): UseRunStreamReturn
-```
-
-<TypeTable
-  type={{
-    executionId: { type: "string | null", description: "", required: true },
-    options: { type: "UseRunStreamOptions", description: "" },
-  }}
-/>
-
-**Returns** — `UseRunStreamReturn`
-
-<TypeTable
-  type={{
-    connectTimedOut: { type: "boolean", description: "`true` when the stream opened but no first snapshot arrived within the connect-timeout window, even after one silent self-heal. Distinct from `error` (a thrown/closed stream that auto-reconnect retries): this is the *silent* hang the retry loop can never observe. Surface an actionable \"the agent hasn't started — Retry\" affordance wired to `reconnect()`. Cleared by the next snapshot or a manual `reconnect()`. Never auto-aborts." },
-    error: { type: "Error | null", description: "Error from the last failed stream attempt, or `null` when healthy.  Only set once auto-reconnect has exhausted its attempts (or for a non-transient failure that is not retried). It stays `null` throughout background reconnection so a recoverable hiccup never shows as an error." },
-    isConnecting: { type: "boolean", description: "`true` after subscription starts but before the first snapshot arrives." },
-    isReconnecting: { type: "boolean", description: "`true` while a transient drop is being retried automatically in the background. The last snapshot stays visible and `error` remains `null` — surface a subtle \"Reconnecting…\" affordance, not an error. Becomes `false` once a snapshot is received (back to `isStreaming`) or retries are exhausted (then `error` is set)." },
-    isSlow: { type: "boolean", description: "`true` when a non-terminal stream has produced no new snapshot for the slow-stall window. Purely informational (\"still working — taking longer than usual\"); cleared by the next snapshot. Never an error, never aborts." },
-    isStreaming: { type: "boolean", description: "`true` while receiving non-terminal updates from the server stream." },
-    phase: { type: "RunPhase", description: "Convenience extraction of `execution.status.phase`.  Derived from `execution` — always consistent with the current snapshot. Returns `RUN_PHASE_UNSPECIFIED` when `execution` is `null`." },
-    reconnect: { type: "() => void", description: "Reset error state and re-establish the stream subscription.  The fallback after auto-reconnect exhausts, and a manual escape hatch in any lifecycle state — error, complete, or mid-stream. Resets the retry counter and preserves the last snapshot (no flash to empty). Uses the `connectKey` counter pattern consistent with `refetch()` in other SDK hooks." },
-    reconnectAttempt: { type: "number", description: "1-based count of the in-flight reconnect attempt; `0` when not reconnecting." },
-    run: { type: "Run | null", description: "Latest full run snapshot from the stream, or `null` before the first update arrives." },
-  }}
-/>
-
-```tsx
-function LiveExecution({ id }: { id: string }) {
-  const { run, isStreaming, error, reconnect } =
-    useRunStream(id);
-
-  if (error) return <p>{error.message} <button onClick={reconnect}>Retry</button></p>;
-  if (!run) return <p>Connecting…</p>;
-
-  return (
-    <div>
-      {run.status?.messages.map((m, i) => (
-        <p key={i}>{m.content}</p>
-      ))}
-      {isStreaming && <span>Streaming…</span>}
-    </div>
-  );
-}
-```
-
-
-### useSubmitApproval
-
-Behavior hook that wraps `run.submitApproval()` with
-per-tool-call loading state and error management.
-
-Tracks submitting state per tool call ID (not a single boolean)
-because batch approvals allow concurrent decisions on different
-tool calls within the same run.
-
-Platform builders who need full control over the approval UI use
-this hook directly. Those who prefer drop-in components use
-[`ApprovalCard`](#approvalcard) which accepts the callback shape produced
-by this hook.
-
-**Signature**
-
-```tsx
-function useSubmitApproval(): UseSubmitApprovalReturn
-```
-
-**Returns** — `UseSubmitApprovalReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Reset every approval error (both errorsByToolCallId and error)." },
-    error: { type: "Error | null", description: "Error from the last failed approval submission, or `null` when healthy — a convenience mirror of errorsByToolCallId for a headless consumer that wants a single error value (e.g. a banner, or the `ink` surface). The map is authoritative for per-gate surfacing." },
-    errorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call failures, keyed by `toolCallId` exactly like submittingToolCallIds. This is the per-target parallel of the in-flight Set: a thread can hold many simultaneous gates (one per inline tool row, plus the bottom backstop), so a failure must be attributable to the *one* gate that failed — a single scalar cannot say which. ApprovalCard / ApprovalCardBody consume this (threaded via ApprovalContext) to render the error in-card, beside the failed gate." },
-    submitApproval: { type: "(executionId: string, toolCallId: string, action: ApprovalAction, comment?: string) => Promise<void>", description: "Submit an approval decision for a specific tool call within an run. Resolves when the backend accepts the decision; the run stream will deliver the updated state." },
-    submittingToolCallIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted. Enables per-button loading state in batch approval scenarios where the user may approve one tool while another decision is still in flight." },
-  }}
-/>
-
-```tsx
-const { submitApproval, submittingToolCallIds, error } = useSubmitApproval();
-
-await submitApproval(executionId, toolCallId, ApprovalAction.APPROVAL_ACTION_APPROVE);
-```
-
-
 ### useToolOutputContent
 
 Behavior hook that resolves the full text of a tool output that the runner
-offloaded to artifact storage (a `ToolCallOutputRef`).
+offloaded to artifact storage (a tool use's `ToolFullOutput`).
 
 Mirrors [`useFileChangeContent`](#usefilechangecontent): it ignores any URL baked into the ref
 and fetches the bytes on demand through the CORS-safe `getArtifactContent`
@@ -933,18 +817,18 @@ function useToolOutputContent(outputRef: ToolOutputRefLike | null | undefined, e
 Resolves the complete, render-ready presentation for a tool call.
 
 Headless and memoized: the returned object is referentially stable across
-renders for the same `toolCall`, so it is safe to depend on in `React.memo`
+renders for the same `toolUse`, so it is safe to depend on in `React.memo`
 leaves of the streaming thread.
 
 **Signature**
 
 ```tsx
-function useToolPresentation(toolCall: ToolCall): ToolPresentation
+function useToolPresentation(toolUse: ToolUse): ToolPresentation
 ```
 
 <TypeTable
   type={{
-    toolCall: { type: "ToolCall", description: "", required: true },
+    toolUse: { type: "ToolUse", description: "", required: true },
   }}
 />
 
@@ -956,7 +840,7 @@ Pure derivation hook that extracts workspace write-back data from an
 
 Follows the same `useMemo`-based derivation pattern as
 [`useRunArtifacts`](#userunartifacts): no side effects, no data fetching.
-The run object (typically from [`useRunStream`](#userunstream)) is
+The run object (typically from [`useLiveRun`](#useliverun)) is
 the single input.
 
 Returns an empty array when the run is `null` or has no
@@ -989,7 +873,7 @@ function useWorkspaceWriteBacks(execution: Run | null): UseWorkspaceWriteBacksRe
 />
 
 ```tsx
-const { run } = useRunStream(executionId);
+const { run } = useLiveRun(executionId);
 const { writeBacks, hasWriteBacks } = useWorkspaceWriteBacks(run);
 
 if (hasWriteBacks) {
@@ -1003,39 +887,41 @@ if (hasWriteBacks) {
 ### ApprovalCardBody
 
 The decision panel of an approval: the optional message and gate reason, the
-proposed change (the write/edit content from the row's `args` when the caller
-holds the row, the sanitized args preview otherwise), and the action buttons.
+proposed change, and the actions — Approve, Deny (with an optional reason the
+agent reads), and Approve all of the call's class for the rest of the turn.
 Reused in two places — the standalone [`ApprovalCard`](#approvalcard) (with
-[`ApprovalCardHeader`](#approvalcardheader) above it) and inline inside a gated
-[`ToolCallItem`](#toolcallitem)'s expanded panel, where the item's own row is the header.
-One body, one preview rule in both.
+[`ApprovalCardHeader`](#approvalcardheader) above it) and inline inside a waiting
+[`ToolCallItem`](#toolcallitem)'s expanded panel, where the item's own row is the
+header. One body, one preview rule in both.
 
 **Props** — `ApprovalCardBodyProps`
 
 <TypeTable
   type={{
-    args: { type: "Record<string, unknown>", description: "The gated tool row's authoritative arguments (`ToolCall.args`), when the caller holds the row — the inline gate on a ToolCallItem does. They supply the proposed write/edit content, which the pending approval's `argsPreview` (the runner's sanitized summary) cannot carry for a file of any real size; every other field the card shows still comes from the preview, so nothing the runner redacted becomes visible. Absent, the card renders from the preview alone and a large write shows the \"no preview\" notice rather than its content." },
     className: { type: "string", description: "Additional CSS class names for the body container." },
-    error: { type: "Error | null", description: "This gate's last failed decision, or `null` — surfaced in-card below the actions." },
-    isSubmitting: { type: "boolean", description: "True while the RPC for this tool call is in flight." },
-    onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Called when the user picks Approve / Approve-all / Skip / Reject.", required: true },
-    pendingApproval: { type: "PendingApproval", description: "The pending approval to render a decision panel for.", required: true },
+    error: { type: "Error | null", description: "This gate's last failed answer, or `null` — surfaced in-card below the actions." },
+    isSubmitting: { type: "boolean", description: "True while this tool use's answer is in flight." },
+    onAnswer: { type: "(answer: ToolUseAnswer, denyMessage?: string) => void", description: "Called when the person answers: allow, deny (with an optional reason) or grant.", required: true },
+    toolUse: { type: "ToolUse", description: "The waiting tool use to render a decision panel for. The card shows its ask's sanitized preview, with the proposed write/edit content taken from the tool's input (the one value the preview cannot carry for a file of any real size); nothing the runner redacted in the preview becomes visible.", required: true },
   }}
 />
 
 
 ### ApprovalCardHeader
 
-The compact summary row of an approval — `[icon] Label primaryArg [via sub]
-[⏳ Xm]`. Used as the standalone [`ApprovalCard`](#approvalcard)'s header. Not rendered
-inline on a [`ToolCallItem`](#toolcallitem), whose own row already serves as the header.
+The compact summary row of an approval — `[icon] Label primaryArg [⏳ Xm]`.
+Used as the standalone [`ApprovalCard`](#approvalcard)'s header. Not rendered inline
+on a [`ToolCallItem`](#toolcallitem), whose own row already serves as the header.
+
+The primary argument and intent are read from the ask's sanitized preview
+(secrets redacted), never from the raw input.
 
 **Props** — `ApprovalCardHeaderProps`
 
 <TypeTable
   type={{
     bordered: { type: "boolean", description: "Adds a bottom divider, for use above ApprovalCardBody." },
-    pendingApproval: { type: "PendingApproval", description: "The pending approval to summarize.", required: true },
+    toolUse: { type: "ToolUse", description: "The waiting tool use to summarize.", required: true },
   }}
 />
 
@@ -1368,10 +1254,7 @@ All visual properties flow through `--stgm-*` tokens.
 const conv = useSessionConversation(sessionId, org);
 
 <ArtifactsWidget
-  runs={[
-    ...conv.completedRuns,
-    ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
-  ]}
+  runs={conv.runs}
   org={activeOrg}
   onApplied={(result) => toast(`${result.kind} applied`)}
 />
@@ -1499,7 +1382,7 @@ Platform builders can override the default behavior via the
 ### FileReviewDock
 
 The composer-docked decision surface for pending file reviews: renders each
-AWAITING_REVIEW `FileChangeSet` as an interactive [`FileReviewCard`](#filereviewcard)
+undecided `FileReviewSet` as an interactive [`FileReviewCard`](#filereviewcard)
 decision bar, pinned in the fixed strip above the composer.
 
 WHY DOCKED, NOT IN-THREAD. The transcript's stamped edit rows are
@@ -1531,19 +1414,21 @@ same seam.
 
 <TypeTable
   type={{
-    changeSets: { type: "readonly FileChangeSet[]", description: "The change sets awaiting review. Renders nothing when empty. Feed this from `useSessionConversation().fileChangeSets` — the AWAITING_REVIEW sets of the conversation's newest turn, finished or not, the same seam whose `submitFileDecision` routes decisions to that turn, so what the dock shows and what it can decide are consistent by construction.", required: true },
+    captures: { type: "ReadonlyMap<string, FileChangeSet>", description: "The captured bytes of the sets, by change set id, when the caller holds the runs (`useSessionConversation().fileChangeCaptures`): each file's capture provenance renders from them." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed like submittingDecisionKeys — surfaced in-card beside the control that failed." },
-    onSubmit: { type: "(changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Called when the user makes a decision on one of the docked sets. Wire to `useSessionConversation().submitFileDecision` (or an equivalent useFileReview-backed handler bound to the owning run).", required: true },
+    fileReviewSets: { type: "readonly FileReviewSet[]", description: "The sets with files still undecided. Renders nothing when empty. Feed this from `useSessionConversation().fileReviewSets` — the newest turn's undecided sets, finished or not, the same seam whose `reviewFileChanges` decides them, so what the dock shows and what it can decide are consistent by construction.", required: true },
+    onSubmit: { type: "(changeSetId: string, action: FileReviewAction, options: ReviewFileChangesOptions) => void", description: "Called when the person decides on one of the docked sets. Wire to `useSessionConversation().reviewFileChanges` (or an equivalent useReviewFileChanges-backed handler bound to the session).", required: true },
     submittingDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys (fileDecisionKey) currently being submitted. Drives per-control loading state — see FileReviewCardProps.submittingDecisionKeys." },
   }}
 />
 
 ```tsx
-const conv = useSessionConversation(sessionId);
+const conv = useSessionConversation(sessionId, org);
 <FileReviewDock
-  changeSets={conv.fileChangeSets}
-  onSubmit={conv.submitFileDecision}
+  fileReviewSets={conv.fileReviewSets}
+  captures={conv.fileChangeCaptures}
+  onSubmit={conv.reviewFileChanges}
   submittingDecisionKeys={conv.submittingFileDecisionKeys}
   decisionErrors={conv.fileDecisionErrors}
 />
@@ -1652,25 +1537,25 @@ with structured formatting:
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    toolCall: { type: "ToolCall", description: "The MCP tool call to render with structured formatting.", required: true },
+    toolUse: { type: "ToolUse", description: "The MCP tool use to render with structured formatting.", required: true },
   }}
 />
 
 ```tsx
-<McpToolDetail toolCall={toolCall} />
+<McpToolDetail toolUse={toolUse} />
 ```
 
 
 ### MessageThread
 
-Renders a continuous conversation thread from one or more
-`Run` snapshots.
+Renders a conversation from its session's folded turns: each turn's
+person's message, the agent's messages, thinking and tool calls in the
+order it produced them, its sub-agents, to-dos, plan, file reviews and
+how it ended.
 
 Composes [`MessageEntry`](#messageentry), [`ToolCallGroup`](#toolcallgroup), and
 [`RunPhaseBadge`](#runphasebadge) into a scrollable, auto-scrolling log
 that follows new content when the user is near the bottom.
-
-Renders nothing when no runs are provided.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -1678,45 +1563,44 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    activeStreamRun: { type: "Run | null", description: "The currently streaming run. Appended after `executions` to form a continuous thread. Pass `null` or `undefined` when no run is actively streaming." },
     agentVersionLabel: { type: "(versionHash: string) => string", description: "Marks the agent version each turn ran (`RunStatus.agent_version_hash`): a quiet divider before the first turn that recorded one and wherever the version changes, so every turn reads under the version it ran. Receives a version hash and returns how it reads (a tag, else a short hash); the session view passes `useSessionAgentVersion`'s `labelOf`. Omit for no markers." },
-    approvalErrors: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call approval failures, keyed by `toolCallId` — surfaced in-card beside the gate that failed (an inline tool row or the bottom backstop card). Supply useSubmitApproval's `errorsByToolCallId`. Only meaningful when `onApprovalSubmit` is provided." },
+    answerErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed answer, keyed by its id — surfaced in-card beside the gate that failed. Supply useAnswerToolUse's `errorsByToolUseId`. Only meaningful when `onAnswerToolUse` is provided." },
+    answeringToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose answer is in flight, by id. Drives per-gate loading state. Only meaningful when `onAnswerToolUse` is provided." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    contentColumn: { type: "ThreadContentColumn", description: "Constrain thread content to a max-width reading column (`max-w-3xl`, 768 px) inside the full-width scroll container — the scrollbar stays at the viewport edge.  - `\"center\"` — column horizontally centered (classic chat reading view). - `\"start\"` — column anchored to the left edge, so the thread's left   edge stays put when a sibling panel opens/closes beside it.  When omitted, content spans the full width. Opt-in — existing consumers see no layout change.", typeDescriptionLink: "#threadcontentcolumn" },
-    formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
-    onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Callback for approval actions. When provided and the active run has pending approvals, ApprovalCards are rendered as thread items. When omitted, no approval UI is shown (backward compatible)." },
-    onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode run's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode run completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered. Backward compatible — existing consumers see no change." },
-    onEditMessage: { type: "(text: string) => void", description: "When provided, the in-flight human turn (the active run's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the running run and pre-fills the composer for an edit-and-resubmit.  Provide this only while the active run is stoppable; the SDK marks exactly the active-stream human turn editable. When omitted, no edit control is shown (backward compatible)." },
+    contentColumn: { type: "ThreadContentColumn", description: "Constrain thread content to a max-width reading column (`max-w-3xl`, 768 px) inside the full-width scroll container — the scrollbar stays at the viewport edge.  - `\"center\"` — column horizontally centered (classic chat reading view). - `\"start\"` — column anchored to the left edge, so the thread's left   edge stays put when a sibling panel opens/closes beside it.  When omitted, content spans the full width.", typeDescriptionLink: "#threadcontentcolumn" },
+    formatToolCallSummary: { type: "(toolUses: readonly ToolUse[]) => string", description: "Custom formatter for a folded run of tool calls' label. Passed through to each ToolCallGroup." },
+    onAnswerToolUse: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void", description: "Answers a tool use that waits for a person (allow, deny with an optional reason, or grant its class). When provided, a waiting tool use renders its decision inline on its own row (and as a bottom ApprovalCard when it has none). When omitted, no decision UI is shown." },
+    onBuildFromPlan: { type: "() => void", description: "Called when the user clicks \"Implement\" on a completed Plan-mode turn's PlanCompletionCard.  When provided, a CTA card is rendered at the end of the thread after a Plan-mode turn completes successfully. The consumer typically wires this to switch the interaction mode to Agent, pre-fill the composer, and focus it.  When omitted, no plan completion card is rendered." },
+    onEditMessage: { type: "(text: string) => void", description: "When provided, the live turn's message (the person's prompt) shows a hover \"Edit\" affordance. Clicking it invokes this callback with the message text — the session chat stops the turn and pre-fills the composer for an edit-and-resubmit.  Provide this only while the live turn is stoppable; the SDK marks exactly the live turn's message editable. When omitted, no edit control is shown." },
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => boolean | void", description: "Optional override for file path click behavior. Platform builders use this to integrate their own file viewer or navigation instead of the default open-URL / copy-to-clipboard." },
-    onOpenPlan: { type: "(executionId: string) => void", description: "Opens a plan in the session panel's plan document tab — the side-by-side review/refine surface. Wired to EVERY plan card: the latest opens editable/buildable, a superseded plan opens read-only (the host decides from the run id). When omitted, cards fall back to the \"Open full\" preview modal (hosts without a panel).  Providing this also opts the thread into LIVE plan collapse: while a Plan-mode turn streams its plan (detected via `findStreamingPlan`), the plan message is suppressed behind a compact PlanStreamingCard whose \"Open plan\" routes here — the host is expected to render the streaming document in its plan surface. Hosts without one (this prop omitted) keep the plan streaming inline, where it stays readable." },
-    onRetryRun: { type: "(message: string) => void", description: "Retry handler for a terminal-failed run that exposed a server error reason. Receives the originating message; the consumer typically resends it as a new run. When omitted, no Retry control is shown beside the surfaced failure reason." },
+    onOpenPlan: { type: "(executionId: string) => void", description: "Opens a plan in the session panel's plan document tab — the side-by-side review/refine surface. Wired to EVERY plan card: the latest opens editable/buildable, a superseded plan opens read-only (the host decides from the run id). When omitted, cards fall back to the \"Open full\" preview modal (hosts without a panel).  Providing this also opts the thread into LIVE plan collapse: while a Plan-mode turn writes its plan (detected via `findStreamingPlan`), the plan message is suppressed behind a compact PlanStreamingCard whose \"Open plan\" routes here — the host is expected to render the streaming document in its plan surface. Hosts without one (this prop omitted) keep the plan streaming inline, where it stays readable." },
+    onRetryRun: { type: "(message: string) => void", description: "Retry handler for a turn that failed with a server error reason. Receives the originating message; the consumer typically resends it as a new turn. When omitted, no Retry control is shown beside the surfaced failure reason." },
     onRetrySend: { type: "() => void", description: "Retry handler for a failed pending message. Wired to the inline \"Retry\" control when pendingMessageFailed is `true`." },
     org: { type: "string", description: "Organization id (a slug is also accepted). Required for the plan completion card's \"Review plan\" action, which opens the shared artifact preview modal (the modal needs `org` for its detection/apply pipeline)." },
-    pendingAttachments: { type: "readonly MessageAttachmentView[] | null", description: "Attachments submitted with the pending user message, rendered as chips on the optimistic bubble so the files never vanish between submit and the stream's first snapshot (stigmer/stigmer#372). Supply useSessionConversation's `pendingAttachments`; clear together with pendingUserMessage. Chips are inert on the pending bubble (no run record yet); previews and downloads light up the moment the real turn replaces it." },
+    pendingAttachments: { type: "readonly MessageAttachmentView[] | null", description: "Attachments submitted with the pending user message, rendered as chips on the optimistic bubble so the files never vanish between submit and the turn appearing (stigmer/stigmer#372). Supply useSessionConversation's `pendingAttachments`; clear together with pendingUserMessage. Chips are inert on the pending bubble (no run record yet); previews and downloads light up the moment the real turn replaces it." },
     pendingMessageFailed: { type: "boolean", description: "Marks the pending user message as failed-to-send. The optimistic bubble renders an inline \"Couldn't send — Retry\" affordance instead of the sending indicator, so a failed follow-up never silently vanishes. Pair with onRetrySend." },
-    pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the stream delivers the real message. Rendered as a human message with a sending indicator. Clear this prop once the stream delivers its first snapshot." },
-    planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. a run is streaming); the composer also no-ops a disabled submit." },
+    pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the session's events carry it. Rendered as a person's message with a sending indicator. Clear this prop once the turn appears." },
+    planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. a turn is working); the composer also no-ops a disabled submit." },
     planBuildPending: { type: "boolean", description: "True while the approved plan is being uploaded ahead of the build turn." },
-    runs: { type: "readonly Run[]", description: "Completed runs in chronological order.", required: true },
-    runScores: { type: "boolean", description: "Show run scores: thumbs up and down on each completed run's final answer and the run-health flags beside them. The thread then reads the session's scores once (and again shortly after a run completes, while it is graded). Off by default, and a thread with it off makes no score request; `SessionViewer` sets it from its audience." },
+    runs: { type: "readonly Run[]", description: "The turns' runs, for what the run record holds and the events do not: the message's attachments and mode, the plan artifact, the agent and skill versions a turn ran, its setup progress, and the captured bytes of its file changes. Matched to turns by run id; a turn whose run is absent renders from its events alone." },
+    runScores: { type: "boolean", description: "Show run scores: thumbs up and down on each completed turn's final answer and the run-health flags beside them. The thread then reads the session's scores once (and again shortly after a turn completes, while it is graded). Off by default, and a thread with it off makes no score request; `SessionViewer` sets it from its audience." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     scrollOnSend: { type: "boolean", description: "Scroll to the reader's own message when they send one from a scrolled-up position (the WhatsApp convention: showing the result of the reader's own action is Nielsen #1 system-status feedback). The send moment is the pendingUserMessage transition from empty to present; the pin re-engages follow mode, so the optimistic bubble and the streamed reply stay in view. Incoming content is unaffected — it still never moves a scrolled-up reader.  Default `true` on all three SDK thread surfaces at once — a deliberate exception to opt-in defaults: cross-surface consistency is the point, and a per-surface opt-in would re-create the inconsistency it fixes. Set `false` to keep today's leave-the-reader-alone behavior." },
-    showFileReviewRecords: { type: "boolean", description: "Render each *settled* captured change set as a read-only record card at its anchor in the thread (after the set's last stamped edit row) — the durable history of what changed and how it was decided. This is the only in-thread trace for a set with no stamped rows (e.g. changes made by shell commands), so the surface that owns the session history should enable it.  The thread never renders *decision* controls: a pending (AWAITING_REVIEW) set on a live run is deliberately NOT emitted here — its decision surface is the composer-docked FileReviewDock, which cannot scroll out of view. The stamped rows' badges carry the pending state in-thread.  Opt-in with a backward-compatible default; `SessionViewer` enables it." },
+    showFileReviewRecords: { type: "boolean", description: "Render each *settled* file review as a read-only record card at its anchor in the thread (after the last row that edited one of its files) — the durable history of what changed and how it was decided. This is the only in-thread trace for changes made by shell commands, so the surface that owns the session history should enable it.  The thread never renders *decision* controls: a set still undecided on a live turn is deliberately NOT emitted here — its decision surface is the composer-docked FileReviewDock, which cannot scroll out of view. The edit rows' badges carry the pending state in-thread." },
     slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing.", typeDescriptionLink: "#messagethreadslots" },
-    submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval. Drives per-card loading state. Only meaningful when `onApprovalSubmit` is provided." },
-    summarizationEvents: { type: "readonly SummarizationEventView[]", description: "Summarization events from context window tracking. When provided, \"Context compacted\" cards are interleaved into the thread at the correct chronological position based on event timestamps.  Obtain from useContextWindow.summarizationEvents." },
+    turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (`useSessionConversation().turns`, or `useSessionEvents().fold.turns`). Each turn renders its person's message, the agent's items, its asks, to-dos and file reviews. A turn that has not ended is the live one.", required: true },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When provided, file paths in tool call rendering become interactive — git-sourced paths open on GitHub, local paths offer copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
   }}
 />
 
 ```tsx
-const { runs } = useSessionRuns(sessionId);
-const stream = useRunStream(activeId);
+const conv = useSessionConversation(sessionId, org);
 
 <MessageThread
-  runs={runs ?? []}
-  activeStreamRun={stream.run}
+  turns={conv.turns}
+  runs={conv.runs}
+  onAnswerToolUse={conv.answerToolUse}
 />
 ```
 
@@ -1777,8 +1661,8 @@ Displays run lifecycle phase and, when present, the agent's
 todo checklist showing multi-step task progress.
 
 The phase badge is always visible so the user knows the run
-state at a glance. When the agent creates todo items (via the
-`write_todos` tool), they appear as a compact checklist sorted by
+state at a glance. When the agent keeps a to-do list (`todos`, from
+the turn's fold), it appears as a compact checklist sorted by
 activity: in-progress items first, then pending, completed, and
 cancelled.
 
@@ -1792,15 +1676,14 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    run: { type: "Run | null", description: "The run to display progress for. Renders nothing when null.", required: true },
+    run: { type: "Run | null", description: "The run to display progress for: its phase and error. Renders nothing when null.", required: true },
+    todos: { type: "readonly Todo[]", description: "The turn's to-do list, from the session's fold (`Turn.todos`); omitted or empty shows none." },
   }}
 />
 
 ```tsx
-const stream = useRunStream(executionId);
-
 <div className="rounded-lg border border-border bg-card p-3">
-  <RunProgress run={stream.run} />
+  <RunProgress run={run} todos={turn.todos} />
 </div>
 ```
 
@@ -1889,15 +1772,15 @@ if (isLoading) return <ThreadSkeleton className="flex-1" />;
 
 ### TodoInProgressIcon
 
-Exported for reuse in SubAgentSection collapsed preview.
+The in-progress glyph, exported for hosts composing their own to-do rows.
 
 
 ### TodoList
 
-Renders a sorted checklist of `TodoItem` entries.
+Renders a sorted checklist of `Todo` entries.
 
 Shared by [`RunProgress`](#runprogress) (main agent sidebar widget)
-and [`SubAgentSection`](#subagentsection) (sub-agent expanded content).
+and [`TodoCard`](#todocard) (the in-thread card).
 
 Items are sorted by activity: in-progress first, then pending,
 completed, and cancelled. Each row shows a status icon and the
@@ -1911,15 +1794,12 @@ All visual properties flow through `--stgm-*` tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     TodoRow: { type: "ComponentType<TodoRowProps>", description: "Replacement row component. Receives TodoRowProps for each item; defaults to the built-in TodoRow. Renders inside a `<ul role=\"list\">`, so the component must produce an `<li>`." },
-    todos: { type: "object", description: "Todo items keyed by ID. Accepts the proto map shape directly (`execution.status.todos` or `subAgentRun.todos`).", required: true },
+    todos: { type: "readonly Todo[]", description: "The to-do items, as a turn's fold holds them (`Turn.todos`).", required: true },
   }}
 />
 
 ```tsx
-const run = stream.run;
-const todos = run?.status?.todos ?? {};
-
-<TodoList todos={todos} />
+<TodoList todos={turn.todos} />
 ```
 
 
@@ -1942,11 +1822,11 @@ appropriate category-specific view:
 
 <TypeTable
   type={{
-    args: { type: "Record<string, unknown> | null", description: "Parsed tool arguments — either from `ToolCall.args` or `JSON.parse(PendingApproval.argsPreview)`.", required: true },
+    args: { type: "Record<string, unknown> | null", description: "Parsed tool arguments — either the tool use's `input`, or an ask's `JSON.parse(argsPreview)`.", required: true },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     mcpServerSlug: { type: "string", description: "MCP server slug for MCP tool classification and metadata." },
     showFileName: { type: "boolean", description: "Whether the file-tool view renders the path row. Defaults to `true`. Set to `false` where an ancestor already names the file (the approval gate header), so the write/edit content shows without restating the path." },
-    toolName: { type: "string", description: "Raw tool name as it appears on the ToolCall or PendingApproval. Used for category resolution and MCP metadata display.", required: true },
+    toolName: { type: "string", description: "Raw tool name, as the tool use names it. Used for category resolution and MCP metadata display.", required: true },
   }}
 />
 
@@ -1972,8 +1852,8 @@ a terminal with an exit badge, a search shows a match list, and unknown tools
 degrade to readable JSON instead of a raw dump.
 
 Composition varies by category to avoid redundancy: an edit shows only the
-diff (which already names the file and quantifies the change); a stamped
-write shows its change set's captured diff, degrading to the proposed
+diff (which already names the file and quantifies the change); a write
+shows its turn's captured diff of the file, degrading to the proposed
 content when no capture resolves; a read shows just the path.
 
 Importable on its own by platform builders composing custom tool UIs.
@@ -1984,12 +1864,12 @@ Importable on its own by platform builders composing custom tool UIs.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     primaryArgTruncated: { type: "boolean", description: "Whether the owning row's header truncated the primary argument (the search query / list path). A header-owned layout fact: when `true`, the search/list body restates the full, wrapping value so a long query is reachable without relying on the hover tooltip; when `false` (the default) the header already shows the value in full, so the body does not repeat it. Only the search/list branch consumes it." },
-    toolCall: { type: "ToolCall", description: "The tool call to render in detail.", required: true },
+    toolUse: { type: "ToolUse", description: "The tool use to render in detail (from the session's fold).", required: true },
   }}
 />
 
 ```tsx
-<ToolCallDetail toolCall={toolCall} />
+<ToolCallDetail toolUse={toolUse} />
 ```
 
 
@@ -2022,10 +1902,7 @@ Console dependencies.
 const conv = useSessionConversation(sessionId, org);
 
 <UsageWidget
-  runs={[
-    ...conv.completedRuns,
-    ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
-  ]}
+  runs={conv.runs}
 />
 ```
 
@@ -2107,10 +1984,7 @@ Console dependencies.
 const conv = useSessionConversation(sessionId, org);
 
 <WriteBacksWidget
-  runs={[
-    ...conv.completedRuns,
-    ...(conv.activeStreamRun ? [conv.activeStreamRun] : []),
-  ]}
+  runs={conv.runs}
 />
 ```
 
@@ -2119,27 +1993,26 @@ const conv = useSessionConversation(sessionId, org);
 
 ### ApprovalCard
 
-Renders a pending tool-call approval request with the same visual
+Renders a tool use that waits for a person's answer with the same visual
 structure as an expanded [`ToolCallItem`](#toolcallitem) in the history list.
 
 The compact header row matches the ToolCallItem layout:
   [CategoryIcon] Label  primaryArg  [⏳ waiting Xm]
 
-The body shows the proposed change from the tool args (the
-pre-execution deny-gate has no captured `FileChangeSet` yet): the
-write/edit content when present, an [`EmptyChangeNotice`](#emptychangenotice) when
-only a path is known, otherwise the shared [`ToolArgsView`](#toolargsview)
-dispatch, keeping pixel-level parity with the detail view.
+The body shows the proposed change from the tool's input (the call has
+not run, so nothing is captured yet): the write/edit content when
+present, an [`EmptyChangeNotice`](#emptychangenotice) when only a path is known,
+otherwise the shared [`ToolArgsView`](#toolargsview) dispatch, keeping pixel-level
+parity with the detail view.
 
-Wrapped in `React.memo` — structural sharing preserves the
-`PendingApproval` reference when unchanged, so approval cards
-skip re-renders during unrelated stream updates.
+Wrapped in `React.memo`: the session fold keeps an unchanged tool use's
+reference, so the card skips re-renders during unrelated stream updates.
 
 ```tsx
 <ApprovalCard
-  pendingApproval={approval}
-  onSubmit={(action) => submitApproval(executionId, approval.toolCallId, action)}
-  isSubmitting={submittingIds.has(approval.toolCallId)}
+  toolUse={ask}
+  onAnswer={(answer, message) => answerToolUse(sessionId, ask.id, answer, message)}
+  isSubmitting={submittingToolUseIds.has(ask.id)}
 />
 ```
 
@@ -2151,45 +2024,53 @@ Props for [`ApprovalCard`](#approvalcard).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    error: { type: "Error | null", description: "This gate's last failed decision, or `null` — surfaced in-card, beside the action buttons (the optimistic spinner reverts on failure, so this explains the snap-back). A thread can hold many gates; the error must name the one it belongs to, which a single global banner cannot do. Supply the entry from useSubmitApproval's `errorsByToolCallId` for this `toolCallId`." },
-    isSubmitting: { type: "boolean", description: "True while the RPC for this specific tool call is in flight." },
-    onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Called when the user clicks Approve, Skip, or Reject. The consumer (typically MessageThread or a platform builder's custom thread) handles the RPC via useSubmitApproval.", required: true },
-    pendingApproval: { type: "PendingApproval", description: "The pending approval request to render.", required: true },
+    error: { type: "Error | null", description: "This gate's last failed answer, or `null` — surfaced in-card, beside the actions (the optimistic spinner reverts on failure, so this explains the snap-back). Supply useAnswerToolUse's `errorsByToolUseId` entry for this tool use." },
+    isSubmitting: { type: "boolean", description: "True while this tool use's answer is in flight." },
+    onAnswer: { type: "(answer: ToolUseAnswer, denyMessage?: string) => void", description: "Called when the person answers: Approve (`\"allow\"`), Deny (`\"deny\"`, with the optional reason they typed), or Approve all of the call's class (`\"grant\"`). The consumer (typically MessageThread or a platform builder's custom thread) sends it via useAnswerToolUse.", required: true },
+    toolUse: { type: "ToolUse", description: "The tool use that waits for a person (`state === \"waiting\"`); its `ask` says why and carries the sanitized preview the card shows.", required: true },
   }}
 />
 
 
 ### ApprovalContext
 
-Context that supplies a run's pending approvals to the tool rows they gate.
+Context that supplies the answer handler to the tool rows that wait.
 
 
 ### ApprovalContextValue
 
-Context value that carries the run's pending approvals to the tool rows
-that own them, so an approval gate can render *inline* on the exact tool
-call it blocks (parent thread and nested sub-agents alike) instead of as a
-detached card at the bottom of the thread.
+Context value that carries the answer handler and its per-gate state to the
+tool rows, so a tool use that waits for a person renders its decision
+*inline* on its own row (parent thread and nested sub-agents alike) instead
+of as a detached card at the bottom of the thread.
+
+Whether a row waits is the row's own fact (`ToolUse.state === "waiting"`,
+from the session's events); the context supplies only what the row cannot
+know: how to answer, and which answers are in flight or failed.
 
 Provided by [`MessageThread`](#messagethread) (or a platform builder's custom wrapper),
-beside [`FilePathContext`](#filepathcontext) / `SandboxContext`. When no provider is
-present — or the consumer did not supply an `onApprovalSubmit` handler — the
-map is empty and [`useApproval`](#useapproval) returns `null`, so the inline UI is a
-no-op (backward compatible).
-
-The map is keyed by `tool_call_id` and rebuilt only when the underlying
-`pendingApprovals` list changes (not per streaming frame), so subscribing
-tool rows re-render on approval events, not on every snapshot — preserving
-the thread's streaming re-render isolation.
+beside [`FilePathContext`](#filepathcontext) / `SandboxContext`. Without a provider, or
+without an `onAnswer` handler, [`useApproval`](#useapproval) returns `null` and no
+decision UI is shown (a read-only transcript).
 
 <TypeTable
   type={{
-    approvalsByToolCallId: { type: "ReadonlyMap<string, PendingApproval>", description: "Unresolved approvals, keyed by the `tool_call_id` they gate.", required: true },
-    errorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-tool-call failures, keyed by `tool_call_id` (the parallel of submittingIds). A failed decision is surfaced in-card, beside the exact gate that failed, so the inline row can name *which* action did not take and why. Empty when no provider supplies it.", required: true },
-    onSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Submits a decision for a gated tool call. Wired to the same handler the bottom ApprovalCard backstop uses; when absent, no inline approval UI is shown." },
-    submittingIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose decision RPC is in flight, for per-card spinners.", required: true },
+    errorsByToolUseId: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed answer, keyed by its id (the parallel of submittingIds), surfaced in-card beside the gate that failed.", required: true },
+    onAnswer: { type: "(toolUseId: string, answer: ToolUseAnswer, denyMessage?: string) => void", description: "Answers a waiting tool use. Wired to the same handler the bottom ApprovalCard backstop uses; when absent, no inline decision UI is shown." },
+    submittingIds: { type: "ReadonlySet<string>", description: "Tool-use ids whose answer is in flight, for per-gate spinners.", required: true },
   }}
 />
+
+
+### approvalPolicySourceOf
+
+The `ApprovalPolicySource` a provenance word names (an ask's
+`policySource`); `UNSPECIFIED` for "" (no rule recorded) or a word this
+client does not know.
+
+```tsx
+function approvalPolicySourceOf(word: string): ApprovalPolicySource
+```
 
 
 ### ARTIFACT_DOCUMENT_ENTRY_ID
@@ -2300,8 +2181,8 @@ Omit it for a conversation with the built-in assistant.
 
 ### changeForRowPath
 
-The captured change a transcript row's file path refers to, or `null`. The
-row's path may be absolute (harness tool args) while captured paths are
+The captured change (the run's bytes) a transcript row's file path refers
+to, or `null`. The row's path may be absolute while captured paths are
 workspace-root-relative, so the match accepts an exact match or a
 `/`-boundary suffix. Presentation-only — never a correlation key.
 
@@ -2312,32 +2193,24 @@ function changeForRowPath(set: FileChangeSet, rowPath: string): CapturedFileChan
 
 ### changeSetReviewability
 
-Classify a `FileChangeSet` from its server-derived `diff_completeness`
-rollup (the field exists precisely so clients need not re-fold the per-file
-signals). The runner and the size backstop both derive that value from the
-same rule the backend gate re-checks, so this classification, the per-file
-[`fileReviewability`](#filereviewability) fold, and the server gate agree by construction.
+Classify a set from its files' reviewability.
 
 ```tsx
-function changeSetReviewability(set: FileChangeSet): ChangeSetReviewability
+function changeSetReviewability(set: Pick<FileReviewSet, "files">): ChangeSetReviewability
 ```
 
 
 ### ChangeSetReviewability
 
-How completely a whole `FileChangeSet` can be reviewed — the set-level
-sibling of [`FileReviewability`](#filereviewability) that decides whether the set can be kept
-in one action. Drives the card's bulk affordance and keeps headless builders
-on the same classification.
+How completely a whole set can be reviewed — the set-level sibling of
+[`FileReviewability`](#filereviewability) that decides whether the set can be kept in one
+action.
 
-- `"complete"` — every file is reviewable; the set can be approved as-is.
-- `"binary-only"` — the set's ONLY blocker is binary files (every non-binary
-  file is fully reviewable). No text diff for the binaries, but their exact
-  bytes are captured and reconcilable, so the whole set can be KEPT in one
-  acknowledged action ("Keep all"). Includes mixed sets (text edits + images).
-- `"blocked"` — at least one file is unavailable to review with no keepable
-  bytes (secret-withheld / size-elided / uncapturable), so the set cannot be
-  approved at once; it must be resolved per file.
+- `"complete"` — every file is reviewable; the set can be kept as-is.
+- `"binary-only"` — the ONLY blocker is binary files: the whole set can be
+  kept in one acknowledged action ("Keep all").
+- `"blocked"` — at least one file is unavailable to review, so the set
+  cannot be kept at once; it must be resolved per file.
 
 
 ### classifyPath
@@ -2352,53 +2225,6 @@ edge-case handling (leading-slash stripping, bare `.stigmer`).
 ```tsx
 function classifyPath(path: string): PathClassification
 ```
-
-
-### ContextGauge
-
-Visual gauge showing context window utilization during run.
-
-Renders a progress bar with threshold markers, token count labels, and
-a health indicator derived from utilization percentage. The gauge updates
-in real-time as the run streams status updates.
-
-Returns `null` when `context_info` is absent (e.g., Cursor harness
-where context is managed externally).
-
-All visual properties flow through `--stgm-*` tokens. Zero Console
-dependencies. Accessible via `role="meter"` with ARIA value attributes.
-
-```tsx
-const { run } = useRunStream(executionId);
-<ContextGauge run={run} />
-```
-
-```tsx
-<ContextGauge run={run} compact />
-```
-
-
-### ContextGaugeProps
-
-Props for [`ContextGauge`](#contextgauge).
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    compact: { type: "boolean", description: "When `true`, renders a minimal bar without labels. Use in tight layouts (e.g., inline status indicators)." },
-    run: { type: "Run | null", description: "The run snapshot from `useRunStream`, or `null`. The gauge extracts `context_info` from the run status.", required: true },
-  }}
-/>
-
-
-### ContextHealth
-
-Context window health state derived from utilization percentage.
-
-Matches the thresholds documented in context.proto (ContextInfo.utilization_percent):
-- 0-70%:  healthy (green)
-- 70-90%: warning (yellow, approaching summarization threshold)
-- 90%+:   critical (red, at or above trigger threshold)
 
 
 ### CreateRunInput
@@ -2437,24 +2263,6 @@ tools compact" behaviour; consumers can override per `ToolKind` via
 
 ```tsx
 function defaultDisclosureForCategory(category: ToolCategory): ToolDisclosure
-```
-
-
-### deriveEffectiveVerdicts
-
-Each file's EFFECTIVE verdict for a settled set, folding the decisions the
-way the runner reconcile does (most-specific-wins): the last CHANGE_SET
-decision is the baseline for every file, and a later-or-earlier FILE decision
-overrides it for that file (FILE > CHANGE_SET regardless of ledger order;
-within a scope, last write wins).
-
-This is the fold for DISPLAYING history — a set decided via "Keep all"
-correctly reads every file as kept. The interactive per-file selected state
-deliberately uses the FILE-only fold instead (a CHANGE_SET decision cannot
-coexist with an open review, so it never pre-selects anything there).
-
-```tsx
-function deriveEffectiveVerdicts(set: FileChangeSet): ReadonlyMap<string, FileDecisionAction>
 ```
 
 
@@ -2545,14 +2353,14 @@ Which empty file-change state to describe.
 
 ### extractPrimaryArg
 
-Extracts the most relevant argument value from a tool call
+Extracts the most relevant argument value from a tool use
 based on its category (command for shell tools, path for file
 tools, slug for MCP tools, etc.).
 
 Returns `null` when the tool has no recognised arguments.
 
 ```tsx
-function extractPrimaryArg(toolCall: ToolCall): string | null
+function extractPrimaryArg(toolUse: Pick<ToolUse, "name" | "mcpServerName" | "input">): string | null
 ```
 
 
@@ -2563,15 +2371,15 @@ when absent (legacy runs, models that skipped the optional arg, and
 every non-shell kind). See [`SHELL_INTENT_ARG_FIELD`](#shell_intent_arg_field).
 
 ```tsx
-function extractShellIntent(toolCall: Pick<ToolCall, "name" | "mcpServerSlug" | "toolKind" | "args">): string | null
+function extractShellIntent(tool: Pick<ToolUse, "name" | "mcpServerName" | "input">): string | null
 ```
 
 
 ### extractShellIntentFromPreview
 
-Preview-string twin of [`extractShellIntent`](#extractshellintent) for surfaces that carry a
-`PendingApproval` (JSON `argsPreview`) instead of a full `ToolCall` —
-mirrors `extractPrimaryArgFromPreview`'s kind resolution.
+Preview-string twin of [`extractShellIntent`](#extractshellintent) for surfaces that carry an
+ask's JSON `argsPreview` instead of the tool use's input; mirrors
+`extractPrimaryArgFromPreview`'s kind resolution.
 
 ```tsx
 function extractShellIntentFromPreview(toolName: string, argsPreview: string, mcpServerSlug?: string, toolKind?: ToolKind): string | null
@@ -2580,15 +2388,23 @@ function extractShellIntentFromPreview(toolName: string, argsPreview: string, mc
 
 ### FileBlockReason
 
-Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
-runner records on `CapturedFileChange.blocked_reason`.
+Why an `"unavailable"` file cannot be reviewed.
 
-- `"secret"` — the path looks like a secret; the bytes were deliberately never
-  captured (there is nothing to review, by design).
-- `"size"` — the diff was captured but its bodies were dropped to keep the
-  persisted status under its size limit.
-- `"unknown"` — incomplete for a reason the wire does not name (a defensive
-  catch-all; historical rows and future/unmapped causes land here).
+- `"secret"` — the path looks like a secret; the bytes were deliberately
+  never captured (there is nothing to review, by design).
+- `"partial"` — the diff is incomplete: too large to keep, or not
+  capturable.
+
+
+### fileChangeKindOf
+
+The `FileChangeKind` a file's change word names (`added`,
+`modified`, `deleted`, `renamed`), for the shared change-kind badge;
+`UNSPECIFIED` for any other word.
+
+```tsx
+function fileChangeKindOf(change: string): FileChangeKind
+```
 
 
 ### FileChangeProgressBar
@@ -2637,27 +2453,22 @@ Props for [`FileChangeProgressBar`](#filechangeprogressbar).
 
 ### fileDecisionKey
 
-The loading-state key for a file decision: the change set id for a whole-set
-(CHANGE_SET) decision, or `changeSetId:fileChangeId` for a per-file one.
+The loading-state key for a file-review decision: the change set's id for a
+whole-set decision, `changeSetId:fileChangeId` for one file.
 
 ```tsx
 function fileDecisionKey(changeSetId: string, fileChangeId?: string): string
 ```
 
 
-### FileDecisionOptions
+### fileForRowPath
 
-Options narrowing a file decision to a single file and binding its digest.
+The file of a turn's review a transcript row's path refers to, or `null`.
+Presentation-only — never a correlation key.
 
-<TypeTable
-  type={{
-    acknowledgeUnreviewable: { type: "boolean", description: "Set on an APPROVE to consciously KEEP a change whose diff could not be fully reviewed. Honored only for a binary file at `FILE` scope (a binary has no text diff, but its exact bytes are captured and reconcilable). It never relaxes the digest gate, and is ignored for other incompleteness." },
-    expectedDigest: { type: "string", description: "The digest the reviewer saw (`aggregate_digest` for CHANGE_SET, `file_digest` for FILE). The server enforces it at decision time and the runner re-verifies it at reconcile — \"what you approve is what gets applied\"." },
-    fileChangeId: { type: "string", description: "The captured file this decision targets; required for `FILE` scope." },
-    reason: { type: "string", description: "Optional free-text comment recorded on the decision (audit trail)." },
-    scope: { type: "FileDecisionScope", description: "Decision scope. Defaults to `FILE` when fileChangeId is set, else `CHANGE_SET` (the whole-set decision that covers every file)." },
-  }}
-/>
+```tsx
+function fileForRowPath(set: Pick<FileReviewSet, "files">, rowPath: string): FileReviewFile | null
+```
 
 
 ### FilePathContext
@@ -2684,59 +2495,39 @@ copy-to-clipboard for all paths.
 
 ### fileReviewability
 
-Classify a `CapturedFileChange` by how completely it can be reviewed,
-from the signals the runner authors onto the change (see the file-review
-producer in the runner's `shared/filereview`).
-
-The mapping is derived from three proto signals, in order:
-
-1. `diff_complete === true` → `"reviewable"`. The change set can only be
-   `COMPLETE` when every file is complete, so a complete file is always
-   reviewable.
-2. otherwise, a binary side (`before.is_binary` or `after.is_binary`) →
-   `"binary"`. The runner marks a git-tracked file incomplete precisely
-   because a side is binary (`diff_complete = !binary`); a CAS file carries
-   `is_binary` on its blob ref. `is_binary` is preserved when a large body is
-   offloaded from an inline value to a storage ref, so this holds regardless
-   of offload. Binary is therefore derived here, never duplicated onto the
-   block reason.
-3. otherwise → `"unavailable"` with the honest cause from
-   `blocked_reason`: `SECRET_WITHHELD → "secret"`, `SIZE_ELIDED → "size"`,
-   else `"unknown"`. Before the runner recorded it, this bucket was
-   cause-agnostic (the wire could not prove secret-withheld vs
-   size-dropped); the runner now records the cause at capture time, so the
-   UI can say *why* rather than only *that* the diff is unavailable.
+Classify a file of a turn's review by its `reviewable` word (the runner's
+`complete`, `binary`, `secret` or `partial`).
 
 ```tsx
-function fileReviewability(change: CapturedFileChange): FileReviewability
+function fileReviewability(file: Pick<FileReviewFile, "reviewable">): FileReviewability
 ```
 
 
 ### FileReviewability
 
-How completely a single captured file change can be reviewed before a decision
-is made — the classification that decides whether a file can be kept. A
-discriminated union so every consumer handles each case exhaustively and reads
-the block reason from one place (no "classify, then separately look up why").
+How completely a single file change can be reviewed before it is decided —
+the classification that decides whether a file can be kept.
 
-- `{ kind: "reviewable" }` — the full before/after diff is available; the
-  reviewer can see exactly what changed and Keep or Discard it.
-- `{ kind: "binary" }` — a binary file changed; there is no text diff to
-  review (the bytes are captured and flagged, but a byte diff is not
-  human-reviewable). Binary is proven by `FileContent.is_binary`, not by the
-  block reason.
-- `{ kind: "unavailable"; reason }` — the diff is not available to review at
-  all, with the honest [`FileBlockReason`](#fileblockreason) the runner recorded.
+- `{ kind: "reviewable" }` — the full before/after diff is available.
+- `{ kind: "binary" }` — a binary file changed: no text diff, but its exact
+  bytes are captured, so it can be kept consciously ("Keep anyway").
+- `{ kind: "unavailable"; reason }` — the diff is not available to review
+  at all; the file can only be discarded.
 
-Both `"binary"` and `"unavailable"` are non-reviewable: the file cannot be
-approved (kept), only discarded. This mirrors the server, which blocks
-approval of any change set that is not fully complete.
+Mirrors the server, which refuses to keep a set that is not complete
+unless every incompleteness is binary and acknowledged.
+
+
+### FileReviewAction
+
+What a decision does to a turn's changes: keep them, or put them back.
 
 
 ### FileReviewCard
 
-Renders a captured `FileChangeSet` as a **compact decision bar**: one
-line carrying the set summary and the whole-set decision controls, with the
+Renders a turn's file changes (`FileReviewSet`) as a **compact
+decision bar**: one line carrying the set summary and the whole-set
+decision controls, with the
 per-file detail behind an expander. What the expander holds depends on
 `FileReviewCardProps.showDiffs`: the diff-rich body (default — for
 surfaces where this card is the only review surface) or a compact file list
@@ -2747,15 +2538,14 @@ files, mid-review) starts expanded.
 File edits are reviewed as a captured workspace delta, not tool calls, so this
 is a dedicated decision surface distinct from the message transcript and the
 tool-approval [`ApprovalCard`](#approvalcard). The reviewer can decide each file
-individually (Keep / Discard, a `FILE`-scoped decision) or act on the whole
-set at once (Approve / Reject, a `CHANGE_SET` decision). Either way the runner
-reconciles the exact approved bytes with hash verification.
+individually (Keep / Discard, a `"file"` decision) or act on the whole set
+at once (Keep / Discard all, a `"change_set"` decision). Kept bytes stay;
+discarded ones are put back, verified against the digest the person saw.
 
-The unified HITL gate clears only when EVERY file has a verdict — one
-`CHANGE_SET` decision, or a `FILE` decision per file — so a partially-decided
-set stays actionable and deciding the last file is what resumes the turn. A
-per-file verdict is changeable while the set is still open: clicking the other
-option records a new decision (the backend reconcile is last-write-wins).
+The set stays offered until every file has a verdict, so a partially
+decided set stays actionable. A per-file verdict is changeable while the
+set is still open: clicking the other option records a new decision (the
+last one wins).
 
 A `binary-only` set (binary files are the only blocker) can be kept in one
 action: the bulk button reads "Keep all" and carries the acknowledgment.
@@ -2765,22 +2555,21 @@ per-file path is the escape: keep the reviewable files and discard the rest.
 
 Each non-reviewable file is labeled honestly by [`fileReviewability`](#filereviewability): a
 `binary` change has no text diff to review; an `unavailable` change is one
-whose diff isn't available at all, with the honest cause the runner recorded
-(a secret path whose bytes were never captured, or a diff dropped to bound the
-status). Both are discard-only, and their Keep affordance is disabled
-with the reason associated via `aria-describedby`. Files captured outside
-normal git tracking (gitignored / non-git CAS) carry a small provenance badge
-so the reviewer knows the change is not part of the repo's tracked history.
+whose diff isn't available at all (a secret path whose bytes were never
+captured, or an incomplete diff). Both are discard-only, and their Keep
+affordance is disabled with the reason associated via `aria-describedby`.
+Files captured outside normal git tracking (gitignored / non-git CAS) carry
+a small provenance badge, read from the capture, so the reviewer knows the
+change is not part of the repo's tracked history.
 
-Wrapped in `React.memo` — the streamed `FileChangeSet` reference is preserved
-by structural sharing when unchanged, so review cards skip re-renders during
-unrelated stream updates.
+Wrapped in `React.memo` — the session fold keeps an unchanged set's
+reference, so review cards skip re-renders during unrelated stream updates.
 
 ```tsx
-const { submitFileDecision, submittingDecisionKeys } = useFileReview();
+const { reviewFileChanges, submittingDecisionKeys } = useReviewFileChanges();
 <FileReviewCard
-  fileChangeSet={changeSet}
-  onSubmit={(action, opts) => submitFileDecision(executionId, changeSet.id, action, opts)}
+  fileReviewSet={set}
+  onSubmit={(action, opts) => reviewFileChanges(sessionId, set.changeSetId, action, opts)}
   submittingDecisionKeys={submittingDecisionKeys}
 />
 ```
@@ -2792,59 +2581,56 @@ Props for [`FileReviewCard`](#filereviewcard).
 
 <TypeTable
   type={{
+    capture: { type: "FileChangeSet | null", description: "The set's captured bytes (its run's change set), when the caller already holds the run: the diffs and each file's capture provenance render from it. Omitted, the card reads the run itself, and only when it shows diffs." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed exactly like submittingDecisionKeys (via fileDecisionKey) — the set's id for a whole-set decision, the `setId:fileChangeId` for a per-file one. A failed decision is surfaced in-card, beside the control that failed (and the optimistic verdict reverts), so the reviewer sees *which* action did not take and why. Supply useFileReview's `decisionErrors`." },
-    fileChangeSet: { type: "FileChangeSet", description: "The captured change set awaiting review (status AWAITING_REVIEW).", required: true },
-    interactive: { type: "boolean", description: "Whether the card presents decision controls. Defaults to `true` (the live review surface). Set to `false` to render a **settled** change set read-only: the per-file diffs and each file's committed verdict are shown, but the decision controls, bulk footer, and error affordances are omitted. Used for a decided/reconciled set, or any set on a terminal run — a historical record of what changed and how it was decided, not an actionable gate." },
-    onSubmit: { type: "(action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Called when the user makes a decision. The consumer (typically MessageThread or a platform builder's surface) handles the RPC via useFileReview. A whole-set Approve/Reject sends `CHANGE_SET` scope; a per-file Keep/Discard sends `FILE` scope with the file's id. Optional and ignored when FileReviewCardProps.interactive is `false`." },
+    decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed exactly like submittingDecisionKeys (via fileDecisionKey) — the set's id for a whole-set decision, the `setId:fileChangeId` for a per-file one. A failed decision is surfaced in-card, beside the control that failed (and the optimistic verdict reverts), so the reviewer sees *which* action did not take and why. Supply useReviewFileChanges's `decisionErrors`." },
+    fileReviewSet: { type: "FileReviewSet", description: "The turn's changes and how each file stands, from the session's fold (`Turn.fileReview`). Decisions, verdicts and progress are read from it.", required: true },
+    interactive: { type: "boolean", description: "Whether the card presents decision controls. Defaults to `true` (the live review surface). Set to `false` to render a **settled** set read-only: each file's verdict is shown, but the decision controls and error affordances are omitted — a historical record of what changed and how it was decided, not an actionable gate." },
+    onSubmit: { type: "(action: FileReviewAction, options: ReviewFileChangesOptions) => void", description: "Called when the person decides. The consumer (typically the session's dock or a platform builder's surface) sends it via useReviewFileChanges. A whole-set Keep/Discard sends `\"change_set\"` scope; a per-file one sends `\"file\"` scope with the file's id. Optional and ignored when FileReviewCardProps.interactive is `false`." },
     showDiffs: { type: "boolean", description: "Whether the expanded body renders each file's diff. Defaults to `true` — the right default wherever this card is the *only* review surface (standalone platform-builder embeds).  `MessageThread` passes `false`: the transcript's stamped edit rows already show every diff in place, so the expanded body collapses to a compact file list (kind letter + linked path + `+N −M` + per-file controls) and the card stays purely the decision surface. Decision semantics — digests, scopes, acknowledgments — are identical in both modes; this is presentation only (opt-in with a backward-compatible default)." },
-    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "The decision keys currently being submitted — exactly the set useFileReview returns as `submittingDecisionKeys`. A card has more than one decision target (the whole set plus each file), so it takes the keyed set rather than a single boolean and derives each control's in-flight state via fileDecisionKey." },
+    submittingDecisionKeys: { type: "ReadonlySet<string>", description: "The decision keys currently being submitted — exactly the set useReviewFileChanges returns as `submittingDecisionKeys`. A card has more than one decision target (the whole set plus each file), so it takes the keyed set rather than a single boolean and derives each control's in-flight state via fileDecisionKey." },
   }}
 />
 
 
 ### FileReviewContext
 
-Context that supplies the session's change sets to stamped tool rows.
+Context that supplies the session's file reviews to the tool rows.
 
 
 ### FileReviewContextValue
 
-Context value that carries the session's captured change sets to the
-transcript tool rows that reference them, so a stamped file-edit row
-(`ToolCall.file_change_set_id`) can badge itself with the set's live review
-state — pending review, kept, discarded — right where the edit happened.
+Context value that carries the session's file reviews to the transcript
+tool rows, so a file-edit row can badge itself with the live review state
+of the file it changed — pending review, kept, discarded — right where the
+edit happened, and a write row can render its file's captured diff.
 
-The sibling of [`ApprovalContext`](#approvalcontext), and the same discipline: provided by
-[`MessageThread`](#messagethread), keyed by a stable id, rebuilt only when the underlying
-change sets actually change (structural sharing keeps set references stable
-across streaming frames), and an empty default so consumers without a
-provider render no badge (backward compatible).
+A row is linked to a review by its turn (the tool use's run, whose
+`fileReview` sets hold the turn's changes) and its path. What is decided
+comes only from the session's fold; the captured bytes a diff renders come
+from the turns' runs.
 
-Read-only by design: the row badge is presentation of the set's state, never
-a decision surface — decisions live exclusively on the set's decision bar
-([`FileReviewCard`](#filereviewcard)).
+The sibling of [`ApprovalContext`](#approvalcontext), and the same discipline: provided
+by [`MessageThread`](#messagethread), rebuilt only when the underlying sets change (the
+fold keeps unchanged set references), and an empty default so consumers
+without a provider render no badge.
+
+Read-only by design: the row badge is presentation, never a decision
+surface — decisions live on the set's decision bar ([`FileReviewCard`](#filereviewcard)).
 
 <TypeTable
   type={{
-    changeSetsById: { type: "ReadonlyMap<string, FileChangeSet>", description: "Every displayable change set across the session, keyed by `FileChangeSet.id`.", required: true },
+    changeSetsById: { type: "ReadonlyMap<string, FileChangeSet>", description: "The captured change sets (the runs' bytes), keyed by change set id.", required: true },
+    fileReviewByRunId: { type: "ReadonlyMap<string, readonly FileReviewSet[]>", description: "Each turn's file reviews from the session's fold, keyed by the turn's run id.", required: true },
   }}
 />
 
 
 ### fileReviewRowChange
 
-The captured change a stamped transcript row should render as its inline
-diff, or `null` to keep the row's own content view. The row-diff sibling of
-[`fileReviewRowState`](#filereviewrowstate): both resolve through [`changeForRowPath`](#changeforrowpath),
-so the badge and the diff can never disagree about which file a row refers
-to. What renders is the set's captured NET change for the file — the same
-artifact the badge's verdict applies to.
-
-`null` follows the badge's honest-degradation discipline, plus one rule of
-its own: a non-`reviewable` change ([`fileReviewability`](#filereviewability) — binary,
-secret-withheld, size-elided) resolves to `null` so the row falls back to
-showing the tool's own args content rather than a diff that cannot honestly
+The captured change a write row should render as its inline diff, or
+`null` to keep the row's own content view: no capture, a path miss, or an
+incomplete diff (binary, secret-withheld, elided) that cannot honestly
 render.
 
 ```tsx
@@ -2854,35 +2640,33 @@ function fileReviewRowChange(set: FileChangeSet | undefined, rowPath: string | n
 
 ### fileReviewRowState
 
+The [`FileReviewRowState`](#filereviewrowstate) of a row's file across a turn's review
+sets (a later set wins), or `null`.
+
 ```tsx
-function fileReviewRowState(set: FileChangeSet | undefined, rowPath: string | null): FileReviewRowState | null
+function fileReviewRowState(sets: readonly Pick<FileReviewSet, "files">[], rowPath: string | null): FileReviewRowState | null
 ```
 
 
 ### FileReviewRowState
 
-The review state a stamped transcript row should badge — how this file edit
-stands in its change set's review lifecycle. `null` means "show no badge",
-chosen over guessing: a missing set (not yet projected), a CAPTURING set, or
-a row whose file is absent from the set (its edit was superseded or fully
-reverted within the turn) renders unbadged, never mislabeled.
+The review state a file-edit row should badge — how the file it changed
+stands in its turn's review. `null` means "show no badge", chosen over
+guessing: a turn with no review yet, or a row whose file is absent from it
+(its edit was superseded or reverted within the turn), renders unbadged.
 
-- `"pending"` — the set is AWAITING_REVIEW; this edit's net result is on the
-  decision surface now.
-- `"kept"` / `"discarded"` — the set is decided/reconciled and this file's
-  effective verdict is known ([`deriveEffectiveVerdicts`](#deriveeffectiveverdicts)).
-- `"failed"` — the set's reconcile failed; the workspace outcome for this
-  edit is not the reviewed one.
+- `"pending"` — the file is undecided; it is on the decision surface now.
+- `"kept"` / `"discarded"` — it was kept, or undone (or is being undone).
+- `"failed"` — the undo failed; the workspace is not as decided.
 
 
 ### findActiveTodo
 
-Returns the first in-progress todo from a todos map, or `null`.
-Used by [`SubAgentSection`](#subagentsection) to show an active task preview
-in the collapsed summary row.
+Returns the first in-progress to-do, or `null`. Used by [`TodoCard`](#todocard) to
+decide whether the plan is being worked.
 
 ```tsx
-function findActiveTodo(todos: object | undefined): TodoItem | null
+function findActiveTodo(todos: readonly Todo[]): Todo | null
 ```
 
 
@@ -3140,24 +2924,23 @@ Props for [`LivenessStatusLine`](#livenessstatusline).
 
 Renders a single message in the conversation thread.
 
-- `MESSAGE_HUMAN` — plain text with muted background
-- `MESSAGE_AI` — markdown-rendered via Streamdown with block-level
-  memoization and streaming-aware incomplete-syntax healing
-- `MESSAGE_THINKING` — collapsible thinking block with subdued styling,
+- `user` — a person's message: plain text with muted background
+- `message` — an agent message, markdown-rendered via Streamdown with
+  block-level memoization and streaming-aware incomplete-syntax healing
+  while it is still being written (`live`)
+- `thinking` — collapsible thinking block with subdued styling,
   collapsed by default showing a brief summary
-- `MESSAGE_SYSTEM` — small muted text
-- `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results are
-  consumed by [`ToolCallGroup`](#toolcallgroup))
+- `note` — a line the platform added in its own voice: small muted text
 
-Wrapped in `React.memo` — structural sharing guarantees that
-unchanged messages keep the same object reference, so completed
-messages skip re-renders entirely during streaming.
+Wrapped in `React.memo` — the session fold keeps an unchanged message's
+reference, so completed messages skip re-renders entirely during
+streaming.
 
 Purely presentational — no data fetching, no state.
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-<MessageEntry message={agentMessage} />
+<MessageEntry message={item} />
 ```
 
 
@@ -3167,13 +2950,13 @@ Props for [`MessageEntry`](#messageentry).
 
 <TypeTable
   type={{
-    actions: { type: "ReactNode", description: "Extra controls for a `MESSAGE_AI` entry's quiet actions row, rendered beside copy once the message settles. The thread passes a completed run's `RunScores` here on its final answer. Ignored for other message types." },
-    attachments: { type: "readonly MessageAttachmentView[]", description: "The turn's submitted attachments, stamped by the thread builder on `MESSAGE_HUMAN` bubbles from the run's `spec.attachments` (or the pending submit context). Renders as a MessageAttachments row above the prose. Ignored for non-human messages.  A `MessageEntry` slot override that delegates to the built-in inherits attachment rendering; one that ignores this prop renders text only." },
+    actions: { type: "ReactNode", description: "Extra controls for an agent message's quiet actions row, rendered beside copy once the message settles. The thread passes a completed run's `RunScores` here on its final answer. Ignored for other message types." },
+    attachments: { type: "readonly MessageAttachmentView[]", description: "The turn's submitted attachments, stamped by the thread builder on a person's message from the run's `spec.attachments` (or the pending submit context). Renders as a MessageAttachments row above the prose. Ignored for other messages.  A `MessageEntry` slot override that delegates to the built-in inherits attachment rendering; one that ignores this prop renders text only." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    interactionMode: { type: "InteractionMode", description: "The turn's interaction mode, stamped by the thread builder on the synthetic prompt bubble (`MESSAGE_HUMAN`). Renders the InteractionModeBadge for non-default modes (a \"Plan\" pill), so the transcript reads unambiguously after mode switches. Ignored for non-human messages." },
-    isPlanDocument: { type: "boolean", description: "Renders a `MESSAGE_AI` entry as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder only on the NO-ARTIFACT fallback path: a completed Plan turn that never published `plan.md` (older runs, failed upload) keeps its plan inline — the message is the only copy of the plan. A turn that published the artifact collapses the message into the compact plan card instead (the document lives in the panel's plan tab). Ignored for non-AI messages." },
-    message: { type: "AgentMessage", description: "The agent message to render.", required: true },
-    onEdit: { type: "() => void", description: "When provided on a `MESSAGE_HUMAN` entry, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for non-human messages." },
+    interactionMode: { type: "InteractionMode", description: "The turn's interaction mode, stamped by the thread builder on the person's message. Renders the InteractionModeBadge for non-default modes (a \"Plan\" pill), so the transcript reads unambiguously after mode switches. Ignored for other messages." },
+    isPlanDocument: { type: "boolean", description: "Renders an agent message as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder only on the NO-ARTIFACT fallback path: a completed Plan turn that never published `plan.md` (older runs, failed upload) keeps its plan inline — the message is the only copy of the plan. A turn that published the artifact collapses the message into the compact plan card instead (the document lives in the panel's plan tab). Ignored for other messages." },
+    message: { type: "ThreadMessage", description: "The message to render.", required: true, typeDescriptionLink: "#threadmessage" },
+    onEdit: { type: "() => void", description: "When provided on a person's message, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for other messages." },
     runId: { type: "string", description: "The run the attachments belong to — enables their byte-backed affordances (image previews, document downloads) via presigned URLs. Absent on the optimistic pending bubble, where attachments render as inert chips until the real run record replaces it." },
   }}
 />
@@ -3188,24 +2971,24 @@ adaptation surface for hosts whose design system needs different
 Each slot is keyed by the built-in component it replaces and receives
 exactly that component's exported props interface, so an override can
 always delegate to the built-in for the cases it does not customize
-(e.g. a `MessageEntry` slot that restyles `MESSAGE_HUMAN` bubbles and
-renders the default `MessageEntry` for everything else).
+(e.g. a `MessageEntry` slot that restyles a person's messages and renders
+the default `MessageEntry` for everything else).
 
 Define slot components at module level (or memoize them). The thread's
-rows rely on `React.memo` + structural sharing to skip re-renders during
-streaming; a slot component recreated on every host
+rows rely on `React.memo` and the session fold's shared references to skip
+re-renders during streaming; a slot component recreated on every host
 render defeats that for its rows.
 
 <TypeTable
   type={{
-    ApprovalCard: { type: "ComponentType<ApprovalCardProps>", description: "The HITL tool-approval gate card." },
-    LivenessStatusLine: { type: "ComponentType<LivenessStatusLineProps>", description: "The ambient-liveness status line at the thread's tail while the active run is live between visible events (stigmer#277). Override to supply a host-voiced label or richer treatment; the emission policy (when the line appears at all) stays with the thread." },
-    MessageEntry: { type: "ComponentType<MessageEntryProps>", description: "All message bubbles — human, assistant, thinking, and system entries. Also wraps the failed-send bubble (the inline Retry chrome around it stays built-in)." },
+    ApprovalCard: { type: "ComponentType<ApprovalCardProps>", description: "The card for a tool use that waits for a person, when it has no row of its own." },
+    LivenessStatusLine: { type: "ComponentType<LivenessStatusLineProps>", description: "The ambient-liveness status line at the thread's tail while the active turn is live between visible events (stigmer#277). Override to supply a host-voiced label or richer treatment; the emission policy (when the line appears at all) stays with the thread." },
+    MessageEntry: { type: "ComponentType<MessageEntryProps>", description: "All message bubbles — a person's messages, the agent's messages, thinking, and platform notes. Also wraps the failed-send bubble (the inline Retry chrome around it stays built-in)." },
     PlanArtifactCard: { type: "ComponentType<PlanArtifactCardProps>", description: "Completed Plan turn that published a plan artifact." },
     PlanCompletionCard: { type: "ComponentType<PlanCompletionCardProps>", description: "Completed Plan turn without an artifact — the bare Implement CTA." },
     PlanStreamingCard: { type: "ComponentType<PlanStreamingCardProps>", description: "Live stand-in card while a Plan turn is writing its document." },
-    RecalledMemoriesCard: { type: "ComponentType<RecalledMemoriesCardProps>", description: "The retriever transparency card at a selection-active run's segment start — \"Recalled N of M memories\"." },
-    RunErrorNotice: { type: "ComponentType<RunErrorNoticeProps>", description: "The terminal execution-failure notice. Receives the raw server-reported reason and the retry wiring, so a host can turn the failure into its own recovery moment (classify the reason, offer an alternate engine, link support) instead of the built-in Show more / Retry treatment." },
+    RecalledMemoriesCard: { type: "ComponentType<RecalledMemoriesCardProps>", description: "The retriever transparency card at a selection-active turn's segment start — \"Recalled N of M memories\"." },
+    RunErrorNotice: { type: "ComponentType<RunErrorNoticeProps>", description: "The terminal turn-failure notice. Receives the raw server-reported reason and the retry wiring, so a host can turn the failure into its own recovery moment (classify the reason, offer an alternate engine, link support) instead of the built-in Show more / Retry treatment." },
     SetupProgress: { type: "ComponentType<SetupProgressProps>", description: "Pre-first-token setup / \"Thinking…\" indicator." },
     TodoCard: { type: "ComponentType<TodoCardProps>", description: "The collapsible in-thread to-dos card." },
     TodoRow: { type: "ComponentType<TodoRowProps>", description: "One to-do row inside the built-in TodoCard's list. Ignored when `TodoCard` is also overridden (the replacement receives it via TodoCardProps.TodoRow and may forward or ignore it)." },
@@ -3426,8 +3209,8 @@ right after the user's turn — `spec.message` is the query the
 retriever embedded, so the card reads as "for this message, these
 memories were most relevant".
 
-Renders NOTHING unless the report says selection was active: an
-absent report and `selection_active=false` both mean wholesale (every
+Renders NOTHING unless the recall says selection was active: an
+absent recall and `selectionActive=false` both mean wholesale (every
 snapshot fact injected — the shipped Phase 2 behavior), and unchanged
 behavior earns no UI noise. The same rule is applied by the thread
 builder; it is repeated here so directly-embedding platform builders
@@ -3444,7 +3227,7 @@ Props for [`RecalledMemoriesCard`](#recalledmemoriescard).
   type={{
     className: { type: "string", description: "Additional CSS classes for the root element." },
     facts: { type: "readonly RecalledMemoryFact[]", description: "The full candidate set from `spec.recalled_memories.facts`.", required: true },
-    report: { type: "RecalledMemoriesReport", description: "The runner's injection report from the run's status.", required: true },
+    recall: { type: "MemoryRecall", description: "Which memories the turn recalled, from the session's fold (`Turn.memory`).", required: true },
   }}
 />
 
@@ -3496,7 +3279,7 @@ function resolveGitBrowseUrl(gitUrl: string, branch: string, commit: string, rel
 
 ### resolveInjectedFacts
 
-Resolve the report's injected memory ids against the run's
+Resolve the recall's injected memory ids against the run's
 snapshot facts, preserving snapshot order (the stable prompt order —
 the selector re-sorts its subset the same way, so this join renders
 the facts exactly as the agent saw them).
@@ -3504,10 +3287,10 @@ the facts exactly as the agent saw them).
 The contract guarantees injected ids are a subset of the snapshot
 (the merge path's never-invent pin), so an unknown id can only mean a
 bug upstream — it is skipped, never invented. The summary count stays
-the wire truth (`injectedMemoryIds.length`) regardless.
+the event's truth (`injectedMemoryIds.length`) regardless.
 
 ```tsx
-function resolveInjectedFacts(report: RecalledMemoriesReport, facts: readonly RecalledMemoryFact[]): RecalledMemoryFact[]
+function resolveInjectedFacts(recall: MemoryRecall, facts: readonly RecalledMemoryFact[]): RecalledMemoryFact[]
 ```
 
 
@@ -3538,8 +3321,7 @@ Resolves a tool's presentation category from its name + MCP slug.
 
 Classification is delegated to `@stigmer/sdk`'s name-based resolver (the same
 table the runner and Go CLI use), then mapped to presentation metadata. When
-the caller has the full `ToolCall`, prefer [`resolveToolCategoryFromCall`](#resolvetoolcategoryfromcall),
-which also honours the wire `tool_kind` for forward compatibility.
+the caller holds the tool use, prefer [`resolveToolCategoryFromCall`](#resolvetoolcategoryfromcall).
 
 ```tsx
 function resolveToolCategory(toolName: string, mcpServerSlug?: string): ToolCategoryInfo
@@ -3548,24 +3330,37 @@ function resolveToolCategory(toolName: string, mcpServerSlug?: string): ToolCate
 
 ### resolveToolCategoryFromCall
 
-Like [`resolveToolCategory`](#resolvetoolcategory) but uses the wire `tool_kind` when present,
-falling back to name-based resolution for legacy runs.
+[`resolveToolCategory`](#resolvetoolcategory) for a tool use (its name and MCP server).
 
 ```tsx
-function resolveToolCategoryFromCall(toolCall: ToolCall): ToolCategoryInfo
+function resolveToolCategoryFromCall(toolUse: ToolIdentity): ToolCategoryInfo
 ```
 
 
 ### resolveToolCategoryFromKind
 
-Resolves presentation metadata from an explicit wire `ToolKind` plus the
-tool name and MCP slug. Used by surfaces that carry a denormalized `tool_kind`
-but not a full `ToolCall` — notably `PendingApproval`. Falls back to
-name-based resolution when the kind is unset (legacy runs).
+Resolves presentation metadata from an explicit `ToolKind` plus the
+tool name and MCP slug, for a surface that already holds the kind. Falls
+back to name-based resolution when the kind is unset.
 
 ```tsx
 function resolveToolCategoryFromKind(toolKind: ToolKind, toolName: string, mcpServerSlug?: string): ToolCategoryInfo
 ```
+
+
+### ReviewFileChangesOptions
+
+Options narrowing a file-review decision to one file and binding its digest.
+
+<TypeTable
+  type={{
+    acknowledgeUnreviewable: { type: "boolean", description: "Set on a keep to keep a binary change consciously: it has no text diff, but its exact bytes can be put back. Ignored on an undo, and it never relaxes the digest." },
+    expectedDigest: { type: "string", description: "The digest of what the person saw: the file's `digest` for a file, the set's `aggregateDigest` for the whole set. A decision against a change that differs is refused, so what is kept is what was reviewed.", required: true },
+    fileChangeId: { type: "string", description: "The file this decision targets (`FileReviewFile.fileChangeId`); required for `\"file\"`." },
+    reason: { type: "string", description: "An optional reason, kept with the decision." },
+    scope: { type: "\"file\" | \"change_set\"", description: "`\"file\"` decides the one fileChangeId; `\"change_set\"` decides every file of the set. Defaults to `\"file\"` when fileChangeId is set, else `\"change_set\"`." },
+  }}
+/>
 
 
 ### runIdFromStorageKey
@@ -3609,6 +3404,17 @@ Props for [`RunPhaseBadge`](#runphasebadge).
     phase: { type: "RunPhase", description: "The run phase to display.", required: true },
   }}
 />
+
+
+### runPhaseOf
+
+The `RunPhase` a turn's phase word names, for the components that render
+one (`RunPhaseBadge`, `RunProgress`). A word this client does not know
+reads as `RUN_PHASE_UNSPECIFIED`.
+
+```tsx
+function runPhaseOf(phase: TurnPhase): RunPhase
+```
 
 
 ### SetupProgress
@@ -3670,7 +3476,7 @@ Fields shared by both variants of [`CreateRunInput`](#createruninput).
     modelName: { type: "string", description: "The model this message asks for. Omit it to run the model a less specific layer chooses: the agent's run defaults when the conversation runs the agent's engine, else the operator profile, else the engine's own default. Maps to `RunConfig.model_name` on `RunSpec.run_config`." },
     org: { type: "string", description: "Id of the organization that owns the session (a slug is also accepted).", required: true },
     serviceTier: { type: "ServiceTierOption", description: "Service tier this message asks for (stigmer/stigmer#357). Omit it to keep the tier of the layer that chose the model (an agent's default may turn fast on); set it to choose explicitly, with or without modelName — alone it adjusts the model a less specific layer chose.  - `\"standard\"`: the model's base-priced configuration. Sent   explicitly, it turns off a fast tier an agent default would apply. - `\"fast\"`: the provider's fast variant at fast rates. Valid only for   models whose registry entry prices a fast variant — the backend   refuses the create otherwise, so gate the option on   `ModelInfo.serviceTiers`.  Maps to `RunConfig.service_tier` on `RunSpec.run_config`." },
-    structuredOutputSchema: { type: "JsonObject", description: "JSON Schema that the agent's final output must conform to.  When set, the runner enforces structured output: - Native harness: ToolStrategy adds an extract tool; agent must call it - Cursor harness: prompt injection + 3-tier extraction fallback  The validated data is returned in `execution.status.structuredOutput`. Maps to `RunSpec.structured_output_schema` in the proto." },
+    structuredOutputSchema: { type: "JsonObject", description: "JSON Schema that the agent's final output must conform to.  When set, the runner enforces structured output: - Native harness: ToolStrategy adds an extract tool; agent must call it - Cursor harness: prompt injection + 3-tier extraction fallback  The validated data is the turn's `stigmer.agent.structured_output` event, folded as `Turn.structuredOutput` (see `useSessionEvents`). Maps to `RunSpec.structured_output_schema` in the proto." },
     supersedesRunId: { type: "string", description: "ID of the run this one supersedes via edit-and-resubmit.  Set when the user stopped an in-flight turn, edited its message, and resubmitted. Chat threads hide the superseded run so the edited message replaces the original in place; history surfaces keep the full record. Maps to `RunSpec.supersedes_run_id`.  Display-level only — the runner does not rewind model context." },
     thinkingMode: { type: "ThinkingModeOption", description: "Thinking mode this message asks for (stigmer/stigmer#772). Omit it to keep the mode of the layer that chose the model; set it, with or without modelName, to choose explicitly.  - `\"disabled\"`: the model's base variant. Sent explicitly, it turns   off thinking an agent default would apply. Refused for a model that   always thinks (`ModelInfo.thinkingRequired`); leave the mode unset or   send `\"enabled\"` for it. - `\"enabled\"`: the model's extended-reasoning variant, billed at base   per-token rates (reasoning tokens bill as output). Valid only for   models whose registry entry, on the harness the run runs on,   declares a thinking form — the backend refuses the create otherwise,   so gate the option on `thinkingSelectable(model)`.  Maps to `RunConfig.thinking_mode` on `RunSpec.run_config`." },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  These are lightweight \"attention\" signals — the agent reads the files directly from the workspace filesystem. No upload, no injection. Populated by the drag-to-reference feature in SessionComposer." },
@@ -3695,13 +3501,14 @@ reader in lockstep.
 
 ### SubAgentSection
 
-Renders a sub-agent run as a nested mini-thread inside the
-parent conversation.
+Renders a sub-agent's thread as a nested mini-thread inside the parent
+conversation: its messages and tool uses, in the order it produced them.
 
 When `collapsible` is `true` (default), the component renders as a
-bordered card with a clickable summary row. Cards start collapsed
-— the summary row shows status, subject, and duration at a glance.
-Users click to expand and see the nested messages and tool calls.
+bordered card with a clickable summary row. The card is open while the
+sub-agent works or one of its calls waits for a person, and settles closed
+when it finishes — the summary row shows status, subject, and duration at
+a glance.
 
 Visually distinguished from [`ToolCallGroup`](#toolcallgroup) via a left
 accent border and bot icon, signaling delegated sub-agent work.
@@ -3710,20 +3517,18 @@ When `collapsible` is `false`, the component renders flat content
 without a toggle — suitable for embedding inside a parent that
 already provides expand/collapse (e.g. [`ToolCallItem`](#toolcallitem)).
 
-Composes [`MessageEntry`](#messageentry) and [`ToolCallGroup`](#toolcallgroup) to display
-the sub-agent's internal messages and tool calls — the same
-building blocks used by the top-level [`MessageThread`](#messagethread).
+Composes [`MessageEntry`](#messageentry) and [`ToolCallGroup`](#toolcallgroup) — the same
+building blocks the top-level [`MessageThread`](#messagethread) uses.
 
-Wrapped in `React.memo` — structural sharing preserves the
-`SubAgentRun` reference when the sub-agent's state is
-unchanged, so completed sub-agents skip re-renders entirely.
+Wrapped in `React.memo` — the session fold keeps an unchanged thread's
+reference, so a finished sub-agent skips re-renders entirely.
 
 ```tsx
 // Standalone collapsible card (default)
-<SubAgentSection subAgentRun={sub} />
+<SubAgentSection thread={toolUse.thread} subject={subAgentSubjectOf(toolUse)} />
 
 // Flat layout inside a parent expand/collapse
-<SubAgentSection subAgentRun={sub} collapsible={false} />
+<SubAgentSection thread={toolUse.thread} collapsible={false} />
 ```
 
 
@@ -3735,54 +3540,30 @@ Props for [`SubAgentSection`](#subagentsection).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     collapsible: { type: "boolean", description: "Whether to render as a collapsible card with expand/collapse toggle. Defaults to `true`.  Set to `false` when rendered inside a parent that already provides its own expand/collapse (e.g. ToolCallItem)." },
-    subAgentRun: { type: "SubAgentRun", description: "The sub-agent run to render.", required: true },
+    completedAt: { type: "string", description: "When it finished (its `task` call's result time), for the duration." },
+    startedAt: { type: "string", description: "When the sub-agent started (its `task` call's time), for the duration." },
+    subject: { type: "string", description: "What the sub-agent was asked to do, in a few words (the `task` call's description, subAgentSubjectOf); the card's title beside the agent's name. Omitted, the agent's name titles it." },
+    thread: { type: "Thread", description: "The sub-agent's thread, from the session's fold (`ToolUse.thread`).", required: true },
   }}
 />
 
 
-### SummarizationBadge
+### subAgentSubjectOf
 
-Collapsible badge showing summarization event history for a run.
-
-Collapsed state shows a count badge ("2 summarizations").
-Expanded state lists each event with before/after token counts,
-compression ratio, duration, and model.
-
-Returns `null` when there are no events.
-
-All visual properties flow through `--stgm-*` tokens.
-Accessible via `role="group"` and keyboard-expandable.
+What a `task` call asked its sub-agent to do, in a few words: the call's
+`description` input, or "" when it carries none.
 
 ```tsx
-const ctx = useContextWindow(run);
-<SummarizationBadge events={ctx.summarizationEvents} />
+function subAgentSubjectOf(toolUse: Pick<ToolUse, "input">): string
 ```
-
-
-### SummarizationBadgeProps
-
-Props for [`SummarizationBadge`](#summarizationbadge).
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    events: { type: "readonly SummarizationEventView[]", description: "Summarization events ordered chronologically (oldest first).", required: true },
-  }}
-/>
 
 
 ### SummarizationCard
 
-Inline timeline card shown when context summarization occurs mid-conversation.
-
-Renders as a compact system-event divider in the [`MessageThread`](#messagethread),
-positioned chronologically between messages based on the event timestamp.
-
-Shows:
-- "Context compacted" header with compression icon
-- Token reduction (before -> after) and compression percentage
-- Duration and model when available (native harness)
-- For Cursor harness (model/duration unavailable): "Detected context compaction"
+Inline timeline card shown where the agent's context was compacted
+mid-conversation: a compact system-event divider in the
+[`MessageThread`](#messagethread), at the compaction's place among the turn's items,
+with the time it happened.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -3794,25 +3575,7 @@ Props for [`SummarizationCard`](#summarizationcard).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS classes for the root element." },
-    event: { type: "SummarizationEventView", description: "The summarization event to display.", required: true, typeDescriptionLink: "#summarizationeventview" },
-  }}
-/>
-
-
-### SummarizationEventView
-
-Normalized view of a single summarization event for rendering.
-
-<TypeTable
-  type={{
-    compressionRatio: { type: "number", description: "", required: true },
-    durationMs: { type: "number", description: "", required: true },
-    messagesAfter: { type: "number", description: "", required: true },
-    messagesBefore: { type: "number", description: "", required: true },
-    model: { type: "string", description: "", required: true },
-    timestamp: { type: "string", description: "", required: true },
-    tokensAfter: { type: "number", description: "", required: true },
-    tokensBefore: { type: "number", description: "", required: true },
+    compacted: { type: "CompactedItem", description: "The compaction, as the session's fold holds it (`agent.thread_context_compacted`).", required: true },
   }}
 />
 
@@ -3831,6 +3594,13 @@ function summarizeResultView(view: ToolResultView): string | null
 ### ThreadContentColumn
 
 Reading-column alignment for [`MessageThread`](#messagethread) content.
+
+
+### ThreadMessage
+
+One message of a conversation as [`MessageEntry`](#messageentry) renders it: what a
+person wrote, or an agent's message, thinking or platform note from the
+session's fold.
 
 
 ### toDisplayFileChange
@@ -3865,14 +3635,14 @@ plan is fully resolved, with a user's manual toggle always winning. This
 keeps an in-flight plan visible and a finished one tidy, mirroring
 `ToolRunGroup`/[`SubAgentSection`](#subagentsection).
 
-`React.memo`'d on the by-reference `todos` map: structural sharing
-(`shareTodos`) keeps the reference stable across stream frames, so the card
-re-renders only when the plan actually changes — never per frame.
+`React.memo`'d on the by-reference `todos` list: the session fold rebuilds
+a turn's list only when the turn changes, so the card re-renders on turn
+updates, never per preview frame of another turn.
 
 All visual properties flow through `--stgm-*` tokens.
 
 ```tsx
-<TodoCard todos={run.status?.todos ?? {}} />
+<TodoCard todos={turn.todos} />
 ```
 
 
@@ -3884,7 +3654,7 @@ Props for [`TodoCard`](#todocard).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     TodoRow: { type: "ComponentType<TodoRowProps>", description: "Replacement row component, forwarded to the inner TodoList. Lets a host restyle individual rows while keeping the card's collapse/progress chrome. Defaults to the built-in TodoRow." },
-    todos: { type: "object", description: "The agent's todo map for one run — the proto map shape (`execution.status.todos`) passed through by reference so a settled card skips re-renders while siblings stream.", required: true },
+    todos: { type: "readonly Todo[]", description: "The agent's to-do list for one turn (`Turn.todos`), passed through by reference so a settled card skips re-renders while siblings stream.", required: true },
   }}
 />
 
@@ -3892,10 +3662,10 @@ Props for [`TodoCard`](#todocard).
 ### todoCompletionSummary
 
 Builds a compact completion summary string (e.g. "3/5 completed").
-Returns `null` when there are no todos.
+Returns `null` when there are no to-dos.
 
 ```tsx
-function todoCompletionSummary(todos: object | undefined): string | null
+function todoCompletionSummary(todos: readonly Todo[]): string | null
 ```
 
 
@@ -3936,13 +3706,12 @@ The rows are clustered under a light left rail (the neutral counterpart to
 turn's tools visually associated with their AI message without a tab that
 hides things.
 
-Wrapped in `React.memo` with a custom comparator that checks `toolCalls`
-elements by reference (structural sharing keeps individual `ToolCall` objects
-stable for unchanged calls), so settled rows skip re-renders while siblings
-stream.
+Wrapped in `React.memo` with a custom comparator that checks `toolUses`
+elements by reference (the session fold keeps unchanged `ToolUse` objects
+stable), so settled rows skip re-renders while siblings stream.
 
 ```tsx
-<ToolCallGroup toolCalls={message.toolCalls} />
+<ToolCallGroup toolUses={toolUses} />
 ```
 
 
@@ -3954,9 +3723,8 @@ Props for [`ToolCallGroup`](#toolcallgroup).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultExpanded: { type: "boolean", description: "" },
-    formatSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom label formatter for a folded run chip (e.g. a run of reads). Receives the run's tool calls and returns the chip's collapsed label.  NOTE: the unit of summary moved from the *turn* to the *run*. This used to label the whole turn (\"Ran 3 tools\"); since the turn no longer collapses, it now labels each ToolRunGroup chip. The signature is unchanged." },
-    subAgentRuns: { type: "readonly SubAgentRun[]", description: "Sub-agent runs from the parent `RunStatus`. When provided, tool calls whose `id` matches a `SubAgentRun.id` are rendered with a nested sub-agent thread instead of a standard detail panel." },
-    toolCalls: { type: "readonly ToolCall[]", description: "Tool calls in this group, ordered by invocation time.", required: true },
+    formatSummary: { type: "(toolUses: readonly ToolUse[]) => string", description: "Custom label formatter for a folded run chip (e.g. a run of reads). Receives the run's tool uses and returns the chip's collapsed label.  NOTE: the unit of summary moved from the *turn* to the *run*. This used to label the whole turn (\"Ran 3 tools\"); since the turn no longer collapses, it now labels each ToolRunGroup chip. The signature is unchanged." },
+    toolUses: { type: "readonly ToolUse[]", description: "Tool uses in this group, in the order the agent made them. A tool use that started a sub-agent renders its nested thread instead of a standard detail panel.", required: true },
   }}
 />
 
@@ -4008,13 +3776,11 @@ an inline approval decision badge when applicable. A shell row whose
 call carries a model-authored intent phrase is titled with that phrase
 instead — the command becomes the subtitle (stigmer#276).
 
-Wrapped in `React.memo` — structural sharing preserves
-the `ToolCall` reference when unchanged, so a settled row skips
-re-renders while sibling tools stream.
+Wrapped in `React.memo` — the session fold keeps an unchanged tool use's
+reference, so a settled row skips re-renders while sibling tools stream.
 
 ```tsx
-<ToolCallItem toolCall={tc} />
-<ToolCallItem toolCall={tc} subAgentRun={sub} />
+<ToolCallItem toolUse={toolUse} />
 ```
 
 
@@ -4027,8 +3793,7 @@ Props for [`ToolCallItem`](#toolcallitem).
     bordered: { type: "boolean", description: "Whether the row renders as its own self-contained card (a thin rounded border). Defaults to `true`. Set to `false` when the row is nested inside a container that already provides the border — e.g. the folded `ToolRunGroup` chip — where the row falls back to a divider-separated row to avoid a card-in-a-card." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultExpanded: { type: "boolean", description: "Forces the detail panel open on first render regardless of the auto-disclosure policy. Defaults to `false`." },
-    subAgentRun: { type: "SubAgentRun | null", description: "When present, this tool call is a sub-agent delegation. The detail panel renders a SubAgentSection instead of a ToolCallDetail." },
-    toolCall: { type: "ToolCall", description: "The tool call to render as a summary row.", required: true },
+    toolUse: { type: "ToolUse", description: "The tool use to render as a summary row (from the session's fold). A tool use that started a sub-agent (`toolUse.thread`) renders its SubAgentSection as the detail panel instead of a ToolCallDetail.", required: true },
   }}
 />
 
@@ -4071,8 +3836,9 @@ function toolKindToCategoryInfo(kind: ToolKind, toolName: string): ToolCategoryI
 
 ### ToolOutputRefLike
 
-Minimal shape this hook needs from an offloaded-output reference. Both a full
-`ToolCallOutputRef` and the SDK's normalized `outputRef` view satisfy it.
+Minimal shape this hook needs from an offloaded-output reference. Both a
+tool use's `ToolFullOutput` and the SDK's normalized `outputRef` view
+satisfy it.
 
 
 ### ToolPresentation
@@ -4102,13 +3868,25 @@ Optional per-kind overrides for label, summary, disclosure, and run-grouping.
 
 <TypeTable
   type={{
-    chrome: { type: "(toolCall: ToolCall, result: ToolResultView) => ToolChrome", description: "Overrides the default chrome tier — quiet unboxed line vs bordered card (see ToolChrome). Use to restore the boxed look for a kind (`() => \"card\"`) or to quiet a chatty custom tool (`() => \"quiet\"`). A pending approval gate or a failure always escalates the row to a card regardless of this override — a decision surface and error output must never render frameless." },
-    disclosure: { type: "(toolCall: ToolCall, result: ToolResultView) => ToolDisclosure", description: "Overrides the default inline disclosure. Use to keep a noisy MCP tool compact (`() => \"summary\"`) or to foreground a custom tool's output (`() => \"preview\"`) without forking the components." },
-    label: { type: "(toolCall: ToolCall) => string", description: "Overrides the display label (e.g. \"Shell\" -> \"Run command\")." },
-    runGroupable: { type: "(toolCall: ToolCall) => boolean", description: "Overrides whether consecutive same-kind calls fold into one collapsible \"Read 5 files\" chip. Use to fold a chatty custom tool (`() => true`) or to keep a normally-folded category as standalone rows (`() => false`) without forking the thread layout. Defaults to isRunGroupableCategory." },
-    summary: { type: "(toolCall: ToolCall, result: ToolResultView) => string | null", description: "Overrides the one-line result summary suffix." },
+    chrome: { type: "(toolUse: ToolUse, result: ToolResultView) => ToolChrome", description: "Overrides the default chrome tier — quiet unboxed line vs bordered card (see ToolChrome). Use to restore the boxed look for a kind (`() => \"card\"`) or to quiet a chatty custom tool (`() => \"quiet\"`). A pending approval gate or a failure always escalates the row to a card regardless of this override — a decision surface and error output must never render frameless." },
+    disclosure: { type: "(toolUse: ToolUse, result: ToolResultView) => ToolDisclosure", description: "Overrides the default inline disclosure. Use to keep a noisy MCP tool compact (`() => \"summary\"`) or to foreground a custom tool's output (`() => \"preview\"`) without forking the components." },
+    label: { type: "(toolUse: ToolUse) => string", description: "Overrides the display label (e.g. \"Shell\" -> \"Run command\")." },
+    runGroupable: { type: "(toolUse: ToolUse) => boolean", description: "Overrides whether consecutive same-kind calls fold into one collapsible \"Read 5 files\" chip. Use to fold a chatty custom tool (`() => true`) or to keep a normally-folded category as standalone rows (`() => false`) without forking the thread layout. Defaults to isRunGroupableCategory." },
+    summary: { type: "(toolUse: ToolUse, result: ToolResultView) => string | null", description: "Overrides the one-line result summary suffix." },
   }}
 />
+
+
+### ToolUseAnswer
+
+A person's answer to a tool use that waits for one:
+
+- `"allow"` runs this one call (`confirmToolUse` with `allow`);
+- `"deny"` refuses it, with an optional message the agent reads
+  (`confirmToolUse` with `deny`);
+- `"grant"` runs it and every call of its class for the rest of the turn
+  (`grantPermission`): its MCP server's tools, or its built-in category,
+  or what the hook that asked covers.
 
 
 ### trailingDiffStatLine
@@ -4124,16 +3902,16 @@ function trailingDiffStatLine(diffSummary: string): string | null
 
 ### UseApprovalResult
 
-Resolved inline-approval state for a single tool call. Its shape is a superset
-of the props [`ApprovalCardBody`](#approvalcardbody) reads, so a consumer can spread it
-directly: `<ApprovalCardBody {...approval} />`.
+Resolved inline-approval state for one waiting tool use. Its shape is a
+superset of the props [`ApprovalCardBody`](#approvalcardbody) reads, so a consumer can
+spread it: `<ApprovalCardBody {...approval} />`.
 
 <TypeTable
   type={{
-    error: { type: "Error | null", description: "This gate's last failed decision, or `null` — surfaced in-card beside it.", required: true },
-    isSubmitting: { type: "boolean", description: "True while this tool call's decision RPC is in flight.", required: true },
-    onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Submits a decision for this tool call (id already bound).", required: true },
-    pendingApproval: { type: "PendingApproval", description: "The pending approval gating this tool call.", required: true },
+    error: { type: "Error | null", description: "This gate's last failed answer, or `null`, surfaced in-card beside it.", required: true },
+    isSubmitting: { type: "boolean", description: "True while this tool use's answer is in flight.", required: true },
+    onAnswer: { type: "(answer: ToolUseAnswer, denyMessage?: string) => void", description: "Answers this tool use (its id already bound).", required: true },
+    toolUse: { type: "ToolUse", description: "The tool use that waits.", required: true },
   }}
 />
 
@@ -4167,7 +3945,22 @@ Options for [`useLiveRun`](#useliverun).
 
 <TypeTable
   type={{
-    live: { type: "boolean", description: "Whether the live stream may be open. Defaults to `true`.  When `false`, the snapshot fetch still runs (so consumers always have something to render) but no subscription is opened — the visibility-gating seam for surfaces that mount many runs at once (e.g. a list of inline run transcripts, where only on-screen cards stream). A `false → true` transition attaches the stream in place; a `true → false` transition pauses it while the last-streamed snapshot stays visible (the view never rewinds to the mount-time snapshot)." },
+    live: { type: "boolean", description: "Whether the run may be read again while it works. Defaults to `true`.  When `false`, the run is read once (so consumers always have something to render) and not again — the visibility-gating seam for surfaces that mount many runs at once (e.g. a list of run cards, where only on-screen cards stay live). A `false → true` transition resumes the reads in place; the last record read stays visible either way." },
+  }}
+/>
+
+
+### UserMessageItem
+
+The message a person wrote to start a turn, as the thread renders it: the
+turn's `user.message` (or, before the session's events carry it, the text
+just sent).
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "The `user.message` event's id, or a stand-in for one not yet sent.", required: true },
+    kind: { type: "\"user\"", description: "", required: true },
+    text: { type: "string", description: "", required: true },
   }}
 />
 
@@ -4178,7 +3971,7 @@ Options for [`useRunActions`](#userunactions).
 
 <TypeTable
   type={{
-    onSuccess: { type: "(execution: Run) => void", description: "Called after any lifecycle action (cancel, terminate, pause, resume) succeeds. Receives the updated run returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
+    onSuccess: { type: "(execution: Run) => void", description: "Called after any lifecycle action (terminate, pause, resume) succeeds. Receives the updated run returned by the server. Useful for triggering a refetch so the UI reflects the new phase." },
   }}
 />
 
