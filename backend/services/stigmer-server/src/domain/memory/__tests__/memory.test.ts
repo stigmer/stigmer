@@ -25,6 +25,10 @@
  *     lifecycle survives a content edit by MECHANISM, subject/provenance
  *     edits are refused with the exact copy, and a client-sent lifecycle
  *     on update is ignored;
+ *   - an update keeps a write that lands between its read and its write,
+ *     and a consent decision landing mid-update survives it: the lost swap
+ *     is retried from a fresh read, so the row and the response carry
+ *     both the landing write and the content edit;
  *   - delete works from every lifecycle state (the any-state guarantee).
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -45,12 +49,17 @@ import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_p
 import type { Memory } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { MemoryLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import { generateId } from "../../../pipeline/steps/defaults.js";
 import {
   MAX_MEMORIES_PER_SUBJECT,
@@ -487,6 +496,88 @@ describe("memory update", () => {
     expect(stored.status?.lifecycleState).toBe(
       MemoryLifecycleState.lifecycle_state_confirmed,
     );
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const org = await createOrg(true);
+    const memory = await createMemory(org);
+    const id = memory.metadata!.id;
+    expect(memory.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.memory,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.memory,
+        MemorySchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () =>
+        command.update(
+          updateInput(memory, {
+            content: "Deploys to ap-south-1.",
+            subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,
+            provenance: memory.spec!.provenance,
+          }),
+        ),
+    );
+    expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
+    expect(updated.spec?.content).toBe("Deploys to ap-south-1.");
+    expect(updated.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const stored = await server.store.getResource(
+      ApiResourceKind.memory,
+      id,
+      MemorySchema,
+    );
+    expect(stored.spec?.content).toBe("Deploys to ap-south-1.");
+    expect(stored.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+  });
+
+  it("a consent decision that lands between an update's read and its write survives it", async () => {
+    const org = await createOrg(true);
+    for (const [decide, decided] of [
+      [command.confirm, MemoryLifecycleState.lifecycle_state_confirmed],
+      [command.reject, MemoryLifecycleState.lifecycle_state_rejected],
+    ] as const) {
+      const memory = await createMemory(org);
+      const id = memory.metadata!.id;
+
+      const { result: updated, writes } = await writeLandsMidUpdate(
+        server.store,
+        ApiResourceKind.memory,
+        id,
+        () => decide({ value: id }),
+        () =>
+          command.update(
+            updateInput(memory, {
+              content: "Edited while the subject decided.",
+              subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,
+              provenance: memory.spec!.provenance,
+            }),
+          ),
+      );
+      expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
+      expect(updated.spec?.content).toBe("Edited while the subject decided.");
+      expect(updated.status?.lifecycleState).toBe(decided);
+
+      const stored = await server.store.getResource(
+        ApiResourceKind.memory,
+        id,
+        MemorySchema,
+      );
+      expect(stored.spec?.content).toBe("Edited while the subject decided.");
+      expect(stored.status?.lifecycleState).toBe(decided);
+    }
   });
 });
 

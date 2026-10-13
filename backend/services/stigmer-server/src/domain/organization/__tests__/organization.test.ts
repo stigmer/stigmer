@@ -11,7 +11,9 @@
  *   - a duplicate slug is refused globally, and a create that names an
  *     organization of its own (a non-empty metadata.org) is refused, since
  *     an organization belongs to none;
- *   - the byte-pinned AlreadyExists copy.
+ *   - the byte-pinned AlreadyExists copy;
+ *   - an update keeps a write that lands between its read and its write
+ *     (a visibility change), the lost swap retried from a fresh read.
  *
  * Child organizations are pinned beside it, in children.test.ts.
  */
@@ -24,6 +26,9 @@ import type { Client, Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
@@ -31,6 +36,10 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -164,6 +173,49 @@ describe("organization apply / update", () => {
     expect(updated.metadata?.id).toBe(created.metadata?.id);
     expect(updated.metadata?.slug).toBe(created.metadata?.slug);
     expect(updated.metadata?.name).toBe("Renamed");
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const created = await command.create(orgInput("Race Target"));
+    const id = created.metadata!.id;
+    expect(created.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.organization,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.organization,
+        OrganizationSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () =>
+        command.update({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { id, name: "Race Target" },
+          spec: { description: "updated mid-race" },
+        }),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    for (const organization of [
+      updated,
+      await server.store.getResource(
+        ApiResourceKind.organization,
+        id,
+        OrganizationSchema,
+      ),
+    ]) {
+      expect(organization.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_org,
+      );
+      expect(organization.spec?.description).toBe("updated mid-race");
+    }
   });
 });
 

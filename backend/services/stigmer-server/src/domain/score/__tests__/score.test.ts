@@ -8,7 +8,9 @@
  *   - a person rates a completed run once; the score lives in the run's
  *     session, and a second rating is ALREADY_EXISTS carrying SCORE_EXISTS
  *     and the existing score's id; update changes its thumbs, a false one
- *     included;
+ *     included; an update keeps a write that lands between its read and
+ *     its write (a visibility change), the lost swap retried from a fresh
+ *     read;
  *   - a check comes from the server alone: refused on the wire, admitted
  *     in process, where a not-graded check keeps the server's reason; a
  *     second run-health score from the same checks version is refused,
@@ -43,6 +45,7 @@ import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 
@@ -53,6 +56,10 @@ import {
   baseConfig,
   silentLogger,
 } from "../../../extensions/__tests__/composed-support.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import { generateId } from "../../../pipeline/steps/defaults.js";
 import {
   CHECK_SOURCE_REFUSED_MESSAGE,
@@ -208,6 +215,42 @@ describe("a person's rating", () => {
     expect(changed.spec?.value).toEqual({ case: "passed", value: false });
     expect(changed.spec?.comment).toBe("wrong label");
     expect(changed.status?.state).toBe(ScoreState.graded);
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const { runId } = await seedRun(RunPhase.RUN_COMPLETED);
+    const rated = await wire.create(feedback(runId, true, "good"));
+    const id = rated.metadata!.id;
+    expect(rated.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const edited = create(ScoreSchema, rated);
+    edited.spec!.comment = "changed my mind";
+    const { result: changed, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.score,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.score,
+        ScoreSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => wire.update(edited),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    for (const score of [
+      changed,
+      await server.store.getResource(ApiResourceKind.score, id, ScoreSchema),
+    ]) {
+      expect(score.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_org,
+      );
+      expect(score.spec?.comment).toBe("changed my mind");
+    }
   });
 });
 

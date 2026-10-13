@@ -1,9 +1,11 @@
 /**
- * Pins the rename chain's steps (rename.ts) and the live-row Persist
+ * Pins the rename chain's steps (rename.ts) and an update's Persist
  * (persist.ts) over store doubles, on the arms a composed server does not
  * reach in order: a store fault answers Internal and moves nothing; a row
  * with no id or slug is a server fault; a row gone between the load and
- * the write answers NotFound and moves the names back; a failed move back
+ * the write answers NotFound and moves the names back; an update's Persist
+ * swaps on the bytes its load kept and answers a lost swap as a
+ * WRITE_CONFLICT naming the resource; a failed move back
  * is logged; a port's rows hold their names while the port finds them; and
  * the write lookup answers nothing for an id it does not hold and no slug.
  */
@@ -25,10 +27,14 @@ import type {
 } from "../../../store/interface.js";
 import { testCallerIdentity } from "../../__tests__/support.js";
 import { RequestContext } from "../../request-context.js";
-import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
+import {
+  EXISTING_RESOURCE_BYTES_KEY,
+  EXISTING_RESOURCE_KEY,
+} from "../load-existing.js";
 import { findResourceForWrite } from "../names.js";
 import type { NameTable } from "../names.js";
-import { newPersistOntoLiveRowStep } from "../persist.js";
+import { isWriteConflict } from "../../guarded-write.js";
+import { newPersistStep } from "../persist.js";
 import {
   RENAMED_RESOURCE_KEY,
   newLoadForRenameStep,
@@ -368,7 +374,9 @@ describe("PersistRenamed's settle on the table", () => {
   });
 });
 
-describe("Persist onto the live row", () => {
+describe("Persist by compare-and-swap on the loaded row", () => {
+  const LOADED = new Uint8Array([1, 2, 3]);
+
   function updateRequest(id: string) {
     const ctx = new RequestContext(
       AgentSchema,
@@ -376,44 +384,56 @@ describe("Persist onto the live row", () => {
       testCallerIdentity(),
       ApiResourceKind.agent,
     );
+    ctx.set(EXISTING_RESOURCE_BYTES_KEY, LOADED);
     return ctx;
   }
 
   it("refuses a state with no id as a server fault, writing nothing", async () => {
     const store = {
-      updateResource: async () => {
+      swapResource: async () => {
         throw new Error("must not write");
       },
     } as unknown as Store;
     const fault = await refusalOf(() =>
-      newPersistOntoLiveRowStep<typeof AgentSchema>(store).execute(
-        updateRequest(""),
-      ),
+      newPersistStep<typeof AgentSchema>(store).execute(updateRequest("")),
     );
     expect(fault.code).toBe(Code.Internal);
   });
 
-  it("answers NotFound for a row deleted since the load, and Internal for any other store fault", async () => {
-    const deleted = {
-      updateResource: async () => {
-        throw new ResourceNotFoundError("agent");
+  it("swaps on the bytes the load kept, and a lost swap is a WRITE_CONFLICT naming the resource", async () => {
+    const compared: Uint8Array[] = [];
+    const moved = {
+      swapResource: async (
+        _kind: ApiResourceKind,
+        _id: string,
+        _schema: unknown,
+        expected: Uint8Array,
+      ) => {
+        compared.push(expected);
+        return false;
       },
     } as unknown as Store;
-    const missing = await refusalOf(() =>
-      newPersistOntoLiveRowStep<typeof AgentSchema>(deleted).execute(
+    const conflict = await refusalOf(() =>
+      newPersistStep<typeof AgentSchema>(moved).execute(
         updateRequest(AGENT_ID),
       ),
     );
-    expect(missing.code).toBe(Code.NotFound);
-    expect(missing.rawMessage).toBe(`Agent not found: ${AGENT_ID}`);
+    expect(compared).toEqual([LOADED]);
+    expect(conflict.code).toBe(Code.Aborted);
+    expect(isWriteConflict(conflict)).toBe(true);
+    expect(conflict.rawMessage).toBe(
+      `Agent '${ORG}/helper' kept changing while this update was being saved; try again`,
+    );
+  });
 
+  it("answers Internal for a store fault on the swap", async () => {
     const broken = {
-      updateResource: async () => {
+      swapResource: async () => {
         throw new Error("disk full");
       },
     } as unknown as Store;
     const fault = await refusalOf(() =>
-      newPersistOntoLiveRowStep<typeof AgentSchema>(broken).execute(
+      newPersistStep<typeof AgentSchema>(broken).execute(
         updateRequest(AGENT_ID),
       ),
     );

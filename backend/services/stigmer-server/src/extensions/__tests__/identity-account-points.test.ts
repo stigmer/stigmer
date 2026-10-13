@@ -27,7 +27,8 @@ const unimplemented = () => Promise.reject(new Error("not exercised here"));
 
 const store: IdentityAccountStore = {
   save: unimplemented,
-  update: unimplemented,
+  readForWrite: unimplemented,
+  swap: unimplemented,
   deleteById: unimplemented,
   findById: unimplemented,
   findByIdpId: unimplemented,

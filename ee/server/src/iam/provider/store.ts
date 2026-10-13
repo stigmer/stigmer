@@ -68,7 +68,8 @@ export interface IdentityProviderStore
    * claims, all or nothing, under the row's lock, and only while its
    * payload is still the bytes `readForWrite` answered (else `changed`).
    * The org and slug columns do not change: `provider` carries the slug
-   * it was read with.
+   * it was read with, and one naming another slug is refused as the
+   * programming error it is (rename moves a slug, through `modifyById`).
    */
   swap(
     id: string,

@@ -19,10 +19,12 @@
  *   - an archived version read back names its resource by its current slug;
  *   - every other writer of a renamable kind keeps a rename that lands
  *     between its load and its write: the row and the table agree on the
- *     new slug, and the writer's own change lands too;
+ *     new slug, and the writer's own change lands too (an update loses its
+ *     compare-and-swap to the rename and runs again from a fresh read);
  *   - a writer whose row is deleted between its load and its write answers
  *     NotFound rather than writing it back (the agent's visibility, the
- *     platform client's update and rotation, an organization's rename);
+ *     platform client's update, whose lost swap reads again and finds no
+ *     row, and its rotation, an organization's rename);
  *   - a platform client's create of a renamed-away slug is SLUG_RESERVED.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -562,7 +564,8 @@ describe("renames, through a composed server", () => {
     /**
      * Renames `id` to `to` when a write of that row first reaches the
      * store, after the writer's chain has loaded it; the rename's own
-     * write passes through.
+     * write passes through. A writer that rebuilds the row loses its swap
+     * to the rename and runs again from a fresh read.
      */
     async function renameMidWrite<T>(
       kind: ApiResourceKind,
@@ -573,6 +576,7 @@ describe("renames, through a composed server", () => {
       const store = server.store;
       const updateResource = store.updateResource.bind(store);
       const saveResource = store.saveResource.bind(store);
+      const swapResource = store.swapResource.bind(store);
       let armed = true;
       const fire = async (writtenKind: ApiResourceKind, writtenId: string) => {
         if (armed && writtenKind === kind && writtenId === id) {
@@ -602,6 +606,18 @@ describe("renames, through a composed server", () => {
         await fire(writtenKind, writtenId);
         return saveResource(writtenKind, writtenId, schema, msg);
       }) as typeof store.saveResource);
+      const swap = vi.spyOn(store, "swapResource").mockImplementation((async <
+        Desc extends DescMessage,
+      >(
+        writtenKind: ApiResourceKind,
+        writtenId: string,
+        schema: Desc,
+        expectedBytes: Uint8Array,
+        msg: MessageShape<Desc>,
+      ) => {
+        await fire(writtenKind, writtenId);
+        return swapResource(writtenKind, writtenId, schema, expectedBytes, msg);
+      }) as typeof store.swapResource);
       try {
         const result = await write();
         expect(armed, "the rename landed mid-write").toBe(false);
@@ -609,6 +625,7 @@ describe("renames, through a composed server", () => {
       } finally {
         update.mockRestore();
         save.mockRestore();
+        swap.mockRestore();
       }
     }
 
@@ -922,7 +939,14 @@ describe("renames, through a composed server", () => {
     ): Promise<ConnectError> {
       const store = server.store;
       const updateResource = store.updateResource.bind(store);
+      const swapResource = store.swapResource.bind(store);
       let armed = true;
+      const vanish = async (writtenKind: ApiResourceKind, writtenId: string) => {
+        if (armed && writtenKind === kind && writtenId === id) {
+          armed = false;
+          await store.deleteResource(kind, id);
+        }
+      };
       const spy = vi.spyOn(store, "updateResource").mockImplementation((async <
         Desc extends DescMessage,
       >(
@@ -931,16 +955,26 @@ describe("renames, through a composed server", () => {
         schema: Desc,
         modify: (msg: MessageShape<Desc>) => void,
       ) => {
-        if (armed && writtenKind === kind && writtenId === id) {
-          armed = false;
-          await store.deleteResource(kind, id);
-        }
+        await vanish(writtenKind, writtenId);
         return updateResource(writtenKind, writtenId, schema, modify);
       }) as typeof store.updateResource);
+      const swap = vi.spyOn(store, "swapResource").mockImplementation((async <
+        Desc extends DescMessage,
+      >(
+        writtenKind: ApiResourceKind,
+        writtenId: string,
+        schema: Desc,
+        expectedBytes: Uint8Array,
+        msg: MessageShape<Desc>,
+      ) => {
+        await vanish(writtenKind, writtenId);
+        return swapResource(writtenKind, writtenId, schema, expectedBytes, msg);
+      }) as typeof store.swapResource);
       try {
         return await grpcError(write);
       } finally {
         spy.mockRestore();
+        swap.mockRestore();
       }
     }
 

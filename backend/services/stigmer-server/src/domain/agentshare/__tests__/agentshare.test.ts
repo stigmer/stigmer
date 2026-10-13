@@ -13,7 +13,11 @@
  *     share (the rebind guard);
  *   - the #478 store-failure sanitization, pinned at the seam
  *     (loadLinkedShare) with an injected failing store — the composed
- *     server cannot fault-inject storage.
+ *     server cannot fault-inject storage;
+ *   - an update keeps a write that lands between its read and its write
+ *     (pipeline/guarded-write.ts): the lost swap reruns from a fresh read,
+ *     so the stored share and the answer carry both the landed visibility
+ *     and the update's spec.
  *
  * Go tests run one store per test function; this file shares ONE server,
  * so count-sensitive assertions use dedicated orgs and every agent name is
@@ -48,6 +52,10 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 import type { Store } from "../../../store/interface.js";
 import { sameOrgInvariantMessage } from "../constants.js";
 import { loadLinkedShare, sharingLinkTokenAllowed } from "../steps.js";
@@ -542,6 +550,43 @@ describe("agentshare update", () => {
     const err = await grpcError(() => shares.update(created));
     expect(err.code).toBe(Code.FailedPrecondition);
     expect(err.rawMessage).toContain("spec.agent_ref is immutable");
+  });
+
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const agent = await createTestAgent(uniqueName("Race Agent"), ORG);
+    const created = await shares.create(shareFor(agent, true));
+    const id = created.metadata!.id;
+    expect(created.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_private,
+    );
+
+    created.spec!.enabled = false;
+    const { result: updated, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.agent_share,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.agent_share,
+        AgentShareSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => shares.update(created),
+    );
+
+    const stored = await server.store.getResource(
+      ApiResourceKind.agent_share,
+      id,
+      AgentShareSchema,
+    );
+    for (const share of [updated, stored]) {
+      expect(share.metadata?.visibility).toBe(
+        ApiResourceVisibility.visibility_org,
+      );
+      expect(share.spec?.enabled).toBe(false);
+    }
+    expect(writes).toBeGreaterThanOrEqual(2);
   });
 });
 

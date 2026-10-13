@@ -30,6 +30,7 @@ import { clone } from "@bufbuild/protobuf";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 
 import {
@@ -39,7 +40,7 @@ import {
 } from "../../../__test-utils__/enterprise-postgres.js";
 import { identityProviderStoreContract, type IdentityProviderStoreContractFixture } from "../store-contract.js";
 import { newIdentityProviderStore } from "../postgres-store.js";
-import type { IdentityProviderStore } from "../store.js";
+import type { IdentityProviderStore, ProviderSwapOutcome } from "../store.js";
 import { storedProvider } from "./in-memory-provider-store.js";
 
 /** The audience the claim cases share, so an issuer alone decides whether routes collide. */
@@ -57,6 +58,13 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
   afterAll(async () => {
     await database?.drop();
   });
+
+  /** The update's write: a swap on the provider's bytes as stored now; a row that is gone swaps on none. */
+  async function swapOnCurrent(next: IdentityProvider): Promise<ProviderSwapOutcome> {
+    const id = next.metadata?.id ?? "";
+    const read = await store.readForWrite(id);
+    return store.swap(id, read?.bytes ?? new Uint8Array(), next);
+  }
 
   it("round-trips a provider and refuses a slug its organization holds, not one another holds", async () => {
     const provider = storedProvider({
@@ -137,7 +145,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     expect((await store.findByOrg("acme")).map((held) => held.metadata?.slug)).not.toContain("dup-2");
   });
 
-  it("replaces the payload, the SSO flag and the route claims, and keeps the lookup columns", async () => {
+  it("swaps the payload, the SSO flag and the route claims, keeps the lookup columns, and refuses a slug change", async () => {
     const provider = storedProvider({
       id: "idp_rp",
       org: "acme",
@@ -146,14 +154,16 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
       expectedAudience: AUDIENCE,
     });
     await store.insert(provider);
+    const renamed = clone(IdentityProviderSchema, provider);
+    renamed.metadata!.slug = "moved";
+    await expect(swapOnCurrent(renamed), "a slug moves only by rename").rejects.toThrow(/keeps a provider's slug/);
     const changed = clone(IdentityProviderSchema, provider);
     changed.metadata!.name = "After";
-    changed.metadata!.slug = "ignored";
     changed.spec!.allowedIssuers = ["https://after.test"];
     changed.spec!.isSsoProvider = true;
     changed.spec!.oidcClientId = "client";
 
-    expect(await store.replace(changed)).toEqual({ kind: "replaced" });
+    expect(await swapOnCurrent(changed)).toEqual({ kind: "replaced" });
     expect((await store.findById("idp_rp"))?.metadata?.name).toBe("After");
     const columns = await database.pool.query<{ org: string; slug: string }>(
       "SELECT org, slug FROM ee.iam_identity_provider WHERE id = $1",
@@ -165,7 +175,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     expect(await store.findProviderIdByRoute("https://before.test", AUDIENCE)).toBeUndefined();
   });
 
-  it("rolls a replace back when another provider claims a route", async () => {
+  it("rolls a swap back when another provider claims a route", async () => {
     await store.insert(
       storedProvider({ id: "idp_c1", org: "claims", slug: "c1", issuers: ["https://c1.test"], expectedAudience: AUDIENCE }),
     );
@@ -181,7 +191,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     grabbing.metadata!.name = "Grabbing";
     grabbing.spec!.allowedIssuers = ["https://c1.test"];
 
-    expect(await store.replace(grabbing)).toEqual({
+    expect(await swapOnCurrent(grabbing)).toEqual({
       kind: "route-taken",
       route: { issuer: "https://c1.test", audience: AUDIENCE },
     });
@@ -189,7 +199,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
     expect(await store.findProviderIdByRoute("https://c2.test", AUDIENCE)).toBe("idp_c2");
   });
 
-  it("answers missing for a replace of a row that is gone, and claims nothing", async () => {
+  it("answers changed for a swap of a row that is gone, and claims nothing", async () => {
     const ghost = storedProvider({
       id: "idp_ghost",
       org: "acme",
@@ -198,7 +208,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the IdentityProvider store over ee.iam_iden
       expectedAudience: AUDIENCE,
     });
 
-    expect(await store.replace(ghost)).toEqual({ kind: "missing" });
+    expect(await swapOnCurrent(ghost)).toEqual({ kind: "changed" });
     expect(await store.findById("idp_ghost")).toBeUndefined();
     expect(await store.findProviderIdByRoute("https://ghost.test", AUDIENCE)).toBeUndefined();
   });

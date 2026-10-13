@@ -72,13 +72,20 @@ function rig(
       }
       return Promise.resolve(clone(OrganizationSchema, row));
     },
-    saveResource: (_kind: ApiResourceKind, _id: string, _schema: unknown, saved: Organization) => {
+    updateResource: (
+      _kind: ApiResourceKind,
+      _id: string,
+      _schema: unknown,
+      modify: (live: Organization) => void,
+    ) => {
       if (faults.save === true) {
         return Promise.reject(new Error("store unreachable"));
       }
-      log.push(`save:${String(saved.spec?.policies?.membersCanCreateAgents)}`);
-      row = clone(OrganizationSchema, saved);
-      return Promise.resolve();
+      const live = clone(OrganizationSchema, row);
+      modify(live);
+      log.push(`save:${String(live.spec?.policies?.membersCanCreateAgents)}`);
+      row = live;
+      return Promise.resolve(clone(OrganizationSchema, live));
     },
   } as unknown as Store;
   const lifecycle = {

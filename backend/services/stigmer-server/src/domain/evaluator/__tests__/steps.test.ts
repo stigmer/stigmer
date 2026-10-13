@@ -2,7 +2,8 @@
  * Pins the evaluator steps' fault arms, which the composed lanes cannot
  * reach: a store fault while reading the agent, the agent's evaluators or
  * saving the settings is a sanitized INTERNAL; an evaluator deleted between
- * the update's read and its write is NOT_FOUND; a chain built without the
+ * the update's read and its write loses the swap (the rerun's read then
+ * answers NOT_FOUND); a chain built without the
  * row a step reads fails loudly as INTERNAL; the cascade's own faults; an
  * undecodable evaluator row is skipped; a budget write's fault is thrown,
  * not read as "grading off".
@@ -19,7 +20,10 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
-import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
+import {
+  EXISTING_RESOURCE_BYTES_KEY,
+  EXISTING_RESOURCE_KEY,
+} from "../../../pipeline/steps/load-existing.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -100,8 +104,10 @@ describe("the evaluator steps' faults", () => {
     );
   });
 
-  it("answers NOT_FOUND when the evaluator went between the update's read and its write", async () => {
-    expect(await codeOf(() => newPersistEvaluatorSettingsStep(temp.store).execute(evaluatorCtx()))).toBe(Code.NotFound);
+  it("loses its swap when the evaluator went between the update's read and its write (the rerun's read answers NOT_FOUND)", async () => {
+    const ctx = evaluatorCtx();
+    ctx.set(EXISTING_RESOURCE_BYTES_KEY, new Uint8Array([1]));
+    expect(await codeOf(() => newPersistEvaluatorSettingsStep(temp.store).execute(ctx))).toBe(Code.Aborted);
   });
 
   it("refuses a create that names no organization", async () => {

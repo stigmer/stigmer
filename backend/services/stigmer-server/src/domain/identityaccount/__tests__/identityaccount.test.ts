@@ -19,6 +19,9 @@
  *   - update round-trips preferences (the console's one write) and refuses
  *     a changed subject with FAILED_PRECONDITION (the schedule domain's
  *     immutability shape);
+ *   - an update keeps a write that lands through the port between its read
+ *     and its write (an email the identity provider asserted): the lost
+ *     swap runs the chain again from a fresh read, so both are kept;
  *   - the byte-pinned NOT_FOUND copy on get / getByEmail / getByIdpId /
  *     whoAmI; getActorInfo names the account the way its audit stamps
  *     do (stigmer/stigmer#1226): its first and last name, or its own
@@ -53,6 +56,7 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
+import { writeLandsMidUpdate } from "../../../pipeline/__tests__/race-support.js";
 import {
   resetOperatorIdentityForTests,
   setOperatorIdentity,
@@ -65,6 +69,7 @@ import {
   accountNotFoundMessage,
   idpIdImmutableMessage,
 } from "../constants.js";
+import { newResourceIdentityAccountStore } from "../resource-store.js";
 
 const OPERATOR_EMAIL = "operator@example.com";
 const OPERATOR_NAME = "The Operator";
@@ -330,6 +335,41 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
       expect(updated.spec?.provisioningMode).toBe(
         IdentityAccountProvisioningMode.direct,
       );
+    });
+
+    it("an update keeps a write that lands between its read and its write", async () => {
+      const created = await platform.create(
+        accountInput({ idpId: "auth0|raced", email: "raced@example.com" }),
+      );
+      const id = created.metadata?.id ?? "";
+      const accounts = newResourceIdentityAccountStore(server.store);
+
+      const { result, writes } = await writeLandsMidUpdate(
+        server.store,
+        ApiResourceKind.identity_account,
+        id,
+        async () => {
+          const read = await accounts.readForWrite(id);
+          if (read?.row.spec === undefined) {
+            throw new Error("the account did not read for a write");
+          }
+          read.row.spec.email = "asserted@example.com";
+          expect(await accounts.swap(id, read.bytes, read.row)).toBe(true);
+        },
+        () =>
+          command.update(
+            withSpec(created, (spec) => {
+              spec.firstName = "Edited";
+            }),
+          ),
+      );
+
+      expect(writes).toBeGreaterThanOrEqual(2);
+      expect(result.spec?.firstName).toBe("Edited");
+      expect(result.spec?.email).toBe("asserted@example.com");
+      const stored = await accounts.findById(id);
+      expect(stored?.spec?.firstName).toBe("Edited");
+      expect(stored?.spec?.email).toBe("asserted@example.com");
     });
   });
 

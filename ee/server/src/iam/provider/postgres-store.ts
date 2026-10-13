@@ -156,6 +156,7 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
         if (held === undefined || !held.data.equals(Buffer.from(expectedBytes))) {
           return { commit: false, value: { kind: "changed" } };
         }
+        refuseSlugChange(rowToProvider(held), provider);
         let rowCount = 0;
         const refused = await claiming(async () => {
           const updated = await client.query(
@@ -323,6 +324,17 @@ function claimOf(error: unknown): Claim | undefined {
       return "route";
     default:
       return undefined;
+  }
+}
+
+/**
+ * Refuses a swap that moves the slug: the slug column is rename's
+ * (`modifyById`), and a swap writes the payload only, so a payload naming
+ * another slug would disagree with the column every name read trusts.
+ */
+function refuseSlugChange(held: IdentityProvider, next: IdentityProvider): void {
+  if ((held.metadata?.slug ?? "") !== (next.metadata?.slug ?? "")) {
+    throw new Error("a swap keeps a provider's slug; a rename changes it");
   }
 }
 

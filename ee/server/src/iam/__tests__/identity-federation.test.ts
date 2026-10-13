@@ -29,7 +29,7 @@
  * account it made, and a removal that fails is logged by the account's id.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -171,7 +171,14 @@ function harness(
         }),
       );
     },
-    updateAccount: (account: IdentityAccount) => {
+    // The guarded write's shape: the change applied to the stored row.
+    updateAccount: (id: string, change: (account: IdentityAccount) => void) => {
+      const stored = recorded.byNaturalKey;
+      if (stored === undefined || stored.metadata?.id !== id) {
+        return Promise.resolve(undefined);
+      }
+      const account = clone(IdentityAccountSchema, stored);
+      change(account);
       recorded.updated.push(account);
       return Promise.resolve(account);
     },

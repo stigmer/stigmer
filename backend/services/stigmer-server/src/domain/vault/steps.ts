@@ -294,6 +294,12 @@ export function newPersistVaultUpdateStep(store: Store): PipelineStep<VaultDesc>
     name: "PersistVaultUpdate",
     async execute(ctx: RequestContext<VaultDesc>): Promise<void> {
       refuseBoundElsewhere(ctx.callerIdentity, ctx.newState.metadata?.org ?? "");
+      // The loaded row's entries, whatever a step before put there: an
+      // update never writes a request's entries (setSecrets is their door).
+      const loaded = ctx.get(EXISTING_RESOURCE_KEY) as Vault | undefined;
+      const spec = (ctx.newState.spec ??= create(VaultSpecSchema));
+      spec.secrets = loaded?.spec?.secrets ?? {};
+      spec.connections = loaded?.spec?.connections ?? {};
       await swapOntoLoadedRow(store, ctx);
     },
   };

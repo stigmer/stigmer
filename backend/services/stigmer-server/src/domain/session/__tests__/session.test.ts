@@ -35,8 +35,12 @@
  *     cloud-default config flips which transitions count as changes;
  *   - harness_state_id_history is server-owned: appended on replace, never
  *     duplicated, client-sent values discarded;
+ *   - an update keeps a write that lands between its read and its write:
+ *     the lost swap runs the chain again from a fresh read, so the stored
+ *     row and the answer carry both the landed visibility and the update;
  *   - updateSubject is a field-level RMW that stamps ONLY the spec_audit
- *     slot (#540) and leaves the status slot untouched;
+ *     slot (#540) and leaves the status slot untouched, and keeps a write
+ *     that lands between its read and its write;
  *   - delete is refused while any of the four active execution phases
  *     exists (exact count copy), terminal phases don't block, and the
  *     cascade removes exactly the session's own executions.
@@ -94,6 +98,10 @@ import {
   type OrganizationIds,
 } from "../../organization/__tests__/support.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import {
+  visibilityWrite,
+  writeLandsMidUpdate,
+} from "../../../pipeline/__tests__/race-support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -812,6 +820,45 @@ describe("session update — server-owned harness_state_id_history", () => {
   });
 });
 
+describe("session update — a write that lands mid-update", () => {
+  it("an update keeps a write that lands between its read and its write", async () => {
+    const session = await createSession({ subject: "before" });
+    const id = session.metadata!.id;
+    expect(session.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const { result, writes } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.session,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.session,
+        SessionSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => command.update(updateInput(session, { subject: "after" })),
+    );
+
+    expect(writes).toBeGreaterThanOrEqual(2);
+    expect(result.spec?.subject).toBe("after");
+    expect(result.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const stored = await server.store.getResource(
+      ApiResourceKind.session,
+      id,
+      SessionSchema,
+    );
+    expect(stored.spec?.subject).toBe("after");
+    expect(stored.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+  });
+});
+
 describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () => {
   it("updates only the subject, stamps spec_audit, and leaves status_audit untouched", async () => {
     const agent = await createAgent("Subject agent");
@@ -843,6 +890,42 @@ describe("session updateSubject — field-level RMW (#540 spec_audit slot)", () 
     );
     expect(statusAuditAfter?.updatedAt?.nanos).toBe(
       statusAuditBefore.updatedAt?.nanos,
+    );
+  });
+
+  it("keeps a write that lands between its read and its write, and the subject lands", async () => {
+    const session = await createSession({ subject: "original" });
+    const id = session.metadata!.id;
+    expect(session.metadata?.visibility).not.toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+
+    const { result } = await writeLandsMidUpdate(
+      server.store,
+      ApiResourceKind.session,
+      id,
+      visibilityWrite(
+        server.store,
+        ApiResourceKind.session,
+        SessionSchema,
+        id,
+        ApiResourceVisibility.visibility_org,
+      ),
+      () => command.updateSubject({ id, subject: "renamed thread" }),
+    );
+
+    expect(result.spec?.subject).toBe("renamed thread");
+    expect(result.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const stored = await server.store.getResource(
+      ApiResourceKind.session,
+      id,
+      SessionSchema,
+    );
+    expect(stored.spec?.subject).toBe("renamed thread");
+    expect(stored.metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
     );
   });
 

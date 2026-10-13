@@ -106,6 +106,9 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     if (held === undefined || !sameBytes(toBinary(IdentityProviderSchema, held), expectedBytes)) {
       return Promise.resolve({ kind: "changed" });
     }
+    if ((held.metadata?.slug ?? "") !== (provider.metadata?.slug ?? "")) {
+      return Promise.reject(new Error("a swap keeps a provider's slug; a rename changes it"));
+    }
     if (this.ssoHeldByAnother(provider, id)) {
       return Promise.resolve({ kind: "sso-taken" });
     }

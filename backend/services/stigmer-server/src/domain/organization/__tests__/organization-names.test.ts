@@ -16,7 +16,9 @@
  *     slug another organization holds, and changes nothing when the slug is
  *     already its own; get finds a renamed organization by its old slug,
  *     apply and update by it are refused with SLUG_RENAMED, and an apply
- *     carrying the id leaves the slug to rename.
+ *     carrying the id leaves the slug to rename; an update that lands
+ *     between a rename's name move and its row write keeps its change when
+ *     the rename's write settles the row, which writes the slug alone.
  *
  * And, over store doubles, the two failure paths: the release a failed
  * create runs (it frees the claim only when the organization was never
@@ -289,7 +291,7 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(reapplied.spec?.description).toBe("applied by slug alone");
   });
 
-  it("an update that lands after its names moved on writes the row with the current name", async () => {
+  it("an update between a rename's name move and its row write is kept when the rename's write settles the row", async () => {
     const made = await organizations.create(organizationInput("settle-a"));
     const id = made.metadata?.id ?? "";
     // A rename's names land, and its row write has not yet: the row still
@@ -304,15 +306,22 @@ describe("organization names (composed server, trusted-local posture)", () => {
       now,
     });
 
-    const updated = await organizations.update({
+    await organizations.update({
       ...organizationInput("settle-a"),
       metadata: { id, name: "settle-a", slug: "settle-a" },
-      spec: { description: "an update that copied the slug it loaded" },
+      spec: { description: "an update between the move and the row write" },
     });
-    expect(updated.metadata?.slug).toBe("settle-b");
+    // The rename's own row write lands after the update, and settles the
+    // row on the table's name by writing the slug alone.
+    const renamed = await server.store.getResource(ApiResourceKind.organization, id, OrganizationSchema);
+    await settleOrganizationSlug(
+      server.store,
+      renamed,
+      createLogger({ level: "error", pretty: false, write: () => {} }),
+    );
     const stored = await server.store.getResource(ApiResourceKind.organization, id, OrganizationSchema);
     expect(stored.metadata?.slug).toBe("settle-b");
-    expect(stored.spec?.description).toBe("an update that copied the slug it loaded");
+    expect(stored.spec?.description).toBe("an update between the move and the row write");
   });
 
   it("deleting an organization from an earlier release keeps its slug, its id, reserved", async () => {
@@ -819,6 +828,10 @@ describe("settleOrganizationSlug", () => {
   }
   function storeWith(currents: Array<string | undefined | Error>) {
     const saved: string[] = [];
+    const live = create(OrganizationSchema, {
+      metadata: { id: ID, slug: "live" },
+      spec: { description: "written since the rename read the row" },
+    });
     const store = {
       resourceNames: {
         current: async () => {
@@ -829,21 +842,24 @@ describe("settleOrganizationSlug", () => {
           return next === undefined ? undefined : { ...organizationNameKey(next), id: ID, state: "current", claimedAt: "", expiresAt: "" };
         },
       },
-      saveResource: async (_kind: unknown, _id: unknown, _schema: unknown, organization: Organization) => {
-        saved.push(organization.metadata?.slug ?? "");
+      updateResource: async (_kind: unknown, _id: unknown, _schema: unknown, modify: (row: Organization) => void) => {
+        modify(live);
+        saved.push(live.metadata?.slug ?? "");
+        return live;
       },
     } as unknown as Store;
-    return { store, saved };
+    return { store, saved, live };
   }
   const warnings: string[] = [];
   const logger = { warn: (message: string) => warnings.push(message), error: () => {}, info: () => {}, debug: () => {} } as unknown as Logger;
 
-  it("rewrites the row until it holds the current name, and leaves a settled one alone", async () => {
+  it("rewrites the row's slug, and only its slug, until it holds the current name, and leaves a settled one alone", async () => {
     const moved = storeWith(["acme-c", "acme-c"]);
     const organization = organizationNamed("acme-b");
     await settleOrganizationSlug(moved.store, organization, logger);
     expect(moved.saved).toEqual(["acme-c"]);
     expect(organization.metadata?.slug).toBe("acme-c");
+    expect(moved.live.spec?.description).toBe("written since the rename read the row");
 
     const settled = storeWith(["acme-b"]);
     await settleOrganizationSlug(settled.store, organizationNamed("acme-b"), logger);
@@ -989,6 +1005,7 @@ describe("the organization loaders", () => {
   function loaderStore(read: () => Promise<unknown>): Store {
     return {
       getResource: read,
+      readResourceForWrite: async () => ({ resource: await read(), bytes: new Uint8Array() }),
       resourceNames: { resolve: async () => undefined },
     } as unknown as Store;
   }

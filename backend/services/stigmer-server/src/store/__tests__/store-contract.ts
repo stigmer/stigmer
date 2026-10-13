@@ -10,7 +10,9 @@
  * updateResource atomic RMW incl. the no-lost-update guarantee
  * (per-resource atomicity — the parallel-updates assertion is
  * deliberately order-agnostic: sqlite serializes globally, Postgres
- * per-row), findAllByField's filter (the rows whose field equals the
+ * per-row), the guarded write (a read that keeps the stored bytes, and a
+ * swap on them that lands once and loses to any write in between or to a
+ * delete, inserting nothing), findAllByField's filter (the rows whose field equals the
  * value, as stored bytes), audit ordering + the #341 single-holder tag move,
  * the terminal-immutable schedule-run ledger, the engine-neutral search
  * read semantics (token match / single-term prefix / AND; wire-ready 0–1
@@ -584,6 +586,139 @@ export function describeStoreContract(
       ).toBe(false);
       const kept = await fx.store.getResource(KIND, "race", OrganizationSchema);
       expect(kept.spec?.description).toBe("writer wins");
+    });
+  });
+
+  // The guarded write an update chain persists by (pipeline/guarded-write.ts):
+  // a read that keeps the stored bytes, and a swap on them.
+  describe("guarded write: readResourceForWrite + swapResource", () => {
+    it("readResourceForWrite answers the row with its exact stored bytes, and NotFound for none", async () => {
+      await fx.store.saveResource(
+        KIND,
+        "guarded-read",
+        OrganizationSchema,
+        makeOrganization({ id: "guarded-read", description: "stored" }),
+      );
+      const read = await fx.store.readResourceForWrite(
+        KIND,
+        "guarded-read",
+        OrganizationSchema,
+      );
+      expect(read.resource.spec?.description).toBe("stored");
+      const raw = (
+        await fx.store.findResourcesRawOrderedAfter(KIND, "guarded-reac", 1)
+      )[0]!;
+      expect(raw.id).toBe("guarded-read");
+      expect(Buffer.from(read.bytes).equals(Buffer.from(raw.data))).toBe(true);
+
+      await expect(
+        fx.store.readResourceForWrite(KIND, "no-such-row", OrganizationSchema),
+      ).rejects.toBeInstanceOf(ResourceNotFoundError);
+    });
+
+    it("a swap on the bytes read lands, and a second swap on the same bytes loses", async () => {
+      await fx.store.saveResource(
+        KIND,
+        "guarded-swap",
+        OrganizationSchema,
+        makeOrganization({ id: "guarded-swap" }),
+      );
+      const read = await fx.store.readResourceForWrite(
+        KIND,
+        "guarded-swap",
+        OrganizationSchema,
+      );
+      expect(
+        await fx.store.swapResource(
+          KIND,
+          "guarded-swap",
+          OrganizationSchema,
+          read.bytes,
+          makeOrganization({ id: "guarded-swap", description: "first" }),
+        ),
+      ).toBe(true);
+      expect(
+        await fx.store.swapResource(
+          KIND,
+          "guarded-swap",
+          OrganizationSchema,
+          read.bytes,
+          makeOrganization({ id: "guarded-swap", description: "second" }),
+        ),
+      ).toBe(false);
+      const stored = await fx.store.getResource(
+        KIND,
+        "guarded-swap",
+        OrganizationSchema,
+      );
+      expect(stored.spec?.description).toBe("first");
+    });
+
+    it("an updateResource between the read and the swap defeats the swap, and its write survives", async () => {
+      await fx.store.saveResource(
+        KIND,
+        "guarded-race",
+        OrganizationSchema,
+        makeOrganization({ id: "guarded-race" }),
+      );
+      const read = await fx.store.readResourceForWrite(
+        KIND,
+        "guarded-race",
+        OrganizationSchema,
+      );
+      await fx.store.updateResource(
+        KIND,
+        "guarded-race",
+        OrganizationSchema,
+        (row) => {
+          row.spec ??= makeOrganization({ id: "guarded-race" }).spec;
+          if (row.spec !== undefined) {
+            row.spec.description = "status writer";
+          }
+        },
+      );
+      expect(
+        await fx.store.swapResource(
+          KIND,
+          "guarded-race",
+          OrganizationSchema,
+          read.bytes,
+          makeOrganization({ id: "guarded-race", description: "stale update" }),
+        ),
+      ).toBe(false);
+      const kept = await fx.store.getResource(
+        KIND,
+        "guarded-race",
+        OrganizationSchema,
+      );
+      expect(kept.spec?.description).toBe("status writer");
+    });
+
+    it("a swap on a row deleted since the read loses and inserts nothing", async () => {
+      await fx.store.saveResource(
+        KIND,
+        "guarded-gone",
+        OrganizationSchema,
+        makeOrganization({ id: "guarded-gone" }),
+      );
+      const read = await fx.store.readResourceForWrite(
+        KIND,
+        "guarded-gone",
+        OrganizationSchema,
+      );
+      await fx.store.deleteResource(KIND, "guarded-gone");
+      expect(
+        await fx.store.swapResource(
+          KIND,
+          "guarded-gone",
+          OrganizationSchema,
+          read.bytes,
+          makeOrganization({ id: "guarded-gone", description: "resurrected" }),
+        ),
+      ).toBe(false);
+      await expect(
+        fx.store.getResource(KIND, "guarded-gone", OrganizationSchema),
+      ).rejects.toBeInstanceOf(ResourceNotFoundError);
     });
   });
 
