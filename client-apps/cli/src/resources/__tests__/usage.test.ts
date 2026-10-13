@@ -4,7 +4,8 @@
 // per-run average in tokens, the "estimated" marks on a session and its
 // runner-reported runs, the served-by line (a plain name for one known
 // source, a split only when more than one known source served tokens,
-// nothing when none is known), the org report's top agents, harness split
+// nothing when none is known, a source this build does not know by its
+// number), the org report's top agents, harness split
 // and daily trend, the cache hit rate over all input, and the request shapes
 // the agent and org reports send.
 
@@ -146,6 +147,17 @@ describe("formatServedBy", () => {
       ),
     ).toBe("your keys 6.0k (60.0%) · Stigmer's free model 3.0k (30.0%) · not recorded 1.0k (10.0%)");
   });
+
+  it("names a source this build does not know by its number", () => {
+    expect(
+      formatServedBy(
+        aggregate([
+          { source: org, tokens: 3000n },
+          { source: 7 as ProviderKeySource, tokens: 1000n },
+        ]),
+      ),
+    ).toBe("your keys 3.0k (75.0%) · source 7 1.0k (25.0%)");
+  });
 });
 
 const agentReport = create(GetAgentUsageReportOutputSchema, {
@@ -180,6 +192,17 @@ describe("renderAgentUsage", () => {
     expect(out).toMatch(/#\s+PERIOD\s+RUNS\s+TOKENS/);
     expect(out).not.toContain("Served by"); // no known source
     expect(out).not.toMatch(/\$|COST|cost/);
+  });
+
+  it("names who served the agent's tokens when a known source did", () => {
+    const served = create(GetAgentUsageReportOutputSchema, {
+      ...agentReport,
+      totalUsage: create(UsageReportAggregateSchema, {
+        totalTokens: 4000n,
+        servedBy: [{ providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 4000n, llmCallCount: 9 }],
+      }),
+    });
+    expect(renderAgentUsage(served, { from: "", to: "" }, "table")).toContain("Served by:    your keys");
   });
 });
 

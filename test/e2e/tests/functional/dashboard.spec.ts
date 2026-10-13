@@ -29,12 +29,13 @@ test.describe("Dashboard", () => {
 
     const summary = page.getByRole("region", { name: "Platform dashboard" });
     await expect(summary).toBeVisible({ timeout: 15_000 });
-    for (const counter of ["Active", "Completed", "Failed"]) {
+    for (const counter of ["Active", "Completed", "Failed", "Tokens"]) {
       await expect(
         summary.getByText(counter, { exact: true }).locator("xpath=following-sibling::*[1]"),
       ).toHaveText("0");
     }
-    await expect(summary.getByText("$0.00")).toBeVisible();
+    // Usage is tokens, never money: no price anywhere in the summary.
+    await expect(summary).not.toContainText("$");
     await expect(summary.getByText("No recent failures")).toBeVisible();
   });
 });

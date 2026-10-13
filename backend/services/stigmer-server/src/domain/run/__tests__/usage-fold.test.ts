@@ -302,6 +302,10 @@ describe("folding several runs", () => {
     expect(harnessName(Harness.UNSPECIFIED)).toBe("native");
   });
 
+  it("a harness value this build does not know is named native, the platform default", () => {
+    expect(harnessName(99 as Harness)).toBe("native");
+  });
+
   it("an empty fold is zero everywhere", () => {
     expect(aggregateOf([]).totalTokens).toBe(0n);
     expect(modelBreakdownOf([])).toEqual([]);

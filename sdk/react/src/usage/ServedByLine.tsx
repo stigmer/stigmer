@@ -40,7 +40,11 @@ export type ServedBySummary =
   | { readonly kind: "estimated" }
   | { readonly kind: "none" };
 
-/** Plain label for a known credential source, `null` for UNSPECIFIED. */
+/**
+ * Plain label for a known credential source, `null` for UNSPECIFIED. A
+ * value this build does not know (the wire enum is open) is still a known
+ * server, named by its number.
+ */
 function sourceLabel(source: ProviderKeySource): string | null {
   switch (source) {
     case ProviderKeySource.ORGANIZATION:
@@ -50,8 +54,8 @@ function sourceLabel(source: ProviderKeySource): string | null {
     case ProviderKeySource.UNSPECIFIED:
       return null;
     default: {
-      const unreachable: never = source;
-      return unreachable;
+      const unlisted: never = source;
+      return `source ${String(unlisted)}`;
     }
   }
 }
@@ -154,6 +158,7 @@ export function ServedByLine({ rows, showEstimated = false, className }: ServedB
       ) : null;
     case "none":
       return null;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const unreachable: never = summary;
       return unreachable;

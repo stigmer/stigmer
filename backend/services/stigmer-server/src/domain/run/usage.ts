@@ -780,6 +780,7 @@ export async function getOrgUsageReport(
 }
 
 function requireCountedRuns(value: unknown): CountedRun[] {
+  /* v8 ignore next -- @preserve: each report's count step sets the list before the step that reads it; only a mis-ordered pipeline reaches this */
   if (!Array.isArray(value)) {
     throw internalError(
       new Error("counted runs not found in context"),

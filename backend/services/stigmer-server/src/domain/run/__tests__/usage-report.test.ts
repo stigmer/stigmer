@@ -15,14 +15,17 @@
  *   - a composed list read scope narrows what the organization report
  *     counts and names;
  *   - the organization report's top agents order by tokens and its total
- *     is the sum of its runs.
+ *     is the sum of its runs;
+ *   - a store fault on the index read, or on a session's harness read,
+ *     fails the report as Internal, and an index row that will not decode
+ *     is skipped while the rest are counted.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { DescMessage, MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -378,6 +381,34 @@ describe("the organization report", () => {
     expect(dayBefore.totalRuns).toBe(0);
   });
 
+  it("a run created after a date-only to's day is out; a to that is neither a date nor an instant is refused", async () => {
+    const throughYesterday = await getOrgUsageReport(
+      deps(),
+      create(GetOrgUsageReportInputSchema, { org, fromDate: "2026-10-01", toDate: "2026-10-12" }),
+      testCallerIdentity(),
+    );
+    expect(throughYesterday.totalRuns, "only the 2026-10-12 run; both 2026-10-13 runs are after the window").toBe(1);
+    const error = await refusal(() =>
+      getOrgUsageReport(
+        deps(),
+        create(GetOrgUsageReportInputSchema, { org, fromDate: "2026-10-01", toDate: "13/10/2026" }),
+        testCallerIdentity(),
+      ),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+  });
+
+  it("a run created a millisecond before a date-only from is out, though the index's bound is a millisecond wider", async () => {
+    await seedRun("org_edge_before", { org: "org_edge", createdAtMs: Date.UTC(2026, 9, 13) - 1 });
+    await seedRun("org_edge_at", { org: "org_edge", createdAtMs: Date.UTC(2026, 9, 13) });
+    const report = await getOrgUsageReport(
+      deps(),
+      create(GetOrgUsageReportInputSchema, { org: "org_edge", fromDate: "2026-10-13", toDate: "2026-10-13" }),
+      testCallerIdentity(),
+    );
+    expect(report.totalRuns).toBe(1);
+  });
+
   it("refuses a bound that is neither a date nor an RFC 3339 instant", async () => {
     const error = await refusal(() =>
       getOrgUsageReport(
@@ -466,5 +497,63 @@ describe("the agent report", () => {
       testCallerIdentity(),
     );
     expect(unbounded.totalRuns).toBe(3);
+  });
+});
+
+describe("store faults under the reports", () => {
+  it("a fault on the index read fails the report as Internal", async () => {
+    const faulty = new Proxy(store, {
+      get(target, member, receiver) {
+        if (member === "queryResources") {
+          return () => Promise.reject(new Error("index read failed"));
+        }
+        return Reflect.get(target, member, receiver) as unknown;
+      },
+    });
+    const error = await refusal(() =>
+      getOrgUsageReport(deps({ store: faulty }), create(GetOrgUsageReportInputSchema, { org: "org_index_fault", fromDate: "2026-10-01", toDate: "2026-10-31" }), testCallerIdentity()),
+    );
+    expect(error.code).toBe(Code.Internal);
+  });
+
+  it("an index row that will not decode is skipped, and the rest are counted", async () => {
+    const org = "org_undecodable";
+    await seedRun("undecodable_kept", { org, usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
+    const withJunk = new Proxy(store, {
+      get(target, member, receiver) {
+        if (member === "queryResources") {
+          return async (...args: Parameters<Store["queryResources"]>) => {
+            const rows = await target.queryResources(...args);
+            const [first] = rows;
+            if (first === undefined) return rows;
+            return [...rows, { ...first, id: "undecodable_junk", data: new Uint8Array([0xff, 0xff, 0xff]) }];
+          };
+        }
+        return Reflect.get(target, member, receiver) as unknown;
+      },
+    });
+    const report = await getOrgUsageReport(deps({ store: withJunk }), create(GetOrgUsageReportInputSchema, { org, fromDate: "2026-10-01", toDate: "2026-10-31" }), testCallerIdentity());
+    expect(report.totalRuns).toBe(1);
+    expect(report.totalUsage?.totalTokens).toBe(19_642n);
+  });
+
+  it("a fault reading a run's session, other than not found, fails the report as Internal", async () => {
+    const org = "org_session_fault";
+    await seedRun("session_fault_run", { org, sessionId: "ses_session_fault", usage: NATIVE_USAGE, createdAtMs: Date.UTC(2026, 9, 13) });
+    const faulty = new Proxy(store, {
+      get(target, member, receiver) {
+        if (member === "getResource") {
+          return (kind: ApiResourceKind, id: string, schema: DescMessage) =>
+            kind === ApiResourceKind.session
+              ? Promise.reject(new Error("session read failed"))
+              : target.getResource(kind, id, schema);
+        }
+        return Reflect.get(target, member, receiver) as unknown;
+      },
+    });
+    const error = await refusal(() =>
+      getOrgUsageReport(deps({ store: faulty }), create(GetOrgUsageReportInputSchema, { org, fromDate: "2026-10-01", toDate: "2026-10-31" }), testCallerIdentity()),
+    );
+    expect(error.code).toBe(Code.Internal);
   });
 });

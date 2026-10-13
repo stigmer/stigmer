@@ -4,7 +4,7 @@
  * one known source as a plain line ("All on your keys", or "Your keys
  * served ..." when some tokens have no recorded source); nothing when no
  * source is known, or an "estimated" note on request when nothing was
- * metered.
+ * metered; a source this build does not know named by its number.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -51,6 +51,17 @@ describe("summarizeServedBy", () => {
 
   it("ignores a known row with nothing in it", () => {
     expect(summarizeServedBy([org(6_000), platform(0, 0)])).toEqual({ kind: "single", text: "All on your keys" });
+  });
+
+  it("names a source this build does not know by its number, as a known server", () => {
+    const unlisted: ServedByRow = { providerKeySource: 7 as ProviderKeySource, totalTokens: 1_000, llmCallCount: 1 };
+    expect(summarizeServedBy([org(3_000), unlisted])).toEqual({
+      kind: "split",
+      shares: [
+        { label: "your keys", tokens: 3_000, percent: 75 },
+        { label: "source 7", tokens: 1_000, percent: 25 },
+      ],
+    });
   });
 
   it("says estimated only when no source is known and nothing was metered", () => {

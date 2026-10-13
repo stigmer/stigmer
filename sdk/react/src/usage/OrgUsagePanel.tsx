@@ -8,7 +8,7 @@
  * Everything comes from one `getOrgUsageReport` read; the panel never sums
  * or prices anything itself, because the server already counts each run
  * once (from the deployment's meter, or from the run's own runner report).
- * Usage is tokens and calls, never money (stigmer-cloud#917). The suite in
+ * Usage is tokens and calls, never money. The suite in
  * `__tests__/OrgUsagePanel.test.tsx` pins the summary counts, the daily
  * chart's token tooltip, the model rows, the served-by line, the empty
  * state and the error.

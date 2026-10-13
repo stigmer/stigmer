@@ -111,7 +111,7 @@ const HOLD_MS = 30_000;
 
 // Collection-time capability read: whether this target's runner reaches a
 // meter decides which of the two usage arms below runs.
-const runModelCallsMetered = createTarget().capabilities.runModelCallsMetered;
+const { capabilities } = createTarget();
 
 // The UTC calendar day a run was created on, read from the server's own
 // stamp: the day the usage reports window and bucket it by, immune to a
@@ -1226,7 +1226,7 @@ describe("Run conformance — subscribe & populated read surfaces", () => {
     expect(stream.messages[0]?.status?.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
-  describe.skipIf(runModelCallsMetered)("a run whose model calls no meter served", () => {
+  describe.skipIf(capabilities.runModelCallsMetered)("a run whose model calls no meter served", () => {
     it("[billing.rpc.get-run-usage-report.unmetered-run-counts-runner-report] [rpc:RunQueryController.getRunUsageReport] [rpc:RunQueryController.getSessionUsageReport] [rpc:RunQueryController.getAgentUsageReport] a completed run's usage reports carry its runner's tokens, marked estimated", async () => {
       const { org } = await target.provisionTenancy();
       const agent = await provisionAgent(org);
@@ -1271,7 +1271,7 @@ describe("Run conformance — subscribe & populated read surfaces", () => {
     });
   });
 
-  describe.skipIf(!runModelCallsMetered)("a run whose model calls the server metered", () => {
+  describe.skipIf(!capabilities.runModelCallsMetered)("a run whose model calls the server metered", () => {
     it("a completed run's usage reports read the meter: calls counted, never estimated", async () => {
       const { org } = await target.provisionTenancy();
       const agent = await provisionAgent(org);

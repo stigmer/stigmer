@@ -145,6 +145,16 @@ describe("UsageTab (#362 model provenance)", () => {
     expect(screen.queryByText(/requested/)).toBeNull();
   });
 
+  it("the session widget shows the cache split, read and write", () => {
+    usageMock.mockReturnValue(usageWith({ inputTokens: 1_200, outputTokens: 800, cacheReadTokens: 13_000, cacheCreationTokens: 400 }));
+
+    render(<UsageTab runs={[executionWithTier("exe_1")]} />);
+
+    const summary = screen.getByRole("region", { name: "Session usage summary" }).textContent;
+    expect(summary).toContain("prompt 1.2k · completion 800");
+    expect(summary).toContain("cache 13.0k read · 400 write");
+  });
+
   it("renders no per-run list before the report lists any run", () => {
     usageMock.mockReturnValue(usageWith({ runBreakdown: [] }));
 
