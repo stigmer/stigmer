@@ -49,14 +49,14 @@ import type { AgentFileKind } from "../shared/agent-fs.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
-import type { RuntimeFieldsWire, WireOffload, WireTurnInput } from "./codec.js";
+import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 6;
+export const AGENT_HOST_PROTOCOL_VERSION = 7;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
  * carries its attachments' images (at most 4 MiB raw, `attachment-vision.ts`)
- * and the whole persisted transcript; 64 MiB is far above both and still a
+ * and the turn's rows; 64 MiB is far above both and still a
  * bound on what a misbehaving peer can make the other buffer.
  */
 export const MAX_MESSAGE_BYTES = 64 * 1024 * 1024;
@@ -146,7 +146,7 @@ export type WireOutcome =
     };
 
 /**
- * What `runTurn` answers: how the turn ended, the status fields the adapter
+ * What `runTurn` answers: how the turn ended, the rows and status fields the adapter
  * owns, and the engine's last CAS snapshot. Exactly one of `outcome` and
  * `thrown` is set: `thrown` is an adapter that broke its contract and
  * threw, which the runtime then handles as it would in-process.
@@ -154,8 +154,8 @@ export type WireOutcome =
 export interface WireSettlement {
   readonly outcome: WireOutcome | null;
   readonly thrown: WireError | null;
-  /** base64 `RunStatus` carrying only the adapter-owned fields (`codec.ts` `ADAPTER_OWNED_STATUS_FIELDS`). */
-  readonly projection: string;
+  /** The adapter-owned rows and status fields (`codec.ts` `WireProjection`). */
+  readonly projection: WireProjection;
   /** The snapshot at settle when the adapter bound a reader; the runtime's boundary capture reads it after the turn. */
   readonly cas: WireCasSnapshot | null;
 }
@@ -176,6 +176,8 @@ export interface HostCalls {
       readonly input: WireTurnInput;
       /** base64 `RunStatus`: the whole status as the runtime seeded it. */
       readonly status: string;
+      /** base64 `TurnRows`: the turn's rows as the runtime seeded them (a reinvocation's asks). */
+      readonly rows: string;
       readonly timing: TimingRecorderWire;
       /** base64 per-execution approval-receipt key (`shared/approval-fingerprint.ts`); the master secret never crosses. */
       readonly fingerprintKey: string;
@@ -291,7 +293,7 @@ export interface RunnerCalls {
    * `adoptOffloadedOutputs`), so it neither carries nor re-sends them.
    */
   readonly persist: {
-    readonly args: { readonly turnId: string; readonly projection: string };
+    readonly args: { readonly turnId: string; readonly projection: WireProjection };
     readonly result: { readonly runtime: RuntimeFieldsWire; readonly offloads: readonly WireOffload[] };
   };
   readonly reportProgress: { readonly args: { readonly turnId: string; readonly label: string }; readonly result: null };

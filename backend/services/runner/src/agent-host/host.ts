@@ -130,7 +130,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
       },
       readRunEvents: async () => decodeRunEvents(await peer.call("readRunEvents", { turnId })),
     });
-    const turn = new HostTurn(peer, turnId, input, args.status, args.timing);
+    const turn = new HostTurn(peer, turnId, input, args.status, args.rows, args.timing);
     turns.set(turnId, turn);
     keys.set(input.executionId, Buffer.from(args.fingerprintKey, "base64"));
     if (args.stopped !== null) turn.stop(args.stopped);
@@ -153,7 +153,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
       return {
         outcome: outcome === undefined ? null : toWireOutcome(outcome),
         thrown: outcome === undefined ? toWireError(thrown) : null,
-        projection: encodeAdapterProjection(turn.status),
+        projection: encodeAdapterProjection(turn),
         cas: reader ? encodeCasSnapshot(await reader()) : null,
       };
     } finally {
