@@ -76,6 +76,7 @@ import {
   mergeListIndexRows,
   sameListKeyRows,
 } from "../list-index.js";
+import { stampEtag } from "../etag.js";
 import type {
   ListIndexDeclaration,
   ListIndexFacts,
@@ -288,6 +289,7 @@ export class SqliteStore implements Store {
     msg: MessageShape<Desc>,
   ): Promise<void> {
     const db = this.open();
+    stampEtag(schema, msg);
     const data = toBinary(schema, msg);
     const kindName = apiResourceKindName(kind);
     const facts = this.listIndexes.factsOf(kind, msg);
@@ -352,6 +354,7 @@ export class SqliteStore implements Store {
     expectedBytes: Uint8Array,
     resource: MessageShape<Desc>,
   ): Promise<boolean> {
+    stampEtag(schema, resource);
     return this.replaceResourceDataIfUnchanged(
       kind,
       id,
@@ -395,6 +398,7 @@ export class SqliteStore implements Store {
       const msg = fromBinary(schema, row.data);
       const before = this.listIndexes.factsOf(kind, msg);
       modify(msg);
+      stampEtag(schema, msg);
       const after = this.listIndexes.factsOf(kind, msg);
 
       const data = toBinary(schema, msg);
@@ -578,6 +582,7 @@ export class SqliteStore implements Store {
       let org = before?.org ?? "";
       if ("put" in outcome) {
         row = outcome.put;
+        stampEtag(schema, row);
         const after = listIndexFactsOf(declaration, row);
         assertSameSession(kindName, id, sessionId, keyValue(after, scope.sessionKey));
         org = after.org;

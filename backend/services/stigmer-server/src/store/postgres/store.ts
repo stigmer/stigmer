@@ -119,6 +119,7 @@ import {
   scanForFieldMatch,
 } from "../proto-fields.js";
 import { rfc3339Seconds } from "../rfc3339.js";
+import { stampEtag } from "../etag.js";
 import { runMigrations } from "./migrations.js";
 import { normalizeTsRankScore, renderTsQueryExpression } from "./tsquery.js";
 
@@ -276,6 +277,7 @@ export class PostgresStore implements Store {
     schema: Desc,
     msg: MessageShape<Desc>,
   ): Promise<void> {
+    stampEtag(schema, msg);
     const data = Buffer.from(toBinary(schema, msg));
     const kindName = apiResourceKindName(kind);
     const facts = this.listIndexes.factsOf(kind, msg);
@@ -344,6 +346,7 @@ export class PostgresStore implements Store {
     expectedBytes: Uint8Array,
     resource: MessageShape<Desc>,
   ): Promise<boolean> {
+    stampEtag(schema, resource);
     return this.replaceResourceDataIfUnchanged(
       kind,
       id,
@@ -383,6 +386,7 @@ export class PostgresStore implements Store {
       const msg = fromBinary(schema, row.data);
       const before = this.listIndexes.factsOf(kind, msg);
       modify(msg);
+      stampEtag(schema, msg);
       const after = this.listIndexes.factsOf(kind, msg);
 
       const data = toBinary(schema, msg);
@@ -565,6 +569,7 @@ export class PostgresStore implements Store {
       let org = before?.org ?? "";
       if ("put" in outcome) {
         row = outcome.put;
+        stampEtag(schema, row);
         const after = listIndexFactsOf(declaration, row);
         assertSameSession(kindName, id, sessionId, keyValue(after, scope.sessionKey));
         org = after.org;

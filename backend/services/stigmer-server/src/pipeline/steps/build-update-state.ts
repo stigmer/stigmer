@@ -1,9 +1,15 @@
 /**
- * BuildUpdateState — ports steps/build_update_state.go (aligned with
- * Cloud's UpdateOperationBuildNewStateStepV2): full spec replacement from
- * the input, immutable identifiers preserved from the existing resource,
- * the ENTIRE existing status preserved (all system state), and only the
- * audit fields refreshed.
+ * BuildUpdateState — ports steps/build_update_state.go: the new state is
+ * the row LoadExisting read with the fields the update's mask names copied
+ * from the request (update-mask.ts), so every field the update does not
+ * name keeps its stored value: identifiers, the ENTIRE status (all system
+ * state) and anything another writer set. Only the audit fields are
+ * refreshed. A chain reached without a mask (apply's update arm) names
+ * every updatable path, a whole desired state.
+ *
+ * The kind's refused paths (fields another door owns or the server
+ * writes) are passed by its chain: naming one is refused, and one under a
+ * broader path keeps its stored value.
  *
  * Visibility is update-immutable (oss#573): updateVisibility is the ONLY
  * door — every visibility guard lives on those pipelines, so a plain
@@ -13,10 +19,10 @@
  */
 import { clone } from "@bufbuild/protobuf";
 import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
-import { reflect } from "@bufbuild/protobuf/reflect";
 import { timestampNow } from "@bufbuild/protobuf/wkt";
 import { create } from "@bufbuild/protobuf";
 
+import { ApiResourceMetadataVersionSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   ApiResourceAuditSchema,
   ApiResourceAuditInfoSchema,
@@ -28,17 +34,28 @@ import type { RequestContext } from "../request-context.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   auditActorFor,
-  clearStatusField,
   creationAuditOf,
   setAuditReflect,
   updatedAuditInfo,
 } from "./defaults.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
-import { hasStatusField, messageFieldByName, metadataOf } from "./shapes.js";
+import { hasStatusField, metadataOf } from "./shapes.js";
+import {
+  applyUpdateMask,
+  checkUpdateMask,
+  updateMaskOf,
+} from "./update-mask.js";
+import type { RefusedUpdatePath } from "./update-mask.js";
 
-export function newBuildUpdateStateStep<
-  Desc extends DescMessage,
->(): PipelineStep<Desc> {
+export interface BuildUpdateStateOptions {
+  /** The fields an update of this kind may not name (update-mask.ts). */
+  readonly refused?: ReadonlyArray<RefusedUpdatePath>;
+}
+
+export function newBuildUpdateStateStep<Desc extends DescMessage>(
+  options: BuildUpdateStateOptions = {},
+): PipelineStep<Desc> {
+  const refused = options.refused ?? [];
   return {
     name: "BuildUpdateState",
     execute(ctx: RequestContext<Desc>): void {
@@ -54,17 +71,17 @@ export function newBuildUpdateStateStep<
         );
       }
 
-      // Full spec replacement: the client sends complete desired state.
-      const merged = clone(ctx.schema, ctx.input);
-
-      preserveImmutableFields(merged, existing);
+      const paths = checkUpdateMask(
+        ctx.schema,
+        updateMaskOf((key) => ctx.get(key)),
+        refused,
+      );
+      // The stored row, with only the named fields taken from the request.
+      const merged = clone(ctx.schema, existing);
+      applyUpdateMask(ctx.schema, merged, ctx.newState, existing, paths, refused);
+      takeVersionArguments(merged, ctx.newState);
 
       if (hasStatusField(ctx.schema)) {
-        // Client-provided status is discarded, then the existing resource's
-        // ENTIRE status (version hash, phase, conditions, …) is
-        // carried over — only audit gets refreshed below.
-        clearStatusField(ctx.schema, merged);
-        copyStatusFromExisting(ctx.schema, merged, existing);
         updateAuditFields(ctx.schema, merged, existing, ctx.callerIdentity);
       }
 
@@ -74,42 +91,24 @@ export function newBuildUpdateStateStep<
 }
 
 /**
- * Go preserveImmutableFields: id, slug, org, and visibility (oss#573) come
- * from the existing resource. metadata.name and the other display fields
- * stay client-updatable.
+ * The per-save arguments of a versioned kind's write (metadata.version's
+ * message and tag): taken from the request whenever it sets them, and
+ * otherwise cleared, since they describe this save and not the stored row.
  */
-function preserveImmutableFields(merged: Message, existing: Message): void {
+function takeVersionArguments(merged: Message, request: Message): void {
   const mergedMeta = metadataOf(merged);
-  const existingMeta = metadataOf(existing);
-  if (mergedMeta === undefined || existingMeta === undefined) {
-    throw internalError(
-      new Error("metadata is nil"),
-      "preserve immutable fields",
-    );
+  if (mergedMeta === undefined) {
+    throw internalError(new Error("metadata is nil"), "take version arguments");
   }
-  mergedMeta.id = existingMeta.id;
-  mergedMeta.slug = existingMeta.slug;
-  mergedMeta.org = existingMeta.org;
-  mergedMeta.visibility = existingMeta.visibility;
-}
-
-/** Go copyStatusFromExisting (Cloud ApiResourcePreviousStatusReplacer). */
-function copyStatusFromExisting(
-  schema: DescMessage,
-  merged: Message,
-  existing: Message,
-): void {
-  const existingRoot = reflect(schema, existing);
-  const statusField = messageFieldByName(existingRoot, "status");
-  if (statusField === undefined || !existingRoot.isSet(statusField)) {
-    return;
+  const sent = metadataOf(request)?.version;
+  if (mergedMeta.version === undefined) {
+    if (sent === undefined) {
+      return;
+    }
+    mergedMeta.version = create(ApiResourceMetadataVersionSchema, {});
   }
-  // Deep copy: the merged resource must not alias the loaded original.
-  const statusCopy = reflect(
-    statusField.message,
-    clone(statusField.message, existingRoot.get(statusField).message),
-  );
-  reflect(schema, merged).set(statusField, statusCopy);
+  mergedMeta.version.message = sent?.message ?? "";
+  mergedMeta.version.tag = sent?.tag ?? "";
 }
 
 /**
