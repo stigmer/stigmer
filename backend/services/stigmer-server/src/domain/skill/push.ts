@@ -444,7 +444,7 @@ export function newStoreSkillStep(store: Store): PipelineStep<PushDesc> {
   return {
     name: "StoreSkill",
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      await storeLoadedOrNew(store, ctx, SkillSchema, ctx.get(SKILL_KEY) as Skill);
+      await storeLoadedOrNew(store, ctx, SkillSchema, ctx.get(SKILL_KEY) as Skill, "failed to save skill");
     },
   };
 }

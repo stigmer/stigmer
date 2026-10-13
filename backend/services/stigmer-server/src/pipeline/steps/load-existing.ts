@@ -63,16 +63,24 @@ export function newLoadExistingStep<Desc extends DescMessage>(
         }
         read = byId;
       } else if (metadata.slug !== "" && kindClaimsNames(ctx.apiResourceKind)) {
-        let found: ResourceReadForWrite<Desc> | undefined;
-        await findResourceForWrite(
+        // The bytes of each row the lookup read, kept for the one it answers.
+        const reads = new Map<string, ResourceReadForWrite<Desc>>();
+        const resource = await findResourceForWrite(
           store,
           ctx.apiResourceKind,
           { id: "", org: metadata.org, slug: metadata.slug },
           async (id) => {
-            found = await readForWrite(store, ctx, id);
-            return found?.resource;
+            const read = await readForWrite(store, ctx, id);
+            if (read !== undefined) {
+              reads.set(id, read);
+            }
+            return read?.resource;
           },
         );
+        const found =
+          resource === undefined
+            ? undefined
+            : reads.get(metadataOf(resource)?.id ?? "");
         if (found === undefined) {
           throw notFoundError(getKindName(ctx.apiResourceKind), metadata.slug);
         }

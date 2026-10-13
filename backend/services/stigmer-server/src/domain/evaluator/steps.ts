@@ -219,7 +219,7 @@ export function newPersistEvaluatorSettingsStep(
         ctx.callerIdentity,
         ctx.newState.metadata?.org ?? "",
       );
-      await swapOntoLoadedRow(store, ctx);
+      await swapOntoLoadedRow(store, ctx, "failed to save the evaluator");
     },
   };
 }

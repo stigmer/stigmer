@@ -303,15 +303,21 @@ export function newLoadExistingClientStep(
           throw notFoundError(PLATFORM_CLIENT_KIND_NAME, metadata.id);
         }
       } else if (metadata.slug !== "") {
-        await findResourceForWrite<typeof PlatformClientSchema>(
+        // The bytes of each row the lookup read, kept for the one it answers.
+        const reads = new Map<string, GuardedRead<PlatformClient>>();
+        const found = await findResourceForWrite<typeof PlatformClientSchema>(
           store,
           ApiResourceKind.platform_client,
           { id: "", org: metadata.org, slug: metadata.slug },
           async (id) => {
-            read = await clients.readForWrite(id);
-            return read?.row;
+            const byId = await clients.readForWrite(id);
+            if (byId !== undefined) {
+              reads.set(id, byId);
+            }
+            return byId?.row;
           },
         );
+        read = found === undefined ? undefined : reads.get(found.metadata?.id ?? "");
         if (read === undefined) {
           throw notFoundError(PLATFORM_CLIENT_KIND_NAME, metadata.slug);
         }
@@ -354,7 +360,7 @@ export function newPersistUpdatedClientStep(
   return {
     name: "Persist",
     async execute(ctx: ClientContext): Promise<void> {
-      await swapOntoLoadedPortRow(clients, ctx);
+      await swapOntoLoadedPortRow(clients, ctx, "failed to save platform client");
     },
   };
 }

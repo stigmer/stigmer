@@ -29,7 +29,7 @@ export function newPersistScheduleUpdateStep(
   return {
     name: "PersistScheduleUpdate",
     async execute(ctx: RequestContext<typeof ScheduleSchema>): Promise<void> {
-      await swapOntoLoadedRow(store, ctx);
+      await swapOntoLoadedRow(store, ctx, "failed to persist schedule update");
     },
   };
 }

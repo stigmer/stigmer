@@ -484,7 +484,7 @@ export function newPersistMemoryUpdateStep(
   return {
     name: "PersistMemoryUpdate",
     async execute(ctx: RequestContext<typeof MemorySchema>): Promise<void> {
-      await swapOntoLoadedRow(store, ctx);
+      await swapOntoLoadedRow(store, ctx, "failed to persist memory update");
     },
   };
 }

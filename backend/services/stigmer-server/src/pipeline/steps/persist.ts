@@ -32,6 +32,13 @@ import { EXISTING_RESOURCE_BYTES_KEY } from "./load-existing.js";
 import { refuseBoundElsewhere } from "./refuse-bound-elsewhere.js";
 import { metadataOf } from "./shapes.js";
 
+/**
+ * The Internal copy of a store fault on a write; a kind whose write had its
+ * own copy passes it to the helpers below, since error copy is wire
+ * contract.
+ */
+const SAVE_FAILURE = "failed to save resource to store";
+
 export function newPersistStep<Desc extends DescMessage>(
   store: Store,
   save?: (state: MessageShape<Desc>) => Promise<void>,
@@ -66,7 +73,7 @@ export function newPersistStep<Desc extends DescMessage>(
             )
           : save(ctx.newState));
       } catch (error) {
-        throw internalError(error, "failed to save resource to store");
+        throw internalError(error, SAVE_FAILURE);
       }
     },
   };
@@ -83,6 +90,7 @@ export function newPersistStep<Desc extends DescMessage>(
 export async function swapOntoLoadedRow<Desc extends DescMessage>(
   store: Store,
   ctx: RequestContext<Desc>,
+  failure = SAVE_FAILURE,
 ): Promise<void> {
   const loadedBytes = ctx.get(EXISTING_RESOURCE_BYTES_KEY);
   const metadata = metadataOf(ctx.newState);
@@ -104,7 +112,7 @@ export async function swapOntoLoadedRow<Desc extends DescMessage>(
       ctx.newState,
     );
   } catch (error) {
-    throw internalError(error, "failed to save resource to store");
+    throw internalError(error, failure);
   }
   if (!landed) {
     throw writeConflictError(ctx.apiResourceKind, metadata.org, metadata.slug);
@@ -120,6 +128,7 @@ export async function swapOntoLoadedRow<Desc extends DescMessage>(
 export async function swapOntoLoadedPortRow<Desc extends DescMessage>(
   port: GuardedWritePort<MessageShape<Desc>>,
   ctx: RequestContext<Desc>,
+  failure = SAVE_FAILURE,
 ): Promise<void> {
   const loadedBytes = ctx.get(EXISTING_RESOURCE_BYTES_KEY);
   const metadata = metadataOf(ctx.newState);
@@ -135,7 +144,7 @@ export async function swapOntoLoadedPortRow<Desc extends DescMessage>(
   try {
     landed = await port.swap(metadata.id, loadedBytes, ctx.newState);
   } catch (error) {
-    throw internalError(error, "failed to save resource to store");
+    throw internalError(error, failure);
   }
   if (!landed) {
     throw writeConflictError(ctx.apiResourceKind, metadata.org, metadata.slug);
@@ -156,6 +165,7 @@ export async function storeLoadedOrNew<
   ctx: RequestContext<RequestDesc>,
   schema: Desc,
   resource: MessageShape<Desc>,
+  failure = SAVE_FAILURE,
 ): Promise<void> {
   const metadata = metadataOf(resource);
   const id = metadata?.id ?? "";
@@ -174,7 +184,7 @@ export async function storeLoadedOrNew<
       await store.saveResource(ctx.apiResourceKind, id, schema, resource);
     }
   } catch (error) {
-    throw internalError(error, "failed to save resource to store");
+    throw internalError(error, failure);
   }
   if (!landed) {
     throw writeConflictError(

@@ -584,7 +584,7 @@ export function newPersistUpdatedAccountStep(
   return {
     name: "Persist",
     async execute(ctx: AccountContext): Promise<void> {
-      await swapOntoLoadedPortRow(accounts, ctx);
+      await swapOntoLoadedPortRow(accounts, ctx, "failed to save identity account");
     },
   };
 }

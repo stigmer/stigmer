@@ -544,7 +544,7 @@ export function newStorePluginStep(
   return {
     name: stepName,
     async execute(ctx: RequestContext<PushDesc>): Promise<void> {
-      await storeLoadedOrNew(store, ctx, PluginSchema, ctx.get(PLUGIN_KEY) as Plugin);
+      await storeLoadedOrNew(store, ctx, PluginSchema, ctx.get(PLUGIN_KEY) as Plugin, "failed to save plugin");
     },
   };
 }

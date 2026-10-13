@@ -19,8 +19,8 @@
  *     assigned even when the content was already archived, because a
  *     re-push or an unchanged re-apply naming a new tag moves it there;
  *   - safe degradation: archive failure clears the version hash from the
- *     head (the persisted head never references an unresolvable audit
- *     entry); tag-assignment failure clears the live tag.
+ *     head, so the head does not go on naming an audit entry nobody can
+ *     resolve; tag-assignment failure clears the live tag.
  *
  * The archive runs after the chain's write, so an archived version is
  * always one that became live: a write that loses its compare-and-swap
@@ -29,6 +29,14 @@
  * the stored row through a narrow write of their one field onto the live
  * row, taken only while the live head still holds this version, so it
  * never undoes a write that landed after this one.
+ *
+ * The trade: a process that stops between the write and the archive, or
+ * an archive failure whose narrow write then fails too, leaves a head
+ * naming a version no audit row holds. A read of that version answers
+ * NotFound as for any unknown version, and the next write of the same
+ * content archives it. The other order would archive versions that never
+ * went live whenever a write lost its swap, which every retry makes
+ * routine; a stop mid-write is rare.
  *
  * The version-metadata rule (PopulateVersionHash) is for kinds applied as a
  * whole resource (agents), whose update replaces
