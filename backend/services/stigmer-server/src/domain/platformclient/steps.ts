@@ -155,7 +155,9 @@ export function newValidateSignInRoleStep(): ClientStep {
   return {
     name: "ValidateSignInRole",
     execute(ctx: ClientContext): void {
-      const role = ctx.input.spec?.signInRole ?? IamRole.iam_role_unspecified;
+      // The state to be stored: on update, the stored row with the paths
+      // the mask names.
+      const role = ctx.newState.spec?.signInRole ?? IamRole.iam_role_unspecified;
       if (!isGrantableSignInRole(role)) {
         throw invalidArgumentError(signInRoleNotGrantableMessage(role));
       }

@@ -15,7 +15,10 @@
  *     etag: the etag is the stored row's, never the redacted answer's;
  *   - a mask naming a path the kind does not have, or one another door
  *     owns, is refused with INVALID_ARGUMENT naming it;
- *   - an update without the id is refused before anything is read.
+ *   - an update without the id is refused before anything is read;
+ *   - an update that names neither its secrets nor its provider keeps
+ *     them: the sealed values it merges onto are the stored ones, never
+ *     refused as forged ciphertext (an OAuth app, a channel app).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,15 +27,19 @@ import path from "node:path";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import type { Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import { OAuthAppCommandController } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/command_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 import { loadConfig } from "../../boot/config.js";
@@ -75,9 +82,13 @@ describe("the update contract, through a composed server", () => {
   const agentQuery = () => createClient(AgentQueryController, wire);
   const vaults = () => createClient(VaultCommandController, wire);
   const vaultQuery = () => createClient(VaultQueryController, wire);
+  const oauthApps = () => createClient(OAuthAppCommandController, wire);
+  const channelApps = () => createClient(ChannelAppCommandController, wire);
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "update-contract-"));
+    // Secrets are sealed, so a merged row carries ciphertext.
+    vi.stubEnv("STIGMER_ENCRYPTION_KEY", Buffer.alloc(32, 9).toString("base64"));
     server = await composeServer({
       config: loadConfig(baseConfig(dir)),
       logger: silentLogger,
@@ -92,6 +103,7 @@ describe("the update contract, through a composed server", () => {
   afterAll(async () => {
     await server.shutdown();
     rmSync(dir, { recursive: true, force: true });
+    vi.unstubAllEnvs();
   });
 
   it("changes only what its mask names: a teammate's change made after the read stays", async () => {
@@ -252,5 +264,51 @@ describe("the update contract, through a composed server", () => {
     );
     expect(noMask.code).toBe(Code.InvalidArgument);
     expect(noMask.rawMessage).toContain("update_mask");
+  });
+
+  it("keeps the sealed secrets and the provider of an update that names neither", async () => {
+    const app = await oauthApps().create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "OAuthApp",
+      metadata: { name: "Vendor login", org: ORG },
+      spec: {
+        provider: "Vendor",
+        clientId: "vendor-client-id",
+        clientSecret: "vendor-client-secret",
+        authorizationUrl: "https://vendor.example.com/oauth/authorize",
+        tokenUrl: "https://vendor.example.com/oauth/token",
+        addresses: ["https://mcp.vendor.example.com/mcp"],
+      },
+    });
+    const sealed = (await server.store.getResource(ApiResourceKind.oauth_app, app.metadata!.id, OAuthAppSchema)).spec
+      ?.clientSecret;
+    expect(sealed).toMatch(/^enc:/);
+    const renamed = await oauthApps().update({
+      resource: { metadata: { id: app.metadata!.id, name: "Vendor sign-in" } },
+      updateMask: { paths: ["metadata.name"] },
+    });
+    expect(renamed.metadata?.name).toBe("Vendor sign-in");
+    const storedApp = await server.store.getResource(ApiResourceKind.oauth_app, app.metadata!.id, OAuthAppSchema);
+    expect(storedApp.spec?.clientSecret).toBe(sealed);
+
+    const channelApp = await channelApps().create({
+      apiVersion: AGENTIC,
+      kind: "ChannelApp",
+      metadata: { name: "Team Slack", org: ORG },
+      spec: {
+        providerConfig: {
+          case: "slack",
+          value: { clientId: "slack-client-id", clientSecret: "slack-client-secret", signingSecret: "slack-signing-secret" },
+        },
+      },
+    });
+    const storedBefore = await server.store.getResource(ApiResourceKind.channel_app, channelApp.metadata!.id, ChannelAppSchema);
+    const updated = await channelApps().update({
+      resource: { metadata: { id: channelApp.metadata!.id, name: "Team Slack app" } },
+      updateMask: { paths: ["metadata.name"] },
+    });
+    expect(updated.metadata?.name).toBe("Team Slack app");
+    const storedAfter = await server.store.getResource(ApiResourceKind.channel_app, channelApp.metadata!.id, ChannelAppSchema);
+    expect(storedAfter.spec?.providerConfig).toEqual(storedBefore.spec?.providerConfig);
   });
 });
