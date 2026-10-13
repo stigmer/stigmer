@@ -62,6 +62,9 @@ IdentityProvider identityProvider = client.identityProviders().get("idp_01j5q3k7
 | [`create`](#create) | Create an identity provider. |
 | [`update`](#update) | Update an existing identity provider. |
 | [`delete`](#delete) | Delete an identity provider. |
+| [`createAccessMove`](#createaccessmove) | Start moving your access in an organization to the account its SSO provider signs you in as. |
+| [`previewSsoRequirement`](#previewssorequirement) | Say who would stop counting in an organization if its SSO provider required sign-in through it (IdentityProviderSpec.sso_required): the members whose account the provider did not sign in, each with the open invitations they created and the automations that act as them, and the owners, who are exempt. |
+| [`redeemAccessMove`](#redeemaccessmove) | Redeem an access move ticket: the access it names moves to the caller. |
 | [`rename`](#rename) | Rename an identity provider: change its slug, the name people type. |
 
 ### get
@@ -270,6 +273,7 @@ const identityProvider = await stigmer.identityProvider.apply({
   externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
+  ssoRequired: false,
 });
 ```
 </Tab>
@@ -290,6 +294,7 @@ identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityPro
   ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
+  SsoRequired:            false,
 })
 ```
 </Tab>
@@ -310,6 +315,7 @@ identity_provider = client.identity_providers.apply(IdentityProviderInput(
     external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
+    sso_required=False,
 ))
 ```
 </Tab>
@@ -330,6 +336,7 @@ IdentityProvider identityProvider = client.identityProviders().apply(IdentityPro
     .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
+    .ssoRequired(false)
     .build());
 ```
 </Tab>
@@ -353,6 +360,10 @@ A slug another identity provider of the organization holds is refused with ALREA
 
 - SLUG_RESERVED — another identity provider held the slug until a recent rename, and it still leads there. Metadata: slug.
 
+A create that sets sso_required also needs can_assign_roles on the organization, which only its owners hold (PERMISSION_DENIED otherwise): requiring sign-in through a provider decides how every member gets in. Where the organization's plan decides it, a plan without SSO enforcement refuses it with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- PLAN_UPGRADE_REQUIRED — the organization's plan does not include SSO enforcement. Metadata: feature ("sso_enforcement"), org.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -371,6 +382,7 @@ const identityProvider = await stigmer.identityProvider.create({
   externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
+  ssoRequired: false,
 });
 ```
 </Tab>
@@ -391,6 +403,7 @@ identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityPr
   ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
+  SsoRequired:            false,
 })
 ```
 </Tab>
@@ -411,6 +424,7 @@ identity_provider = client.identity_providers.create(IdentityProviderInput(
     external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
+    sso_required=False,
 ))
 ```
 </Tab>
@@ -431,6 +445,7 @@ IdentityProvider identityProvider = client.identityProviders().create(IdentityPr
     .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
+    .ssoRequired(false)
     .build());
 ```
 </Tab>
@@ -447,6 +462,10 @@ Update an existing identity provider.
 On Stigmer Enterprise, changing how people sign in is growth the server's license pays for. Once the license and its grace period have ended, an update is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
 
 - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the identity provider keeps signing people in as it is, and can still be deleted. No metadata.
+
+An update whose only change is turning sso_required off is never refused this way: an organization may always stop requiring its SSO provider.
+
+An update that changes sso_required also needs can_assign_roles on the organization, which only its owners hold (PERMISSION_DENIED otherwise). Turning it on is refused with PLAN_UPGRADE_REQUIRED where the organization's plan does not include SSO enforcement (see create); an organization that already requires it keeps it, and may always turn it off.
 
 An update names the identity provider by its id, and the slug changes only through rename.
 
@@ -468,6 +487,7 @@ const identityProvider = await stigmer.identityProvider.update({
   externalIdClaim: "...",
   createAccountsOnSignIn: false,
   signInRole: "...",
+  ssoRequired: false,
 });
 ```
 </Tab>
@@ -488,6 +508,7 @@ identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityPr
   ExternalIdClaim:        "...",
   CreateAccountsOnSignIn: false,
   SignInRole:             "...",
+  SsoRequired:            false,
 })
 ```
 </Tab>
@@ -508,6 +529,7 @@ identity_provider = client.identity_providers.update(IdentityProviderInput(
     external_id_claim="...",
     create_accounts_on_sign_in=False,
     sign_in_role="...",
+    sso_required=False,
 ))
 ```
 </Tab>
@@ -528,6 +550,7 @@ IdentityProvider identityProvider = client.identityProviders().update(IdentityPr
     .externalIdClaim("...")
     .createAccountsOnSignIn(false)
     .signInRole("...")
+    .ssoRequired(false)
     .build());
 ```
 </Tab>
@@ -542,6 +565,8 @@ IdentityProvider identityProvider = client.identityProviders().update(IdentityPr
 Delete an identity provider.
 
 The federated accounts the provider vouches for are deleted with it, with every role they hold, so a provider created again under the same slug inherits none of them.
+
+Deleting a provider that sets sso_required ends the requirement, so it also needs can_assign_roles on the organization, which only its owners hold (PERMISSION_DENIED otherwise).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -579,6 +604,133 @@ IdentityProvider identityProvider = client.identityProviders().delete(DeleteReso
 | `force` | `boolean` | Force delete even if resource is in use. |
 
 **Returns**: [`IdentityProvider`](#identityprovider)
+
+### createAccessMove
+
+Start moving your access in an organization to the account its SSO provider signs you in as.
+
+For someone who worked in an organization under another sign-in (an email login) before the organization connected its SSO provider. The caller, signed in the old way, asks for a ticket; the answer says what the move will do (AccessMoveTicket.preview: the access that moves, the My vault entries it deletes, the automations that stop); the person then signs in through the organization's SSO provider and redeems the ticket with redeemAccessMove. The ticket works once, for ten minutes, for this account and this organization only.
+
+Refused with FAILED_PRECONDITION when the caller holds no access in the organization, is one of its owners (owners keep their own sign-in), or already signed in through an SSO provider; with NOT_FOUND when the organization has no SSO provider (the same copy getSsoProvider answers).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const accessMoveTicket = await stigmer.identityProvider.createAccessMove({
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+accessMoveTicket, err := client.IdentityProvider.CreateAccessMove(ctx, &stigmer.AccessMoveRequest{
+  Org: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+access_move_ticket = client.identity_providers.create_access_move(AccessMoveRequest(
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AccessMoveTicket accessMoveTicket = client.identityProviders().createAccessMove(AccessMoveRequest.builder()
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`AccessMoveRequest`](#accessmoverequest)
+
+**Returns**: [`AccessMoveTicket`](#accessmoveticket)
+
+### previewSsoRequirement
+
+Say who would stop counting in an organization if its SSO provider required sign-in through it (IdentityProviderSpec.sso_required): the members whose account the provider did not sign in, each with the open invitations they created and the automations that act as them, and the owners, who are exempt. An owner reads it before turning the requirement on.
+
+NOT_FOUND when the organization has no SSO provider.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const ssoRequirementPreview = await stigmer.identityProvider.previewSsoRequirement({
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+ssoRequirementPreview, err := client.IdentityProvider.PreviewSsoRequirement(ctx, &stigmer.SsoRequirementPreviewInput{
+  Org: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+sso_requirement_preview = client.identity_providers.preview_sso_requirement(SsoRequirementPreviewInput(
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SsoRequirementPreview ssoRequirementPreview = client.identityProviders().previewSsoRequirement(SsoRequirementPreviewInput.builder()
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`SsoRequirementPreviewInput`](#ssorequirementpreviewinput)
+
+**Returns**: [`SsoRequirementPreview`](#ssorequirementpreview)
+
+### redeemAccessMove
+
+Redeem an access move ticket: the access it names moves to the caller.
+
+The caller must be signed in through the organization's SSO provider, as the account it made for them; anyone else is refused with PERMISSION_DENIED and the ticket stays usable until it expires. A ticket that is unknown, expired or already redeemed is refused with FAILED_PRECONDITION. A move that stops partway may be redeemed again with the same ticket while it lasts, and completes.
+
+Every change is recorded in the organization's permission history as a move, acting for the caller.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const accessMoveResult = await stigmer.identityProvider.redeemAccessMove({
+  ticket: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+accessMoveResult, err := client.IdentityProvider.RedeemAccessMove(ctx, &stigmer.RedeemAccessMoveInput{
+  Ticket: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+access_move_result = client.identity_providers.redeem_access_move(RedeemAccessMoveInput(
+    ticket="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AccessMoveResult accessMoveResult = client.identityProviders().redeemAccessMove(RedeemAccessMoveInput.builder()
+    .ticket("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RedeemAccessMoveInput`](#redeemaccessmoveinput)
+
+**Returns**: [`AccessMoveResult`](#accessmoveresult)
 
 ### rename
 
@@ -649,6 +801,7 @@ Input for creating or updating an Identity Provider.
     externalIdClaim: { type: "string", description: "Name of the JWT claim that names the child organization a token works in, by the identifier the provider's organization keeps for it." },
     createAccountsOnSignIn: { type: "boolean", description: "Whether Stigmer creates a federated identity account the first time a valid token arrives for a sub claim it has no account for." },
     signInRole: { type: "IamRole", description: "The role an account receives the first time it signs in to an organization through this provider: the organization its token is bound to (external_id_claim's, or the provider's own).", typeDescriptionLink: "#iamrole" },
+    ssoRequired: { type: "boolean", description: "Whether people act in this organization only through this provider." },
   }}
 />
 
@@ -660,6 +813,53 @@ Input for renaming any API resource: changing its slug.
   type={{
     resourceId: { type: "string", description: "ID of the resource being renamed.", required: true },
     slug: { type: "string", description: "The new slug.", required: true },
+  }}
+/>
+
+### AccessMoveRequest
+
+AccessMoveRequest asks to start moving the caller's access in an organization to the account its SSO provider signs them in as.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "The organization: its id or its slug." },
+  }}
+/>
+
+### AccessMoveTicket
+
+AccessMoveTicket is a single-use ticket that moves the access of the account that asked for it, in one organization, to the account the organization's SSO provider signs the same person in as.
+
+<TypeTable
+  type={{
+    ticket: { type: "string", description: "The ticket, redeemed with redeemAccessMove." },
+    expiresAt: { type: "string", description: "When the ticket stops working, ten minutes after it was made." },
+    org: { type: "string", description: "The organization's id." },
+    provider: { type: "SsoProviderInfoInput", description: "The organization's SSO provider, to sign in through next." },
+    preview: { type: "MoveOrgAccessResultInput", description: "What the move will do." },
+    invitationIds: { type: "string[]", description: "The open invitations the account created in the organization, which stop redeeming once its role moves: their creator no longer holds it." },
+  }}
+/>
+
+### RedeemAccessMoveInput
+
+RedeemAccessMoveInput redeems an access move ticket.
+
+<TypeTable
+  type={{
+    ticket: { type: "string", description: "The ticket createAccessMove answered." },
+  }}
+/>
+
+### AccessMoveResult
+
+AccessMoveResult says what a redeemed ticket moved.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "The organization's id." },
+    moved: { type: "MoveOrgAccessResultInput", description: "What moved, the My vault entries deleted and the automations that stopped, to make again as the new account." },
+    invitationIds: { type: "string[]", description: "The open invitations the old account created in the organization, which stopped redeeming, to make again as the new account." },
   }}
 />
 
@@ -717,6 +917,28 @@ SsoProviderInfo contains the minimal OIDC configuration the web app needs to ren
     oidcClientId: { type: "string", description: "OIDC client ID for initiating the Authorization Code flow with PKCE." },
     issuer: { type: "string", description: "OIDC issuer URL." },
     expectedAudience: { type: "string", description: "Expected JWT audience value for the OIDC token request." },
+    ssoRequired: { type: "boolean", description: "Whether the organization requires its members to sign in through this provider (IdentityProviderSpec.sso_required)." },
+  }}
+/>
+
+### SsoRequirementPreviewInput
+
+SsoRequirementPreviewInput names the organization to preview.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "The organization's id or slug." },
+  }}
+/>
+
+### SsoRequirementPreview
+
+SsoRequirementPreview lists who would stop counting in an organization if its SSO provider required sign-in through it: its members whose account that provider did not sign in.
+
+<TypeTable
+  type={{
+    members: { type: "SsoRequirementMemberInput[]", description: "The members who would be refused, each with what acts as them." },
+    exemptOwners: { type: "SsoRequirementMemberInput[]", description: "The owners whose account the provider did not sign in." },
   }}
 />
 

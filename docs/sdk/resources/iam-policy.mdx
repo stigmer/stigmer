@@ -61,6 +61,7 @@ IamPolicy iamPolicy = client.iamPolicies().get("iamp_01j5q3k7m8r2s4tnz2hfp0q0c3"
 | [`listResourceAccessByPrincipal`](#listresourceaccessbyprincipal) | List all principals and their roles on a resource, grouped by principal. |
 | [`create`](#create) | Create a new IAM policy. |
 | [`delete`](#delete) | Delete a single IAM policy by spec. |
+| [`bootstrapMoveOrgAccess`](#bootstrapmoveorgaccess) | Move one account's access inside an organization to another account, via the system (bootstrap) path. |
 | [`bootstrapPolicy`](#bootstrappolicy) | Bootstrap IAM policy during resource creation. |
 | [`bootstrapRevokeOrgAccess`](#bootstraprevokeorgaccess) | Remove a person from an organization via the system (bootstrap) path. |
 | [`checkAuthorization`](#checkauthorization) | Check if a principal is authorized to perform a relation on a resource. |
@@ -464,6 +465,57 @@ IamPolicy iamPolicy = client.iamPolicies().delete(IamPolicySpec.builder()
 
 **Returns**: [`IamPolicy`](#iampolicy)
 
+### bootstrapMoveOrgAccess
+
+Move one account's access inside an organization to another account, via the system (bootstrap) path.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const moveOrgAccessResult = await stigmer.iamPolicy.bootstrapMoveOrgAccess({
+  fromIdentityAccountId: "...",
+  toIdentityAccountId: "...",
+  org: "...",
+  previewOnly: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+moveOrgAccessResult, err := client.IamPolicy.BootstrapMoveOrgAccess(ctx, &stigmer.MoveOrgAccessInput{
+  FromIdentityAccountId: "...",
+  ToIdentityAccountId:   "...",
+  Org:                   "...",
+  PreviewOnly:           false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+move_org_access_result = client.iam_policies.bootstrap_move_org_access(MoveOrgAccessInput(
+    from_identity_account_id="...",
+    to_identity_account_id="...",
+    org="...",
+    preview_only=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+MoveOrgAccessResult moveOrgAccessResult = client.iamPolicies().bootstrapMoveOrgAccess(MoveOrgAccessInput.builder()
+    .fromIdentityAccountId("...")
+    .toIdentityAccountId("...")
+    .org("...")
+    .previewOnly(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`MoveOrgAccessInput`](#moveorgaccessinput)
+
+**Returns**: [`MoveOrgAccessResult`](#moveorgaccessresult)
+
 ### bootstrapPolicy
 
 Bootstrap IAM policy during resource creation
@@ -822,6 +874,31 @@ RevokeOrgAccessInput defines the input for revoking all of a user's access to an
   type={{
     identityAccountId: { type: "string", description: "The identity account whose access is being revoked.", required: true },
     org: { type: "string", description: "The organization from which access is being revoked.", required: true },
+  }}
+/>
+
+### MoveOrgAccessInput
+
+MoveOrgAccessInput names the account whose access moves, the account it moves to, and the organization it moves inside.
+
+<TypeTable
+  type={{
+    fromIdentityAccountId: { type: "string", description: "The account whose access moves.", required: true },
+    toIdentityAccountId: { type: "string", description: "The account the access moves to; empty only with preview_only." },
+    org: { type: "string", description: "The organization the access moves inside.", required: true },
+    previewOnly: { type: "boolean", description: "Say what a move would do and write nothing." },
+  }}
+/>
+
+### MoveOrgAccessResult
+
+MoveOrgAccessResult says what a move moved, or would move, and what stops with the source account's departure from the organization.
+
+<TypeTable
+  type={{
+    movedPolicies: { type: "number", description: "How many policies moved (or would move)." },
+    myVaultEntries: { type: "string[]", description: "The names of the secrets and the addresses of the connections in the source account's My vault in the organization, which the move deletes." },
+    automations: { type: "AccountAutomationInput[]", description: "The schedules, evaluators and evals the source account created in the organization." },
   }}
 />
 
