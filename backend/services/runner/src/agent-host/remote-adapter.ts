@@ -13,9 +13,8 @@
  *
  *  - a persist replaces only the adapter-owned status fields, never one the
  *    runtime owns (`codec.ts`);
- *  - a session-spec write carries over only the fields an adapter owns
- *    ({@link ADAPTER_OWNED_SESSION_SPEC_FIELDS}); the state id is the
- *    runtime's to write, through `bindHarnessState`;
+ *  - a harness state bind carries only the id; the runtime records it
+ *    through the session's `bindHarnessState` door;
  *  - an upload is confined to the turn's own key prefix, the one the
  *    engines write under (`execute-deep-agent/inline-publisher.ts`);
  *  - a usage report's counts are clamped to finite, non-negative numbers;
@@ -53,13 +52,6 @@ import {
   encodeTurnInput, encodeOffloads } from "./codec.js";
 import { fromWireError, type WireError, type WireOutcome } from "./protocol.js";
 import type { AgentHostSupervisor, RemoteTurnEndpoint } from "./supervisor.js";
-
-/**
- * The `SessionSpec` fields a harness writes on the session record before it
- * binds its state id (`TurnSink.bindHarnessState`): the Cursor harness's
- * mode. One writer per field; the runtime writes the state id itself.
- */
-export const ADAPTER_OWNED_SESSION_SPEC_FIELDS = ["cursorMode"] as const satisfies readonly (keyof SessionSpec)[];
 
 /** What the host may open live turns at: the local proxy's turn registry (`agent-proxy/server.ts`). */
 export interface LiveTurnRegistry {
@@ -169,10 +161,7 @@ class RemoteTurn {
           await sink.reportProgress(label);
           return null;
         },
-        bindHarnessState: async ({ harnessStateId, sessionSpec }) => {
-          const proposed = decodeMessage(SessionSpecSchema, sessionSpec);
-          const spec = input.session.spec!;
-          for (const field of ADAPTER_OWNED_SESSION_SPEC_FIELDS) spec[field] = proposed[field];
+        bindHarnessState: async ({ harnessStateId }) => {
           await sink.bindHarnessState(harnessStateId);
           return null;
         },

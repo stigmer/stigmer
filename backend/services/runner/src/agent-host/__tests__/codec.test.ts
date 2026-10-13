@@ -27,6 +27,7 @@
  */
 
 import { create, toBinary } from "@bufbuild/protobuf";
+import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import { describe, expect, it } from "vitest";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -114,14 +115,14 @@ describe("the turn input across the pipe", () => {
       },
       skills: { root: [{ name: "s", description: "d", path: "/p" }], bySubAgent: new Map([["kit:helper", [{ name: "h", description: "d", path: "/h" }]]]) },
     });
-    input.session.spec!.harnessStateId = "state-1";
+    input.session.status = create(SessionStatusSchema, { harnessStateId: "state-1" });
 
     const decoded = crossed(input);
 
     expect(toBinary(RunStatusSchema, decoded.execution.status ?? create(RunStatusSchema))).toEqual(
       toBinary(RunStatusSchema, input.execution.status ?? create(RunStatusSchema)),
     );
-    expect(decoded.session.spec!.harnessStateId).toBe("state-1");
+    expect(decoded.session.status!.harnessStateId).toBe("state-1");
     expect(decoded.blueprint.session, "session IS blueprint.session").toBe(decoded.session);
     expect(decoded.blueprint.sessionSpec, "the spec IS blueprint.sessionSpec").toBe(decoded.session.spec);
     expect(decoded.mcp.mcpDefault.leasedServers, "one Set of leased servers").toBe(decoded.mcp.leases.servers);

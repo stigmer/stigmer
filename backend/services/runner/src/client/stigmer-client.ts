@@ -27,6 +27,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type {
   AppendSessionEventsResponse,
+  BindHarnessStateResponse,
   SessionEventPreview,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -494,8 +495,21 @@ export class StigmerClient {
     return this.sessionQuery.get({ value: sessionId });
   }
 
-  async updateSession(session: Session): Promise<Session> {
-    return this.sessionCommand.update(session);
+  /**
+   * Record the harness's conversation id on the run's session. The server
+   * admits only the runner acting for that run, as it admits an append, so
+   * the caller passes the same scoped token
+   * ({@link acquireScopedRunnerToken}).
+   */
+  async bindHarnessState(
+    runId: string,
+    harnessStateId: string,
+    scopedToken?: string,
+  ): Promise<BindHarnessStateResponse> {
+    return this.sessionCommand.bindHarnessState(
+      { runId, harnessStateId },
+      scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
+    );
   }
 
   /**
@@ -564,8 +578,7 @@ export class StigmerClient {
   /**
    * Race-safe, field-level subject write. The dedicated updateSubject RPC
    * exists precisely so concurrent writers (title generation vs a user
-   * rename) cannot lose each other's updates the way full-resource
-   * {@link updateSession} round-trips can — always prefer it for subject
+   * rename) never lose each other's updates — always prefer it for subject
    * changes.
    */
   async updateSessionSubject(sessionId: string, subject: string): Promise<Session> {

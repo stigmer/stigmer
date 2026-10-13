@@ -190,7 +190,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(agent.closeCalls, "the handle is not closed").toBe(0);
     // Since #1070: parked on every non-failed exit; before, a stall dropped it.
     expect(_parkedAgentCountForTests(), "parked for the session's next turn").toBe(1);
-    expect(record.sessionUpdates).toHaveLength(1);
+    expect(record.harnessBinds).toHaveLength(1);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
@@ -253,7 +253,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);
     expect(agent.closeCalls).toBe(0);
     expect(_parkedAgentCountForTests(), "a clean terminal parks for the next message").toBe(1);
-    expect(record.sessionUpdates).toHaveLength(1);
+    expect(record.harnessBinds).toHaveLength(1);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
@@ -326,7 +326,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     expect(agent.runs[0].cancelCalls, "the runtime's stop cancelled the run once").toHaveLength(1);
     expect(agent.closeCalls).toBe(0);
     expect(_parkedAgentCountForTests(), "a clean terminal parks for the next message").toBe(1);
-    expect(record.sessionUpdates).toHaveLength(1);
+    expect(record.harnessBinds).toHaveLength(1);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);

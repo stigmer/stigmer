@@ -148,7 +148,7 @@ export function slimOf(subject: HarnessContractSubject, invocation: ActivityInvo
  * subject. A new driver per arm, with its own record under its own ids (a
  * real engine is per session; two arms on one session would share a parked
  * engine). It threads the state id the runtime bound (an engine-minted
- * harness's `sessionUpdates`; a deterministic harness's runtime-minted id)
+ * harness's `harnessBinds`; a deterministic harness's runtime-minted id)
  * and advances `turnSeq`, as the workflow does between invocations.
  */
 export class RuntimeExecutionDriver {
@@ -207,7 +207,7 @@ export class RuntimeExecutionDriver {
       turn_seq: this.turnSeq,
     };
     const invocation = await runActivityHermetically(activity, [input], { taskQueue: config.taskQueue, onControls: options.onControls });
-    const bound = this.record.sessionUpdates.at(-1)?.spec?.harnessStateId;
+    const bound = this.record.harnessBinds.at(-1)?.harnessStateId;
     if (bound) this.threadId = bound;
     this.turnSeq += 1;
     return invocation;
@@ -320,10 +320,10 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
   expect(driver.record.persistedPhases.at(-1), `${subject.name}: the last persist is COMPLETED`).toBe(RunPhase.RUN_COMPLETED);
   expect(driver.record.setupProgress.slice(0, RUNTIME_SETUP_LABELS.length), `${subject.name}: the runtime's resolution labels lead the setup progress`).toEqual([...RUNTIME_SETUP_LABELS]);
   if (subject.adapter.capabilities.stateIdSource === "engine-minted") {
-    expect(driver.record.sessionUpdates, `${subject.name}: an engine-minted adapter binds once`).toHaveLength(1);
-    expect(driver.record.sessionUpdates[0]?.spec?.harnessStateId, `${subject.name}: the bound id is on the session`).toBeTruthy();
+    expect(driver.record.harnessBinds, `${subject.name}: an engine-minted adapter binds once`).toHaveLength(1);
+    expect(driver.record.harnessBinds[0]?.harnessStateId, `${subject.name}: the bound id reaches the session's door`).toBeTruthy();
   } else {
-    expect(driver.record.sessionUpdates, `${subject.name}: a deterministic adapter binds nothing`).toHaveLength(0);
+    expect(driver.record.harnessBinds, `${subject.name}: a deterministic adapter binds nothing`).toHaveLength(0);
   }
   const final = finalStatusOf(harness, driver);
   expect(aiMessages(final).at(-1), `${subject.name}: the transcript ends with the last assistant text`).toBe(text);
@@ -356,7 +356,7 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
   expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
   expect(driver.record.waitingToolCalls().map((tc) => tc.id), `${subject.name}: exactly the proposal waits`).toEqual([id]);
   expect(subject.executionCount(id), `${subject.name}: a proposal never executes in its own turn`).toBe(0);
-  const bindsAfterFirst = driver.record.sessionUpdates.length;
+  const bindsAfterFirst = driver.record.harnessBinds.length;
 
   expect(driver.decide(ApprovalAction.APPROVE), `${subject.name}: one row to decide`).toBe(1);
 
@@ -365,7 +365,7 @@ export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, l
   expect(aiMessages(finalStatusOf(harness, driver)).at(-1)).toBe("Done.");
   expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once`).toBe(1);
   expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
-  expect(driver.record.sessionUpdates, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
+  expect(driver.record.harnessBinds, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
   return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
 }
 
@@ -936,7 +936,7 @@ export async function assertRejectedBindFails(harness: RuntimeContractHarness, l
 
   const invocation = await driver.turn([scenario.say(NEVER_SEEN)], {
     clientOverrides: {
-      updateSession: async () => {
+      bindHarnessState: async () => {
         throw new Error("session write refused");
       },
     },
@@ -976,7 +976,7 @@ export async function assertResolutionErrorFailsBeforeEngine(harness: RuntimeCon
   expect(final.error).toBe("[Error] runtime fault injected at getSession");
   expect(systemMessages(final)).toEqual([TERMINAL_COPY.internalFailure.row, `Error details: ${final.error}`]);
   expect(driver.record.setupProgress).toEqual(["Fetching execution", "Resolving agent blueprint"]);
-  expect(driver.record.sessionUpdates).toHaveLength(0);
+  expect(driver.record.harnessBinds).toHaveLength(0);
   return { driver, invocations: [invocation], final };
 }
 
@@ -999,7 +999,7 @@ export async function assertWorkspaceLockTimeoutFails(harness: RuntimeContractHa
     expect(final.error).toContain(`Workspace is in use by another session: ${resolvedDir}`);
     expect(systemMessages(final)).toEqual([`Execution failed: ${final.error}`]);
     expect(driver.record.setupProgress.at(-1)).toBe("Waiting for workspace — in use by another session");
-    expect(driver.record.sessionUpdates).toHaveLength(0);
+    expect(driver.record.harnessBinds).toHaveLength(0);
     return { driver, invocations: [invocation], final };
   } finally {
     await release();

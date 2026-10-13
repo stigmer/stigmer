@@ -140,7 +140,7 @@ describe("ExecuteCursor hermetic — workspace lock timeout", () => {
       ]);
       expect(scenario.sdk.resolutions, "no agent was created").toHaveLength(0);
       expect(neverUsed.sends).toHaveLength(0);
-      expect(record.sessionUpdates, "no harness_state_id to bind").toHaveLength(0);
+      expect(record.harnessBinds, "no harness_state_id to bind").toHaveLength(0);
       expect(_parkedAgentCountForTests()).toBe(0);
 
       // ── Assert: hermeticity ────────────────────────────────────────────────

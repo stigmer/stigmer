@@ -258,10 +258,11 @@ describe("a host that does not follow the rules", () => {
     expect(sink.status.startedAt).toBe("t0");
   });
 
-  it("carries over only the session-spec fields an adapter owns; the state id stays the runtime's write", async () => {
+  it("takes only the state id from a bind; a session spec sent beside it changes nothing", async () => {
     const adapter = hostileHarness(async (host, turnId) => {
-      const spec = create(SessionSpecSchema, { harnessStateId: "forged-in-the-spec", cursorMode: CursorMode.LOCAL, subject: "forged subject" });
-      await host.call("bindHarnessState", { turnId, harnessStateId: "bound-id", sessionSpec: encodeMessage(SessionSpecSchema, spec) });
+      const spec = create(SessionSpecSchema, { cursorMode: CursorMode.CLOUD, subject: "forged subject" });
+      const forged = { turnId, harnessStateId: "bound-id", sessionSpec: encodeMessage(SessionSpecSchema, spec) };
+      await host.call("bindHarnessState", forged);
     });
     await adapter.boot(testConfig());
     const input = turnInputFixture();
@@ -269,9 +270,8 @@ describe("a host that does not follow the rules", () => {
 
     await adapter.runTurn(input, sink);
 
-    expect(input.session.spec!.cursorMode, "the adapter's own field").toBe(CursorMode.LOCAL);
-    expect(input.session.spec!.subject, "a field no adapter owns").toBe("");
-    expect(input.session.spec!.harnessStateId, "the runtime's sink writes the id, not the spec").toBe("");
+    expect(input.session.spec!.cursorMode, "no adapter writes the session's spec").toBe(CursorMode.UNSPECIFIED);
+    expect(input.session.spec!.subject).toBe("");
     expect(sink.boundStateIds).toEqual(["bound-id"]);
   });
 

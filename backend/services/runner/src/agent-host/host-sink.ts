@@ -98,14 +98,7 @@ export class HostTurn {
         }
       },
       bindHarnessState: async (harnessStateId: string) => {
-        const spec = input.session.spec!;
-        await peer.call("bindHarnessState", {
-          turnId,
-          harnessStateId,
-          sessionSpec: encodeMessage(SessionSpecSchema, spec),
-        });
-        spec.harnessStateId = harnessStateId;
-        if (input.session.metadata) input.session.metadata.slug = "";
+        await peer.call("bindHarnessState", { turnId, harnessStateId });
       },
       bindCasObservations: (read: CasTouchedReader) => {
         this.casReader = read;

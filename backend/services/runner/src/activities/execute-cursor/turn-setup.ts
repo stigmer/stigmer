@@ -789,14 +789,8 @@ export async function resolveEngine(
   }, sink.setupTiming);
 
   // A NEW agent's id is bound at once, before anything else runs, so a crash
-  // mid-turn still resumes on the next invocation. The mode is this
-  // harness's field on the session record, set before the runtime writes it
-  // (one writer per field); the runtime sets harness_state_id and
-  // clears the slug.
+  // mid-turn still resumes on the next invocation.
   if (resolution.isNew && resolution.agentId) {
-    if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
-      blueprint.sessionSpec.cursorMode = cursorMode;
-    }
     try {
       await sink.bindHarnessState(resolution.agentId);
     } catch (bindErr) {
@@ -813,7 +807,7 @@ export async function resolveEngine(
       }
       throw bindErr;
     }
-    console.log(`Stored Cursor agentId=${resolution.agentId} as harness_state_id, cursorMode=${CursorMode[cursorMode]} on session ${sessionId}`);
+    console.log(`Stored Cursor agentId=${resolution.agentId} as harness_state_id, cursorMode=${CursorMode[cursorMode]} (not stored) on session ${sessionId}`);
   }
 
   return {

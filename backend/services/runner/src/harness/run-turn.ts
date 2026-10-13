@@ -428,12 +428,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       },
       reportProgress: (label) => reportSetupProgress(client, executionId, label),
       bindHarnessState: async (harnessStateId) => {
-        turn.session.spec!.harnessStateId = harnessStateId;
-        // Clear slug to avoid re-validation of potentially invalid
-        // server-generated slugs. BuildUpdateStateStep preserves the existing
-        // slug from the database record.
-        if (turn.session.metadata) turn.session.metadata.slug = "";
-        await client.updateSession(turn.session);
+        // The session's runner-owned door, admitted as the event append is:
+        // it writes the id into the session's status and nothing else, so it
+        // never undoes an edit made since the turn loaded the session.
+        const token = await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+        await client.bindHarnessState(executionId, harnessStateId, token);
         console.log(`Stored ${harnessStateId} as harness_state_id on session ${turn.sessionId}`);
       },
       bindCasObservations: (read) => {

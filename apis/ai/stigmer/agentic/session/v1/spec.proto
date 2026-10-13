@@ -115,14 +115,10 @@ message SessionSpec {
   // harness types.
   //
   // @internal
-  // Runner-owned, never user-set (see the CursorMode enum docs): the
-  // cursor-runner stamps it on the first run when UNSPECIFIED —
-  // always LOCAL while cloud mode is disabled platform-wide. The
-  // workflow reads it back on subsequent runs to route to the
-  // correct Agent.create / Agent.resume path.
-  //
-  // When UNSPECIFIED on an existing CURSOR session, the runner defaults
-  // to LOCAL for backward compatibility.
+  // Never user-set (see the CursorMode enum docs). While cloud mode is
+  // disabled platform-wide every Cursor session runs LOCAL and the runner
+  // neither reads nor writes this field; a value stored by an earlier
+  // runner stays and is ignored. UNSPECIFIED means LOCAL.
   CursorMode cursor_mode = 11;
 
   // Where session activities are executed — local client or cloud sandbox.
