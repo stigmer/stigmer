@@ -178,10 +178,11 @@ export async function appendSessionEvents(
  * The trust decision: the composed capability when present, the
  * open-source one otherwise (an execution-scoped credential bound to this
  * run). A capability that throws is a composition fault, logged and
- * refused.
+ * refused. The runner's other door, bindHarnessState
+ * (domain/session/bind-harness.ts), admits by the same decision.
  */
-async function mayAppend(
-  deps: AppendSessionEventsDeps,
+export async function mayAppend(
+  deps: Pick<AppendSessionEventsDeps, "logger" | "runnerAuth">,
   token: string,
   runId: string,
 ): Promise<boolean> {
@@ -224,7 +225,7 @@ async function loadRun(store: Store, runId: string): Promise<Run> {
 }
 
 /** Refuses a finished run: its turn is over and takes no more events. */
-function admitLive(run: Run): void {
+export function admitLive(run: Run): void {
   const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   if (isTerminalExecutionPhase(phase)) {
     throw failedPreconditionError(

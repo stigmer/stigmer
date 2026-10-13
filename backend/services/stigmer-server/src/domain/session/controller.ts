@@ -152,6 +152,7 @@ import type { SecretService } from "../../encryption/encryption.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { appendSessionEvents } from "./events/append.js";
+import { bindHarnessState } from "./bind-harness.js";
 import type { SessionEventBroker } from "./events/broker.js";
 import { newDeleteSessionEventsStep } from "./events/delete-step.js";
 import { listSessionEvents } from "./events/list.js";
@@ -241,6 +242,7 @@ export function registerSessionServices(
       updateSubject(deps, req, callerIdentityOf(ctx)),
     delete: (id, ctx) => deleteSession(deps, id, ctx),
     appendEvents: (input, ctx) => appendSessionEvents(deps, input, ctx),
+    bindHarnessState: (input, ctx) => bindHarnessState(deps, input, ctx),
     reviewFileChanges: (input, ctx) =>
       reviewFileChanges(deps, input, callerIdentityOf(ctx)),
     confirmToolUse: (input, ctx) => confirmToolUse(deps, input, callerIdentityOf(ctx)),
