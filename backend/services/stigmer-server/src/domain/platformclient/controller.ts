@@ -128,7 +128,9 @@ import { RESERVED_PLATFORM_CLIENT_SLUGS, reservedSlugMessage } from "./constants
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import { PlatformClientStatusSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import type { UpdatePlatformClientInput } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { updateContext } from "../../pipeline/steps/update-input.js";
 
 export interface PlatformClientControllerDeps {
   /** The composed store — a driver's, or the OSS adapter over the generic Store. */
@@ -172,7 +174,7 @@ export function registerPlatformClientServices(
 ): void {
   router.service(PlatformClientCommandController, {
     create: (client, ctx) => createClient(deps, client, ctx),
-    update: (client, ctx) => updateClient(deps, client, ctx),
+    update: (input, ctx) => updateClient(deps, input, ctx),
     rename: (input, ctx) => renameClient(deps, input, ctx),
     delete: (input, ctx) => deleteClient(deps, input, ctx),
     rotateSecret: (id, ctx) => rotateSecret(deps, id, ctx),
@@ -259,13 +261,13 @@ async function createClient(
  */
 async function updateClient(
   deps: PlatformClientControllerDeps,
-  client: PlatformClient,
+  input: UpdatePlatformClientInput,
   ctx: HandlerContext,
 ): Promise<PlatformClient> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       PlatformClientSchema,
-      client,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -277,11 +279,10 @@ async function updateClient(
         newAuthorizeStep(
           PlatformClientCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
       .addStep(newRefuseServiceAccountCallerStep(PLATFORM_CLIENT_ACT, deps.accounts))
-      .addStep(newValidateProtoStep())
-      .addStep(newValidateSignInRoleStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingClientStep(deps.store, deps.clients))
       .addStep(
@@ -291,6 +292,8 @@ async function updateClient(
         ),
       )
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
+      .addStep(newValidateSignInRoleStep())
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))

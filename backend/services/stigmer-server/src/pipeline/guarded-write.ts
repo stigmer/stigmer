@@ -90,6 +90,27 @@ export function writeConflictError(
   );
 }
 
+/** The reason an update carrying a stale etag is refused with. */
+export const ETAG_MISMATCH_REASON = "ETAG_MISMATCH";
+
+/**
+ * The refusal of an update whose etag is not the stored one: someone
+ * changed the resource since the caller read it. Never retried; the caller
+ * reads again and makes its change again.
+ */
+export function etagMismatchError(
+  kind: ApiResourceKind,
+  org: string,
+  slug: string,
+): ConnectError {
+  const handle = org === "" ? slug : `${org}/${slug}`;
+  const noun = kindNoun(kind);
+  return abortedError(
+    `${noun.charAt(0).toUpperCase()}${noun.slice(1)} '${handle}' changed since you read it; reload it and make your change again`,
+    { reason: ETAG_MISMATCH_REASON },
+  );
+}
+
 /** Whether `error` is a lost compare-and-swap (writeConflictError). */
 export function isWriteConflict(error: unknown): boolean {
   if (!(error instanceof ConnectError) || error.code !== Code.Aborted) {

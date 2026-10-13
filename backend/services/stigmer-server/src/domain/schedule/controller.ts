@@ -51,6 +51,8 @@ import type {
   RenameInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateScheduleInput } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { UpdateScheduleInputSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -102,6 +104,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import {
   newNormalizeReferencesStep,
   newValidateReferencesStep,
@@ -173,7 +176,7 @@ export function registerScheduleServices(
   router.service(ScheduleCommandController, {
     apply: (schedule, ctx) => apply(deps, schedule, ctx),
     create: (schedule, ctx) => createSchedule(deps, schedule, ctx),
-    update: (schedule, ctx) => update(deps, schedule, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (scheduleId, ctx) => deleteSchedule(deps, scheduleId, ctx),
     resume: (scheduleId, ctx) => resume(deps, scheduleId, ctx),
@@ -278,13 +281,13 @@ async function createSchedule(
 /** Update — chain per Go buildUpdatePipeline (update.go:59-67). */
 async function update(
   deps: ScheduleControllerDeps,
-  schedule: Schedule,
+  input: UpdateScheduleInput,
   ctx: HandlerContext,
 ): Promise<Schedule> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       ScheduleSchema,
-      schedule,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -293,12 +296,13 @@ async function update(
         newAuthorizeStep(
           ScheduleCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newValidateScheduleUpdateStep(deps))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
@@ -365,7 +369,7 @@ async function apply(
     slug: resolved.metadata?.slug ?? "",
     id: resolved.metadata?.id ?? "",
   });
-  return update(deps, resolved, ctx);
+  return update(deps, everyPathUpdate(UpdateScheduleInputSchema, resolved), ctx);
 }
 
 /** Delete — chain per Go buildDeletePipeline (delete.go:57-63). */

@@ -9,7 +9,10 @@
  *
  * The kind's refused paths (fields another door owns or the server
  * writes) are passed by its chain: naming one is refused, and one under a
- * broader path keeps its stored value.
+ * broader path keeps its stored value. An etag the request carries must be
+ * the stored row's, or the update is refused with ABORTED ETAG_MISMATCH;
+ * the row is the one this attempt read, so a guarded write's rerun checks
+ * it again.
  *
  * Visibility is update-immutable (oss#573): updateVisibility is the ONLY
  * door — every visibility guard lives on those pipelines, so a plain
@@ -29,6 +32,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 
 import { internalError } from "../errors.js";
+import { etagMismatchError } from "../guarded-write.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -68,6 +72,18 @@ export function newBuildUpdateStateStep<Desc extends DescMessage>(
             "existing resource not found in context - LoadExisting must run first",
           ),
           "build update state",
+        );
+      }
+
+      // An etag the request carries is the caller's word for the row it
+      // read: a row that changed since is refused, never merged onto.
+      const sentEtag = metadataOf(ctx.newState)?.etag ?? "";
+      const storedMeta = metadataOf(existing);
+      if (sentEtag !== "" && sentEtag !== (storedMeta?.etag ?? "")) {
+        throw etagMismatchError(
+          ctx.apiResourceKind,
+          storedMeta?.org ?? "",
+          storedMeta?.slug ?? "",
         );
       }
 

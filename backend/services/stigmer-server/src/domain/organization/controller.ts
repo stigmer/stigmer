@@ -57,6 +57,8 @@ import type {
   Organizations,
   UpdateOrganizationPoliciesInput,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import type { UpdateOrganizationInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import { UpdateOrganizationInputSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -104,6 +106,7 @@ import { newCreateAuthorizationTuplesStep } from "../../pipeline/steps/authoriza
 import { readListPage } from "../../pipeline/steps/list-page.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -188,7 +191,7 @@ export function registerOrganizationServices(
   router.service(OrganizationCommandController, {
     apply: (org, ctx) => apply(deps, org, ctx),
     create: (org, ctx) => createOrganization(deps, org, ctx),
-    update: (org, ctx) => update(deps, org, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     updatePolicies: (input, ctx) => updatePolicies(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (orgId, ctx) => deleteOrganization(deps, orgId, ctx),
@@ -344,13 +347,13 @@ async function createOrganization(
 /** Update — chain per Go buildUpdatePipeline. */
 async function update(
   deps: OrganizationControllerDeps,
-  org: Organization,
+  input: UpdateOrganizationInput,
   ctx: HandlerContext,
 ): Promise<Organization> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       OrganizationSchema,
-      org,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -362,12 +365,13 @@ async function update(
         newAuthorizeStep(
           OrganizationCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingOrganizationStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newPreserveChildLinkStep())
       .addStep(newPreservePoliciesStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
@@ -493,7 +497,14 @@ async function apply(
   }
   return shouldCreate
     ? createOrganization(deps, org, ctx)
-    : update(deps, withResolvedApplyId(OrganizationSchema, org, reqCtx), ctx);
+    : update(
+        deps,
+        everyPathUpdate(
+          UpdateOrganizationInputSchema,
+          withResolvedApplyId(OrganizationSchema, org, reqCtx),
+        ),
+        ctx,
+      );
 }
 
 /**

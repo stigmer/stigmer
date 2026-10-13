@@ -37,6 +37,7 @@ import type {
   ScoreList,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateScoreInput } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -73,6 +74,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
@@ -118,7 +120,7 @@ export function registerScoreServices(
 ): void {
   router.service(ScoreCommandController, {
     create: (score, ctx) => createScore(deps, score, ctx),
-    update: (score, ctx) => updateScore(deps, score, ctx),
+    update: (input, ctx) => updateScore(deps, input, ctx),
     delete: (id, ctx) => deleteScore(deps, id, ctx),
   });
   router.service(ScoreQueryController, {
@@ -195,23 +197,25 @@ async function createScore(
  */
 async function updateScore(
   deps: ScoreControllerDeps,
-  score: Score,
+  input: UpdateScoreInput,
   ctx: HandlerContext,
 ): Promise<Score> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       ScoreSchema,
-      score,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
     await newPipeline<typeof ScoreSchema>("score-update", deps.logger)
       .addStep(
-        newAuthorizeStep(ScoreCommandController.method.update, deps.authorizer),
+        newAuthorizeStep(ScoreCommandController.method.update, deps.authorizer,
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newValidateScoreUpdateStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newPersistStep(deps.store))

@@ -62,6 +62,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import type { UpdateVaultInput } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { SecretService } from "../../encryption/encryption.js";
@@ -119,6 +120,7 @@ import {
 import { newClaimNameStep, releaseNameAfterFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import {
@@ -187,7 +189,7 @@ export function registerVaultServices(
 ): void {
   router.service(VaultCommandController, {
     create: (vault, ctx) => createVault(deps, vault, ctx),
-    update: (vault, ctx) => updateVault(deps, vault, ctx),
+    update: (input, ctx) => updateVault(deps, input, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     rename: (input, ctx) => rename(deps, input, ctx),
     delete: (input, ctx) => deleteVault(deps, input, ctx),
@@ -325,23 +327,25 @@ async function createVault(
 
 async function updateVault(
   deps: VaultControllerDeps,
-  vault: Vault,
+  input: UpdateVaultInput,
   ctx: HandlerContext,
 ): Promise<Vault> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       VaultSchema,
-      vault,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
     try {
       await newPipeline<typeof VaultSchema>("vault-update", deps.logger)
-        .addStep(newAuthorizeStep(VaultCommandController.method.update, deps.authorizer))
-        .addStep(newValidateProtoStep())
+        .addStep(newAuthorizeStep(VaultCommandController.method.update, deps.authorizer,
+        input,
+      ))
         .addStep(newResolveSlugStep({ update: true }))
         .addStep(newLoadExistingStep(deps.store))
         .addStep(newBuildUpdateStateStep())
+        .addStep(newValidateProtoStep({ of: "state" }))
         .addStep(newGuardReservedLabelsStep(deps.authorizer))
         .addStep(newKeepStoredOwnerAndEntriesStep())
         .addStep(newClaimExternalIdStep(deps.store))

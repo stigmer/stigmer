@@ -106,6 +106,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -124,6 +125,8 @@ import {
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import { AgentChannelStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
+import type { UpdateAgentChannelInput } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import { UpdateAgentChannelInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 
 export interface AgentChannelControllerDeps {
   readonly store: Store;
@@ -163,7 +166,7 @@ export function registerAgentChannelServices(
   router.service(AgentChannelCommandController, {
     apply: (channel, ctx) => apply(deps, channel, ctx),
     create: (channel, ctx) => createChannel(deps, channel, ctx),
-    update: (channel, ctx) => update(deps, channel, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     initiateInstall: (input, ctx) => initiateInstall(deps, input, ctx),
     completeInstall: (input, ctx) => completeInstall(deps, input, ctx),
     delete: (channelId, ctx) => deleteChannel(deps, channelId, ctx),
@@ -253,13 +256,13 @@ async function createChannel(
  */
 async function update(
   deps: AgentChannelControllerDeps,
-  channel: AgentChannel,
+  input: UpdateAgentChannelInput,
   ctx: HandlerContext,
 ): Promise<AgentChannel> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       AgentChannelSchema,
-      channel,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -271,12 +274,13 @@ async function update(
         newAuthorizeStep(
           AgentChannelCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(
         newValidateChannelUpdateStep(
@@ -351,7 +355,7 @@ async function apply(
   const resolved = reqCtx.newState;
   return shouldCreate
     ? createChannel(deps, resolved, ctx)
-    : update(deps, resolved, ctx);
+    : update(deps, everyPathUpdate(UpdateAgentChannelInputSchema, resolved), ctx);
 }
 
 // ---------------------------------------------------------------------------

@@ -51,6 +51,7 @@ import type {
   CreateServiceAccountKeyInput,
 } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { UpdateApiKeyInput } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -92,6 +93,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { updateContext } from "../../pipeline/steps/update-input.js";
 import {
   newRefuseServiceAccountCallerStep,
   refuseServiceAccountCaller,
@@ -140,7 +142,7 @@ export function registerApiKeyServices(
     create: (apiKey, ctx) => createApiKey(deps, apiKey, ctx),
     createForServiceAccount: (input, ctx) =>
       createForServiceAccount(deps, input, ctx),
-    update: (apiKey, ctx) => update(deps, apiKey, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     delete: (apiKeyId, ctx) => deleteApiKey(deps, apiKeyId, ctx),
   });
   router.service(ApiKeyQueryController, {
@@ -297,25 +299,27 @@ async function loadAccount(
  */
 async function update(
   deps: ApiKeyControllerDeps,
-  apiKey: ApiKey,
+  input: UpdateApiKeyInput,
   ctx: HandlerContext,
 ): Promise<ApiKey> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       ApiKeySchema,
-      apiKey,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
     await newPipeline<typeof ApiKeySchema>("apikey-update", deps.logger)
       .addStep(
-        newAuthorizeStep(ApiKeyCommandController.method.update, deps.authorizer),
+        newAuthorizeStep(ApiKeyCommandController.method.update, deps.authorizer,
+        input,
+      ),
       )
       .addStep(newRefuseServiceAccountCallerStep(UPDATE_KEY_ACT, deps.accounts))
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newPreserveKeyMaterialStep())
       .addStep(newPersistStep(deps.store))
       .build()
