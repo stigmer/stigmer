@@ -80,6 +80,7 @@ ChannelApp channelApp = client.channelapps().get("chapp_01j5q3k7m8r2s4tnz2hfp0q0
 | [`create`](#create) | Create a channel app. |
 | [`update`](#update) | Update an existing channel app. |
 | [`delete`](#delete) | Delete a channel app. |
+| [`rename`](#rename) | Rename a channel app: change its slug, the name people type. |
 
 ### get
 
@@ -222,6 +223,10 @@ Create or update a channel app.
 
 If the resource does not exist, creates a new channel app. If the resource exists, updates the existing channel app. Sending the redaction marker for a secret field preserves the stored value.
 
+A request that carries metadata.id of a channel app in its organization updates that channel app, and its slug changes only through rename. A slug the channel app was renamed away from, named without the channel app's id, is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a write by a name that stops resolving after 30 days would later make a second channel app:
+
+- SLUG_RENAMED — the slug was renamed: it still leads to the same channel app for reading, but a write names its current slug. Metadata: slug (the one the request named).
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -283,6 +288,10 @@ Create a channel app.
 
 The creator's organization owns the channel app, and the organization's current admins manage it.
 
+A slug another channel app of the organization holds is refused with ALREADY_EXISTS. A slug another channel app was renamed away from, which still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- SLUG_RESERVED — another channel app held the slug until a recent rename, and it still leads there. Metadata: slug.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -343,6 +352,8 @@ ChannelApp channelApp = client.channelapps().create(ChannelAppInput.builder()
 Update an existing channel app.
 
 Sending the redaction marker for a secret field preserves the stored value; the provider arm is immutable.
+
+The slug changes only through rename. An update that names the channel app by a slug it was renamed away from, without its id, is refused with SLUG_RENAMED (see apply).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -442,6 +453,53 @@ ChannelApp channelApp = client.channelapps().delete(DeleteResourceInput.builder(
 
 **Returns**: [`ChannelApp`](#channelapp)
 
+### rename
+
+Rename a channel app: change its slug, the name people type.
+
+The channel app keeps its id, so everything that names it keeps working, and every answer names it by the new slug. The old slug keeps leading to the channel app for reading for 30 days, during which no other channel app of the organization can take it and this one can take it back; then it is released. A write that names the old slug is refused with SLUG_RENAMED (see apply). A slug another channel app holds is refused with ALREADY_EXISTS, and one another channel app was recently renamed away from with SLUG_RESERVED (see create).
+
+Its webhook URLs name its id, so nothing registered with Slack or Meta changes.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const channelApp = await stigmer.channelapp.rename({
+  resourceId: "...",
+  slug: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+channelApp, err := client.ChannelApp.Rename(ctx, &stigmer.RenameInput{
+  ResourceId: "...",
+  Slug:       "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+channel_app = client.channelapps.rename(RenameInput(
+    resource_id="...",
+    slug="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelApp channelApp = client.channelapps().rename(RenameInput.builder()
+    .resourceId("...")
+    .slug("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RenameInput`](#renameinput)
+
+**Returns**: [`ChannelApp`](#channelapp)
+
 ## Types
 
 ### ChannelAppInput
@@ -481,6 +539,17 @@ WhatsAppChannelAppConfig holds the credentials of a customer-created Meta app wi
     appSecret: { type: "string", description: "Meta app secret used to verify webhook signatures from this app." },
     accessToken: { type: "string", description: "Long-lived Cloud API access token (system-user token) used to send messages on behalf of the WhatsApp Business account." },
     verifyToken: { type: "string", description: "Verify token echoed during Meta's webhook verification handshake." },
+  }}
+/>
+
+### RenameInput
+
+Input for renaming any API resource: changing its slug.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource being renamed.", required: true },
+    slug: { type: "string", description: "The new slug.", required: true },
   }}
 />
 

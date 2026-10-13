@@ -28,10 +28,13 @@
  * posture: docs/authorization-coverage.md §6.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
+import { create } from "@bufbuild/protobuf";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/status_pb";
+import { ApiResourceAuditSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentId } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
@@ -43,6 +46,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type {
   ApiResourceReference,
+  RenameInput,
   UpdateVisibilityInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -115,7 +119,8 @@ import {
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
-import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newPersistOntoLiveRowStep, newPersistStep } from "../../pipeline/steps/persist.js";
+import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import {
@@ -187,6 +192,7 @@ export function registerAgentServices(
     create: (agent, ctx) => createAgent(deps, agent, ctx),
     update: (agent, ctx) => update(deps, agent, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
+    rename: (input, ctx) => rename(deps, input, ctx),
     delete: (id, ctx) => deleteAgent(deps, id, ctx),
     tagVersion: (input, ctx) => tagVersion(deps, input, ctx),
   });
@@ -295,11 +301,35 @@ async function update(
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
     .addStep(newSaveAgentVersionStep(deps.store, deps.logger, false))
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistOntoLiveRowStep(deps.store))
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
     .build()
     .execute(reqCtx);
   return reqCtx.newState;
+}
+
+/**
+ * Rename — the only writer of an agent's slug (pipeline/steps/rename.ts):
+ * the name moves, then the live row's slug; the old slug keeps leading to
+ * it for reading for 30 days.
+ */
+async function rename(
+  deps: AgentControllerDeps,
+  input: RenameInput,
+  ctx: HandlerContext,
+): Promise<Agent> {
+  return renameResource(
+    {
+      method: AgentCommandController.method.rename,
+      names: deps.store,
+      rows: storeRenameRows(deps.store, ApiResourceKind.agent, AgentSchema),
+      authorizer: deps.authorizer,
+      logger: deps.logger,
+    },
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
 }
 
 /**
@@ -527,7 +557,13 @@ function newSetAgentVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
   };
 }
 
-/** Persists the visibility change. */
+/**
+ * Persists the visibility change: the visibility and status audit the
+ * chain set on the loaded agent, applied to the live row inside the
+ * store's atomic read-modify-write, so an edit or a rename that landed
+ * since the load stays (the vault's PersistVaultVisibility). The written
+ * row replaces the loaded one under the key.
+ */
 function newPersistAgentForVisibilityUpdateStep(
   store: Store,
 ): PipelineStep<UpdateVisibilityDesc> {
@@ -535,16 +571,29 @@ function newPersistAgentForVisibilityUpdateStep(
     name: "PersistAgentForVisibilityUpdate",
     async execute(ctx: RequestContext<UpdateVisibilityDesc>): Promise<void> {
       const agent = ctx.get(UPDATE_VISIBILITY_AGENT_KEY) as Agent;
+      const id = agent.metadata?.id ?? "";
+      let written: Agent;
       try {
-        await store.saveResource(
+        written = await store.updateResource(
           ApiResourceKind.agent,
-          agent.metadata?.id ?? "",
+          id,
           AgentSchema,
-          agent,
+          (row) => {
+            if (row.metadata !== undefined) {
+              row.metadata.visibility = agent.metadata?.visibility ?? row.metadata.visibility;
+            }
+            const audit = ((row.status ??= create(AgentStatusSchema)).audit ??=
+              create(ApiResourceAuditSchema));
+            audit.statusAudit = agent.status?.audit?.statusAudit;
+          },
         );
       } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("agent", id);
+        }
         throw internalError(error, "failed to save agent");
       }
+      ctx.set(UPDATE_VISIBILITY_AGENT_KEY, written);
     },
   };
 }

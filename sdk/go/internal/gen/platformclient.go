@@ -47,6 +47,11 @@ func (p *PlatformClientClient) Update(ctx context.Context, input *PlatformClient
 	return resp, wrapErr(err)
 }
 
+func (p *PlatformClientClient) Rename(ctx context.Context, input *apiresource.RenameInput) (*platformclientv1.PlatformClient, error) {
+	resp, err := p.command.Rename(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (p *PlatformClientClient) Delete(ctx context.Context, input *DeleteResourceInput) (*platformclientv1.PlatformClient, error) {
 	resp, err := p.command.Delete(ctx, &apiresource.ApiResourceDeleteInput{
 		ResourceId:     input.ResourceID,

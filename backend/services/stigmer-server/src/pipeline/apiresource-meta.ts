@@ -112,6 +112,17 @@ export function getKindName(kind: ApiResourceKind): string {
 }
 
 /**
+ * The kind as a word in a sentence: its display name in lower case, an
+ * acronym kept (channel_app → "channel app", oauth_app → "OAuth app").
+ */
+export function kindNoun(kind: ApiResourceKind): string {
+  return getKindMeta(kind)
+    .displayName.split(" ")
+    .map((word) => (/[A-Z].*[A-Z]/.test(word) ? word : word.toLowerCase()))
+    .join(" ");
+}
+
+/**
  * Go GetKindEnum: resolve a resource's `kind` string field to the enum via
  * canonical kind_meta.name matching (case-insensitive, underscores
  * ignored) — twin of Cloud's ApiResourceKindExtractor.

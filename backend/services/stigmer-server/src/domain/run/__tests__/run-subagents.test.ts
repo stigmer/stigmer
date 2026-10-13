@@ -5,6 +5,9 @@
  *     pinned: the head when the pin is the head's hash, an archived version
  *     by its hash; each carries its name in the turn (the agent's current
  *     slug) and its organization, the run's when the reference names none;
+ *   - two listed agents that answer to one name now (a rename in another
+ *     organization brought them together) refuse the run
+ *     FAILED_PRECONDITION naming the name;
  *   - a listed agent that is gone, and a pinned version it no longer has,
  *     refuse the create FAILED_PRECONDITION naming it; a listed agent
  *     deleted and remade under its name is gone, never the new agent;
@@ -28,7 +31,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Store } from "../../../store/interface.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
-import { runSubagents, subagentGoneMessage } from "../run-subagents.js";
+import { runSubagents, subagentGoneMessage, subagentNamesClashMessage } from "../run-subagents.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const ORG = "acme";
@@ -68,7 +71,13 @@ beforeAll(async () => {
     ApiResourceKind.agent,
     "agt_theirs",
     AgentSchema,
-    agentRow("agt_theirs", OTHER_ORG, "researcher", "Their researcher.", HEAD),
+    agentRow("agt_theirs", OTHER_ORG, "their-researcher", "Their researcher.", HEAD),
+  );
+  await store.saveResource(
+    ApiResourceKind.agent,
+    "agt_theirs_renamed",
+    AgentSchema,
+    agentRow("agt_theirs_renamed", OTHER_ORG, "researcher", "Renamed onto ours.", HEAD),
   );
 });
 
@@ -93,9 +102,23 @@ describe("runSubagents", () => {
     );
     expect(subagents.map((s) => [s.name, s.org, s.spec.instructions])).toEqual([
       ["researcher", ORG, "Research, as it was."],
-      ["researcher", OTHER_ORG, "Their researcher."],
+      ["their-researcher", OTHER_ORG, "Their researcher."],
     ]);
     expect(Object.keys(subagents[0]!.spec.env)).toEqual(["RESEARCHER_KEY"]);
+  });
+
+  it("refuses two listed agents that answer to one name now, naming it", async () => {
+    const error = await runSubagents(
+      store,
+      listing({ id: "agt_researcher", version: HEAD, org: ORG }, { id: "agt_theirs_renamed", version: HEAD, org: OTHER_ORG }),
+      ORG,
+    ).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((error as ConnectError).rawMessage).toBe(subagentNamesClashMessage("researcher"));
   });
 
   it("reads the head when the pin is its hash, in the run's organization when the reference names none", async () => {

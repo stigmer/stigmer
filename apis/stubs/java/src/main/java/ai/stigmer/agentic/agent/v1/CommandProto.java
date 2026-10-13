@@ -43,7 +43,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "gmer/commons/apiresource/io.proto\0328ai/st" +
       "igmer/commons/apiresource/rpc_service_op" +
       "tions.proto\032+ai/stigmer/commons/rpc/meth" +
-      "od_options.proto2\346\006\n\026AgentCommandControl" +
+      "od_options.proto2\367\007\n\026AgentCommandControl" +
       "ler\022O\n\005apply\022\".ai.stigmer.agentic.agent." +
       "v1.Agent\032\".ai.stigmer.agentic.agent.v1.A" +
       "gent\022\233\001\n\006create\022\".ai.stigmer.agentic.age" +
@@ -57,19 +57,23 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "5.ai.stigmer.commons.apiresource.UpdateV" +
       "isibilityInput\032\".ai.stigmer.agentic.agen" +
       "t.v1.Agent\">\302\270\030:\0100\020(\"\013resource_id*\'unaut" +
-      "horized to update agent visibility\022\201\001\n\006d" +
-      "elete\022$.ai.stigmer.agentic.agent.v1.Agen" +
-      "tId\032\".ai.stigmer.agentic.agent.v1.Agent\"" +
-      "-\302\270\030)\010\003\020(\"\005value*\034unauthorized to delete" +
-      " agent\022\232\001\n\ntagVersion\0221.ai.stigmer.agent" +
-      "ic.agent.v1.TagAgentVersionInput\032\".ai.st" +
-      "igmer.agentic.agent.v1.Agent\"5\302\270\0301\010\002\020(\"\010" +
-      "agent_id*!unauthorized to tag agent vers" +
-      "ion\032\004\240\377+(B\237\001B\014CommandProtoP\001\242\002\004ASAA\252\002\033Ai" +
-      ".Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\A" +
-      "gentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Age" +
-      "nt\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic" +
-      "::Agent::V1b\006proto3"
+      "horized to update agent visibility\022\216\001\n\006r" +
+      "ename\022+.ai.stigmer.commons.apiresource.R" +
+      "enameInput\032\".ai.stigmer.agentic.agent.v1" +
+      ".Agent\"3\302\270\030/\010\003\020(\"\013resource_id*\034unauthori" +
+      "zed to rename agent\022\201\001\n\006delete\022$.ai.stig" +
+      "mer.agentic.agent.v1.AgentId\032\".ai.stigme" +
+      "r.agentic.agent.v1.Agent\"-\302\270\030)\010\003\020(\"\005valu" +
+      "e*\034unauthorized to delete agent\022\232\001\n\ntagV" +
+      "ersion\0221.ai.stigmer.agentic.agent.v1.Tag" +
+      "AgentVersionInput\032\".ai.stigmer.agentic.a" +
+      "gent.v1.Agent\"5\302\270\0301\010\002\020(\"\010agent_id*!unaut" +
+      "horized to tag agent version\032\004\240\377+(B\237\001B\014C" +
+      "ommandProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agenti" +
+      "c.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1" +
+      "\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetada" +
+      "ta\352\002\037Ai::Stigmer::Agentic::Agent::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

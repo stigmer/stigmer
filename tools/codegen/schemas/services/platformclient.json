@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
           "outputType": "PlatformClientCreateResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse",
-          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client, and the organization's\n current admins manage it.\n\n The slug `system-share-client` is platform-reserved (it identifies the org's\n system-managed share client) and is rejected with INVALID_ARGUMENT — including\n when derived from the resource name."
+          "description": "Create a platform client.\n\n Generates a new client_id (stgm_cid_ prefix) and client_secret (stgm_cs_ prefix).\n The raw client_secret is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n The creator's organization owns the platform client, and the organization's\n current admins manage it.\n\n The slug `system-share-client` is platform-reserved (it identifies the org's\n system-managed share client) and is rejected with INVALID_ARGUMENT — including\n when derived from the resource name.\n\n A slug another platform client of the organization holds is refused with\n ALREADY_EXISTS. A slug another platform client was renamed away from, which\n still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another platform client held the slug until a recent\n     rename, and it still leads there. Metadata: slug."
         },
         {
           "name": "Update",
@@ -22,7 +22,15 @@
           "inputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
           "outputType": "PlatformClient",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
-          "description": "Update an existing platform client.\n\n The name, labels and every spec field can be changed except the\n credential fields (client_id, client_secret_hash, secret_fingerprint),\n which are kept from the stored client. Use rotateSecret to change the\n client secret. A system-managed client cannot be updated."
+          "description": "Update an existing platform client.\n\n The name, labels and every spec field can be changed except the\n credential fields (client_id, client_secret_hash, secret_fingerprint),\n which are kept from the stored client. Use rotateSecret to change the\n client secret. A system-managed client cannot be updated.\n\n The slug changes only through rename. A slug the platform client was\n renamed away from, named without the platform client's id, is refused with\n FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain\n \"stigmer.ai\"), because a write by a name that stops resolving after 30 days\n would later make a second platform client:\n\n   - SLUG_RENAMED — the slug was renamed: it still leads to the same\n     platform client for reading, but a write names its current slug.\n     Metadata: slug (the one the request named)."
+        },
+        {
+          "name": "Rename",
+          "inputType": "RenameInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
+          "outputType": "PlatformClient",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.PlatformClient",
+          "description": "Rename a platform client: change its slug, the name people type.\n\n The platform client keeps its id, so everything that names it keeps\n working, and every answer names it by the new slug. The old slug keeps\n leading to the platform client for reading for 30 days, during which no\n other platform client of the organization can take it and this one can take\n it back; then it is released. A write that names the old slug is refused\n with SLUG_RENAMED (see update). A slug another platform client holds is\n refused with ALREADY_EXISTS, and one another platform client was recently\n renamed away from with SLUG_RESERVED (see create).\n\n Its client_id and its tokens do not name its slug, so the platforms that\n use it keep working. A system-managed client cannot be renamed, as it\n cannot be updated, and the slug system-share-client is refused with\n INVALID_ARGUMENT, as on create."
         },
         {
           "name": "Delete",
@@ -124,6 +132,43 @@
           },
           "description": "The raw client secret. Store this value securely — it is not retrievable\n after this response. If lost, use rotateSecret to generate a new one.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "RenameInput",
+      "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",
+      "protoType": "ai.stigmer.commons.apiresource.RenameInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource being renamed.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The new slug. Same format as metadata.slug, at most 63 characters: the\n longest a reference's org takes.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
         }
       ]
     },

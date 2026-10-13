@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "o.proto\0328ai/stigmer/commons/apiresource/" +
       "rpc_service_options.proto\032+ai/stigmer/co" +
       "mmons/rpc/method_options.proto\032,ai/stigm" +
-      "er/iam/identityprovider/v1/api.proto2\336\005\n" +
+      "er/iam/identityprovider/v1/api.proto2\215\007\n" +
       "!IdentityProviderCommandController\022s\n\005ap" +
       "ply\0224.ai.stigmer.iam.identityprovider.v1" +
       ".IdentityProvider\0324.ai.stigmer.iam.ident" +
@@ -55,17 +55,21 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "er.v1.IdentityProvider\0324.ai.stigmer.iam." +
       "identityprovider.v1.IdentityProvider\"?\302\270" +
       "\030;\010\002\020\025\"\013metadata.id*(unauthorized to upd" +
-      "ate identity provider\022\267\001\n\006delete\0226.ai.st" +
-      "igmer.commons.apiresource.ApiResourceDel" +
-      "eteInput\0324.ai.stigmer.iam.identityprovid" +
-      "er.v1.IdentityProvider\"?\302\270\030;\010\003\020\025\"\013resour" +
-      "ce_id*(unauthorized to delete identity p" +
-      "rovider\032\004\240\377+\025B\273\001B\014CommandProtoP\001\242\002\004ASII\252" +
-      "\002\"Ai.Stigmer.Iam.Identityprovider.V1\312\002\"A" +
-      "i\\Stigmer\\Iam\\Identityprovider\\V1\342\002.Ai\\S" +
-      "tigmer\\Iam\\Identityprovider\\V1\\GPBMetada" +
-      "ta\352\002&Ai::Stigmer::Iam::Identityprovider:" +
-      ":V1b\006proto3"
+      "ate identity provider\022\254\001\n\006rename\022+.ai.st" +
+      "igmer.commons.apiresource.RenameInput\0324." +
+      "ai.stigmer.iam.identityprovider.v1.Ident" +
+      "ityProvider\"?\302\270\030;\010\003\020\025\"\013resource_id*(unau" +
+      "thorized to rename identity provider\022\267\001\n" +
+      "\006delete\0226.ai.stigmer.commons.apiresource" +
+      ".ApiResourceDeleteInput\0324.ai.stigmer.iam" +
+      ".identityprovider.v1.IdentityProvider\"?\302" +
+      "\270\030;\010\003\020\025\"\013resource_id*(unauthorized to de" +
+      "lete identity provider\032\004\240\377+\025B\273\001B\014Command" +
+      "ProtoP\001\242\002\004ASII\252\002\"Ai.Stigmer.Iam.Identity" +
+      "provider.V1\312\002\"Ai\\Stigmer\\Iam\\Identitypro" +
+      "vider\\V1\342\002.Ai\\Stigmer\\Iam\\Identityprovid" +
+      "er\\V1\\GPBMetadata\352\002&Ai::Stigmer::Iam::Id" +
+      "entityprovider::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

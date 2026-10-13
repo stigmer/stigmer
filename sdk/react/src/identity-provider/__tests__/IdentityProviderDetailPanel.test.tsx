@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import {
   IdentityProviderSchema,
   type IdentityProvider,
@@ -101,11 +101,17 @@ describe("IdentityProviderDetailPanel edit gate", () => {
     }));
     renderPanel(vi.fn(), checkMyPermission);
 
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalledTimes(1));
-    const asked = checkMyPermission.mock.calls[0]![0];
-    expect(asked.resource?.kind).toBe("identity_provider");
-    expect(asked.resource?.id).toBe("idp-1");
-    expect(asked.relation).toBe("can_edit");
+    // can_edit gates Edit; can_delete gates the slug field (rename).
+    await waitFor(() =>
+      expect(new Set(checkMyPermission.mock.calls.map(([input]) => input.relation))).toEqual(
+        new Set(["can_edit", "can_delete"]),
+      ),
+    );
+    for (const [asked] of checkMyPermission.mock.calls) {
+      expect(asked.resource?.kind).toBe("identity_provider");
+      expect(asked.resource?.id).toBe("idp-1");
+    }
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
     // The configuration stays readable; only the edit affordance is withheld.
     expect(screen.getByRole("heading", { name: "Acme Okta" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
@@ -172,5 +178,36 @@ describe("IdentityProviderDetailPanel SSO sign-in settings", () => {
     expect(input.isSsoProvider).toBe(true);
     expect(input.createAccountsOnSignIn).toBe(true);
     expect(input.signInRole).toBe(IamRole.viewer);
+  });
+});
+
+describe("IdentityProviderDetailPanel rename", () => {
+  it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
+    const renamed = clone(IdentityProviderSchema, IDP);
+    if (renamed.metadata !== undefined) {
+      renamed.metadata.slug = "renamed-slug";
+    }
+    const rename = vi.fn(async () => renamed);
+    const onUpdated = vi.fn();
+    const client = {
+      identityProvider: { rename },
+      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <IdentityProviderDetailPanel identityProvider={IDP} onUpdated={onUpdated} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Slug", undefined, { timeout: 5000 }), {
+      target: { value: "renamed-slug" },
+    });
+    const button = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
+    // The field settles before it takes the rename, however slow the runner.
+    await waitFor(() => expect(button.disabled).toBe(false), { timeout: 5000 });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
+    expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: IDP.metadata?.id, slug: "renamed-slug" })]);
   });
 });

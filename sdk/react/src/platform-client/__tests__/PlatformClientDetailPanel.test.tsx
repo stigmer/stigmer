@@ -186,7 +186,8 @@ describe("PlatformClientDetailPanel actions by permission", () => {
       ([input]) =>
         `${input.resource?.kind}:${input.resource?.id}:${input.relation}`,
     );
-    expect(asked.sort()).toEqual([
+    // can_delete gates both Delete and the slug field (rename).
+    expect([...new Set(asked)].sort()).toEqual([
       "platform_client:pc-1:can_delete",
       "platform_client:pc-1:can_edit",
     ]);
@@ -208,7 +209,13 @@ describe("PlatformClientDetailPanel actions by permission", () => {
     }));
     const { container } = renderPanel(vi.fn(), PLATFORM_CLIENT, checkMyPermission);
 
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalledTimes(2));
+    // can_delete gates both Delete and the slug field (rename).
+    await waitFor(() =>
+      expect(new Set(checkMyPermission.mock.calls.map(([input]) => input.relation))).toEqual(
+        new Set(["can_edit", "can_delete"]),
+      ),
+    );
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
     // The configuration stays readable; only the change affordances are withheld.
     expect(screen.getByText("client-abc")).toBeTruthy();
     await waitFor(() => {
@@ -248,5 +255,36 @@ describe("PlatformClientDetailPanel last use", () => {
     expect(screen.getByText("Last used").nextElementSibling?.textContent).toBe(
       "5m",
     );
+  });
+});
+
+describe("PlatformClientDetailPanel rename", () => {
+  it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
+    const renamed = clone(PlatformClientSchema, PLATFORM_CLIENT);
+    if (renamed.metadata !== undefined) {
+      renamed.metadata.slug = "renamed-slug";
+    }
+    const rename = vi.fn(async () => renamed);
+    const onUpdated = vi.fn();
+    const client = {
+      platformclient: { rename },
+      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <PlatformClientDetailPanel platformClient={PLATFORM_CLIENT} onUpdated={onUpdated} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Slug", undefined, { timeout: 5000 }), {
+      target: { value: "renamed-slug" },
+    });
+    const button = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
+    // The field settles before it takes the rename, however slow the runner.
+    await waitFor(() => expect(button.disabled).toBe(false), { timeout: 5000 });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed), { timeout: 5000 });
+    expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: PLATFORM_CLIENT.metadata?.id, slug: "renamed-slug" })]);
   });
 });

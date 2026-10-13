@@ -7,6 +7,7 @@ import {
   useResolveRunSession,
   useOrgSlugForId,
 } from "@stigmer/react";
+import { useCanonicalDetailSlug } from "./canonical-slug";
 
 /**
  * Thin shell around the SDK's `ScheduleDetailView` (which owns the full
@@ -36,9 +37,13 @@ export default function ScheduleDetailPage() {
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
+  const [loadedSlug, setLoadedSlug] = useState<string | undefined>(undefined);
+  const moveToSlug = useCanonicalDetailSlug("schedules", org, slug, loadedSlug);
+
   const handleResourceLoad = useCallback(
     (loaded: Schedule) => {
       setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Schedule");
+      setLoadedSlug(loaded.metadata?.slug);
     },
     [setLabel],
   );
@@ -56,6 +61,7 @@ export default function ScheduleDetailPage() {
       }
       onNavigateToRun={setPendingExecutionId}
       onDeleted={() => navigate("/library/schedules")}
+      onRenamed={(renamed) => moveToSlug(renamed.metadata?.slug ?? "")}
     />
   );
 }

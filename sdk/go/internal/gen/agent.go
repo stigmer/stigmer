@@ -64,6 +64,11 @@ func (a *AgentClient) UpdateVisibility(ctx context.Context, input *apiresource.U
 	return resp, wrapErr(err)
 }
 
+func (a *AgentClient) Rename(ctx context.Context, input *apiresource.RenameInput) (*agentv1.Agent, error) {
+	resp, err := a.command.Rename(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentClient) Delete(ctx context.Context, id string) (*agentv1.Agent, error) {
 	resp, err := a.command.Delete(ctx, &agentv1.AgentId{Value: id})
 	return resp, wrapErr(err)

@@ -39,47 +39,53 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       ".proto\022\036ai.stigmer.agentic.schedule.v1\032(" +
       "ai/stigmer/agentic/schedule/v1/api.proto" +
       "\032\'ai/stigmer/agentic/schedule/v1/io.prot" +
-      "o\0328ai/stigmer/commons/apiresource/rpc_se" +
-      "rvice_options.proto\032+ai/stigmer/commons/" +
-      "rpc/method_options.proto2\301\006\n\031ScheduleCom" +
-      "mandController\022[\n\005apply\022(.ai.stigmer.age" +
-      "ntic.schedule.v1.Schedule\032(.ai.stigmer.a" +
-      "gentic.schedule.v1.Schedule\022b\n\006create\022(." +
-      "ai.stigmer.agentic.schedule.v1.Schedule\032" +
-      "(.ai.stigmer.agentic.schedule.v1.Schedul" +
-      "e\"\004\320\270\030\001\022\224\001\n\006update\022(.ai.stigmer.agentic." +
-      "schedule.v1.Schedule\032(.ai.stigmer.agenti" +
-      "c.schedule.v1.Schedule\"6\302\270\0302\010\002\0208\"\013metada" +
-      "ta.id*\037unauthorized to update schedule\022\220" +
-      "\001\n\006delete\022*.ai.stigmer.agentic.schedule." +
-      "v1.ScheduleId\032(.ai.stigmer.agentic.sched" +
-      "ule.v1.Schedule\"0\302\270\030,\010\003\0208\"\005value*\037unauth" +
-      "orized to delete schedule\022\220\001\n\006resume\022*.a" +
-      "i.stigmer.agentic.schedule.v1.ScheduleId" +
+      "o\032\'ai/stigmer/commons/apiresource/io.pro" +
+      "to\0328ai/stigmer/commons/apiresource/rpc_s" +
+      "ervice_options.proto\032+ai/stigmer/commons" +
+      "/rpc/method_options.proto2\333\007\n\031ScheduleCo" +
+      "mmandController\022[\n\005apply\022(.ai.stigmer.ag" +
+      "entic.schedule.v1.Schedule\032(.ai.stigmer." +
+      "agentic.schedule.v1.Schedule\022b\n\006create\022(" +
+      ".ai.stigmer.agentic.schedule.v1.Schedule" +
       "\032(.ai.stigmer.agentic.schedule.v1.Schedu" +
-      "le\"0\302\270\030,\010\002\0208\"\005value*\037unauthorized to res" +
-      "ume schedule\022\237\001\n\007trigger\022*.ai.stigmer.ag" +
-      "entic.schedule.v1.ScheduleId\0325.ai.stigme" +
-      "r.agentic.schedule.v1.ScheduleTriggerRes" +
-      "ult\"1\302\270\030-\010\002\0208\"\005value* unauthorized to tr" +
-      "igger schedule\032\004\240\377+8B\253\001B\014CommandProtoP\001\242" +
-      "\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312" +
-      "\002\036Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\St" +
-      "igmer\\Agentic\\Schedule\\V1\\GPBMetadata\352\002\"" +
-      "Ai::Stigmer::Agentic::Schedule::V1b\006prot" +
-      "o3"
+      "le\"\004\320\270\030\001\022\224\001\n\006update\022(.ai.stigmer.agentic" +
+      ".schedule.v1.Schedule\032(.ai.stigmer.agent" +
+      "ic.schedule.v1.Schedule\"6\302\270\0302\010\002\0208\"\013metad" +
+      "ata.id*\037unauthorized to update schedule\022" +
+      "\227\001\n\006rename\022+.ai.stigmer.commons.apiresou" +
+      "rce.RenameInput\032(.ai.stigmer.agentic.sch" +
+      "edule.v1.Schedule\"6\302\270\0302\010\003\0208\"\013resource_id" +
+      "*\037unauthorized to rename schedule\022\220\001\n\006de" +
+      "lete\022*.ai.stigmer.agentic.schedule.v1.Sc" +
+      "heduleId\032(.ai.stigmer.agentic.schedule.v" +
+      "1.Schedule\"0\302\270\030,\010\003\0208\"\005value*\037unauthorize" +
+      "d to delete schedule\022\220\001\n\006resume\022*.ai.sti" +
+      "gmer.agentic.schedule.v1.ScheduleId\032(.ai" +
+      ".stigmer.agentic.schedule.v1.Schedule\"0\302" +
+      "\270\030,\010\002\0208\"\005value*\037unauthorized to resume s" +
+      "chedule\022\237\001\n\007trigger\022*.ai.stigmer.agentic" +
+      ".schedule.v1.ScheduleId\0325.ai.stigmer.age" +
+      "ntic.schedule.v1.ScheduleTriggerResult\"1" +
+      "\302\270\030-\010\002\0208\"\005value* unauthorized to trigger" +
+      " schedule\032\004\240\377+8B\253\001B\014CommandProtoP\001\242\002\004ASA" +
+      "S\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312\002\036Ai\\" +
+      "Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\Stigmer" +
+      "\\Agentic\\Schedule\\V1\\GPBMetadata\352\002\"Ai::S" +
+      "tigmer::Agentic::Schedule::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.schedule.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.schedule.v1.IoProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.schedule.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.schedule.v1.IoProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

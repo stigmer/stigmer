@@ -28,6 +28,11 @@ export interface KeyValueRow {
 export interface ResourceRefRow {
   readonly org: string;
   readonly slug: string;
+  /**
+   * The id a stored reference holds; a row the person just picked has
+   * none. An editor sends a row it read back by this id.
+   */
+  readonly id?: string;
   /** Display label (defaults to slug when omitted). */
   readonly label?: string;
 }

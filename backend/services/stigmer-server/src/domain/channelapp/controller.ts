@@ -44,6 +44,7 @@ import type {
   ApiResourceDeleteInput,
   ApiResourceId,
   ApiResourceReference,
+  RenameInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -93,7 +94,8 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
-import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newPersistOntoLiveRowStep, newPersistStep } from "../../pipeline/steps/persist.js";
+import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -129,6 +131,7 @@ export function registerChannelAppServices(
     apply: (app, ctx) => apply(deps, app, ctx),
     create: (app, ctx) => createChannelApp(deps, app, ctx),
     update: (app, ctx) => update(deps, app, ctx),
+    rename: (input, ctx) => rename(deps, input, ctx),
     delete: (input, ctx) => deleteChannelApp(deps, input, ctx),
   });
   router.service(ChannelAppQueryController, {
@@ -225,11 +228,37 @@ async function update(
     .addStep(
       newEncryptChannelAppSecretsForUpdateStep(deps.secretService, deps.logger),
     )
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistOntoLiveRowStep(deps.store))
     .build()
     .execute(reqCtx);
   redactChannelApp(reqCtx.newState);
   return reqCtx.newState;
+}
+
+/**
+ * Rename — the only writer of a channel app's slug (pipeline/steps/rename.ts):
+ * the name moves, then the live row's slug; the old slug keeps leading to
+ * it for reading for 30 days. The response is redacted like every other.
+ */
+async function rename(
+  deps: ChannelAppControllerDeps,
+  input: RenameInput,
+  ctx: HandlerContext,
+): Promise<ChannelApp> {
+  const renamed = await renameResource(
+    {
+      method: ChannelAppCommandController.method.rename,
+      names: deps.store,
+      rows: storeRenameRows(deps.store, ApiResourceKind.channel_app, ChannelAppSchema),
+      authorizer: deps.authorizer,
+      logger: deps.logger,
+    },
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  redactChannelApp(renamed);
+  return renamed;
 }
 
 /**

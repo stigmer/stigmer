@@ -45,7 +45,10 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
-import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
+import {
+  PlatformClientSchema,
+  PlatformClientStatusSchema,
+} from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import type { PlatformClientSpec } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/spec_pb";
 
@@ -68,7 +71,13 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { updateAuditFields } from "../../pipeline/steps/build-update-state.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { requireOrgForReference } from "../../pipeline/steps/helpers.js";
-import { portHolder, resolveName } from "../../pipeline/steps/names.js";
+import {
+  findResourceForWrite,
+  nameTakenError,
+  portHolder,
+  resolveName,
+  resolveNameEntry,
+} from "../../pipeline/steps/names.js";
 import type { NameHolder } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
@@ -211,17 +220,14 @@ export function newCheckDuplicateStep(
     name: "CheckDuplicate",
     async execute(ctx: ClientContext): Promise<void> {
       const metadata = requireMetadata(ctx, "duplicate check");
-      const existing = await findClientByName(
+      const entry = await resolveNameEntry(
         store,
-        clients,
+        ApiResourceKind.platform_client,
         metadata.org,
         metadata.slug,
       );
-      if (existing !== undefined) {
-        throw alreadyExistsError(
-          PLATFORM_CLIENT_KIND_NAME,
-          `slug '${metadata.slug}' in org '${metadata.org}' (id: ${existing.metadata?.id ?? ""})`,
-        );
+      if (entry !== undefined && (await platformClientNameHolder(clients).holds(entry))) {
+        throw nameTakenError(ApiResourceKind.platform_client, entry);
       }
     },
   };
@@ -270,7 +276,11 @@ export function newPersistNewClientStep(
 // Update
 // ---------------------------------------------------------------------------
 
-/** Loads the client by id, else by org-scoped slug (the id written back), into EXISTING_RESOURCE_KEY. */
+/**
+ * Loads the client by id, else by org-scoped slug (the id written back),
+ * into EXISTING_RESOURCE_KEY. A slug the client was renamed away from is
+ * refused with SLUG_RENAMED, as every write's is (findResourceForWrite).
+ */
 export function newLoadExistingClientStep(
   store: Store,
   clients: PlatformClientStore,
@@ -286,7 +296,12 @@ export function newLoadExistingClientStep(
           throw notFoundError(PLATFORM_CLIENT_KIND_NAME, metadata.id);
         }
       } else if (metadata.slug !== "") {
-        existing = await findClientByName(store, clients, metadata.org, metadata.slug);
+        existing = await findResourceForWrite<typeof PlatformClientSchema>(
+          store,
+          ApiResourceKind.platform_client,
+          { id: "", org: metadata.org, slug: metadata.slug },
+          (id) => clients.findById(id),
+        );
         if (existing === undefined) {
           throw notFoundError(PLATFORM_CLIENT_KIND_NAME, metadata.slug);
         }
@@ -315,18 +330,36 @@ export function newPreserveClientCredentialsStep(): ClientStep {
   };
 }
 
-/** Replaces the row through the port. */
+/**
+ * Writes the update onto the live row through the port's atomic write,
+ * every field from the request but the slug, which stays the row's
+ * (rename's alone, pipeline/steps/rename.ts). The written row becomes the
+ * new state; a client deleted since the load answers NotFound.
+ */
 export function newPersistUpdatedClientStep(
   clients: PlatformClientStore,
 ): ClientStep {
   return {
     name: "Persist",
     async execute(ctx: ClientContext): Promise<void> {
+      const next = ctx.newState;
+      const id = next.metadata?.id ?? "";
+      let written: PlatformClient | undefined;
       try {
-        await clients.update(ctx.newState);
+        written = await clients.modifyById(id, (row) => {
+          const slug = row.metadata?.slug;
+          Object.assign(row, next);
+          if (row.metadata !== undefined && slug !== undefined) {
+            row.metadata.slug = slug;
+          }
+        });
       } catch (error) {
         throw internalError(error, "failed to save platform client");
       }
+      if (written === undefined) {
+        throw notFoundError(PLATFORM_CLIENT_KIND_NAME, id);
+      }
+      ctx.setNewState(written);
     },
   };
 }
@@ -440,18 +473,39 @@ export function newRotateClientCredentialsStep<
   };
 }
 
-/** Writes the rotated TARGET_RESOURCE_KEY client through the port. */
+/**
+ * Writes the rotated secret of the TARGET_RESOURCE_KEY client onto the
+ * live row through the port's atomic write: the secret's hash and
+ * fingerprint and the audit the rotation stamped, nothing else, so an
+ * update or a rename that landed since the load stays. The written row
+ * replaces the loaded one under the key; a client deleted since answers
+ * NotFound.
+ */
 export function newPersistTargetClientStep<InputDesc extends DescMessage>(
   clients: PlatformClientStore,
 ): PipelineStep<InputDesc> {
   return {
     name: "Persist",
     async execute(ctx: RequestContext<InputDesc>): Promise<void> {
+      const rotated = storedClientOf(ctx, TARGET_RESOURCE_KEY);
+      const id = rotated.metadata?.id ?? "";
+      let written: PlatformClient | undefined;
       try {
-        await clients.update(storedClientOf(ctx, TARGET_RESOURCE_KEY));
+        written = await clients.modifyById(id, (row) => {
+          const spec = specOf(row);
+          spec.clientSecretHash = rotated.spec?.clientSecretHash ?? "";
+          spec.secretFingerprint = rotated.spec?.secretFingerprint ?? "";
+          if (rotated.status?.audit !== undefined) {
+            (row.status ??= create(PlatformClientStatusSchema)).audit = rotated.status.audit;
+          }
+        });
       } catch (error) {
         throw internalError(error, "failed to save platform client");
       }
+      if (written === undefined) {
+        throw notFoundError(PLATFORM_CLIENT_KIND_NAME, id);
+      }
+      ctx.set(TARGET_RESOURCE_KEY, written);
     },
   };
 }

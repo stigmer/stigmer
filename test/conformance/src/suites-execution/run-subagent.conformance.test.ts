@@ -31,6 +31,9 @@
 //     messages, so the channel's send tool is asserted absent beside it);
 //   - the parent pinned its subagent at save: an edit to the subagent
 //     reaches a new conversation only once the parent is saved again;
+//   - a parent pinned to an older version of a subagent that was renamed
+//     since calls it by its current name, still running the pinned version
+//     (a version is its spec; the name is the resource's);
 //   - on the Cursor engine, a subagent that brings its own tool lists is
 //     refused at turn start with one sentence, before any model call
 //     (CapabilityFlags.cursorRunsAdmitted: on the cloud target the run needs
@@ -556,6 +559,37 @@ describe("Run — the parent pinned its subagent at save", () => {
     const saved = await subagentRequestOfNewConversation();
     expect(saved, "the parent saved again runs the edited subagent").toContain("AFTER-EDIT");
     expect(saved).not.toContain("BEFORE-EDIT");
+  });
+
+  it("[rpc:AgentCommandController.rename] a parent pinned to an older version of a renamed subagent calls it by its current name, and runs the version it pinned", async () => {
+    const { org } = await target.provisionTenancy();
+    const pinned = "You are the PINNED-VERSION helper; answer in one sentence.";
+    const { agent, subagents } = await parentWith(org, [{ name: uniqueName("helper"), instructions: pinned }]);
+    const subMeta = subagents[0]!.metadata!;
+    const oldName = subMeta.slug;
+
+    // A later version, then a rename: the parent stays pinned to the first.
+    await clients.agentCommand.update({
+      apiVersion: AGENT_API_VERSION,
+      kind: AGENT_KIND,
+      metadata: { id: subMeta.id, name: subMeta.name, slug: subMeta.slug, org: subMeta.org },
+      spec: makeAgentSpec({ instructions: "You are the LATER-VERSION helper; answer in one sentence." }),
+    });
+    const newName = uniqueName("helper-renamed");
+    await clients.agentCommand.rename({ resourceId: subMeta.id, slug: newName });
+
+    mock.enqueue(handOff("toolu_task_renamed", newName));
+    mock.enqueue(anthropicText(SUBAGENT_ANSWER));
+    mock.enqueue(anthropicText("Done."));
+    const final = await completedTurn({ org, agentRef: agentRefOf(agent) });
+
+    subagentRecordOf(final, newName);
+    const parentRequest = wireAt(0);
+    expect(parentRequest, "the hand-off offers the subagent by its current name").toContain(newName);
+    expect(parentRequest, "and never by the name it had when it was pinned").not.toContain(oldName);
+    const subagentRequest = wireAt(1);
+    expect(subagentRequest, "the subagent runs the version the parent pinned").toContain("PINNED-VERSION");
+    expect(subagentRequest).not.toContain("LATER-VERSION");
   });
 });
 

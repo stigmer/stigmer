@@ -39,7 +39,22 @@ export function subagentGoneMessage(slug: string, version: string): string {
   return `this conversation's agent lists subagent '${slug}' at version ${version.slice(0, 12)}, which no longer exists; save the agent again to list a version it has, or remove '${slug}' from its subagents`;
 }
 
-/** Each subagent the agent spec lists, at its pinned version; none for no agent. */
+/**
+ * The refusal for two listed subagents that answer to one name now. A turn
+ * names each subagent by its current slug, and its declared values and its
+ * hand-offs are keyed by that name, so two of one name would share both.
+ * The agent's save refuses such a list (ValidateSubagentNames); a rename
+ * since, in another organization, can still bring two together.
+ */
+export function subagentNamesClashMessage(name: string): string {
+  return `this conversation's agent lists two subagents now named '${name}', and a turn names each subagent by its slug; rename one of them, or save the agent with one of them removed`;
+}
+
+/**
+ * Each subagent the agent spec lists, at its pinned version; none for no
+ * agent. Two that answer to one name now are refused
+ * (subagentNamesClashMessage).
+ */
 export async function runSubagents(
   store: Store,
   agentSpec: AgentSpec | undefined,
@@ -75,6 +90,9 @@ export async function runSubagents(
       throw error;
     }
     if (spec !== undefined) {
+      if (subagents.some((held) => held.name === name)) {
+        throw failedPreconditionError(subagentNamesClashMessage(name));
+      }
       subagents.push({ name, org, spec });
     }
   }

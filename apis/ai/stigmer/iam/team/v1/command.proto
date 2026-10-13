@@ -35,6 +35,14 @@ service TeamCommandController {
   //   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
   //     team that exists keeps working. No metadata.
   //
+  // A slug another team of the organization holds is refused with
+  // ALREADY_EXISTS. A slug another team was renamed away from, which still
+  // leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+  // google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+  //
+  //   - SLUG_RESERVED — another team held the slug until a recent rename, and
+  //     it still leads there. Metadata: slug.
+  //
   // @internal
   // Authorization: can_create_team on the organization (admin).
   rpc create(Team) returns (Team) {
@@ -46,6 +54,9 @@ service TeamCommandController {
 
   // Update a team's name or description.
   //
+  // An update names the team by its id, and the slug changes only through
+  // rename.
+  //
   // @internal
   // Authorization: can_edit on the team (the organization's admins).
   rpc update(Team) returns (Team) {
@@ -53,6 +64,27 @@ service TeamCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update team";
+  }
+
+  // Rename a team: change its slug, the name people type.
+  //
+  // The team keeps its id, so everything that names it keeps working, and every
+  // answer names it by the new slug. The old slug keeps leading to the team for
+  // reading for 30 days, during which no other team of the organization can
+  // take it and this one can take it back; then it is released. A slug
+  // another team holds is refused with ALREADY_EXISTS, and one another team was
+  // recently renamed away from with SLUG_RESERVED (see create).
+  //
+  // Its memberships and shares name its id and are unchanged.
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the team: whoever may
+  // delete it may rename it.
+  rpc rename(ai.stigmer.commons.apiresource.RenameInput) returns (Team) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = team;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rename team";
   }
 
   // Delete a team.

@@ -32,3 +32,20 @@ export type { ConfirmDialogProps } from "./ConfirmDialog.js";
 
 export { Section } from "./Section.js";
 export type { SectionProps } from "./Section.js";
+
+export { useRenameResource } from "./useRenameResource.js";
+export type {
+  RenamableResourceKind,
+  RenamedResource,
+  UseRenameResourceReturn,
+} from "./useRenameResource.js";
+
+export {
+  RenameSlugField,
+  ResourceSlugField,
+  RESOURCE_RENAME_HINT,
+} from "./RenameSlugField.js";
+export type {
+  RenameSlugFieldProps,
+  ResourceSlugFieldProps,
+} from "./RenameSlugField.js";

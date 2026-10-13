@@ -26,29 +26,33 @@ var File_ai_stigmer_iam_identityprovider_v1_command_proto protoreflect.FileDescr
 
 const file_ai_stigmer_iam_identityprovider_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/iam/identityprovider/v1/command.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto2\xde\x05\n" +
+	"0ai/stigmer/iam/identityprovider/v1/command.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto2\x8d\a\n" +
 	"!IdentityProviderCommandController\x12s\n" +
 	"\x05apply\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x12\xcb\x01\n" +
 	"\x06create\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"U¸\x18Q\b\v\x10\x1e\"\fmetadata.org*=unauthorized to create identity provider in this organization\x12\xb5\x01\n" +
-	"\x06update\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?¸\x18;\b\x02\x10\x15\"\vmetadata.id*(unauthorized to update identity provider\x12\xb7\x01\n" +
+	"\x06update\x124.ai.stigmer.iam.identityprovider.v1.IdentityProvider\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?¸\x18;\b\x02\x10\x15\"\vmetadata.id*(unauthorized to update identity provider\x12\xac\x01\n" +
+	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?¸\x18;\b\x03\x10\x15\"\vresource_id*(unauthorized to rename identity provider\x12\xb7\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"?¸\x18;\b\x03\x10\x15\"\vresource_id*(unauthorized to delete identity provider\x1a\x04\xa0\xff+\x15B\xc3\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\fCommandProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var file_ai_stigmer_iam_identityprovider_v1_command_proto_goTypes = []any{
 	(*IdentityProvider)(nil),                   // 0: ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	(*apiresource.ApiResourceDeleteInput)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	(*apiresource.RenameInput)(nil),            // 1: ai.stigmer.commons.apiresource.RenameInput
+	(*apiresource.ApiResourceDeleteInput)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
 }
 var file_ai_stigmer_iam_identityprovider_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.apply:input_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
 	0, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.create:input_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
 	0, // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.update:input_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	1, // 3: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
-	0, // 4: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.apply:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	0, // 5: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.create:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	0, // 6: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.update:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	0, // 7: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.delete:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	1, // 3: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
+	2, // 4: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	0, // 5: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.apply:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	0, // 6: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.create:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	0, // 7: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.update:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	0, // 8: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.rename:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	0, // 9: ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.delete:output_type -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

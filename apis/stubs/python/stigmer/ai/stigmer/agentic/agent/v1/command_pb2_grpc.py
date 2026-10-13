@@ -38,6 +38,11 @@ class AgentCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
                 _registered_method=True)
+        self.rename = channel.unary_unary(
+                '/ai.stigmer.agentic.agent.v1.AgentCommandController/rename',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.agent.v1.AgentCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.AgentId.SerializeToString,
@@ -56,6 +61,17 @@ class AgentCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update an agent.
+
+        A request that carries metadata.id of an agent in its organization updates
+        that agent, and its slug changes only through rename. A slug the agent was
+        renamed away from, named without the agent's id, is refused with
+        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai"), because a write by a name that stops resolving after 30 days
+        would later make a second agent:
+
+        - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+        for reading, but a write names its current slug. Metadata: slug (the
+        one the request named).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -63,6 +79,14 @@ class AgentCommandControllerServicer(object):
 
     def create(self, request, context):
         """Create an agent.
+
+        A slug another agent of the organization holds is refused with
+        ALREADY_EXISTS. A slug another agent was renamed away from, which still
+        leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - SLUG_RESERVED — another agent held the slug until a recent rename, and
+        it still leads there. Metadata: slug.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -70,6 +94,10 @@ class AgentCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing agent.
+
+        The slug changes only through rename. An update that names the agent by a
+        slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+        (see apply).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -86,6 +114,25 @@ class AgentCommandControllerServicer(object):
         Raising the level is refused while a skill, plugin or agent the
         agent references is less visible than the requested level: what a
         person can run they must also be able to read.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def rename(self, request, context):
+        """Rename an agent: change its slug, the name people type.
+
+        The agent keeps its id, so everything that names it keeps working, and
+        every answer names it by the new slug. The old slug keeps leading to the
+        agent for reading for 30 days, during which no other agent of the
+        organization can take it and this one can take it back; then it is
+        released. A write that names the old slug is refused with SLUG_RENAMED (see
+        apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+        another agent was recently renamed away from with SLUG_RESERVED (see
+        create).
+
+        Its schedules, channels, conversations and the agents that hand work to it
+        name it by id; a parent agent's turns call it by its new slug.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -137,6 +184,11 @@ def add_AgentCommandControllerServicer_to_server(servicer, server):
             'updateVisibility': grpc.unary_unary_rpc_method_handler(
                     servicer.updateVisibility,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
+            ),
+            'rename': grpc.unary_unary_rpc_method_handler(
+                    servicer.rename,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -258,6 +310,33 @@ class AgentCommandController(object):
             target,
             '/ai.stigmer.agentic.agent.v1.AgentCommandController/updateVisibility',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def rename(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agent.v1.AgentCommandController/rename',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
             options,
             channel_credentials,

@@ -139,6 +139,37 @@ public final class AgentCommandControllerGrpc {
     return getUpdateVisibilityMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.agentic.agent.v1.Agent> getRenameMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "rename",
+      requestType = ai.stigmer.commons.apiresource.RenameInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.Agent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.agentic.agent.v1.Agent> getRenameMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.agentic.agent.v1.Agent> getRenameMethod;
+    if ((getRenameMethod = AgentCommandControllerGrpc.getRenameMethod) == null) {
+      synchronized (AgentCommandControllerGrpc.class) {
+        if ((getRenameMethod = AgentCommandControllerGrpc.getRenameMethod) == null) {
+          AgentCommandControllerGrpc.getRenameMethod = getRenameMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rename"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.RenameInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentCommandControllerMethodDescriptorSupplier("rename"))
+              .build();
+        }
+      }
+    }
+    return getRenameMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.AgentId,
       ai.stigmer.agentic.agent.v1.Agent> getDeleteMethod;
 
@@ -270,6 +301,15 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * A request that carries metadata.id of an agent in its organization updates
+     * that agent, and its slug changes only through rename. A slug the agent was
+     * renamed away from, named without the agent's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second agent:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     default void apply(ai.stigmer.agentic.agent.v1.Agent request,
@@ -280,6 +320,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
+     * A slug another agent of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another agent was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     default void create(ai.stigmer.agentic.agent.v1.Agent request,
@@ -290,6 +336,9 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
+     * The slug changes only through rename. An update that names the agent by a
+     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+     * (see apply).
      * </pre>
      */
     default void update(ai.stigmer.agentic.agent.v1.Agent request,
@@ -312,6 +361,26 @@ public final class AgentCommandControllerGrpc {
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename an agent: change its slug, the name people type.
+     * The agent keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * agent for reading for 30 days, during which no other agent of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+     * another agent was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its schedules, channels, conversations and the agents that hand work to it
+     * name it by id; a parent agent's turns call it by its new slug.
+     * </pre>
+     */
+    default void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRenameMethod(), responseObserver);
     }
 
     /**
@@ -380,6 +449,15 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * A request that carries metadata.id of an agent in its organization updates
+     * that agent, and its slug changes only through rename. A slug the agent was
+     * renamed away from, named without the agent's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second agent:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     public void apply(ai.stigmer.agentic.agent.v1.Agent request,
@@ -391,6 +469,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
+     * A slug another agent of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another agent was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     public void create(ai.stigmer.agentic.agent.v1.Agent request,
@@ -402,6 +486,9 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
+     * The slug changes only through rename. An update that names the agent by a
+     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+     * (see apply).
      * </pre>
      */
     public void update(ai.stigmer.agentic.agent.v1.Agent request,
@@ -426,6 +513,27 @@ public final class AgentCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename an agent: change its slug, the name people type.
+     * The agent keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * agent for reading for 30 days, during which no other agent of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+     * another agent was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its schedules, channels, conversations and the agents that hand work to it
+     * name it by id; a parent agent's turns call it by its new slug.
+     * </pre>
+     */
+    public void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -482,6 +590,15 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * A request that carries metadata.id of an agent in its organization updates
+     * that agent, and its slug changes only through rename. A slug the agent was
+     * renamed away from, named without the agent's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second agent:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent apply(ai.stigmer.agentic.agent.v1.Agent request) throws io.grpc.StatusException {
@@ -492,6 +609,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
+     * A slug another agent of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another agent was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent create(ai.stigmer.agentic.agent.v1.Agent request) throws io.grpc.StatusException {
@@ -502,6 +625,9 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
+     * The slug changes only through rename. An update that names the agent by a
+     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+     * (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.Agent request) throws io.grpc.StatusException {
@@ -524,6 +650,26 @@ public final class AgentCommandControllerGrpc {
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename an agent: change its slug, the name people type.
+     * The agent keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * agent for reading for 30 days, during which no other agent of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+     * another agent was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its schedules, channels, conversations and the agents that hand work to it
+     * name it by id; a parent agent's turns call it by its new slug.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent rename(ai.stigmer.commons.apiresource.RenameInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -578,6 +724,15 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * A request that carries metadata.id of an agent in its organization updates
+     * that agent, and its slug changes only through rename. A slug the agent was
+     * renamed away from, named without the agent's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second agent:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent apply(ai.stigmer.agentic.agent.v1.Agent request) {
@@ -588,6 +743,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
+     * A slug another agent of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another agent was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent create(ai.stigmer.agentic.agent.v1.Agent request) {
@@ -598,6 +759,9 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
+     * The slug changes only through rename. An update that names the agent by a
+     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+     * (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.Agent request) {
@@ -620,6 +784,26 @@ public final class AgentCommandControllerGrpc {
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename an agent: change its slug, the name people type.
+     * The agent keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * agent for reading for 30 days, during which no other agent of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+     * another agent was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its schedules, channels, conversations and the agents that hand work to it
+     * name it by id; a parent agent's turns call it by its new slug.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent rename(ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -674,6 +858,15 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an agent.
+     * A request that carries metadata.id of an agent in its organization updates
+     * that agent, and its slug changes only through rename. A slug the agent was
+     * renamed away from, named without the agent's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second agent:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> apply(
@@ -685,6 +878,12 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent.
+     * A slug another agent of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another agent was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> create(
@@ -696,6 +895,9 @@ public final class AgentCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing agent.
+     * The slug changes only through rename. An update that names the agent by a
+     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+     * (see apply).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> update(
@@ -720,6 +922,27 @@ public final class AgentCommandControllerGrpc {
         ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Rename an agent: change its slug, the name people type.
+     * The agent keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * agent for reading for 30 days, during which no other agent of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+     * another agent was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its schedules, channels, conversations and the agents that hand work to it
+     * name it by id; a parent agent's turns call it by its new slug.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> rename(
+        ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request);
     }
 
     /**
@@ -758,8 +981,9 @@ public final class AgentCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_VISIBILITY = 3;
-  private static final int METHODID_DELETE = 4;
-  private static final int METHODID_TAG_VERSION = 5;
+  private static final int METHODID_RENAME = 4;
+  private static final int METHODID_DELETE = 5;
+  private static final int METHODID_TAG_VERSION = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -792,6 +1016,10 @@ public final class AgentCommandControllerGrpc {
           break;
         case METHODID_UPDATE_VISIBILITY:
           serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
+          break;
+        case METHODID_RENAME:
+          serviceImpl.rename((ai.stigmer.commons.apiresource.RenameInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -848,6 +1076,13 @@ public final class AgentCommandControllerGrpc {
               ai.stigmer.commons.apiresource.UpdateVisibilityInput,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_UPDATE_VISIBILITY)))
+        .addMethod(
+          getRenameMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.RenameInput,
+              ai.stigmer.agentic.agent.v1.Agent>(
+                service, METHODID_RENAME)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -914,6 +1149,7 @@ public final class AgentCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateVisibilityMethod())
+              .addMethod(getRenameMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getTagVersionMethod())
               .build();

@@ -31,6 +31,11 @@ class ChannelAppCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
                 _registered_method=True)
+        self.rename = channel.unary_unary(
+                '/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/rename',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
@@ -48,6 +53,17 @@ class ChannelAppCommandControllerServicer(object):
         If the resource does not exist, creates a new channel app.
         If the resource exists, updates the existing channel app. Sending
         the redaction marker for a secret field preserves the stored value.
+
+        A request that carries metadata.id of a channel app in its organization
+        updates that channel app, and its slug changes only through rename. A slug
+        the channel app was renamed away from, named without the channel app's id,
+        is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"), because a write by a name that stops resolving after
+        30 days would later make a second channel app:
+
+        - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+        app for reading, but a write names its current slug. Metadata: slug
+        (the one the request named).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -58,6 +74,14 @@ class ChannelAppCommandControllerServicer(object):
 
         The creator's organization owns the channel app, and the organization's
         current admins manage it.
+
+        A slug another channel app of the organization holds is refused with
+        ALREADY_EXISTS. A slug another channel app was renamed away from, which
+        still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - SLUG_RESERVED — another channel app held the slug until a recent
+        rename, and it still leads there. Metadata: slug.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -68,6 +92,29 @@ class ChannelAppCommandControllerServicer(object):
 
         Sending the redaction marker for a secret field preserves the
         stored value; the provider arm is immutable.
+
+        The slug changes only through rename. An update that names the channel app
+        by a slug it was renamed away from, without its id, is refused with
+        SLUG_RENAMED (see apply).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def rename(self, request, context):
+        """Rename a channel app: change its slug, the name people type.
+
+        The channel app keeps its id, so everything that names it keeps working,
+        and every answer names it by the new slug. The old slug keeps leading to
+        the channel app for reading for 30 days, during which no other channel app
+        of the organization can take it and this one can take it back; then it is
+        released. A write that names the old slug is refused with SLUG_RENAMED (see
+        apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+        and one another channel app was recently renamed away from with
+        SLUG_RESERVED (see create).
+
+        Its webhook URLs name its id, so nothing registered with Slack or Meta
+        changes.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -99,6 +146,11 @@ def add_ChannelAppCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.SerializeToString,
+            ),
+            'rename': grpc.unary_unary_rpc_method_handler(
+                    servicer.rename,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -188,6 +240,33 @@ class ChannelAppCommandController(object):
             target,
             '/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/update',
             ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def rename(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/rename',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
             options,
             channel_credentials,

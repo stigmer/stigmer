@@ -42,11 +42,14 @@ import {
   alreadyExistsError,
   EXISTING_RESOURCE_KEY,
   failedPreconditionError,
+  findResourceForWrite,
   internalError,
   invalidArgumentError,
+  nameTakenError,
   notFoundError,
   portHolder,
   resolveName,
+  resolveNameEntry,
   TARGET_RESOURCE_KEY,
 } from "@stigmer/server";
 
@@ -77,7 +80,12 @@ export function providerNameHolder(
   return portHolder((id) => providers.findById(id));
 }
 
-/** The org-scoped slug check, before a create persists; ClaimName is the guarantee. */
+/**
+ * The org-scoped slug check, before a create persists; ClaimName is the
+ * guarantee. A slug a renamed provider still answers to is refused with
+ * the library's SLUG_RESERVED (`nameTakenError`); a current holder keeps
+ * the duplicate copy.
+ */
 export function newCheckDuplicateProviderStep(
   names: NameTable,
   providers: Pick<IdentityProviderStore, "findById">,
@@ -90,9 +98,12 @@ export function newCheckDuplicateProviderStep(
       if (slug === "") {
         throw internalError(new Error("resource slug is empty"), "duplicate check");
       }
-      const existing = await findProviderByName(names, providers, metadata?.org ?? "", slug);
-      if (existing !== undefined) {
-        throw duplicateProviderError(existing);
+      const entry = await resolveNameEntry(names, ApiResourceKind.identity_provider, metadata?.org ?? "", slug);
+      const existing = entry === undefined ? undefined : await providers.findById(entry.id);
+      if (entry !== undefined && existing !== undefined) {
+        throw entry.state === "previous"
+          ? nameTakenError(ApiResourceKind.identity_provider, entry)
+          : duplicateProviderError(existing);
       }
     },
   };
@@ -143,7 +154,32 @@ export function newLoadExistingProviderStep(
   };
 }
 
-/** Apply's existence probe by org and slug (after ResolveSlug); never refuses. */
+/**
+ * A rename's refusal of a provider being deleted, after LoadForRename (the
+ * row is under EXISTING_RESOURCE_KEY), with the update's copy: the delete
+ * keeps the provider dark until it runs to the end.
+ */
+export function newRefuseRenamingDeletedProviderStep<Desc extends DescMessage>(
+  providers: Pick<IdentityProviderStore, "isLive">,
+): PipelineStep<Desc> {
+  return {
+    name: "RefuseBeingDeleted",
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
+      const provider = ctx.get(EXISTING_RESOURCE_KEY) as IdentityProvider;
+      if (!(await providers.isLive(provider.metadata?.id ?? ""))) {
+        throw failedPreconditionError(PROVIDER_BEING_DELETED_MESSAGE);
+      }
+    },
+  };
+}
+
+/**
+ * Apply's existence probe (after ResolveSlug), the library's rule for every
+ * write (`findResourceForWrite`): by the id the request carries when a
+ * provider of the request's organization holds it, else by org and slug. A
+ * slug the provider was renamed away from is refused with SLUG_RENAMED;
+ * nothing else refuses here.
+ */
 export function newLoadProviderForApplyStep(
   names: NameTable,
   providers: Pick<IdentityProviderStore, "findById">,
@@ -152,11 +188,16 @@ export function newLoadProviderForApplyStep(
     name: "LoadForApply",
     async execute(ctx: RequestContext<typeof IdentityProviderSchema>): Promise<void> {
       const metadata = ctx.newState.metadata;
-      const slug = metadata?.slug ?? "";
-      if (slug === "") {
+      const target = { id: metadata?.id ?? "", org: metadata?.org ?? "", slug: metadata?.slug ?? "" };
+      if (target.id === "" && target.slug === "") {
         return;
       }
-      const existing = await findProviderByName(names, providers, metadata?.org ?? "", slug);
+      const existing = await findResourceForWrite<typeof IdentityProviderSchema>(
+        names,
+        ApiResourceKind.identity_provider,
+        target,
+        (id) => providers.findById(id),
+      );
       if (existing !== undefined) {
         ctx.set(EXISTING_RESOURCE_KEY, existing);
       }

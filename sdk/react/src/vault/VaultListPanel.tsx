@@ -31,6 +31,7 @@ import { useUpdateVault } from "./useUpdateVault.js";
 import { useVaultEntries } from "./useVaultEntries.js";
 import { isMyVault, useVaultList } from "./useVaultList.js";
 import { VaultEntriesEditor } from "./VaultEntriesEditor.js";
+import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
 /** Props for {@link VaultListPanel}. */
 export interface VaultListPanelProps {
@@ -290,6 +291,16 @@ function VaultDetailsForm({
         <input aria-label="Vault description" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className={INPUT_CLASS} />
         <input aria-label="External id" placeholder="External id" value={externalId} onChange={(e) => setExternalId(e.target.value)} className={INPUT_CLASS} />
       </div>
+      {/* My vault is named after its person and keeps its name. */}
+      {!isMyVault(vault) && (
+        <ResourceSlugField
+          kind="vault"
+          resourceId={vault.metadata?.id || null}
+          currentSlug={vault.metadata?.slug ?? ""}
+          onRenamed={onChanged}
+          className="stg:max-w-md"
+        />
+      )}
       {(error || deleteError) && (
         <p className="stg:text-destructive stg:text-[0.65rem]" role="alert">
           {deleteError ?? (error ? getUserMessage(error) : "")}

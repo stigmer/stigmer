@@ -120,6 +120,42 @@ const handleDelete = async () => {
 ```
 
 
+### useRenameResource
+
+Mutation hook that wraps the kind's `rename()` with loading and error
+state. Whoever may delete a resource may rename it.
+
+**Signature**
+
+```tsx
+function useRenameResource(kind: RenamableResourceKind): UseRenameResourceReturn
+```
+
+<TypeTable
+  type={{
+    kind: { type: "RenamableResourceKind", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseRenameResourceReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed rename, or `null` when healthy." },
+    isRenaming: { type: "boolean", description: "`true` while the rename request is in flight." },
+    rename: { type: "(resourceId: string, slug: string) => Promise<RenamedResource>", description: "Give the resource `resourceId` names the new `slug`. Resolves with the renamed resource; rejects with the server's refusal (a taken or recently held slug, a caller who may not delete the resource)." },
+  }}
+/>
+
+```tsx
+const { rename, isRenaming, error } = useRenameResource("agent");
+
+const renamed = await rename(agent.metadata.id, "support-bot");
+canonicalSlug(renamed.metadata?.slug ?? "");
+```
+
+
 ## Components
 
 ### ConfirmDialog
@@ -163,6 +199,27 @@ const handleDelete = async () => {
   onCancel={handleCancel}
 />
 ```
+
+
+### RenameSlugField
+
+The slug with a Rename action (see the module header).
+
+**Props** — `RenameSlugFieldProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    clearError: { type: "() => void", description: "Clears `error` (on every edit).", required: true },
+    currentSlug: { type: "string", description: "The slug the resource has now, as the page last read it.", required: true },
+    error: { type: "Error | null", description: "The last failed rename's error, shown in place of the hint.", required: true },
+    hint: { type: "ReactNode", description: "The help line under the field.", required: true },
+    isRenaming: { type: "boolean", description: "`true` while the rename request is in flight.", required: true },
+    label: { type: "string", description: "The field's label. Defaults to \"Slug\"." },
+    onRenamed: { type: "(renamed: T) => void", description: "Fired with the renamed resource; the page refetches it.", required: true },
+    rename: { type: "(slug: string) => Promise<T>", description: "Sends the rename to `slug`; rejects with the server's refusal.", required: true },
+  }}
+/>
 
 
 ### ResourceActionBar
@@ -252,6 +309,25 @@ const { agent } = useAgent(org, slug);
   <AgentOverview agent={agent} />
 </ResourceDetailShell>
 ```
+
+
+### ResourceSlugField
+
+A renamable kind's slug field, for whoever may delete the resource (the
+check fails closed); everyone else sees `fallback`.
+
+**Props** — `ResourceSlugFieldProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "" },
+    currentSlug: { type: "string", description: "", required: true },
+    fallback: { type: "ReactNode", description: "What a caller who may not rename sees instead (a read-only slug, or nothing)." },
+    kind: { type: "RenamableResourceKind", description: "", required: true, typeDescriptionLink: "#renamableresourcekind" },
+    onRenamed: { type: "(renamed: RenamedResource) => void", description: "Fired with the renamed resource; the page refetches it or moves to its new address.", required: true },
+    resourceId: { type: "string | null", description: "The resource's id; `null` or empty while it loads.", required: true },
+  }}
+/>
 
 
 ### Section
@@ -368,6 +444,22 @@ the detail page already knows what resource it is showing.
     variant: { type: "\"default\" | \"destructive\"", description: "Visual variant. - `\"default\"` — standard item - `\"destructive\"` — danger styling for delete, revoke, etc." },
   }}
 />
+
+
+### RenamableResourceKind
+
+Resource kinds a person may rename (beside the organization), by the
+kind's enum name: the name a permission check takes.
+
+
+### RenamedResource
+
+The resource a rename answers: its id and slug, as every kind's metadata holds them.
+
+
+### RESOURCE_RENAME_HINT
+
+The help line every renamable kind but the organization shows under its slug.
 
 
 ### ResourceHeaderMeta

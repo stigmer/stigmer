@@ -18,6 +18,7 @@ interface ViewProps {
   onNavigateToAgent: (org: string, slug: string) => void;
   onNavigateToRun: (id: string) => void;
   onDeleted: () => void;
+  onRenamed?: (schedule: Schedule) => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -26,6 +27,7 @@ const page = vi.hoisted(() => ({
   openedRuns: [] as string[],
   openedDetails: [] as Array<[string, string, string]>,
   pushed: [] as string[],
+  canonical: [] as string[],
 }));
 
 vi.mock("@stigmer/react", () => ({
@@ -44,6 +46,7 @@ vi.mock("@/domain/library/library-navigation", () => ({
   useLibraryNavigation: () => ({
     navigateToDetail: (type: string, org: string, slug: string) =>
       page.openedDetails.push([type, org, slug]),
+    canonicalSlug: (slug: string) => page.canonical.push(slug),
   }),
   useRouteDetailYieldsToOverlay: () => false,
 }));
@@ -64,6 +67,7 @@ beforeEach(() => {
   page.openedRuns.length = 0;
   page.openedDetails.length = 0;
   page.pushed.length = 0;
+  page.canonical.length = 0;
 });
 
 afterEach(() => {
@@ -109,5 +113,14 @@ describe("web ScheduleDetailPageInner", () => {
     act(() => view()?.onResourceLoad({ metadata: { name: "", slug: "nightly" } } as Schedule));
 
     expect(page.labels.slice(-2)).toEqual(["Nightly digest", "nightly"]);
+  });
+
+  it("moves the address to the slug the schedule answers to now, and to the one a rename gave it", () => {
+    render(<ScheduleDetailPageInner org="acme" slug="nightly" />);
+
+    act(() => view()?.onResourceLoad({ metadata: { name: "Nightly", slug: "nightly-digest" } } as Schedule));
+    act(() => view()?.onRenamed?.({ metadata: { name: "Nightly", slug: "digest" } } as Schedule));
+
+    expect(page.canonical).toEqual(["nightly-digest", "digest"]);
   });
 });

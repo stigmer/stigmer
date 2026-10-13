@@ -108,6 +108,37 @@ public final class ScheduleCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.agentic.schedule.v1.Schedule> getRenameMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "rename",
+      requestType = ai.stigmer.commons.apiresource.RenameInput.class,
+      responseType = ai.stigmer.agentic.schedule.v1.Schedule.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.agentic.schedule.v1.Schedule> getRenameMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.agentic.schedule.v1.Schedule> getRenameMethod;
+    if ((getRenameMethod = ScheduleCommandControllerGrpc.getRenameMethod) == null) {
+      synchronized (ScheduleCommandControllerGrpc.class) {
+        if ((getRenameMethod = ScheduleCommandControllerGrpc.getRenameMethod) == null) {
+          ScheduleCommandControllerGrpc.getRenameMethod = getRenameMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.agentic.schedule.v1.Schedule>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rename"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.RenameInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.schedule.v1.Schedule.getDefaultInstance()))
+              .setSchemaDescriptor(new ScheduleCommandControllerMethodDescriptorSupplier("rename"))
+              .build();
+        }
+      }
+    }
+    return getRenameMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId,
       ai.stigmer.agentic.schedule.v1.Schedule> getDeleteMethod;
 
@@ -270,6 +301,15 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a schedule.
+     * A request that carries metadata.id of a schedule in its organization
+     * updates that schedule, and its slug changes only through rename. A slug the
+     * schedule was renamed away from, named without the schedule's id, is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second schedule:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     schedule for reading, but a write names its current slug. Metadata:
+     *     slug (the one the request named).
      * </pre>
      */
     default void apply(ai.stigmer.agentic.schedule.v1.Schedule request,
@@ -283,6 +323,12 @@ public final class ScheduleCommandControllerGrpc {
      * Scheduling an agent is a spending decision: every fire creates a run
      * that calls models on the schedule-owning organization's own provider
      * keys, unattended, and the providers bill the organization for them.
+     * A slug another schedule of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     default void create(ai.stigmer.agentic.schedule.v1.Schedule request,
@@ -293,16 +339,39 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing schedule.
-     * Replaces the spec wholesale. The slug, the referenced agent, and the
-     * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, the platform
+     * Replaces the spec wholesale. The referenced agent and the target arm
+     * are immutable; cron, time zone, enablement, and the message may all
+     * change. Status (firing observations, the platform
      * pause) is never touched by updates — use resume to clear a platform
      * pause.
+     * The slug changes only through rename. An update that names the schedule by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     default void update(ai.stigmer.agentic.schedule.v1.Schedule request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename a schedule: change its slug, the name people type.
+     * The schedule keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * schedule for reading for 30 days, during which no other schedule of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+     * one another schedule was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its fires keep their times; a conversation an earlier fire started keeps
+     * the name it was given then.
+     * </pre>
+     */
+    default void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRenameMethod(), responseObserver);
     }
 
     /**
@@ -392,6 +461,15 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a schedule.
+     * A request that carries metadata.id of a schedule in its organization
+     * updates that schedule, and its slug changes only through rename. A slug the
+     * schedule was renamed away from, named without the schedule's id, is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second schedule:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     schedule for reading, but a write names its current slug. Metadata:
+     *     slug (the one the request named).
      * </pre>
      */
     public void apply(ai.stigmer.agentic.schedule.v1.Schedule request,
@@ -406,6 +484,12 @@ public final class ScheduleCommandControllerGrpc {
      * Scheduling an agent is a spending decision: every fire creates a run
      * that calls models on the schedule-owning organization's own provider
      * keys, unattended, and the providers bill the organization for them.
+     * A slug another schedule of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     public void create(ai.stigmer.agentic.schedule.v1.Schedule request,
@@ -417,17 +501,41 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing schedule.
-     * Replaces the spec wholesale. The slug, the referenced agent, and the
-     * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, the platform
+     * Replaces the spec wholesale. The referenced agent and the target arm
+     * are immutable; cron, time zone, enablement, and the message may all
+     * change. Status (firing observations, the platform
      * pause) is never touched by updates — use resume to clear a platform
      * pause.
+     * The slug changes only through rename. An update that names the schedule by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public void update(ai.stigmer.agentic.schedule.v1.Schedule request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename a schedule: change its slug, the name people type.
+     * The schedule keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * schedule for reading for 30 days, during which no other schedule of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+     * one another schedule was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its fires keep their times; a conversation an earlier fire started keeps
+     * the name it was given then.
+     * </pre>
+     */
+    public void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -506,6 +614,15 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a schedule.
+     * A request that carries metadata.id of a schedule in its organization
+     * updates that schedule, and its slug changes only through rename. A slug the
+     * schedule was renamed away from, named without the schedule's id, is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second schedule:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     schedule for reading, but a write names its current slug. Metadata:
+     *     slug (the one the request named).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule apply(ai.stigmer.agentic.schedule.v1.Schedule request) throws io.grpc.StatusException {
@@ -519,6 +636,12 @@ public final class ScheduleCommandControllerGrpc {
      * Scheduling an agent is a spending decision: every fire creates a run
      * that calls models on the schedule-owning organization's own provider
      * keys, unattended, and the providers bill the organization for them.
+     * A slug another schedule of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule create(ai.stigmer.agentic.schedule.v1.Schedule request) throws io.grpc.StatusException {
@@ -529,16 +652,39 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing schedule.
-     * Replaces the spec wholesale. The slug, the referenced agent, and the
-     * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, the platform
+     * Replaces the spec wholesale. The referenced agent and the target arm
+     * are immutable; cron, time zone, enablement, and the message may all
+     * change. Status (firing observations, the platform
      * pause) is never touched by updates — use resume to clear a platform
      * pause.
+     * The slug changes only through rename. An update that names the schedule by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule update(ai.stigmer.agentic.schedule.v1.Schedule request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a schedule: change its slug, the name people type.
+     * The schedule keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * schedule for reading for 30 days, during which no other schedule of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+     * one another schedule was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its fires keep their times; a conversation an earlier fire started keeps
+     * the name it was given then.
+     * </pre>
+     */
+    public ai.stigmer.agentic.schedule.v1.Schedule rename(ai.stigmer.commons.apiresource.RenameInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -614,6 +760,15 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a schedule.
+     * A request that carries metadata.id of a schedule in its organization
+     * updates that schedule, and its slug changes only through rename. A slug the
+     * schedule was renamed away from, named without the schedule's id, is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second schedule:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     schedule for reading, but a write names its current slug. Metadata:
+     *     slug (the one the request named).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule apply(ai.stigmer.agentic.schedule.v1.Schedule request) {
@@ -627,6 +782,12 @@ public final class ScheduleCommandControllerGrpc {
      * Scheduling an agent is a spending decision: every fire creates a run
      * that calls models on the schedule-owning organization's own provider
      * keys, unattended, and the providers bill the organization for them.
+     * A slug another schedule of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule create(ai.stigmer.agentic.schedule.v1.Schedule request) {
@@ -637,16 +798,39 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing schedule.
-     * Replaces the spec wholesale. The slug, the referenced agent, and the
-     * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, the platform
+     * Replaces the spec wholesale. The referenced agent and the target arm
+     * are immutable; cron, time zone, enablement, and the message may all
+     * change. Status (firing observations, the platform
      * pause) is never touched by updates — use resume to clear a platform
      * pause.
+     * The slug changes only through rename. An update that names the schedule by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule update(ai.stigmer.agentic.schedule.v1.Schedule request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a schedule: change its slug, the name people type.
+     * The schedule keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * schedule for reading for 30 days, during which no other schedule of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+     * one another schedule was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its fires keep their times; a conversation an earlier fire started keeps
+     * the name it was given then.
+     * </pre>
+     */
+    public ai.stigmer.agentic.schedule.v1.Schedule rename(ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -722,6 +906,15 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a schedule.
+     * A request that carries metadata.id of a schedule in its organization
+     * updates that schedule, and its slug changes only through rename. A slug the
+     * schedule was renamed away from, named without the schedule's id, is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second schedule:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     schedule for reading, but a write names its current slug. Metadata:
+     *     slug (the one the request named).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> apply(
@@ -736,6 +929,12 @@ public final class ScheduleCommandControllerGrpc {
      * Scheduling an agent is a spending decision: every fire creates a run
      * that calls models on the schedule-owning organization's own provider
      * keys, unattended, and the providers bill the organization for them.
+     * A slug another schedule of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> create(
@@ -747,17 +946,41 @@ public final class ScheduleCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing schedule.
-     * Replaces the spec wholesale. The slug, the referenced agent, and the
-     * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, the platform
+     * Replaces the spec wholesale. The referenced agent and the target arm
+     * are immutable; cron, time zone, enablement, and the message may all
+     * change. Status (firing observations, the platform
      * pause) is never touched by updates — use resume to clear a platform
      * pause.
+     * The slug changes only through rename. An update that names the schedule by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> update(
         ai.stigmer.agentic.schedule.v1.Schedule request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a schedule: change its slug, the name people type.
+     * The schedule keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * schedule for reading for 30 days, during which no other schedule of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+     * one another schedule was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * Its fires keep their times; a conversation an earlier fire started keeps
+     * the name it was given then.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> rename(
+        ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request);
     }
 
     /**
@@ -817,9 +1040,10 @@ public final class ScheduleCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
-  private static final int METHODID_RESUME = 4;
-  private static final int METHODID_TRIGGER = 5;
+  private static final int METHODID_RENAME = 3;
+  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_RESUME = 5;
+  private static final int METHODID_TRIGGER = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -848,6 +1072,10 @@ public final class ScheduleCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.schedule.v1.Schedule) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
+          break;
+        case METHODID_RENAME:
+          serviceImpl.rename((ai.stigmer.commons.apiresource.RenameInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -901,6 +1129,13 @@ public final class ScheduleCommandControllerGrpc {
               ai.stigmer.agentic.schedule.v1.Schedule,
               ai.stigmer.agentic.schedule.v1.Schedule>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getRenameMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.RenameInput,
+              ai.stigmer.agentic.schedule.v1.Schedule>(
+                service, METHODID_RENAME)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -973,6 +1208,7 @@ public final class ScheduleCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getRenameMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getResumeMethod())
               .addMethod(getTriggerMethod())

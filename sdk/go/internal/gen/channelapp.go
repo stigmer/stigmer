@@ -51,6 +51,11 @@ func (c *ChannelAppClient) Update(ctx context.Context, input *ChannelAppInput) (
 	return resp, wrapErr(err)
 }
 
+func (c *ChannelAppClient) Rename(ctx context.Context, input *apiresource.RenameInput) (*channelappv1.ChannelApp, error) {
+	resp, err := c.command.Rename(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (c *ChannelAppClient) Delete(ctx context.Context, input *DeleteResourceInput) (*channelappv1.ChannelApp, error) {
 	resp, err := c.command.Delete(ctx, &apiresource.ApiResourceDeleteInput{
 		ResourceId:     input.ResourceID,

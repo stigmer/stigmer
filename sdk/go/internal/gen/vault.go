@@ -53,6 +53,11 @@ func (v *VaultClient) UpdateVisibility(ctx context.Context, input *apiresource.U
 	return resp, wrapErr(err)
 }
 
+func (v *VaultClient) Rename(ctx context.Context, input *apiresource.RenameInput) (*vaultv1.Vault, error) {
+	resp, err := v.command.Rename(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (v *VaultClient) Delete(ctx context.Context, input *DeleteResourceInput) (*vaultv1.Vault, error) {
 	resp, err := v.command.Delete(ctx, &apiresource.ApiResourceDeleteInput{
 		ResourceId:     input.ResourceID,

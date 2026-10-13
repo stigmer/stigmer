@@ -5,7 +5,7 @@
 
 import { Agent } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
+import { RenameInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 import { AgentId } from "./io_pbjs";
 import { TagAgentVersionInput } from "./version_pbjs";
 
@@ -20,6 +20,17 @@ export const AgentCommandController = {
     /**
      * Create or update an agent.
      *
+     * A request that carries metadata.id of an agent in its organization updates
+     * that agent, and its slug changes only through rename. A slug the agent was
+     * renamed away from, named without the agent's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second agent:
+     *
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
+     *
      * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.apply
      */
     apply: {
@@ -31,6 +42,14 @@ export const AgentCommandController = {
     /**
      * Create an agent.
      *
+     * A slug another agent of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another agent was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     *   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
+     *
      * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.create
      */
     create: {
@@ -41,6 +60,10 @@ export const AgentCommandController = {
     },
     /**
      * Update an existing agent.
+     *
+     * The slug changes only through rename. An update that names the agent by a
+     * slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+     * (see apply).
      *
      * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.update
      */
@@ -67,6 +90,29 @@ export const AgentCommandController = {
     updateVisibility: {
       name: "updateVisibility",
       I: UpdateVisibilityInput,
+      O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Rename an agent: change its slug, the name people type.
+     *
+     * The agent keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * agent for reading for 30 days, during which no other agent of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+     * another agent was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     *
+     * Its schedules, channels, conversations and the agents that hand work to it
+     * name it by id; a parent agent's turns call it by its new slug.
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.rename
+     */
+    rename: {
+      name: "rename",
+      I: RenameInput,
       O: Agent,
       kind: MethodKind.Unary,
     },

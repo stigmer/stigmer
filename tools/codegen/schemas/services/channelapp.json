@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Create or update a channel app.\n\n If the resource does not exist, creates a new channel app.\n If the resource exists, updates the existing channel app. Sending\n the redaction marker for a secret field preserves the stored value."
+          "description": "Create or update a channel app.\n\n If the resource does not exist, creates a new channel app.\n If the resource exists, updates the existing channel app. Sending\n the redaction marker for a secret field preserves the stored value.\n\n A request that carries metadata.id of a channel app in its organization\n updates that channel app, and its slug changes only through rename. A slug\n the channel app was renamed away from, named without the channel app's id,\n is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"), because a write by a name that stops resolving after\n 30 days would later make a second channel app:\n\n   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel\n     app for reading, but a write names its current slug. Metadata: slug\n     (the one the request named)."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Create a channel app.\n\n The creator's organization owns the channel app, and the organization's\n current admins manage it."
+          "description": "Create a channel app.\n\n The creator's organization owns the channel app, and the organization's\n current admins manage it.\n\n A slug another channel app of the organization holds is refused with\n ALREADY_EXISTS. A slug another channel app was renamed away from, which\n still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another channel app held the slug until a recent\n     rename, and it still leads there. Metadata: slug."
         },
         {
           "name": "Update",
@@ -30,7 +30,15 @@
           "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
           "outputType": "ChannelApp",
           "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
-          "description": "Update an existing channel app.\n\n Sending the redaction marker for a secret field preserves the\n stored value; the provider arm is immutable."
+          "description": "Update an existing channel app.\n\n Sending the redaction marker for a secret field preserves the\n stored value; the provider arm is immutable.\n\n The slug changes only through rename. An update that names the channel app\n by a slug it was renamed away from, without its id, is refused with\n SLUG_RENAMED (see apply)."
+        },
+        {
+          "name": "Rename",
+          "inputType": "RenameInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
+          "outputType": "ChannelApp",
+          "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "description": "Rename a channel app: change its slug, the name people type.\n\n The channel app keeps its id, so everything that names it keeps working,\n and every answer names it by the new slug. The old slug keeps leading to\n the channel app for reading for 30 days, during which no other channel app\n of the organization can take it and this one can take it back; then it is\n released. A write that names the old slug is refused with SLUG_RENAMED (see\n apply). A slug another channel app holds is refused with ALREADY_EXISTS,\n and one another channel app was recently renamed away from with\n SLUG_RESERVED (see create).\n\n Its webhook URLs name its id, so nothing registered with Slack or Meta\n changes."
         },
         {
           "name": "Delete",
@@ -75,6 +83,43 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "RenameInput",
+      "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",
+      "protoType": "ai.stigmer.commons.apiresource.RenameInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource being renamed.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The new slug. Same format as metadata.slug, at most 63 characters: the\n longest a reference's org takes.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        }
+      ]
+    },
     {
       "name": "ApiResourceReference",
       "description": "Generic reference to any API resource.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical written format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n A reference has three forms:\n - Written: by name (org and slug), by id, or by both. A write that carries\n   both must have them agree, or it is refused naming both. A name is\n   resolved to its resource's id when the referring resource is written.\n - Stored: org (the organization's id), kind, id and version. The slug is\n   not stored, so a reference keeps pointing at the resource it meant when\n   that resource is renamed, and never at a new resource that takes its old\n   name after it is deleted.\n - Returned: as stored, with slug filled with the resource's current name.\n   A reference whose resource was deleted is returned with an empty slug.\n\n The kind a reference names is the kind its field declares\n (reference_kind); a reference that carries another kind is refused.\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, plugins and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",

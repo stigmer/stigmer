@@ -46,6 +46,9 @@ export function isMyVaultSlug(slug: string): boolean {
 export const MY_VAULT_SLUG_REFUSAL =
   `a shared vault's slug cannot start with '${MY_VAULT_SLUG_PREFIX}': that prefix belongs to each person's own My vault`;
 
+export const MY_VAULT_RENAME_REFUSAL =
+  "My vault is named after its person and keeps its name; a shared vault can be renamed";
+
 export const MY_VAULT_VISIBILITY_REFUSAL =
   "My vault is always private: its logins and secrets serve only its owner's own runs. " +
   "Create a shared vault with only what your team needs, and share that instead";

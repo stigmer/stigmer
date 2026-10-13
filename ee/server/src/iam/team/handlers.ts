@@ -14,7 +14,12 @@
  *                   [TeamPlanGate, when the host fills the port] →
  *                   [GrowthGate, likewise (iam/growth-gate.ts)], then
  *                   the row, then the lifecycle driver's creation event
- *   update          LoadExisting → BuildUpdateState, then the row
+ *   update          LoadExisting → BuildUpdateState, then the row (the
+ *                   store keeps the stored slug, store.ts)
+ *   rename          the library's rename chain over this table
+ *                   (`renameResource`): LoadForRename, ValidateNewSlug,
+ *                   RenameName, PersistRenamed through `modifyById`; the
+ *                   old slug leads to the team for reading for 30 days
  *   getByReference  LoadByReference → AuthorizeResolvedTarget, as `get`;
  *                   a missing slug or id is NOT_FOUND only to the
  *                   organization's viewers and `get`'s denial to anyone else
@@ -39,7 +44,8 @@ import { create } from "@bufbuild/protobuf";
 import type { ServiceImpl } from "@connectrpc/connect";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { Team, TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import type { Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
 import { TeamsSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/io_pb";
 import { TeamQueryController } from "@stigmer/protos/ai/stigmer/iam/team/v1/query_pb";
@@ -52,6 +58,7 @@ import type {
   ResourceAuthorizationLifecycle,
 } from "@stigmer/server";
 import {
+  callerIdentityOf,
   internalError,
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
@@ -59,7 +66,9 @@ import {
   newBuildUpdateStateStep,
   newClaimNameStep,
   newResolveSlugStep,
+  portRenameRows,
   releaseNameOnFailure,
+  renameResource,
   resolveResourceCreatedEvent,
   TARGET_RESOURCE_KEY,
 } from "@stigmer/server";
@@ -142,6 +151,19 @@ export function teamCommands(deps: TeamLaneDeps): Commands {
           kind: ApiResourceKind.team,
           steps: [newLoadExistingTeamStep(deps.teams), newBuildUpdateStateStep()],
         },
+      ),
+    rename: (input, ctx) =>
+      renameResource(
+        {
+          method: method.rename,
+          names: deps.names,
+          rows: portRenameRows(TeamSchema, deps.teams),
+          authorizer: deps.authorizer,
+          logger: deps.logger,
+        },
+        input,
+        callerIdentityOf(ctx),
+        ApiResourceKind.team,
       ),
     delete: (input, ctx) =>
       runUnaryChain(

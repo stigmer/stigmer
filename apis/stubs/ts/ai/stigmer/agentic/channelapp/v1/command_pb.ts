@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ChannelAppSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "./api_pb.js";
-import type { ApiResourceDeleteInputSchema } from "../../../commons/apiresource/io_pb.js";
+import type { ApiResourceDeleteInputSchema, RenameInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/channelapp/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_channelapp_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MTKOBQobQ2hhbm5lbEFwcENvbW1hbmRDb250cm9sbGVyEmMKBWFwcGx5EiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcBosLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAStQEKBmNyZWF0ZRIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAaLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwIk/CuBhLCB8QHiIMbWV0YWRhdGEub3JnKjd1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGNoYW5uZWwgYXBwIGluIHRoaXMgb3JnYW5pemF0aW9uEp8BCgZ1cGRhdGUSLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwGiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcCI5wrgYNQgCEDAiC21ldGFkYXRhLmlkKiJ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGNoYW5uZWwgYXBwEqkBCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBosLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAiOcK4GDUIAxAwIgtyZXNvdXJjZV9pZCoidW5hdXRob3JpemVkIHRvIGRlbGV0ZSBjaGFubmVsIGFwcBoEoP8rMGIGcHJvdG8z", [file_ai_stigmer_agentic_channelapp_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MTKvBgobQ2hhbm5lbEFwcENvbW1hbmRDb250cm9sbGVyEmMKBWFwcGx5EiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcBosLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAStQEKBmNyZWF0ZRIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAaLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwIk/CuBhLCB8QHiIMbWV0YWRhdGEub3JnKjd1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGNoYW5uZWwgYXBwIGluIHRoaXMgb3JnYW5pemF0aW9uEp8BCgZ1cGRhdGUSLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwGiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcCI5wrgYNQgCEDAiC21ldGFkYXRhLmlkKiJ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGNoYW5uZWwgYXBwEp4BCgZyZW5hbWUSKy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuUmVuYW1lSW5wdXQaLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwIjnCuBg1CAMQMCILcmVzb3VyY2VfaWQqInVuYXV0aG9yaXplZCB0byByZW5hbWUgY2hhbm5lbCBhcHASqQEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcCI5wrgYNQgDEDAiC3Jlc291cmNlX2lkKiJ1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGNoYW5uZWwgYXBwGgSg/yswYgZwcm90bzM", [file_ai_stigmer_agentic_channelapp_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ChannelAppCommandController handles write operations for channel apps.
@@ -30,6 +30,17 @@ export const ChannelAppCommandController: GenService<{
    * If the resource exists, updates the existing channel app. Sending
    * the redaction marker for a secret field preserves the stored value.
    *
+   * A request that carries metadata.id of a channel app in its organization
+   * updates that channel app, and its slug changes only through rename. A slug
+   * the channel app was renamed away from, named without the channel app's id,
+   * is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"), because a write by a name that stops resolving after
+   * 30 days would later make a second channel app:
+   *
+   *   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+   *     app for reading, but a write names its current slug. Metadata: slug
+   *     (the one the request named).
+   *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.apply
    */
   apply: {
@@ -42,6 +53,14 @@ export const ChannelAppCommandController: GenService<{
    *
    * The creator's organization owns the channel app, and the organization's
    * current admins manage it.
+   *
+   * A slug another channel app of the organization holds is refused with
+   * ALREADY_EXISTS. A slug another channel app was renamed away from, which
+   * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+   * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   *   - SLUG_RESERVED — another channel app held the slug until a recent
+   *     rename, and it still leads there. Metadata: slug.
    *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.create
    */
@@ -56,11 +75,37 @@ export const ChannelAppCommandController: GenService<{
    * Sending the redaction marker for a secret field preserves the
    * stored value; the provider arm is immutable.
    *
+   * The slug changes only through rename. An update that names the channel app
+   * by a slug it was renamed away from, without its id, is refused with
+   * SLUG_RENAMED (see apply).
+   *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.update
    */
   update: {
     methodKind: "unary";
     input: typeof ChannelAppSchema;
+    output: typeof ChannelAppSchema;
+  },
+  /**
+   * Rename a channel app: change its slug, the name people type.
+   *
+   * The channel app keeps its id, so everything that names it keeps working,
+   * and every answer names it by the new slug. The old slug keeps leading to
+   * the channel app for reading for 30 days, during which no other channel app
+   * of the organization can take it and this one can take it back; then it is
+   * released. A write that names the old slug is refused with SLUG_RENAMED (see
+   * apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+   * and one another channel app was recently renamed away from with
+   * SLUG_RESERVED (see create).
+   *
+   * Its webhook URLs name its id, so nothing registered with Slack or Meta
+   * changes.
+   *
+   * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.rename
+   */
+  rename: {
+    methodKind: "unary";
+    input: typeof RenameInputSchema;
     output: typeof ChannelAppSchema;
   },
   /**

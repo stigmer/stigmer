@@ -15,12 +15,31 @@ service AgentCommandController {
 
   // Create or update an agent.
   //
+  // A request that carries metadata.id of an agent in its organization updates
+  // that agent, and its slug changes only through rename. A slug the agent was
+  // renamed away from, named without the agent's id, is refused with
+  // FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+  // "stigmer.ai"), because a write by a name that stops resolving after 30 days
+  // would later make a second agent:
+  //
+  //   - SLUG_RENAMED — the slug was renamed: it still leads to the same agent
+  //     for reading, but a write names its current slug. Metadata: slug (the
+  //     one the request named).
+  //
   // @internal
   // The authorization and state-operation are determined depending on whether the agent
   // is going to be created or updated which is determined as part of the request execution.
   rpc apply(Agent) returns (Agent);
 
   // Create an agent.
+  //
+  // A slug another agent of the organization holds is refused with
+  // ALREADY_EXISTS. A slug another agent was renamed away from, which still
+  // leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+  // google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+  //
+  //   - SLUG_RESERVED — another agent held the slug until a recent rename, and
+  //     it still leads there. Metadata: slug.
   //
   // @internal
   // Authorization:
@@ -34,6 +53,10 @@ service AgentCommandController {
   }
 
   // Update an existing agent.
+  //
+  // The slug changes only through rename. An update that names the agent by a
+  // slug it was renamed away from, without its id, is refused with SLUG_RENAMED
+  // (see apply).
   rpc update(Agent) returns (Agent) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -64,6 +87,30 @@ service AgentCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;
     option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent visibility";
+  }
+
+  // Rename an agent: change its slug, the name people type.
+  //
+  // The agent keeps its id, so everything that names it keeps working, and
+  // every answer names it by the new slug. The old slug keeps leading to the
+  // agent for reading for 30 days, during which no other agent of the
+  // organization can take it and this one can take it back; then it is
+  // released. A write that names the old slug is refused with SLUG_RENAMED (see
+  // apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
+  // another agent was recently renamed away from with SLUG_RESERVED (see
+  // create).
+  //
+  // Its schedules, channels, conversations and the agents that hand work to it
+  // name it by id; a parent agent's turns call it by its new slug.
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the agent: whoever may
+  // delete it may rename it.
+  rpc rename(ai.stigmer.commons.apiresource.RenameInput) returns (Agent) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rename agent";
   }
 
   // Delete an agent.

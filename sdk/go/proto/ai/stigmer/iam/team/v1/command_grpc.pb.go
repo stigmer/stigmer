@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	TeamCommandController_Create_FullMethodName = "/ai.stigmer.iam.team.v1.TeamCommandController/create"
 	TeamCommandController_Update_FullMethodName = "/ai.stigmer.iam.team.v1.TeamCommandController/update"
+	TeamCommandController_Rename_FullMethodName = "/ai.stigmer.iam.team.v1.TeamCommandController/rename"
 	TeamCommandController_Delete_FullMethodName = "/ai.stigmer.iam.team.v1.TeamCommandController/delete"
 )
 
@@ -50,9 +51,31 @@ type TeamCommandControllerClient interface {
 	//
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
 	//     team that exists keeps working. No metadata.
+	//
+	// A slug another team of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another team was renamed away from, which still
+	// leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another team held the slug until a recent rename, and
+	//     it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error)
 	// Update a team's name or description.
+	//
+	// An update names the team by its id, and the slug changes only through
+	// rename.
 	Update(ctx context.Context, in *Team, opts ...grpc.CallOption) (*Team, error)
+	// Rename a team: change its slug, the name people type.
+	//
+	// The team keeps its id, so everything that names it keeps working, and every
+	// answer names it by the new slug. The old slug keeps leading to the team for
+	// reading for 30 days, during which no other team of the organization can
+	// take it and this one can take it back; then it is released. A slug
+	// another team holds is refused with ALREADY_EXISTS, and one another team was
+	// recently renamed away from with SLUG_RESERVED (see create).
+	//
+	// Its memberships and shares name its id and are unchanged.
+	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Team, error)
 	// Delete a team.
 	//
 	// Deleting a team removes its memberships and every share made with it.
@@ -81,6 +104,16 @@ func (c *teamCommandControllerClient) Update(ctx context.Context, in *Team, opts
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Team)
 	err := c.cc.Invoke(ctx, TeamCommandController_Update_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *teamCommandControllerClient) Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Team, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Team)
+	err := c.cc.Invoke(ctx, TeamCommandController_Rename_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -122,9 +155,31 @@ type TeamCommandControllerServer interface {
 	//
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
 	//     team that exists keeps working. No metadata.
+	//
+	// A slug another team of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another team was renamed away from, which still
+	// leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another team held the slug until a recent rename, and
+	//     it still leads there. Metadata: slug.
 	Create(context.Context, *Team) (*Team, error)
 	// Update a team's name or description.
+	//
+	// An update names the team by its id, and the slug changes only through
+	// rename.
 	Update(context.Context, *Team) (*Team, error)
+	// Rename a team: change its slug, the name people type.
+	//
+	// The team keeps its id, so everything that names it keeps working, and every
+	// answer names it by the new slug. The old slug keeps leading to the team for
+	// reading for 30 days, during which no other team of the organization can
+	// take it and this one can take it back; then it is released. A slug
+	// another team holds is refused with ALREADY_EXISTS, and one another team was
+	// recently renamed away from with SLUG_RESERVED (see create).
+	//
+	// Its memberships and shares name its id and are unchanged.
+	Rename(context.Context, *apiresource.RenameInput) (*Team, error)
 	// Delete a team.
 	//
 	// Deleting a team removes its memberships and every share made with it.
@@ -143,6 +198,9 @@ func (UnimplementedTeamCommandControllerServer) Create(context.Context, *Team) (
 }
 func (UnimplementedTeamCommandControllerServer) Update(context.Context, *Team) (*Team, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedTeamCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*Team, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
 }
 func (UnimplementedTeamCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*Team, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -203,6 +261,24 @@ func _TeamCommandController_Update_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TeamCommandController_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.RenameInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TeamCommandControllerServer).Rename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TeamCommandController_Rename_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TeamCommandControllerServer).Rename(ctx, req.(*apiresource.RenameInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _TeamCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(apiresource.ApiResourceDeleteInput)
 	if err := dec(in); err != nil {
@@ -235,6 +311,10 @@ var TeamCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _TeamCommandController_Update_Handler,
+		},
+		{
+			MethodName: "rename",
+			Handler:    _TeamCommandController_Rename_Handler,
 		},
 		{
 			MethodName: "delete",

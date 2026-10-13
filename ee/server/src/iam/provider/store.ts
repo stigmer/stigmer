@@ -24,6 +24,11 @@
  * faulted delete already revoked. The mark keeps the provider's routes, so
  * no other provider claims them before the row is gone.
  *
+ * A provider's slug is rename's alone (`@stigmer/server`'s rename chain
+ * over `modifyById`): `replace` keeps the stored slug under the row's lock,
+ * so an update that loaded the provider before a rename never writes the
+ * old slug back.
+ *
  * `findAll` and `findLive` are deliberate full-table reads: the boot
  * reconcile wants every provider, the verifier's issuer-cache rebuild
  * every live one, and provider cardinality is platform-scale, not
@@ -55,9 +60,22 @@ export interface IdentityProviderStore {
   insert(provider: IdentityProvider): Promise<ProviderInsertOutcome>;
   /**
    * Rewrites a held provider's payload, SSO flag and route claims, all
-   * or nothing. The org and slug columns never change after create.
+   * or nothing, under the row's lock. The stored slug is kept, and written
+   * onto `provider` too; the org and slug columns do not change.
    */
   replace(provider: IdentityProvider): Promise<ProviderReplaceOutcome>;
+  /**
+   * Atomic read-modify-write by id under the row's lock, for a change of
+   * the payload and the slug alone (a rename): `modify` mutates the stored
+   * provider in place (synchronously), and the payload and the slug column
+   * are written together. A change of the SSO flag or the routes is
+   * `replace`'s and is refused as a programming error. Answers the written
+   * provider; an unknown id answers undefined and writes nothing.
+   */
+  modifyById(
+    id: string,
+    modify: (provider: IdentityProvider) => void,
+  ): Promise<IdentityProvider | undefined>;
   /** The row and its route claims; an unknown id is a no-op. */
   deleteById(id: string): Promise<void>;
   findById(id: string): Promise<IdentityProvider | undefined>;

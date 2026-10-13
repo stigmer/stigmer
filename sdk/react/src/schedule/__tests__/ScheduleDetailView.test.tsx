@@ -117,8 +117,12 @@ interface MockClient {
     trigger: ReturnType<typeof vi.fn>;
     listFires: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
+    rename: ReturnType<typeof vi.fn>;
   };
   manifest: { apply: ReturnType<typeof vi.fn> };
+  // The slug field asks can_delete (whoever may delete may rename);
+  // denied unless a test grants it.
+  iamPolicy: { checkMyPermission: ReturnType<typeof vi.fn> };
   // The vaults inline editor's picker lists the org's vaults, and offers
   // My vault only when the viewer is the schedule's creator.
   vault: { list: ReturnType<typeof vi.fn> };
@@ -146,6 +150,14 @@ function makeClient(schedule: Schedule): MockClient {
         create(ScheduleFireListSchema, { items: [], totalCount: 0 }),
       ),
       delete: vi.fn().mockResolvedValue(schedule),
+      rename: vi.fn(async ({ slug }: { slug: string }) => {
+        const renamed = clone(ScheduleSchema, schedule);
+        renamed.metadata!.slug = slug;
+        return renamed;
+      }),
+    },
+    iamPolicy: {
+      checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: false }),
     },
     manifest: {
       apply: vi.fn(async (doc: { message: unknown }) => ({
@@ -628,6 +640,33 @@ describe("ScheduleDetailView", () => {
     fireEvent.click(screen.getByText("Send today's fee reminders."));
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByRole("button", { name: "Edit cadence" })).toBeNull();
+  });
+
+  it("renames the schedule from its slug field, for whoever may delete it, and reports the new slug", async () => {
+    const client = makeClient(makeSchedule());
+    client.iamPolicy.checkMyPermission.mockResolvedValue({ isAuthorized: true });
+    const onRenamed = vi.fn();
+    renderView(client, { editable: true, onRenamed });
+
+    const field = await screen.findByLabelText("Slug");
+    expect(client.iamPolicy.checkMyPermission).toHaveBeenCalledWith(
+      expect.objectContaining({ relation: "can_delete" }),
+    );
+    fireEvent.change(field, { target: { value: "weekly-fee-reminders" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() => expect(onRenamed).toHaveBeenCalledOnce());
+    expect(client.schedule.rename.mock.calls[0]![0]).toMatchObject({
+      resourceId: "sch_01example",
+      slug: "weekly-fee-reminders",
+    });
+    expect(onRenamed.mock.calls[0]![0].metadata.slug).toBe("weekly-fee-reminders");
+  });
+
+  it("offers no slug field to a caller who may not delete the schedule", async () => {
+    renderView(makeClient(makeSchedule()), { editable: true });
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
   });
 
   it("never offers an edit affordance for the immutable target agent", async () => {

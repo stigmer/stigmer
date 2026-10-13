@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.team.v1.Team",
           "outputType": "Team",
           "outputFullType": "ai.stigmer.iam.team.v1.Team",
-          "description": "Create a team in an organization.\n\n On Stigmer Cloud, teams are a plan feature. An organization whose plan\n lacks them is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include\n     the feature. Metadata: feature (\"teams\"), org.\n\n On Stigmer Enterprise, a new team is growth the server's license pays\n for. Once the license and its grace period have ended, a create is\n refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"), before anything is written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every\n     team that exists keeps working. No metadata."
+          "description": "Create a team in an organization.\n\n On Stigmer Cloud, teams are a plan feature. An organization whose plan\n lacks them is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include\n     the feature. Metadata: feature (\"teams\"), org.\n\n On Stigmer Enterprise, a new team is growth the server's license pays\n for. Once the license and its grace period have ended, a create is\n refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"), before anything is written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every\n     team that exists keeps working. No metadata.\n\n A slug another team of the organization holds is refused with\n ALREADY_EXISTS. A slug another team was renamed away from, which still\n leads to it for 30 days, is refused with ALREADY_EXISTS carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another team held the slug until a recent rename, and\n     it still leads there. Metadata: slug."
         },
         {
           "name": "Update",
@@ -22,7 +22,15 @@
           "inputFullType": "ai.stigmer.iam.team.v1.Team",
           "outputType": "Team",
           "outputFullType": "ai.stigmer.iam.team.v1.Team",
-          "description": "Update a team's name or description."
+          "description": "Update a team's name or description.\n\n An update names the team by its id, and the slug changes only through\n rename."
+        },
+        {
+          "name": "Rename",
+          "inputType": "RenameInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
+          "outputType": "Team",
+          "outputFullType": "ai.stigmer.iam.team.v1.Team",
+          "description": "Rename a team: change its slug, the name people type.\n\n The team keeps its id, so everything that names it keeps working, and every\n answer names it by the new slug. The old slug keeps leading to the team for\n reading for 30 days, during which no other team of the organization can\n take it and this one can take it back; then it is released. A slug\n another team holds is refused with ALREADY_EXISTS, and one another team was\n recently renamed away from with SLUG_RESERVED (see create).\n\n Its memberships and shares name its id and are unchanged."
         },
         {
           "name": "Delete",
@@ -67,6 +75,43 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "RenameInput",
+      "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",
+      "protoType": "ai.stigmer.commons.apiresource.RenameInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource being renamed.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The new slug. Same format as metadata.slug, at most 63 characters: the\n longest a reference's org takes.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        }
+      ]
+    },
     {
       "name": "ApiResourceReference",
       "description": "Generic reference to any API resource.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical written format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n A reference has three forms:\n - Written: by name (org and slug), by id, or by both. A write that carries\n   both must have them agree, or it is refused naming both. A name is\n   resolved to its resource's id when the referring resource is written.\n - Stored: org (the organization's id), kind, id and version. The slug is\n   not stored, so a reference keeps pointing at the resource it meant when\n   that resource is renamed, and never at a new resource that takes its old\n   name after it is deleted.\n - Returned: as stored, with slug filled with the resource's current name.\n   A reference whose resource was deleted is returned with an empty slug.\n\n The kind a reference names is the kind its field declares\n (reference_kind); a reference that carries another kind is refused.\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, plugins and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",

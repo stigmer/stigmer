@@ -49,6 +49,7 @@ import {
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import { liveOrganizationName, refusalForHeldName } from "./names.js";
+import { slugRenamedError } from "../../pipeline/steps/names.js";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
@@ -169,17 +170,27 @@ export function newRefuseOrganizationOrgStep(
 }
 
 /**
- * The organization a request names by id or slug, or undefined. The id is
- * read first; a slug resolves through the name table, so a renamed
- * organization's previous name still finds it.
+ * The organization a write names by id or slug, or undefined. The id is
+ * read first; a slug resolves through the name table, and one the
+ * organization was renamed away from is refused with SLUG_RENAMED, as
+ * every write's is (pipeline/steps/names.ts findResourceForWrite): a file
+ * that kept naming it would make a second organization once the hold
+ * ends.
  */
 async function findOrganization(
   store: Store,
   id: string,
   slug: string,
 ): Promise<Organization | undefined> {
-  const byId = id !== "" ? id : (await liveOrganizationName(store, slug, new Date()))?.id;
-  if (byId === undefined || byId === "") {
+  let byId = id;
+  if (byId === "") {
+    const entry = await liveOrganizationName(store, slug, new Date());
+    if (entry?.state === "previous") {
+      throw slugRenamedError(ApiResourceKind.organization, slug);
+    }
+    byId = entry?.id ?? "";
+  }
+  if (byId === "") {
     return undefined;
   }
   try {
@@ -199,9 +210,10 @@ async function findOrganization(
 /**
  * Apply's existence probe for an organization (the shared LoadForApply's
  * flags and name): by id when the manifest carries one, else by slug
- * through the name table. So a manifest that names an old slug, or that
- * carries the id beside a changed slug, updates its organization instead of
- * making a second one; the slug itself changes only through rename.
+ * through the name table. So a manifest that carries the id beside a
+ * changed slug updates its organization instead of making a second one,
+ * and the slug itself changes only through rename; one that names an old
+ * slug without the id is refused (findOrganization).
  */
 export function newLoadOrganizationForApplyStep(
   store: Store,

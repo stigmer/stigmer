@@ -41,6 +41,12 @@ class PlatformClientClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def rename(self, input: io_pb2.RenameInput) -> api_pb2.PlatformClient:
+        try:
+            return self._command.rename(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, input: DeleteResourceInput) -> api_pb2.PlatformClient:
         try:
             return self._command.delete(input._to_proto())

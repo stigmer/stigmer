@@ -12,7 +12,7 @@ import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/ch
 import { ChannelAppSpecSchema, SlackChannelAppConfigSchema, WhatsAppChannelAppConfigSchema, type SlackChannelAppConfig, type WhatsAppChannelAppConfig } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on channelapp resources. */
@@ -40,6 +40,12 @@ export class ChannelAppClient {
   async update(input: ChannelAppInput): Promise<ChannelApp> {
     try {
       return await this.command.update(buildChannelAppProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async rename(input: RenameInput): Promise<ChannelApp> {
+    try {
+      return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
   }
 

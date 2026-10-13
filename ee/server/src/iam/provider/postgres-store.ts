@@ -132,6 +132,18 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
     async replace(provider): Promise<ProviderReplaceOutcome> {
       const columns = columnsOf(provider);
       return inTransaction<ProviderReplaceOutcome>(pool, async (client) => {
+        const locked = await client.query<ProviderRow>(
+          `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
+          [columns.id],
+        );
+        const held = locked.rows[0];
+        if (held === undefined) {
+          return { commit: false, value: { kind: "missing" } };
+        }
+        const storedSlug = rowToProvider(held).metadata?.slug;
+        if (provider.metadata !== undefined && storedSlug !== undefined) {
+          provider.metadata.slug = storedSlug;
+        }
         let rowCount = 0;
         const refused = await claiming(async () => {
           const updated = await client.query(
@@ -154,6 +166,30 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
         return taken === undefined
           ? { commit: true, value: { kind: "replaced" } }
           : { commit: false, value: { kind: "route-taken", route: taken } };
+      });
+    },
+
+    modifyById(id, modify): Promise<IdentityProvider | undefined> {
+      return inTransaction<IdentityProvider | undefined>(pool, async (client) => {
+        const locked = await client.query<ProviderRow>(
+          `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
+          [id],
+        );
+        const held = locked.rows[0];
+        if (held === undefined) {
+          return { commit: false, value: undefined };
+        }
+        const provider = rowToProvider(held);
+        const before = columnsOf(provider);
+        modify(provider);
+        const after = columnsOf(provider);
+        refuseClaimChange(before, after);
+        await client.query(`UPDATE ${TABLE} SET data = $2, slug = $3 WHERE id = $1`, [
+          id,
+          payloadOf(provider),
+          after.slug,
+        ]);
+        return { commit: true, value: provider };
       });
     },
 
@@ -275,6 +311,24 @@ function claimOf(error: unknown): Claim | undefined {
       return "route";
     default:
       return undefined;
+  }
+}
+
+/**
+ * Refuses a `modifyById` that moved what only `replace` may: the
+ * organization, the SSO flag or a route claim.
+ */
+function refuseClaimChange(before: ProviderColumns, after: ProviderColumns): void {
+  const routeKey = (routes: ReadonlyArray<ProviderRoute>) =>
+    routes.map((route) => `${route.issuer}\u0000${route.audience}`).sort().join("\u0001");
+  if (
+    before.org !== after.org ||
+    before.isSso !== after.isSso ||
+    routeKey(before.routes) !== routeKey(after.routes)
+  ) {
+    throw new Error(
+      "modifyById changes a provider's payload and slug alone; its organization, SSO flag and routes change through replace",
+    );
   }
 }
 

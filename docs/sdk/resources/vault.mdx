@@ -68,6 +68,7 @@ Vault vault = client.vaults().get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`fetchValues`](#fetchvalues) | Fetch the values of a run or of a tools listing, grouped by who declared them, opened from the vaults the run's source manifest names (RunStatus.credentials.sources) as they are now. |
 | [`removeConnections`](#removeconnections) | Remove logins from a vault by address. |
 | [`removeSecrets`](#removesecrets) | Remove secrets from a vault by name. |
+| [`rename`](#rename) | Rename a vault: change its slug, the name people type. |
 | [`setConnection`](#setconnection) | Save a login in a vault at the address of the tool or Git host it is for, replacing any saved at the same address. |
 | [`setSecrets`](#setsecrets) | Save secrets in a vault, replacing any saved under the same names. |
 | [`startConnectLink`](#startconnectlink) | Start the sign-in a Connect link is for. |
@@ -335,6 +336,10 @@ Create a shared vault in an organization.
 
 The vault belongs to the organization and starts empty. It starts private, so only the organization's admins may use it until it is shared, unless it is created with organization visibility (metadata.visibility), which shares it with every member at once.
 
+A slug another vault of the organization holds is refused with ALREADY_EXISTS. A slug another vault was renamed away from, which still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- SLUG_RESERVED — another vault held the slug until a recent rename, and it still leads there. Metadata: slug.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -407,6 +412,10 @@ Vault vault = client.vaults().create(VaultInput.builder()
 Update a vault's name, description and external id.
 
 Entries are kept as stored: change them with setSecrets, removeSecrets, setConnection and removeConnections.
+
+The slug changes only through rename. A slug the vault was renamed away from, named without the vault's id, is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a write by a name that stops resolving after 30 days would later make a second vault:
+
+- SLUG_RENAMED — the slug was renamed: it still leads to the same vault for reading, but a write names its current slug. Metadata: slug (the one the request named).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -843,6 +852,53 @@ Vault vault = client.vaults().removeSecrets(RemoveVaultSecretsInput.builder()
 
 **Returns**: [`Vault`](#vault)
 
+### rename
+
+Rename a vault: change its slug, the name people type.
+
+The vault keeps its id, so everything that names it keeps working, and every answer names it by the new slug. The old slug keeps leading to the vault for reading for 30 days, during which no other vault of the organization can take it and this one can take it back; then it is released. A write that names the old slug is refused with SLUG_RENAMED (see update). A slug another vault holds is refused with ALREADY_EXISTS, and one another vault was recently renamed away from with SLUG_RESERVED (see create).
+
+My vault is named after its person and is never renamed: renaming it is refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault, as on create.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const vault = await stigmer.vault.rename({
+  resourceId: "...",
+  slug: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+vault, err := client.Vault.Rename(ctx, &stigmer.RenameInput{
+  ResourceId: "...",
+  Slug:       "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+vault = client.vaults.rename(RenameInput(
+    resource_id="...",
+    slug="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Vault vault = client.vaults().rename(RenameInput.builder()
+    .resourceId("...")
+    .slug("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RenameInput`](#renameinput)
+
+**Returns**: [`Vault`](#vault)
+
 ### setConnection
 
 Save a login in a vault at the address of the tool or Git host it is for, replacing any saved at the same address.
@@ -1106,6 +1162,17 @@ Input for updating the visibility of any API resource.
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
     visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
+  }}
+/>
+
+### RenameInput
+
+Input for renaming any API resource: changing its slug.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource being renamed.", required: true },
+    slug: { type: "string", description: "The new slug.", required: true },
   }}
 />
 

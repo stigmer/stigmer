@@ -173,12 +173,7 @@ export async function loadByReferenceWithVersion<Desc extends DescMessage>(
     return head;
   }
 
-  const archived = await findAuditByVersion(
-    store,
-    binding,
-    idOf(head),
-    version,
-  );
+  const archived = await findAuditByVersion(store, binding, head, version);
   if (archived === undefined) {
     throw notFoundError(
       `${binding.noun} version`,
@@ -241,15 +236,16 @@ function headMatchesVersion<Desc extends DescMessage>(
 
 /**
  * Indexed audit lookup by hash or tag, decoded with the audit column's tag
- * overlaid — not-found is a normal outcome (undefined), storage failures
- * are Internal.
+ * and the head's slug overlaid (decodeArchived) — not-found is a normal
+ * outcome (undefined), storage failures are Internal.
  */
 async function findAuditByVersion<Desc extends DescMessage>(
   store: Store,
   binding: VersionedResourceBinding<Desc>,
-  resourceId: string,
+  head: MessageShape<Desc>,
   version: string,
 ): Promise<MessageShape<Desc> | undefined> {
+  const resourceId = idOf(head);
   let record: AuditRecord;
   try {
     record = isVersionHash(version)
@@ -264,13 +260,22 @@ async function findAuditByVersion<Desc extends DescMessage>(
       `failed to query ${binding.noun} audit by version`,
     );
   }
-  return decodeArchived(binding, record);
+  return decodeArchived(binding, record, head);
 }
 
-/** An audit row's snapshot with the column's tag written on; a corrupt row is Internal. */
+/**
+ * An audit row's snapshot with the column's tag written on, and the slug
+ * its resource answers to now: a version is its spec, while the slug is
+ * the resource's name, which a rename moves (pipeline/steps/rename.ts).
+ * So a parent pinned to an older version of a renamed subagent calls it
+ * by its current name, and a turn never meets two subagents of one name
+ * once the old one is released and taken. A version's hash covers its
+ * spec alone, so nothing it names moves. A corrupt row is Internal.
+ */
 function decodeArchived<Desc extends DescMessage>(
   binding: VersionedResourceBinding<Desc>,
   record: AuditRecord,
+  head: MessageShape<Desc>,
 ): MessageShape<Desc> {
   let snapshot: MessageShape<Desc>;
   try {
@@ -282,6 +287,11 @@ function decodeArchived<Desc extends DescMessage>(
     );
   }
   binding.overlayTag?.(snapshot, record.tag);
+  const snapshotMetadata = metadataOf(snapshot);
+  const headSlug = metadataOf(head)?.slug ?? "";
+  if (snapshotMetadata !== undefined && headSlug !== "") {
+    snapshotMetadata.slug = headSlug;
+  }
   return snapshot;
 }
 
@@ -547,7 +557,7 @@ export async function loadVersion<Desc extends DescMessage>(
     );
   }
   return {
-    resource: decodeArchived(binding, record),
+    resource: decodeArchived(binding, record, head),
     isCurrent: false,
     tag: record.tag,
   };

@@ -25,6 +25,13 @@
  *     rewrite of the SSO provider itself, and one beside a provider being
  *     deleted are admitted;
  *   - a replace of a row that is gone is `missing`, and writes nothing;
+ *   - a replace keeps the stored slug, a slug it carries included, and
+ *     writes it onto the provider it was handed (rename's door is
+ *     modifyById);
+ *   - modifyById changes the payload and the slug together, so the old
+ *     slug is free in the table and the new one taken, keeps the routes,
+ *     refuses a change of the SSO flag or a route as a programming error,
+ *     and answers undefined for an unknown id, writing nothing;
  *   - a delete frees the provider's routes, and an unknown id resolves;
  *   - a provider marked as being deleted leaves the routing read
  *     (`findLive`) and the SSO read and is not live, while every other
@@ -85,6 +92,53 @@ function provider(fields: {
 }
 
 const CASES: ReadonlyArray<PortContractDeclaration<IdentityProviderStore>> = [
+  [
+    "a replace keeps the stored slug, and writes it onto the provider it was handed",
+    async ({ store }) => {
+      await store.insert(provider({ id: "idp_r1", org: "acme", slug: "kept", issuers: ["https://kept.contract.test"] }));
+      const stale = provider({ id: "idp_r1", org: "acme", slug: "stale", issuers: ["https://kept.contract.test"], displayName: "after" });
+      assert.deepEqual(await store.replace(stale), { kind: "replaced" });
+      const held = await store.findById("idp_r1");
+      assert.equal(held?.spec?.displayName, "after");
+      assert.equal(held?.metadata?.slug, "kept");
+      assert.equal(stale.metadata?.slug, "kept", "the handed provider answers the stored slug");
+    },
+  ],
+  [
+    "modifyById changes the payload and the slug together and keeps the routes; a claim change is refused, and an unknown id writes nothing",
+    async ({ store }) => {
+      await store.insert(provider({ id: "idp_r2", org: "acme", slug: "before-move", issuers: ["https://moved.contract.test"] }));
+      const moveTo = (slug: string) => (held: IdentityProvider) => {
+        if (held.metadata !== undefined) {
+          held.metadata.slug = slug;
+        }
+      };
+      const written = await store.modifyById("idp_r2", moveTo("after-move"));
+      assert.equal(written?.metadata?.slug, "after-move");
+      assert.equal((await store.findById("idp_r2"))?.metadata?.slug, "after-move");
+      assert.equal(await store.findProviderIdByRoute("https://moved.contract.test", AUDIENCE), "idp_r2", "the routes stay");
+      assert.deepEqual(
+        await store.insert(provider({ id: "idp_r3", org: "acme", slug: "after-move", issuers: ["https://r3.contract.test"] })),
+        { kind: "slug-taken" },
+        "the new slug is held",
+      );
+      assert.deepEqual(
+        await store.insert(provider({ id: "idp_r4", org: "acme", slug: "before-move", issuers: ["https://r4.contract.test"] })),
+        { kind: "inserted" },
+        "the old slug is free in the table",
+      );
+      await assert.rejects(
+        store.modifyById("idp_r2", (held) => {
+          if (held.spec !== undefined) {
+            held.spec.allowedIssuers = ["https://elsewhere.contract.test"];
+          }
+        }),
+        "a route change is replace's",
+      );
+      assert.equal(await store.findProviderIdByRoute("https://moved.contract.test", AUDIENCE), "idp_r2");
+      assert.equal(await store.modifyById("idp_unknown", moveTo("anything")), undefined);
+    },
+  ],
   [
     "a provider not fully shaped is refused on insert and replace, and nothing is written",
     async ({ store }) => {

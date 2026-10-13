@@ -23,6 +23,11 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { isPlatformClientExpired } from "./expiry.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import type { ResourceRef } from "@stigmer/sdk";
+import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { keptReference } from "../internal/kept-reference.js";
+
+/** The label the platform sets on its own clients, which refuse a rename as they refuse an update. */
+const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
 /** Props for {@link PlatformClientDetailPanel}. */
 export interface PlatformClientDetailPanelProps {
@@ -194,7 +199,7 @@ export function PlatformClientDetailPanel({
             !neverExpires && expiresAt ? new Date(expiresAt) : undefined,
           ...toClientSignInInput(signIn),
           allowedOrigins: origins,
-          vaults,
+          vaults: vaults.map(keptReference),
         });
         setMode("view");
         onUpdated?.(updated);
@@ -285,6 +290,17 @@ export function PlatformClientDetailPanel({
           </button>
         )}
       </div>
+
+      {/* Rename: for whoever may delete the client; never the platform's own */}
+      {mode === "view" && meta?.labels[SYSTEM_MANAGED_LABEL] !== "true" && (
+        <ResourceSlugField
+          kind="platform_client"
+          resourceId={meta?.id || null}
+          currentSlug={meta?.slug ?? ""}
+          onRenamed={(renamed) => onUpdated?.(renamed as PlatformClient)}
+          className="stg:max-w-md"
+        />
+      )}
 
       {/* Body */}
       {mode === "view" ? (
@@ -850,5 +866,5 @@ function ArrowLeftIcon() {
 
 /** The vaults a client names, as picker references. */
 function vaultRefsOf(spec: PlatformClient["spec"]): ResourceRef[] {
-  return (spec?.vaults ?? []).map((ref) => ({ org: ref.org, slug: ref.slug }));
+  return (spec?.vaults ?? []).map((ref) => ({ org: ref.org, slug: ref.slug, ...(ref.id ? { id: ref.id } : {}) }));
 }

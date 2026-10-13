@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApiResourceDeleteInputSchema } from "../../../commons/apiresource/io_pb.js";
+import type { ApiResourceDeleteInputSchema, RenameInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_iam_platformclient_v1_io } from "./io_pb.js";
  * Describes the file ai/stigmer/iam/platformclient/v1/command.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MTKgBgofUGxhdGZvcm1DbGllbnRDb21tYW5kQ29udHJvbGxlchLPAQoGY3JlYXRlEjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQaPi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlIlPCuBhPCBgQHiIMbWV0YWRhdGEub3JnKjt1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHBsYXRmb3JtIGNsaWVudCBpbiB0aGlzIG9yZ2FuaXphdGlvbhKrAQoGdXBkYXRlEjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQaMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudCI9wrgYOQgCEBciC21ldGFkYXRhLmlkKiZ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHBsYXRmb3JtIGNsaWVudBKxAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudCI9wrgYOQgDEBciC3Jlc291cmNlX2lkKiZ1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHBsYXRmb3JtIGNsaWVudBLCAQoMcm90YXRlU2VjcmV0EjIuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnRJZBo+LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50Q3JlYXRlUmVzcG9uc2UiPsK4GDoIAhAXIgV2YWx1ZSotdW5hdXRob3JpemVkIHRvIHJvdGF0ZSBwbGF0Zm9ybSBjbGllbnQgc2VjcmV0GgSg/ysXYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_platformclient_v1_api, file_ai_stigmer_iam_platformclient_v1_io]);
+  fileDesc("Ci5haS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MTLJBwofUGxhdGZvcm1DbGllbnRDb21tYW5kQ29udHJvbGxlchLPAQoGY3JlYXRlEjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQaPi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlIlPCuBhPCBgQHiIMbWV0YWRhdGEub3JnKjt1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHBsYXRmb3JtIGNsaWVudCBpbiB0aGlzIG9yZ2FuaXphdGlvbhKrAQoGdXBkYXRlEjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQaMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudCI9wrgYOQgCEBciC21ldGFkYXRhLmlkKiZ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHBsYXRmb3JtIGNsaWVudBKmAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQiPcK4GDkIAxAXIgtyZXNvdXJjZV9pZComdW5hdXRob3JpemVkIHRvIHJlbmFtZSBwbGF0Zm9ybSBjbGllbnQSsQEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQiPcK4GDkIAxAXIgtyZXNvdXJjZV9pZComdW5hdXRob3JpemVkIHRvIGRlbGV0ZSBwbGF0Zm9ybSBjbGllbnQSwgEKDHJvdGF0ZVNlY3JldBIyLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50SWQaPi5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlIj7CuBg6CAIQFyIFdmFsdWUqLXVuYXV0aG9yaXplZCB0byByb3RhdGUgcGxhdGZvcm0gY2xpZW50IHNlY3JldBoEoP8rF2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_platformclient_v1_api, file_ai_stigmer_iam_platformclient_v1_io]);
 
 /**
  * PlatformClientCommandController provides write operations for platform client resources.
@@ -44,6 +44,14 @@ export const PlatformClientCommandController: GenService<{
    * system-managed share client) and is rejected with INVALID_ARGUMENT — including
    * when derived from the resource name.
    *
+   * A slug another platform client of the organization holds is refused with
+   * ALREADY_EXISTS. A slug another platform client was renamed away from, which
+   * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+   * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   *   - SLUG_RESERVED — another platform client held the slug until a recent
+   *     rename, and it still leads there. Metadata: slug.
+   *
    * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.create
    */
   create: {
@@ -59,11 +67,45 @@ export const PlatformClientCommandController: GenService<{
    * which are kept from the stored client. Use rotateSecret to change the
    * client secret. A system-managed client cannot be updated.
    *
+   * The slug changes only through rename. A slug the platform client was
+   * renamed away from, named without the platform client's id, is refused with
+   * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+   * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+   * would later make a second platform client:
+   *
+   *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+   *     platform client for reading, but a write names its current slug.
+   *     Metadata: slug (the one the request named).
+   *
    * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.update
    */
   update: {
     methodKind: "unary";
     input: typeof PlatformClientSchema;
+    output: typeof PlatformClientSchema;
+  },
+  /**
+   * Rename a platform client: change its slug, the name people type.
+   *
+   * The platform client keeps its id, so everything that names it keeps
+   * working, and every answer names it by the new slug. The old slug keeps
+   * leading to the platform client for reading for 30 days, during which no
+   * other platform client of the organization can take it and this one can take
+   * it back; then it is released. A write that names the old slug is refused
+   * with SLUG_RENAMED (see update). A slug another platform client holds is
+   * refused with ALREADY_EXISTS, and one another platform client was recently
+   * renamed away from with SLUG_RESERVED (see create).
+   *
+   * Its client_id and its tokens do not name its slug, so the platforms that
+   * use it keep working. A system-managed client cannot be renamed, as it
+   * cannot be updated, and the slug system-share-client is refused with
+   * INVALID_ARGUMENT, as on create.
+   *
+   * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientCommandController.rename
+   */
+  rename: {
+    methodKind: "unary";
+    input: typeof RenameInputSchema;
     output: typeof PlatformClientSchema;
   },
   /**

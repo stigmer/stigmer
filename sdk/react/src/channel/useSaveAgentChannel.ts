@@ -5,6 +5,7 @@ import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchann
 import type { AgentChannelInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { keptReference } from "../internal/kept-reference.js";
 
 /**
  * Rebuild the {@link AgentChannelInput} that reproduces an existing
@@ -41,29 +42,22 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
     org: metadata?.org ?? "",
     ...(Object.keys(labels).length > 0 ? { labels: { ...labels } } : {}),
     ...(metadata?.visibility ? { visibility: metadata.visibility } : {}),
-    agentRef: {
+    agentRef: keptReference({
       org: spec?.agentRef?.org ?? "",
       slug: spec?.agentRef?.slug ?? "",
-    },
+      id: spec?.agentRef?.id ?? "",
+    }),
     enabled: spec?.enabled ?? false,
     ...(spec?.providerConfig?.case === "slack" ? { slack: {} } : {}),
     ...(spec?.providerConfig?.case === "whatsapp"
       ? { whatsapp: { phoneNumberId: spec.providerConfig.value.phoneNumberId } }
       : {}),
-    ...(spec?.appRef?.slug
-      ? {
-          appRef: {
-            org: spec.appRef.org,
-            slug: spec.appRef.slug,
-          },
-        }
+    ...(spec?.appRef?.slug || spec?.appRef?.id
+      ? { appRef: keptReference(spec.appRef) }
       : {}),
     ...(vaults.length > 0
       ? {
-          vaults: vaults.map((ref) => ({
-            org: ref.org,
-            slug: ref.slug,
-          })),
+          vaults: vaults.map(keptReference),
         }
       : {}),
     // run_config rides through verbatim so a settings save or

@@ -34,9 +34,11 @@ import {
   EXISTING_RESOURCE_KEY,
   internalError,
   invalidArgumentError,
+  nameTakenError,
   notFoundError,
   portHolder,
   resolveName,
+  resolveNameEntry,
   TARGET_RESOURCE_KEY,
 } from "@stigmer/server";
 
@@ -65,7 +67,12 @@ export function teamNameHolder(teams: Pick<TeamStore, "findById">): NameHolder {
   return portHolder((id) => teams.findById(id));
 }
 
-/** The org-scoped slug check, before a create persists; ClaimName is the guarantee. */
+/**
+ * The org-scoped slug check, before a create persists; ClaimName is the
+ * guarantee. A slug a renamed team still answers to is refused with the
+ * library's SLUG_RESERVED (`nameTakenError`); a current holder keeps the
+ * duplicate copy.
+ */
 export function newCheckDuplicateTeamStep(
   names: NameTable,
   teams: Pick<TeamStore, "findById">,
@@ -81,9 +88,10 @@ export function newCheckDuplicateTeamStep(
           "duplicate check",
         );
       }
-      const existing = await findTeamByName(names, teams, metadata?.org ?? "", slug);
-      if (existing !== undefined) {
-        throw duplicateTeamError(existing);
+      const entry = await resolveNameEntry(names, ApiResourceKind.team, metadata?.org ?? "", slug);
+      const existing = entry === undefined ? undefined : await teams.findById(entry.id);
+      if (entry !== undefined && existing !== undefined) {
+        throw entry.state === "previous" ? nameTakenError(ApiResourceKind.team, entry) : duplicateTeamError(existing);
       }
     },
   };

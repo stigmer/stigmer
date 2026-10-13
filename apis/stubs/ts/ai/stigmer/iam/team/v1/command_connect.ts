@@ -5,7 +5,7 @@
 
 import { Team } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pbjs";
+import { ApiResourceDeleteInput, RenameInput } from "../../../commons/apiresource/io_pbjs";
 
 /**
  * TeamCommandController provides write operations for teams.
@@ -36,6 +36,14 @@ export const TeamCommandController = {
      *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
      *     team that exists keeps working. No metadata.
      *
+     * A slug another team of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another team was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     *   - SLUG_RESERVED — another team held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
+     *
      * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.create
      */
     create: {
@@ -47,11 +55,34 @@ export const TeamCommandController = {
     /**
      * Update a team's name or description.
      *
+     * An update names the team by its id, and the slug changes only through
+     * rename.
+     *
      * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.update
      */
     update: {
       name: "update",
       I: Team,
+      O: Team,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Rename a team: change its slug, the name people type.
+     *
+     * The team keeps its id, so everything that names it keeps working, and every
+     * answer names it by the new slug. The old slug keeps leading to the team for
+     * reading for 30 days, during which no other team of the organization can
+     * take it and this one can take it back; then it is released. A slug
+     * another team holds is refused with ALREADY_EXISTS, and one another team was
+     * recently renamed away from with SLUG_RESERVED (see create).
+     *
+     * Its memberships and shares name its id and are unchanged.
+     *
+     * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.rename
+     */
+    rename: {
+      name: "rename",
+      I: RenameInput,
       O: Team,
       kind: MethodKind.Unary,
     },

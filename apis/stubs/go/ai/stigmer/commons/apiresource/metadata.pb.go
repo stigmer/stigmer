@@ -33,8 +33,10 @@ type ApiResourceMetadata struct {
 	// URL-friendly identifier, unique within the organization (an
 	// Organization's own slug is unique across the server).
 	// Combined with org, forms the canonical reference: "org/slug".
-	// Fixed once created: update and apply ignore a changed slug. A kind
-	// whose slug may change has a rename RPC (Organization does).
+	// Update and apply never change it: a kind whose slug may change has a
+	// rename RPC (organization, agent, vault, schedule, channel app, OAuth
+	// app, platform client, team and identity provider), after which the old
+	// slug leads to the resource for reading for 30 days.
 	// Format: lowercase alphanumeric characters and hyphens, 2 to 63
 	// characters, the length every reference to a resource holds; must start
 	// with a letter and end with a letter or digit. When empty, the server

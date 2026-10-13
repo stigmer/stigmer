@@ -32,6 +32,11 @@ class PlatformClientCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
                 _registered_method=True)
+        self.rename = channel.unary_unary(
+                '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/rename',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
@@ -66,6 +71,14 @@ class PlatformClientCommandControllerServicer(object):
         The slug `system-share-client` is platform-reserved (it identifies the org's
         system-managed share client) and is rejected with INVALID_ARGUMENT — including
         when derived from the resource name.
+
+        A slug another platform client of the organization holds is refused with
+        ALREADY_EXISTS. A slug another platform client was renamed away from, which
+        still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - SLUG_RESERVED — another platform client held the slug until a recent
+        rename, and it still leads there. Metadata: slug.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -78,6 +91,37 @@ class PlatformClientCommandControllerServicer(object):
         credential fields (client_id, client_secret_hash, secret_fingerprint),
         which are kept from the stored client. Use rotateSecret to change the
         client secret. A system-managed client cannot be updated.
+
+        The slug changes only through rename. A slug the platform client was
+        renamed away from, named without the platform client's id, is refused with
+        FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai"), because a write by a name that stops resolving after 30 days
+        would later make a second platform client:
+
+        - SLUG_RENAMED — the slug was renamed: it still leads to the same
+        platform client for reading, but a write names its current slug.
+        Metadata: slug (the one the request named).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def rename(self, request, context):
+        """Rename a platform client: change its slug, the name people type.
+
+        The platform client keeps its id, so everything that names it keeps
+        working, and every answer names it by the new slug. The old slug keeps
+        leading to the platform client for reading for 30 days, during which no
+        other platform client of the organization can take it and this one can take
+        it back; then it is released. A write that names the old slug is refused
+        with SLUG_RENAMED (see update). A slug another platform client holds is
+        refused with ALREADY_EXISTS, and one another platform client was recently
+        renamed away from with SLUG_RESERVED (see create).
+
+        Its client_id and its tokens do not name its slug, so the platforms that
+        use it keep working. A system-managed client cannot be renamed, as it
+        cannot be updated, and the slug system-share-client is refused with
+        INVALID_ARGUMENT, as on create.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -123,6 +167,11 @@ def add_PlatformClientCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
+            ),
+            'rename': grpc.unary_unary_rpc_method_handler(
+                    servicer.rename,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -195,6 +244,33 @@ class PlatformClientCommandController(object):
             target,
             '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/update',
             ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def rename(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/rename',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_api__pb2.PlatformClient.FromString,
             options,
             channel_credentials,

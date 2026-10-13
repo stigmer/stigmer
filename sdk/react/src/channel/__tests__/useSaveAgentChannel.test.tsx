@@ -101,6 +101,23 @@ describe("agentChannelToInput", () => {
     ]);
   });
 
+  it("sends every stored reference back by its id (stigmer#2172): a renamed or deleted target stays the one meant", () => {
+    const channel = makeChannel({
+      spec: {
+        agentRef: { org: "acme", slug: "support-agent", id: "agt_1" },
+        enabled: true,
+        providerConfig: { case: "slack", value: {} },
+        appRef: { org: "acme", slug: "", id: "chapp_gone" },
+        vaults: [{ org: "acme", slug: "github-credentials", id: "vlt_1" }],
+      },
+    });
+
+    const input = agentChannelToInput(channel);
+    expect(input.agentRef).toEqual({ org: "acme", slug: "", id: "agt_1" });
+    expect(input.appRef, "a deleted app's reference (id, no slug) is kept").toEqual({ org: "acme", slug: "", id: "chapp_gone" });
+    expect(input.vaults).toEqual([{ org: "acme", slug: "", id: "vlt_1" }]);
+  });
+
   it("omits vaults entirely when the channel binds none", () => {
     const input = agentChannelToInput(makeChannel());
     expect(input).not.toHaveProperty("vaults");

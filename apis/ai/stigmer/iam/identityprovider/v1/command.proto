@@ -19,6 +19,18 @@ service IdentityProviderCommandController {
   // Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
   // included.
   //
+  // A request that carries metadata.id of an identity provider in its
+  // organization updates that identity provider, and its slug changes only
+  // through rename. A slug the identity provider was renamed away from, named
+  // without the identity provider's id, is refused with FAILED_PRECONDITION
+  // carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+  // write by a name that stops resolving after 30 days would later make a
+  // second identity provider:
+  //
+  //   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+  //     identity provider for reading, but a write names its current slug.
+  //     Metadata: slug (the one the request named).
+  //
   // @internal
   // Authorization: Requires can_create_idp permission in the organization, for
   // both outcomes; then the create path or the update path runs with its own
@@ -37,6 +49,14 @@ service IdentityProviderCommandController {
   //
   //   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
   //     identity provider that exists keeps signing people in. No metadata.
+  //
+  // A slug another identity provider of the organization holds is refused with
+  // ALREADY_EXISTS. A slug another identity provider was renamed away from,
+  // which still leads to it for 30 days, is refused with ALREADY_EXISTS
+  // carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+  //
+  //   - SLUG_RESERVED — another identity provider held the slug until a recent
+  //     rename, and it still leads there. Metadata: slug.
   //
   // @internal
   // Authorization: Requires can_create_idp permission in the organization.
@@ -59,6 +79,9 @@ service IdentityProviderCommandController {
   //     identity provider keeps signing people in as it is, and can still
   //     be deleted. No metadata.
   //
+  // An update names the identity provider by its id, and the slug changes
+  // only through rename.
+  //
   // @internal
   // Authorization: Requires can_edit permission on the identity provider resource.
   rpc update(IdentityProvider) returns (IdentityProvider) {
@@ -66,6 +89,29 @@ service IdentityProviderCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update identity provider";
+  }
+
+  // Rename an identity provider: change its slug, the name people type.
+  //
+  // The identity provider keeps its id, so everything that names it keeps
+  // working, and every answer names it by the new slug. The old slug keeps
+  // leading to the identity provider for reading for 30 days, during which no
+  // other identity provider of the organization can take it and this one can
+  // take it back; then it is released. A write that names the old slug is
+  // refused with SLUG_RENAMED (see apply). A slug another identity provider
+  // holds is refused with ALREADY_EXISTS, and one another identity provider was
+  // recently renamed away from with SLUG_RESERVED (see create).
+  //
+  // Sign-in does not name its slug, so the people it signs in keep signing in.
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the identity provider:
+  // whoever may delete it may rename it.
+  rpc rename(ai.stigmer.commons.apiresource.RenameInput) returns (IdentityProvider) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = identity_provider;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rename identity provider";
   }
 
   // Delete an identity provider.

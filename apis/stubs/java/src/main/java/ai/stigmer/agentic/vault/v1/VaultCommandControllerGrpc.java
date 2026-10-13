@@ -108,6 +108,37 @@ public final class VaultCommandControllerGrpc {
     return getUpdateVisibilityMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.agentic.vault.v1.Vault> getRenameMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "rename",
+      requestType = ai.stigmer.commons.apiresource.RenameInput.class,
+      responseType = ai.stigmer.agentic.vault.v1.Vault.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.agentic.vault.v1.Vault> getRenameMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.agentic.vault.v1.Vault> getRenameMethod;
+    if ((getRenameMethod = VaultCommandControllerGrpc.getRenameMethod) == null) {
+      synchronized (VaultCommandControllerGrpc.class) {
+        if ((getRenameMethod = VaultCommandControllerGrpc.getRenameMethod) == null) {
+          VaultCommandControllerGrpc.getRenameMethod = getRenameMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.agentic.vault.v1.Vault>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rename"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.RenameInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.vault.v1.Vault.getDefaultInstance()))
+              .setSchemaDescriptor(new VaultCommandControllerMethodDescriptorSupplier("rename"))
+              .build();
+        }
+      }
+    }
+    return getRenameMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceDeleteInput,
       ai.stigmer.agentic.vault.v1.Vault> getDeleteMethod;
 
@@ -429,6 +460,12 @@ public final class VaultCommandControllerGrpc {
      * private, so only the organization's admins may use it until it is
      * shared, unless it is created with organization visibility
      * (metadata.visibility), which shares it with every member at once.
+     * A slug another vault of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another vault was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another vault held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     default void create(ai.stigmer.agentic.vault.v1.Vault request,
@@ -441,6 +478,14 @@ public final class VaultCommandControllerGrpc {
      * Update a vault's name, description and external id.
      * Entries are kept as stored: change them with setSecrets, removeSecrets,
      * setConnection and removeConnections.
+     * The slug changes only through rename. A slug the vault was renamed away
+     * from, named without the vault's id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+     * write by a name that stops resolving after 30 days would later make a
+     * second vault:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     default void update(ai.stigmer.agentic.vault.v1.Vault request,
@@ -458,6 +503,27 @@ public final class VaultCommandControllerGrpc {
     default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename a vault: change its slug, the name people type.
+     * The vault keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * vault for reading for 30 days, during which no other vault of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+     * another vault was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * My vault is named after its person and is never renamed: renaming it is
+     * refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+     * as on create.
+     * </pre>
+     */
+    default void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRenameMethod(), responseObserver);
     }
 
     /**
@@ -603,6 +669,12 @@ public final class VaultCommandControllerGrpc {
      * private, so only the organization's admins may use it until it is
      * shared, unless it is created with organization visibility
      * (metadata.visibility), which shares it with every member at once.
+     * A slug another vault of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another vault was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another vault held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     public void create(ai.stigmer.agentic.vault.v1.Vault request,
@@ -616,6 +688,14 @@ public final class VaultCommandControllerGrpc {
      * Update a vault's name, description and external id.
      * Entries are kept as stored: change them with setSecrets, removeSecrets,
      * setConnection and removeConnections.
+     * The slug changes only through rename. A slug the vault was renamed away
+     * from, named without the vault's id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+     * write by a name that stops resolving after 30 days would later make a
+     * second vault:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     public void update(ai.stigmer.agentic.vault.v1.Vault request,
@@ -635,6 +715,28 @@ public final class VaultCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename a vault: change its slug, the name people type.
+     * The vault keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * vault for reading for 30 days, during which no other vault of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+     * another vault was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * My vault is named after its person and is never renamed: renaming it is
+     * refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+     * as on create.
+     * </pre>
+     */
+    public void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -774,6 +876,12 @@ public final class VaultCommandControllerGrpc {
      * private, so only the organization's admins may use it until it is
      * shared, unless it is created with organization visibility
      * (metadata.visibility), which shares it with every member at once.
+     * A slug another vault of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another vault was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another vault held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.Vault create(ai.stigmer.agentic.vault.v1.Vault request) throws io.grpc.StatusException {
@@ -786,6 +894,14 @@ public final class VaultCommandControllerGrpc {
      * Update a vault's name, description and external id.
      * Entries are kept as stored: change them with setSecrets, removeSecrets,
      * setConnection and removeConnections.
+     * The slug changes only through rename. A slug the vault was renamed away
+     * from, named without the vault's id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+     * write by a name that stops resolving after 30 days would later make a
+     * second vault:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.Vault update(ai.stigmer.agentic.vault.v1.Vault request) throws io.grpc.StatusException {
@@ -803,6 +919,27 @@ public final class VaultCommandControllerGrpc {
     public ai.stigmer.agentic.vault.v1.Vault updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a vault: change its slug, the name people type.
+     * The vault keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * vault for reading for 30 days, during which no other vault of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+     * another vault was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * My vault is named after its person and is never renamed: renaming it is
+     * refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+     * as on create.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.Vault rename(ai.stigmer.commons.apiresource.RenameInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -934,6 +1071,12 @@ public final class VaultCommandControllerGrpc {
      * private, so only the organization's admins may use it until it is
      * shared, unless it is created with organization visibility
      * (metadata.visibility), which shares it with every member at once.
+     * A slug another vault of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another vault was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another vault held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.Vault create(ai.stigmer.agentic.vault.v1.Vault request) {
@@ -946,6 +1089,14 @@ public final class VaultCommandControllerGrpc {
      * Update a vault's name, description and external id.
      * Entries are kept as stored: change them with setSecrets, removeSecrets,
      * setConnection and removeConnections.
+     * The slug changes only through rename. A slug the vault was renamed away
+     * from, named without the vault's id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+     * write by a name that stops resolving after 30 days would later make a
+     * second vault:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     public ai.stigmer.agentic.vault.v1.Vault update(ai.stigmer.agentic.vault.v1.Vault request) {
@@ -963,6 +1114,27 @@ public final class VaultCommandControllerGrpc {
     public ai.stigmer.agentic.vault.v1.Vault updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a vault: change its slug, the name people type.
+     * The vault keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * vault for reading for 30 days, during which no other vault of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+     * another vault was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * My vault is named after its person and is never renamed: renaming it is
+     * refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+     * as on create.
+     * </pre>
+     */
+    public ai.stigmer.agentic.vault.v1.Vault rename(ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1094,6 +1266,12 @@ public final class VaultCommandControllerGrpc {
      * private, so only the organization's admins may use it until it is
      * shared, unless it is created with organization visibility
      * (metadata.visibility), which shares it with every member at once.
+     * A slug another vault of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another vault was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another vault held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.Vault> create(
@@ -1107,6 +1285,14 @@ public final class VaultCommandControllerGrpc {
      * Update a vault's name, description and external id.
      * Entries are kept as stored: change them with setSecrets, removeSecrets,
      * setConnection and removeConnections.
+     * The slug changes only through rename. A slug the vault was renamed away
+     * from, named without the vault's id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+     * write by a name that stops resolving after 30 days would later make a
+     * second vault:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.Vault> update(
@@ -1126,6 +1312,28 @@ public final class VaultCommandControllerGrpc {
         ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a vault: change its slug, the name people type.
+     * The vault keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * vault for reading for 30 days, during which no other vault of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+     * another vault was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     * My vault is named after its person and is never renamed: renaming it is
+     * refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+     * as on create.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.vault.v1.Vault> rename(
+        ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request);
     }
 
     /**
@@ -1242,14 +1450,15 @@ public final class VaultCommandControllerGrpc {
   private static final int METHODID_CREATE = 0;
   private static final int METHODID_UPDATE = 1;
   private static final int METHODID_UPDATE_VISIBILITY = 2;
-  private static final int METHODID_DELETE = 3;
-  private static final int METHODID_SET_SECRETS = 4;
-  private static final int METHODID_REMOVE_SECRETS = 5;
-  private static final int METHODID_SET_CONNECTION = 6;
-  private static final int METHODID_REMOVE_CONNECTIONS = 7;
-  private static final int METHODID_START_SIGN_IN = 8;
-  private static final int METHODID_COMPLETE_SIGN_IN = 9;
-  private static final int METHODID_CREATE_CONNECT_LINK = 10;
+  private static final int METHODID_RENAME = 3;
+  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_SET_SECRETS = 5;
+  private static final int METHODID_REMOVE_SECRETS = 6;
+  private static final int METHODID_SET_CONNECTION = 7;
+  private static final int METHODID_REMOVE_CONNECTIONS = 8;
+  private static final int METHODID_START_SIGN_IN = 9;
+  private static final int METHODID_COMPLETE_SIGN_IN = 10;
+  private static final int METHODID_CREATE_CONNECT_LINK = 11;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1278,6 +1487,10 @@ public final class VaultCommandControllerGrpc {
           break;
         case METHODID_UPDATE_VISIBILITY:
           serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault>) responseObserver);
+          break;
+        case METHODID_RENAME:
+          serviceImpl.rename((ai.stigmer.commons.apiresource.RenameInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.vault.v1.Vault>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -1351,6 +1564,13 @@ public final class VaultCommandControllerGrpc {
               ai.stigmer.commons.apiresource.UpdateVisibilityInput,
               ai.stigmer.agentic.vault.v1.Vault>(
                 service, METHODID_UPDATE_VISIBILITY)))
+        .addMethod(
+          getRenameMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.RenameInput,
+              ai.stigmer.agentic.vault.v1.Vault>(
+                service, METHODID_RENAME)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1458,6 +1678,7 @@ public final class VaultCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateVisibilityMethod())
+              .addMethod(getRenameMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getSetSecretsMethod())
               .addMethod(getRemoveSecretsMethod())
