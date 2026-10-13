@@ -161,7 +161,10 @@ jobs:
       # each runner change). A registry cache in its own package, one tag
       # per arch, not type=gha, whose export has hung releases for up to an
       # hour (release.mcp-server, v3.1.11); a failed cache export is ignored,
-      # so the cache can slow a release down but never fail one.
+      # so the cache can slow a release down but never fail one. A dev build
+      # reads the cache and never writes it: it may come from a branch, and
+      # a branch's base would otherwise replace main's cache, so the next
+      # main build would rebuild the base and every node pull it again.
       # A v* tag's build writes its release into the runner layer
       # (/runner/RELEASE, the tag without its v), which the start script
       # holds against the server's release (stigmer/stigmer#1831); every
@@ -176,6 +179,7 @@ jobs:
           IMAGE: ghcr.io/${{ github.repository_owner }}/runner
           STAGE: ${{ steps.tags.outputs.stage }}
           LAYER_RELEASE: ${{ steps.tags.outputs.layer_release }}
+          DEV_VERSION: ${{ inputs.dev_version }}
         run: |
           if [ "$ARCH" = "amd64" ]; then
             OUTPUT=(--tag "$IMAGE:$STAGE" --push)
@@ -186,12 +190,16 @@ jobs:
           if [ -n "$LAYER_RELEASE" ]; then
             RELEASE=(--build-arg "RUNNER_LAYER_RELEASE=$LAYER_RELEASE")
           fi
+          CACHE_TO=()
+          if [ -z "$DEV_VERSION" ]; then
+            CACHE_TO=(--cache-to "type=registry,ref=$CACHE_REF,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true")
+          fi
           docker buildx build \
             --platform "linux/$ARCH" \
             --target sandbox \
             "${RELEASE[@]}" \
             --cache-from "type=registry,ref=$CACHE_REF" \
-            --cache-to "type=registry,ref=$CACHE_REF,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true" \
+            "${CACHE_TO[@]}" \
             --file backend/services/runner/Dockerfile.sandbox \
             "${OUTPUT[@]}" \
             .

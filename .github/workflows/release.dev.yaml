@@ -334,9 +334,9 @@ jobs:
 
   # The sandbox runner images of this build (release.runner-images.yaml, the
   # lane release.sandbox-cloud runs for main and the release tags), tagged
-  # v<npm version> after the in-image smoke: the server finds its runner by
-  # its own version, so a composition pinning this build needs no image
-  # named by hand. Never latest or prod, and the layer is a development
+  # v<npm version> after the in-image smoke: a composition that selects its
+  # runner by its pin (the cloud's runnerImageFor) finds it by the version it
+  # pins, so it names no image by hand. Never latest or prod, and the layer is a development
   # layer (a dev server sends no release). Read and write packages only:
   # the lane's failure notice stays with release.sandbox-cloud.
   publish-runner-image:
@@ -718,7 +718,7 @@ jobs:
                 echo "ghcr.io/stigmer/runner-layer:v$NPM_VERSION   (linux/amd64, linux/arm64)"
                 echo "ghcr.io/stigmer/runner-base:v$NPM_VERSION    (linux/amd64, linux/arm64)"
                 echo '```'
-                echo "Booted in the image before publishing. A server of this version launches \`runner:v$NPM_VERSION\` by its own version."
+                echo "Booted in the image before publishing. A composition that selects its runner by its pin launches \`runner:v$NPM_VERSION\`; the open-source server itself follows \`latest\` on a dev version."
               else
                 echo "Not published (\`publish-runner-image\`: $RUNNER_RESULT)."
               fi
