@@ -28,15 +28,8 @@ import {
   StigmerPermissionAskedEventSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import {
-  RUNNER_EVENT_TYPES,
-  SESSION_EVENT_TYPES,
-  SESSION_STATUS_TYPES,
-  eventCaseOf,
-  eventIdOf,
-  eventTypeOf,
-  isStigmerEventType,
-} from "../catalog.js";
+import { SESSION_EVENT_TYPES, isStigmerEventType } from "@stigmer/session-log";
+import { RUNNER_EVENT_TYPES, SESSION_STATUS_TYPES } from "../catalog.js";
 import { draftOf, eventOf } from "../codec.js";
 import {
   actionOfWord,
@@ -47,15 +40,6 @@ import {
 } from "../../filereview/words.js";
 
 describe("the catalog", () => {
-  it("every oneof member declares a distinct dotted type", () => {
-    expect(SESSION_EVENT_TYPES.length).toBe(SessionEventSchema.oneofs[0]!.fields.length);
-    expect(new Set(SESSION_EVENT_TYPES).size).toBe(SESSION_EVENT_TYPES.length);
-    for (const type of SESSION_EVENT_TYPES) {
-      expect(type).toMatch(isStigmerEventType(type) ? /^stigmer(\.[a-z_]+){2}$/ : /^[a-z_]+\.[a-z_]+$/);
-      expect(eventCaseOf(type)).toBeDefined();
-    }
-  });
-
   it("every Stigmer event but a file-review decision, a permission grant and a turn's status is the runner's to append", () => {
     const own = SESSION_EVENT_TYPES.filter(isStigmerEventType);
     expect(own).toEqual([
@@ -90,12 +74,6 @@ describe("the catalog", () => {
     for (const type of ["user.message", ...SESSION_STATUS_TYPES, "stigmer.file_review.decided"]) {
       expect(RUNNER_EVENT_TYPES.has(type)).toBe(false);
     }
-  });
-
-  it("an event without one has no type, and no id", () => {
-    const empty = create(SessionEventSchema, {});
-    expect(() => eventTypeOf(empty)).toThrow();
-    expect(eventIdOf(empty)).toBe("");
   });
 });
 

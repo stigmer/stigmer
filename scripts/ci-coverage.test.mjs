@@ -49,6 +49,7 @@ const SUBJECTS = {
   "backend/libs/ts/outbound": { script: "test", jobs: [LIBS] },
   "backend/libs/ts/plugin-package": { script: "test", jobs: [LIBS] },
   "backend/libs/ts/temporal-codecs": { script: "test", jobs: [LIBS] },
+  "backend/libs/ts/session-log": { script: "test", jobs: [LIBS] },
   "backend/libs/ts/tool-vocabulary": { script: "test", jobs: [LIBS] },
   "backend/libs/ts/zip-structure": { script: "test", jobs: [LIBS] },
   "backend/services/runner": { script: "test", jobs: [["ci.runner.yaml", "runner-vitest"]] },

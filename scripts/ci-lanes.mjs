@@ -93,6 +93,7 @@ export const LANES = {
       "backend/libs/ts/eval-runtime/**",
       "backend/libs/ts/outbound/**",
       "backend/libs/ts/plugin-package/**",
+      "backend/libs/ts/session-log/**",
       "backend/libs/ts/temporal-codecs/**",
       "backend/libs/ts/tool-vocabulary/**",
       "backend/libs/ts/zip-structure/**",

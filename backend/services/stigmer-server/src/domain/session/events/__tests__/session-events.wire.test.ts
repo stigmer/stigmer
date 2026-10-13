@@ -25,12 +25,12 @@ import { SessionEventPreviewSchema } from "@stigmer/protos/ai/stigmer/agentic/se
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { eventTypeOf } from "@stigmer/session-log";
 import { loadConfig } from "../../../../boot/config.js";
 import { composeServer } from "../../../../boot/compose.js";
 import type { ComposedServer } from "../../../../boot/compose.js";
 import { createLogger } from "../../../../boot/logger.js";
 import { seedOrganizations } from "../../../organization/__tests__/support.js";
-import { eventTypeOf } from "../catalog.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../run-writes.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });

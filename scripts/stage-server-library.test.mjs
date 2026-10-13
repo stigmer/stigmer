@@ -105,6 +105,7 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "@stigmer/outbound",
     "@stigmer/plugin-package",
     "@stigmer/protos",
+    "@stigmer/session-log",
     "@stigmer/temporal-codecs",
     "@stigmer/tool-vocabulary",
     "@stigmer/zip-structure",
@@ -117,5 +118,6 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "backend/libs/ts/plugin-package",
     "backend/libs/ts/outbound",
     "backend/libs/ts/tool-vocabulary",
+    "backend/libs/ts/session-log",
   ]);
 });

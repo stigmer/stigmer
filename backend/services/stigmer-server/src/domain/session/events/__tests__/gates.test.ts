@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import { eventTypeOf } from "../catalog.js";
+import { eventTypeOf } from "@stigmer/session-log";
 import { SESSION_EVENT_GATES, gatesOfEvent } from "../gates.js";
 
 const event = (value: MessageInitShape<typeof SessionEventSchema>["event"]) => create(SessionEventSchema, { event: value });

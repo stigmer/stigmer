@@ -588,6 +588,13 @@ describe("Stigmer's own events render by the same three rules, under their stigm
   });
 });
 
+describe("a renderer given nothing", () => {
+  it("refuses an event or a frame that holds nothing", () => {
+    expect(() => toManagedAgentsJson(create(SessionEventSchema, {}))).toThrow(/must hold an event/);
+    expect(() => toManagedAgentsStreamJson(create(StreamSessionEventsResponseSchema, {}))).toThrow(/must hold a frame/);
+  });
+});
+
 describe("stream previews render as the SDK's event_start and event_delta", () => {
   it("event_start", () => {
     const frame = create(StreamSessionEventsResponseSchema, {

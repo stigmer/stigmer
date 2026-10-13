@@ -17,7 +17,7 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
-import { eventTypeOf } from "../catalog.js";
+import { eventTypeOf } from "@stigmer/session-log";
 import { runPhaseWordOf, sessionEventsForTransition, sessionIdOfRun, sessionStatusOf } from "../transitions.js";
 import type { RunTransition, SessionNow, SessionStatusNow } from "../transitions.js";
 

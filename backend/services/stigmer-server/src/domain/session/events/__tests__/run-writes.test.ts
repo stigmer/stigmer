@@ -24,13 +24,13 @@ import {
 import { FileDecisionSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { eventTypeOf } from "@stigmer/session-log";
 import { createLogger } from "../../../../boot/logger.js";
 import { ResourceNotFoundError } from "../../../../store/interface.js";
 import type { Store } from "../../../../store/interface.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { SessionEventBroker } from "../broker.js";
-import { eventTypeOf } from "../catalog.js";
 import { eventOf } from "../codec.js";
 import {
   createRunAppendingEvents,

@@ -2,8 +2,7 @@
  * Pins the edges of the read side and the delete step: a list page's store
  * fault is a sanitized INTERNAL and a token that does not carry a place in
  * the log is refused (list.ts `readSessionEventPage`); a session's event
- * delete answers a store fault as INTERNAL (delete-step.ts); the renderer
- * refuses an event or a stream frame that holds nothing (render.ts); and a
+ * delete answers a store fault as INTERNAL (delete-step.ts); and a
  * preview holding nothing reaches no stream (broker.ts).
  */
 import { create } from "@bufbuild/protobuf";
@@ -14,7 +13,6 @@ import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v
 import {
   ListSessionEventsRequestSchema,
   SessionEventPreviewSchema,
-  StreamSessionEventsResponseSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -30,7 +28,6 @@ import { SessionEventBroker } from "../broker.js";
 import { draftOf } from "../codec.js";
 import { newDeleteSessionEventsStep } from "../delete-step.js";
 import { SESSION_EVENT_PAGE_MAX_BYTES, readSessionEventPage } from "../list.js";
-import { toManagedAgentsJson, toManagedAgentsStreamJson } from "../render.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -164,12 +161,7 @@ describe("the session's event delete", () => {
   });
 });
 
-describe("the renderer and the broker, given nothing", () => {
-  it("refuses an event or a frame that holds nothing", () => {
-    expect(() => toManagedAgentsJson(create(SessionEventSchema, {}))).toThrow(/must hold an event/);
-    expect(() => toManagedAgentsStreamJson(create(StreamSessionEventsResponseSchema, {}))).toThrow(/must hold a frame/);
-  });
-
+describe("the broker, given nothing", () => {
   it("a preview holding nothing reaches no stream", () => {
     const broker = new SessionEventBroker(silentLogger);
     const stream = broker.subscribe("s1", ["agent.message", "agent.thinking"]);
