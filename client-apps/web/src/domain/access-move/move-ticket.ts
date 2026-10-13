@@ -27,7 +27,11 @@ export function readPendingMove(): PendingMove | null {
     const parsed: unknown = JSON.parse(raw);
     if (parsed === null || typeof parsed !== "object") return null;
     const { ticket, org } = parsed as Record<string, unknown>;
-    return typeof ticket === "string" && ticket !== "" && typeof org === "string" ? { ticket, org } : null;
+    return typeof ticket === "string" &&
+      ticket !== "" &&
+      typeof org === "string"
+      ? { ticket, org }
+      : null;
   } catch {
     return null;
   }

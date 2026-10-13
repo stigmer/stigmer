@@ -25,11 +25,15 @@ export function AccessMoveFinishPage() {
     if (asked.current) return;
     asked.current = true;
     const pending = readPendingMove();
-    if (pending === null) {
-      setMissing(true);
-      return;
-    }
-    redeem(pending.ticket).then(setResult, () => undefined).finally(clearPendingMove);
+    const moved =
+      pending === null
+        ? Promise.resolve(null)
+        : redeem(pending.ticket).finally(clearPendingMove);
+    moved.then(
+      (answer) => (answer === null ? setMissing(true) : setResult(answer)),
+      // The hook holds the error, shown below.
+      () => undefined,
+    );
   }, [redeem]);
 
   return (
@@ -37,7 +41,8 @@ export function AccessMoveFinishPage() {
       <h1 className="text-lg font-semibold">Bring your access with you</h1>
       {missing ? (
         <p className="text-muted-foreground text-sm">
-          There is no move to finish in this tab. Start it again from the organization&apos;s sign-in notice.
+          There is no move to finish in this tab. Start it again from the
+          organization&apos;s sign-in notice.
         </p>
       ) : error ? (
         <p role="alert" className="text-destructive text-sm">
@@ -47,9 +52,20 @@ export function AccessMoveFinishPage() {
         <p className="text-muted-foreground text-sm">Moving your access…</p>
       ) : (
         <>
-          <p className="text-sm">Your access moved to the account you just signed in with.</p>
-          {result.moved && <AccessMoveSummary move={result.moved} invitationIds={result.invitationIds} moved />}
-          <Link href="/" className="text-primary text-sm font-medium hover:underline">
+          <p className="text-sm">
+            Your access moved to the account you just signed in with.
+          </p>
+          {result.moved && (
+            <AccessMoveSummary
+              move={result.moved}
+              invitationIds={result.invitationIds}
+              moved
+            />
+          )}
+          <Link
+            href="/"
+            className="text-primary text-sm font-medium hover:underline"
+          >
             Go to the dashboard
           </Link>
         </>

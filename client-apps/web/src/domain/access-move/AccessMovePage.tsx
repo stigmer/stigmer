@@ -47,7 +47,9 @@ export function AccessMovePage() {
     <div className="mx-auto w-full max-w-lg space-y-4 px-4 py-10">
       <h1 className="text-lg font-semibold">Bring your access with you</h1>
       {org === "" ? (
-        <p className="text-muted-foreground text-sm">No organization was named.</p>
+        <p className="text-muted-foreground text-sm">
+          No organization was named.
+        </p>
       ) : error ? (
         <p role="alert" className="text-destructive text-sm">
           {getUserMessage(error)}
@@ -57,13 +59,20 @@ export function AccessMovePage() {
       ) : (
         <>
           <p className="text-muted-foreground text-sm">
-            This organization requires sign-in through {provider?.displayName}. Sign in through it once and everything
-            you have here moves to that account. Your other organizations are not touched.
+            This organization requires sign-in through {provider?.displayName}.
+            Sign in through it once and everything you have here moves to that
+            account. Your other organizations are not touched.
           </p>
           {ticket.preview && (
-            <AccessMoveSummary move={ticket.preview} invitationIds={ticket.invitationIds} moved={false} />
+            <AccessMoveSummary
+              move={ticket.preview}
+              invitationIds={ticket.invitationIds}
+              moved={false}
+            />
           )}
-          <Button onClick={continueToProvider}>Continue with {provider?.displayName}</Button>
+          <Button onClick={continueToProvider}>
+            Continue with {provider?.displayName}
+          </Button>
         </>
       )}
     </div>

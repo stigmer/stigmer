@@ -17,7 +17,11 @@ export function SsoRequiredError({ error }: { readonly error: unknown }) {
         className="w-full max-w-md"
         error={error}
         onSignIn={(provider, org) =>
-          void startSsoLogin(provider, org, `${window.location.pathname}${window.location.search}`)
+          void startSsoLogin(
+            provider,
+            org,
+            `${window.location.pathname}${window.location.search}`,
+          )
         }
         moveHref={(org) => `/sso/move?org=${encodeURIComponent(org)}`}
       />
