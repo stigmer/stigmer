@@ -18,7 +18,8 @@
  *     subject, never its slug;
  *   - update round-trips preferences (the console's one write) and refuses
  *     a changed subject with FAILED_PRECONDITION (the schedule domain's
- *     immutability shape);
+ *     immutability shape); an update of an id no account holds is the
+ *     byte-pinned NOT_FOUND copy;
  *   - an update keeps a write that lands through the port between its read
  *     and its write (an email the identity provider asserted): the lost
  *     swap runs the chain again from a fresh read, so both are kept;
@@ -335,6 +336,15 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
       expect(updated.spec?.provisioningMode).toBe(
         IdentityAccountProvisioningMode.direct,
       );
+    });
+
+    it("an update of an id no account holds answers NOT_FOUND with the byte-pinned copy", async () => {
+      const missing = "ida_00000000000000000000000001";
+      const error = await connectErrorOf(
+        command.update(accountInput({ id: missing, idpId: "auth0|nobody-holds" })),
+      );
+      expect(error.code).toBe(Code.NotFound);
+      expect(error.rawMessage).toBe(accountNotFoundMessage(missing));
     });
 
     it("an update keeps a write that lands between its read and its write", async () => {

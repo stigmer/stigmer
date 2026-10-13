@@ -16,7 +16,9 @@
  *     no policies announces either way (an edition never wrote its edge),
  *     and a lifecycle fault fails the request: when closing, with the row
  *     unchanged; a store fault on the load or the write answers INTERNAL,
- *     and a failed write announces no opening.
+ *     and a failed write announces no opening; an organization deleted
+ *     between the load and the write answers NotFound, and announces no
+ *     opening either.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -58,7 +60,7 @@ function organization(open: boolean | undefined): Organization {
 function rig(
   stored: Organization,
   failAnnounce = false,
-  faults: { load?: boolean; save?: boolean } = {},
+  faults: { load?: boolean; save?: boolean; vanish?: boolean } = {},
 ) {
   const log: string[] = [];
   let row = clone(OrganizationSchema, stored);
@@ -80,6 +82,10 @@ function rig(
     ) => {
       if (faults.save === true) {
         return Promise.reject(new Error("store unreachable"));
+      }
+      if (faults.vanish === true) {
+        // The row was deleted after the load read it.
+        return Promise.reject(new ResourceNotFoundError(ORG));
       }
       const live = clone(OrganizationSchema, row);
       modify(live);
@@ -261,6 +267,14 @@ describe("updatePolicies", () => {
     const r = rig(organization(false), false, { save: true });
     const error = await refusal(() => updatePolicies(r, true));
     expect(error.code).toBe(Code.Internal);
+    expect(r.log).toEqual([]);
+  });
+
+  it("answers an organization deleted between its load and its write NotFound, and announces no opening", async () => {
+    const r = rig(organization(false), false, { vanish: true });
+    const error = await refusal(() => updatePolicies(r, true));
+    expect(error.code).toBe(Code.NotFound);
+    expect(error.rawMessage).toBe(`Organization not found: ${ORG}`);
     expect(r.log).toEqual([]);
   });
 

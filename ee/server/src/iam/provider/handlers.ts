@@ -465,15 +465,6 @@ async function insertProvider(
   return provider;
 }
 
-/** The stored bytes LoadExisting read, which the update's swap guards on. */
-function loadedBytesOf(reqCtx: RequestContext<typeof IdentityProviderCommandController.method.update.input>): Uint8Array {
-  const bytes = reqCtx.get(EXISTING_RESOURCE_BYTES_KEY);
-  if (!(bytes instanceof Uint8Array)) {
-    throw internalError(new Error("the loaded provider's bytes are not in context"), "failed to update the identity provider");
-  }
-  return bytes;
-}
-
 /**
  * The update's domain step over BuildUpdateState's row (the request's
  * spec, name and labels on the stored id, slug, organization, visibility
@@ -488,7 +479,8 @@ async function updateProvider(
   await validateProvider(deps, provider, /* isUpdate */ true);
   const outcome = await deps.store.swap(
     provider.metadata?.id ?? "",
-    loadedBytesOf(reqCtx),
+    // LoadExisting runs first in this chain and keeps the bytes.
+    reqCtx.get(EXISTING_RESOURCE_BYTES_KEY) as Uint8Array,
     provider,
   );
   switch (outcome.kind) {

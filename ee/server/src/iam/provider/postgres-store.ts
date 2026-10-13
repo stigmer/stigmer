@@ -144,38 +144,31 @@ export function newIdentityProviderStore(pool: Pool): IdentityProviderStore {
 
     async swap(id, expectedBytes, provider): Promise<ProviderSwapOutcome> {
       const columns = columnsOf(provider);
-      if (columns.id !== id) {
-        throw new Error(`swap of provider '${id}' was handed provider '${columns.id}'`);
-      }
       return inTransaction<ProviderSwapOutcome>(pool, async (client) => {
         const locked = await client.query<ProviderRow>(
           `SELECT data FROM ${TABLE} WHERE id = $1 FOR UPDATE`,
-          [columns.id],
+          [id],
         );
         const held = locked.rows[0];
         if (held === undefined || !held.data.equals(Buffer.from(expectedBytes))) {
           return { commit: false, value: { kind: "changed" } };
         }
         refuseSlugChange(rowToProvider(held), provider);
-        let rowCount = 0;
+        // The row is locked and held, so the UPDATE writes it.
         const refused = await claiming(async () => {
-          const updated = await client.query(
+          await client.query(
             `UPDATE ${TABLE} SET data = $2, is_sso = $3 WHERE id = $1`,
-            [columns.id, payloadOf(provider), columns.isSso],
+            [id, payloadOf(provider), columns.isSso],
           );
-          rowCount = updated.rowCount ?? 0;
         });
         if (refused === "sso") {
           return { commit: false, value: { kind: "sso-taken" } };
         }
-        if (rowCount === 0) {
-          return { commit: false, value: { kind: "changed" } };
-        }
         await client.query(
           `DELETE FROM ${ROUTE_TABLE} WHERE identity_provider_id = $1`,
-          [columns.id],
+          [id],
         );
-        const taken = await claimRoutes(client, columns.id, columns.routes);
+        const taken = await claimRoutes(client, id, columns.routes);
         return taken === undefined
           ? { commit: true, value: { kind: "replaced" } }
           : { commit: false, value: { kind: "route-taken", route: taken } };

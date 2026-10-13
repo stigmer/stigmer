@@ -18,12 +18,8 @@
  * edit may have landed since. A lost swap throws writeConflictError, and
  * the controller's runGuardedWrite runs the chain again from a fresh read
  * (pipeline/guarded-write.ts). A create, which loaded nothing, saves.
- *
- * A ConnectError a custom `save` throws reaches the caller as it is; any
- * other store failure is internal.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
-import { ConnectError } from "@connectrpc/connect";
 
 import type { GuardedWritePort } from "../../store/guarded-port.js";
 import type { Store } from "../../store/interface.js";
@@ -70,9 +66,6 @@ export function newPersistStep<Desc extends DescMessage>(
             )
           : save(ctx.newState));
       } catch (error) {
-        if (error instanceof ConnectError) {
-          throw error;
-        }
         throw internalError(error, "failed to save resource to store");
       }
     },

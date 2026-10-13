@@ -276,9 +276,10 @@ export function newCheckAndStoreArtifactStep(
 }
 
 /**
- * PopulateSkillFields — spec content + frontmatter identity, default
- * visibility from the kind's proto config (skill is a blueprint →
- * visibility_org, so OSS and Cloud agree by construction), git provenance
+ * PopulateSkillFields — spec content + frontmatter identity, a first
+ * push's default visibility from the kind's proto config (skill is a
+ * blueprint → visibility_org, so OSS and Cloud agree by construction) and a
+ * re-push's stored one, git provenance
  * passthrough, status artifact fields, the metadata.version chain, and
  * the audit stamping discipline: creates stamp both slots; updates copy
  * the loaded skill's slot pointers onto a fresh wrapper and stamp
@@ -307,7 +308,17 @@ export function newPopulateSkillFieldsStep(): PipelineStep<PushDesc> {
       // right after this step, against the stored skill's labels.
       skill.metadata!.labels = { ...req.labels };
 
+      // A push names no visibility: updateVisibility is the one door, as
+      // an update keeps the stored level (BuildUpdateState). A re-push keeps
+      // the level the skill holds; a first push takes the kind's default.
+      const existing = ctx.get(EXISTING_SKILL_KEY) as Skill | undefined;
+      const stored = existing?.metadata?.visibility;
       if (
+        stored !== undefined &&
+        stored !== ApiResourceVisibility.api_resource_visibility_unspecified
+      ) {
+        skill.metadata!.visibility = stored;
+      } else if (
         skill.metadata!.visibility ===
         ApiResourceVisibility.api_resource_visibility_unspecified
       ) {
