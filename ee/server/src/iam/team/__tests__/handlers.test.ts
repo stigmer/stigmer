@@ -369,12 +369,12 @@ describe("rename", () => {
     renameMidWrite = () => r.commands.rename({ resourceId: id, slug: "site-reliability" });
 
     const updated = await r.commands.update(
-      create(TeamSchema, {
+      { resource: create(TeamSchema, {
         apiVersion: "iam.stigmer.ai/v1",
         kind: "Team",
         metadata: create(ApiResourceMetadataSchema, { id, name: "SRE", slug: "sre", org: "acme" }),
         spec: create(TeamSpecSchema, { description: "edited mid-rename" }),
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
 
     expect(renameMidWrite, "the rename landed mid-write").toBeUndefined();
@@ -394,7 +394,7 @@ describe("update", () => {
     const id = created.metadata?.id ?? "";
 
     const updated = await r.commands.update(
-      create(TeamSchema, {
+      { resource: create(TeamSchema, {
         apiVersion: "iam.stigmer.ai/v1",
         kind: "Team",
         metadata: create(ApiResourceMetadataSchema, {
@@ -404,7 +404,7 @@ describe("update", () => {
           org: "acme",
         }),
         spec: create(TeamSpecSchema, { description: "on call for production" }),
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
 
     expect(updated.metadata?.name).toBe("Site Reliability");
@@ -426,11 +426,11 @@ describe("update", () => {
     const r = rig();
     const missing = await failure(
       r.commands.update(
-        create(TeamSchema, {
+        { resource: create(TeamSchema, {
           apiVersion: "iam.stigmer.ai/v1",
           kind: "Team",
           metadata: create(ApiResourceMetadataSchema, { id: "tm_gone", name: "x", org: "acme" }),
-        }),
+        }), updateMask: { paths: ["*"] } },
       ),
     );
     expect(missing.code).toBe(Code.NotFound);
