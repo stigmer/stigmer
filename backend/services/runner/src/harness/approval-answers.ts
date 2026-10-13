@@ -3,7 +3,7 @@
  * the door through which an approval reaches a resumed turn.
  *
  * An answer is a session event the server writes (`confirmToolUse`,
- * `grantPermission`, or the `submitApproval` adapter onto them): a
+ * `grantPermission`): a
  * `user.tool_confirmation` (`allow` or `deny`, a deny with the reason the
  * person gave) per call answered, and a `stigmer.permission.grant` (with
  * its lease: a category, a server, or a hook's asks on one tool) on the

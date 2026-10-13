@@ -64,8 +64,8 @@ export function stampFileEditRow(tc: ToolCall, changeSetId: string): void {
 /**
  * The turn-boundary pass over a transcript: stamp every file-edit row
  * (category write/delete) that FLOWED this turn with the change set id, so
- * the row stays visible in place as an observational record while
- * `file_change_sets` remains the single decision surface. Skips:
+ * the row stays visible in place as an observational record while the
+ * change set remains the single decision surface. Skips:
  *
  *  - already-stamped rows — the idempotency AND cross-turn guard: a resume
  *    seeds prior turns' rows into this transcript, and re-stamping them with
