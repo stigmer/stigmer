@@ -276,13 +276,15 @@ describe("the enterprise-identity unit", () => {
     ]);
   });
 
-  it("registers the federated arms as the IdentityFederation capability, the team principal display and its row readers, and no other driver", () => {
+  it("registers the federated arms as the IdentityFederation capability, the team principal display, its row readers and the organization sign-in rule, and no other driver", () => {
     const drivers = unit().drivers;
     expect(Object.keys(drivers ?? {}).sort()).toEqual([
       "identityFederation",
+      "organizationSignInRule",
       "principalDisplay",
       "resourceRowReaders",
     ]);
+    expect(typeof drivers?.organizationSignInRule?.refusal).toBe("function");
     expect(typeof drivers?.identityFederation?.providerExists).toBe("function");
     expect(drivers?.principalDisplay).toBeDefined();
   });

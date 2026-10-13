@@ -128,7 +128,8 @@ describe.skipIf(TEST_DATABASE_URL === undefined)("an organization that requires 
   });
 
   it("serves the account the organization's provider made, and the owner's own sign-in", async () => {
-    expect((await listProviders(rajOkta)).entries).toHaveLength(1);
+    // A viewer may list, and sees no provider: only admins view one.
+    expect((await listProviders(rajOkta)).entries).toHaveLength(0);
     expect((await listProviders(owner.transport)).entries).toHaveLength(1);
   });
 
