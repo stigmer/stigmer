@@ -7,7 +7,6 @@ import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
-  FileChangeCaptureLevel,
   FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
@@ -29,8 +28,11 @@ import {
   AgentMessageSchema,
   ToolCallSchema,
   SubAgentRunSchema,
+  TurnRowsSchema,
   type ToolCall,
+  type TurnRows,
 } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { fileRecordOf } from "../filereview/record.js";
 import { FileChangeType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 function makeFakeStorage() {
@@ -46,14 +48,34 @@ function makeFakeStorage() {
   return { storage, uploads };
 }
 
-function statusWithToolCall(tc: ToolCall): RunStatus {
-  return create(RunStatusSchema, {
+/** The turn's rows holding one root tool call. */
+function statusWithToolCall(tc: ToolCall): TurnRows {
+  return create(TurnRowsSchema, {
     messages: [create(AgentMessageSchema, { toolCalls: [tc] })],
   });
 }
 
-function encodedSize(status: RunStatus): number {
-  return toBinary(RunStatusSchema, status).length;
+function encodedSize(message: RunStatus | TurnRows): number {
+  return message.$typeName === RunStatusSchema.typeName
+    ? toBinary(RunStatusSchema, message as RunStatus).length
+    : toBinary(TurnRowsSchema, message as TurnRows).length;
+}
+
+/**
+ * A run status whose file record holds one change set with `changes`, read
+ * from a turn's ledger as the persist reads it: the record holds the
+ * ledger's own change objects.
+ */
+function statusWithRecord(changes: CapturedFileChange[], executionId: string): RunStatus {
+  const ctx: ChangeSetContext = {
+    changeSetId: `${executionId}:0`,
+    turnId: "turn-0",
+    harnessId: "deep-agent",
+    timestamp: "2026-07-01T00:00:00Z",
+  };
+  const rows = create(TurnRowsSchema, {});
+  appendFileReviewEvents(rows, executionId, [buildCandidateCapturedEvent(ctx, undefined, changes)]);
+  return create(RunStatusSchema, { fileChanges: fileRecordOf(rows) });
 }
 
 const BIG_BASE64_IMAGE = Buffer.from("x".repeat(4096)).toString("base64");
@@ -403,8 +425,8 @@ describe("offloadOversizedToolOutputs", () => {
 // location was a hole in the persist boundary's bounded-payload guarantee.
 // ---------------------------------------------------------------------------
 
-function statusWithSubAgentToolCall(tc: ToolCall): RunStatus {
-  return create(RunStatusSchema, {
+function statusWithSubAgentToolCall(tc: ToolCall): TurnRows {
+  return create(TurnRowsSchema, {
     subAgentRuns: [
       create(SubAgentRunSchema, {
         id: "sa-1",
@@ -454,37 +476,6 @@ describe("sub-agent message size bounding", () => {
     expect(uploads).toHaveLength(1);
   });
 
-  it("enforceStatusSizeLimit elides oversized sub-agent tool results", () => {
-    const big = "Z".repeat(50_000);
-    const tc = create(ToolCallSchema, { id: "tc-sub-big", name: "Shell", result: big });
-    const status = statusWithSubAgentToolCall(tc);
-    expect(encodedSize(status)).toBeGreaterThan(40_000);
-
-    const elided = enforceStatusSizeLimit(status, 4_000);
-
-    expect(elided).toBe(true);
-    expect(encodedSize(status)).toBeLessThanOrEqual(4_000);
-    expect(status.subAgentRuns[0].messages[0].toolCalls[0].result)
-      .not.toBe(big);
-  });
-
-  it("enforceStatusSizeLimit last-resort elides oversized sub-agent message content", () => {
-    const status = create(RunStatusSchema, {
-      subAgentRuns: [
-        create(SubAgentRunSchema, {
-          id: "sa-2",
-          messages: [create(AgentMessageSchema, { content: "W".repeat(50_000) })],
-        }),
-      ],
-    });
-    expect(encodedSize(status)).toBeGreaterThan(40_000);
-
-    const elided = enforceStatusSizeLimit(status, 8_000);
-
-    expect(elided).toBe(true);
-    expect(encodedSize(status)).toBeLessThanOrEqual(8_000);
-    expect(status.subAgentRuns[0].messages[0].content).toContain("elided");
-  });
 });
 
 describe("elideToEncodedSize", () => {
@@ -514,40 +505,21 @@ describe("elideToEncodedSize", () => {
 
 describe("enforceStatusSizeLimit", () => {
   it("returns false and changes nothing when under the limit", () => {
-    const tc = create(ToolCallSchema, { id: "tc", name: "Read", result: "tiny" });
-    const status = statusWithToolCall(tc);
+    const status = statusWithRecord([buildCapturedFileChange({
+      id: "fc-small",
+      pathBefore: "a.ts",
+      pathAfter: "a.ts",
+      kind: FileChangeKind.MODIFY,
+      captureClass: FileCaptureClass.GIT_TRACKED,
+      before: "tiny",
+      after: "tiny!",
+    })], "exec-small");
     expect(enforceStatusSizeLimit(status, 1024 * 1024)).toBe(false);
-    expect(status.messages[0].toolCalls[0].result).toBe("tiny");
-  });
-
-  it("elides the largest inline fields until the status fits", () => {
-    const big = "Z".repeat(50_000);
-    const status = create(RunStatusSchema, {
-      messages: [
-        create(AgentMessageSchema, {
-          toolCalls: [
-            create(ToolCallSchema, { id: "a", name: "Shell", result: big }),
-            create(ToolCallSchema, { id: "b", name: "Read", result: big }),
-          ],
-        }),
-      ],
-    });
-    const before = encodedSize(status);
-    expect(before).toBeGreaterThan(80_000);
-
-    const elided = enforceStatusSizeLimit(status, 4_000);
-    expect(elided).toBe(true);
-    expect(encodedSize(status)).toBeLessThanOrEqual(4_000);
+    expect(status.fileChanges[0]!.changes[0]!.after?.body.case).toBe("inline");
   });
 
   it("marks a size-elided file-review change SIZE_ELIDED and PARTIAL_BLOCKED", () => {
     const big = "Z".repeat(50_000);
-    const ctx: ChangeSetContext = {
-      changeSetId: "exec-1:0",
-      turnId: "turn-0",
-      harnessId: "deep-agent",
-      timestamp: "2026-07-01T00:00:00Z",
-    };
     const change = buildCapturedFileChange({
       id: "fc-big",
       pathBefore: "src/big.ts",
@@ -561,28 +533,20 @@ describe("enforceStatusSizeLimit", () => {
     expect(change.blockedReason).toBe(FileReviewBlockReason.UNSPECIFIED);
     expect(change.diffComplete).toBe(true);
 
-    const status = create(RunStatusSchema, {});
-    appendFileReviewEvents(status, "exec-1", [
-      buildCandidateCapturedEvent(ctx, undefined, [change]),
-    ]);
+    const status = statusWithRecord([change], "exec-1");
     expect(encodedSize(status)).toBeGreaterThan(90_000);
 
     const elided = enforceStatusSizeLimit(status, 4_000);
     expect(elided).toBe(true);
 
-    const ev = status.fileReviewEventStream?.events.find(
-      (e) => e.payload.case === "candidateCaptured",
-    );
-    expect(ev?.payload.case).toBe("candidateCaptured");
-    if (ev?.payload.case === "candidateCaptured") {
-      const dropped = ev.payload.value.changes[0];
-      // Bodies dropped, marked incomplete, and the honest cause recorded.
-      expect(dropped.before).toBeUndefined();
-      expect(dropped.after).toBeUndefined();
-      expect(dropped.diffComplete).toBe(false);
-      expect(dropped.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
-      expect(ev.payload.value.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
-    }
+    const set = status.fileChanges[0]!;
+    const dropped = set.changes[0]!;
+    // Bodies dropped, marked incomplete, and the honest cause recorded.
+    expect(dropped.before).toBeUndefined();
+    expect(dropped.after).toBeUndefined();
+    expect(dropped.diffComplete).toBe(false);
+    expect(dropped.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+    expect(set.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
   });
 
   it("downgrades a BINARY_SUMMARY_ONLY set to PARTIAL_BLOCKED when size-elision drops a text body", () => {
@@ -591,12 +555,6 @@ describe("enforceStatusSizeLimit", () => {
     // non-binary incompleteness, so the shared re-derivation must downgrade the
     // whole set to PARTIAL_BLOCKED (it is no longer binary-only).
     const big = "Z".repeat(50_000);
-    const ctx: ChangeSetContext = {
-      changeSetId: "exec-3:0",
-      turnId: "turn-0",
-      harnessId: "deep-agent",
-      timestamp: "2026-07-01T00:00:00Z",
-    };
     const binary = buildCapturedFileChange({
       id: "fc-bin",
       pathBefore: "",
@@ -616,46 +574,27 @@ describe("enforceStatusSizeLimit", () => {
       after: big,
     });
 
-    const status = create(RunStatusSchema, {});
-    appendFileReviewEvents(status, "exec-3", [
-      buildCandidateCapturedEvent(ctx, undefined, [binary, bigText]),
-    ]);
+    const status = statusWithRecord([binary, bigText], "exec-3");
     // Before elision: binary is the only blocker.
-    const before = status.fileReviewEventStream?.events.find(
-      (e) => e.payload.case === "candidateCaptured",
-    );
-    if (before?.payload.case === "candidateCaptured") {
-      expect(before.payload.value.diffCompleteness).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
-    }
+    expect(status.fileChanges[0]!.diffCompleteness).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
 
     expect(enforceStatusSizeLimit(status, 4_000)).toBe(true);
 
-    const after = status.fileReviewEventStream?.events.find(
-      (e) => e.payload.case === "candidateCaptured",
-    );
-    if (after?.payload.case === "candidateCaptured") {
-      const cs = after.payload.value;
-      const text = cs.changes.find((c) => c.id === "fc-text");
-      const bin = cs.changes.find((c) => c.id === "fc-bin");
-      // The text body is dropped (now a non-binary incompleteness); the binary
-      // side is body-less already, so it is untouched and keeps is_binary.
-      expect(text?.diffComplete).toBe(false);
-      expect(text?.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
-      expect(bin?.after?.isBinary).toBe(true);
-      expect(cs.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
-    }
+    const cs = status.fileChanges[0]!;
+    const text = cs.changes.find((c) => c.id === "fc-text");
+    const bin = cs.changes.find((c) => c.id === "fc-bin");
+    // The text body is dropped (now a non-binary incompleteness); the binary
+    // side is body-less already, so it is untouched and keeps is_binary.
+    expect(text?.diffComplete).toBe(false);
+    expect(text?.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
+    expect(bin?.after?.isBinary).toBe(true);
+    expect(cs.diffCompleteness).toBe(DiffCompleteness.PARTIAL_BLOCKED);
   });
 
   it("does not overwrite a more specific reason (SECRET_WITHHELD survives size elision)", () => {
     // A secret entry is content-less, so it can't be size-elided; but guard the
     // precedence explicitly: if a reason is already set, the size backstop keeps it.
     const big = "Z".repeat(50_000);
-    const ctx: ChangeSetContext = {
-      changeSetId: "exec-2:0",
-      turnId: "turn-0",
-      harnessId: "deep-agent",
-      timestamp: "2026-07-01T00:00:00Z",
-    };
     const secretButLarge = buildCapturedFileChange({
       id: "fc-x",
       pathBefore: "big.env",
@@ -667,46 +606,19 @@ describe("enforceStatusSizeLimit", () => {
       diffComplete: false,
       blockedReason: FileReviewBlockReason.SECRET_WITHHELD,
     });
-    const status = create(RunStatusSchema, {});
-    appendFileReviewEvents(status, "exec-2", [
-      buildCandidateCapturedEvent(ctx, undefined, [secretButLarge]),
-    ]);
+    const status = statusWithRecord([secretButLarge], "exec-2");
     enforceStatusSizeLimit(status, 4_000);
-    const ev = status.fileReviewEventStream?.events.find(
-      (e) => e.payload.case === "candidateCaptured",
-    );
-    if (ev?.payload.case === "candidateCaptured") {
-      expect(ev.payload.value.changes[0].blockedReason).toBe(
-        FileReviewBlockReason.SECRET_WITHHELD,
-      );
-    }
+    expect(status.fileChanges[0]!.changes[0]!.blockedReason).toBe(FileReviewBlockReason.SECRET_WITHHELD);
   });
 });
 
 describe("offloadCandidateChangesToFit", () => {
-  function statusWithCandidate(
-    changes: CapturedFileChange[],
-    executionId: string,
-  ): RunStatus {
-    const ctx: ChangeSetContext = {
-      changeSetId: `${executionId}:0`,
-      turnId: "turn-0",
-      harnessId: "deep-agent",
-      timestamp: "2026-07-01T00:00:00Z",
-    };
-    const status = create(RunStatusSchema, {});
-    appendFileReviewEvents(status, executionId, [
-      buildCandidateCapturedEvent(ctx, undefined, changes),
-    ]);
-    return status;
-  }
+  const statusWithCandidate = statusWithRecord;
 
   function candidateOf(status: RunStatus) {
-    const ev = status.fileReviewEventStream?.events.find(
-      (e) => e.payload.case === "candidateCaptured",
-    );
-    if (ev?.payload.case !== "candidateCaptured") throw new Error("no candidate event");
-    return ev.payload.value;
+    const set = status.fileChanges[0];
+    if (set === undefined) throw new Error("no change set on the record");
+    return set;
   }
 
   function textChange(id: string, path: string, before: string, after: string): CapturedFileChange {
@@ -823,10 +735,9 @@ describe("offloadCandidateChangesToFit", () => {
     expect(dropped.blockedReason).toBe(FileReviewBlockReason.SIZE_ELIDED);
   });
 
-  it("only offloads file-review bodies, never tool-call content", async () => {
+  it("offloads nothing for a status with no file record", async () => {
     const { storage, uploads } = makeFakeStorage();
-    const tc = create(ToolCallSchema, { id: "tc-1", name: "Read", result: "R".repeat(50_000) });
-    const status = statusWithToolCall(tc);
+    const status = create(RunStatusSchema, { error: "E".repeat(50_000) });
     expect(encodedSize(status)).toBeGreaterThan(40_000);
 
     const offloaded = await offloadCandidateChangesToFit(
@@ -836,8 +747,6 @@ describe("offloadCandidateChangesToFit", () => {
     );
     expect(offloaded).toBe(false);
     expect(uploads).toHaveLength(0);
-    // The tool-call result is untouched (that is offloadOversizedToolOutputs' job).
-    expect(status.messages[0].toolCalls[0].result).toHaveLength(50_000);
   });
 });
 
