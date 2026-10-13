@@ -156,14 +156,24 @@ function checkScope(
   both: boolean,
 ): void {
   const prefix = `${runId}.${scope}`;
-  // Messages and thinking: every one the fold holds is the row at its place, with its text.
+  // Messages and thinking. A single-turn golden numbers its items from the
+  // rows' first place, so each one the fold holds is the row at its place,
+  // with its text. A resumed invocation numbers on from the highest place
+  // the log already held, and its rows are its own (plus the asks it
+  // resumed onto), so there each item is matched to a row of its kind by text.
   for (const item of items) {
     if (item.kind === "message" || item.kind === "thinking") {
-      const index = Number(item.id.slice(prefix.length + 2));
-      const row = rows[index];
-      expect(row, `${label}: ${item.id} names a row`).toBeDefined();
-      expect(row!.type, `${label}: ${item.id}`).toBe(item.kind === "message" ? MESSAGE_AI : MESSAGE_THINKING);
-      expect(item.text, `${label}: ${item.id}`).toBe(row!.content ?? "");
+      const type = item.kind === "message" ? MESSAGE_AI : MESSAGE_THINKING;
+      if (both) {
+        const index = Number(item.id.slice(prefix.length + 2));
+        const row = rows[index];
+        expect(row, `${label}: ${item.id} names a row`).toBeDefined();
+        expect(row!.type, `${label}: ${item.id}`).toBe(type);
+        expect(item.text, `${label}: ${item.id}`).toBe(row!.content ?? "");
+      } else {
+        const match = rows.some((row) => row.type === type && (row.content ?? "") === item.text);
+        expect(match, `${label}: ${item.id} names a row`).toBe(true);
+      }
     }
   }
   const uses = tools(items);
