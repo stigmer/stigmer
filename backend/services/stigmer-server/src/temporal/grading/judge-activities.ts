@@ -19,8 +19,9 @@
  *     the score and gives the cap back.
  *   - start: the judge run is created as the grading caller
  *     (extensions/grading-caller.ts), shown the run and up to three turns
- *     before it in its session (domain/score/judge/subject.ts, one indexed
- *     read), and a retry finds the run an earlier attempt created through
+ *     before it in its session, each read from its session events
+ *     (domain/score/judge/subject.ts: one indexed read for the earlier
+ *     runs, one per run for its events), and a retry finds the run an earlier attempt created through
  *     the run list index's key on the judge label (domain/run/list-index.ts),
  *     never by a scan. A run is adopted only
  *     when it carries the judge label naming the judged run, which no
@@ -31,8 +32,9 @@
  *     workflow's policy for up to ten minutes; every other refusal is
  *     answered as the failure the record activity reports.
  *   - poll: whether the judge run has ended.
- *   - record: the verdict, read strictly (`readVerdict`, @stigmer/eval-runtime),
- *     or the reason there is none, replacing the pending score
+ *   - record: the verdict, read strictly (`readVerdict`, @stigmer/eval-runtime)
+ *     from the judge run's `stigmer.agent.structured_output` event
+ *     (domain/session/events/run-events.ts), or the reason there is none, replacing the pending score
  *     (domain/score/record.ts); a judge run still going is stopped; the
  *     budget is settled with what the judge spent; and last the judge's
  *     session is deleted, which deletes its run and releases its sandbox.
@@ -53,6 +55,7 @@
  * test.
  */
 import { fromBinary } from "@bufbuild/protobuf";
+import type { JsonObject } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
@@ -103,7 +106,7 @@ import {
   pendingJudgeScore,
 } from "../../domain/score/judge/judge-score.js";
 import { isSampled } from "../../domain/score/judge/sampling.js";
-import { earlierRunsOf, subjectPartsOf } from "../../domain/score/judge/subject.js";
+import { earlierTurnsOf, subjectPartsOf } from "../../domain/score/judge/subject.js";
 import type {
   JudgeRunCreator,
   JudgeSessionDeleter,
@@ -118,6 +121,10 @@ import {
 } from "../../domain/score/record.js";
 import type { ScoreWrite, ScoreWriteDeps } from "../../domain/score/record.js";
 import type { GradingCallerMint } from "../../extensions/grading-caller.js";
+import {
+  runTranscriptOf,
+  structuredOutputOf,
+} from "../../domain/session/events/run-events.js";
 import { GradingCallerRefusedError } from "../../extensions/grading-caller.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -280,11 +287,12 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
         return { kind: "started", judgeRunId: existing };
       }
 
-      const earlier = await earlierRunsOf(deps.store, run);
+      const graded = await runTranscriptOf(deps.store, run);
+      const earlier = await earlierTurnsOf(deps.store, run);
       const request = judgeRunRequest({
         judged: run,
         modelName: ticket.modelName,
-        message: judgeMessage(renderSubject(subjectPartsOf(run, earlier))),
+        message: judgeMessage(renderSubject(subjectPartsOf(graded, earlier))),
         verdictSchema: VERDICT_SCHEMA,
       });
       try {
@@ -321,7 +329,11 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       let outcome: GradeOutcome = GRADE_RUN_GONE;
       let end: GradeEnd = { kind: "gone" };
       if (run !== undefined) {
-        const verdict = verdictScore(deps, run, judge, failure);
+        const answer =
+          judge?.status?.phase === RunPhase.RUN_COMPLETED
+            ? await structuredOutputOf(deps.store, judge)
+            : undefined;
+        const verdict = verdictScore(deps, run, judge, failure, answer);
         outcome = await writeJudgeScore(deps, writeDeps(), verdict.score);
         end =
           outcome === GRADE_RUN_GONE
@@ -464,12 +476,17 @@ async function startRefusal(
   }
 }
 
-/** The score a finished or failed judge leaves, and how its grade counts. */
+/**
+ * The score a finished or failed judge leaves, and how its grade counts;
+ * `answer` is the structured output the judge delivered, read from its
+ * session events.
+ */
 function verdictScore(
   deps: JudgeActivityDeps,
   run: Run,
   judge: Run | undefined,
   failure: JudgeFailure,
+  answer: JsonObject | undefined,
 ): { readonly score: ReturnType<typeof notGradedJudgeScore>; readonly end: GradeEnd } {
   const notGraded = (reason: string) => ({
     score: notGradedJudgeScore(run, reason),
@@ -481,7 +498,7 @@ function verdictScore(
   const phase = judge?.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   switch (phase) {
     case RunPhase.RUN_COMPLETED: {
-      const reading = readVerdict(judge?.status?.structuredOutput);
+      const reading = readVerdict(answer);
       if (reading.kind === "refused") {
         deps.logger.warn("the judge's answer could not be read", {
           runId: run.metadata?.id ?? "",

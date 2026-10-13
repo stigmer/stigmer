@@ -1,5 +1,6 @@
 /**
- * The grading activities: load the completed run, run the checks, record
+ * The grading activities: load the completed run and its session events
+ * (domain/session/events/run-events.ts), run the checks, record
  * the run-health score through the score's create chain as the server
  * (domain/score/ports.ts), or record the run as not graded.
  *
@@ -39,6 +40,7 @@ import {
   notGradedRunHealthScore,
   runHealthScore,
 } from "../../domain/score/run-health.js";
+import { runTranscriptOf } from "../../domain/session/events/run-events.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
@@ -68,7 +70,9 @@ export function createGradingActivities(
       if (run === undefined) {
         return GRADE_RUN_GONE;
       }
-      const health = gradeRunHealth(actionsOf(run));
+      const health = gradeRunHealth(
+        actionsOf(await runTranscriptOf(deps.store, run)),
+      );
       return record(deps, runHealthScore(run, health));
     },
     [RECORD_NOT_GRADED_ACTIVITY_NAME]: async (runId, reason) => {

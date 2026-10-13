@@ -1,13 +1,14 @@
 /**
- * Pins the run-health checks over a run's transcript, read through the one
- * adapter (actions.ts):
+ * Pins the run-health checks over a turn, read from its session events
+ * through the one adapter (actions.ts):
  *   - `no-repeated-calls` fails at three consecutive calls with the same
  *     tool, inputs and result, and never at two; a poll whose result
  *     changes, a spilled result whose preview head repeats but whose
- *     content hash differs, and a row whose inputs are not yet known never
- *     count as repeats;
- *   - `last-action-succeeded` fails when the run's last call FAILED or was
- *     INTERRUPTED, and passes when a failure was recovered from;
+ *     content hash differs, and a call whose inputs are not known never
+ *     count as repeats, while three calls with an empty input do;
+ *   - `last-action-succeeded` fails when the run's last call FAILED (its
+ *     result is an error) or was INTERRUPTED (its turn ended before it
+ *     returned), and passes when a failure was recovered from;
  *   - `structured-output-delivered` applies only when a schema was set;
  *   - a run with no tool calls is not applicable on the call checks;
  *   - no reason quotes a call's inputs or result;
@@ -19,13 +20,15 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 
+import type { RunTranscript } from "../../../session/events/run-events.js";
+import { RunEventsBuilder } from "../../../session/events/__tests__/run-events-fixture.js";
+import type { FixtureCall } from "../../../session/events/__tests__/run-events-fixture.js";
 import { actionsOf } from "../actions.js";
 import {
   LAST_ACTION_SUCCEEDED,
@@ -46,46 +49,51 @@ interface CallSpec {
   readonly status?: ToolCallStatus;
 }
 
-function call(spec: CallSpec = {}) {
+let callCount = 0;
+
+function call(spec: CallSpec = {}): FixtureCall {
+  const status = spec.status ?? ToolCallStatus.TOOL_CALL_COMPLETED;
   return {
+    id: `c${++callCount}`,
     name: spec.name ?? "echo",
-    ...(spec.args === undefined ? {} : { args: spec.args }),
-    result: spec.result ?? `result for ${SECRET_TEXT}`,
-    status: spec.status ?? ToolCallStatus.TOOL_CALL_COMPLETED,
+    ...(spec.args === undefined ? {} : { input: spec.args }),
+    // An interrupted call never returned: its turn ended first.
+    ...(status === ToolCallStatus.TOOL_CALL_INTERRUPTED
+      ? {}
+      : { result: spec.result ?? `result for ${SECRET_TEXT}` }),
+    ...(status === ToolCallStatus.TOOL_CALL_FAILED ? { isError: true } : {}),
     ...(spec.contentHash === undefined
       ? {}
-      : {
-          outputRef: {
-            storageKey: "artifacts/run_1/out",
-            contentHash: spec.contentHash,
-          },
-        }),
+      : { offloadedHash: spec.contentHash }),
   };
 }
 
 function runWith(
-  calls: ReadonlyArray<ReturnType<typeof call>>,
+  calls: ReadonlyArray<FixtureCall>,
   options: { schema?: JsonObject; output?: JsonObject } = {},
-): Run {
-  return create(RunSchema, {
+): RunTranscript {
+  const run = create(RunSchema, {
     metadata: { id: "run_1", org: "org_1" },
     spec: {
       ...(options.schema === undefined
         ? {}
         : { structuredOutputSchema: options.schema }),
     },
-    status: {
-      phase: RunPhase.RUN_COMPLETED,
-      // Calls spread across messages, as a transcript carries them.
-      messages: calls.map((c) => ({ toolCalls: [c] })),
-      ...(options.output === undefined
-        ? {}
-        : { structuredOutput: options.output }),
-    },
+    status: { phase: RunPhase.RUN_COMPLETED },
   });
+  const events = new RunEventsBuilder("run_1");
+  // Calls spread across messages, as a turn makes them.
+  for (const c of calls) {
+    events.turnMessage("", [c]);
+  }
+  if (options.output !== undefined) {
+    events.structuredOutput(options.output);
+  }
+  events.runStatus("completed");
+  return { run, events: events.build() };
 }
 
-function verdict(run: Run, name: string): CheckVerdict {
+function verdict(run: RunTranscript, name: string): CheckVerdict {
   const found = gradeRunHealth(actionsOf(run)).verdicts.find(
     (v) => v.name === name,
   );
@@ -145,8 +153,27 @@ describe("no-repeated-calls", () => {
   });
 
   it("never counts a row whose inputs are not known yet", () => {
+    // The log requires every tool use's input, so the empty key only
+    // reaches the checks from a view built without one.
+    const unknown = {
+      name: "echo",
+      argsKey: "",
+      resultKey: "sha256:same",
+      status: ToolCallStatus.TOOL_CALL_COMPLETED,
+    };
+    const health = gradeRunHealth({
+      actions: [1, 2, 3].map((step) => ({ ...unknown, step })),
+      schemaSet: false,
+      outputPresent: false,
+    });
+    expect(
+      health.verdicts.find((v) => v.name === NO_REPEATED_CALLS)?.result,
+    ).toBe(CriterionResult.passed);
+  });
+
+  it("counts a call whose input is empty like any other", () => {
     const run = runWith([call(), call(), call()]);
-    expect(verdict(run, NO_REPEATED_CALLS).result).toBe(CriterionResult.passed);
+    expect(verdict(run, NO_REPEATED_CALLS).result).toBe(CriterionResult.failed);
   });
 
   it("reads equal inputs regardless of key order", () => {

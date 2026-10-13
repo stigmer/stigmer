@@ -18,10 +18,12 @@
  *     capacity thrown as busy; the run's own refusal (a keyless
  *     organization's FAILED_PRECONDITION copy among them, in its own words)
  *     and a refusing caller answered, and a refused run's session deleted;
- *   - grade-try: the code graders over the trace, the AI-graded check left
- *     to votes, the run's error and cost; a timeout named;
+ *   - grade-try: the code graders over the trace (read from the try's
+ *     session events), the AI-graded check left to votes, the run's error
+ *     and cost; a timeout named;
  *   - start-vote, read-vote and delete-vote: the vote's labels, message
- *     and cap, its adoption on a retry, its reading and its stop (its
+ *     and cap, its adoption on a retry, its reading (from the vote run's
+ *     structured-output event, its row holding none) and its stop (its
  *     session kept, so a retried read reads it again), then its session's
  *     delete;
  *   - record-score: the votes tallied, the try scored, and the Score
@@ -40,7 +42,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  MessageType,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
@@ -85,6 +86,7 @@ import {
   ORG,
   PLUGIN_ID,
   PLUGIN_SERVER_SEGMENT,
+  appendTurnEvents,
   catalog,
   lane,
   readEval,
@@ -493,7 +495,7 @@ describe("start-try", () => {
   });
 });
 
-/** Ends the stored run as completed with a transcript that reads the skill and names the rename. */
+/** Ends the stored run as completed, its turn's events reading the skill and naming the rename. */
 async function completeTry(
   runId: string,
   phase: RunPhase = RunPhase.RUN_COMPLETED,
@@ -510,32 +512,21 @@ async function completeTry(
           completedAt: "2026-10-10T10:00:30Z",
           error: phase === RunPhase.RUN_FAILED ? "the model refused" : "",
           streamingUsage: { estimatedCostUsd: 0.2 },
-          messages: [
-            {
-              type: MessageType.MESSAGE_HUMAN,
-              content: "Write me a commit message.",
-            },
-            {
-              type: MessageType.MESSAGE_AI,
-              content: "",
-              toolCalls: [
-                {
-                  id: "c1",
-                  name: "read_file",
-                  args: {
-                    file_path: ".stigmer/skills/commit-message/SKILL.md",
-                  },
-                },
-              ],
-            },
-            {
-              type: MessageType.MESSAGE_AI,
-              content: "refactor: rename getUser to fetchUser",
-            },
-          ],
         },
       }).status;
     },
+  );
+  await appendTurnEvents(temp.store, runId, (events) =>
+    events
+      .user("Write me a commit message.")
+      .turnMessage("", [
+        {
+          id: "c1",
+          name: "read_file",
+          input: { file_path: ".stigmer/skills/commit-message/SKILL.md" },
+        },
+      ])
+      .turnMessage("refactor: rename getUser to fetchUser"),
   );
 }
 
@@ -675,13 +666,15 @@ describe("grading a try", () => {
         live.status = create(RunSchema, {
           status: {
             phase: RunPhase.RUN_COMPLETED,
-            structuredOutput: {
-              criteria: { result: "passed", reason: "names the rename" },
-            },
             streamingUsage: { estimatedCostUsd: 0.01 },
           },
         }).status;
       },
+    );
+    await appendTurnEvents(temp.store, second.voteRunId, (events) =>
+      events.structuredOutput({
+        criteria: { result: "passed", reason: "names the rename" },
+      }),
     );
     expect(
       await cases[READ_VOTE_ACTIVITY_NAME](second.voteRunId, "criteria"),

@@ -1,6 +1,6 @@
 /**
- * Pins the eval's transcript reader (trace.ts) over a native and a Cursor
- * transcript: engine names read as Claude's (Write for a file the run
+ * Pins the eval's reader of a try (trace.ts) over a native and a Cursor
+ * turn, read from the turn's session events and the files on its run: engine names read as Claude's (Write for a file the run
  * created, Edit for one it changed), an MCP call as
  * `mcp__<server>__<tool>`, its server slug read as written since a turn
  * already names a plugin's server `plugin_<plugin>_<server>`; a read of a
@@ -11,28 +11,27 @@
  * list lacks, the path's last segment; the trace as Claude Code's JSON lines, the final message, created paths
  * from the ledger's last candidate per change set, contents inline, read
  * back from the artifact store, binary, deleted or unreadable, and a run
- * with no capture event read as "not recorded". A tool message reads as
- * a user line of its result; a message type this server does not know
- * (an engine newer than it) is left out as a system message is, never
- * answered in place of the trace; a run with no assistant text has an
- * empty final message; a change with no captured body reads as empty
+ * with no capture event read as "not recorded". A tool use after the
+ * previous uses' results opens an assistant line of its own, and a call
+ * that never returned reads as an empty result; an event type this
+ * server does not know (a writer newer than it), a thinking and a harness
+ * note add no line, never answered in place of the trace; a run with no
+ * assistant text has an empty final message; a change with no captured body reads as empty
  * text. The mock calls are the calls to the servers the run's case mocked,
  * by the server's key, with the answer the mock gave. A path no change set
  * touched is read from the files the runner returned for the graders, a
  * change set's content winning where both have one.
  */
-import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import {
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileChangeKind,
   FileReviewEventType,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   CapturedFileChangeSchema,
@@ -40,11 +39,6 @@ import {
   FileReviewEventStreamSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import {
@@ -58,20 +52,24 @@ import {
   evalTraceOf,
 } from "../trace.js";
 import type { EvalTraceDeps } from "../trace.js";
+import type { RunTranscript } from "../../../session/events/run-events.js";
+import { RunEventsBuilder } from "../../../session/events/__tests__/run-events-fixture.js";
+import type { FixtureCall } from "../../../session/events/__tests__/run-events-fixture.js";
 
 function call(
   id: string,
   name: string,
   args: Record<string, string>,
   extra: { readonly error?: string; readonly mcpServerSlug?: string } = {},
-): ToolCall {
-  return create(ToolCallSchema, {
+): FixtureCall {
+  return {
     id,
     name,
-    args,
-    result: `result of ${id}`,
-    ...extra,
-  });
+    input: args,
+    result: extra.error ?? `result of ${id}`,
+    ...(extra.error === undefined ? {} : { isError: true }),
+    ...(extra.mcpServerSlug === undefined ? {} : { mcpServer: extra.mcpServerSlug }),
+  };
 }
 
 function candidate(changeSetId: string, changes: CapturedFileChange[]) {
@@ -90,36 +88,27 @@ function baseline(changeSetId: string) {
 }
 
 function runOf(
-  calls: ToolCall[],
+  calls: FixtureCall[],
   events = [baseline("t1")],
   finalText = "All done.",
-): Run {
-  return create(RunSchema, {
+  firstText = "Looking.",
+): RunTranscript {
+  const run = create(RunSchema, {
     metadata: { id: "run_try", org: "acme" },
     spec: { message: "rename getUser" },
     status: create(RunStatusSchema, {
-      messages: [
-        create(AgentMessageSchema, {
-          type: MessageType.MESSAGE_HUMAN,
-          content: "rename getUser",
-        }),
-        create(AgentMessageSchema, {
-          type: MessageType.MESSAGE_AI,
-          content: "Looking.",
-          toolCalls: calls,
-        }),
-        create(AgentMessageSchema, {
-          type: MessageType.MESSAGE_THINKING,
-          content: "hmm",
-        }),
-        create(AgentMessageSchema, {
-          type: MessageType.MESSAGE_AI,
-          content: finalText,
-        }),
-      ],
       fileReviewEventStream: create(FileReviewEventStreamSchema, { events }),
     }),
   });
+  return {
+    run,
+    events: new RunEventsBuilder("run_try")
+      .user("rename getUser")
+      .turnMessage(firstText, calls)
+      .thinking("hmm")
+      .turnMessage(finalText)
+      .build(),
+  };
 }
 
 function deps(
@@ -205,7 +194,7 @@ describe("the eval trace, native transcript", () => {
       ],
       [],
     );
-    run.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+    run.run.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
       mocks: [create(PluginEvalMockServerSchema, { server: "tracker", segment: "tracker-acme" })],
     });
     const trace = await evalTraceOf(run, deps(Harness.NATIVE));
@@ -371,7 +360,7 @@ describe("the eval trace's files", () => {
 
   it("reads a path no change set touched from the files the runner returned, a change set winning", async () => {
     const run = runOf([], [baseline("t1"), candidate("t1", [created])]);
-    run.status!.pluginEvalFiles = create(RunStatusSchema, {
+    run.run.status!.pluginEvalFiles = create(RunStatusSchema, {
       pluginEvalFiles: {
         files: [
           { path: "./app.txt", content: { case: "text", value: "version = 1\n" } },
@@ -464,10 +453,10 @@ describe("the eval trace's files", () => {
 
   it("adds the request line when the transcript has none, and matches the skill mount", async () => {
     const run = runOf([]);
-    run.status!.messages = run.status!.messages.filter(
-      (m) => m.type !== MessageType.MESSAGE_HUMAN,
+    const trace = await evalTraceOf(
+      { run: run.run, events: run.events.filter((e) => e.event.case !== "userMessage") },
+      deps(Harness.NATIVE),
     );
-    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
     expect(JSON.parse(trace.traceLines[0] ?? "{}")).toEqual({
       type: "user",
       message: { role: "user", content: "rename getUser" },
@@ -478,41 +467,56 @@ describe("the eval trace's files", () => {
 });
 
 describe("the eval trace's edges", () => {
-  it("reads a tool message as a user line of its result", async () => {
+  it("opens an assistant line for a tool use after the previous uses' results, and reads a call that never returned as an empty result", async () => {
     const run = runOf([]);
-    run.status!.messages.push(
-      create(AgentMessageSchema, {
-        type: MessageType.MESSAGE_TOOL,
-        content: "exit 0",
-      }),
-    );
-    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
-    expect(JSON.parse(trace.traceLines.at(-1) ?? "{}")).toEqual({
-      type: "user",
-      message: {
-        role: "user",
-        content: [{ type: "tool_result", content: "exit 0" }],
+    const events = new RunEventsBuilder("run_try")
+      .user("rename getUser")
+      .turnMessage("Looking.", [call("c1", "read_file", { file_path: "a.ts" })])
+      .turnMessage("", [{ id: "c2", name: "read_file", input: { file_path: "b.ts" } }])
+      .build();
+    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.NATIVE));
+    expect(trace.traceLines.map((line) => JSON.parse(line) as unknown)).toEqual([
+      { type: "user", message: { role: "user", content: "rename getUser" } },
+      {
+        type: "assistant",
+        message: {
+          role: "assistant",
+          content: [
+            { type: "text", text: "Looking." },
+            { type: "tool_use", id: "c1", name: "Read", input: { file_path: "a.ts" } },
+          ],
+        },
       },
-    });
+      {
+        type: "user",
+        message: { role: "user", content: [{ type: "tool_result", tool_use_id: "c1", content: "result of c1" }] },
+      },
+      {
+        type: "assistant",
+        message: {
+          role: "assistant",
+          content: [{ type: "tool_use", id: "c2", name: "Read", input: { file_path: "b.ts" } }],
+        },
+      },
+      {
+        type: "user",
+        message: { role: "user", content: [{ type: "tool_result", tool_use_id: "c2", content: "" }] },
+      },
+    ]);
   });
 
   it("leaves out a message type this server does not know, and still answers the trace", async () => {
     const run = runOf([]);
-    run.status!.messages.splice(
-      1,
-      0,
-      create(AgentMessageSchema, {
-        type: 99 as MessageType,
-        content: "from a newer engine",
-      }),
-    );
-    // Proto enums are open: the stored run decodes the unknown type as its number.
-    const stored = fromBinary(RunSchema, toBinary(RunSchema, run));
-    expect(stored.status?.messages[1]?.type).toBe(99);
-    const trace = await evalTraceOf(stored, deps(Harness.NATIVE));
+    const events = new RunEventsBuilder("run_try")
+      .user("rename getUser")
+      .unknown()
+      .note("the harness retried")
+      .turnMessage("All done.")
+      .build();
+    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.NATIVE));
     expect(trace.lastMessage).toBe("All done.");
-    expect(trace.traceLines).toHaveLength(3);
-    expect(trace.traceLines.join("\n")).not.toContain("from a newer engine");
+    expect(trace.traceLines).toHaveLength(2);
+    expect(trace.traceLines.join("\n")).not.toContain("the harness retried");
   });
 
   it("has an empty final message when no assistant message carries text", async () => {
@@ -520,8 +524,8 @@ describe("the eval trace's edges", () => {
       [call("c1", "read_file", { file_path: "a.ts" })],
       undefined,
       "",
+      "",
     );
-    run.status!.messages[1]!.content = "";
     const trace = await evalTraceOf(run, deps(Harness.NATIVE));
     expect(trace.lastMessage).toBe("");
   });
