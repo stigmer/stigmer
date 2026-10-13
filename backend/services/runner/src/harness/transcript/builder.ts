@@ -117,22 +117,8 @@
 
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { RunArtifact } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
-import {
-  ApprovalAction,
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
-  ToolCallStreamingSource,
-  ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource, type PolicySource } from "../../shared/approval-policy.js";
 import { SALIENT_ARG_FIELDS, buildElidedArgsPreview, redactSensitiveArgs } from "../../shared/args-preview.js";
 import { classifyTool } from "../../shared/tool-kind.js";
@@ -148,6 +134,21 @@ import type {
   ToolStartedEvent,
   TranscriptEvent,
 } from "./events.js";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+  type AgentMessage,
+  type ToolCall,
+  SubAgentRunSchema,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalAction,
+  MessageType,
+  SubAgentStatus,
+  ToolCallStatus,
+  ToolCallStreamingSource,
+  ToolKind,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Where a fold left a token delta's row: its place in its scope's message array. */
 export interface FoldPlace {

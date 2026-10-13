@@ -28,9 +28,8 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema, ToolCallOutputRefSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -54,6 +53,8 @@ import {
   type RunnerNotices,
   type WireSettlement,
 } from "../protocol.js";
+import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 type HostilePeer = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 

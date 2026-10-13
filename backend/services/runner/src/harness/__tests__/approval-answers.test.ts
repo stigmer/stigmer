@@ -21,9 +21,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import {
@@ -33,6 +30,8 @@ import {
   readApprovalAnswers,
 } from "../approval-answers.js";
 import { toolUseEventId } from "../events/ids.js";
+import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RUN = "run_01answers";
 

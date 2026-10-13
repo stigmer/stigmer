@@ -50,7 +50,6 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -73,6 +72,7 @@ import { findToolCallRow } from "../../../../__test-utils__/proto-helpers.js";
 import { createCursorContractSubject } from "../../__test-utils__/contract-subject.js";
 import { hasBash } from "../../__test-utils__/cursor-hook-harness.js";
 import { resetCursorModuleState } from "../../__test-utils__/hermetic-cursor.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();

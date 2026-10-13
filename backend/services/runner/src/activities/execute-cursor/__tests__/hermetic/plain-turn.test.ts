@@ -31,7 +31,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 // Both mocks are hoisted by vitest; they must live in this file. Each factory
 // imports the reusable module and returns its mock surface.
@@ -59,6 +59,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const AGENT_ID = "agent-hermetic-plain-0001";
 const RUN_ID = "run-hermetic-plain-0001";

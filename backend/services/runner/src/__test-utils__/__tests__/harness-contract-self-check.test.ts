@@ -28,8 +28,6 @@
 import { describe, it, expect } from "vitest";
 import { CancelledFailure } from "@temporalio/activity";
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 
 import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import {
@@ -49,6 +47,8 @@ import type { ScriptedSubject } from "../harness-contract/scripted-adapter.js";
 import { scenario } from "../harness-contract/types.js";
 import type { EngineView, HarnessContractSubject, TurnScenario } from "../harness-contract/types.js";
 import { aiMessage, emptyStatus, findToolCallRow, toolCall } from "../proto-helpers.js";
+import { SubAgentRunSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Short enough to keep this file fast; long enough that an honest microtask settle never trips it. */
 const SHORT_BOUND_MS = 100;

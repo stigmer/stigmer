@@ -26,7 +26,6 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
@@ -35,6 +34,7 @@ import {
 } from "../../../shared/status-offload.js";
 import { toResultString, canonicalizeImageResult } from "../tool-result.js";
 import { foldCursorEvents } from "../__test-utils__/fold.js";
+import { AgentMessageSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 // PNG signature + a little payload. PNG_BYTES is how the Cursor SDK delivers
 // image data at runtime (Node Buffer-JSON); PNG_BASE64 is its base64 form, used

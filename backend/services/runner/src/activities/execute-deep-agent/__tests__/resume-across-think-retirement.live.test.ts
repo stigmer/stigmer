@@ -21,7 +21,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { fromJson } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -36,6 +36,7 @@ import { EXECUTE_CALL_A } from "../__test-utils__/hitl-script.js";
 import { FIXTURE, beginLiveDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../__test-utils__/hermetic-deep-agent.js";
 import { loadRows } from "../__test-utils__/paused-session-fixture.js";
 import { THINK_CALL_ID, THINK_RETIREMENT_MESSAGE, thinkBoundSession } from "../__test-utils__/think-bound-session.js";
+import { ApprovalAction, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const LIVE_MODEL = "claude-haiku-4.5";
 const MAX_COST_USD = 0.05;

@@ -15,16 +15,9 @@ import { create } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   CapturedFileChangeSchema,
-  FileReviewBaselineCapturedSchema,
-  FileReviewCandidateCapturedSchema,
-  FileReviewEventSchema,
-  FileReviewEventStreamSchema,
-  FileReviewFailureSchema,
-  FileReviewReconciledSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type {
   CapturedFileChange,
-  FileReviewEvent,
   SnapshotRef,
   TurnCommandProvenance,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
@@ -38,12 +31,20 @@ import {
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
-  FileReviewEventType,
-  FileReviewFailureKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { aggregateDigest, fileDigest, sha256Bytes } from "./digest.js";
 import { countLineChanges, type LineChangeCounts } from "./line-counts.js";
 import { looksBinary } from "../file-change.js";
+import {
+  FileReviewBaselineCapturedSchema,
+  FileReviewCandidateCapturedSchema,
+  FileReviewEventSchema,
+  FileReviewEventStreamSchema,
+  FileReviewFailureSchema,
+  FileReviewReconciledSchema,
+  type FileReviewEvent,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/ledger_pb.js";
+import { FileReviewEventType, FileReviewFailureKind } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 // The runner is the author of capture/reconcile/failure events. "runner" (not
 // the generic "system") matches the cross-edition corpus fixtures and the

@@ -60,11 +60,6 @@ import { ScriptedCursorAgent, sdkEvents, step } from "../../__test-utils__/scrip
 import { hookBuiltin } from "../../__test-utils__/cursor-hook-harness.js";
 import { ToolListResolutionError, ToolScope, outOfScopeMessage } from "../../../../shared/tool-lists.js";
 import {
-  ApprovalPolicySource,
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
   FIXTURE,
   SDK_CATALOG,
   beginCursorScenario,
@@ -78,6 +73,7 @@ import { savedAgentFixture } from "../../../../__test-utils__/execution-record-f
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { subagentBringsOwnMessage } from "../../turn-setup.js";
 import { getPlatformDir } from "../../../../shared/workspace/platform-dir.js";
+import { ApprovalPolicySource, MessageType, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Summarise the README.";
 const ANSWER = "It is a readme.";

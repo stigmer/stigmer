@@ -46,14 +46,15 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { PendingApprovalSchema, type PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 
 import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import { buildPrompt, type BuildPromptInput, type PromptSubagent } from "../prompt-builder.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
+import { PendingApprovalSchema, type PendingApproval } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures — every value is a plain fact a golden can name.

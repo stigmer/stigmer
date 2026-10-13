@@ -48,14 +48,11 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { RecalledMemories } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import {
-  RecalledMemoriesReportSchema,
-  type RecalledMemoriesReport,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RecalledMemoriesContent } from "./recalled-memories.js";
 import { resolveProxyBaseUrl, buildProxyHeaders } from "./llm-proxy.js";
 import { checkDirectCredentials } from "./llm-backend.js";
 import { getRunnerSecret } from "./runner-credential-store.js";
+import { RecalledMemoriesReportSchema, type RecalledMemoriesReport } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /**
  * Selection activates only when the candidate set EXCEEDS this many facts;

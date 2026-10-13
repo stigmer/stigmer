@@ -36,7 +36,6 @@ import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { MemorySaver } from "@langchain/langgraph";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
@@ -55,6 +54,7 @@ import {
   makeToolStarted,
   resetSeq,
 } from "../__test-utils__/v3-event-fixtures.js";
+import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const PRICING: ModelPricing = {
   model: "claude-haiku-4.5",

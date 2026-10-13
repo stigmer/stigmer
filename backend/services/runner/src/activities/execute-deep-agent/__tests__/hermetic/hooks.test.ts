@@ -58,11 +58,7 @@ import { ConnectError, Code } from "@connectrpc/connect";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
-  ApprovalAction,
-  ApprovalPolicySource,
   RunPhase,
-  MessageType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -85,6 +81,12 @@ import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
 import { deriveActiveLeases, hookLeaseKey } from "../../../../shared/approval-policy.js";
 import { approvalAnswersOf } from "../../../../harness/approval-answers.js";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  MessageType,
+  ToolCallStatus,
+} from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const GUARD = `#!/usr/bin/env bash
 input=$(cat)

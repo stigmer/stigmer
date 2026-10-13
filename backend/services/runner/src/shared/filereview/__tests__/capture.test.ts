@@ -27,19 +27,13 @@ import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-  FileDecisionSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
-  FileChangeSetStatus,
-  FileChangeType,
-  FileDecisionAction,
-  FileDecisionScope,
   FileReviewBlockReason,
-  FileReviewEventType,
   SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "../../artifact-storage.js";
@@ -55,6 +49,14 @@ import {
 import { dropCaptureRefs } from "../git-substrate.js";
 import type { GitSubstrateChange } from "../git-substrate.js";
 import { casBlobReader } from "../cas-substrate.js";
+import { FileDecisionSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/ledger_pb.js";
+import {
+  FileChangeSetStatus,
+  FileChangeType,
+  FileDecisionAction,
+  FileDecisionScope,
+  FileReviewEventType,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-da-1";

@@ -48,20 +48,13 @@
  */
 
 import { isAbsolute, relative, resolve } from "node:path";
-import {
-  ApprovalAction,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type {
-  AgentMessage,
-  ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import { ELISION_MARKER } from "./status-offload.js";
 import { extractFilePath, extractWriteContent } from "./file-tools.js";
 import { resolveWorkspacePath } from "./file-change.js";
 import type { WorkspaceBackend } from "./workspace/types.js";
 import { utcTimestamp } from "./status.js";
+import type { AgentMessage, ToolCall, PendingApproval } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Options for {@link applyApprovedWholeFileWrites}. */
 export interface ExactApplyOptions {

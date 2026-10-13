@@ -50,10 +50,10 @@ import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import {
   RunArtifactKind,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { utcTimestamp } from "./status.js";
+import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Legacy plan filename. Detection-only: {@link isPlanArtifactName} still

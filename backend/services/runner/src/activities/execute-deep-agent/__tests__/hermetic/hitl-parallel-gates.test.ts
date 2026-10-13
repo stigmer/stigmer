@@ -23,9 +23,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  ApprovalAction,
   RunPhase,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -50,6 +48,7 @@ import {
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
 import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Run both commands for me.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";

@@ -27,15 +27,10 @@ import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb
 import {
   CapturedFileChangeSchema,
   FileChangeSetSchema,
-  FileDecisionSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   FileCaptureClass,
-  FileDecisionAction,
-  FileDecisionScope,
-  FileChangeSetStatus,
-  FileReviewEventType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ProxyArtifactStorage } from "../../artifact-storage.js";
 import { casBlobReader, casManifestKey } from "../cas-substrate.js";
@@ -44,6 +39,13 @@ import {
   captureCandidateToLedger,
   undoChangeSet,
 } from "../capture.js";
+import { FileDecisionSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/ledger_pb.js";
+import {
+  FileDecisionAction,
+  FileDecisionScope,
+  FileChangeSetStatus,
+  FileReviewEventType,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const execFileAsync = promisify(execFile);
 const EXEC_ID = "exec-proxy-1";

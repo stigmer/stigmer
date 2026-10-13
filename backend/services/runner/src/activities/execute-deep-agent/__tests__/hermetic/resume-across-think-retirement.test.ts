@@ -37,10 +37,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { fromJson, toJson } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalAction,
   RunPhase,
-  ToolCallStatus,
-  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -77,6 +74,7 @@ import {
   readRows,
   type PausedSessionFixture,
 } from "../../__test-utils__/paused-session-fixture.js";
+import { ApprovalAction, ToolCallStatus, ToolKind } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 const RESUME_AFTER_MS = 60_000;

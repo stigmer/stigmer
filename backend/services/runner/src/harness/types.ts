@@ -69,7 +69,6 @@
  */
 
 import type { TranscriptMessage } from "@stigmer/eval-runtime";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
@@ -102,6 +101,7 @@ import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
 import type { HarnessCapabilities } from "./capabilities.js";
 import type { ApprovalAsk } from "./approval-answers.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
+import type { ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * One harness, as the runtime sees it. ONE adapter object exists per worker

@@ -51,13 +51,13 @@
  */
 
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { LeaseGrant } from "../shared/approval-policy.js";
 import { toolUseEventId } from "./events/ids.js";
+import type { AgentMessage } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The log types the door lists: the answers, the grants, and the asks they answer. */
 export const APPROVAL_ANSWER_EVENT_TYPES = ["user.tool_confirmation", "stigmer.permission.grant", "stigmer.permission.asked"] as const;

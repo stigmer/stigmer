@@ -52,7 +52,6 @@ import {
 import {
   RunControlSignal,
   RunPhase,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -77,6 +76,7 @@ import {
   type DeepAgentScenario,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { RoleScript } from "../../__test-utils__/scripted-model.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const READ_CALL = { id: "call-hermetic-read-0001", name: "read_file", args: { file_path: "/notes.md" } };
 

@@ -26,20 +26,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { isToolCallRowHidden } from "../../../shared/tool-row.js";
 import { denialLedgerPath } from "../approval-state.js";
 import { toolCallIdentityToken } from "../approval-state.js";
 import { UNRESOLVED_TOOL_CALL_ERROR } from "../boundary-rows.js";
 import { runTurnBoundary, type TurnBoundaryOptions } from "../turn-boundary.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
+import { AgentMessageSchema, ToolCallSchema, type AgentMessage } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const EXEC_ID = "exec-boundary-1";
 

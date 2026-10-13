@@ -35,19 +35,6 @@
 
 import { describe, it, expect, onTestFinished } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type {
-  AgentMessage,
-  ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  MessageType,
-  ToolCallStatus,
-  ApprovalAction,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -63,6 +50,13 @@ import {
   hookShell,
 } from "../__test-utils__/cursor-hook-harness.js";
 import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+  type AgentMessage,
+  type ToolCall,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType, ToolCallStatus, ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const EXEC_ID = "exec-deny-gate";
 

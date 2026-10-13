@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { cancelInProgressSubAgentProtos } from "../subagent-rows.js";
+import { SubAgentRunSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { SubAgentStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 describe("cancelInProgressSubAgentProtos", () => {
   it("cancels IN_PROGRESS/PENDING protos in place and reports whether anything changed", () => {

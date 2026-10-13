@@ -63,7 +63,6 @@ import { ChannelTemplateSchema, MessagingChannelSchema } from "@stigmer/protos/a
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookGroupSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunSchema, RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -93,6 +92,7 @@ import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
 import type { ProvisionResult } from "../shared/workspace/types.js";
 import type { OffloadedOutput } from "../shared/status-offload.js";
 import type { WireCasSnapshot } from "./protocol.js";
+import type { ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 // ─── Bytes ─────────────────────────────────────────────────────────────────
 

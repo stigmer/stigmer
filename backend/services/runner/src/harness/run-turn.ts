@@ -43,7 +43,7 @@ import { setMaxListeners } from "node:events";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, InteractionMode, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -96,6 +96,7 @@ import { withRunSpan, type RunSpan } from "./run-span.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
 import { CostCapWatch } from "./cost-cap-watch.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
+import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Interval of the activity-wide periodic heartbeat. Started before any phase

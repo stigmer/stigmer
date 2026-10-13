@@ -1,16 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { create, toBinary } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import {
   DiffCompleteness,
   FileCaptureClass,
   FileChangeKind,
-  FileChangeType,
   FileChangeCaptureLevel,
   FileReviewBlockReason,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -29,6 +25,13 @@ import {
   type ChangeSetContext,
 } from "../filereview/events.js";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+  SubAgentRunSchema,
+  type ToolCall,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { FileChangeType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 function makeFakeStorage() {
   // Canonical double, with the metadata-tracking `uploads` shim these tests assert

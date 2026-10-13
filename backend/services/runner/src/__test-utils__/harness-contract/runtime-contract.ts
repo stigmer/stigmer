@@ -49,12 +49,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
-import { ApprovalAction, RunControlSignal, RunPhase, MessageType, SubAgentStatus, TodoStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunControlSignal, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { create, type JsonObject } from "@bufbuild/protobuf";
-import { RecalledMemoriesReportSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
@@ -84,6 +82,18 @@ import {
 import { emptyStatus } from "../proto-helpers.js";
 import { scenario } from "./types.js";
 import type { EngineView, HarnessContractSubject, TurnScenario } from "./types.js";
+import {
+  RecalledMemoriesReportSchema,
+  SubAgentRunSchema,
+  TodoItemSchema,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalAction,
+  MessageType,
+  SubAgentStatus,
+  TodoStatus,
+  ToolCallStatus,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Text that must never reach the transcript: every arm places it after the step that ends the turn. */
 export const NEVER_SEEN = "This text must never reach the transcript.";

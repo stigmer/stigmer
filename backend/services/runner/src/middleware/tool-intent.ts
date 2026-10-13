@@ -38,9 +38,9 @@
  */
 
 import { toJsonSchema } from "@langchain/core/utils/json_schema";
-import { ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { classifyTool } from "../shared/tool-kind.js";
 import type { StigmerMiddleware } from "./types.js";
+import { ToolKind } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * The wire name of the intent argument. Shared with the Cursor harness's

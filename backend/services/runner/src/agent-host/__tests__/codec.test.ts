@@ -34,8 +34,7 @@ import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_p
 import { ChannelTemplateSchema, MessagingChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { ApprovalAction, MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
@@ -61,6 +60,8 @@ import {
   encodeTurnInput,
   type HostTurnServices,
 } from "../codec.js";
+import { AgentMessageSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 function noServices(calls: string[] = []): HostTurnServices {
   const storage: ArtifactStorage = {

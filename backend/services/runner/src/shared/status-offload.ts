@@ -49,11 +49,12 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { AgentMessage, FileContent, ToolCall, ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import type { FileContent, ToolCallOutputRef } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { FileReviewBlockReason } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ArtifactStorage } from "./artifact-storage.js";
 import { deriveDiffCompleteness } from "./filereview/events.js";
+import type { AgentMessage, ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /**
  * A single tool output (result or args_preview) larger than this many bytes is

@@ -26,19 +26,17 @@
 import { create } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
+  FileChangeSetSchema,
+  type FileChangeSet,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import { FileDecisionSchema, type FileDecision, type FileReviewEvent } from "../gen/turn/ai/stigmer/runner/turn/v1/ledger_pb.js";
+import {
   FileChangeSetStatus,
   FileDecisionAction,
   FileDecisionOrigin,
   FileDecisionScope,
   FileReviewEventType,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  FileChangeSetSchema,
-  FileDecisionSchema,
-  type FileChangeSet,
-  type FileDecision,
-  type FileReviewEvent,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+} from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Fold the ledger into change sets, in first-seen order (`project.ts` `projectFileChangeSets`). */
 export function projectFileChangeSets(events: readonly FileReviewEvent[]): FileChangeSet[] {

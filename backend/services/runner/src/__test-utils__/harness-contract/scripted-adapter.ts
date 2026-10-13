@@ -52,8 +52,6 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Config } from "../../config.js";
@@ -64,6 +62,8 @@ import type { ProposedAction } from "../approval-contract/types.js";
 import { testConfig } from "../config-fixture.js";
 import { findToolCallRow } from "../proto-helpers.js";
 import type { EngineView, HarnessContractSubject, ScenarioStep, TurnScenario } from "./types.js";
+import type { ToolCall } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 export interface ScriptedHarnessOptions {
   /** Diagnostic name; defaults to a name that says which primitives this instance runs under. */

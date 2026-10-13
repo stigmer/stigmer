@@ -19,21 +19,23 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalPolicySource,
-  ApprovalPolicySourceSchema,
   FileChangeKind,
   FileReviewBlockReason,
-  FileReviewEventType,
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
 import { POLICY_SOURCE_WORDS, SESSION_EVENT_MAX_BYTES, SessionEventEmitter, type SessionEventEmitterDeps } from "../emitter.js";
+import { AgentMessageSchema, ToolCallSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalPolicySource,
+  ApprovalPolicySourceSchema,
+  FileReviewEventType,
+  MessageType,
+  SubAgentStatus,
+  ToolCallStatus,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RUN = "run_01jz8k3q9w4e5r6t7y8u9i0o1p";
 const AI = MessageType.MESSAGE_AI;

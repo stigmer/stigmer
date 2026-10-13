@@ -34,7 +34,7 @@ import { create, toJson } from "@bufbuild/protobuf";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { ApprovalAction, RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -60,6 +60,7 @@ import {
   runWorkspaceHooks,
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";
 const FINISH = { inputTokens: 1_000, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0 };

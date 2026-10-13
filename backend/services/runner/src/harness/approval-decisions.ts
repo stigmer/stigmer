@@ -40,8 +40,8 @@
  */
 
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { AgentMessage } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The row's error for a REJECT; byte-pinned by the native goldens (`reject.turn2.status.json`) and the conformance suite. */
 export const REJECTED_BY_USER_ERROR = "Rejected by user";

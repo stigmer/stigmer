@@ -24,22 +24,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type {
-  AgentMessage,
-  ToolCall,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  MessageType,
-  ToolCallStatus,
-  ApprovalAction,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 
 import {
   applyApprovedWholeFileWrites,
@@ -49,6 +34,15 @@ import {
 import { ELISION_MARKER } from "../status-offload.js";
 import { mockWorkspaceBackend } from "../../__test-utils__/mock-workspace.js";
 import type { WorkspaceBackend } from "../workspace/types.js";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+  type AgentMessage,
+  type ToolCall,
+  PendingApprovalSchema,
+  type PendingApproval,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType, ToolCallStatus, ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const ROOT = "/root";
 

@@ -18,8 +18,6 @@
 
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
@@ -29,6 +27,8 @@ import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "../../harness/types.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { offloadOversizedToolOutputs } from "../../shared/status-offload.js";
+import { AgentMessageSchema, ToolCallSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const BIG_TEXT = "x".repeat(300 * 1024);
 const IMAGE = JSON.stringify({ type: "image", data: Buffer.alloc(2048, 7).toString("base64"), mimeType: "image/png" });

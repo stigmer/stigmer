@@ -13,10 +13,10 @@
  * the runtime's catch can reach it; the body is unchanged.
  */
 
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { utcTimestamp } from "./status.js";
+import type { SubAgentRun } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { SubAgentStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Transition any non-terminal sub-agent (IN_PROGRESS or PENDING) in the given

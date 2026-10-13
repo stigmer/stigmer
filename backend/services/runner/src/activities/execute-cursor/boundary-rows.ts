@@ -29,9 +29,6 @@
  * `turn-boundary.ts`.
  */
 
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { McpApprovalDefault } from "./approval-policy.js";
 import { resolveApprovalMessage, resolveBuiltInApprovalMessage } from "./approval-policy.js";
@@ -66,6 +63,8 @@ import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { contentDigest, extractFilePath } from "../../shared/file-tools.js";
 import { isSecretLikePath } from "../../shared/filereview/secret-paths.js";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
+import type { AgentMessage, ToolCall, SubAgentRun } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalPolicySource, MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** No row settled from a refusal: the twin collapse's default keep-set. */
 const NO_REFUSED_ROWS: ReadonlySet<string> = new Set();

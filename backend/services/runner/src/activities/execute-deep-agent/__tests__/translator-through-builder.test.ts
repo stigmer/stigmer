@@ -22,8 +22,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, ApprovalPolicySource, RunPhase, MessageType, ToolCallStatus, ToolKind, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
 import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
@@ -43,6 +42,15 @@ import {
   makeToolOutputDelta,
 } from "../__test-utils__/v3-event-fixtures.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
+import { AgentMessageSchema, ToolCallSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  MessageType,
+  ToolCallStatus,
+  ToolKind,
+  TodoStatus,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * A builder over an empty status. Usage never reaches the builder:

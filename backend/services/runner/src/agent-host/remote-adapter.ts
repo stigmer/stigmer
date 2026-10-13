@@ -35,7 +35,6 @@ import { posix } from "node:path";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
 import type { FailureSurface, HarnessAdapter, TurnInput, TurnOutcome, TurnSink, UsageDelta } from "../harness/types.js";
@@ -53,6 +52,7 @@ import {
   encodeTurnInput, encodeOffloads } from "./codec.js";
 import { fromWireError, type WireError, type WireOutcome } from "./protocol.js";
 import type { AgentHostSupervisor, RemoteTurnEndpoint } from "./supervisor.js";
+import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /** What the host may open live turns at: the local proxy's turn registry (`agent-proxy/server.ts`). */
 export interface LiveTurnRegistry {

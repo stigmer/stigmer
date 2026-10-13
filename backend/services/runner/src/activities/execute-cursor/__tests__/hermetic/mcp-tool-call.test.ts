@@ -30,7 +30,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -53,6 +53,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { ToolCallStatus, ToolKind } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const AGENT_ID = "agent-hermetic-mcp-0001";
 const RUN_ID = "run-hermetic-mcp-0001";

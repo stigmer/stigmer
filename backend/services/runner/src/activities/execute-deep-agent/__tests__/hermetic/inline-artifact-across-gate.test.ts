@@ -70,9 +70,7 @@ import {
   type RunStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalAction,
   RunPhase,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -96,6 +94,7 @@ import {
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { CLOSING_TURN, EXECUTE_CALL_A } from "../../__test-utils__/hitl-script.js";
 import { LocalArtifactStorage } from "../../../../shared/artifact-storage.js";
+import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const REPORT = "report.md";
 const REPORT_BODY = "# Report\n\nAll fixtures nominal.\n";

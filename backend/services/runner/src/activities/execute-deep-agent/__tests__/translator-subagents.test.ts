@@ -16,8 +16,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { SubAgentStatus, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { cancelInProgressSubAgentProtos } from "../../../shared/subagent-rows.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { DeepAgentTranslator } from "../translator.js";
@@ -34,6 +32,8 @@ import {
   makeToolOutputDelta,
   makeProtocolEvent,
 } from "../__test-utils__/v3-event-fixtures.js";
+import { SubAgentRunSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { SubAgentStatus, MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** A builder and the status it builds into: the test writes through `sb` and reads `status`, as production reads `TurnSink.status`. */
 function makeBuilder(): { sb: TranscriptBuilder; status: RunStatus } {

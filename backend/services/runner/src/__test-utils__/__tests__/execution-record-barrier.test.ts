@@ -8,8 +8,9 @@
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { deepAgentExecutionRecord } from "../../activities/execute-deep-agent/__test-utils__/hermetic-deep-agent.js";
+import { MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 function statusWith(rows: Array<{ id: string; status: ToolCallStatus; subAgent?: boolean }>) {
   const message = (ids: typeof rows) => ({

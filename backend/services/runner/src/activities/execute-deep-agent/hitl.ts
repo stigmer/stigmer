@@ -20,13 +20,9 @@
 
 import { Command } from "@langchain/langgraph";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  ApprovalAction,
-  ApprovalPolicySource,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { POLICY_ENGINE_VERSION, unattendedSkipMessage, type PolicySource } from "../../shared/approval-policy.js";
+import type { AgentMessage } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * The gate's resume vocabulary for each decision. APPROVE_ALL resumes the

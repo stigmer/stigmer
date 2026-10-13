@@ -76,16 +76,10 @@ import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalPolicySource,
   FileChangeKind,
   FileReviewBlockReason,
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { SessionEventPreviewSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
@@ -111,6 +105,13 @@ import {
   toolResultFullOutputEventId,
   toolUseEventId,
 } from "./ids.js";
+import type { AgentMessage, ToolCall, SubAgentRun } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalPolicySource,
+  MessageType,
+  SubAgentStatus,
+  ToolCallStatus,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The most bytes one encoded event may hold: the session log's own cap (the server's `SESSION_EVENT_MAX_BYTES`). */
 export const SESSION_EVENT_MAX_BYTES = 256 * 1024;

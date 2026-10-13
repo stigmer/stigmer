@@ -31,7 +31,7 @@
 import { createServer, connect, type AddressInfo } from "node:net";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -65,6 +65,7 @@ import { captureTimingLines } from "../../__test-utils__/timing-lines.js";
 import { TERMINAL_COPY } from "../terminal-table.js";
 import { TURN_PHASES_EVENT } from "../turn-timeline.js";
 import type { HarnessAdapter } from "../types.js";
+import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const TASK_QUEUE = "runtime-test-queue";
 

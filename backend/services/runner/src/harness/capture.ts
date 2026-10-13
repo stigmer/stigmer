@@ -68,9 +68,8 @@
  * BASELINE for the same change set. Both predate the lift on both harnesses.
  */
 
-import { ApprovalAction, FileCaptureClass, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileCaptureClass } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { TurnCommandProvenance } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
@@ -89,6 +88,8 @@ import {
 import { collectSettledToolCallIds, collectSubAgentToolCallIds, stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "../shared/tool-row.js";
 import type { FileReviewIdentity } from "./capabilities.js";
 import type { TurnWorkspace } from "./types.js";
+import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The mid-run progress the chokepoint refreshes on every write: the substrate and the floor it throttles by. */
 export interface TurnProgress {

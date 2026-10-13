@@ -28,6 +28,11 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { type RunStatus, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
+import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
+import { TranscriptBuilder } from "../builder.js";
+import type { TranscriptEvent } from "../events.js";
+import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalAction,
   ApprovalPolicySource,
@@ -37,13 +42,7 @@ import {
   ToolCallStatus,
   ToolCallStreamingSource,
   ToolKind,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { RunArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/artifact_pb";
-import { WorkspaceWriteBackSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/writeback_pb";
-import { TranscriptBuilder } from "../builder.js";
-import type { TranscriptEvent } from "../events.js";
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * A builder and the status it builds into, as a pair: the test writes through

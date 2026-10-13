@@ -42,7 +42,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { toJson } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -71,6 +71,7 @@ import {
 } from "../../__test-utils__/hermetic-cursor.js";
 import { initGitWorkspace, localPathEntry } from "../../../../__test-utils__/git-workspace-fixture.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const AGENT_ID = "agent-hermetic-capture-0001";
 const RUN_ID = "run-hermetic-capture-0001";

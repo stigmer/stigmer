@@ -7,9 +7,6 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   collectSettledToolCallIds,
   collectSubAgentToolCallIds,
@@ -19,6 +16,8 @@ import {
   withholdSecretContentFromMessages,
   withholdSecretFileContent,
 } from "../tool-row.js";
+import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 describe("stampFileEditRow", () => {
   it("stamps additively: content, status, and identity all survive", () => {

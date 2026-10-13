@@ -65,10 +65,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ToolMessage } from "@langchain/core/messages";
 import {
-  ApprovalAction,
   RunPhase,
-  MessageType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -96,6 +93,7 @@ import {
   GATE_TURN1_GOLDEN,
   executeApprovalMessage,
 } from "../../__test-utils__/hitl-script.js";
+import { ApprovalAction, MessageType, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Run the command for me.";
 const DECIDED_AT = "2026-01-01T00:00:30.000Z";

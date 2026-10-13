@@ -54,11 +54,7 @@ import {
   type RunStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalAction,
-  ApprovalPolicySource,
   RunPhase,
-  MessageType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -80,6 +76,12 @@ import {
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { CLOSING_TURN, EXECUTE_CALL_A, EXECUTE_CALL_B } from "../../__test-utils__/hitl-script.js";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  MessageType,
+  ToolCallStatus,
+} from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Run both commands.";
 const REASONING = "Two commands are needed; I will run them in order.";

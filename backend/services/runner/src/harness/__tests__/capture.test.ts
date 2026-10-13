@@ -27,9 +27,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
-import { ApprovalAction, FileChangeKind, MessageType, SnapshotKind, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeKind, SnapshotKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
 import { initGitWorkspace } from "../../__test-utils__/git-workspace-fixture.js";
@@ -37,6 +35,13 @@ import { mockWorkspaceBackend } from "../../__test-utils__/mock-workspace.js";
 import type { FileReviewIdentity } from "../capabilities.js";
 import { captureCandidate, deriveCommandProvenance, pinCaptureBaseline } from "../capture.js";
 import type { TurnWorkspace } from "../types.js";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+  type ToolCall,
+  SubAgentRunSchema,
+} from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const EXECUTION_ID = "aex-capture-unit";
 const FILE_REVIEW: FileReviewIdentity = { harnessId: "unit", excludePaths: [".unit/scratch.json"] };

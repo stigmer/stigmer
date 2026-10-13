@@ -12,8 +12,7 @@ import { describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { RunControlSignal, FileChangeKind, MessageType, ServiceTier, ThinkingMode, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunControlSignal, FileChangeKind, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { TurnProgress } from "../capture.js";
@@ -24,6 +23,8 @@ import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@st
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { toJsonString } from "@bufbuild/protobuf";
 import { UsageAccumulator } from "../usage-accumulator.js";
+import { AgentMessageSchema, ToolCallSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 interface Gate {
   readonly open: () => void;

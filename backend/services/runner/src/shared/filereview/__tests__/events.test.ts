@@ -12,7 +12,6 @@ import {
   FileCaptureClass,
   FileChangeKind,
   FileReviewBlockReason,
-  FileReviewEventType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   appendFileReviewEvents,
@@ -24,6 +23,7 @@ import {
   type ChangeSetContext,
 } from "../events.js";
 import { sha256Bytes } from "../digest.js";
+import { FileReviewEventType } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const ctx: ChangeSetContext = {
   changeSetId: "exec-1:0",

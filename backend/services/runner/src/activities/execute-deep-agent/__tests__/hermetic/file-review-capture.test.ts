@@ -84,7 +84,6 @@ import {
   FileCaptureClass,
   FileChangeKind,
   SnapshotKind,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -107,6 +106,7 @@ import {
   deepAgentExecutionRecord,
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
+import { ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const FILE = "notes.md";
 const BEFORE = "# Notes\n\nfirst\n";

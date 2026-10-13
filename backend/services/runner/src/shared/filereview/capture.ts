@@ -24,9 +24,6 @@ import { create } from "@bufbuild/protobuf";
 import {
   FileCaptureClass,
   FileChangeKind,
-  FileChangeType,
-  FileDecisionAction,
-  FileDecisionScope,
   FileReviewBlockReason,
   SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -73,6 +70,7 @@ import {
   type CasSnapshotRef,
 } from "./cas-substrate.js";
 import { isSecretLikePath } from "./secret-paths.js";
+import { FileChangeType, FileDecisionAction, FileDecisionScope } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Whether a workspace CAN capture a turn's file edits: the substrate half of

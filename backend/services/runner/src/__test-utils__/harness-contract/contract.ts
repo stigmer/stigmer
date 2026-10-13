@@ -82,7 +82,6 @@ import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { approvalAnswersOf, copyAnswersOntoRows } from "../../harness/approval-answers.js";
@@ -95,6 +94,7 @@ import { turnInputFixture } from "../turn-input-fixture.js";
 import { RecordingTurnSink } from "./recording-sink.js";
 import { scenario } from "./types.js";
 import type { EngineView, HarnessContractSubject, TurnScenario } from "./types.js";
+import { ApprovalAction, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * How long a turn may take to settle `interrupted` after its signal aborts.

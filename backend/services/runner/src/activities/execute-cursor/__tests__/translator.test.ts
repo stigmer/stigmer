@@ -17,8 +17,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { TranscriptEvent } from "../../../harness/transcript/events.js";
 import type { McpApprovalDefault } from "../../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
@@ -26,6 +24,15 @@ import { CursorFold, foldCursorEvents } from "../__test-utils__/fold.js";
 import { sdkEvents } from "../__test-utils__/scripted-agent.js";
 import { grantToken } from "../approval-state.js";
 import { CursorTranslator, extractSubagentName } from "../translator.js";
+import { AgentMessageSchema, ToolCallSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  MessageType,
+  SubAgentStatus,
+  ToolCallStatus,
+  ToolKind,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RUN = "run-1";
 const ev = sdkEvents("agent-1", RUN);

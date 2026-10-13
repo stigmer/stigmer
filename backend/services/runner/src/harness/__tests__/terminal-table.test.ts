@@ -13,12 +13,13 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { StallTimeoutError } from "../../shared/stall-watchdog.js";
 import { WorkspaceLockTimeoutError } from "../../shared/workspace/workspace-lock.js";
 import * as table from "../terminal-table.js";
 import type { StopCause, TerminalArm } from "../terminal-table.js";
+import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const ARMS: ReadonlyArray<{ readonly name: string; readonly arm: TerminalArm; readonly cause: StopCause | null }> = [
   { name: "stallArm", arm: table.stallArm(new StallTimeoutError(1_000)), cause: "timeout" },

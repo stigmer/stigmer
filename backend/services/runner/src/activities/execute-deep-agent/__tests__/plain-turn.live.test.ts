@@ -19,7 +19,7 @@
  * the prices are the ones users get.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -31,6 +31,7 @@ import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixtur
 import { realModelRegistry } from "../../../__test-utils__/real-model-registry.js";
 import { COST_LIMIT_ERROR_PREFIX } from "../../../shared/cost-guard.js";
 import { beginLiveDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../__test-utils__/hermetic-deep-agent.js";
+import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** The cheapest native model in the registry; the record names it, so the default model is never consulted. */
 const LIVE_MODEL = "claude-haiku-4.5";

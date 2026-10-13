@@ -48,8 +48,7 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { COST_LIMIT_USER_COPY, formatCostLimitError } from "../shared/cost-guard.js";
 import { TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../shared/tool-rounds.js";
@@ -59,6 +58,8 @@ import type { WorkspaceLockTimeoutError } from "../shared/workspace/workspace-lo
 import type { FailureSurface } from "./types.js";
 import type { MockAbort } from "./stop-controller.js";
 import { formatTryStop } from "@stigmer/eval-runtime";
+import { AgentMessageSchema } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * Why a turn stopped, as `RunStatus.stop_cause` names it: the one

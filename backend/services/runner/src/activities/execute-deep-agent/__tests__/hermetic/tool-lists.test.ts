@@ -28,10 +28,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
-  ApprovalPolicySource,
   RunPhase,
-  MessageType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -57,6 +54,7 @@ import {
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
 import { TODO_SYSTEM_PROMPT } from "../../todo-list.js";
+import { ApprovalPolicySource, MessageType, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const CALL_ID = "call-hermetic-listed-out-0001";
 const AGENT_OWNER = "The agent";

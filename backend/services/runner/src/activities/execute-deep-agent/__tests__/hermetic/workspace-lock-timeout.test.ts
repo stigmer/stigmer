@@ -38,7 +38,7 @@
 import { mkdirSync } from "node:fs";
 import { realpath } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -65,6 +65,7 @@ import {
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Below the lock's 1 s poll interval: the first contended attempt times out. */
 const LOCK_TIMEOUT_MS = 250;

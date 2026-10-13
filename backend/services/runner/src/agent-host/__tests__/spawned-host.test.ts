@@ -23,7 +23,6 @@
 import type { ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { DEEP_AGENT_CAPABILITIES } from "../../activities/execute-deep-agent/deep-agent-capabilities.js";
 import { RecordingTurnSink } from "../../__test-utils__/harness-contract/recording-sink.js";
@@ -32,6 +31,7 @@ import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter, TurnOutcome } from "../../harness/types.js";
 import { createRemoteAdapter } from "../remote-adapter.js";
 import { AgentHostSupervisor, spawnHostProcess, type HostStarter } from "../supervisor.js";
+import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const CHILD = fileURLToPath(new URL("../../__test-utils__/agent-host-probe-child.ts", import.meta.url));
 

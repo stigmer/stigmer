@@ -12,18 +12,15 @@
 
 import { describe, it, expect } from "vitest";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
+
+import { qualifyTurnCommandProvenance, findLeaseConsentId } from "../command-provenance.js";
 import {
   AgentMessageSchema,
   ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import {
-  ApprovalAction,
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-
-import { qualifyTurnCommandProvenance, findLeaseConsentId } from "../command-provenance.js";
+  type AgentMessage,
+  type ToolCall,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 function toolCall(overrides: MessageInitShape<typeof ToolCallSchema>): ToolCall {
   return create(ToolCallSchema, {

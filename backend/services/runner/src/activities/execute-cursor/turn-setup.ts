@@ -31,7 +31,6 @@
  */
 
 import type { SDKUserMessage } from "@cursor/sdk";
-import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
@@ -102,6 +101,7 @@ import type { TurnStreamState } from "./turn-stream.js";
 import { buildCursorSubAgentDefinitions, subagentNamesInScope, subagentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
 import { installHitlGate, MAX_HOOK_TIMEOUT_SECONDS, removeHitlGate, type HitlGateHandle } from "./workspace-setup.js";
+import type { PendingApproval } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice

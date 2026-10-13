@@ -12,11 +12,10 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/run/v1/todo_pb";
-import { TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { applyTodoUpdate as applyTodoRule, type Todo } from "@stigmer/session-log";
 import { utcTimestamp } from "./status.js";
+import { TodoItemSchema, type TodoItem } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { TodoStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const STATUS_OF: Readonly<Record<Todo["status"], TodoStatus>> = {
   pending: TodoStatus.TODO_PENDING,

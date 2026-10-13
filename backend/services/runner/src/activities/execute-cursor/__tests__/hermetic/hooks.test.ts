@@ -51,11 +51,7 @@ import { ConnectError, Code } from "@connectrpc/connect";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
-  ApprovalAction,
-  ApprovalPolicySource,
   RunPhase,
-  MessageType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { HookConfigSchema, HookFormat, HookGroupSchema, HookHandlerSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -88,6 +84,12 @@ import {
   runWorkspaceHooks,
   sessionWorkspaceDir,
 } from "../../__test-utils__/hermetic-cursor.js";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  MessageType,
+  ToolCallStatus,
+} from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** Refuses recursive deletes, allows listings, asks before publishing; decides nothing else. */
 const GUARD = `#!/usr/bin/env bash

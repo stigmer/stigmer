@@ -57,8 +57,6 @@ import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_p
 import {
   RunControlSignal,
   RunPhase,
-  MessageType,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("@cursor/sdk", async () =>
@@ -85,6 +83,7 @@ import {
   runCursorTurn,
 } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { MessageType, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Run the full test suite and report.";
 const NEVER_SEEN = "This text must never reach the transcript.";

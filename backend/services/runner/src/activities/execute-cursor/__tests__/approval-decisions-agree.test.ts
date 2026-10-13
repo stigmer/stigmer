@@ -21,15 +21,19 @@
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ApprovalAction, ApprovalPolicySource, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { approvalAnswersOf } from "../../../harness/approval-answers.js";
 import { toolUseEventId } from "../../../harness/events/ids.js";
 import { answerEventsFor } from "../../../__test-utils__/approval-log.js";
 import { reconstructAdjudicatedApprovals } from "../approval-state.js";
+import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import {
+  ApprovalAction,
+  ApprovalPolicySource,
+  MessageType,
+  ToolCallStatus,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const RUN = "run_agree";
 

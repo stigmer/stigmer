@@ -59,7 +59,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -83,6 +83,7 @@ import {
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { ScriptedTurn } from "../../__test-utils__/scripted-model.js";
 import { TOOL_CALL_LIMIT_ERROR_PREFIX } from "../../../../shared/tool-rounds.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /** More rounds than the budget allows; the graph stops the script, not the other way round. */
 const SCRIPTED_ROUNDS = 40;

@@ -86,8 +86,6 @@
  */
 
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ToolStartedEvent, TranscriptEvent } from "../../harness/transcript/events.js";
 import { resolveApprovalProvenance, type McpApprovalDefault, type PolicySource } from "../../shared/approval-policy.js";
 import { utcTimestamp } from "../../shared/status.js";
@@ -98,6 +96,8 @@ import type { HookDecisionLog } from "./hook-server.js";
 import { contentDigest } from "../../shared/file-tools.js";
 import { subAgentStepEvents } from "./sub-agent-steps.js";
 import { toResultString } from "./tool-result.js";
+import type { AgentMessage } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 type ToolCallEvent = Extract<SDKMessage, { type: "tool_call" }>;
 

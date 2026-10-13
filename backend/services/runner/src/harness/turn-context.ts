@@ -67,7 +67,6 @@ import { clone } from "@bufbuild/protobuf";
 import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
@@ -153,6 +152,7 @@ import type {
   TurnSubagent,
   TurnWorkspace,
 } from "./types.js";
+import type { ApprovalAction } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 // ---------------------------------------------------------------------------
 // What the phases take

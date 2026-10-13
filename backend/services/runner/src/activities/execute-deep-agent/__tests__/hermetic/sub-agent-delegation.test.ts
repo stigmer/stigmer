@@ -76,9 +76,6 @@ import { create, toJson } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
-  MessageType,
-  SubAgentStatus,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -102,6 +99,7 @@ import {
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { recordedModelBuilds } from "../../__test-utils__/scripted-model-module.js";
+import { MessageType, SubAgentStatus, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const HELPER_INSTRUCTIONS = "You are the hermetic helper. Answer in one line.";
 const TASK_CALL_ID = "call-hermetic-task-0001";

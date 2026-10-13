@@ -30,10 +30,7 @@
 
 import { describe, it, expect } from "vitest";
 import { create, clone } from "@bufbuild/protobuf";
-import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 import { approvalAnswersOf } from "../../../harness/approval-answers.js";
@@ -42,6 +39,13 @@ import { reconcileDeniedToolCalls } from "../boundary-rows.js";
 import { CursorFold, builderOver } from "../__test-utils__/fold.js";
 import { toolCallIdentityToken } from "../approval-state.js";
 import type { DeniedLedgerEntry } from "../approval-state.js";
+import {
+  AgentMessageSchema,
+  ToolCallSchema,
+  type AgentMessage,
+  type ToolCall,
+} from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const PATH = "/work/a.txt";
 const CONTENT = "A\n";

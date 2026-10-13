@@ -28,9 +28,7 @@ import { ToolMessage } from "@langchain/core/messages";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalMode,
-  ApprovalPolicySource,
   RunPhase,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { foldSession, turnOf, type ToolUse } from "@stigmer/session-log";
 
@@ -54,6 +52,7 @@ import {
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
 import { CLOSING_TURN, EXECUTE_CALL_A, GATED_OPENING_TURN } from "../../__test-utils__/hitl-script.js";
+import { ApprovalPolicySource, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const USER_MESSAGE = "Run the command for me.";
 

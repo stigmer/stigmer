@@ -27,7 +27,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -51,6 +51,7 @@ import {
 import { LocalArtifactStorage } from "../../../../shared/artifact-storage.js";
 import { StreamingSideEffects } from "../../streaming-side-effects.js";
 import { TERMINAL_COPY } from "../../../../harness/terminal-table.js";
+import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const REPORT = "report.md";
 const REPORT_BODY = "# Report\n\nWritten before the provider failed.\n";

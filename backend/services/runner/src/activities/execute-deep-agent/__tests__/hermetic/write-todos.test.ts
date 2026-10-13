@@ -43,10 +43,6 @@ import { toJson } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   RunPhase,
-  MessageType,
-  TodoStatus,
-  ToolCallStatus,
-  ToolKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -67,6 +63,7 @@ import {
   deepAgentExecutionRecord,
   runDeepAgentTurn,
 } from "../../__test-utils__/hermetic-deep-agent.js";
+import { MessageType, TodoStatus, ToolCallStatus, ToolKind } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const CALL_ID = "call-hermetic-todos-0001";
 const USER_MESSAGE = "Plan the two steps.";

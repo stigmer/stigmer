@@ -20,9 +20,9 @@
 import { create } from "@bufbuild/protobuf";
 import type { InteractionUpdate, SDKMessage } from "@cursor/sdk";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { TranscriptBuilder, type TranscriptObserver } from "../../../harness/transcript/builder.js";
 import { CursorTranslator, type CursorTranslatorOptions } from "../translator.js";
+import type { AgentMessage, ToolCall } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 export interface CursorFoldOptions {
   /** The status to build into; a fresh empty one when omitted. Its `messages` are the translator's seed. */

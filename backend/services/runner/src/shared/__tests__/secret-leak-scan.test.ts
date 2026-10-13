@@ -16,14 +16,10 @@
 
 import { describe, it, expect } from "vitest";
 import { create, toJsonString } from "@bufbuild/protobuf";
-import {
-  AgentMessageSchema,
-  ToolCallSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ToolCallStatus, MessageType } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { withholdSecretContentFromMessages } from "../tool-row.js";
+import { AgentMessageSchema, ToolCallSchema, SubAgentRunSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ToolCallStatus, MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const SECRET = "API_KEY=SUPER_SECRET_LEAK_TOKEN_9f3a";
 

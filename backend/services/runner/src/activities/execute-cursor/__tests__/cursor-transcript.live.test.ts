@@ -73,8 +73,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { RunPhase, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../../client/stigmer-client.js", async () =>
   (await import("../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -85,6 +84,8 @@ import { liveSecret, recordLiveSpend } from "../../../__test-utils__/live-gate.j
 import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
 import { approvalCategory } from "../approval-policy.js";
 import { beginLiveCursorScenario, cursorExecutionRecord, runCursorTurn } from "../__test-utils__/hermetic-cursor.js";
+import type { ToolCall } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { MessageType, ToolCallStatus } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 const CURSOR_API_KEY = liveSecret("CURSOR_API_KEY") ?? "";
 

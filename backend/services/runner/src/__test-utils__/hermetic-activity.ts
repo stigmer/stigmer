@@ -91,15 +91,11 @@ import {
   type RunStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalAction,
-  FileDecisionAction,
   RunControlSignal,
   RunPhase,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import {
@@ -124,6 +120,8 @@ import { SessionEventEmitter } from "../harness/events/emitter.js";
 import { answerEventsFor } from "./approval-log.js";
 import { decideCapturedFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
 import { mockStigmerClient } from "./mock-client.js";
+import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { ApprovalAction, FileDecisionAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 // ---------------------------------------------------------------------------
 // The execution record: what the control plane would hold for one execution
