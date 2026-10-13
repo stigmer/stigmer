@@ -1,8 +1,9 @@
 /**
  * Server-side activity implementations for the agent-execution worker —
  * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
- * load_execution, read_harness_state_id), closes the previous turn's file
- * review (CloseFileReview), and
+ * load_execution, read_harness_state_id), counts a waiting turn's open
+ * gates (CountOpenGates), closes the previous turn's file review
+ * (CloseFileReview), and
  * registers the retired DeleteExecutionContext name with a body that does
  * nothing, for the runs whose history still calls it (names.ts).
  *
@@ -35,6 +36,16 @@
  * The reads (LoadAgentExecution, ReadHarnessStateId) stay store-direct:
  * pure reads with Java `findById` parity — no chain to bypass.
  *
+ * CountOpenGates is the workflow's HITL wait condition: the number of the
+ * turn's tool uses that wait in its session's log (an ask no answer and
+ * no result closed, store/session-events.ts `openGates`), the same fact
+ * an answer reads before it signals the turn (domain/session/hitl/
+ * answer.ts), so the two never disagree about whether the turn may
+ * resume. The session is the workflow input's, or the run's own when an
+ * input carried none; a run in no session has no log and no open gate. A
+ * store fault fails the activity, and the workflow then waits for the
+ * signal, as it did when the load failed.
+ *
  * CloseFileReview is the server's own policy write, as the auto-keeps
  * inside the status merge are: once this turn's message is in the log,
  * the previous turn's still-undecided edits are kept
@@ -45,7 +56,10 @@
  * message, one for the message before it. A run whose message is not in
  * the log (no session, or a reconcile turn, whose workflow never calls
  * it), a first turn and a previous turn since deleted close nothing, and
- * a previous turn with nothing undecided is not written. Idempotent, so a retry or a replay that runs
+ * a previous turn the session's log shows with nothing undecided is not
+ * written (its decided events against the files its ledger captured,
+ * domain/run/filereview/logged.ts), and the write decides again from the
+ * log read under its lock. Idempotent, so a retry or a replay that runs
  * it again records nothing new.
  */
 import { create, toJson } from "@bufbuild/protobuf";
@@ -60,20 +74,29 @@ import type {
   UpdateStatusResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import { keepOutdatedSets } from "../../domain/run/filereview/autokeep.js";
+import {
+  FILE_REVIEW_DECIDED_TYPE,
+  awaitsReview,
+  decisionsOn,
+  runReviewLogOf,
+} from "../../domain/run/filereview/logged.js";
+import type { RunReviewLog } from "../../domain/run/filereview/logged.js";
 import { projectFileChangeSets } from "../../domain/run/filereview/project.js";
+import { eventOf } from "../../domain/session/events/codec.js";
 import type { SessionEventBroker } from "../../domain/session/events/broker.js";
 import { updateRunAppendingEvents } from "../../domain/session/events/run-writes.js";
+import { sessionIdOfRun } from "../../domain/session/events/transitions.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
+  COUNT_OPEN_GATES_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
@@ -174,6 +197,21 @@ export function createAgentExecutionActivities(
       return toJson(RunSchema, execution);
     },
 
+    /** The turn's open gates in its session's log (module header). */
+    [COUNT_OPEN_GATES_ACTIVITY_NAME]: async (
+      executionId: string,
+      sessionId: string,
+    ): Promise<number> => {
+      const session =
+        sessionId !== ""
+          ? sessionId
+          : sessionIdOfRun(await store.getResource(ApiResourceKind.run, executionId, RunSchema));
+      if (session === "") {
+        return 0;
+      }
+      return (await store.sessionEvents.openGates(session, executionId)).length;
+    },
+
     /**
      * Reads the session's harness_state_id (the Cursor agentId stored by
      * ExecuteCursor on first run; Agent.resume needs it on HITL
@@ -220,15 +258,26 @@ export function createAgentExecutionActivities(
       let kept = 0;
       try {
         const previous = await store.getResource(ApiResourceKind.run, previousRunId, RunSchema);
-        if (!hasUndecidedSet(previous)) {
+        const decided = await store.sessionEvents.list(sessionId, {
+          order: "asc",
+          runId: previousRunId,
+          types: [FILE_REVIEW_DECIDED_TYPE],
+          limit: DECIDED_READ_LIMIT,
+        });
+        if (decided.length < DECIDED_READ_LIMIT && !hasUndecidedSet(previous, runReviewLogOf(decided.map(eventOf)))) {
           return;
         }
-        await updateRunAppendingEvents(deps, previousRunId, (run) => {
-          if (run.status !== undefined) {
-            kept = keepOutdatedSets(run.status, previousRunId);
-            run.status.fileChangeSets = projectFileChangeSets(run.status.fileReviewEventStream);
-          }
-        });
+        await updateRunAppendingEvents(
+          deps,
+          previousRunId,
+          (run, session) => {
+            if (run.status !== undefined) {
+              kept = keepOutdatedSets(run.status, previousRunId, runReviewLogOf(session.runEvents.map(eventOf)));
+              run.status.fileChangeSets = projectFileChangeSets(run.status.fileReviewEventStream);
+            }
+          },
+          { runEventTypes: [FILE_REVIEW_DECIDED_TYPE] },
+        );
       } catch (error) {
         // A previous turn deleted since its message was read has nothing
         // left to close.
@@ -279,9 +328,15 @@ async function previousTurnRunId(
   return before === undefined || before.runId === "" ? undefined : before.runId;
 }
 
-/** Whether a run holds a change set still awaiting a decision. */
-function hasUndecidedSet(run: Run): boolean {
-  return projectFileChangeSets(run.status?.fileReviewEventStream).some(
-    (cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW,
+/**
+ * The most decided events the close reads before its write; a turn with
+ * more is closed by the write, which reads them all under its lock.
+ */
+const DECIDED_READ_LIMIT = 1000;
+
+/** Whether a run holds a captured change set its log shows still awaiting a decision. */
+function hasUndecidedSet(run: Run, log: RunReviewLog): boolean {
+  return projectFileChangeSets(run.status?.fileReviewEventStream).some((cs) =>
+    awaitsReview(cs, decisionsOn(log, cs.id)),
   );
 }

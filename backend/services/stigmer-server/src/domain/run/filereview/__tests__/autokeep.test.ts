@@ -1,15 +1,19 @@
 /**
  * Pins the approved-command auto-keep policy (autokeep.ts): a captured
- * change set whose every mutation came from commands the human approved is
- * kept by a policy decision, and every claim the server cannot verify
- * against its own records falls back to manual review. A plugin eval's
+ * change set whose every mutation came from commands the human approved
+ * (an allow in the session's log, whatever the call's row says) is kept
+ * by a policy decision, and every claim the server cannot verify against
+ * its own records falls back to manual review, as does a set the log
+ * shows a person decided. A plugin eval's
  * try keeps its change set by its own policy, whatever produced it, except
  * a set that cannot be approved whole, and a run that is no try keeps
  * nothing that way. Once a later message is sent, a turn's undecided
  * edits are kept with origin next turn: a whole set nobody decided by one
  * change-set keep, a set decided in part by one file keep per file left,
  * an unreviewable set too, a set still capturing not yet, and only once.
- * The seed is the
+ * What is decided is read from the log handed in (`RunReviewLog`), never
+ * from the ledger, which a keep only writes; a test's log after a keep is
+ * the one the write's decided mirror leaves (`mirrored`). The seed is the
  * shared one-change file-review ledger (../../__tests__/file-review-seed.ts)
  * with the runner's command provenance added to its candidate.
  */
@@ -33,9 +37,13 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/me
 
 import type { LogFields, Logger } from "../../../../boot/logger.js";
 import { fileReviewSeed, reviewableChange } from "../../__tests__/file-review-seed.js";
+import { originWordOf } from "../../../session/filereview/words.js";
+import { toolUseEventId } from "../../../session/events/ids.js";
 import { ACTOR_POLICY, ACTOR_USER, recordFileDecisionEventWithActor } from "../author.js";
 import { autoKeepApprovedCommandSets, autoKeepPluginEvalTrySets, keepOutdatedSets } from "../autokeep.js";
 import { aggregateDigest, fileDigest } from "../digest.js";
+import { EMPTY_RUN_REVIEW_LOG } from "../logged.js";
+import type { LoggedDecision, RunReviewLog } from "../logged.js";
 import { projectFileChangeSets } from "../project.js";
 
 const EXECUTION_ID = "aex_autokeep";
@@ -89,6 +97,37 @@ function statusWithProvenance(options: {
   return status;
 }
 
+/** A log holding these decisions and the person's allow of the consent call when `allowed`. */
+function logWith(decisions: ReadonlyArray<LoggedDecision> = [], allowed = false): RunReviewLog {
+  return {
+    decisions,
+    allowed: new Set(allowed ? [toolUseEventId(EXECUTION_ID, CONSENT_TOOL_CALL)] : []),
+  };
+}
+
+/** The log the write's decided mirror leaves: one decision per FILE_DECIDED the ledger holds. */
+function mirrored(status: RunStatus, base: RunReviewLog = EMPTY_RUN_REVIEW_LOG): RunReviewLog {
+  const decisions = (status.fileReviewEventStream?.events ?? []).flatMap((ev) =>
+    ev.payload.case === "fileDecided"
+      ? [
+          {
+            changeSetId: ev.payload.value.changeSetId,
+            scope: ev.payload.value.scope,
+            fileChangeId: ev.payload.value.fileChangeId,
+            action: ev.payload.value.action,
+            origin: originWordOf(ev.payload.value.origin) ?? "",
+          },
+        ]
+      : [],
+  );
+  return { decisions, allowed: base.allowed };
+}
+
+/** A person's decision as the log states it. */
+function personInLog(scope: FileDecisionScope, action: FileDecisionAction, fileChangeId = ""): LoggedDecision {
+  return { changeSetId: CHANGE_SET_ID, scope, fileChangeId, action, origin: "person" };
+}
+
 function decisionsOf(status: RunStatus) {
   const stream = status.fileReviewEventStream;
   if (stream === undefined) throw new Error("the seed carries a file-review ledger");
@@ -99,9 +138,9 @@ function decisionsOf(status: RunStatus) {
 describe("autoKeepApprovedCommandSets", () => {
   it("keeps a reviewable set whose every command the human approved, as a policy decision, and says so", () => {
     const { logger, lines } = capturingLogger();
-    const status = statusWithProvenance({ approval: ApprovalAction.APPROVE });
+    const status = statusWithProvenance({});
 
-    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger)).toBe(1);
+    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger, logWith([], true))).toBe(1);
 
     const decisions = decisionsOf(status);
     expect(decisions).toHaveLength(1);
@@ -122,18 +161,25 @@ describe("autoKeepApprovedCommandSets", () => {
 
   it("is a no-op on a second pass: the decision already exists", () => {
     const { logger } = capturingLogger();
-    const status = statusWithProvenance({ approval: ApprovalAction.APPROVE });
-    autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger);
+    const status = statusWithProvenance({});
+    autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger, logWith([], true));
 
-    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger)).toBe(0);
+    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger, mirrored(status, logWith([], true)))).toBe(0);
     expect(decisionsOf(status)).toHaveLength(1);
   });
 
-  it("leaves the set for manual review when the cited command carries no server-authored approval", () => {
-    const { logger, lines } = capturingLogger();
-    const status = statusWithProvenance({ approval: ApprovalAction.REJECT });
+  it("leaves a set a person decided in part to the person, as the log states it", () => {
+    const status = statusWithProvenance({});
+    const log = logWith([personInLog(FileDecisionScope.FILE, FileDecisionAction.REJECT, "fc-1")], true);
+    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, capturingLogger().logger, log)).toBe(0);
+    expect(decisionsOf(status)).toHaveLength(0);
+  });
 
-    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger)).toBe(0);
+  it("leaves the set for manual review when the log holds no allow for the cited command, whatever its row says", () => {
+    const { logger, lines } = capturingLogger();
+    const status = statusWithProvenance({ approval: ApprovalAction.APPROVE });
+
+    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger, logWith())).toBe(0);
     expect(decisionsOf(status)).toHaveLength(0);
     expect(lines.map((l) => [l.level, l.message])).toEqual([
       [
@@ -147,16 +193,16 @@ describe("autoKeepApprovedCommandSets", () => {
     const { logger } = capturingLogger();
     const status = statusWithProvenance({});
 
-    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger)).toBe(0);
+    expect(autoKeepApprovedCommandSets(status, EXECUTION_ID, false, logger, logWith())).toBe(0);
     expect(decisionsOf(status)).toHaveLength(0);
   });
 
   it("refuses an auto-approve-all claim the execution's spec does not grant, and honours one it does", () => {
     const refused = statusWithProvenance({ authorizedByAutoApproveAll: true });
-    expect(autoKeepApprovedCommandSets(refused, EXECUTION_ID, false, capturingLogger().logger)).toBe(0);
+    expect(autoKeepApprovedCommandSets(refused, EXECUTION_ID, false, capturingLogger().logger, logWith())).toBe(0);
 
     const granted = statusWithProvenance({ authorizedByAutoApproveAll: true });
-    expect(autoKeepApprovedCommandSets(granted, EXECUTION_ID, true, capturingLogger().logger)).toBe(1);
+    expect(autoKeepApprovedCommandSets(granted, EXECUTION_ID, true, capturingLogger().logger, logWith())).toBe(1);
     expect(decisionsOf(granted)[0]?.origin).toBe(FileDecisionOrigin.POLICY_APPROVED_COMMAND);
   });
 });
@@ -165,14 +211,14 @@ describe("autoKeepPluginEvalTrySets", () => {
   it("keeps a try's undecided change set by policy, once", () => {
     const status = create(RunStatusSchema, fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).status);
     const { logger } = capturingLogger();
-    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger)).toBe(1);
+    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger, logWith())).toBe(1);
     expect(decisionsOf(status).map((d) => [d.origin, d.reason])).toEqual([
       [
         FileDecisionOrigin.POLICY_EVAL_TRY,
         "Kept automatically: a plugin eval's try keeps its edits, as Claude Code's evals do; nobody reviews a try",
       ],
     ]);
-    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger), "a decided set is left alone").toBe(0);
+    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger, mirrored(status)), "a decided set is left alone").toBe(0);
   });
 
   it("leaves a set that cannot be approved whole to the try's timeout, and says so", () => {
@@ -187,7 +233,7 @@ describe("autoKeepPluginEvalTrySets", () => {
     candidate.payload.value.diffCompleteness = DiffCompleteness.PARTIAL_BLOCKED;
     const { logger, lines } = capturingLogger();
 
-    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger)).toBe(0);
+    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger, logWith())).toBe(0);
     expect(decisionsOf(status)).toEqual([]);
     expect(lines.map((l) => [l.level, l.message, l.fields?.["changeSetId"]])).toEqual([
       ["warn", "Eval try keep skipped: set cannot be approved whole", CHANGE_SET_ID],
@@ -196,7 +242,7 @@ describe("autoKeepPluginEvalTrySets", () => {
 
   it("keeps nothing for a run that is not a try", () => {
     const status = create(RunStatusSchema, fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).status);
-    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, false, capturingLogger().logger)).toBe(0);
+    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, false, capturingLogger().logger, logWith())).toBe(0);
     expect(decisionsOf(status)).toEqual([]);
   });
 });
@@ -240,7 +286,7 @@ describe("keepOutdatedSets", () => {
     const status = create(RunStatusSchema, fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).status);
     const aggregate = fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).aggregate;
 
-    expect(keepOutdatedSets(status, EXECUTION_ID)).toBe(1);
+    expect(keepOutdatedSets(status, EXECUTION_ID, logWith())).toBe(1);
     expect(
       decisionsOf(status).map((d) => [d.id, d.scope, d.action, d.origin, d.expectedDigest, d.fileChangeId, d.reason]),
     ).toEqual([
@@ -261,7 +307,7 @@ describe("keepOutdatedSets", () => {
     const status = statusWithTwoChanges();
     personDecides(status, FileDecisionScope.FILE, FileDecisionAction.REJECT, "fc-1");
 
-    expect(keepOutdatedSets(status, EXECUTION_ID)).toBe(1);
+    expect(keepOutdatedSets(status, EXECUTION_ID, mirrored(status))).toBe(1);
     const second = statusWithTwoChanges().fileReviewEventStream?.events[1];
     const fc2Digest =
       second?.payload.case === "candidateCaptured" ? second.payload.value.changes[1]?.fileDigest : undefined;
@@ -275,16 +321,26 @@ describe("keepOutdatedSets", () => {
     const status = create(RunStatusSchema, fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).status);
     personDecides(status, FileDecisionScope.CHANGE_SET, FileDecisionAction.REJECT);
 
-    expect(keepOutdatedSets(status, EXECUTION_ID)).toBe(0);
+    expect(keepOutdatedSets(status, EXECUTION_ID, mirrored(status))).toBe(0);
     expect(decisionsOf(status).map((d) => d.origin)).toEqual([FileDecisionOrigin.USER]);
+  });
+
+  it("reads what is decided from the log, not the ledger: a decision only the log holds leaves the set alone", () => {
+    const status = statusWithTwoChanges();
+    const log = logWith([
+      personInLog(FileDecisionScope.FILE, FileDecisionAction.REJECT, "fc-1"),
+      personInLog(FileDecisionScope.FILE, FileDecisionAction.APPROVE, "fc-2"),
+    ]);
+    expect(keepOutdatedSets(status, EXECUTION_ID, log)).toBe(0);
+    expect(decisionsOf(status)).toEqual([]);
   });
 
   it("is a no-op on a second pass: the keeps already exist", () => {
     const status = statusWithTwoChanges();
     personDecides(status, FileDecisionScope.FILE, FileDecisionAction.APPROVE, "fc-2");
-    expect(keepOutdatedSets(status, EXECUTION_ID)).toBe(1);
+    expect(keepOutdatedSets(status, EXECUTION_ID, mirrored(status))).toBe(1);
 
-    expect(keepOutdatedSets(status, EXECUTION_ID)).toBe(0);
+    expect(keepOutdatedSets(status, EXECUTION_ID, mirrored(status))).toBe(0);
     expect(decisionsOf(status)).toHaveLength(2);
   });
 
@@ -299,13 +355,13 @@ describe("keepOutdatedSets", () => {
     change.diffComplete = false;
     candidate.payload.value.diffCompleteness = DiffCompleteness.PARTIAL_BLOCKED;
 
-    expect(keepOutdatedSets(status, EXECUTION_ID)).toBe(1);
+    expect(keepOutdatedSets(status, EXECUTION_ID, logWith())).toBe(1);
   });
 
   it("leaves a set still capturing for the write that folds its candidate, and a run with no ledger keeps nothing", () => {
     const capturing = create(RunStatusSchema, fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).status);
     capturing.fileReviewEventStream?.events.splice(1);
-    expect(keepOutdatedSets(capturing, EXECUTION_ID)).toBe(0);
-    expect(keepOutdatedSets(create(RunStatusSchema), EXECUTION_ID)).toBe(0);
+    expect(keepOutdatedSets(capturing, EXECUTION_ID, logWith())).toBe(0);
+    expect(keepOutdatedSets(create(RunStatusSchema), EXECUTION_ID, logWith())).toBe(0);
   });
 });

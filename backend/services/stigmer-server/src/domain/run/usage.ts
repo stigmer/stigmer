@@ -11,7 +11,10 @@
  * throws fails the report rather than show metered runs as estimates.
  * A run counted from its runner's report is mapped by its harness, which
  * is its session's (one session read per distinct session of such runs).
- * The arithmetic is usage-fold.ts beside this file.
+ * The arithmetic is usage-fold.ts beside this file. The session report's
+ * per-run sub-agent count is the run's `session.thread_created` events,
+ * one typed read of the session's log for every run
+ * (domain/session/events/run-events.ts `threadCountsOf`).
  *
  * Every report reads only the runs it reports, through the run list index
  * (list-index.ts beside this file), never the whole kind: the session
@@ -94,6 +97,7 @@ import type { Store } from "../../store/interface.js";
 import { listIndexInstantOfMillis } from "../../store/list-index.js";
 import type { ListIndexQuery, ListIndexRow } from "../../store/list-index.js";
 
+import { threadCountsOf } from "../session/events/run-events.js";
 import { agentExecutionListIndex } from "./list-index.js";
 import { sessionIdOf } from "./target.js";
 import type { CountedRun } from "./usage-fold.js";
@@ -129,6 +133,7 @@ const SESSION_USAGE_REPORT_KEY = "session_usage_report";
 const AGENT_USAGE_REPORT_KEY = "agent_usage_report";
 const ORG_USAGE_REPORT_KEY = "org_usage_report";
 const COUNTED_RUNS_KEY = "counted_runs";
+const THREAD_COUNTS_KEY = "thread_counts";
 
 /** Top-agents cap. */
 const TOP_AGENTS_LIMIT = 10;
@@ -544,12 +549,14 @@ export async function getSessionUsageReport(
           count: runs.length,
         });
         ctx.set(COUNTED_RUNS_KEY, await countRuns(deps, runs));
+        ctx.set(THREAD_COUNTS_KEY, await threadCountsOf(deps.store, ctx.input.sessionId));
       },
     })
     .addStep({
       name: "BuildSessionUsageReport",
       execute(ctx) {
         const counted = requireCountedRuns(ctx.get(COUNTED_RUNS_KEY));
+        const threads = ctx.get(THREAD_COUNTS_KEY) as ReadonlyMap<string, number> | undefined;
         const runs = counted.map((c) => c.run);
         ctx.set(
           SESSION_USAGE_REPORT_KEY,
@@ -557,7 +564,9 @@ export async function getSessionUsageReport(
             sessionId: ctx.input.sessionId,
             runCount: counted.length,
             totalUsage: aggregateOf(counted),
-            runs: counted.map(runSummaryOf),
+            runs: counted.map((c) =>
+              runSummaryOf(c, threads?.get(c.run.metadata?.id ?? "") ?? 0),
+            ),
             modelBreakdown: modelBreakdownOf(counted),
             firstRunAt: earliestStartedAt(runs),
             lastRunAt: latestStartedAt(runs),

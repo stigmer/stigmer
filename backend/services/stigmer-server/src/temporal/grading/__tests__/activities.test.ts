@@ -1,7 +1,8 @@
 /**
  * Pins the grading activities over a real store opened with the server's
  * list indexes, and a recorder standing in for the score's create chain:
- *   - grading a completed run records its run-health score from the checks;
+ *   - grading a completed run records its run-health score from the checks,
+ *     read from the run's session events (its rows hold no calls);
  *   - a run that already carries a graded run-health score from this
  *     version of the checks is left alone, one from another version is
  *     graded again, and a not-graded one from this version is replaced by
@@ -24,10 +25,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  RunPhase,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
@@ -44,6 +42,10 @@ import type {
   ScoreRecorder,
 } from "../../../domain/score/ports.js";
 import { listRunScores } from "../../../domain/score/queries.js";
+import {
+  RunEventsBuilder,
+  appendRunEvents,
+} from "../../../domain/session/events/__tests__/run-events-fixture.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -131,14 +133,8 @@ function activitiesWith(rec: ScoreRecorder, del: ScoreDeleter = deleter()) {
   });
 }
 
-/** A completed run stuck on the same echo three times. */
+/** A completed run stuck on the same echo three times, in its session's events. */
 async function seedStuckRun(id = "run_1"): Promise<void> {
-  const echo = {
-    name: "echo",
-    args: { text: "same" },
-    result: "same",
-    status: ToolCallStatus.TOOL_CALL_COMPLETED,
-  };
   await temp.store.saveResource(
     ApiResourceKind.run,
     id,
@@ -146,11 +142,19 @@ async function seedStuckRun(id = "run_1"): Promise<void> {
     create(RunSchema, {
       metadata: { id, name: id, slug: id, org: "org_1" },
       spec: { target: { case: "sessionId", value: "ses_1" } },
-      status: {
-        phase: RunPhase.RUN_COMPLETED,
-        messages: [{ toolCalls: [echo, echo, echo] }],
-      },
+      status: { phase: RunPhase.RUN_COMPLETED },
     }),
+  );
+  const echo = (callId: string) => ({ id: callId, name: "echo", input: { text: "same" }, result: "same" });
+  await appendRunEvents(
+    temp.store,
+    "ses_1",
+    "org_1",
+    new RunEventsBuilder(id)
+      .turnMessage("", [echo("c1")])
+      .turnMessage("", [echo("c2")])
+      .turnMessage("", [echo("c3")])
+      .build(),
   );
 }
 

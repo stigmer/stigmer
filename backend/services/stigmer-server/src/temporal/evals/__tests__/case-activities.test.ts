@@ -51,7 +51,7 @@
  * check over a reference transcript and an `llm` check over one file.
  */
 import { create } from "@bufbuild/protobuf";
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { MockActivityEnvironment } from "@temporalio/testing";
@@ -67,7 +67,6 @@ import {
 import {
   FileChangeKind,
   FileReviewEventType,
-  MessageType,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
@@ -132,6 +131,7 @@ import {
   EVAL_ID,
   ORG,
   PLUGIN_ID,
+  appendTurnEvents,
   catalog,
   lane,
   scoreChain,
@@ -323,14 +323,13 @@ async function completeTry(
   runId: string,
   events?: FileReviewEvent[],
 ): Promise<void> {
+  await appendTurnEvents(temp.store, runId, (turn) =>
+    turn.user("Write the release notes.").turnMessage("Release notes written."),
+  );
   await setStatus(runId, {
     phase: RunPhase.RUN_COMPLETED,
     startedAt: "2026-10-10T10:00:00Z",
     completedAt: "2026-10-10T10:00:12Z",
-    messages: [
-      { type: MessageType.MESSAGE_HUMAN, content: "Write the release notes." },
-      { type: MessageType.MESSAGE_AI, content: "Release notes written." },
-    ],
     ...(events === undefined
       ? {}
       : {
@@ -1161,8 +1160,10 @@ describe("start-vote beside its main path", () => {
 
 describe("read-vote beside a readable answer", () => {
   /** A stored vote run in `phase`, in session `ses_vote` unless `sessionId` is "". */
+  /** A stored vote run; its answer, when given, in its session's events. */
   async function storedVote(
     status: MessageInitShape<typeof RunStatusSchema>,
+    answer?: JsonObject,
     sessionId = "ses_vote",
   ): Promise<string> {
     await temp.store.saveResource(
@@ -1178,6 +1179,9 @@ describe("read-vote beside a readable answer", () => {
         status: create(RunStatusSchema, status),
       }),
     );
+    if (answer !== undefined) {
+      await appendTurnEvents(temp.store, "run_vote", (turn) => turn.structuredOutput(answer));
+    }
     return "run_vote";
   }
 
@@ -1194,11 +1198,10 @@ describe("read-vote beside a readable answer", () => {
 
   it("fails a completed vote whose answer cannot be read, and says why in the log", async () => {
     const { cases, lines, record } = build();
-    const id = await storedVote({
-      phase: RunPhase.RUN_COMPLETED,
-      structuredOutput: { compare: { result: "maybe", reason: "unsure" } },
-      streamingUsage: { estimatedCostUsd: 0.02 },
-    });
+    const id = await storedVote(
+      { phase: RunPhase.RUN_COMPLETED, streamingUsage: { estimatedCostUsd: 0.02 } },
+      { compare: { result: "maybe", reason: "unsure" } },
+    );
     expect(await cases[READ_VOTE_ACTIVITY_NAME](id, "compare")).toEqual({
       vote: { kind: "failed", reason: JUDGE_UNREADABLE_REASON },
       costUsd: 0.02,
@@ -1214,11 +1217,10 @@ describe("read-vote beside a readable answer", () => {
 
   it("keeps the vote's session, so a read retried after a lost answer reads the same vote and cost", async () => {
     const { cases, record } = build();
-    const id = await storedVote({
-      phase: RunPhase.RUN_COMPLETED,
-      structuredOutput: { compare: { result: "passed", reason: "matches" } },
-      streamingUsage: { estimatedCostUsd: 0.03 },
-    });
+    const id = await storedVote(
+      { phase: RunPhase.RUN_COMPLETED, streamingUsage: { estimatedCostUsd: 0.03 } },
+      { compare: { result: "passed", reason: "matches" } },
+    );
     const first = await cases[READ_VOTE_ACTIVITY_NAME](id, "compare");
     expect(first).toEqual({
       vote: { kind: "vote", passed: true, reason: "matches" },
@@ -1390,24 +1392,14 @@ describe("grade-try over a plugin's MCP server and skills", () => {
       },
     });
     const start = await startTry(cases);
-    await setStatus(start.runId, {
-      phase: RunPhase.RUN_COMPLETED,
-      messages: [
-        {
-          type: MessageType.MESSAGE_AI,
-          content: "",
-          toolCalls: [
-            {
-              id: "c1",
-              name: "search",
-              mcpServerSlug: "plugin_thermos_My_Server",
-              args: { q: "bug" },
-            },
-          ],
-        },
-        { type: MessageType.MESSAGE_AI, content: "Found it." },
-      ],
-    });
+    await setStatus(start.runId, { phase: RunPhase.RUN_COMPLETED });
+    await appendTurnEvents(temp.store, start.runId, (turn) =>
+      turn
+        .turnMessage("", [
+          { id: "c1", name: "search", mcpServer: "plugin_thermos_My_Server", input: { q: "bug" } },
+        ])
+        .turnMessage("Found it."),
+    );
     const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
     expect(grade.outcomes).toEqual([
       {
@@ -1442,25 +1434,18 @@ describe("grade-try over a plugin's MCP server and skills", () => {
       },
     });
     const start = await startTry(cases);
-    await setStatus(start.runId, {
-      phase: RunPhase.RUN_COMPLETED,
-      messages: [
-        {
-          type: MessageType.MESSAGE_AI,
-          content: "",
-          toolCalls: [
-            {
-              id: "c1",
-              name: "read_file",
-              args: {
-                file_path: `/work/.stigmer/plugins/${DIGEST}/skills/write-commit/SKILL.md`,
-              },
-            },
-          ],
-        },
-        { type: MessageType.MESSAGE_AI, content: "fix: rename fetchUser" },
-      ],
-    });
+    await setStatus(start.runId, { phase: RunPhase.RUN_COMPLETED });
+    await appendTurnEvents(temp.store, start.runId, (turn) =>
+      turn
+        .turnMessage("", [
+          {
+            id: "c1",
+            name: "read_file",
+            input: { file_path: `/work/.stigmer/plugins/${DIGEST}/skills/write-commit/SKILL.md` },
+          },
+        ])
+        .turnMessage("fix: rename fetchUser"),
+    );
     const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
     expect(grade.outcomes).toEqual([
       {

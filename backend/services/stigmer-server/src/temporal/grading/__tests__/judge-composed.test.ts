@@ -55,7 +55,7 @@ import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/e
 import { EvaluatorQueryController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
@@ -103,6 +103,10 @@ import type {
   ScoreRecorder,
 } from "../../../domain/score/ports.js";
 import { pendingOfOtherVersions, replaceUnlessGraded, sameWriterScore } from "../../../domain/score/record.js";
+import {
+  RunEventsBuilder,
+  appendRunEvents,
+} from "../../../domain/session/events/__tests__/run-events-fixture.js";
 import {
   baseConfig,
   silentLogger,
@@ -160,7 +164,11 @@ afterAll(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-/** A stored session and a completed run in it, as an engine leaves them. */
+/**
+ * A stored session and a completed run in it, as an engine leaves them:
+ * the answer and the structured output in the session's events, not on
+ * the run's row.
+ */
 async function seedRun(opts: {
   agentId?: string;
   labels?: Record<string, string>;
@@ -192,17 +200,25 @@ async function seedRun(opts: {
     spec: { target: { case: "sessionId", value: sessionId }, message: opts.message ?? "Summarize the release." },
     status: {
       phase: opts.phase ?? RunPhase.RUN_COMPLETED,
-      ...(opts.answer === undefined ? {} : { messages: [{ type: MessageType.MESSAGE_AI, content: opts.answer }] }),
       ...(opts.createdAtSeconds === undefined
         ? {}
         : { audit: { specAudit: { createdAt: { seconds: BigInt(opts.createdAtSeconds), nanos: 0 } } } }),
       agentId: opts.agentId ?? "",
       error: opts.error ?? "",
-      ...(opts.structuredOutput === undefined ? {} : { structuredOutput: opts.structuredOutput }),
       streamingUsage: { estimatedCostUsd: opts.estimatedCostUsd ?? 0, model: "claude-haiku-4-5" },
     },
   });
   await server.store.saveResource(ApiResourceKind.run, runId, RunSchema, run);
+  const events = new RunEventsBuilder(runId);
+  if (opts.answer !== undefined) {
+    events.turnMessage(opts.answer);
+  }
+  if (opts.structuredOutput !== undefined) {
+    events.structuredOutput(opts.structuredOutput);
+  }
+  if (events.build().length > 0) {
+    await appendRunEvents(server.store, sessionId, org, events.build());
+  }
   return run;
 }
 

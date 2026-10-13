@@ -20,9 +20,10 @@
  *     the stored grade, not what it would conclude now; each failure
  *     the workflow saw is recorded with its reason; a judge that vanished,
  *     a judge still running with no failure and a failed judge with no
- *     error each have their reason; a verdict whose reason runs past the
- *     bound, which the provider does not enforce, is graded with the reason
- *     cut (stigmer#2177); a judged run deleted while its score
+ *     error each have their reason; the verdict is read from the judge
+ *     run's structured-output event, its row holding none; a verdict whose
+ *     reason runs past the bound, which the provider does not enforce, is
+ *     graded with the reason cut (stigmer#2177); a judged run deleted while its score
  *     was written has the score removed and the grade only gives its money
  *     back.
  */
@@ -42,6 +43,10 @@ import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/s
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { periodOf } from "../../../domain/evaluator/budget.js";
+import {
+  RunEventsBuilder,
+  appendRunEvents,
+} from "../../../domain/session/events/__tests__/run-events-fixture.js";
 import {
   JUDGE_BUSY_REASON,
   JUDGE_NOT_FINISHED_REASON,
@@ -484,12 +489,19 @@ describe("record-judge", () => {
     await seedRun("run_1");
     const long = "r".repeat(600);
     const judge = await seedRun("run_judge", { sessionId: "ses_judge" });
-    if (judge.status !== undefined) {
-      judge.status.structuredOutput = Object.fromEntries(
-        RUBRICS.map((rubric, index) => [rubric.name, { result: "passed", reason: index === 0 ? long : "Fine." }]),
-      );
-    }
-    await temp.store.saveResource(ApiResourceKind.run, "run_judge", RunSchema, judge);
+    expect(judge.status?.structuredOutput, "the run's row holds no answer").toBeUndefined();
+    await appendRunEvents(
+      temp.store,
+      "ses_judge",
+      "org_1",
+      new RunEventsBuilder("run_judge")
+        .structuredOutput(
+          Object.fromEntries(
+            RUBRICS.map((rubric, index) => [rubric.name, { result: "passed", reason: index === 0 ? long : "Fine." }]),
+          ),
+        )
+        .build(),
+    );
     expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "run_judge", "")).toBe(GRADE_RECORDED);
     const [score] = await judgeScores("run_1");
     expect(score?.status?.state).toBe(ScoreState.graded);

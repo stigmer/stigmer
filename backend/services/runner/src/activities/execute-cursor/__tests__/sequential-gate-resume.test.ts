@@ -57,6 +57,10 @@ import {
   hookShell,
   NO_MCP_DEFAULT,
 } from "../__test-utils__/cursor-hook-harness.js";
+import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
+
+/** The run the logged answers belong to. */
+const RUN_ID = "run_sequential_gates";
 
 const GATE_A_ID = "tool_edit_a";
 const GATE_A_PATH = "/work/a.txt";
@@ -174,7 +178,8 @@ describe("Cursor sequential gates A->B across resume", () => {
   it.skipIf(!hasBash)("the hook ALLOWS gate A's re-issue and DENIES gate B (out-of-process closure)", () => {
     // Only gate A is approved going into the resume; its grant is what the hook
     // reads. Gate B has no grant yet (it gates for the first time this turn).
-    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(approvedGateA());
+    const gateA = approvedGateA();
+    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(gateA, loggedApprovalsFor(RUN_ID, gateA));
     const grants = buildApprovalGrants(pendingApprovals, decisions);
     const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), grants);
 

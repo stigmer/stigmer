@@ -140,7 +140,7 @@ export async function applyApprovedWholeFileWrites(
       // The tool is now genuinely done: the runner applied exactly what the user
       // approved (the same `args` bytes the gate showed). Mark COMPLETED in place
       // (same id — the backend's append-only-at-identity guard accepts a status
-      // change). The approval_action is preserved as the audit trail; the status
+      // change). The approval_action (the log's answer) stays on the row; the status
       // flip removes it from the server's pending_approvals projection (which
       // keys on WAITING_APPROVAL).
       tc.status = ToolCallStatus.TOOL_CALL_COMPLETED;
@@ -203,7 +203,9 @@ export function resolveApprovedWholeFileContent(tc: ToolCall): string | null {
 
 /**
  * Whether `tc` is an approved, still-pending WHOLE-FILE write eligible for
- * exact-apply. APPROVE and APPROVE_ALL both approve the clicked tool (the latter
+ * exact-apply. The row's `approval_action` is the person's answer the seed
+ * copied from the session's log (`harness/approval-answers.ts`). APPROVE and
+ * APPROVE_ALL both approve the clicked tool (the latter
  * also leases the class, handled separately by the caller). A SKIP/REJECT, an
  * edit-family call (`old_string`/`new_string`, which carries no whole-file body),
  * and an already-applied (COMPLETED) call are all excluded.

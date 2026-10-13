@@ -20,7 +20,8 @@
  *
  * What each fixture proves on the CURRENT engine:
  *  - sqlite, end to end: the rows are loaded into the session's checkpoint
- *    file, the server-held status is seeded, APPROVE is decided as
+ *    file, the server-held status and the events its turn wrote are
+ *    restored, APPROVE is decided as
  *    `SubmitApproval` would, and the reinvocation resumes INSIDE the gate — the
  *    command runs exactly once, the run closes COMPLETED, and the to-do list
  *    the old engine wrote survives.
@@ -206,7 +207,7 @@ describe("ExecuteDeepAgent hermetic — a paused session resumes across an engin
       const record = deepAgentExecutionRecord({ message: USER_MESSAGE });
       const scenario = beginDeepAgentScenario({ env, clock, record, checkpointer: "sqlite", script: SCRIPT });
       await loadRows(getCheckpointDbPath(FIXTURE.sessionId), fixture);
-      record.applyStatusUpdate(fromJson(RunStatusSchema, fixture.status));
+      await record.restorePausedTurn(fromJson(RunStatusSchema, fixture.status));
       // The approval arrives after the pause, as it does live. Checkpoint ids
       // are time-ordered, and the recorded turn ran on this same scripted
       // clock from its epoch, so the resumed turn starts a minute on: its new

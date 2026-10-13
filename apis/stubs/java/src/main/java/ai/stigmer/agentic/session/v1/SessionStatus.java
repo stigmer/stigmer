@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   private SessionStatus() {
     agentId_ = "";
     agentVersionHash_ = "";
+    state_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -318,6 +319,59 @@ java.lang.String defaultValue) {
     return map.get(key);
   }
 
+  public static final int STATE_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object state_ = "";
+  /**
+   * <pre>
+   * Whether the session is working: running (a turn works) or idle (it
+   * waits for input), the newest session.status_running or
+   * session.status_idle event's word. A session none of whose turns ever
+   * worked reads idle.
+   * </pre>
+   *
+   * <code>string state = 4 [json_name = "state"];</code>
+   * @return The state.
+   */
+  @java.lang.Override
+  public java.lang.String getState() {
+    java.lang.Object ref = state_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      state_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Whether the session is working: running (a turn works) or idle (it
+   * waits for input), the newest session.status_running or
+   * session.status_idle event's word. A session none of whose turns ever
+   * worked reads idle.
+   * </pre>
+   *
+   * <code>string state = 4 [json_name = "state"];</code>
+   * @return The bytes for state.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getStateBytes() {
+    java.lang.Object ref = state_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      state_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -344,6 +398,9 @@ java.lang.String defaultValue) {
         internalGetVaultAttachers(),
         VaultAttachersDefaultEntryHolder.defaultEntry,
         3);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(state_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, state_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -371,6 +428,9 @@ java.lang.String defaultValue) {
           .buildPartial();
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(3, vaultAttachers__);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(state_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, state_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -402,6 +462,8 @@ java.lang.String defaultValue) {
         .equals(other.getAgentVersionHash())) return false;
     if (!internalGetVaultAttachers().equals(
         other.internalGetVaultAttachers())) return false;
+    if (!getState()
+        .equals(other.getState())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -425,6 +487,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + VAULT_ATTACHERS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetVaultAttachers().hashCode();
     }
+    hash = (37 * hash) + STATE_FIELD_NUMBER;
+    hash = (53 * hash) + getState().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -596,6 +660,7 @@ java.lang.String defaultValue) {
       agentId_ = "";
       agentVersionHash_ = "";
       internalGetMutableVaultAttachers().clear();
+      state_ = "";
       return this;
     }
 
@@ -646,6 +711,9 @@ java.lang.String defaultValue) {
         result.vaultAttachers_ = internalGetVaultAttachers();
         result.vaultAttachers_.makeImmutable();
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.state_ = state_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -677,6 +745,11 @@ java.lang.String defaultValue) {
       internalGetMutableVaultAttachers().mergeFrom(
           other.internalGetVaultAttachers());
       bitField0_ |= 0x00000008;
+      if (!other.getState().isEmpty()) {
+        state_ = other.state_;
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -722,6 +795,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000008;
               break;
             } // case 26
+            case 34: {
+              state_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 34
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -1293,6 +1371,113 @@ java.lang.String defaultValue) {
       internalGetMutableVaultAttachers().getMutableMap()
           .putAll(values);
       bitField0_ |= 0x00000008;
+      return this;
+    }
+
+    private java.lang.Object state_ = "";
+    /**
+     * <pre>
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
+     * </pre>
+     *
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @return The state.
+     */
+    public java.lang.String getState() {
+      java.lang.Object ref = state_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        state_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
+     * </pre>
+     *
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @return The bytes for state.
+     */
+    public com.google.protobuf.ByteString
+        getStateBytes() {
+      java.lang.Object ref = state_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        state_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
+     * </pre>
+     *
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @param value The state to set.
+     * @return This builder for chaining.
+     */
+    public Builder setState(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      state_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
+     * </pre>
+     *
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearState() {
+      state_ = getDefaultInstance().getState();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the session is working: running (a turn works) or idle (it
+     * waits for input), the newest session.status_running or
+     * session.status_idle event's word. A session none of whose turns ever
+     * worked reads idle.
+     * </pre>
+     *
+     * <code>string state = 4 [json_name = "state"];</code>
+     * @param value The bytes for state to set.
+     * @return This builder for chaining.
+     */
+    public Builder setStateBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      state_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
       return this;
     }
 

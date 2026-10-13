@@ -7,9 +7,11 @@
  * being re-gated on the NEXT reinvocation (its row is COMPLETED or SKIPPED
  * by then) and what lets the adapter still describe the decision to its
  * engine on THIS one (Cursor's reinvocation prompt names the refused actions
- * in human terms). The server stamps the same decision on the row
- * (`ToolCall.approval_action`) in the transaction that appends it, and this
- * module settles by that stamp:
+ * in human terms). The rows are the runtime's working memory: the seed
+ * copies each call's answer from the log onto its row
+ * (`ToolCall.approval_action`, `approval-answers.ts` `copyAnswersOntoRows`),
+ * so the field this module settles by is the log's answer, never a server
+ * stamp:
  *
  *  - {@link terminalizeNonExecutingDecisions} settles SKIP and REJECT rows to
  *    TOOL_CALL_SKIPPED (REJECT also carries `error: "Rejected by user"`),

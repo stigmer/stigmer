@@ -80,6 +80,10 @@ import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js"
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import { generateHookScript } from "../hook-script.js";
 import type { McpApprovalDefault } from "../approval-policy.js";
+import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
+
+/** The run the logged answers belong to. */
+const RUN_ID = "run_hitl_ledger";
 
 const tempDirs: string[] = [];
 
@@ -323,7 +327,7 @@ describe("reconcileDeniedToolCalls", () => {
     tc.approvalAction = ApprovalAction.APPROVE;
     // As the persisted row carries it once the boundary has stamped it (the hermetic hooks golden).
     tc.approvalPolicySource = ApprovalPolicySource.HOOK;
-    const adjudicated = reconstructAdjudicatedApprovals(messages);
+    const adjudicated = reconstructAdjudicatedApprovals(messages, loggedApprovalsFor(RUN_ID, messages));
     expect([...adjudicated.hookAsked], "the approval a hook asked for").toEqual(["c1"]);
     const [grant] = buildApprovalGrants(adjudicated.pendingApprovals, adjudicated.decisions, adjudicated.contentDigests);
     expect(primaryToken(grant!.key, grant!.salient, grant!.contentDigest), "the gate's script computes this from the payload").toBe(
@@ -1478,7 +1482,7 @@ describe("reconstructAdjudicatedApprovals", () => {
     });
     const messages = [aiMessageWith([approved, undecided, unrelated])];
 
-    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(messages);
+    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(messages, loggedApprovalsFor(RUN_ID, messages));
 
     expect([...decisions.entries()]).toEqual([["c1", ApprovalAction.APPROVE]]);
     expect(pendingApprovals).toHaveLength(1);
@@ -1493,7 +1497,8 @@ describe("reconstructAdjudicatedApprovals", () => {
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
       approvalAction: ApprovalAction.UNSPECIFIED,
     });
-    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals([aiMessageWith([tc])]);
+    const messages = [aiMessageWith([tc])];
+    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(messages, loggedApprovalsFor(RUN_ID, messages));
     expect(pendingApprovals).toEqual([]);
     expect(decisions.size).toBe(0);
   });

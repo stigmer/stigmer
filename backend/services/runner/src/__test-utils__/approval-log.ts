@@ -2,41 +2,43 @@
  * What the server writes when a person answers a call that asked, as both
  * test kits model it (the harness-contract `ExecutionDriver.decide` and the
  * hermetic `ExecutionRecord.decideWaitingToolCalls`): the answer's session
- * events, and the stamp on the row, in one act, as the server's answer core
- * commits them in one transaction.
+ * events, as the server's answer core commits them.
  *
  *  - a `user.tool_confirmation` naming the call's tool use id
  *    (`harness/events/ids.ts` `toolUseEventId`): `allow` for APPROVE and
  *    APPROVE_ALL, `deny` for REJECT and SKIP (a person's skip and reject
  *    are one deny; a reason, when given, is its `deny_message`);
- *  - for APPROVE_ALL, a `stigmer.permission.grant` on that call after it;
- *  - the row's `approval_action`: APPROVE_ALL, APPROVE, or REJECT for any
- *    deny, which is what the server stamps (a SKIP is never stamped any more).
+ *  - for APPROVE_ALL, a `stigmer.permission.grant` on that call after it,
+ *    naming the lease the server derives from the call.
+ *
+ * The kits write nothing on the row: the runtime reads the answers from the
+ * log and its seed copies each onto its row's `approval_action` (APPROVE_ALL,
+ * APPROVE, or REJECT for any deny, a SKIP included).
  *
  * The ids follow the server's rule for an answer (`sevt_` and a hash of the
  * tool use id), so a resent answer names the same event.
  *
  * The runtime reads the answers back through its one door
- * (`harness/approval-answers.ts`), so a kit that answered only the row, or
- * only the log, would fail its goldens.
+ * (`harness/approval-answers.ts`), so a kit's answer reaches a turn only
+ * through the log, as a person's does. Beside them, the ask the runner's
+ * emitter writes for a row ({@link askedEventFor}), and the unit tests'
+ * shorthand for a transcript a person answered ({@link loggedApprovalsFor}).
  */
 import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import { toolUseEventId } from "../harness/events/ids.js";
+import { approvalAnswersOf, type ApprovalAsk } from "../harness/approval-answers.js";
+import { POLICY_SOURCE_WORDS } from "../harness/events/emitter.js";
+import { permissionAskedEventId, toolUseEventId } from "../harness/events/ids.js";
 import { deriveLeaseScope } from "../shared/approval-policy.js";
 
 function hashed(prefix: string, toolUseId: string): string {
   return `${prefix}${createHash("sha256").update(toolUseId).digest("hex").slice(0, 40)}`;
-}
-
-/** The action the server stamps on the row for an answer given as `action`. */
-export function stampedActionOf(action: ApprovalAction): ApprovalAction {
-  return action === ApprovalAction.SKIP ? ApprovalAction.REJECT : action;
 }
 
 /**
@@ -90,4 +92,52 @@ export function answerEventsFor(
     );
   }
   return events;
+}
+
+/**
+ * The `stigmer.permission.asked` the runner's emitter writes for a row that
+ * asks (`harness/events/emitter.ts` `writeToolUse`): its policy source word,
+ * its hook and its content digest, as the row carried them at the ask.
+ */
+export function askedEventFor(args: { readonly sessionId: string; readonly runId: string }, row: ToolCall): SessionEvent {
+  const toolUseId = toolUseEventId(args.runId, row.id);
+  return create(SessionEventSchema, {
+    sessionId: args.sessionId,
+    runId: args.runId,
+    event: {
+      case: "stigmerPermissionAsked",
+      value: {
+        id: permissionAskedEventId(toolUseId),
+        toolUseId,
+        message: row.approvalMessage,
+        argsPreview: row.argsPreview,
+        policySource: POLICY_SOURCE_WORDS[row.approvalPolicySource],
+        policyHook: row.approvalPolicyHook,
+        contentDigest: row.approvalContentDigest,
+      },
+    },
+  });
+}
+
+/**
+ * What the runtime's door reads for `messages` when every root WAITING row
+ * whose `approvalAction` is set was asked as the emitter writes it and
+ * answered with that action: the unit tests' shorthand for "a person
+ * answered these rows", stated once. The rows' `approvalAction` stands for
+ * the answer here only; the reader under test never sees it.
+ */
+export function loggedApprovalsFor(
+  runId: string,
+  messages: readonly AgentMessage[],
+): { readonly runId: string; readonly decisions: ReadonlyMap<string, ApprovalAction>; readonly asks: ReadonlyMap<string, ApprovalAsk>; readonly denyMessages: ReadonlyMap<string, string> } {
+  const ids = { sessionId: "ses_logged", runId };
+  const log: SessionEvent[] = [];
+  for (const message of messages) {
+    for (const row of message.toolCalls) {
+      if (row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL || row.approvalAction === ApprovalAction.UNSPECIFIED) continue;
+      log.push(askedEventFor(ids, row), ...answerEventsFor(ids, row, row.approvalAction));
+    }
+  }
+  const answers = approvalAnswersOf(runId, create(RunStatusSchema, { messages: [...messages] }), log);
+  return { runId, decisions: answers.decisions, asks: answers.asks, denyMessages: answers.denyMessages };
 }

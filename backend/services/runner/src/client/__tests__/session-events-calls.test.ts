@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * Pins the session log calls the client composes: the append names the run
  * and carries its events and previews, with the scoped credential as the
  * Bearer header when one is given; the run's read pages to the end, a
- * thousand at a time, filtered by run; the typed read asks for one page, in
+ * thousand at a time, filtered by run; whether a run holds an event of some
+ * types is one page of one event; the typed read asks for one page, in
  * the order and size the caller names, and hands back its cursor. The
  * transport and the generated clients are replaced at their module seams.
  */
@@ -90,6 +91,16 @@ describe("StigmerClient.listRunSessionEvents", () => {
       pageSize: 1000,
       pageToken: "",
     });
+  });
+});
+
+describe("StigmerClient.hasRunSessionEvent", () => {
+  it("asks one run's log for a single event of the types named, and answers whether it holds one", async () => {
+    listEvents.mockResolvedValueOnce({ events: [event("d")], nextPageToken: "more" }).mockResolvedValueOnce({ events: [], nextPageToken: "" });
+    const client = newClient();
+    expect(await client.hasRunSessionEvent("ses_1", "run_1", ["agent.message"])).toBe(true);
+    expect(await client.hasRunSessionEvent("ses_1", "run_1", ["agent.message"])).toBe(false);
+    expect(listEvents.mock.calls[0]![0]).toEqual({ sessionId: "ses_1", runId: "run_1", types: ["agent.message"], pageSize: 1, pageToken: "" });
   });
 });
 

@@ -573,6 +573,39 @@ describe("V3ProtocolNormalizer", () => {
       const [started] = t.translate(byHook("c4", ["tools:pregel-2"]));
       expect(started).toEqual({ kind: "tool_started", callId: "c4", name: "execute", input: {}, mcpServerSlug: "", subAgentId: "task-2" });
     });
+
+    it("an unattended skip keeps its provenance and the hook that asked, at the root and inside a sub-agent", () => {
+      const skipped = (callId: string, namespace: string[] = []) =>
+        makeProtocolEvent(
+          "custom",
+          { name: TOOL_REFUSED_EVENT, tool_call_id: callId, tool_name: "execute", input: {}, message: "skipped", policy_source: "unattended_skip", policy_hook: "safety" },
+          { namespace },
+        );
+      const t = new DeepAgentTranslator(GATE);
+      expect(t.translate(skipped("c5"))).toEqual([
+        { kind: "tool_started", callId: "c5", name: "execute", input: {}, mcpServerSlug: "", provenance: "unattended_skip", policyHook: "safety" },
+        { kind: "tool_error", callId: "c5", message: "skipped" },
+      ]);
+      t.translate(makeToolStarted("task-4", "task", { subagent_type: "helper" }, { namespace: ["tools:pregel-4"] }));
+      const [started] = t.translate(skipped("c6", ["tools:pregel-4"]));
+      expect(started).toEqual({
+        kind: "tool_started",
+        callId: "c6",
+        name: "execute",
+        input: {},
+        mcpServerSlug: "",
+        provenance: "unattended_skip",
+        policyHook: "safety",
+        subAgentId: "task-4",
+      });
+    });
+
+    it("a source the gate never writes opens the row with no provenance", () => {
+      const [started] = normalize(
+        makeProtocolEvent("custom", { name: TOOL_REFUSED_EVENT, tool_call_id: "c7", tool_name: "execute", input: {}, message: "no", policy_source: "lease" }),
+      );
+      expect(started).not.toHaveProperty("provenance");
+    });
   });
 
   // ── A hook's decision on a call that runs (middleware/approval-gate.ts) ──

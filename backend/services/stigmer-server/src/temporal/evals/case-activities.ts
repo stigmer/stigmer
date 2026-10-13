@@ -33,7 +33,8 @@
  *     ended or gone being fine. A stop the run's lifecycle refuses is
  *     read against the run's phase: a paused run, or one waiting for
  *     approval, is not stopped, and the refusal is thrown.
- *   - grade-try: the try's trace (domain/score/eval/trace.ts), every code
+ *   - grade-try: the try's trace (domain/score/eval/trace.ts, read from the
+ *     try's session events and the files on its run), every code
  *     grader (domain/plugin-eval/graders/), and for each AI-graded check
  *     either the verdict its evidence already decides (a missing file, a
  *     binary one) or the rubric its votes answer. An AI-graded indicator
@@ -49,8 +50,9 @@
  *     (its agent's own, its profile's) is graded as a stopped run.
  *   - start-vote, read-vote, delete-vote: one vote of an AI-graded check, a
  *     judge run in its own session (graders/llm.ts), adopted on a retry
- *     through the run list index's `grades` key; read strictly and stopped
- *     if still going; then its session deleted, as the AI judge's grading
+ *     through the run list index's `grades` key; read strictly from the
+ *     vote run's `stigmer.agent.structured_output` event
+ *     (domain/session/events/run-events.ts) and stopped if still going; then its session deleted, as the AI judge's grading
  *     deletes its own. The read deletes nothing, so a read retried after
  *     its answer was lost reads the same vote and cost again; the delete
  *     is its own step, and a vote or session already gone is deleted. A
@@ -131,6 +133,10 @@ import {
 } from "../../domain/score/constants.js";
 import type { EvalTrace } from "../../domain/score/eval/trace.js";
 import { evalTraceOf } from "../../domain/score/eval/trace.js";
+import {
+  runTranscriptOf,
+  structuredOutputOf,
+} from "../../domain/session/events/run-events.js";
 import { GRADES_RUN_LABEL } from "../../domain/score/judge/judge-run.js";
 import type {
   JudgeSessionDeleter,
@@ -257,7 +263,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
     graders: ReadonlyArray<EvalGrader>,
     harness: Harness,
   ): Promise<EvalTrace> =>
-    evalTraceOf(run, {
+    evalTraceOf(await runTranscriptOf(deps.store, run), {
       pluginName: pluginNameOf(source.plugin),
       harness,
       wantedFiles: wantedFilesOf(graders),
@@ -601,12 +607,13 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       let read: VoteRead["vote"];
       switch (phase) {
         case RunPhase.RUN_COMPLETED: {
-          const reading = readVote(vote.status?.structuredOutput, rubric);
+          const answer = await structuredOutputOf(deps.store, vote);
+          const reading = readVote(answer, rubric);
           if ("refused" in reading) {
             deps.logger.warn("a vote's answer could not be read", {
               voteRunId,
               cause: reading.refused,
-              answer: describeVoteAnswer(vote.status?.structuredOutput, rubric),
+              answer: describeVoteAnswer(answer, rubric),
             });
             read = { kind: "failed", reason: JUDGE_UNREADABLE_REASON };
           } else {

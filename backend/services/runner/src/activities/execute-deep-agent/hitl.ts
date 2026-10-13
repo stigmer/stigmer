@@ -186,18 +186,21 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
  * tool-call id at the moment it returns the skip ToolMessage; this reconciler
  * (the single writer of the terminal row) folds each id into:
  * - `status = TOOL_CALL_SKIPPED` — the tool did not run, whatever transient
- *   status the stream left behind (COMPLETED from a tool_finished that carried
- *   the skip message, or RUNNING when no tool events fired);
+ *   status the stream left behind (FAILED from the gate's refusal event,
+ *   which opened the row with this provenance already, so the session's log
+ *   wrote the skip as the policy's deny; or RUNNING when no event fired);
  * - `approval_policy_source = UNATTENDED_SKIP` — the resolution layer,
  *   overriding the gating-layer source stamped at tool-start (the
  *   AUTO_APPROVE_ALL precedent: layer-4 resolutions own the resolved call),
  *   with `approval_policy_hook` naming the hook whose ask was skipped, or
  *   empty when the default asked;
- * - a result backfilled from {@link unattendedSkipMessage} when the stream
- *   delivered none, so the transcript row is never blank.
+ * - the skip message ({@link unattendedSkipMessage}) as the result and no
+ *   error, the shape Cursor's boundary stamps for the same skip
+ *   (`stampUnattendedSkippedToolCalls`): a skip, not a failure.
  *
- * `approval_action` / `approved_by` are deliberately NOT touched — those are
- * server-owned fields recording HUMAN decisions only. No
+ * `approval_action` / `approved_by` are deliberately NOT touched — those
+ * record HUMAN decisions only (the runtime's seed copies the answer from the
+ * session's log). No
  * approval-request event exists for these calls, so the pending-approvals
  * projection stays empty by construction. Idempotent: re-running re-resolves
  * identically. Covers sub-agent transcripts because sub-agent gates inherit
@@ -218,7 +221,8 @@ export function reconcileUnattendedSkips(
         tc.approvalPolicyHook = unattendedSkips.get(tc.id) ?? "";
         tc.policyEngineVersion = POLICY_ENGINE_VERSION;
         tc.isStreaming = false;
-        if (!tc.result) tc.result = unattendedSkipMessage(tc.name);
+        tc.error = "";
+        tc.result = unattendedSkipMessage(tc.name);
       }
     }
   };

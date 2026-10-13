@@ -8,11 +8,14 @@
  * poisoned mid-send. Either way the replacement agent starts with an EMPTY
  * conversation, so the approval decisions alone read as instructions with no
  * story: the agent no longer knows what it was doing. This module rebuilds
- * that story from `status.messages` — the persisted execution transcript
- * seeded on every re-invocation — which is the platform's durable record of
- * the turn AND exactly what the user watched happen (introspecting the dead
- * agent's own conversation is best-effort at most; the handle is the thing
- * that failed).
+ * that story from the run's events in the session's log — the platform's
+ * durable record of the turn AND exactly what the user watched happen —
+ * folded by `@stigmer/session-log` as every client folds them (introspecting
+ * the dead agent's own conversation is best-effort at most; the handle is
+ * the thing that failed). The events are read only when a digest is
+ * needed ({@link readTurnRecoveryDigest}), through the turn's
+ * `TurnInput.readRunEvents`; what the agent did since the turn's last write
+ * to the log is not in it yet.
  *
  * Doctrine (mirrors the rollover context bridge's composer — the
  * platform's reference for conversation digests):
@@ -23,17 +26,18 @@
  *   split).
  * - Oldest-first reading order; over budget, the OLDEST lines drop first
  *   (recency wins) and the drop is disclosed.
- * - Best-effort by contract: composition never throws — a failed digest
- *   degrades to recovery-without-transcript, never a failed recovery.
+ * - Best-effort by contract: neither the read nor the composition ever
+ *   throws — a failed digest degrades to recovery-without-transcript, never
+ *   a failed recovery.
  *
- * Scope: the CURRENT turn only. Prior turns live in other execution records
- * and are not recoverable runner-side (that is the rollover bridge's domain,
- * composed cloud-side); the enhanced prompt's standing-context sections carry
- * whatever the session already had.
+ * Scope: the CURRENT turn only, its primary thread. Prior turns live in
+ * other runs and are not recoverable runner-side (that is the rollover
+ * bridge's domain, composed cloud-side); the enhanced prompt's
+ * standing-context sections carry whatever the session already had.
  */
 
-import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { foldSession, turnOf, type TurnItem, type ToolUse } from "@stigmer/session-log";
 
 /** Per-line text budget; longer texts are cut with an ellipsis (as the bridge does). */
 const MAX_LINE_CHARS = 400;
@@ -84,24 +88,19 @@ const TURN_RECOVERY_NO_TRANSCRIPT =
   "current state to see what you already did before continuing.";
 
 /**
- * Render the turn's persisted transcript as bare digest lines, or undefined
- * when there is nothing worth carrying. Never throws.
+ * Render run `runId`'s events as bare digest lines, or undefined when there
+ * is nothing worth carrying. Never throws.
  *
- * Human messages are skipped — the turn's user message is already rendered
- * in the enhanced prompt's `<user_request>`, and duplicating it here would
- * dilute the budget. Thinking content is skipped as model-internal (the
- * replacement agent forms its own). System notices are kept: platform
- * messages like budget warnings or degradation notices are turn context the
- * agent acted under.
+ * The person's message is skipped — the turn's user message is already
+ * rendered in the enhanced prompt's `<user_request>`, and duplicating it
+ * here would dilute the budget. Thinking is skipped as model-internal (the
+ * replacement agent forms its own). The platform's notes are kept: lines
+ * like budget warnings or degradation notices are turn context the agent
+ * acted under.
  */
-export function composeTurnRecoveryDigest(
-  messages: readonly AgentMessage[],
-): string | undefined {
+export function composeTurnRecoveryDigest(events: readonly SessionEvent[], runId: string): string | undefined {
   try {
-    const lines: string[] = [];
-    for (const message of messages) {
-      lines.push(...messageLines(message));
-    }
+    const lines = (turnOf(foldSession(events), runId)?.items ?? []).flatMap(itemLines);
     if (lines.length === 0) return undefined;
 
     // Oldest-first; drop from the FRONT when over budget so the newest work
@@ -127,6 +126,25 @@ export function composeTurnRecoveryDigest(
 }
 
 /**
+ * Read the run's events and compose its digest. Never throws: a log that
+ * cannot be read degrades to recovery-without-transcript, as a failed
+ * composition does.
+ */
+export async function readTurnRecoveryDigest(
+  readRunEvents: () => Promise<readonly SessionEvent[]>,
+  runId: string,
+): Promise<string | undefined> {
+  let events: readonly SessionEvent[];
+  try {
+    events = await readRunEvents();
+  } catch (err) {
+    console.warn("Turn-recovery digest: the run's events could not be read — recovering without a transcript:", err);
+    return undefined;
+  }
+  return composeTurnRecoveryDigest(events, runId);
+}
+
+/**
  * The framed recovery body (preamble + digest), ready for section wrapping.
  * Accepts an absent digest: the state-loss disclosure is load-bearing even
  * when there is no transcript to show (see {@link TURN_RECOVERY_NO_TRANSCRIPT}).
@@ -138,60 +156,57 @@ export function formatTurnRecoveryText(digest: string | undefined): string {
   return `${TURN_RECOVERY_PREAMBLE}\n\n${digest.trim()}`;
 }
 
-/** The digest lines one transcript message contributes (possibly none). */
-function messageLines(message: AgentMessage): string[] {
-  const lines: string[] = [];
-  const text = message.content.trim();
-  switch (message.type) {
-    case MessageType.MESSAGE_AI:
-      if (text) lines.push(`Assistant: ${truncate(text, MAX_LINE_CHARS)}`);
-      // Tool calls ride AI messages (message.proto contract); render them
-      // even when the surrounding text is blank.
-      for (const toolCall of message.toolCalls) {
-        lines.push(toolCallLine(toolCall));
-      }
-      return lines;
-    case MessageType.MESSAGE_SYSTEM:
-      if (text) lines.push(`System: ${truncate(text, MAX_LINE_CHARS)}`);
-      return lines;
+/** The digest lines one item of the turn's primary thread contributes (possibly none). */
+function itemLines(item: TurnItem): string[] {
+  switch (item.kind) {
+    case "message": {
+      const text = item.text.trim();
+      return text ? [`Assistant: ${truncate(text, MAX_LINE_CHARS)}`] : [];
+    }
+    case "note": {
+      const text = item.text.trim();
+      return text ? [`System: ${truncate(text, MAX_LINE_CHARS)}`] : [];
+    }
+    case "tool_use":
+      return [toolUseLine(item)];
     default:
-      // Human (already in <user_request>), thinking (model-internal), tool
-      // results (each ToolCall line already carries its outcome), unknown.
-      return lines;
+      // Thinking (model-internal) and a compaction marker.
+      return [];
   }
 }
 
 /**
- * One bounded line per tool call: what was attempted and how it ended.
- * Prefers the resolved approval message where one exists — the same
- * human-meaningful description the user approved against
- * (the `describeApproval` convention).
+ * One bounded line per tool use: what was attempted and how it ended.
+ * Prefers the message its ask showed where one exists — the same
+ * human-meaningful description the user approved against (the
+ * `describeApproval` convention).
  */
-function toolCallLine(toolCall: ToolCall): string {
-  const action = toolCall.approvalMessage
-    ? toolCall.approvalMessage
-    : toolCall.argsPreview
-      ? `${toolCall.name}(${truncate(toolCall.argsPreview, MAX_ARGS_CHARS)})`
-      : toolCall.name;
-  return `Tool: ${truncate(action, MAX_LINE_CHARS)} — ${outcome(toolCall)}`;
+function toolUseLine(tool: ToolUse): string {
+  const preview = tool.ask?.argsPreview || (Object.keys(tool.input).length > 0 ? JSON.stringify(tool.input) : "");
+  const action = tool.ask?.message
+    ? tool.ask.message
+    : preview
+      ? `${tool.name}(${truncate(preview, MAX_ARGS_CHARS)})`
+      : tool.name;
+  return `Tool: ${truncate(action, MAX_LINE_CHARS)} — ${outcome(tool)}`;
 }
 
-function outcome(toolCall: ToolCall): string {
-  switch (toolCall.status) {
-    case ToolCallStatus.TOOL_CALL_COMPLETED:
-      return "completed";
-    case ToolCallStatus.TOOL_CALL_FAILED:
-      return toolCall.error
-        ? `failed: ${truncate(toolCall.error, MAX_ARGS_CHARS)}`
-        : "failed";
-    case ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
-      return "paused for user approval";
-    case ToolCallStatus.TOOL_CALL_SKIPPED:
-      return "skipped";
-    default:
-      // PENDING / RUNNING / unknown: in flight when the session was lost.
-      return "interrupted before it finished";
+/**
+ * How a tool use stands. A call that asked and has not run since reads as
+ * paused for approval whatever the answer (the prompt carries the
+ * decisions beside the digest), as its row still waited when the turn
+ * resumed; a call a person or a rule refused reads as skipped.
+ */
+function outcome(tool: ToolUse): string {
+  if (tool.result !== undefined) {
+    if (!tool.result.isError) return "completed";
+    const error = tool.result.text.trim();
+    return error ? `failed: ${truncate(error, MAX_ARGS_CHARS)}` : "failed";
   }
+  if (tool.ask !== undefined && tool.confirmation?.result !== "deny") return "paused for user approval";
+  if (tool.state === "denied") return "skipped";
+  // Running, or stopped: in flight when the session was lost.
+  return "interrupted before it finished";
 }
 
 function truncate(text: string, max: number): string {

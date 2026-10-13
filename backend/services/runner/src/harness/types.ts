@@ -72,6 +72,7 @@ import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Config } from "../config.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
@@ -99,6 +100,7 @@ import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { RunValues } from "../shared/run-values.js";
 import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
 import type { HarnessCapabilities } from "./capabilities.js";
+import type { ApprovalAsk } from "./approval-answers.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 
 /**
@@ -396,8 +398,9 @@ export interface TurnInput extends NormalizedActivityInput {
    * The answers a person gave this execution's WAITING rows, keyed by
    * tool-call id: read by the runtime from the session's log on every
    * reinvocation (`approval-answers.ts`), never stored. An adapter reads the
-   * ROW for anything else it needs (args, content digest) and this map for
-   * the verdict; it never re-derives the verdict from the rows itself.
+   * ROW for the call itself (its args), this map for the verdict and
+   * {@link approvalAsks} for what the call was asked under; it never
+   * re-derives the verdict from the rows itself.
    */
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
   /**
@@ -406,6 +409,14 @@ export interface TurnInput extends NormalizedActivityInput {
    * (`shared/hooks/messages.ts` `personDecisionSentence`).
    */
   readonly approvalDenyMessages: ReadonlyMap<string, string>;
+  /**
+   * What each of the run's asked calls was asked under, by tool use id
+   * (`events/ids.ts` `toolUseEventId` of the run and the row): the rule that
+   * asked and the content digest of an edit identified by its content, read
+   * from the run's `stigmer.permission.asked` events with the answers
+   * (`approval-answers.ts`). Empty on a fresh turn.
+   */
+  readonly approvalAsks: ReadonlyMap<string, ApprovalAsk>;
   readonly execution: Run;
   /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
   readonly session: Session;
@@ -435,6 +446,14 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly standing: TurnStandingContext;
   /** Resolved once by the runtime before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;
+  /**
+   * Every event of this run in the session's log as it stands when called,
+   * oldest first: what an adapter reads to tell the turn's story so far (a
+   * replacement agent's recovery digest). Read on call, never cached, so an
+   * adapter that needs none costs no read; it throws when the log cannot be
+   * read.
+   */
+  readonly readRunEvents: () => Promise<readonly SessionEvent[]>;
   /**
    * A plugin-eval try's recorded conversation, which the native engine
    * resumes ahead of this turn's message on a thread that holds none

@@ -189,15 +189,17 @@ export class DeepAgentTranslator {
    * A custom-stream event's transcript events (`normalizeCustom`), scoped
    * like any other. A refused call never opens a sub-agent (the `task` call
    * never ran); at the root it gets the server attribution, and keeps the
-   * hook provenance a hook's refusal carries. Inside a sub-agent no row
+   * provenance the gate's refusal carries. Inside a sub-agent no row
    * carries provenance (#1133), so a refusal drops it and a hook's
-   * `tool_policy` is not reported.
+   * `tool_policy` is not reported; an unattended skip keeps it, the
+   * provenance `reconcileUnattendedSkips` stamps on the sub-agent's row
+   * after the stream, so the row's use is written as the skip it is.
    */
   private custom(events: readonly TranscriptEvent[], subAgentId: string | undefined): TranscriptEvent[] {
     return events.flatMap((event): TranscriptEvent[] => {
       if (subAgentId !== undefined) {
         if (event.kind === "tool_policy") return [];
-        if (event.kind !== "tool_started") return [{ ...event, subAgentId }];
+        if (event.kind !== "tool_started" || event.provenance === "unattended_skip") return [{ ...event, subAgentId }];
         const { provenance: _provenance, policyHook: _policyHook, ...unattributed } = event;
         return [{ ...unattributed, subAgentId }];
       }
@@ -258,10 +260,14 @@ export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
  *
  *  - A refusal (`TOOL_REFUSED_EVENT`): the tool-scope middleware's of a call
  *    the agent's tool lists exclude (`middleware/tool-scope.ts`), or the
- *    approval gate's of a call a hook denied. The call never ran, so the
- *    tools channel says nothing of it; its row is opened here (the call as
- *    the model made it, no approval fields, and the hook's provenance when a
- *    hook refused) and fails at once with the refusal's message.
+ *    approval gate's of a call a hook denied or an unattended turn skipped.
+ *    The call never ran, so the tools channel says nothing of it; its row is
+ *    opened here (the call as the model made it, no approval fields, and the
+ *    gate's provenance when the gate refused: the hook, or
+ *    `unattended_skip`) and fails at once with the refusal's message. A
+ *    skipped row settles to SKIPPED after the stream
+ *    (`reconcileUnattendedSkips`); its provenance is on the row from the
+ *    start, so the session's log reads the skip as the policy's deny.
  *  - A hook's decision on a call that runs (`TOOL_POLICY_EVENT`), as a
  *    `tool_policy` event for the builder to stamp.
  *
@@ -281,7 +287,8 @@ function normalizeCustom(event: V3ProtocolEvent): TranscriptEvent[] {
   if (data.name !== TOOL_REFUSED_EVENT) return [];
   const name = typeof data.tool_name === "string" ? data.tool_name : "";
   const message = typeof data.message === "string" ? data.message : "";
-  const byHook = data.policy_source === "hook";
+  const source = data.policy_source;
+  const gateSource = source === "hook" || source === "unattended_skip" ? source : undefined;
   return [
     {
       kind: "tool_started" as const,
@@ -289,7 +296,7 @@ function normalizeCustom(event: V3ProtocolEvent): TranscriptEvent[] {
       name,
       input: parseToolInput(data.input),
       mcpServerSlug: "",
-      ...(byHook ? { provenance: "hook" as const, policyHook } : {}),
+      ...(gateSource !== undefined ? { provenance: gateSource, policyHook } : {}),
     },
     { kind: "tool_error" as const, callId, message },
   ];

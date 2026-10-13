@@ -15,7 +15,7 @@
  * sibling flaw: a re-issue after a SKIP or REJECT was reconciled onto the
  * declined row by identity, inheriting its decision.
  *
- * The rule, in `boundary-rows.ts` and the translator's seeded-row match: a row the server has adjudicated
+ * The rule, in `boundary-rows.ts` and the translator's seeded-row match: a row a person has adjudicated (its answer, copied from the log at the seed)
  * (`isAdjudicatedRow`) is never the home of THIS turn's denial and never a
  * twin to collapse; a row the user DECLINED (`isDeclinedRow`) is never the
  * home of a later same-identity call. The approved re-issue (the
@@ -37,7 +37,7 @@ import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/
 import type { SDKMessage } from "@cursor/sdk";
 
 import { approvalAnswersOf } from "../../../harness/approval-answers.js";
-import { answerEventsFor, stampedActionOf } from "../../../__test-utils__/approval-log.js";
+import { answerEventsFor } from "../../../__test-utils__/approval-log.js";
 import { reconcileDeniedToolCalls } from "../boundary-rows.js";
 import { CursorFold, builderOver } from "../__test-utils__/fold.js";
 import { toolCallIdentityToken } from "../approval-state.js";
@@ -143,7 +143,7 @@ describe("a later same-identity proposal never lands on a decided row", () => {
     expect(gated.map((tc) => tc.id)).toEqual([LATER_ID]);
 
     const decisions = decisionsTheRuntimeWouldRead(seeded, action);
-    expect(decisions.get(FIRST_ID), "the declined row's decision stays its own").toBe(stampedActionOf(action));
+    expect(decisions.get(FIRST_ID), "the declined row's decision stays its own: a deny, skip or reject").toBe(ApprovalAction.REJECT);
     expect(decisions.has(LATER_ID), "and is not the new proposal's").toBe(false);
   });
 

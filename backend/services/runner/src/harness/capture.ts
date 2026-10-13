@@ -42,8 +42,9 @@
  *    at its prior position; a positional scope misses it (Cursor's
  *    did, so its auto-keep never qualified a gated-then-approved command).
  *    "Executed" is a COMPLETED row. "Consented" is the row's own
- *    server-authored `approval_action` — the seeded row keeps its id and its
- *    verdict when it executes on resume, so the executed command IS its
+ *    `approval_action`, the person's answer the seed copied from the
+ *    session's log (`approval-answers.ts`) — the seeded row keeps its id and
+ *    its verdict when it executes on resume, so the executed command IS its
  *    consent row. Any sub-agent activity fails closed.
  *  - THE STAMP (`shared/tool-row.ts` `stampFlowedFileEditRows`). A write or
  *    delete row created this turn that reached COMPLETED flowed onto the

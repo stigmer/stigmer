@@ -280,8 +280,15 @@ export function aggregateOf(runs: readonly CountedRun[]): UsageReportAggregate {
 // Per-run, per-session, per-agent, per-day, per-harness rows
 // ---------------------------------------------------------------------------
 
-/** The run's row in a session report. */
-export function runSummaryOf(counted: CountedRun): RunUsageSummary {
+/**
+ * The run's row in a session report. `threads` is how many sub-agent
+ * threads the run opened, its `session.thread_created` events (the
+ * caller's typed read of the session's log); 0 when it opened none.
+ */
+export function runSummaryOf(
+  counted: CountedRun,
+  threads: number,
+): RunUsageSummary {
   const run = counted.run;
   let input = 0n;
   let output = 0n;
@@ -300,7 +307,7 @@ export function runSummaryOf(counted: CountedRun): RunUsageSummary {
     cacheReadInputTokens: cacheRead,
     totalTokens: totalTokensOf(counted),
     primaryModel: modelBreakdownOf([counted])[0]?.model ?? "",
-    subAgentCount: run.status?.subAgentRuns.length ?? 0,
+    subAgentCount: threads,
     phase: run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
     isEstimated: counted.estimated,
   });

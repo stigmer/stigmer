@@ -6,10 +6,11 @@
  *
  *   LoadAskedRun ... the run is the text before the first `.` of the tool
  *                    use id (run ids hold none), and must be one of the
- *                    session's runs; the row is the call whose tool use id
- *                    (../events/ids.ts, the runner's derivation) is the one
- *                    answered and that asked, at the root or in a sub-agent.
- *                    Anything else is NOT_FOUND.
+ *                    session's runs; the ask is the run's agent.tool_use
+ *                    (or agent.mcp_tool_use) event with that id in the
+ *                    session's log, written with evaluated_permission
+ *                    `ask`, at the root or in a sub-agent's thread (its
+ *                    session_thread_id). Anything else is NOT_FOUND.
  *   AnswerReplay ... an answer already recorded for the tool use (its
  *                    user.tool_confirmation, by its derived id) ends the
  *                    chain: the same answer is success with the stored
@@ -18,7 +19,8 @@
  *                    write or the signal.
  *   ValidateAnswer . the run waits for approval or is in progress (a fast
  *                    answer can land between the runner's asks and its
- *                    waiting write), and the call still waits undecided.
+ *                    waiting write), and the ask's gate is still open in
+ *                    the log: neither answered nor closed by its result.
  *   the gate slot .. `agent-execution-submit-approval:gate`, run once per
  *                    fresh answer whichever method came in. Its steps read
  *                    the answer with `approvalAnswerOf(ctx)`
@@ -26,32 +28,45 @@
  *   RecordAnswer ... one run write (updateRunAppendingEvents): the
  *                    user.tool_confirmation (and, for a grant, the
  *                    stigmer.permission.grant and a confirmation for every
- *                    other waiting call of the class), the rows' decision
- *                    stamps (APPROVE, REJECT for a deny, APPROVE_ALL for a
- *                    grant: RunStatus readers and file review's auto-keep
- *                    read them until the transcript leaves the run), the
- *                    recomputed pending approvals and whatever the
- *                    session's status becomes. Under the session's lock it
- *                    checks again what ValidateAnswer checked (the ask is
- *                    open, the call waits undecided, the run waits or
- *                    works), so an answer racing a stop is refused; a
- *                    concurrent identical answer that landed first is
- *                    answered as the replay.
- *   SignalWorkflow . when the run has no open ask left, the turn's workflow
+ *                    other open ask of the run in the class), whatever the
+ *                    session's status becomes, and, for old readers, the
+ *                    recomputed pending approvals and the decision stamps
+ *                    on the call rows that exist (APPROVE, REJECT for a
+ *                    deny, APPROVE_ALL for a grant). Under the session's
+ *                    lock it checks again what ValidateAnswer checked (the
+ *                    ask's gate is open, the run waits or works), so an
+ *                    answer racing a stop is refused; a concurrent
+ *                    identical answer that landed first is answered as the
+ *                    replay.
+ *   SignalWorkflow . when the run has no open ask left (filereview/gate.ts,
+ *                    counted under the write's lock), the turn's workflow
  *                    is told to resume. A workflow that no longer runs
  *                    fails the run (reconcileStaleExecution).
  *
+ * The log is the one source of every decision here. A stamp on a call row
+ * is written, never read: the rows go on describing a decision only for
+ * the readers that still read them. What an ask is comes from events that
+ * never change once written (the tool use and its stigmer.permission.asked
+ * event), so they are read before the lock; whether it is still open is
+ * read under it.
+ *
  * A deny's message is recorded on the confirmation, which the runner reads
- * at the turn's resume and hands the agent. A grant's class is the call's
- * lease scope (run/approval/lease-scope.ts); a call with none is allowed
- * alone and no grant is written, as an "approve all" always degraded.
+ * at the turn's resume and hands the agent. A grant's class is the ask's
+ * lease scope (run/approval/lease-scope.ts), derived from the tool use's
+ * name and MCP server and its asked event's policy source and hook; a call
+ * with none (or an ask whose asked event the log does not hold) is allowed
+ * alone and no grant is written, as an "approve all" always degraded. The
+ * other asks a grant allows are read before the write; one opened since
+ * that read sends the write back to read again, a bounded number of times,
+ * after which an ask the read did not see is left waiting for its own
+ * answer.
  *
  * The confirmation's id is `sevt_tc_` and the first 40 hex digits of the
  * sha256 of the tool use id, the grant's `sevt_pg_`, so the log refuses a
  * second of either. Each is written in the tool use's own thread.
  *
- * Proven by __tests__/answer.test.ts and the run-approval conformance
- * suite.
+ * Proven by __tests__/methods.test.ts, __tests__/log-only-asks.test.ts and
+ * the run-approval conformance suite.
  */
 import { createHash } from "node:crypto";
 
@@ -65,13 +80,13 @@ import {
   MessageType,
   RunPhase,
   RunPhaseSchema,
-  ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   SessionEventSchema,
   type SessionEvent,
+  type StigmerPermissionAskedEvent,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { enumToJson } from "@bufbuild/protobuf";
@@ -103,6 +118,7 @@ import { settleInterruptedToolCalls } from "../../run/tool-call-settle.js";
 import type { SessionEventBroker } from "../events/broker.js";
 import { SESSION_EVENT_ID_PREFIX } from "../events/catalog.js";
 import { eventOf } from "../events/codec.js";
+import { ASK_PERMISSION } from "../events/gates.js";
 import { runIdOfToolUse, toolUseEventId } from "../events/ids.js";
 import {
   openAsksOf,
@@ -144,7 +160,7 @@ export interface ApprovalAnswer {
   /** The run as loaded, before the answer is recorded. */
   readonly run: Run;
   readonly toolUseId: string;
-  /** The call row the tool use was written from. */
+  /** The call row the tool use was written from; "" when the run holds no row for it. */
   readonly toolCallId: string;
   readonly result: AnswerResult;
   readonly grant: boolean;
@@ -204,102 +220,186 @@ export function permissionGrantEventId(toolUseId: string): string {
   return `${GRANT_ID_PREFIX}${digestOf(toolUseId)}`;
 }
 
-/** An asked call row of a run, with the thread its tool use was written in. */
-export interface AskedRow {
-  readonly call: ToolCall;
-  /** "" for the root thread; the sub-agent's thread otherwise. */
+/** The types a tool use that can ask is written as. */
+const TOOL_USE_TYPES = ["agent.tool_use", "agent.mcp_tool_use"];
+
+/** The type that says why a tool use waits. */
+const PERMISSION_ASKED_TYPE = "stigmer.permission.asked";
+
+/** One page of a run's asked events; a run asks far fewer times. */
+const ASKED_PAGE_SIZE = 1000;
+
+/**
+ * How many times a grant reads the run's open asks before it writes: an
+ * ask opened between the read and the write sends it back to read again.
+ */
+const GRANT_ASK_READS = 3;
+
+/** An ask as the session's log states it (module header). */
+export interface LoggedAsk {
+  readonly toolUseId: string;
+  /** "" for the root thread; the sub-agent's thread otherwise (the tool use's session_thread_id). */
   readonly threadId: string;
+  /** The class a grant on it would lease; undefined when it has none, or the log holds no asked event for it. */
+  readonly lease: LeaseScope | undefined;
 }
 
-/** Every call row of a run that asked, with its thread. */
-function askedRowsOf(run: Run): AskedRow[] {
-  const runId = run.metadata?.id ?? "";
-  const rows: AskedRow[] = [];
-  for (const message of run.status?.messages ?? []) {
-    for (const call of message.toolCalls) {
-      if (call.requiresApproval) {
-        rows.push({ call, threadId: "" });
+/** The asked event of each of a run's asks, by tool use id (the first, should one be written twice). */
+async function askedEventsOf(
+  store: Store,
+  sessionId: string,
+  runId: string,
+): Promise<Map<string, StigmerPermissionAskedEvent>> {
+  const asked = new Map<string, StigmerPermissionAskedEvent>();
+  let afterSeq: number | undefined;
+  for (;;) {
+    const page = await store.sessionEvents.list(sessionId, {
+      order: "asc",
+      runId,
+      types: [PERMISSION_ASKED_TYPE],
+      limit: ASKED_PAGE_SIZE,
+      ...(afterSeq === undefined ? {} : { afterSeq }),
+    });
+    for (const record of page) {
+      const event = eventOf(record);
+      if (event.event.case === "stigmerPermissionAsked" && !asked.has(event.event.value.toolUseId)) {
+        asked.set(event.event.value.toolUseId, event.event.value);
       }
     }
+    if (page.length < ASKED_PAGE_SIZE) {
+      return asked;
+    }
+    afterSeq = page[page.length - 1]!.seq;
+  }
+}
+
+/**
+ * The asks among `toolUseIds` the run wrote in the session's log: tool use
+ * events of the run, by id, that asked, each with its asked event's class.
+ */
+export async function readAsks(
+  store: Store,
+  sessionId: string,
+  runId: string,
+  toolUseIds: ReadonlyArray<string>,
+): Promise<Map<string, LoggedAsk>> {
+  const asks = new Map<string, LoggedAsk>();
+  // No id reads no event (the store's rule for an empty eventIds).
+  const uses = await store.sessionEvents.list(sessionId, {
+    order: "asc",
+    eventIds: toolUseIds,
+    types: TOOL_USE_TYPES,
+    limit: Math.max(1, toolUseIds.length),
+  });
+  const asked = await askedEventsOf(store, sessionId, runId);
+  for (const record of uses) {
+    const event = eventOf(record);
+    if (record.runId !== runId) {
+      continue;
+    }
+    const use =
+      event.event.case === "agentToolUse"
+        ? { ...event.event.value, mcpServer: "" }
+        : event.event.case === "agentMcpToolUse"
+          ? { ...event.event.value, mcpServer: event.event.value.mcpServerName }
+          : undefined;
+    if (use === undefined || use.evaluatedPermission !== ASK_PERMISSION) {
+      continue;
+    }
+    const why = asked.get(use.id);
+    asks.set(use.id, {
+      toolUseId: use.id,
+      threadId: use.sessionThreadId,
+      lease:
+        why === undefined
+          ? undefined
+          : deriveLeaseScope({
+              name: use.name,
+              mcpServer: use.mcpServer,
+              policySource: why.policySource,
+              policyHook: why.policyHook,
+            }),
+    });
+  }
+  return asks;
+}
+
+/**
+ * The other asks a grant on `toolUseId` allows: every ask of `asks` whose
+ * gate is open (`open`, in log order) and whose lease scope is `lease`
+ * (run/approval/lease-scope.ts: a hook's lease never allows a call the
+ * default asked for, nor the reverse).
+ */
+export function waitingInClass(
+  asks: ReadonlyMap<string, LoggedAsk>,
+  toolUseId: string,
+  lease: LeaseScope,
+  open: ReadonlySet<string>,
+): LoggedAsk[] {
+  return [...open].flatMap((otherUseId) => {
+    const other = asks.get(otherUseId);
+    return otherUseId !== toolUseId &&
+      other !== undefined &&
+      other.lease !== undefined &&
+      sameLeaseScope(other.lease, lease)
+      ? [other]
+      : [];
+  });
+}
+
+/** The call rows of a run that asked, by the tool use id each wrote: a stamp's targets. */
+function askedRowsOf(run: Run): Map<string, ToolCall> {
+  const runId = run.metadata?.id ?? "";
+  const rows = new Map<string, ToolCall>();
+  const add = (calls: ReadonlyArray<ToolCall>): void => {
+    for (const call of calls) {
+      if (call.requiresApproval) {
+        rows.set(toolUseEventId(runId, call.id), call);
+      }
+    }
+  };
+  for (const message of run.status?.messages ?? []) {
+    add(message.toolCalls);
   }
   for (const subAgent of run.status?.subAgentRuns ?? []) {
-    const threadId = toolUseEventId(runId, subAgent.id);
     for (const message of subAgent.messages) {
-      for (const call of message.toolCalls) {
-        if (call.requiresApproval) {
-          rows.push({ call, threadId });
-        }
-      }
+      add(message.toolCalls);
     }
   }
   return rows;
 }
 
-/**
- * The other calls a grant on `toolUseId` allows: every asked call of the
- * run whose ask is open, still waiting and undecided, whose lease scope is
- * `lease` (run/approval/lease-scope.ts: a hook's lease never allows a call
- * the default asked for, nor the reverse).
- */
-export function waitingInClass(
-  run: Run,
-  toolUseId: string,
-  lease: LeaseScope,
-  open: ReadonlySet<string>,
-): AskedRow[] {
-  const runId = run.metadata?.id ?? "";
-  return askedRowsOf(run).filter((other) => {
-    const otherUseId = toolUseEventId(runId, other.call.id);
-    const scope = deriveLeaseScope(other.call);
-    return (
-      otherUseId !== toolUseId &&
-      open.has(otherUseId) &&
-      other.call.approvalAction === ApprovalAction.UNSPECIFIED &&
-      other.call.status === ToolCallStatus.TOOL_CALL_WAITING_APPROVAL &&
-      scope !== undefined &&
-      sameLeaseScope(scope, lease)
-    );
-  });
-}
-
-/** The asked row a tool use id names; undefined when none of the run's does. */
-function askedRowOf(run: Run, toolUseId: string): AskedRow | undefined {
-  const runId = run.metadata?.id ?? "";
-  return askedRowsOf(run).find((row) => toolUseEventId(runId, row.call.id) === toolUseId);
-}
-
 function confirmationEvent(
   runId: string,
-  row: AskedRow,
-  toolUseId: string,
+  ask: LoggedAsk,
   result: AnswerResult,
   denyMessage: string,
 ): SessionEvent {
   return create(SessionEventSchema, {
     runId,
-    threadId: row.threadId,
+    threadId: ask.threadId,
     event: {
       case: "userToolConfirmation",
       value: {
-        id: toolConfirmationEventId(toolUseId),
+        id: toolConfirmationEventId(ask.toolUseId),
         result,
-        toolUseId,
+        toolUseId: ask.toolUseId,
         denyMessage: result === "deny" ? denyMessage : "",
-        sessionThreadId: row.threadId,
+        sessionThreadId: ask.threadId,
       },
     },
   });
 }
 
-function grantEvent(runId: string, row: AskedRow, toolUseId: string, lease: LeaseScope): SessionEvent {
+function grantEvent(runId: string, ask: LoggedAsk, lease: LeaseScope): SessionEvent {
   return create(SessionEventSchema, {
     runId,
-    threadId: row.threadId,
+    threadId: ask.threadId,
     event: {
       case: "stigmerPermissionGrant",
       value: {
-        id: permissionGrantEventId(toolUseId),
-        toolUseId,
+        id: permissionGrantEventId(ask.toolUseId),
+        toolUseId: ask.toolUseId,
         scope: "turn",
         lease: {
           category: lease.category,
@@ -331,6 +431,14 @@ class AskClosedError extends Error {
   }
 }
 
+/** An ask of the run opened since a grant read the run's asks: the grant reads again. */
+class AsksMovedError extends Error {
+  constructor() {
+    super("an ask opened since the run's asks were read");
+    this.name = "AsksMovedError";
+  }
+}
+
 /**
  * The outcome of an answer already recorded for the tool use, when it is
  * this one; FAILED_PRECONDITION when another answer was recorded;
@@ -340,6 +448,7 @@ async function recordedAnswer(
   deps: AnswerDeps,
   run: Run,
   request: AnswerRequest,
+  ask: LoggedAsk,
 ): Promise<AnswerOutcome | undefined> {
   const runId = run.metadata?.id ?? "";
   const confirmationId = toolConfirmationEventId(request.toolUseId);
@@ -364,9 +473,7 @@ async function recordedAnswer(
   const sameResult = recorded.result === request.result && recorded.denyMessage === request.denyMessage;
   // A grant recorded nothing of its own when the call had no class; a
   // plain allow then reads the same as the grant did.
-  const row = askedRowOf(run, request.toolUseId);
-  const classless = row === undefined || deriveLeaseScope(row.call) === undefined;
-  const sameGrant = request.grant ? grant !== undefined || classless : grant === undefined;
+  const sameGrant = request.grant ? grant !== undefined || ask.lease === undefined : grant === undefined;
   if (!sameResult || !sameGrant) {
     throw answeredOtherwise(request.toolUseId);
   }
@@ -397,8 +504,10 @@ export function answerSteps<Desc extends DescMessage>(
 ): PipelineStep<Desc>[] {
   const REQUEST_KEY = "approvalAnswerRequest";
   const RUN_KEY = "approvalAnswerRun";
+  const ASK_KEY = "approvalAnswerAsk";
   const requestIn = (ctx: RequestContext<Desc>): AnswerRequest => ctx.get(REQUEST_KEY) as AnswerRequest;
   const runIn = (ctx: RequestContext<Desc>): Run => ctx.get(RUN_KEY) as Run;
+  const askIn = (ctx: RequestContext<Desc>): LoggedAsk => ctx.get(ASK_KEY) as LoggedAsk;
   const replayed = (ctx: RequestContext<Desc>): boolean => ctx.get(OUTCOME_KEY) !== undefined;
 
   return [
@@ -422,16 +531,26 @@ export function answerSteps<Desc extends DescMessage>(
           }
           throw internalError(error, "failed to load the tool use's run");
         }
-        if (sessionIdOfRun(run) !== request.sessionId || askedRowOf(run, request.toolUseId) === undefined) {
+        if (sessionIdOfRun(run) !== request.sessionId) {
+          throw missing();
+        }
+        let ask: LoggedAsk | undefined;
+        try {
+          ask = (await readAsks(deps.store, request.sessionId, runId, [request.toolUseId])).get(request.toolUseId);
+        } catch (error) {
+          throw internalError(error, "failed to read the tool use's ask");
+        }
+        if (ask === undefined) {
           throw missing();
         }
         ctx.set(RUN_KEY, run);
+        ctx.set(ASK_KEY, ask);
       },
     },
     {
       name: "AnswerReplay",
       async execute(ctx) {
-        const outcome = await recordedAnswer(deps, runIn(ctx), requestIn(ctx));
+        const outcome = await recordedAnswer(deps, runIn(ctx), requestIn(ctx), askIn(ctx));
         if (outcome !== undefined) {
           ctx.set(OUTCOME_KEY, outcome);
         }
@@ -439,29 +558,34 @@ export function answerSteps<Desc extends DescMessage>(
     },
     {
       name: "ValidateAnswer",
-      execute(ctx) {
+      async execute(ctx) {
         if (replayed(ctx)) {
           return;
         }
         const run = runIn(ctx);
         const request = requestIn(ctx);
+        const runId = run.metadata?.id ?? "";
         const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
         if (phase !== RunPhase.RUN_WAITING_FOR_APPROVAL && phase !== RunPhase.RUN_IN_PROGRESS) {
           throw failedPreconditionError(
             `tool use ${request.toolUseId} no longer waits: its turn is ${phaseName(phase)}`,
           );
         }
-        const row = askedRowOf(run, request.toolUseId)!;
-        if (row.call.approvalAction !== ApprovalAction.UNSPECIFIED) {
-          throw answeredOtherwise(request.toolUseId);
+        let open: boolean;
+        try {
+          open = (await deps.store.sessionEvents.openGates(request.sessionId, runId)).some(
+            (gate) => gate.toolUseId === request.toolUseId,
+          );
+        } catch (error) {
+          throw internalError(error, "failed to read the tool use's ask");
         }
-        if (row.call.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
+        if (!open) {
           throw failedPreconditionError(`tool use ${request.toolUseId} no longer waits`);
         }
         const answer: ApprovalAnswer = {
           run,
           toolUseId: request.toolUseId,
-          toolCallId: row.call.id,
+          toolCallId: askedRowsOf(run).get(request.toolUseId)?.id ?? "",
           result: request.result,
           grant: request.grant,
         };
@@ -488,12 +612,14 @@ export function answerSteps<Desc extends DescMessage>(
         }
         const request = requestIn(ctx);
         try {
-          ctx.set(OUTCOME_KEY, await recordAnswer(deps, runIn(ctx), request, ctx.callerIdentity.identityId));
+          const recorded = await recordAnswer(deps, runIn(ctx), request, askIn(ctx), ctx.callerIdentity.identityId);
+          ctx.set(OUTCOME_KEY, recorded.outcome);
+          ctx.set(SIGNAL_KEY, recorded.openAsks);
         } catch (error) {
           if (error instanceof AskClosedError) {
             // A concurrent identical answer that landed first is this
             // one's replay; anything else closed the ask.
-            const outcome = await recordedAnswer(deps, runIn(ctx), request);
+            const outcome = await recordedAnswer(deps, runIn(ctx), request, askIn(ctx));
             if (outcome !== undefined) {
               ctx.set(OUTCOME_KEY, outcome);
               return;
@@ -506,77 +632,130 @@ export function answerSteps<Desc extends DescMessage>(
           }
           throw internalError(error, "failed to record the answer");
         }
-        ctx.set(SIGNAL_KEY, true);
       },
     },
     {
       name: "SignalWorkflow",
       async execute(ctx) {
-        if (ctx.get(SIGNAL_KEY) !== true) {
+        const openAsks = ctx.get(SIGNAL_KEY) as number | undefined;
+        if (openAsks === undefined) {
           return;
         }
-        await signalWhenResolved(deps, answerOutcomeOf(ctx).run);
+        await signalWhenResolved(deps, answerOutcomeOf(ctx).run, openAsks);
       },
     },
   ];
 }
 
-const SIGNAL_KEY = "approvalAnswerSignal";
+/** The run's open asks after a fresh answer's write; unset for a replay, which signals nothing. */
+const SIGNAL_KEY = "approvalAnswerOpenAsks";
 
-/** The locked write of a fresh answer (module header, RecordAnswer). */
+/** A fresh answer as written, with the run's asks still open after it. */
+interface RecordedAnswer {
+  readonly outcome: AnswerOutcome;
+  readonly openAsks: number;
+}
+
+/**
+ * The locked write of a fresh answer (module header, RecordAnswer). A
+ * grant with a class first reads the run's open asks from the log; the
+ * write goes back to read them again when one opened since, up to
+ * GRANT_ASK_READS reads.
+ */
 async function recordAnswer(
   deps: AnswerDeps,
   loaded: Run,
   request: AnswerRequest,
+  ask: LoggedAsk,
   decidedBy: string,
-): Promise<AnswerOutcome> {
+): Promise<RecordedAnswer> {
   const runId = loaded.metadata?.id ?? "";
+  for (let read = 1; ; read++) {
+    const others =
+      request.grant && ask.lease !== undefined
+        ? await readAsks(
+            deps.store,
+            request.sessionId,
+            runId,
+            (await deps.store.sessionEvents.openGates(request.sessionId, runId)).map((gate) => gate.toolUseId),
+          )
+        : new Map<string, LoggedAsk>();
+    try {
+      return await writeAnswer(deps, runId, request, ask, others, decidedBy, read === GRANT_ASK_READS);
+    } catch (error) {
+      if (error instanceof AsksMovedError && read < GRANT_ASK_READS) {
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+/**
+ * One locked write of a fresh answer. `others` are the run's asks a grant
+ * may allow; an open ask of the run they do not hold throws AsksMovedError
+ * unless `final`, when it is left waiting.
+ */
+async function writeAnswer(
+  deps: AnswerDeps,
+  runId: string,
+  request: AnswerRequest,
+  ask: LoggedAsk,
+  others: ReadonlyMap<string, LoggedAsk>,
+  decidedBy: string,
+  final: boolean,
+): Promise<RecordedAnswer> {
   const decidedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   let confirmations: SessionEvent[] = [];
   let grant: SessionEvent | undefined;
+  let openAsks = 0;
   const { run, events } = await updateRunAppendingEvents(deps, runId, (current, session) => {
     const open = openAsksOf(session, runId);
-    const row = askedRowOf(current, request.toolUseId);
     const phase = current.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
     // Everything ValidateAnswer checked, again under the lock: a stop or
     // another answer may have landed since.
     if (
-      row === undefined ||
       !open.has(request.toolUseId) ||
-      row.call.approvalAction !== ApprovalAction.UNSPECIFIED ||
-      row.call.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL ||
       (phase !== RunPhase.RUN_WAITING_FOR_APPROVAL && phase !== RunPhase.RUN_IN_PROGRESS)
     ) {
       throw new AskClosedError(request.toolUseId);
     }
-    const stamp = (call: ToolCall, action: ApprovalAction): void => {
-      call.approvalAction = action;
-      call.approvalDecidedAt = decidedAt;
-      call.approvedBy = decidedBy;
-    };
-    confirmations = [confirmationEvent(runId, row, request.toolUseId, request.result, request.denyMessage)];
+    confirmations = [confirmationEvent(runId, ask, request.result, request.denyMessage)];
     grant = undefined;
-    const lease = request.grant ? deriveLeaseScope(row.call) : undefined;
+    const decided: Array<[string, ApprovalAction]> = [];
+    const lease = request.grant ? ask.lease : undefined;
     if (lease === undefined) {
-      stamp(row.call, request.result === "allow" ? ApprovalAction.APPROVE : ApprovalAction.REJECT);
+      decided.push([request.toolUseId, request.result === "allow" ? ApprovalAction.APPROVE : ApprovalAction.REJECT]);
     } else {
-      stamp(row.call, ApprovalAction.APPROVE_ALL);
-      grant = grantEvent(runId, row, request.toolUseId, lease);
-      // Every other call of the class that waits is allowed with it, with
-      // a plain APPROVE: one call carries the grant, the person's
-      // escalation point.
-      for (const other of waitingInClass(current, request.toolUseId, lease, open)) {
-        stamp(other.call, ApprovalAction.APPROVE);
-        confirmations.push(confirmationEvent(runId, other, toolUseEventId(runId, other.call.id), "allow", ""));
+      if (!final && [...open].some((id) => id !== request.toolUseId && !others.has(id))) {
+        throw new AsksMovedError();
+      }
+      decided.push([request.toolUseId, ApprovalAction.APPROVE_ALL]);
+      grant = grantEvent(runId, ask, lease);
+      // Every other open ask of the class is allowed with it, with a plain
+      // APPROVE: one call carries the grant, the person's escalation point.
+      for (const other of waitingInClass(others, request.toolUseId, lease, open)) {
+        decided.push([other.toolUseId, ApprovalAction.APPROVE]);
+        confirmations.push(confirmationEvent(runId, other, "allow", ""));
+      }
+    }
+    // The rows' stamps, for the readers that still read them: a row the
+    // run does not hold is not stamped.
+    const rows = askedRowsOf(current);
+    for (const [toolUseId, action] of decided) {
+      const row = rows.get(toolUseId);
+      if (row !== undefined) {
+        row.approvalAction = action;
+        row.approvalDecidedAt = decidedAt;
+        row.approvedBy = decidedBy;
       }
     }
     const own = grant === undefined ? confirmations : [confirmations[0]!, grant, ...confirmations.slice(1)];
-    current.status!.pendingApprovals = pendingApprovalsOf(
-      runId,
-      current.status!,
-      openAsksOf(session, runId, own),
-      deps.logger,
-    );
+    const openAfter = openAsksOf(session, runId, own);
+    openAsks = openAfter.size;
+    if (current.status !== undefined) {
+      current.status.pendingApprovals = pendingApprovalsOf(runId, current.status, openAfter, deps.logger);
+    }
     return own;
   });
   deps.logger.info("AUDIT: tool use answered", {
@@ -587,33 +766,37 @@ async function recordAnswer(
     grant: grant !== undefined,
     answered: confirmations.length,
     decidedBy,
-    pendingApprovalsRemaining: run.status?.pendingApprovals.length ?? 0,
+    openAsksRemaining: openAsks,
   });
   deps.broker.broadcast(run);
   // The events as stored: numbered and stamped.
   const storedById = new Map(events.map((event) => [event.event.value?.id ?? "", event]));
   const asStored = (event: SessionEvent): SessionEvent => storedById.get(event.event.value?.id ?? "") ?? event;
   return {
-    run,
-    confirmations: confirmations.map(asStored),
-    grant: grant === undefined ? undefined : asStored(grant),
+    outcome: {
+      run,
+      confirmations: confirmations.map(asStored),
+      grant: grant === undefined ? undefined : asStored(grant),
+    },
+    openAsks,
   };
 }
 
 /**
- * Tells the turn's workflow to resume once the run has no open ask left;
- * with the engine disconnected the answer stands and nothing is signalled.
+ * Tells the turn's workflow to resume once the run has no open ask left
+ * (`openAsks`, counted under the answer's lock); with the engine
+ * disconnected the answer stands and nothing is signalled.
  */
-async function signalWhenResolved(deps: AnswerDeps, run: Run): Promise<void> {
+async function signalWhenResolved(deps: AnswerDeps, run: Run, openAsks: number): Promise<void> {
   const runId = run.metadata?.id ?? "";
   /* v8 ignore next 3 -- @preserve: the locked write refuses an answer on a finished run, so a recorded answer's run never is one; kept so a finished run is never reconciled from here */
   if (isTerminalExecutionPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED)) {
     return;
   }
-  if (run.status !== undefined && !gateResolved(run.status)) {
+  if (!gateResolved(openAsks)) {
     deps.logger.info("answer recorded; the turn still waits for others", {
       runId,
-      pendingApprovalsRemaining: run.status.pendingApprovals.length,
+      openAsksRemaining: openAsks,
     });
     return;
   }
@@ -638,6 +821,7 @@ async function signalWhenResolved(deps: AnswerDeps, run: Run): Promise<void> {
   }
   deps.logger.info("the turn's workflow was signalled to resume", { runId });
 }
+
 
 /**
  * Terminalizes an execution stuck in WAITING_FOR_APPROVAL because the

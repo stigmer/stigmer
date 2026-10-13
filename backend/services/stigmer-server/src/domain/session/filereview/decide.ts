@@ -24,12 +24,14 @@
  *      closes it) refuses a late decision with FAILED_PRECONDITION; the
  *      FILE_DECIDED ledger event is recorded and file_change_sets
  *      re-projected. The write appends its stigmer.file_review.decided
- *      event with it. A decision the ledger already holds on the target
- *      is final (its id is deterministic, author.ts): the same decision
- *      again answers success and writes nothing, even after the window
- *      closes; a different one on a target already decided is refused
+ *      event with it. A decision the session's log already holds on the
+ *      target (its decided events, read under the lock,
+ *      run/filereview/logged.ts) is final: the same decision again
+ *      answers success and writes nothing, even after the window closes;
+ *      a different one on a target already decided is refused
  *      (CONFLICTING_DECISION_MESSAGE), so an Undo is never answered as if
- *      it were recorded when it was not.
+ *      it were recorded when it was not. The ledger's FILE_DECIDED is the
+ *      decision's mirror, written, never read for it.
  *   4. An undo on a run that has ended starts the reconcile turn: a run
  *      with `reconcile_file_review` and no message, created through the
  *      run create chain as the person who decided (server-composed, so
@@ -46,8 +48,8 @@
  *      after it; one on a turn that is then stopped while it waits, by
  *      the reconcile turn its stop starts (stopped-turn.ts).
  *
- * A file decision signals no workflow: the turn's gate is its pending
- * approvals alone.
+ * A file decision signals no workflow: the turn's gate is its open asks
+ * alone (run/filereview/gate.ts).
  *
  * A run in no session has no conversation to move on, so it has no
  * window and no reconcile turn.
@@ -63,17 +65,11 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   FileDecisionAction,
   FileDecisionActionSchema,
-  FileDecisionOrigin,
   FileDecisionScope,
   FileDecisionScopeSchema,
-  FileReviewEventType,
   RunPhase,
   RunPhaseSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type {
-  FileDecision,
-  FileReviewEventStream,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -90,15 +86,22 @@ import { ResourceNotFoundError } from "../../../store/interface.js";
 import {
   approveBlockedReason,
   buildFileDecision,
-  eventId as fileReviewEventId,
   findChange,
   findChangeSet,
   recordFileDecisionEvent,
   targetDigest,
 } from "../../run/filereview/author.js";
+import {
+  FILE_REVIEW_DECIDED_TYPE,
+  PERSON_ORIGIN,
+  decisionOnTarget,
+  runReviewLogOf,
+} from "../../run/filereview/logged.js";
+import type { LoggedDecision } from "../../run/filereview/logged.js";
 import { projectFileChangeSets } from "../../run/filereview/project.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
 import type { StreamBroker } from "../../run/stream-broker.js";
+import { eventOf } from "../events/codec.js";
 import { updateRunAppendingEvents } from "../events/run-writes.js";
 import type { RunEventWriteDeps } from "../events/run-writes.js";
 import { sessionIdOfRun } from "../events/transitions.js";
@@ -211,7 +214,12 @@ export async function decideFileChanges(
         // decision may have landed since the load.
         validateFileDecisionTarget(run, asked);
         const status = run.status!;
-        const recorded = recordedDecision(status.fileReviewEventStream, asked);
+        const recorded = decisionOnTarget(
+          runReviewLogOf(session.runEvents.map(eventOf)),
+          asked.changeSetId,
+          asked.scope,
+          asked.fileChangeId,
+        );
         if (recorded !== undefined && isSameDecision(recorded, asked)) {
           throw new DecisionAlreadyRecorded(run);
         }
@@ -239,7 +247,7 @@ export async function decideFileChanges(
           status.fileReviewEventStream,
         );
       },
-      { runOfNewestType: TURN_EVENT_TYPE },
+      { runOfNewestType: TURN_EVENT_TYPE, runEventTypes: [FILE_REVIEW_DECIDED_TYPE] },
     );
     committed = result.run;
   } catch (error) {
@@ -377,37 +385,12 @@ export function validateFileDecisionTarget(
   }
 }
 
-/** The decision the ledger already holds on the asked target, by its deterministic event id. */
-function recordedDecision(
-  stream: FileReviewEventStream | undefined,
-  asked: FileDecisionAsked,
-): FileDecision | undefined {
-  const scopeId =
-    asked.scope === FileDecisionScope.FILE
-      ? asked.fileChangeId
-      : asked.changeSetId;
-  const id = fileReviewEventId(
-    asked.changeSetId,
-    scopeId,
-    FileReviewEventType.FILE_DECIDED,
-  );
-  for (const event of stream?.events ?? []) {
-    if (event.eventId === id && event.payload.case === "fileDecided") {
-      return event.payload.value;
-    }
-  }
-  return undefined;
-}
-
 /** Whether the recorded decision is this one again: a person's, with the same action. */
 function isSameDecision(
-  recorded: FileDecision,
+  recorded: LoggedDecision,
   asked: FileDecisionAsked,
 ): boolean {
-  const byPerson =
-    recorded.origin === FileDecisionOrigin.USER ||
-    recorded.origin === FileDecisionOrigin.UNSPECIFIED;
-  return byPerson && recorded.action === asked.action;
+  return recorded.origin === PERSON_ORIGIN && recorded.action === asked.action;
 }
 
 /**

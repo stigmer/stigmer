@@ -9,8 +9,11 @@
  * signalled only then; a replay answered from the log without reaching the
  * gate slot, a contrary answer refused; a tool use that is not one of the
  * session's asks not found; a grant answering every waiting call of its
- * class with one grant event, and a call with no class allowed alone; the
- * gate slot reading the answer whichever method carried it. A store fault
+ * class with one grant event, and a call with no class (or whose asked
+ * event the log does not hold) allowed alone; a grant an ask overtakes
+ * reading the run's asks again, a bounded number of times; a row's stamp
+ * or status deciding nothing, the log's open ask answered; the gate slot
+ * reading the answer whichever method carried it. A store fault
  * is an Internal that names no detail; a workflow that cannot be signalled
  * is Unavailable, and one that no longer runs fails the run.
  */
@@ -35,6 +38,7 @@ import {
   GrantPermissionInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { eventTypeOf } from "@stigmer/session-log";
@@ -200,6 +204,7 @@ async function logAfterAsks(): Promise<string[]> {
         return [`${type} ${event.event.value.stopReason?.type} [${event.event.value.stopReason?.eventIds.join(",")}]`];
       case "agentToolUse":
       case "agentMcpToolUse":
+      case "stigmerPermissionAsked":
       case "userMessage":
         return [];
       default:
@@ -349,7 +354,8 @@ describe("confirmToolUse", () => {
       r.status!.phase = RunPhase.RUN_CANCELLED;
     });
     expect((await refusal(confirm(use("tc-1"), "allow"))).code).toBe(Code.FailedPrecondition);
-    expect(slotAnswers.map((a) => a.toolUseId)).toEqual([use("tc-2")]);
+    // The closed gate is read before the slot, so neither refusal reaches it.
+    expect(slotAnswers).toEqual([]);
   });
 
   it("answers a sub-agent's ask in the sub-agent's thread", async () => {
@@ -466,7 +472,7 @@ describe("the answer core's edges", () => {
     expect((await refusal(confirm(use("tc-1"), "allow", "", writeFault))).code).toBe(Code.Internal);
   });
 
-  it("a row stamped with a decision the log does not hold, or no longer waiting, is not answered again", async () => {
+  it("a row's stamp or status decides nothing: an ask the log holds open is answered, and the row stamped", async () => {
     await seedWaiting([
       { id: "tc-1", name: "write" },
       { id: "tc-2", name: "write" },
@@ -475,8 +481,110 @@ describe("the answer core's edges", () => {
       r.status!.messages[0]!.toolCalls[0]!.approvalAction = ApprovalAction.APPROVE;
       r.status!.messages[0]!.toolCalls[1]!.status = ToolCallStatus.TOOL_CALL_COMPLETED;
     });
-    expect((await refusal(confirm(use("tc-1"), "allow"))).code).toBe(Code.FailedPrecondition);
-    expect((await refusal(confirm(use("tc-2"), "allow"))).code).toBe(Code.FailedPrecondition);
+    expect((await confirm(use("tc-1"), "deny", "no")).event.case).toBe("userToolConfirmation");
+    expect((await confirm(use("tc-2"), "allow")).event.case).toBe("userToolConfirmation");
+    expect(callOf(await stored(), "tc-1")?.approvalAction).toBe(ApprovalAction.REJECT);
+    expect(signalled).toEqual([RUN]);
+  });
+
+  it("a grant whose read of the run's asks an ask overtakes reads them again, and allows that ask too", async () => {
+    await seedWaiting([
+      { id: "tc-shell-1", name: "shell" },
+      { id: "tc-shell-2", name: "bash" },
+    ]);
+    let writes = 0;
+    const overtaking: SessionAnswerDeps = {
+      ...deps(),
+      store: faulty({
+        writeResourceAppendingEvents: (async (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
+          if (++writes === 1) {
+            // The runner's next ask lands between the grant's read and its write.
+            await temp.store.updateResource(ApiResourceKind.run, RUN, RunSchema, (r) => {
+              r.status!.messages[0]!.toolCalls.push(
+                create(ToolCallSchema, {
+                  id: "tc-shell-3",
+                  name: "shell",
+                  status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+                  requiresApproval: true,
+                }),
+              );
+            });
+            await appendAsks(temp.store, RUN, ["tc-shell-3"]);
+          }
+          return temp.store.writeResourceAppendingEvents(...args);
+        }) as Store["writeResourceAppendingEvents"],
+      }),
+    };
+    const response = await grant(use("tc-shell-1"), overtaking);
+    expect(response.confirmations.map((c) => c.event.case === "userToolConfirmation" && c.event.value.toolUseId)).toEqual([
+      use("tc-shell-1"),
+      use("tc-shell-2"),
+      use("tc-shell-3"),
+    ]);
+    expect(signalled).toEqual([RUN]);
+  });
+
+  it("a grant whose every read an ask overtakes leaves the asks it never saw waiting for their own answer", async () => {
+    await seedWaiting([{ id: "tc-shell-1", name: "shell" }]);
+    let writes = 0;
+    const overtaking: SessionAnswerDeps = {
+      ...deps(),
+      store: faulty({
+        writeResourceAppendingEvents: (async (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
+          const callId = `tc-late-${++writes}`;
+          await temp.store.updateResource(ApiResourceKind.run, RUN, RunSchema, (r) => {
+            r.status!.messages[0]!.toolCalls.push(
+              create(ToolCallSchema, {
+                id: callId,
+                name: "shell",
+                status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+                requiresApproval: true,
+              }),
+            );
+          });
+          await appendAsks(temp.store, RUN, [callId]);
+          return temp.store.writeResourceAppendingEvents(...args);
+        }) as Store["writeResourceAppendingEvents"],
+      }),
+    };
+    const response = await grant(use("tc-shell-1"), overtaking);
+    // Each read saw the asks before it; the last write's own late ask is left waiting.
+    expect(response.confirmations.map((c) => c.event.case === "userToolConfirmation" && c.event.value.toolUseId)).toEqual([
+      use("tc-shell-1"),
+      use("tc-late-1"),
+      use("tc-late-2"),
+    ]);
+    expect((await stored()).status?.pendingApprovals.map((p) => p.toolCallId)).toEqual(["tc-late-3"]);
+    expect(signalled).toEqual([]);
+  });
+
+  it("a grant on an ask whose asked event the log does not hold allows that call alone, with no grant", async () => {
+    await seedWaiting([
+      { id: "tc-shell-1", name: "shell" },
+      { id: "tc-shell-2", name: "bash" },
+    ]);
+    const asked = (await temp.store.sessionEvents.list(SESSION, { order: "asc", types: ["stigmer.permission.asked"], limit: 10 }))
+      .map(eventOf);
+    expect(asked).toHaveLength(2);
+    const fresh = tempStore();
+    try {
+      // The same turn in a log that lost the clicked ask's asked event.
+      const writeDeps = { store: fresh.store, sessionEventBroker: new SessionEventBroker(silentLogger) };
+      const row = await stored();
+      await createRunAppendingEvents(writeDeps, row);
+      const uses = (await temp.store.sessionEvents.list(SESSION, { order: "asc", types: ["agent.tool_use"], limit: 10 })).map(eventOf);
+      await fresh.store.sessionEvents.append(SESSION, "acme", [...uses, asked[1]!].map(draftOf), {
+        kind: ApiResourceKind.run,
+        id: RUN,
+        schema: RunSchema,
+        admit: () => undefined,
+      });
+      const response = await grant(use("tc-shell-1"), { ...deps(), store: fresh.store });
+      expect(response.grant).toBeUndefined();
+      expect(response.confirmations).toHaveLength(1);
+    } finally {
+      await fresh.cleanup();
+    }
   });
 
   it("an engine that cannot be signalled is Unavailable; the answer stands", async () => {

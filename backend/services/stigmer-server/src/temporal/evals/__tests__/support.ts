@@ -6,7 +6,8 @@
  * suite source over real `evals/` files read by `readEvalSuite`; a
  * catalog that knows one model; a try lane that records what it is asked
  * and creates rows in the store as the real chains would; a score
- * recorder with the chain's one-per-writer rule.
+ * recorder with the chain's one-per-writer rule; and a turn's session
+ * events appended under a stored run, as its runner writes them.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -43,6 +44,10 @@ import type {
   ScoreRecorder,
 } from "../../../domain/score/ports.js";
 import { listRunScores } from "../../../domain/score/queries.js";
+import {
+  RunEventsBuilder,
+  appendRunEvents,
+} from "../../../domain/session/events/__tests__/run-events-fixture.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { Store } from "../../../store/interface.js";
@@ -378,3 +383,18 @@ export function scoreChain(store: Store): {
 }
 
 export { silentLogger };
+
+/** Appends one turn's events to the stored run's session, as its runner writes them. */
+export async function appendTurnEvents(
+  store: Store,
+  runId: string,
+  build: (events: RunEventsBuilder) => RunEventsBuilder,
+): Promise<void> {
+  const run = await store.getResource(ApiResourceKind.run, runId, RunSchema);
+  await appendRunEvents(
+    store,
+    sessionIdOf(run.spec),
+    run.metadata?.org ?? "",
+    build(new RunEventsBuilder(runId)).build(),
+  );
+}

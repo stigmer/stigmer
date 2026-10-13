@@ -165,4 +165,28 @@ public interface StigmerPermissionAskedEventOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPolicyHookBytes();
+
+  /**
+   * <pre>
+   * A digest of the content the call would write, when its harness
+   * identifies an edit by its content: an approval allows that exact edit
+   * and no other proposed under the same call. Empty otherwise.
+   * </pre>
+   *
+   * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+   * @return The contentDigest.
+   */
+  java.lang.String getContentDigest();
+  /**
+   * <pre>
+   * A digest of the content the call would write, when its harness
+   * identifies an edit by its content: an approval allows that exact edit
+   * and no other proposed under the same call. Empty otherwise.
+   * </pre>
+   *
+   * <code>string content_digest = 8 [json_name = "contentDigest"];</code>
+   * @return The bytes for contentDigest.
+   */
+  com.google.protobuf.ByteString
+      getContentDigestBytes();
 }

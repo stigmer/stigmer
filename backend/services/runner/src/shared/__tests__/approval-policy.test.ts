@@ -5,7 +5,7 @@
  * this turn, nothing else — what a lease clears, the provenance each
  * verdict stamps (UNSPECIFIED for a call that needed none), the card
  * wording, the placeholder resolution with its secret redaction, the
- * derivation of leases from persisted decisions, the engine version, and
+ * derivation of leases from the run's grants, the engine version, and
  * where the approval mode is read: the lane's fact on the status, with
  * anything but UNATTENDED asking.
  */
@@ -18,6 +18,7 @@ import {
   resolveBuiltInApprovalMessage,
   deriveActiveLeases,
   hookLeaseKey,
+  deriveLeaseScope,
   resolveApprovalProvenance,
   resolveToolApproval,
   toProtoPolicySource,
@@ -26,13 +27,14 @@ import {
   NOTHING_LISTED,
   UNLISTED_MCP_APPROVAL_MESSAGE,
   type ActiveLeases,
+  type LeaseGrant,
   type McpApprovalDefault,
 } from "../approval-policy.js";
 import type { ToolApprovalCategory } from "../tool-kind.js";
 import type { McpToolListing } from "../mcp-tool-listing.js";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 /** No active leases. */
 const NO_LEASES: ActiveLeases = { global: false, categories: new Set(), servers: new Set(), hooks: new Set() };
@@ -51,48 +53,9 @@ function leases(opts: {
   };
 }
 
-/** A single tool call shaped just enough for deriveActiveLeases. */
-interface TestToolCall {
-  approvalAction: ApprovalAction;
-  name?: string;
-  mcpServerSlug?: string;
-  approvalPolicySource?: ApprovalPolicySource;
-  approvalPolicyHook?: string;
-}
-
-/**
- * Builds a minimal Run shaped just enough for deriveActiveLeases,
- * which reads each tool call's approval action plus its name / mcp_server_slug
- * (the scope inputs) on root and sub-agent messages, and spec.auto_approve_all.
- */
-function makeExecution(opts: {
-  rootCalls?: TestToolCall[];
-  subAgentCalls?: TestToolCall[];
-  autoApproveAll?: boolean;
-  hasStatus?: boolean;
-}): Run {
-  const hasStatus = opts.hasStatus ?? true;
-  const spec = { autoApproveAll: opts.autoApproveAll ?? false };
-  if (!hasStatus) {
-    return { spec, status: undefined } as unknown as Run;
-  }
-  const toCalls = (calls: TestToolCall[] = []) =>
-    calls.map(c => ({
-      approvalAction: c.approvalAction,
-      name: c.name ?? "",
-      mcpServerSlug: c.mcpServerSlug ?? "",
-      approvalPolicySource: c.approvalPolicySource ?? ApprovalPolicySource.UNSPECIFIED,
-      approvalPolicyHook: c.approvalPolicyHook ?? "",
-    }));
-  return {
-    spec,
-    status: {
-      messages: [{ toolCalls: toCalls(opts.rootCalls) }],
-      subAgentRuns: [
-        { messages: [{ toolCalls: toCalls(opts.subAgentCalls) }] },
-      ],
-    },
-  } as unknown as Run;
+/** A grant's lease as its `stigmer.permission.grant` names it; `hook` stays undefined unless a hook asked. */
+function grant(lease: Partial<LeaseGrant>): LeaseGrant {
+  return { category: "", server: "", tool: "", hook: undefined, ...lease };
 }
 
 /** A turn's listing: each server's destructive tools, and the servers whose listing failed. */
@@ -143,104 +106,66 @@ describe("buildMcpApprovalDefault", () => {
 });
 
 describe("deriveActiveLeases", () => {
-  it("returns no leases when there is no status", () => {
-    const result = deriveActiveLeases(makeExecution({ hasStatus: false }));
+  it("returns no leases when the run holds no grant", () => {
+    const result = deriveActiveLeases([], false);
     expect(result.global).toBe(false);
     expect(result.categories.size).toBe(0);
     expect(result.servers.size).toBe(0);
-  });
-
-  it("returns no scoped leases when no tool call carries APPROVE_ALL", () => {
-    const exec = makeExecution({
-      rootCalls: [
-        { approvalAction: ApprovalAction.APPROVE, name: "shell" },
-        { approvalAction: ApprovalAction.SKIP, name: "write" },
-      ],
-      subAgentCalls: [{ approvalAction: ApprovalAction.REJECT, name: "delete" }],
-    });
-    const result = deriveActiveLeases(exec);
-    expect(result.categories.size).toBe(0);
-    expect(result.servers.size).toBe(0);
+    expect(result.hooks.size).toBe(0);
   });
 
   it("reflects the global pre-arm from spec.auto_approve_all", () => {
-    const result = deriveActiveLeases(makeExecution({ autoApproveAll: true }));
-    expect(result.global).toBe(true);
+    expect(deriveActiveLeases([], true).global).toBe(true);
   });
 
-  it("derives a built-in CATEGORY lease from an APPROVE_ALL on a built-in", () => {
-    const exec = makeExecution({
-      rootCalls: [{ approvalAction: ApprovalAction.APPROVE_ALL, name: "shell" }],
-    });
-    const result = deriveActiveLeases(exec);
-    expect([...result.categories]).toEqual(["shell"]);
+  it("leases a built-in CATEGORY from a grant that names one", () => {
+    const result = deriveActiveLeases([grant({ category: "shell" }), grant({ category: "write" }), grant({ category: "write" })], false);
+    expect([...result.categories]).toEqual(["shell", "write"]);
     expect(result.servers.size).toBe(0);
   });
 
-  it("collapses FILE_WRITE and FILE_EDIT to a single 'write' category lease", () => {
-    const exec = makeExecution({
-      rootCalls: [
-        { approvalAction: ApprovalAction.APPROVE_ALL, name: "write_file" },
-        { approvalAction: ApprovalAction.APPROVE_ALL, name: "edit_file" },
-      ],
-    });
-    expect([...deriveActiveLeases(exec).categories]).toEqual(["write"]);
-  });
-
-  it("derives a SERVER lease from an APPROVE_ALL on an MCP tool", () => {
-    const exec = makeExecution({
-      rootCalls: [
-        { approvalAction: ApprovalAction.APPROVE_ALL, name: "create_issue", mcpServerSlug: "github" },
-      ],
-    });
-    const result = deriveActiveLeases(exec);
-    expect([...result.servers]).toEqual(["github"]);
+  it("leases a SERVER from a grant that names one, over any category it also carries", () => {
+    const result = deriveActiveLeases([grant({ server: "github" }), grant({ server: "database", category: "delete" })], false);
+    expect([...result.servers]).toEqual(["github", "database"]);
     expect(result.categories.size).toBe(0);
   });
 
-  it("derives leases from sub-agent tool calls too", () => {
-    const exec = makeExecution({
-      subAgentCalls: [
-        { approvalAction: ApprovalAction.APPROVE_ALL, name: "delete" },
-        { approvalAction: ApprovalAction.APPROVE_ALL, name: "drop", mcpServerSlug: "database" },
-      ],
-    });
-    const result = deriveActiveLeases(exec);
-    expect([...result.categories]).toEqual(["delete"]);
-    expect([...result.servers]).toEqual(["database"]);
-  });
-
-  it("derives a HOOK lease, and only that, from an APPROVE_ALL on a call a hook asked about", () => {
-    const exec = makeExecution({
-      rootCalls: [
-        {
-          approvalAction: ApprovalAction.APPROVE_ALL,
-          name: "execute",
-          approvalPolicySource: ApprovalPolicySource.HOOK,
-          approvalPolicyHook: "safety",
-        },
-        {
-          approvalAction: ApprovalAction.APPROVE_ALL,
-          name: "create_issue",
-          mcpServerSlug: "github",
-          approvalPolicySource: ApprovalPolicySource.HOOK,
-          approvalPolicyHook: "",
-        },
-      ],
-    });
-    const result = deriveActiveLeases(exec);
+  it("leases a HOOK's asks on one tool, and only that, from a grant that names a hook (the agent's own hooks too)", () => {
+    const result = deriveActiveLeases(
+      [grant({ hook: "safety", tool: "execute" }), grant({ hook: "", server: "github", tool: "create_issue" })],
+      false,
+    );
     expect([...result.hooks]).toEqual([hookLeaseKey("safety", "", "execute"), hookLeaseKey("", "github", "create_issue")]);
     expect(result.categories.size).toBe(0);
     expect(result.servers.size).toBe(0);
   });
 
-  it("does not lease a read-only built-in (no category) on APPROVE_ALL", () => {
-    const exec = makeExecution({
-      rootCalls: [{ approvalAction: ApprovalAction.APPROVE_ALL, name: "read" }],
-    });
-    const result = deriveActiveLeases(exec);
+  it("leases nothing from a category word it does not know", () => {
+    const result = deriveActiveLeases([grant({ category: "read" }), grant({})], false);
     expect(result.categories.size).toBe(0);
     expect(result.servers.size).toBe(0);
+    expect(result.hooks.size).toBe(0);
+  });
+
+  it("agrees with the lease scope the server derives for each call shape (the grant is that scope, written)", () => {
+    const rows = [
+      { name: "shell", mcpServerSlug: "", approvalPolicySource: ApprovalPolicySource.BUILTIN_CATEGORY, approvalPolicyHook: "" },
+      { name: "create_issue", mcpServerSlug: "github", approvalPolicySource: ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN, approvalPolicyHook: "" },
+      { name: "execute", mcpServerSlug: "", approvalPolicySource: ApprovalPolicySource.HOOK, approvalPolicyHook: "safety" },
+    ];
+    const grants = rows.map((row) => {
+      const scope = deriveLeaseScope(row);
+      if (scope === undefined) throw new Error(`no scope for ${row.name}`);
+      return scope.kind === "hook"
+        ? grant({ hook: scope.hook, server: scope.server, tool: scope.tool })
+        : scope.kind === "server"
+          ? grant({ server: scope.server })
+          : grant({ category: scope.category });
+    });
+    const result = deriveActiveLeases(grants, false);
+    expect([...result.categories]).toEqual(["shell"]);
+    expect([...result.servers]).toEqual(["github"]);
+    expect([...result.hooks]).toEqual([hookLeaseKey("safety", "", "execute")]);
   });
 });
 

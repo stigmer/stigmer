@@ -70,6 +70,10 @@ import {
   SubAgentRunSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
+
+/** The run the logged answers belong to. */
+const RUN_ID = "run_resume_history";
 
 const MCP_SLUG = "open-computer-use";
 
@@ -304,7 +308,8 @@ describe("Cursor HITL resume — append-only transcript", () => {
   // MCP tools pass while the genuinely-new `click` is still gated. The hook
   // needs bash, mirroring the d() guard.
   it.skipIf(!hasBash)("FIX: the approved tools are ALLOWED by the hook on resume — not re-denied (the loop's source)", () => {
-    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(persistedRunOneMessages());
+    const runOne = persistedRunOneMessages();
+    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(runOne, loggedApprovalsFor(RUN_ID, runOne));
     const grants = buildApprovalGrants(pendingApprovals, decisions);
     const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), grants);
 
@@ -424,7 +429,8 @@ describe("Cursor HITL resume — two approvals then clean completion (no loop)",
   });
 
   it.skipIf(!hasBash)("the built-in grants actually let the hook allow both re-issues (full closure)", () => {
-    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(committedBuiltInApprovals());
+    const committed = committedBuiltInApprovals();
+    const { pendingApprovals, decisions } = reconstructAdjudicatedApprovals(committed, loggedApprovalsFor(RUN_ID, committed));
     const grants = buildApprovalGrants(pendingApprovals, decisions);
     const state = buildApprovalState(NO_MCP_DEFAULT, false, new Set(), grants);
 

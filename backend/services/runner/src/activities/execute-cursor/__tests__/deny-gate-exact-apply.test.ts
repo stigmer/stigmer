@@ -62,6 +62,7 @@ import {
   hookWrite,
   hookShell,
 } from "../__test-utils__/cursor-hook-harness.js";
+import { loggedApprovalsFor } from "../../../__test-utils__/approval-log.js";
 
 const EXEC_ID = "exec-deny-gate";
 
@@ -113,7 +114,7 @@ async function replayDenyGateResume(root: string, messages: AgentMessage[]): Pro
   grantApprovals: ReturnType<typeof reconstructAdjudicatedApprovals>["pendingApprovals"];
   grants: ApprovalGrant[];
 }> {
-  const adjudicated = reconstructAdjudicatedApprovals(messages); // Phase 3 (pre-apply)
+  const adjudicated = reconstructAdjudicatedApprovals(messages, loggedApprovalsFor(EXEC_ID, messages)); // Phase 3 (pre-apply)
   const applied = await applyApprovedWholeFileWrites({
     messages,
     workspaceBackend: new LocalWorkspaceBackend(root),
