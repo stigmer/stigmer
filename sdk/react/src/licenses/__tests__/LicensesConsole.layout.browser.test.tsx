@@ -20,7 +20,6 @@ import "../../../dist/styles.css";
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/react";
 import type { Stigmer } from "@stigmer/sdk";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { StigmerProvider } from "../../provider";
 import { LicensesConsole } from "../LicensesConsole";
 import { license } from "./fixtures";
@@ -29,7 +28,7 @@ afterEach(cleanup);
 
 const NOW = new Date("2026-09-28T09:00:00Z");
 
-/** The widest realistic row: a long company name, a long address, both limits, every grantable feature. */
+/** The widest realistic row: a long company name, a long address, both limits. */
 const entries = [
   license({
     id: "lic_wide",
@@ -40,7 +39,6 @@ const entries = [
     graceUntil: "2027-02-14T00:00:00Z",
     maxUsers: 1500,
     maxOrgs: 12,
-    features: [Feature.sso_enforcement, Feature.byo_provider_keys],
   }),
   license({
     id: "lic_grace",

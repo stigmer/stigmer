@@ -35,8 +35,8 @@ export interface IdentityProviderListPanelProps {
  * Displays a list of {@link IdentityProvider} resources for an
  * organization with inline delete confirmation.
  *
- * Each provider is rendered as a row showing name, slug, SSO badge
- * (when `is_sso_provider` is true), and creation date. The edit and
+ * Each provider is rendered as a row showing name, slug, a JIT badge
+ * (when a first sign-in creates the person's account), and creation date. The edit and
  * delete buttons appear only on rows the caller may edit or delete
  * (`can_edit`, `can_delete`); delete opens an inline confirmation.
  *
@@ -166,8 +166,7 @@ function IdpRow({
     identityProvider.metadata?.name ||
     "Unnamed provider";
   const slug = identityProvider.metadata?.slug;
-  const isSso = spec?.isSsoProvider;
-  const isJit = !isSso && spec?.createAccountsOnSignIn;
+  const isJit = spec?.createAccountsOnSignIn;
   const createdAt =
     identityProvider.status?.audit?.specAudit?.createdAt;
 
@@ -247,11 +246,6 @@ function IdpRow({
       </div>
 
       <div className="stg:hidden stg:sm:flex stg:shrink-0 stg:items-center stg:gap-3 stg:text-xs stg:text-muted-foreground">
-        {isSso && (
-          <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">
-            SSO
-          </span>
-        )}
         {isJit && (
           <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">
             JIT

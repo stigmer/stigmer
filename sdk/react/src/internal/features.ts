@@ -4,22 +4,26 @@
 // wherever it appears.
 //
 // Keyed by every feature that grants something, so a value added to the
-// contract fails to compile here until it has words. `platform_client` and
-// `byo_provider_keys` are not: they gate nothing (platform/v1/entitlement.proto;
-// every plan runs on the organization's own provider keys), so no surface
-// names them.
+// contract fails to compile here until it has words. `sso_enforcement`,
+// `platform_client` and `byo_provider_keys` are not: they gate nothing
+// (platform/v1/entitlement.proto; Stigmer has no single sign-on of its own,
+// and every plan runs on the organization's own provider keys), so no
+// surface names them.
 
 import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 
 /** A feature that grants something: every value but the zero value and the ungated ones. */
 export type NamedFeature = Exclude<
   Feature,
-  Feature.feature_unspecified | Feature.platform_client | Feature.byo_provider_keys
+  | Feature.feature_unspecified
+  | Feature.sso_enforcement
+  | Feature.platform_client
+  | Feature.byo_provider_keys
 >;
 
 /**
  * Label and one-line explanation per named feature, and whether the label
- * reads as a plural ("Teams are", "SSO enforcement is").
+ * reads as a plural ("Teams are", "Sharing is").
  */
 export const FEATURE_COPY: Readonly<
   Record<
@@ -27,11 +31,6 @@ export const FEATURE_COPY: Readonly<
     { readonly label: string; readonly description: string; readonly plural: boolean }
   >
 > = {
-  [Feature.sso_enforcement]: {
-    label: "SSO enforcement",
-    description: "Require members to sign in through a registered identity provider.",
-    plural: false,
-  },
   [Feature.channels]: {
     label: "Channels",
     description: "Deliver agents over messaging channels through a channel runtime.",

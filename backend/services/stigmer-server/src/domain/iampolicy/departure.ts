@@ -13,9 +13,6 @@
  * revoke converges. A failure propagates to the revoke (the module header
  * of grant-path.ts says why that is the posture).
  *
- * `newMyVaultEntries` reads what that deletion would take, for a move that
- * shows the person first (move.ts).
- *
  * Proven by __tests__/departure.test.ts.
  */
 import type { Logger } from "../../boot/logger.js";
@@ -52,24 +49,5 @@ export function newMyVaultDeparture(
         organizationId,
       });
     }
-  };
-}
-
-/**
- * What a person's departure from an organization would delete: the
- * secret names and connection addresses of their My vault there, read
- * before a move so the person sees them first (move.ts). None when they
- * keep no My vault there.
- */
-export function newMyVaultEntries(
-  vaults: Pick<VaultService, "findMine">,
-): (org: string, person: string) => Promise<ReadonlyArray<string>> {
-  return async (org, person) => {
-    const vault = await vaults.findMine(org, person);
-    const spec = vault?.spec;
-    if (spec === undefined) {
-      return [];
-    }
-    return [...Object.keys(spec.secrets), ...Object.keys(spec.connections)];
   };
 }

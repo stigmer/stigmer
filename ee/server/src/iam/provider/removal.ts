@@ -53,8 +53,8 @@
  *
  * The organization delete runs this before the organization's row goes,
  * and a failure stops that delete: a provider left behind would be trust
- * configuration nobody administers (the verifier and SSO discovery refuse
- * such a provider, organization-links.ts `orphanReason`, and no later
+ * configuration nobody administers (the verifier refuses such a
+ * provider, organization-links.ts `orphanReason`, and no later
  * organization carries its organization's id, but it would still hold its
  * routes).
  */

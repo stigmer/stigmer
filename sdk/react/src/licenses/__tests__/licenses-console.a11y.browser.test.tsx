@@ -2,7 +2,7 @@
 //
 // Covers the populated renewal calendar (the ARIA table, the stretched row
 // buttons, every standing badge), a license's detail with its ticket shown,
-// the issue form (radio groups, the features fieldset, labelled inputs), the
+// the issue form (radio groups, labelled inputs), the
 // empty calendar and the access notice — each in light and dark against the
 // shipped stylesheet, at the settings canvas's width.
 
@@ -10,7 +10,6 @@ import { describe, it, afterEach } from "vitest";
 import { screen } from "@testing-library/react";
 import type { Stigmer } from "@stigmer/sdk";
 import { StigmerError } from "@stigmer/sdk";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
 import type { License } from "@stigmer/protos/ai/stigmer/billing/license/v1/api_pb";
 import {
@@ -40,7 +39,6 @@ const entries: License[] = [
     expiresAt: "2027-10-01T00:00:00Z",
     graceUntil: "2027-10-31T00:00:00Z",
     maxUsers: 50,
-    features: [Feature.sso_enforcement, Feature.platform_client],
     notes: "PO 4411",
     ticket: "eyJhbGciOiJFZERTQSIsImtpZCI6ImxpY2Vuc2Utc2lnbmluZzp2MSJ9.payload.signature",
   }),

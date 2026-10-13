@@ -32,17 +32,7 @@ import {
   type LicenseDraft,
 } from "./license-draft.js";
 import { findCustomerMatches, type LicenseCustomerSummary } from "./license-customers.js";
-import {
-  FEATURE_LABELS,
-  GRANTABLE_FEATURES,
-  TERM_LABELS,
-  featureNames,
-  isGrantableFeature,
-  limitPart,
-  utcDay,
-  type GrantableFeature,
-  type IssuableTerm,
-} from "./license-format.js";
+import { TERM_LABELS, limitPart, utcDay, type IssuableTerm } from "./license-format.js";
 
 /** Props for {@link LicenseIssueForm}. */
 export interface LicenseIssueFormProps {
@@ -66,7 +56,7 @@ export interface LicenseIssueFormProps {
 type CustomerMode = "existing" | "new";
 
 /**
- * Native checkboxes and radios take the theme's primary through
+ * Native radios take the theme's primary through
  * `accent-color`, the `SelectionCheckbox` idiom, so no preset renders a
  * browser-blue control inside its brand.
  */
@@ -92,9 +82,10 @@ const VIOLATION_COPY: Readonly<Record<string, string>> = {
 };
 
 /**
- * The issue form: who the license is for, the term, what it permits and
- * for how long. Its output is the SDK's `LicenseInput`, checked against the
- * contract's own rules before it is sent.
+ * The issue form: who the license is for, the term, the limits it permits
+ * and for how long. A license carries no features: no server reads them.
+ * Its output is the SDK's `LicenseInput`, checked against the contract's
+ * own rules before it is sent.
  *
  * The customer is picked from those already licensed whenever there are
  * any, so a renewal reuses the customer's id and its history stays whole;
@@ -135,9 +126,6 @@ export function LicenseIssueForm({
   const [maxUsers, setMaxUsers] = useState(limitText(renewing?.spec?.entitlements?.limits?.maxUsers));
   const [maxOrganizations, setMaxOrganizations] = useState(
     limitText(renewing?.spec?.entitlements?.limits?.maxOrgs),
-  );
-  const [features, setFeatures] = useState<readonly GrantableFeature[]>(() =>
-    (renewing?.spec?.entitlements?.features ?? []).filter(isGrantableFeature),
   );
   const [notes, setNotes] = useState("");
   const [attempted, setAttempted] = useState(false);
@@ -180,7 +168,6 @@ export function LicenseIssueForm({
       graceDays: grace.value,
       maxUsers: users.value,
       maxOrgs: organizations.value,
-      features,
       notes,
     };
     input = toLicenseInput(draft);
@@ -216,13 +203,6 @@ export function LicenseIssueForm({
     }
     onSubmit(input);
   };
-
-  const toggleFeature = (feature: GrantableFeature, on: boolean) =>
-    setFeatures((current) =>
-      on
-        ? GRANTABLE_FEATURES.filter((f) => f === feature || current.includes(f))
-        : current.filter((f) => f !== feature),
-    );
 
   const previewName = customer?.displayName.trim()
     ? licenseName(term, customer.displayName, lastCoveredDay || today)
@@ -479,28 +459,6 @@ export function LicenseIssueForm({
             />
           </Field>
         </div>
-        <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-2")}>
-          <legend className="stg:mb-1 stg:text-[11px] stg:font-medium stg:text-muted-foreground">
-            Features
-          </legend>
-          {GRANTABLE_FEATURES.map((feature) => (
-            <label key={feature} className="stg:flex stg:items-start stg:gap-2 stg:text-sm">
-              <input
-                type="checkbox"
-                className={cn(NATIVE_CONTROL, "stg:mt-0.5")}
-                checked={features.includes(feature)}
-                onChange={(e) => toggleFeature(feature, e.target.checked)}
-                disabled={isSubmitting}
-              />
-              <span>
-                <span className="stg:block stg:text-foreground">{FEATURE_LABELS[feature].label}</span>
-                <span className="stg:block stg:text-xs stg:text-muted-foreground">
-                  {FEATURE_LABELS[feature].description}
-                </span>
-              </span>
-            </label>
-          ))}
-        </fieldset>
       </FormSection>
 
       <FormSection title="Notes">
@@ -531,7 +489,6 @@ export function LicenseIssueForm({
               {[
                 users.ok ? limitPart(users.value, "user") : null,
                 organizations.ok ? limitPart(organizations.value, "organization") : null,
-                featureNames(features),
               ]
                 .filter((part): part is string => part !== null)
                 .join(" · ")}

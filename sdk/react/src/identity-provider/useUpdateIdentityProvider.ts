@@ -43,7 +43,7 @@ export interface UseUpdateIdentityProviderReturn {
  * await update(
  *   {
  *     metadata: { id: provider.metadata!.id, etag: provider.metadata!.etag },
- *     spec: { displayName: "Acme Corp SSO" },
+ *     spec: { displayName: "Acme Platform" },
  *   },
  *   ["spec.display_name"],
  * );

@@ -1,5 +1,5 @@
 /**
- * The enterprise-identity extension unit: identity providers and SSO
+ * The enterprise-identity extension unit: identity providers and
  * federation, invitations and teams, the identity code an organization
  * brings to Stigmer and the code Stigmer Enterprise ships. It fills:
  *
@@ -8,12 +8,9 @@
  *     trust, and told of every provider write;
  *   - drivers.identityFederation (the four federated IdentityAccount arms
  *     the library dispatches to), drivers.principalDisplay (an access list
- *     names a team by its name), drivers.resourceRowReaders (where the
+ *     names a team by its name) and drivers.resourceRowReaders (where the
  *     library's own authorization reads a provider, an invitation or a
- *     team) and drivers.organizationSignInRule (an organization whose SSO
- *     provider sets `sso_required` counts only the people it signed in,
- *     iam/provider/sign-in-rule.ts, told of every provider write as the
- *     federated lane is);
+ *     team);
  *   - gateSteps: RemoveOrganizationIdentity on `org-delete:pre-delete` (an
  *     organization's delete removes its teams, providers and invitations
  *     before it answers, or fails; iam/organization-delete.ts); and
@@ -33,8 +30,8 @@
  *     repairs (below).
  *
  * Built over ports, never over adapters. Every input is an interface the
- * code already takes: the five store ports and the schema they read
- * (schema/enterprise-postgres.ts builds all six over a host's pool), the
+ * code already takes: the four store ports and the schema they read
+ * (schema/enterprise-postgres.ts builds all five over a host's pool), the
  * account surface (iam/account/port.ts), the guarded fetch, and the growth
  * gate a licensed host fills (iam/growth-gate.ts). The unit constructs no
  * store and reads no configuration; the host composition builds its
@@ -130,7 +127,6 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { asFetch, type OutboundFetch } from "@stigmer/outbound/egress";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type {
-  AccountAutomations,
   AuthorizationQueryEngine,
   Authorizer,
   ComposedIamPolicies,
@@ -146,9 +142,6 @@ import type {
 } from "@stigmer/server";
 
 import type { IdentityAccountService } from "../iam/account/port.js";
-import type { AccessMoveTicketStore } from "../iam/access-move/store.js";
-import { newSsoSignInRule } from "../iam/provider/sign-in-rule.js";
-import type { SsoPlanGate } from "../iam/provider/sso-required-steps.js";
 import type { GrowthGate } from "../iam/growth-gate.js";
 import { lateChildOrganizations } from "./late-child-organizations.js";
 import { lateNameTable } from "./late-name-table.js";
@@ -194,8 +187,6 @@ export interface EnterpriseIdentityPorts {
   readonly invitations: InvitationStore;
   /** The first sign-in of each (account, organization) through a provider (iam/federation/sign-in-grants.ts). */
   readonly signInGrants: SignInGrantLedger;
-  /** The single-use tickets that move a person's access to their SSO account (iam/access-move/store.ts). */
-  readonly accessMoves: AccessMoveTicketStore;
   /** The stores' tables, made current first in `start` (schema/enterprise-migrations.ts). */
   readonly schema: EnterpriseSchema;
   readonly accounts: IdentityAccountService;
@@ -220,13 +211,6 @@ export interface EnterpriseIdentityPorts {
    * license) every team, provider create and provider update is allowed.
    */
   readonly growthGate?: GrowthGate;
-  /**
-   * Whether an organization's plan lets it require sign-in through its SSO
-   * provider (iam/provider/sso-required-steps.ts): a host that bills
-   * organizations fills it from its billing; absent (as in self-hosted
-   * Enterprise, where it is an edition feature) every organization may.
-   */
-  readonly ssoPlanGate?: SsoPlanGate;
 }
 
 /** The kinds this domain serves that record no owner, in the order the boot reconciles them. */
@@ -238,12 +222,11 @@ const ENTERPRISE_OWNER_ROW_KINDS: ReadonlyArray<OwnerRowKind> = [
 /** The composition's instances as this unit uses them: every one present. */
 interface HandedOver {
   readonly authorizer: Authorizer;
-  readonly credentialBinding: Pick<CredentialBinding, "admitsOrganization" | "signInRefusal">;
+  readonly credentialBinding: Pick<CredentialBinding, "admitsOrganization">;
   readonly listReadScope: ListReadScope;
   readonly authorizationQueries: Pick<AuthorizationQueryEngine, "check">;
   readonly lifecycle: ResourceAuthorizationLifecycle | undefined;
   readonly iamPolicies: ComposedIamPolicies;
-  readonly accountAutomations: AccountAutomations;
 }
 
 export function newEnterpriseIdentityExtension(
@@ -283,12 +266,10 @@ export function newEnterpriseIdentityExtension(
   // children of an organization.
   const children = lateChildOrganizations(`the ${ENTERPRISE_IDENTITY_UNIT} unit`);
   const childOrganizations = children.lookups;
-  // The invitation redeem is the one lane here that asks the binding: the
-  // credential's organization and the organization's sign-in rule.
-  const credentialBinding: Pick<CredentialBinding, "admitsOrganization" | "signInRefusal"> = {
+  // The invitation redeem is the one lane here that asks the binding.
+  const credentialBinding: Pick<CredentialBinding, "admitsOrganization"> = {
     admitsOrganization: (caller, org) =>
       composed().credentialBinding.admitsOrganization(caller, org),
-    signInRefusal: (caller, org) => composed().credentialBinding.signInRefusal(caller, org),
   };
   // Under open source's own authorization a row's links are derived from
   // the row, so there is no lifecycle and a creation event writes nothing.
@@ -311,14 +292,6 @@ export function newEnterpriseIdentityExtension(
     findScopeTuple: (kind, id) => composed().iamPolicies.findScopeTuple(kind, id),
     findByResourceKindAndRelation: (kind, relation) =>
       composed().iamPolicies.findByResourceKindAndRelation(kind, relation),
-    findByPrincipalAndResource: (principalKind, principalId, resourceKind, resourceId) =>
-      composed().iamPolicies.findByPrincipalAndResource(principalKind, principalId, resourceKind, resourceId),
-    findByPrincipal: (principalKind, principalId) => composed().iamPolicies.findByPrincipal(principalKind, principalId),
-  };
-  // The automations that act as a person (the requirement preview's list),
-  // the composition's own read.
-  const accountAutomations: AccountAutomations = {
-    actingAs: (org, accountIds) => composed().accountAutomations.actingAs(org, accountIds),
   };
   const policies = newIamPolicyGrantPathClient(transportRef);
   // The server's one name table: a team's and a provider's slug is a name
@@ -336,9 +309,9 @@ export function newEnterpriseIdentityExtension(
   const userInfo = newUserInfoClient(ports.outboundFetch);
 
   // One organization read for the invitation lane, the verifier's index,
-  // SSO discovery, the boot repair and the refusals that name an
-  // organization: the lane's redemption check and preview, the orphan rule
-  // the index and discovery ask, the repair's creation times, and the slug
+  // the boot repair and the refusals that name an organization: the lane's
+  // redemption check and preview, the orphan rule the index asks, the
+  // repair's creation times, and the slug
   // the grant gate's and the provider delete's copy name it by.
   const organizations = newInProcessOrganizationLookup(transportRef);
 
@@ -357,18 +330,7 @@ export function newEnterpriseIdentityExtension(
     organizations,
     logger,
   });
-  // An organization that requires sign-in through its SSO provider counts
-  // only the people that provider signed in (iam/provider/sign-in-rule.ts);
-  // the composition's credential binding asks it on every check.
-  const signInRule = newSsoSignInRule({
-    providers,
-    accounts: ports.accounts.store,
-    policies: policyStore,
-  });
-  const invalidateProviders = (): void => {
-    federatedVerifier.invalidate();
-    signInRule.invalidate();
-  };
+  const invalidateProviders = (): void => federatedVerifier.invalidate();
   const providerRemoval = newProviderRemoval({
     providers,
     names,
@@ -478,7 +440,6 @@ export function newEnterpriseIdentityExtension(
       }),
       principalDisplay: newTeamPrincipalDisplay(teams),
       resourceRowReaders: rowReaders,
-      organizationSignInRule: signInRule,
     },
     gateSteps: new Map<GateSlotName, ReadonlyArray<PipelineStep<DescMessage>>>([
       [
@@ -512,7 +473,6 @@ export function newEnterpriseIdentityExtension(
           providers: providerRemoval,
           invitations: invitationRemoval,
           signInGrants: ports.signInGrants,
-          accessMoves: ports.accessMoves,
           logger,
         }),
       ],
@@ -532,14 +492,6 @@ export function newEnterpriseIdentityExtension(
         organizations,
         accounts: ports.accounts.store,
         ...(ports.growthGate === undefined ? {} : { growthGate: ports.growthGate }),
-        ...(ports.ssoPlanGate === undefined ? {} : { ssoPlanGate: ports.ssoPlanGate }),
-        accessMove: {
-          tickets: ports.accessMoves,
-          accounts: ports.accounts.store,
-          policies,
-          invitations: ports.invitations,
-        },
-        requirementPreview: { policies: policyStore, automations: accountAutomations },
       }),
       ...newInvitationRegistrations({
         authorizer,
@@ -579,7 +531,6 @@ export function newEnterpriseIdentityExtension(
         authorizationQueries: services.authorizationQueries,
         lifecycle: services.resourceAuthorizationLifecycle,
         iamPolicies: services.iamPolicies,
-        accountAutomations: services.accountAutomations,
       };
       nameTable.fill(services.resourceNames);
       children.fill(services.childOrganizations);

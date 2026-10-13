@@ -8,9 +8,8 @@ import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js
 import {
   EMPTY_SIGN_IN_SETTINGS,
   SignInSettingsSection,
-  signInSettingsComplete,
   toSignInInput,
-  useSignInSettings,
+  type SignInSettings,
 } from "./SignInSettings.js";
 import { useCreateIdentityProvider } from "./useCreateIdentityProvider.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
@@ -28,15 +27,14 @@ export interface CreateIdentityProviderFormProps {
 }
 
 /**
- * Form for creating a new identity provider within an organization.
+ * Form for creating a new identity provider within an organization: the
+ * organization's trust in tokens another platform issues.
  *
  * Collects the required OIDC trust configuration: **name** (display
- * name), **JWKS URI**, **allowed issuers**, and **expected audience**.
- * Optionally enables SSO by toggling the SSO switch and providing an
- * **OIDC client ID**, and sets what a sign-in does: whether it creates
- * the person's account, the role granted on their first sign-in to the
- * organization, and the claim that binds a token to an organization. An
- * SSO provider starts with account creation on and the viewer role.
+ * name), **JWKS URI**, **allowed issuers**, and **expected audience**,
+ * and sets what a sign-in does: whether it creates the person's account,
+ * the role granted on their first sign-in to the organization, and the
+ * claim that binds a token to an organization.
  *
  * On success it fires `onCreated` with the full {@link IdentityProvider}
  * response.
@@ -69,18 +67,8 @@ export function CreateIdentityProviderForm({
   const [jwksUri, setJwksUri] = useState("");
   const [issuers, setIssuers] = useState("");
   const [audience, setAudience] = useState("");
-  const [isSso, setIsSso] = useState(false);
-  const [oidcClientId, setOidcClientId] = useState("");
 
-  const { signIn, setSignIn, switchSso } = useSignInSettings(
-    () => EMPTY_SIGN_IN_SETTINGS,
-  );
-
-  const handleSsoToggle = useCallback(() => {
-    const next = !isSso;
-    setIsSso(next);
-    switchSso(next);
-  }, [isSso, switchSso]);
+  const [signIn, setSignIn] = useState<SignInSettings>(EMPTY_SIGN_IN_SETTINGS);
 
   const trimmedName = name.trim();
   const trimmedJwksUri = jwksUri.trim();
@@ -91,8 +79,6 @@ export function CreateIdentityProviderForm({
     trimmedJwksUri !== "" &&
     trimmedIssuers !== "" &&
     trimmedAudience !== "" &&
-    (!isSso || oidcClientId.trim() !== "") &&
-    signInSettingsComplete(signIn, isSso) &&
     !isCreating;
 
   const handleSubmit = useCallback(
@@ -111,11 +97,7 @@ export function CreateIdentityProviderForm({
             .map((s) => s.trim())
             .filter(Boolean),
           expectedAudience: trimmedAudience,
-          ...(isSso && {
-            isSsoProvider: true,
-            oidcClientId: oidcClientId.trim(),
-          }),
-          ...toSignInInput(signIn, isSso),
+          ...toSignInInput(signIn),
         });
         onCreated?.(idp);
       } catch {
@@ -129,8 +111,6 @@ export function CreateIdentityProviderForm({
       trimmedJwksUri,
       trimmedIssuers,
       trimmedAudience,
-      isSso,
-      oidcClientId,
       signIn,
       create,
       clearError,
@@ -146,7 +126,7 @@ export function CreateIdentityProviderForm({
           label="Name"
           value={name}
           onChange={setName}
-          placeholder="e.g. Acme Corp SSO"
+          placeholder="e.g. Acme Platform"
           disabled={isCreating}
           required
         />
@@ -183,47 +163,7 @@ export function CreateIdentityProviderForm({
           required
         />
 
-        {/* SSO toggle */}
-        <div className="stg:flex stg:items-center stg:gap-2">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isSso}
-            onClick={handleSsoToggle}
-            disabled={isCreating}
-            className={cn(
-              "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
-              isSso ? "stg:bg-primary" : "stg:bg-muted",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          >
-            <span
-              className={cn(
-                "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
-                isSso ? "stg:translate-x-4" : "stg:translate-x-0",
-              )}
-            />
-          </button>
-          <span className="stg:text-xs stg:font-medium stg:text-foreground">
-            SSO provider
-          </span>
-        </div>
-
-        {isSso && (
-          <FormField
-            id={`${baseId}-client-id`}
-            label="OIDC client ID"
-            value={oidcClientId}
-            onChange={setOidcClientId}
-            placeholder="public-client-id"
-            hint="Client ID for the PKCE-based Authorization Code flow"
-            disabled={isCreating}
-            required
-          />
-        )}
-
         <SignInSettingsSection
-          isSso={isSso}
           value={signIn}
           onChange={setSignIn}
           disabled={isCreating}

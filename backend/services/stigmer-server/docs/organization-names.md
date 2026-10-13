@@ -187,7 +187,6 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| IamPolicyCommandController.bootstrapMoveOrgAccess | `org` |
 | IamPolicyCommandController.bootstrapPolicy | `principal.id (kind organization)`, `resource.id (kind organization)` |
 | IamPolicyCommandController.bootstrapRevokeOrgAccess | `org` |
 | IamPolicyCommandController.cleanupResourcePolicies | `id (kind organization)` |

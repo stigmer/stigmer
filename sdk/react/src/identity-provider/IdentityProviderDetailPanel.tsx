@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useId, useRef, useState } from "react";
+import { type FormEvent, useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { buildIdentityProviderProto } from "@stigmer/sdk";
 import { maskedEdit, saveErrorMessage } from "../internal/maskedEdit.js";
@@ -10,17 +10,13 @@ import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js
 import {
   formatSignInRole,
   SignInSettingsSection,
-  signInSettingsComplete,
   signInSettingsFromSpec,
   toSignInInput,
-  useSignInSettings,
+  type SignInSettings,
 } from "./SignInSettings.js";
-import { SsoRequirementSection } from "./SsoRequirementSection.js";
 import { useUpdateIdentityProvider } from "./useUpdateIdentityProvider.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
-import { selectElementText } from "../internal/select-element-text.js";
-import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
 /** Props for {@link IdentityProviderDetailPanel}. */
@@ -31,31 +27,20 @@ export interface IdentityProviderDetailPanelProps {
   readonly onUpdated?: (idp: IdentityProvider) => void;
   /** Fired when the user clicks the back button. */
   readonly onBack?: () => void;
-  /**
-   * Pre-computed SSO login URL to display when the IdP is an SSO provider.
-   * Omit to hide the field. The consumer is responsible for constructing
-   * the URL (e.g., `${window.location.origin}/login?org=${orgId}`), naming
-   * the organization by its permanent id so a later holder of its slug
-   * can never put their own sign-in behind the link. The login page
-   * accepts a typed slug too.
-   */
-  readonly ssoLoginUrl?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
 /**
- * View and edit panel for an existing identity provider.
+ * View and edit panel for an existing identity provider: the
+ * organization's trust in tokens another platform issues.
  *
  * In **view mode**, displays all OIDC configuration fields in a
  * structured label/value layout, with an "Edit" button for a caller who
- * may edit the provider (`can_edit`), and, on an SSO provider, whether the
- * organization requires sign-in through it, which its owners change
- * ({@link SsoRequirementSection}).
+ * may edit the provider (`can_edit`).
  *
- * In **edit mode**, fields become editable inputs. The SSO toggle,
- * OIDC client ID and sign-in settings (account creation, sign-in role,
- * customer id claim) are editable. "Save" submits the update via
+ * In **edit mode**, fields become editable inputs, the sign-in settings
+ * (account creation, sign-in role, customer id claim) among them. "Save" submits the update via
  * {@link useUpdateIdentityProvider}; "Cancel" discards changes and
  * returns to view mode.
  *
@@ -74,7 +59,6 @@ export function IdentityProviderDetailPanel({
   identityProvider,
   onUpdated,
   onBack,
-  ssoLoginUrl,
   className,
 }: IdentityProviderDetailPanelProps) {
   const baseId = useId();
@@ -95,20 +79,8 @@ export function IdentityProviderDetailPanel({
   const [userinfoEndpoint, setUserinfoEndpoint] = useState(
     spec?.userinfoEndpoint ?? "",
   );
-  const [isSso, setIsSso] = useState(spec?.isSsoProvider ?? false);
-  const [oidcClientId, setOidcClientId] = useState(
-    spec?.oidcClientId ?? "",
-  );
 
-  const { signIn, setSignIn, switchSso, reset } = useSignInSettings(() =>
-    signInSettingsFromSpec(spec),
-  );
-
-  const handleSsoToggle = useCallback(() => {
-    const next = !isSso;
-    setIsSso(next);
-    switchSso(next);
-  }, [isSso, switchSso]);
+  const [signIn, setSignIn] = useState<SignInSettings>(() => signInSettingsFromSpec(spec));
 
   const enterEdit = useCallback(() => {
     setDisplayName(spec?.displayName ?? "");
@@ -116,9 +88,7 @@ export function IdentityProviderDetailPanel({
     setIssuers(spec?.allowedIssuers.join(", ") ?? "");
     setAudience(spec?.expectedAudience ?? "");
     setUserinfoEndpoint(spec?.userinfoEndpoint ?? "");
-    setIsSso(spec?.isSsoProvider ?? false);
-    setOidcClientId(spec?.oidcClientId ?? "");
-    reset(signInSettingsFromSpec(spec));
+    setSignIn(signInSettingsFromSpec(spec));
     clearError();
     setMode("edit");
   }, [spec, clearError]);
@@ -135,8 +105,8 @@ export function IdentityProviderDetailPanel({
       try {
         // The update names the fields this form edits, so a spec field the
         // form does not list keeps its stored value. Fields the form clears
-        // (the client id of a provider that is no longer SSO, an emptied
-        // sign-in setting) are named with undefined, which clears them.
+        // (an emptied userinfo endpoint or sign-in setting) are named with
+        // undefined, which clears them.
         const { resource, paths } = maskedEdit(identityProvider, buildIdentityProviderProto, {
           displayName: displayName.trim(),
           jwksUri: jwksUri.trim(),
@@ -146,13 +116,7 @@ export function IdentityProviderDetailPanel({
             .filter(Boolean),
           expectedAudience: audience.trim(),
           userinfoEndpoint: userinfoEndpoint.trim() || undefined,
-          isSsoProvider: isSso,
-          oidcClientId: isSso ? oidcClientId.trim() : undefined,
-          // Only an SSO provider can require its sign-in: a provider that
-          // stops being one stops requiring it (its owners' decision). The
-          // requirement is named only then; otherwise it keeps its value.
-          ...(!isSso && spec?.ssoRequired === true ? { ssoRequired: false } : {}),
-          ...toSignInInput(signIn, isSso),
+          ...toSignInInput(signIn),
         });
         const updated = await update(resource, paths);
         setMode("view");
@@ -163,7 +127,7 @@ export function IdentityProviderDetailPanel({
     },
     [
       identityProvider, displayName, jwksUri, issuers, audience,
-      userinfoEndpoint, isSso, oidcClientId, signIn, update, clearError,
+      userinfoEndpoint, signIn, update, clearError,
       onUpdated,
     ],
   );
@@ -173,8 +137,6 @@ export function IdentityProviderDetailPanel({
     jwksUri.trim() !== "" &&
     issuers.trim() !== "" &&
     audience.trim() !== "" &&
-    (!isSso || oidcClientId.trim() !== "") &&
-    signInSettingsComplete(signIn, isSso) &&
     !isUpdating;
 
   const createdAt = identityProvider.status?.audit?.specAudit?.createdAt;
@@ -242,18 +204,11 @@ export function IdentityProviderDetailPanel({
 
       {/* Body */}
       {mode === "view" ? (
-        <>
-          <ViewMode
-            spec={spec}
-            ssoLoginUrl={ssoLoginUrl}
-            createdAt={createdAt}
-            updatedAt={updatedAt}
-          />
-          <SsoRequirementSection
-            identityProvider={identityProvider}
-            {...(onUpdated === undefined ? {} : { onUpdated })}
-          />
-        </>
+        <ViewMode
+          spec={spec}
+          createdAt={createdAt}
+          updatedAt={updatedAt}
+        />
       ) : (
         <form onSubmit={handleSave} className="stg:space-y-3">
           <FieldInput
@@ -261,7 +216,7 @@ export function IdentityProviderDetailPanel({
             label="Display name"
             value={displayName}
             onChange={setDisplayName}
-            placeholder="e.g., Acme Corp SSO"
+            placeholder="e.g., Acme Platform"
             disabled={isUpdating}
             required
           />
@@ -304,47 +259,7 @@ export function IdentityProviderDetailPanel({
             disabled={isUpdating}
           />
 
-          {/* SSO toggle */}
-          <div className="stg:flex stg:items-center stg:gap-2">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isSso}
-              onClick={handleSsoToggle}
-              disabled={isUpdating}
-              className={cn(
-                "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
-                isSso ? "stg:bg-primary" : "stg:bg-muted",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
-            >
-              <span
-                className={cn(
-                  "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
-                  isSso ? "stg:translate-x-4" : "stg:translate-x-0",
-                )}
-              />
-            </button>
-            <span className="stg:text-xs stg:font-medium stg:text-foreground">
-              SSO provider
-            </span>
-          </div>
-
-          {isSso && (
-            <FieldInput
-              id={`${baseId}-client-id`}
-              label="OIDC client ID"
-              value={oidcClientId}
-              onChange={setOidcClientId}
-              placeholder="public-client-id"
-              hint="Client ID for the PKCE-based Authorization Code flow"
-              disabled={isUpdating}
-              required
-            />
-          )}
-
           <SignInSettingsSection
-            isSso={isSso}
             value={signIn}
             onChange={setSignIn}
             disabled={isUpdating}
@@ -394,12 +309,10 @@ export function IdentityProviderDetailPanel({
 
 function ViewMode({
   spec,
-  ssoLoginUrl,
   createdAt,
   updatedAt,
 }: {
   spec: IdentityProvider["spec"];
-  ssoLoginUrl?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }) {
@@ -415,17 +328,6 @@ function ViewMode({
       {spec?.userinfoEndpoint && (
         <Field label="Userinfo endpoint" value={spec.userinfoEndpoint} mono />
       )}
-      {spec?.isSsoProvider && (
-        <Field label="OIDC client ID" value={spec.oidcClientId} mono />
-      )}
-      {spec?.isSsoProvider && ssoLoginUrl && (
-        <CopyableField
-          label="SSO login URL"
-          value={ssoLoginUrl}
-          hint="Share this URL with your team members to sign in via SSO"
-        />
-      )}
-
       {/* Sign-in settings */}
       {spec && (
         <>
@@ -494,72 +396,6 @@ function Field({
 }
 
 // ---------------------------------------------------------------------------
-// View mode — copyable field
-// ---------------------------------------------------------------------------
-
-function CopyableField({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  const { copy, copied } = useCopyFeedback();
-  const revealRef = useRef<HTMLElement>(null);
-
-  const handleCopy = useCallback(async () => {
-    if (await copy(value)) return;
-    // Rejected write: select the revealed value so the user can copy manually.
-    if (revealRef.current) selectElementText(revealRef.current);
-  }, [copy, value]);
-
-  return (
-    <div>
-      <dt className="stg:text-muted-foreground stg:text-[0.65rem] stg:font-medium">
-        {label}
-      </dt>
-      <dd className="stg:mt-0.5">
-        <div className="stg:flex stg:items-center stg:gap-2">
-          <span
-            ref={revealRef}
-            className="stg:text-foreground stg:break-all stg:font-mono stg:text-xs stg:select-all"
-          >
-            {value}
-          </span>
-          <button
-            type="button"
-            onClick={() => void handleCopy()}
-            className={cn(
-              "stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem]",
-              "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-              "stg:transition-colors",
-            )}
-            aria-label={`Copy ${label}`}
-          >
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-        {hint && (
-          <p className="stg:text-muted-foreground stg:mt-0.5 stg:text-[0.65rem]">
-            {hint}
-          </p>
-        )}
-        <div
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          className="stg:sr-only"
-        >
-          {copied && "SSO login URL copied to clipboard"}
-        </div>
-      </dd>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Shared primitives
 // ---------------------------------------------------------------------------
 
@@ -614,13 +450,6 @@ function FieldInput({
 // ---------------------------------------------------------------------------
 
 function ProvisioningModeBadge({ spec }: { spec: IdentityProvider["spec"] }) {
-  if (spec?.isSsoProvider) {
-    return (
-      <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">
-        SSO
-      </span>
-    );
-  }
   if (spec?.createAccountsOnSignIn) {
     return (
       <span className="stg:inline-flex stg:items-center stg:rounded-full stg:border stg:border-primary/30 stg:bg-primary-subtle stg:px-2 stg:py-0.5 stg:text-[0.65rem] stg:font-medium stg:text-primary">

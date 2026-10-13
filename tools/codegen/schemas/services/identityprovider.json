@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Create an identity provider.\n\n The creator's organization owns the identity provider.\n\n On Stigmer Enterprise, a new identity provider is growth the server's\n license pays for. Once the license and its grace period have ended, a\n create is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every\n     identity provider that exists keeps signing people in. No metadata.\n\n A slug another identity provider of the organization holds is refused with\n ALREADY_EXISTS. A slug another identity provider was renamed away from,\n which still leads to it for 30 days, is refused with ALREADY_EXISTS\n carrying a google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another identity provider held the slug until a recent\n     rename, and it still leads there. Metadata: slug.\n\n A create that sets sso_required also needs can_assign_roles on the\n organization, which only its owners hold (PERMISSION_DENIED otherwise):\n requiring sign-in through a provider decides how every member gets in.\n Where the organization's plan decides it, a plan without SSO\n enforcement refuses it with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include\n     SSO enforcement. Metadata: feature (\"sso_enforcement\"), org."
+          "description": "Create an identity provider.\n\n The creator's organization owns the identity provider.\n\n On Stigmer Enterprise, a new identity provider is growth the server's\n license pays for. Once the license and its grace period have ended, a\n create is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every\n     identity provider that exists keeps signing people in. No metadata.\n\n A slug another identity provider of the organization holds is refused with\n ALREADY_EXISTS. A slug another identity provider was renamed away from,\n which still leads to it for 30 days, is refused with ALREADY_EXISTS\n carrying a google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another identity provider held the slug until a recent\n     rename, and it still leads there. Metadata: slug."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Update an identity provider: the fields update_mask names change, every other\n field keeps its stored value.\n\n On Stigmer Enterprise, changing how people sign in is growth the\n server's license pays for. Once the license and its grace period have\n ended, an update is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the\n     identity provider keeps signing people in as it is, and can still\n     be deleted. No metadata.\n\n An update whose only change is turning sso_required off is never\n refused this way: an organization may always stop requiring its SSO\n provider.\n\n An update that changes sso_required, or that changes whom a provider\n with sso_required on trusts (allowed_issuers, jwks_uri,\n expected_audience), also needs can_assign_roles on the organization,\n which only its owners hold (PERMISSION_DENIED otherwise).\n Turning it on is refused with PLAN_UPGRADE_REQUIRED where the\n organization's plan does not include SSO enforcement (see create);\n an organization that already requires it keeps it, and may always\n turn it off.\n\n resource.metadata.id names the identity provider; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the identity provider does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the identity provider kept changing while the update was\n     being saved: try again. No metadata."
+          "description": "Update an identity provider: the fields update_mask names change, every other\n field keeps its stored value.\n\n On Stigmer Enterprise, changing how people sign in is growth the\n server's license pays for. Once the license and its grace period have\n ended, an update is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the\n     identity provider keeps signing people in as it is, and can still\n     be deleted. No metadata.\n\n resource.metadata.id names the identity provider; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the identity provider does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the identity provider kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "Rename",
@@ -46,23 +46,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Delete an identity provider.\n\n The federated accounts the provider vouches for are\n deleted with it, with every role they hold, so a provider created again\n under the same slug inherits none of them.\n\n Deleting a provider that sets sso_required ends the requirement, so it\n also needs can_assign_roles on the organization, which only its owners\n hold (PERMISSION_DENIED otherwise)."
-        },
-        {
-          "name": "CreateAccessMove",
-          "inputType": "AccessMoveRequest",
-          "inputFullType": "ai.stigmer.iam.identityprovider.v1.AccessMoveRequest",
-          "outputType": "AccessMoveTicket",
-          "outputFullType": "ai.stigmer.iam.identityprovider.v1.AccessMoveTicket",
-          "description": "Start moving your access in an organization to the account its SSO\n provider signs you in as.\n\n For someone who worked in an organization under another sign-in (an\n email login) before the organization connected its SSO provider. The\n caller, signed in the old way, asks for a ticket; the answer says what\n the move will do (AccessMoveTicket.preview: the access that moves, the\n My vault entries it deletes, the automations that stop); the person\n then signs in through the organization's SSO provider and redeems the\n ticket with redeemAccessMove. The ticket works once, for ten minutes,\n for this account and this organization only.\n\n Refused with FAILED_PRECONDITION when the caller holds no access in the\n organization, is one of its owners (owners keep their own sign-in), or\n already signed in through an SSO provider; with NOT_FOUND when the\n organization has no SSO provider (the same copy getSsoProvider answers)."
-        },
-        {
-          "name": "RedeemAccessMove",
-          "inputType": "RedeemAccessMoveInput",
-          "inputFullType": "ai.stigmer.iam.identityprovider.v1.RedeemAccessMoveInput",
-          "outputType": "AccessMoveResult",
-          "outputFullType": "ai.stigmer.iam.identityprovider.v1.AccessMoveResult",
-          "description": "Redeem an access move ticket: the access it names moves to the caller.\n\n The caller must be signed in through the organization's SSO provider,\n as the account it made for them; anyone else is refused with\n PERMISSION_DENIED and the ticket stays usable until it expires. A\n ticket that is unknown, expired or already redeemed is refused with\n FAILED_PRECONDITION. A move that stops partway may be redeemed again\n with the same ticket while it lasts, and completes.\n\n Every change is recorded in the organization's permission history as a\n move, acting for the caller."
+          "description": "Delete an identity provider.\n\n The federated accounts the provider vouches for are\n deleted with it, with every role they hold, so a provider created again\n under the same slug inherits none of them."
         }
       ]
     },
@@ -94,22 +78,6 @@
           "outputType": "IdentityProviders",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProviders",
           "description": "List the identity providers of an organization that the caller may view.\n\n Returns the IdentityProviders whose metadata.org matches the input org and\n that the caller could get by id. Typically a small set (1-3 per org), so\n results are not paginated."
-        },
-        {
-          "name": "GetSsoProvider",
-          "inputType": "OrganizationSsoLookup",
-          "inputFullType": "ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup",
-          "outputType": "SsoProviderInfo",
-          "outputFullType": "ai.stigmer.iam.identityprovider.v1.SsoProviderInfo",
-          "description": "Look up the SSO identity provider for an organization.\n\n Returns the SSO-relevant projection (display name, OIDC client ID, issuer,\n expected audience) of the IdentityProvider where is_sso_provider is true\n for the given org. Returns NOT_FOUND if the organization has no SSO\n provider configured.\n\n This endpoint is called by the web app's login page before the user has\n signed in, so it requires no credential. The response intentionally omits\n internal IdP configuration (JWKS URI, rate limits, userinfo endpoint)."
-        },
-        {
-          "name": "PreviewSsoRequirement",
-          "inputType": "SsoRequirementPreviewInput",
-          "inputFullType": "ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput",
-          "outputType": "SsoRequirementPreview",
-          "outputFullType": "ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview",
-          "description": "Say who would stop counting in an organization if its SSO provider\n required sign-in through it (IdentityProviderSpec.sso_required): the\n members whose account the provider did not sign in, each with the open\n invitations they created and the automations that act as them, and the\n owners, who are exempt. An owner reads it before turning the\n requirement on.\n\n NOT_FOUND when the organization has no SSO provider."
         }
       ]
     }
@@ -182,164 +150,6 @@
             "maxLength": 63,
             "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
           }
-        }
-      ]
-    },
-    {
-      "name": "AccessMoveRequest",
-      "description": "AccessMoveRequest asks to start moving the caller's access in an\n organization to the account its SSO provider signs them in as.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.AccessMoveRequest",
-      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
-      "fields": [
-        {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The organization: its id or its slug.",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        }
-      ]
-    },
-    {
-      "name": "AccessMoveTicket",
-      "description": "AccessMoveTicket is a single-use ticket that moves the access of the\n account that asked for it, in one organization, to the account the\n organization's SSO provider signs the same person in as.\n\n The ticket is the authorization: whoever redeems it while signed in\n through the organization's SSO provider receives the access. A console\n keeps it in the browser that asked for it and never shows it.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.AccessMoveTicket",
-      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
-      "fields": [
-        {
-          "name": "Ticket",
-          "jsonName": "ticket",
-          "protoField": "ticket",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The ticket, redeemed with redeemAccessMove.",
-          "required": false
-        },
-        {
-          "name": "ExpiresAt",
-          "jsonName": "expiresAt",
-          "protoField": "expires_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "When the ticket stops working, ten minutes after it was made.",
-          "required": false
-        },
-        {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The organization's id.",
-          "required": false
-        },
-        {
-          "name": "Provider",
-          "jsonName": "provider",
-          "protoField": "provider",
-          "type": {
-            "kind": "message",
-            "messageType": "SsoProviderInfo"
-          },
-          "description": "The organization's SSO provider, to sign in through next.",
-          "required": false
-        },
-        {
-          "name": "Preview",
-          "jsonName": "preview",
-          "protoField": "preview",
-          "type": {
-            "kind": "message",
-            "messageType": "MoveOrgAccessResult"
-          },
-          "description": "What the move will do.",
-          "required": false
-        },
-        {
-          "name": "InvitationIds",
-          "jsonName": "invitationIds",
-          "protoField": "invitation_ids",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "The open invitations the account created in the organization, which\n stop redeeming once its role moves: their creator no longer holds it.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "RedeemAccessMoveInput",
-      "description": "RedeemAccessMoveInput redeems an access move ticket.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.RedeemAccessMoveInput",
-      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
-      "fields": [
-        {
-          "name": "Ticket",
-          "jsonName": "ticket",
-          "protoField": "ticket",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The ticket createAccessMove answered.",
-          "required": false,
-          "validation": {
-            "minLength": 1,
-            "maxLength": 256
-          }
-        }
-      ]
-    },
-    {
-      "name": "AccessMoveResult",
-      "description": "AccessMoveResult says what a redeemed ticket moved.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.AccessMoveResult",
-      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
-      "fields": [
-        {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The organization's id.",
-          "required": false
-        },
-        {
-          "name": "Moved",
-          "jsonName": "moved",
-          "protoField": "moved",
-          "type": {
-            "kind": "message",
-            "messageType": "MoveOrgAccessResult"
-          },
-          "description": "What moved, the My vault entries deleted and the automations that\n stopped, to make again as the new account.",
-          "required": false
-        },
-        {
-          "name": "InvitationIds",
-          "jsonName": "invitationIds",
-          "protoField": "invitation_ids",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "string"
-            }
-          },
-          "description": "The open invitations the old account created in the organization,\n which stopped redeeming, to make again as the new account.",
-          "required": false
         }
       ]
     },
@@ -487,142 +297,6 @@
             }
           },
           "description": "Identity provider entries.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "OrganizationSsoLookup",
-      "description": "OrganizationSsoLookup identifies an organization for SSO provider discovery.\n Used by the web app's login page to determine whether an organization has\n SSO enabled and to retrieve the OIDC configuration needed to initiate login.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup",
-      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
-      "fields": [
-        {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Organization to look up SSO configuration for: its id, as the shared\n SSO sign-in link carries it, or its slug, as a person types it.",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        }
-      ]
-    },
-    {
-      "name": "SsoProviderInfo",
-      "description": "SsoProviderInfo contains the minimal OIDC configuration the web app needs\n to render an SSO login button and initiate the Authorization Code flow.\n\n This is a projection of the full IdentityProvider resource, exposing only\n the fields safe for unauthenticated access. Internal configuration such as\n JWKS URI, rate limits, and userinfo endpoint is intentionally excluded.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.SsoProviderInfo",
-      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
-      "fields": [
-        {
-          "name": "DisplayName",
-          "jsonName": "displayName",
-          "protoField": "display_name",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Display name of the SSO provider (e.g., \"Acme Corp Okta\").\n Shown on the login button: \"Sign in with [display_name]\".",
-          "required": false
-        },
-        {
-          "name": "OidcClientId",
-          "jsonName": "oidcClientId",
-          "protoField": "oidc_client_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "OIDC client ID for initiating the Authorization Code flow with PKCE.",
-          "required": false
-        },
-        {
-          "name": "Issuer",
-          "jsonName": "issuer",
-          "protoField": "issuer",
-          "type": {
-            "kind": "string"
-          },
-          "description": "OIDC issuer URL. The web app appends /.well-known/openid-configuration\n to discover the authorization_endpoint, token_endpoint, and other\n OIDC metadata required for the login flow.",
-          "required": false
-        },
-        {
-          "name": "ExpectedAudience",
-          "jsonName": "expectedAudience",
-          "protoField": "expected_audience",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Expected JWT audience value for the OIDC token request.\n The web app passes this as the audience parameter when initiating the\n Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue\n a JWT access token with the correct aud claim; others determine the\n audience from server-side configuration and ignore this parameter.\n Empty means the web app should omit the audience parameter.",
-          "required": false
-        },
-        {
-          "name": "SsoRequired",
-          "jsonName": "ssoRequired",
-          "protoField": "sso_required",
-          "type": {
-            "kind": "bool"
-          },
-          "description": "Whether the organization requires its members to sign in through this\n provider (IdentityProviderSpec.sso_required). The login page then\n offers no other way into the organization.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "SsoRequirementPreviewInput",
-      "description": "SsoRequirementPreviewInput names the organization to preview.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput",
-      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
-      "fields": [
-        {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The organization's id or slug.",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        }
-      ]
-    },
-    {
-      "name": "SsoRequirementPreview",
-      "description": "SsoRequirementPreview lists who would stop counting in an organization if\n its SSO provider required sign-in through it: its members whose account\n that provider did not sign in.",
-      "protoType": "ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview",
-      "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/io.proto",
-      "fields": [
-        {
-          "name": "Members",
-          "jsonName": "members",
-          "protoField": "members",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "SsoRequirementMember"
-            }
-          },
-          "description": "The members who would be refused, each with what acts as them.",
-          "required": false
-        },
-        {
-          "name": "ExemptOwners",
-          "jsonName": "exemptOwners",
-          "protoField": "exempt_owners",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "SsoRequirementMember"
-            }
-          },
-          "description": "The owners whose account the provider did not sign in. They are\n exempt and keep their own sign-in.",
           "required": false
         }
       ]
@@ -799,7 +473,7 @@
         {
           "name": "visibility_org",
           "number": 3,
-          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
         },
         {
           "name": "visibility_child_orgs",

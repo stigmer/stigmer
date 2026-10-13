@@ -1,9 +1,9 @@
 /**
  * The IdentityProvider store's Postgres adapter (../postgres-store.ts) on
  * a driver error that holds no claim: anything but a unique violation of
- * one of the three claiming constraints, including a thrown value that is
+ * one of the two claiming constraints, including a thrown value that is
  * not an error object at all, is the driver's fault and comes back as it
- * was, never read as a taken slug, SSO place or route. The claims
+ * was, never read as a taken slug or route. The claims
  * themselves are the port's contract kit's, over a real table
  * (store.postgres.test.ts).
  */

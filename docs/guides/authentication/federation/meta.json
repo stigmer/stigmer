@@ -6,7 +6,6 @@
     "provision-federated-accounts",
     "grant-access",
     "authentication-flow",
-    "sso-login",
     "child-organizations"
   ]
 }

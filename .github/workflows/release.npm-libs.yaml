@@ -797,7 +797,7 @@ jobs:
             --build-arg IMAGE_VERSION="v${VERSION}" \
             --build-arg IMAGE_REVISION="${{ github.sha }}" \
             --build-arg IMAGE_TITLE="stigmer-server-ee" \
-            --build-arg IMAGE_DESCRIPTION="Stigmer Enterprise: the Stigmer control plane with single sign-on, many organizations, teams and invitations, turned on by a license key; unified gRPC/Connect/REST port with the bundled web console" \
+            --build-arg IMAGE_DESCRIPTION="Stigmer Enterprise: the Stigmer control plane with many organizations, federation with other platforms, teams and invitations, turned on by a license key; unified gRPC/Connect/REST port with the bundled web console" \
             --build-arg IMAGE_LICENSES="LicenseRef-Stigmer-Enterprise AND Apache-2.0" \
             --tag "ghcr.io/${{ github.repository_owner }}/stigmer-server-ee:v${VERSION}" \
             --push \

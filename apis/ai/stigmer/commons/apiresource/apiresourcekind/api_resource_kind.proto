@@ -214,7 +214,8 @@ enum ApiResourceKind {
     id_prefix: "idp"
     is_versioned: false
     not_search_indexed: true
-    // Registering IdPs, SSO enforcement and federating many organizations.
+    // Registering the platforms whose tokens Stigmer trusts, and federating
+    // many organizations.
     // The open-source edition has one OIDC issuer by configuration and no
     // IdP resources.
     tier: enterprise

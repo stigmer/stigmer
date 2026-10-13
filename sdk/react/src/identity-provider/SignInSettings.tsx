@@ -8,23 +8,13 @@
  * child organizations by its external id.
  *
  * Every token a provider vouches for is bound to one organization: the
- * child the customer id claim names, otherwise the provider's own. The sign-in role is
- * granted once per account and organization, so a role an admin removes
- * later stays removed; "None" grants nothing, and the owner role is never
- * offered because ownership is assigned explicitly.
- *
- * An SSO provider must create accounts and grant a role, so turning SSO on
- * locks account creation on and fills an unset role with viewer; the
- * forms refuse to submit an SSO provider without both. Turning SSO off
- * again puts back each field the switch filled and the admin has not
- * changed since (`useSignInSettings`), so a provider never keeps a setting
- * only the switch chose. An SSO provider
- * has no customer id claim: the claim routes a sign-in to a child
- * organization, and SSO signs people in to the provider's own, so the
- * field is hidden and cleared for SSO.
+ * child the customer id claim names, otherwise the provider's own. The
+ * sign-in role is granted once per account and organization, so a role an
+ * admin removes later stays removed; "None" grants nothing, and the owner
+ * role is never offered because ownership is assigned explicitly.
  */
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useId } from "react";
 import { cn } from "@stigmer/theme";
 import type { IdentityProviderInput } from "@stigmer/sdk";
 import type { IdentityProviderSpec } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
@@ -56,115 +46,25 @@ export function signInSettingsFromSpec(
   };
 }
 
-/**
- * The settings an SSO provider starts from: account creation on, viewer
- * when no role is chosen yet, and no customer id claim. A non-SSO provider's
- * settings are returned unchanged.
- */
-export function withSsoDefaults(
-  settings: SignInSettings,
-  isSso: boolean,
-): SignInSettings {
-  if (!isSso) return settings;
-  return {
-    ...settings,
-    createAccounts: true,
-    externalIdClaim: "",
-    signInRole:
-      settings.signInRole === IamRole.iam_role_unspecified
-        ? IamRole.viewer
-        : settings.signInRole,
-  };
-}
-
-/**
- * The settings after SSO is switched off again: each field the SSO
- * defaults filled over `before`, and that still holds the filled value, is
- * put back to `before`'s; a field the admin changed since is kept.
- */
-export function withoutSsoDefaults(
-  settings: SignInSettings,
-  before: SignInSettings,
-): SignInSettings {
-  const filled = withSsoDefaults(before, true);
-  return {
-    createAccounts:
-      settings.createAccounts === filled.createAccounts
-        ? before.createAccounts
-        : settings.createAccounts,
-    signInRole:
-      settings.signInRole === filled.signInRole
-        ? before.signInRole
-        : settings.signInRole,
-    externalIdClaim:
-      settings.externalIdClaim === filled.externalIdClaim
-        ? before.externalIdClaim
-        : settings.externalIdClaim,
-  };
-}
-
-/**
- * A form's sign-in settings with the SSO switch's effect: `switchSso(true)`
- * fills the SSO defaults and remembers what they replaced,
- * `switchSso(false)` puts it back (`withoutSsoDefaults`), and `reset` starts
- * over from given settings with nothing remembered.
- */
-export function useSignInSettings(initial: () => SignInSettings): {
-  readonly signIn: SignInSettings;
-  readonly setSignIn: (next: SignInSettings) => void;
-  readonly switchSso: (next: boolean) => void;
-  readonly reset: (next: SignInSettings) => void;
-} {
-  const [signIn, setSignIn] = useState(initial);
-  const beforeSso = useRef<SignInSettings | null>(null);
-  const switchSso = useCallback(
-    (next: boolean) => {
-      if (next) {
-        beforeSso.current = signIn;
-        setSignIn(withSsoDefaults(signIn, true));
-        return;
-      }
-      const before = beforeSso.current;
-      beforeSso.current = null;
-      setSignIn(before === null ? signIn : withoutSsoDefaults(signIn, before));
-    },
-    [signIn],
-  );
-  const reset = useCallback((next: SignInSettings) => {
-    beforeSso.current = null;
-    setSignIn(next);
-  }, []);
-  return { signIn, setSignIn, switchSso, reset };
-}
-
-/** Whether the settings satisfy the provider kind: an SSO provider needs a role. */
-export function signInSettingsComplete(
-  settings: SignInSettings,
-  isSso: boolean,
-): boolean {
-  return !isSso || settings.signInRole !== IamRole.iam_role_unspecified;
-}
 
 /**
  * The input fields for the settings. Unset values are `undefined`, so an
- * update that spreads a mapped input clears what the form cleared; an SSO
- * provider never sends a customer id claim.
+ * update that spreads a mapped input clears what the form cleared.
  */
 export function toSignInInput(
   settings: SignInSettings,
-  isSso: boolean,
 ): Pick<
   IdentityProviderInput,
   "createAccountsOnSignIn" | "signInRole" | "externalIdClaim"
 > {
   const claim = settings.externalIdClaim.trim();
   return {
-    createAccountsOnSignIn: isSso || settings.createAccounts ? true : undefined,
+    createAccountsOnSignIn: settings.createAccounts ? true : undefined,
     signInRole:
       settings.signInRole !== IamRole.iam_role_unspecified
         ? settings.signInRole
         : undefined,
-    externalIdClaim: !isSso && claim ? claim : undefined,
+    externalIdClaim: claim ? claim : undefined,
   };
 }
 
@@ -196,7 +96,6 @@ const SIGN_IN_ROLE_OPTIONS: readonly {
 
 /** Props for {@link SignInSettingsSection}. */
 export interface SignInSettingsSectionProps {
-  readonly isSso: boolean;
   readonly value: SignInSettings;
   readonly onChange: (next: SignInSettings) => void;
   readonly disabled?: boolean;
@@ -204,7 +103,6 @@ export interface SignInSettingsSectionProps {
 
 /** The sign-in settings fieldset shared by the create, wizard and edit forms. */
 export function SignInSettingsSection({
-  isSso,
   value,
   onChange,
   disabled,
@@ -231,24 +129,22 @@ export function SignInSettingsSection({
           <button
             type="button"
             role="switch"
-            aria-checked={isSso || value.createAccounts}
+            aria-checked={value.createAccounts}
             aria-label="Create accounts on sign-in"
             onClick={() =>
               onChange({ ...value, createAccounts: !value.createAccounts })
             }
-            disabled={disabled || isSso}
+            disabled={disabled}
             className={cn(
               "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
-              isSso || value.createAccounts ? "stg:bg-primary" : "stg:bg-muted",
+              value.createAccounts ? "stg:bg-primary" : "stg:bg-muted",
               "stg:disabled:pointer-events-none stg:disabled:opacity-50",
             )}
           >
             <span
               className={cn(
                 "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
-                isSso || value.createAccounts
-                  ? "stg:translate-x-4"
-                  : "stg:translate-x-0",
+                value.createAccounts ? "stg:translate-x-4" : "stg:translate-x-0",
               )}
             />
           </button>
@@ -257,9 +153,9 @@ export function SignInSettingsSection({
           </span>
         </div>
         <p className="stg:pl-11 stg:text-[0.65rem] stg:text-muted-foreground">
-          {isSso
-            ? "Always on for an SSO provider"
-            : "Create a person's account from their token the first time they sign in. When off, accounts are created through the API before people can sign in"}
+          Create a person&apos;s account from their token the first time
+          they sign in. When off, accounts are created through the API before
+          people can sign in
         </p>
       </div>
 
@@ -288,11 +184,7 @@ export function SignInSettingsSection({
           )}
         >
           {SIGN_IN_ROLE_OPTIONS.map((opt) => (
-            <option
-              key={opt.value}
-              value={String(opt.value)}
-              disabled={isSso && opt.value === IamRole.iam_role_unspecified}
-            >
+            <option key={opt.value} value={String(opt.value)}>
               {opt.label}
             </option>
           ))}
@@ -301,50 +193,47 @@ export function SignInSettingsSection({
           id={roleHintId}
           className="stg:text-[0.65rem] stg:text-muted-foreground"
         >
-          {isSso
-            ? "Granted the first time someone signs in to the organization; an SSO provider must grant one. A role an admin removes later is not granted again."
-            : "Granted the first time someone signs in to the organization; None grants nothing. A role an admin removes later is not granted again."}
+          Granted the first time someone signs in to the organization; None
+          grants nothing. A role an admin removes later is not granted again.
         </p>
       </div>
 
-      {!isSso && (
-        <div className="stg:space-y-1">
-          <label
-            htmlFor={`${baseId}-external-id-claim`}
-            className="stg:text-xs stg:font-medium stg:text-foreground"
-          >
-            Customer id claim
-          </label>
-          <input
-            id={`${baseId}-external-id-claim`}
-            type="text"
-            value={value.externalIdClaim}
-            onChange={(e) =>
-              onChange({ ...value, externalIdClaim: e.target.value })
-            }
-            placeholder="e.g., org_id"
-            disabled={disabled}
-            maxLength={256}
-            aria-describedby={claimHintId}
-            className={cn(
-              "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-              "stg:placeholder:text-muted-foreground",
-              "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-              "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-            )}
-          />
-          <p
-            id={claimHintId}
-            className="stg:text-[0.65rem] stg:text-muted-foreground"
-          >
-            Optional. The token claim that names one of this
-            organization&apos;s child organizations by its external id: each
-            token is bound to that child organization and works there only.
-            When empty, tokens are bound to this provider&apos;s
-            organization.
-          </p>
-        </div>
-      )}
+      <div className="stg:space-y-1">
+        <label
+          htmlFor={`${baseId}-external-id-claim`}
+          className="stg:text-xs stg:font-medium stg:text-foreground"
+        >
+          Customer id claim
+        </label>
+        <input
+          id={`${baseId}-external-id-claim`}
+          type="text"
+          value={value.externalIdClaim}
+          onChange={(e) =>
+            onChange({ ...value, externalIdClaim: e.target.value })
+          }
+          placeholder="e.g., org_id"
+          disabled={disabled}
+          maxLength={256}
+          aria-describedby={claimHintId}
+          className={cn(
+            "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+            "stg:placeholder:text-muted-foreground",
+            "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+          )}
+        />
+        <p
+          id={claimHintId}
+          className="stg:text-[0.65rem] stg:text-muted-foreground"
+        >
+          Optional. The token claim that names one of this
+          organization&apos;s child organizations by its external id: each
+          token is bound to that child organization and works there only.
+          When empty, tokens are bound to this provider&apos;s
+          organization.
+        </p>
+      </div>
     </fieldset>
   );
 }

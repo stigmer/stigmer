@@ -12,8 +12,7 @@ export type { DeploymentMode };
  * `resolved` tells the guess from the answer: until
  * `getServerInfo` has replied, `mode` is a hostname guess — "local" for
  * localhost, "cloud" for any other host, so "cloud" for every self-host.
- * A surface that must not render the wrong shape (the sign-in page, whose
- * SSO prompt depends on the edition's tiers) waits for `resolved`; a
+ * A surface that must not render the wrong shape waits for `resolved`; a
  * surface that only tunes itself (the SDK provider's `deploymentMode`)
  * reads `mode` at once and corrects on the next frame.
  */

@@ -39,7 +39,6 @@ describe("PricingPage", () => {
       within(card("Business")).getByText("5 child organizations included, then $25/month each"),
     ).toBeTruthy();
     expect(within(card("Enterprise")).getByText("A dedicated deployment")).toBeTruthy();
-    expect(within(card("Enterprise")).getByText("SSO enforcement")).toBeTruthy();
   });
 
   it("says models run on the customer's own keys and answers the billing questions", () => {

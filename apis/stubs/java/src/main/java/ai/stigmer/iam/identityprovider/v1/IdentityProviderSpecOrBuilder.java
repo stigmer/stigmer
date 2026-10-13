@@ -255,70 +255,6 @@ public interface IdentityProviderSpecOrBuilder extends
 
   /**
    * <pre>
-   * Whether this identity provider serves as the SSO login provider for its
-   * owning organization.
-   *
-   * When true, the Stigmer web app offers a "Sign in with [display_name]"
-   * option on the organization's login page and initiates the OIDC
-   * Authorization Code flow with PKCE using the configured oidc_client_id.
-   *
-   * An SSO provider sets create_accounts_on_sign_in and a sign_in_role, so
-   * a person's first sign-in creates their federated identity account from
-   * the JWT's OIDC claims and grants them sign_in_role on the organization.
-   *
-   * Constraints:
-   * - At most one IdentityProvider per organization can be the SSO provider.
-   * - An SSO provider cannot set external_id_claim (different trust
-   * models: SSO signs people in to the provider's own organization).
-   * </pre>
-   *
-   * <code>bool is_sso_provider = 7 [json_name = "isSsoProvider"];</code>
-   * @return The isSsoProvider.
-   */
-  boolean getIsSsoProvider();
-
-  /**
-   * <pre>
-   * OIDC client identifier for browser-based SSO login.
-   *
-   * This is the client_id registered with the external IdP (e.g., Okta,
-   * Azure AD) for Stigmer's web application. The web app uses this to
-   * build the OIDC Authorization Code request with PKCE.
-   *
-   * No client_secret is stored — the web app is a public client using PKCE
-   * (Proof Key for Code Exchange), which is the recommended approach for
-   * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
-   *
-   * Required when is_sso_provider is true; must be empty otherwise.
-   * </pre>
-   *
-   * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
-   * @return The oidcClientId.
-   */
-  java.lang.String getOidcClientId();
-  /**
-   * <pre>
-   * OIDC client identifier for browser-based SSO login.
-   *
-   * This is the client_id registered with the external IdP (e.g., Okta,
-   * Azure AD) for Stigmer's web application. The web app uses this to
-   * build the OIDC Authorization Code request with PKCE.
-   *
-   * No client_secret is stored — the web app is a public client using PKCE
-   * (Proof Key for Code Exchange), which is the recommended approach for
-   * SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).
-   *
-   * Required when is_sso_provider is true; must be empty otherwise.
-   * </pre>
-   *
-   * <code>string oidc_client_id = 8 [json_name = "oidcClientId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for oidcClientId.
-   */
-  com.google.protobuf.ByteString
-      getOidcClientIdBytes();
-
-  /**
-   * <pre>
    * Name of the JWT claim that names the child organization a token works
    * in, by the identifier the provider's organization keeps for it.
    *
@@ -444,46 +380,4 @@ public interface IdentityProviderSpecOrBuilder extends
    * @return The signInRole.
    */
   ai.stigmer.iam.v1.IamRole getSignInRole();
-
-  /**
-   * <pre>
-   * Whether people act in this organization only through this provider.
-   *
-   * When true, the organization's own people count in it only through the
-   * account this provider signed them in as. Its own people are the
-   * accounts holding a role in it, directly or through a team, and every
-   * credential bound to it. Such an account made by another sign-in (an
-   * email login, the server's own sign-in), or an API key it made, is
-   * refused there, on every read and write, with PERMISSION_DENIED carrying
-   * a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
-   *
-   * - SSO_REQUIRED: the organization requires sign-in through its SSO
-   * provider. Metadata: org (the organization's id), provider (this
-   * provider's slug). A console sends the person to the organization's
-   * SSO sign-in.
-   *
-   * A person granted one of its resources without a role in it, and a
-   * child organization's member reading what this organization shares with
-   * its children, are not its own people and are not held to it.
-   *
-   * The organization's owners are exempt, so a broken provider never locks
-   * everyone out. Service accounts, a run's own credential and the
-   * organization's platform clients are unaffected; a schedule, evaluator
-   * or eval that acts as a refused account stops, saying why. A person may
-   * move their access to the account this provider made for them
-   * (IdentityProviderCommandController.createAccessMove).
-   *
-   * Only the organization's owners may turn it on or off, and, while it is
-   * on, change whom the provider trusts (allowed_issuers, jwks_uri,
-   * expected_audience) or delete the provider (can_assign_roles on the
-   * organization).
-   * Deleting the provider ends the requirement. Valid only on the SSO
-   * provider (is_sso_provider). A change takes effect at once on the
-   * server that wrote it and within a minute on its other replicas.
-   * </pre>
-   *
-   * <code>bool sso_required = 15 [json_name = "ssoRequired"];</code>
-   * @return The ssoRequired.
-   */
-  boolean getSsoRequired();
 }

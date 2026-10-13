@@ -8,11 +8,9 @@ package identityproviderv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -219,597 +217,6 @@ func (x *ListIdentityProvidersByOrgInput) GetOrg() string {
 	return ""
 }
 
-// OrganizationSsoLookup identifies an organization for SSO provider discovery.
-// Used by the web app's login page to determine whether an organization has
-// SSO enabled and to retrieve the OIDC configuration needed to initiate login.
-type OrganizationSsoLookup struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization to look up SSO configuration for: its id, as the shared
-	// SSO sign-in link carries it, or its slug, as a person types it.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *OrganizationSsoLookup) Reset() {
-	*x = OrganizationSsoLookup{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *OrganizationSsoLookup) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*OrganizationSsoLookup) ProtoMessage() {}
-
-func (x *OrganizationSsoLookup) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use OrganizationSsoLookup.ProtoReflect.Descriptor instead.
-func (*OrganizationSsoLookup) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *OrganizationSsoLookup) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
-// SsoProviderInfo contains the minimal OIDC configuration the web app needs
-// to render an SSO login button and initiate the Authorization Code flow.
-//
-// This is a projection of the full IdentityProvider resource, exposing only
-// the fields safe for unauthenticated access. Internal configuration such as
-// JWKS URI, rate limits, and userinfo endpoint is intentionally excluded.
-type SsoProviderInfo struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Display name of the SSO provider (e.g., "Acme Corp Okta").
-	// Shown on the login button: "Sign in with [display_name]".
-	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// OIDC client ID for initiating the Authorization Code flow with PKCE.
-	OidcClientId string `protobuf:"bytes,2,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
-	// OIDC issuer URL. The web app appends /.well-known/openid-configuration
-	// to discover the authorization_endpoint, token_endpoint, and other
-	// OIDC metadata required for the login flow.
-	Issuer string `protobuf:"bytes,3,opt,name=issuer,proto3" json:"issuer,omitempty"`
-	// Expected JWT audience value for the OIDC token request.
-	// The web app passes this as the audience parameter when initiating the
-	// Authorization Code flow. Some IdPs (e.g., Auth0) require it to issue
-	// a JWT access token with the correct aud claim; others determine the
-	// audience from server-side configuration and ignore this parameter.
-	// Empty means the web app should omit the audience parameter.
-	ExpectedAudience string `protobuf:"bytes,4,opt,name=expected_audience,json=expectedAudience,proto3" json:"expected_audience,omitempty"`
-	// Whether the organization requires its members to sign in through this
-	// provider (IdentityProviderSpec.sso_required). The login page then
-	// offers no other way into the organization.
-	SsoRequired   bool `protobuf:"varint,5,opt,name=sso_required,json=ssoRequired,proto3" json:"sso_required,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SsoProviderInfo) Reset() {
-	*x = SsoProviderInfo{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SsoProviderInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SsoProviderInfo) ProtoMessage() {}
-
-func (x *SsoProviderInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SsoProviderInfo.ProtoReflect.Descriptor instead.
-func (*SsoProviderInfo) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *SsoProviderInfo) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *SsoProviderInfo) GetOidcClientId() string {
-	if x != nil {
-		return x.OidcClientId
-	}
-	return ""
-}
-
-func (x *SsoProviderInfo) GetIssuer() string {
-	if x != nil {
-		return x.Issuer
-	}
-	return ""
-}
-
-func (x *SsoProviderInfo) GetExpectedAudience() string {
-	if x != nil {
-		return x.ExpectedAudience
-	}
-	return ""
-}
-
-func (x *SsoProviderInfo) GetSsoRequired() bool {
-	if x != nil {
-		return x.SsoRequired
-	}
-	return false
-}
-
-// AccessMoveRequest asks to start moving the caller's access in an
-// organization to the account its SSO provider signs them in as.
-type AccessMoveRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The organization: its id or its slug.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AccessMoveRequest) Reset() {
-	*x = AccessMoveRequest{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AccessMoveRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AccessMoveRequest) ProtoMessage() {}
-
-func (x *AccessMoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AccessMoveRequest.ProtoReflect.Descriptor instead.
-func (*AccessMoveRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *AccessMoveRequest) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
-// AccessMoveTicket is a single-use ticket that moves the access of the
-// account that asked for it, in one organization, to the account the
-// organization's SSO provider signs the same person in as.
-//
-// The ticket is the authorization: whoever redeems it while signed in
-// through the organization's SSO provider receives the access. A console
-// keeps it in the browser that asked for it and never shows it.
-type AccessMoveTicket struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The ticket, redeemed with redeemAccessMove.
-	Ticket string `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
-	// When the ticket stops working, ten minutes after it was made.
-	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	// The organization's id.
-	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
-	// The organization's SSO provider, to sign in through next.
-	Provider *SsoProviderInfo `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
-	// What the move will do.
-	Preview *v1.MoveOrgAccessResult `protobuf:"bytes,5,opt,name=preview,proto3" json:"preview,omitempty"`
-	// The open invitations the account created in the organization, which
-	// stop redeeming once its role moves: their creator no longer holds it.
-	InvitationIds []string `protobuf:"bytes,6,rep,name=invitation_ids,json=invitationIds,proto3" json:"invitation_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AccessMoveTicket) Reset() {
-	*x = AccessMoveTicket{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AccessMoveTicket) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AccessMoveTicket) ProtoMessage() {}
-
-func (x *AccessMoveTicket) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AccessMoveTicket.ProtoReflect.Descriptor instead.
-func (*AccessMoveTicket) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *AccessMoveTicket) GetTicket() string {
-	if x != nil {
-		return x.Ticket
-	}
-	return ""
-}
-
-func (x *AccessMoveTicket) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-func (x *AccessMoveTicket) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
-func (x *AccessMoveTicket) GetProvider() *SsoProviderInfo {
-	if x != nil {
-		return x.Provider
-	}
-	return nil
-}
-
-func (x *AccessMoveTicket) GetPreview() *v1.MoveOrgAccessResult {
-	if x != nil {
-		return x.Preview
-	}
-	return nil
-}
-
-func (x *AccessMoveTicket) GetInvitationIds() []string {
-	if x != nil {
-		return x.InvitationIds
-	}
-	return nil
-}
-
-// RedeemAccessMoveInput redeems an access move ticket.
-type RedeemAccessMoveInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The ticket createAccessMove answered.
-	Ticket        string `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RedeemAccessMoveInput) Reset() {
-	*x = RedeemAccessMoveInput{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RedeemAccessMoveInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RedeemAccessMoveInput) ProtoMessage() {}
-
-func (x *RedeemAccessMoveInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RedeemAccessMoveInput.ProtoReflect.Descriptor instead.
-func (*RedeemAccessMoveInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *RedeemAccessMoveInput) GetTicket() string {
-	if x != nil {
-		return x.Ticket
-	}
-	return ""
-}
-
-// AccessMoveResult says what a redeemed ticket moved.
-type AccessMoveResult struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The organization's id.
-	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// What moved, the My vault entries deleted and the automations that
-	// stopped, to make again as the new account.
-	Moved *v1.MoveOrgAccessResult `protobuf:"bytes,2,opt,name=moved,proto3" json:"moved,omitempty"`
-	// The open invitations the old account created in the organization,
-	// which stopped redeeming, to make again as the new account.
-	InvitationIds []string `protobuf:"bytes,3,rep,name=invitation_ids,json=invitationIds,proto3" json:"invitation_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AccessMoveResult) Reset() {
-	*x = AccessMoveResult{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AccessMoveResult) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AccessMoveResult) ProtoMessage() {}
-
-func (x *AccessMoveResult) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AccessMoveResult.ProtoReflect.Descriptor instead.
-func (*AccessMoveResult) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *AccessMoveResult) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
-func (x *AccessMoveResult) GetMoved() *v1.MoveOrgAccessResult {
-	if x != nil {
-		return x.Moved
-	}
-	return nil
-}
-
-func (x *AccessMoveResult) GetInvitationIds() []string {
-	if x != nil {
-		return x.InvitationIds
-	}
-	return nil
-}
-
-// SsoRequirementPreviewInput names the organization to preview.
-type SsoRequirementPreviewInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The organization's id or slug.
-	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SsoRequirementPreviewInput) Reset() {
-	*x = SsoRequirementPreviewInput{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SsoRequirementPreviewInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SsoRequirementPreviewInput) ProtoMessage() {}
-
-func (x *SsoRequirementPreviewInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SsoRequirementPreviewInput.ProtoReflect.Descriptor instead.
-func (*SsoRequirementPreviewInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *SsoRequirementPreviewInput) GetOrg() string {
-	if x != nil {
-		return x.Org
-	}
-	return ""
-}
-
-// SsoRequirementPreview lists who would stop counting in an organization if
-// its SSO provider required sign-in through it: its members whose account
-// that provider did not sign in.
-type SsoRequirementPreview struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The members who would be refused, each with what acts as them.
-	Members []*SsoRequirementMember `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
-	// The owners whose account the provider did not sign in. They are
-	// exempt and keep their own sign-in.
-	ExemptOwners  []*SsoRequirementMember `protobuf:"bytes,2,rep,name=exempt_owners,json=exemptOwners,proto3" json:"exempt_owners,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SsoRequirementPreview) Reset() {
-	*x = SsoRequirementPreview{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SsoRequirementPreview) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SsoRequirementPreview) ProtoMessage() {}
-
-func (x *SsoRequirementPreview) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SsoRequirementPreview.ProtoReflect.Descriptor instead.
-func (*SsoRequirementPreview) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *SsoRequirementPreview) GetMembers() []*SsoRequirementMember {
-	if x != nil {
-		return x.Members
-	}
-	return nil
-}
-
-func (x *SsoRequirementPreview) GetExemptOwners() []*SsoRequirementMember {
-	if x != nil {
-		return x.ExemptOwners
-	}
-	return nil
-}
-
-// SsoRequirementMember is one member an SSO requirement would affect.
-type SsoRequirementMember struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The member's identity account id.
-	IdentityAccountId string `protobuf:"bytes,1,opt,name=identity_account_id,json=identityAccountId,proto3" json:"identity_account_id,omitempty"`
-	// The member's email, as their account records it.
-	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	// The member's display name, as their account records it.
-	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// The open invitations the member created, which stop redeeming once
-	// they move their access or are refused.
-	InvitationIds []string `protobuf:"bytes,4,rep,name=invitation_ids,json=invitationIds,proto3" json:"invitation_ids,omitempty"`
-	// The schedules, evaluators and evals the member created in the
-	// organization, which stop once the requirement is on.
-	Automations   []*v1.AccountAutomation `protobuf:"bytes,5,rep,name=automations,proto3" json:"automations,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SsoRequirementMember) Reset() {
-	*x = SsoRequirementMember{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SsoRequirementMember) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SsoRequirementMember) ProtoMessage() {}
-
-func (x *SsoRequirementMember) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SsoRequirementMember.ProtoReflect.Descriptor instead.
-func (*SsoRequirementMember) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *SsoRequirementMember) GetIdentityAccountId() string {
-	if x != nil {
-		return x.IdentityAccountId
-	}
-	return ""
-}
-
-func (x *SsoRequirementMember) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-func (x *SsoRequirementMember) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *SsoRequirementMember) GetInvitationIds() []string {
-	if x != nil {
-		return x.InvitationIds
-	}
-	return nil
-}
-
-func (x *SsoRequirementMember) GetAutomations() []*v1.AccountAutomation {
-	if x != nil {
-		return x.Automations
-	}
-	return nil
-}
-
 // The changes an update makes to an identity provider: the fields update_mask names,
 // taken from resource.
 type UpdateIdentityProviderInput struct {
@@ -828,7 +235,7 @@ type UpdateIdentityProviderInput struct {
 
 func (x *UpdateIdentityProviderInput) Reset() {
 	*x = UpdateIdentityProviderInput{}
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -840,7 +247,7 @@ func (x *UpdateIdentityProviderInput) String() string {
 func (*UpdateIdentityProviderInput) ProtoMessage() {}
 
 func (x *UpdateIdentityProviderInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -853,7 +260,7 @@ func (x *UpdateIdentityProviderInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateIdentityProviderInput.ProtoReflect.Descriptor instead.
 func (*UpdateIdentityProviderInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{13}
+	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpdateIdentityProviderInput) GetResource() *IdentityProvider {
@@ -874,7 +281,7 @@ var File_ai_stigmer_iam_identityprovider_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a$ai/stigmer/iam/iampolicy/v1/io.proto\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"5\n" +
+	"+ai/stigmer/iam/identityprovider/v1/io.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a,ai/stigmer/iam/identityprovider/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"5\n" +
 	"\x12IdentityProviderId\x12\x1f\n" +
 	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"c\n" +
 	"\x11IdentityProviders\x12N\n" +
@@ -884,43 +291,7 @@ const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"totalPages\x12N\n" +
 	"\aentries\x18\x02 \x03(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderR\aentries\"<\n" +
 	"\x1fListIdentityProvidersByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"2\n" +
-	"\x15OrganizationSsoLookup\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xc2\x01\n" +
-	"\x0fSsoProviderInfo\x12!\n" +
-	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12$\n" +
-	"\x0eoidc_client_id\x18\x02 \x01(\tR\foidcClientId\x12\x16\n" +
-	"\x06issuer\x18\x03 \x01(\tR\x06issuer\x12+\n" +
-	"\x11expected_audience\x18\x04 \x01(\tR\x10expectedAudience\x12!\n" +
-	"\fsso_required\x18\x05 \x01(\bR\vssoRequired\".\n" +
-	"\x11AccessMoveRequest\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xbb\x02\n" +
-	"\x10AccessMoveTicket\x12\x16\n" +
-	"\x06ticket\x18\x01 \x01(\tR\x06ticket\x129\n" +
-	"\n" +
-	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x10\n" +
-	"\x03org\x18\x03 \x01(\tR\x03org\x12O\n" +
-	"\bprovider\x18\x04 \x01(\v23.ai.stigmer.iam.identityprovider.v1.SsoProviderInfoR\bprovider\x12J\n" +
-	"\apreview\x18\x05 \x01(\v20.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultR\apreview\x12%\n" +
-	"\x0einvitation_ids\x18\x06 \x03(\tR\rinvitationIds\";\n" +
-	"\x15RedeemAccessMoveInput\x12\"\n" +
-	"\x06ticket\x18\x01 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x06ticket\"\x93\x01\n" +
-	"\x10AccessMoveResult\x12\x10\n" +
-	"\x03org\x18\x01 \x01(\tR\x03org\x12F\n" +
-	"\x05moved\x18\x02 \x01(\v20.ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResultR\x05moved\x12%\n" +
-	"\x0einvitation_ids\x18\x03 \x03(\tR\rinvitationIds\"7\n" +
-	"\x1aSsoRequirementPreviewInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xca\x01\n" +
-	"\x15SsoRequirementPreview\x12R\n" +
-	"\amembers\x18\x01 \x03(\v28.ai.stigmer.iam.identityprovider.v1.SsoRequirementMemberR\amembers\x12]\n" +
-	"\rexempt_owners\x18\x02 \x03(\v28.ai.stigmer.iam.identityprovider.v1.SsoRequirementMemberR\fexemptOwners\"\xf8\x01\n" +
-	"\x14SsoRequirementMember\x12.\n" +
-	"\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\x12!\n" +
-	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12%\n" +
-	"\x0einvitation_ids\x18\x04 \x03(\tR\rinvitationIds\x12P\n" +
-	"\vautomations\x18\x05 \x03(\v2..ai.stigmer.iam.iampolicy.v1.AccountAutomationR\vautomations\"\x88\x03\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x88\x03\n" +
 	"\x1bUpdateIdentityProviderInput\x12X\n" +
 	"\bresource\x18\x01 \x01(\v24.ai.stigmer.iam.identityprovider.v1.IdentityProviderB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
@@ -940,45 +311,26 @@ func file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_ai_stigmer_iam_identityprovider_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_iam_identityprovider_v1_io_proto_goTypes = []any{
 	(*IdentityProviderId)(nil),              // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderId
 	(*IdentityProviders)(nil),               // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviders
 	(*IdentityProviderList)(nil),            // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderList
 	(*ListIdentityProvidersByOrgInput)(nil), // 3: ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput
-	(*OrganizationSsoLookup)(nil),           // 4: ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup
-	(*SsoProviderInfo)(nil),                 // 5: ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
-	(*AccessMoveRequest)(nil),               // 6: ai.stigmer.iam.identityprovider.v1.AccessMoveRequest
-	(*AccessMoveTicket)(nil),                // 7: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket
-	(*RedeemAccessMoveInput)(nil),           // 8: ai.stigmer.iam.identityprovider.v1.RedeemAccessMoveInput
-	(*AccessMoveResult)(nil),                // 9: ai.stigmer.iam.identityprovider.v1.AccessMoveResult
-	(*SsoRequirementPreviewInput)(nil),      // 10: ai.stigmer.iam.identityprovider.v1.SsoRequirementPreviewInput
-	(*SsoRequirementPreview)(nil),           // 11: ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview
-	(*SsoRequirementMember)(nil),            // 12: ai.stigmer.iam.identityprovider.v1.SsoRequirementMember
-	(*UpdateIdentityProviderInput)(nil),     // 13: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput
-	(*IdentityProvider)(nil),                // 14: ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	(*timestamppb.Timestamp)(nil),           // 15: google.protobuf.Timestamp
-	(*v1.MoveOrgAccessResult)(nil),          // 16: ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
-	(*v1.AccountAutomation)(nil),            // 17: ai.stigmer.iam.iampolicy.v1.AccountAutomation
-	(*fieldmaskpb.FieldMask)(nil),           // 18: google.protobuf.FieldMask
+	(*UpdateIdentityProviderInput)(nil),     // 4: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput
+	(*IdentityProvider)(nil),                // 5: ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	(*fieldmaskpb.FieldMask)(nil),           // 6: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_identityprovider_v1_io_proto_depIdxs = []int32{
-	14, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviders.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	14, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderList.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	15, // 2: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.expires_at:type_name -> google.protobuf.Timestamp
-	5,  // 3: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.provider:type_name -> ai.stigmer.iam.identityprovider.v1.SsoProviderInfo
-	16, // 4: ai.stigmer.iam.identityprovider.v1.AccessMoveTicket.preview:type_name -> ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
-	16, // 5: ai.stigmer.iam.identityprovider.v1.AccessMoveResult.moved:type_name -> ai.stigmer.iam.iampolicy.v1.MoveOrgAccessResult
-	12, // 6: ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview.members:type_name -> ai.stigmer.iam.identityprovider.v1.SsoRequirementMember
-	12, // 7: ai.stigmer.iam.identityprovider.v1.SsoRequirementPreview.exempt_owners:type_name -> ai.stigmer.iam.identityprovider.v1.SsoRequirementMember
-	17, // 8: ai.stigmer.iam.identityprovider.v1.SsoRequirementMember.automations:type_name -> ai.stigmer.iam.iampolicy.v1.AccountAutomation
-	14, // 9: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.resource:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	18, // 10: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.update_mask:type_name -> google.protobuf.FieldMask
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	5, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviders.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	5, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderList.entries:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	5, // 2: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.resource:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	6, // 3: ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.update_mask:type_name -> google.protobuf.FieldMask
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityprovider_v1_io_proto_init() }
@@ -993,7 +345,7 @@ func file_ai_stigmer_iam_identityprovider_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

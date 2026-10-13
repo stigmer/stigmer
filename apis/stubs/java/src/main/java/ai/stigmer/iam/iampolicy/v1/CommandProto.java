@@ -43,7 +43,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "y/v1/api.proto\032$ai/stigmer/iam/iampolicy" +
       "/v1/io.proto\032&ai/stigmer/iam/iampolicy/v" +
       "1/spec.proto\032\033google/protobuf/empty.prot" +
-      "o2\275\n\n\032IamPolicyCommandController\022\236\001\n\006cre" +
+      "o2\332\010\n\032IamPolicyCommandController\022\236\001\n\006cre" +
       "ate\022*.ai.stigmer.iam.iampolicy.v1.IamPol" +
       "icySpec\032&.ai.stigmer.iam.iampolicy.v1.Ia" +
       "mPolicy\"@\302\270\030<\010\004\032\rresource.kind\"\013resource" +
@@ -70,17 +70,12 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "y.v1.RevokeOrgAccessInput\032\026.google.proto" +
       "buf.Empty\"e\302\270\030a\010\021\020\037*Runauthorized to rev" +
       "oke organization access - can_bootstrap_" +
-      "iam permission required2\007stigmer\022\340\001\n\026boo" +
-      "tstrapMoveOrgAccess\022/.ai.stigmer.iam.iam" +
-      "policy.v1.MoveOrgAccessInput\0320.ai.stigme" +
-      "r.iam.iampolicy.v1.MoveOrgAccessResult\"c" +
-      "\302\270\030_\010\021\020\037*Punauthorized to move organizat" +
-      "ion access - can_bootstrap_iam permissio" +
-      "n required2\007stigmer\032\004\240\377+\nB\237\001B\014CommandPro" +
-      "toP\001\242\002\004ASII\252\002\033Ai.Stigmer.Iam.Iampolicy.V" +
-      "1\312\002\033Ai\\Stigmer\\Iam\\Iampolicy\\V1\342\002\'Ai\\Sti" +
-      "gmer\\Iam\\Iampolicy\\V1\\GPBMetadata\352\002\037Ai::" +
-      "Stigmer::Iam::Iampolicy::V1b\006proto3"
+      "iam permission required2\007stigmer\032\004\240\377+\nB\237" +
+      "\001B\014CommandProtoP\001\242\002\004ASII\252\002\033Ai.Stigmer.Ia" +
+      "m.Iampolicy.V1\312\002\033Ai\\Stigmer\\Iam\\Iampolic" +
+      "y\\V1\342\002\'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMe" +
+      "tadata\352\002\037Ai::Stigmer::Iam::Iampolicy::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

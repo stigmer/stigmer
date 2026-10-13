@@ -50,9 +50,8 @@
  * redemption and in its preview, because a link that outlived its
  * organization would otherwise open whichever organization took the slug
  * next (invitation/handlers.ts); and what the federated verifier's index
- * and SSO discovery ask of an identity provider, because a provider that
- * outlived its organization would otherwise sign people into it
- * (federation/verifier.ts, provider/handlers.ts). The lookup therefore
+ * asks of an identity provider, because a provider that outlived its
+ * organization would otherwise sign people into it (federation/verifier.ts). The lookup therefore
  * answers the few facts its callers read from one organization read: its
  * creation time, and the name, slug and logo the invitation preview shows.
  */

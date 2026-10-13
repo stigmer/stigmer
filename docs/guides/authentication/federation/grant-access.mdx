@@ -354,8 +354,8 @@ client.iamPolicies().revokeOrgAccess(RevokeOrgAccessInput.builder()
 <Callout type="info">
   Revoking access doesn't delete the Identity Account. The user's account still
   exists but can no longer access any resources. If you also want to remove the
-  account, call `identityAccount.delete` after revoking access. With a JIT or
-  SSO Identity Provider, keep the account instead: a deleted account is created
+  account, call `identityAccount.delete` after revoking access. With a JIT
+  Identity Provider, keep the account instead: a deleted account is created
   again, with the provider's sign-in role, at the user's next sign-in. A kept
   account does not get the sign-in role back once it has signed in to the
   Organization.

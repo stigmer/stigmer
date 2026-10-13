@@ -64,8 +64,8 @@ sign in to, and chat with; the reader's project they keep editing. A depicted re
 identity *and* its built states in one module so embeds on the same docs page
 cannot drift apart. Everything else stays tour-local — views defined inline
 in the tour's own `index.tsx` — and hoists only when a second tour genuinely
-depicts the same thing (`ManagementShell` sat inside `sso-login-playback/`
-until the quickstart tour became its second consumer).
+depicts the same thing (`ManagementShell` sat inside the tour that first
+drew it until the quickstart tour became its second consumer).
 
 The boundary is enforced, not aspirational: a tour may import from itself
 and from `_shared/`, never from another tour, and `_shared/` may never

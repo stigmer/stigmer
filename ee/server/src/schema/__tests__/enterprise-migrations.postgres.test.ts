@@ -9,10 +9,12 @@
  *   - a ledger ahead of this build refuses the boot, naming both versions;
  *   - every table carries exactly the indexes its adapter reads by, under
  *     the names the adapters key their typed outcomes on;
+ *   - a database that ran v2 moves to v3, losing the access move tickets
+ *     and the single sign-on column and index, and nothing else;
  *   - each claim is the database's: a team's slug per organization, a
- *     provider's route, an organization's one live SSO provider (freed by
- *     the delete mark), and an invitation's token are each refused with a
- *     unique violation naming its constraint.
+ *     provider's route, a provider's slug per organization, and an
+ *     invitation's token are each refused with a unique violation naming
+ *     its constraint.
  *
  * Constraint behaviour cannot be proven by a fake pool, so the suite needs
  * TEST_DATABASE_URL and skips by name without it (it fails inside a test
@@ -92,7 +94,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
     expect(schemasBefore).not.toContain("ee");
     expect(await schemas()).toEqual([...schemasBefore, "ee"].sort());
     expect(await ledger()).toEqual([ENTERPRISE_SCHEMA_VERSION]);
-    expect(ENTERPRISE_SCHEMA_VERSION).toBe(2);
+    expect(ENTERPRISE_SCHEMA_VERSION).toBe(3);
   });
 
   it("changes nothing when it runs again", async () => {
@@ -130,7 +132,6 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
 
   it("gives every table exactly the indexes its adapter reads by, under the names its outcomes key on", async () => {
     expect(await indexesOf("iam_identity_provider")).toEqual([
-      "iam_identity_provider_one_live_sso",
       "iam_identity_provider_org_slug",
       "iam_identity_provider_pkey",
     ]);
@@ -145,31 +146,35 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
       "iam_invitation_token",
     ]);
     expect(await indexesOf("iam_sign_in_grants")).toEqual(["iam_sign_in_grants_org", "iam_sign_in_grants_pkey"]);
-    expect(await indexesOf("iam_access_move_tickets")).toEqual([
-      "iam_access_move_tickets_expires",
-      "iam_access_move_tickets_org",
-      "iam_access_move_tickets_pkey",
-    ]);
   });
 
-  it("brings a database at v1 to v2, adding the access move tickets and nothing else", async () => {
+  it("brings a database at v2 to v3, dropping the access move tickets and the single sign-on column and index, and nothing else", async () => {
     const earlier = await provisionEnterpriseDatabase({ migrate: false });
     try {
       const client = await earlier.pool.connect();
       try {
-        await runEnterpriseMigrations(client, { through: 1 });
-        const tables = async () =>
-          (
-            await earlier.pool.query<{ table_name: string }>(
-              `SELECT table_name FROM information_schema.tables WHERE table_schema = 'ee' ORDER BY table_name`,
-            )
-          ).rows.map((row) => row.table_name);
-        const atV1 = await tables();
-        expect(atV1).not.toContain("iam_access_move_tickets");
+        await runEnterpriseMigrations(client, { through: 2 });
+        const names = async (sql: string) =>
+          (await earlier.pool.query<{ name: string }>(sql)).rows.map((row) => row.name);
+        const tables = () =>
+          names(`SELECT table_name AS name FROM information_schema.tables WHERE table_schema = 'ee' ORDER BY 1`);
+        const providerColumns = () =>
+          names(
+            `SELECT column_name AS name FROM information_schema.columns
+              WHERE table_schema = 'ee' AND table_name = 'iam_identity_provider' ORDER BY 1`,
+          );
+        const providerIndexes = () =>
+          names(`SELECT indexname AS name FROM pg_indexes WHERE schemaname = 'ee' AND tablename = 'iam_identity_provider' ORDER BY 1`);
+        const atV2 = { tables: await tables(), columns: await providerColumns(), indexes: await providerIndexes() };
+        expect(atV2.tables).toContain("iam_access_move_tickets");
+        expect(atV2.columns).toContain("is_sso");
+        expect(atV2.indexes).toContain("iam_identity_provider_one_live_sso");
         await runEnterpriseMigrations(client);
-        expect(await tables()).toEqual([...atV1, "iam_access_move_tickets"].sort());
+        expect(await tables()).toEqual(atV2.tables.filter((t) => t !== "iam_access_move_tickets"));
+        expect(await providerColumns()).toEqual(atV2.columns.filter((c) => c !== "is_sso"));
+        expect(await providerIndexes()).toEqual(atV2.indexes.filter((i) => i !== "iam_identity_provider_one_live_sso"));
         const ledger = await earlier.pool.query<{ version: number }>("SELECT version FROM ee.schema_version");
-        expect(ledger.rows).toEqual([{ version: 2 }]);
+        expect(ledger.rows).toEqual([{ version: 3 }]);
       } finally {
         client.release();
       }
@@ -194,31 +199,18 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
     );
   });
 
-  it("holds an organization's one live SSO provider, and the delete mark frees the place", async () => {
-    const insert = `INSERT INTO ee.iam_identity_provider (id, data, org, slug, is_sso, created_at)
-       VALUES ($1, '\\x', $2, $1, $3, $4)`;
-    await database.pool.query(insert, ["idp_live", "acme", true, CREATED]);
-    expect(await refusedBy(insert, ["idp_second", "acme", true, CREATED])).toBe("iam_identity_provider_one_live_sso");
-    await expect(database.pool.query(insert, ["idp_plain", "acme", false, CREATED])).resolves.toBeDefined();
-    await expect(database.pool.query(insert, ["idp_other", "beta", true, CREATED])).resolves.toBeDefined();
-    expect(await refusedBy(insert, ["idp_plain", "gamma", false, CREATED])).toBe("iam_identity_provider_pkey");
-    await database.pool.query(`UPDATE ee.iam_identity_provider SET deleting_since = now() WHERE id = 'idp_live'`);
-    await expect(database.pool.query(insert, ["idp_next", "acme", true, CREATED])).resolves.toBeDefined();
-    const slug = `INSERT INTO ee.iam_identity_provider (id, data, org, slug, is_sso, created_at)
-       VALUES ($1, '\\x', 'acme', 'idp_plain', FALSE, $2)`;
-    expect(await refusedBy(slug, ["idp_dup", CREATED])).toBe("iam_identity_provider_org_slug");
+  it("holds a provider's slug per organization, and its id", async () => {
+    const insert = `INSERT INTO ee.iam_identity_provider (id, data, org, slug, created_at) VALUES ($1, '\\x', $2, $3, $4)`;
+    await database.pool.query(insert, ["idp_a", "acme", "partner", CREATED]);
+    expect(await refusedBy(insert, ["idp_b", "acme", "partner", CREATED])).toBe("iam_identity_provider_org_slug");
+    await expect(database.pool.query(insert, ["idp_c", "beta", "partner", CREATED])).resolves.toBeDefined();
+    expect(await refusedBy(insert, ["idp_a", "gamma", "other", CREATED])).toBe("iam_identity_provider_pkey");
   });
 
   it("holds an invitation's token", async () => {
     const insert = `INSERT INTO ee.iam_invitation (id, data, org, token, created_at) VALUES ($1, '\\x', $2, $3, $4)`;
     await database.pool.query(insert, ["inv_a", "acme", "Token", CREATED]);
     expect(await refusedBy(insert, ["inv_b", "other", "Token", CREATED])).toBe("iam_invitation_token");
-  });
-
-  it("keeps one access move ticket per hash", async () => {
-    const insert = `INSERT INTO ee.iam_access_move_tickets (token_hash, account_id, org, expires_at) VALUES ($1, $2, $3, $4)`;
-    await database.pool.query(insert, ["hash_a", "ida_a", "acme", CREATED]);
-    expect(await refusedBy(insert, ["hash_a", "ida_b", "beta", CREATED])).toBe("iam_access_move_tickets_pkey");
   });
 
   it("keeps one sign-in grant per account and organization", async () => {

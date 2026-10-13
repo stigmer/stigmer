@@ -26,7 +26,6 @@ const (
 	IamPolicyCommandController_CleanupResourcePolicies_FullMethodName  = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/cleanupResourcePolicies"
 	IamPolicyCommandController_RevokeOrgAccess_FullMethodName          = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/revokeOrgAccess"
 	IamPolicyCommandController_BootstrapRevokeOrgAccess_FullMethodName = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapRevokeOrgAccess"
-	IamPolicyCommandController_BootstrapMoveOrgAccess_FullMethodName   = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapMoveOrgAccess"
 )
 
 // IamPolicyCommandControllerClient is the client API for IamPolicyCommandController service.
@@ -87,9 +86,6 @@ type IamPolicyCommandControllerClient interface {
 	// authorized by can_bootstrap_iam on platform:stigmer instead of
 	// can_grant_access on the organization.
 	BootstrapRevokeOrgAccess(ctx context.Context, in *RevokeOrgAccessInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Move one account's access inside an organization to another account,
-	// via the system (bootstrap) path.
-	BootstrapMoveOrgAccess(ctx context.Context, in *MoveOrgAccessInput, opts ...grpc.CallOption) (*MoveOrgAccessResult, error)
 }
 
 type iamPolicyCommandControllerClient struct {
@@ -160,16 +156,6 @@ func (c *iamPolicyCommandControllerClient) BootstrapRevokeOrgAccess(ctx context.
 	return out, nil
 }
 
-func (c *iamPolicyCommandControllerClient) BootstrapMoveOrgAccess(ctx context.Context, in *MoveOrgAccessInput, opts ...grpc.CallOption) (*MoveOrgAccessResult, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MoveOrgAccessResult)
-	err := c.cc.Invoke(ctx, IamPolicyCommandController_BootstrapMoveOrgAccess_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // IamPolicyCommandControllerServer is the server API for IamPolicyCommandController service.
 // All implementations should embed UnimplementedIamPolicyCommandControllerServer
 // for forward compatibility.
@@ -228,9 +214,6 @@ type IamPolicyCommandControllerServer interface {
 	// authorized by can_bootstrap_iam on platform:stigmer instead of
 	// can_grant_access on the organization.
 	BootstrapRevokeOrgAccess(context.Context, *RevokeOrgAccessInput) (*emptypb.Empty, error)
-	// Move one account's access inside an organization to another account,
-	// via the system (bootstrap) path.
-	BootstrapMoveOrgAccess(context.Context, *MoveOrgAccessInput) (*MoveOrgAccessResult, error)
 }
 
 // UnimplementedIamPolicyCommandControllerServer should be embedded to have
@@ -257,9 +240,6 @@ func (UnimplementedIamPolicyCommandControllerServer) RevokeOrgAccess(context.Con
 }
 func (UnimplementedIamPolicyCommandControllerServer) BootstrapRevokeOrgAccess(context.Context, *RevokeOrgAccessInput) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BootstrapRevokeOrgAccess not implemented")
-}
-func (UnimplementedIamPolicyCommandControllerServer) BootstrapMoveOrgAccess(context.Context, *MoveOrgAccessInput) (*MoveOrgAccessResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method BootstrapMoveOrgAccess not implemented")
 }
 func (UnimplementedIamPolicyCommandControllerServer) testEmbeddedByValue() {}
 
@@ -389,24 +369,6 @@ func _IamPolicyCommandController_BootstrapRevokeOrgAccess_Handler(srv interface{
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IamPolicyCommandController_BootstrapMoveOrgAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MoveOrgAccessInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IamPolicyCommandControllerServer).BootstrapMoveOrgAccess(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IamPolicyCommandController_BootstrapMoveOrgAccess_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IamPolicyCommandControllerServer).BootstrapMoveOrgAccess(ctx, req.(*MoveOrgAccessInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // IamPolicyCommandController_ServiceDesc is the grpc.ServiceDesc for IamPolicyCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -437,10 +399,6 @@ var IamPolicyCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "bootstrapRevokeOrgAccess",
 			Handler:    _IamPolicyCommandController_BootstrapRevokeOrgAccess_Handler,
-		},
-		{
-			MethodName: "bootstrapMoveOrgAccess",
-			Handler:    _IamPolicyCommandController_BootstrapMoveOrgAccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

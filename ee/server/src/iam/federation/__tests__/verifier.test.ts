@@ -104,7 +104,6 @@ function provider(overrides?: {
   allowedIssuers?: string[];
   audience?: string;
   metadata?: { id: string; org: string; slug: string };
-  sso?: boolean;
   userinfoEndpoint?: string;
 }): IdentityProvider {
   return create(IdentityProviderSchema, {
@@ -113,7 +112,6 @@ function provider(overrides?: {
     spec: {
       jwksUri: "https://sso.customer.test/jwks",
       userinfoEndpoint: overrides?.userinfoEndpoint ?? "",
-      isSsoProvider: overrides?.sso ?? false,
       allowedIssuers: overrides?.allowedIssuers ?? [ISSUER],
       expectedAudience: overrides?.audience ?? AUDIENCE,
       createAccountsOnSignIn: overrides?.createAccounts ?? false,
@@ -535,8 +533,8 @@ describe("store-backed federated verifier", () => {
     expect([...fakes.signInGrants.rows.keys()]).toEqual(["ida_new:acme"]);
   });
 
-  it("makes an SSO sign-in its provider's sign-in role on the provider's own organization", async () => {
-    const fakes = newFakes([provider({ sso: true, createAccounts: true, signInRole: IamRole.viewer })]);
+  it("makes a first sign-in its provider's viewer sign-in role on the provider's own organization", async () => {
+    const fakes = newFakes([provider({ createAccounts: true, signInRole: IamRole.viewer })]);
     const identity = await verifierOf(fakes).verify(sign(CLAIMS));
     expect(identity?.boundOrg).toBe("acme");
     expect(fakes.grants.map((grant) => [grant.relation, grant.resource?.id])).toEqual([["viewer", "acme"]]);

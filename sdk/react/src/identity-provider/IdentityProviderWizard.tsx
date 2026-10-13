@@ -9,9 +9,7 @@ import { EXPECTED_AUDIENCE_HINT, EXPECTED_AUDIENCE_PLACEHOLDER } from "./copy.js
 import {
   EMPTY_SIGN_IN_SETTINGS,
   SignInSettingsSection,
-  signInSettingsComplete,
   toSignInInput,
-  useSignInSettings,
   type SignInSettings,
 } from "./SignInSettings.js";
 import { ProviderPicker } from "./ProviderPicker.js";
@@ -35,16 +33,17 @@ export interface IdentityProviderWizardProps {
 type WizardStep = "pick" | "configure" | "review" | "success";
 
 /**
- * Multi-step wizard for creating a new identity provider.
+ * Multi-step wizard for creating a new identity provider: the
+ * organization's trust in tokens another platform issues.
  *
  * Guides the user through three steps:
  *
  * 1. **Pick** — select a well-known provider preset or "Custom OIDC"
  * 2. **Configure** — fill in provider-specific variables (e.g., Auth0
  *    tenant name) plus the IdP display name and expected audience
- * 3. **Review** — verify auto-populated OIDC configuration, optionally
- *    enable SSO, set what a sign-in does (account creation, sign-in role,
- *    customer id claim), and submit
+ * 3. **Review** — verify auto-populated OIDC configuration, set what a
+ *    sign-in does (account creation, sign-in role, customer id claim), and
+ *    submit
  *
  * For known presets, URLs are constructed from deterministic templates
  * (no network call). For "Custom OIDC", the wizard attempts OIDC
@@ -85,13 +84,9 @@ export function IdentityProviderWizard({
   const [jwksUri, setJwksUri] = useState("");
   const [issuers, setIssuers] = useState("");
   const [userinfoEndpoint, setUserinfoEndpoint] = useState("");
-  const [isSso, setIsSso] = useState(false);
-  const [oidcClientId, setOidcClientId] = useState("");
   const [discoveryFailed, setDiscoveryFailed] = useState(false);
 
-  const { signIn, setSignIn, switchSso, reset } = useSignInSettings(
-    () => EMPTY_SIGN_IN_SETTINGS,
-  );
+  const [signIn, setSignIn] = useState<SignInSettings>(EMPTY_SIGN_IN_SETTINGS);
 
   // Success step
   const [createdIdp, setCreatedIdp] = useState<IdentityProvider | null>(null);
@@ -117,11 +112,9 @@ export function IdentityProviderWizard({
     setJwksUri(config?.jwksUri ?? "");
     setIssuers(config?.allowedIssuers.join(", ") ?? "");
     setUserinfoEndpoint(config?.userinfoEndpoint ?? "");
-    setIsSso(false);
-    reset(EMPTY_SIGN_IN_SETTINGS);
-    setOidcClientId("");
+    setSignIn(EMPTY_SIGN_IN_SETTINGS);
     setDiscoveryFailed(!config);
-  }, [reset]);
+  }, []);
 
   const handleContinueToReview = useCallback(async () => {
     if (!preset) return;
@@ -146,14 +139,6 @@ export function IdentityProviderWizard({
 
   // -- Submit ----------------------------------------------------------
 
-  const handleIsSsoChange = useCallback(
-    (next: boolean) => {
-      setIsSso(next);
-      switchSso(next);
-    },
-    [switchSso],
-  );
-
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
@@ -170,11 +155,7 @@ export function IdentityProviderWizard({
             .filter(Boolean),
           expectedAudience: audience.trim(),
           userinfoEndpoint: userinfoEndpoint.trim() || undefined,
-          ...(isSso && {
-            isSsoProvider: true,
-            oidcClientId: oidcClientId.trim(),
-          }),
-          ...toSignInInput(signIn, isSso),
+          ...toSignInInput(signIn),
         });
         setCreatedIdp(idp);
         setStep("success");
@@ -184,7 +165,7 @@ export function IdentityProviderWizard({
     },
     [
       name, org, jwksUri, issuers, audience, userinfoEndpoint,
-      isSso, oidcClientId, signIn, create, clearError,
+      signIn, create, clearError,
     ],
   );
 
@@ -238,10 +219,6 @@ export function IdentityProviderWizard({
           onIssuersChange={setIssuers}
           userinfoEndpoint={userinfoEndpoint}
           onUserinfoEndpointChange={setUserinfoEndpoint}
-          isSso={isSso}
-          onIsSsoChange={handleIsSsoChange}
-          oidcClientId={oidcClientId}
-          onOidcClientIdChange={setOidcClientId}
           signIn={signIn}
           onSignInChange={setSignIn}
           isCreating={isCreating}
@@ -255,8 +232,6 @@ export function IdentityProviderWizard({
       {step === "success" && createdIdp && (
         <SuccessStep
           identityProvider={createdIdp}
-          org={org}
-          isSso={isSso}
           signIn={signIn}
           onDone={() => onCreated?.(createdIdp)}
         />
@@ -385,7 +360,7 @@ function ConfigureStep({
         label="Display name"
         value={name}
         onChange={onNameChange}
-        placeholder="e.g., Acme Corp SSO"
+        placeholder="e.g., Acme Platform"
         hint="Human-readable name shown in the UI"
         disabled={isLoading}
       />
@@ -443,10 +418,6 @@ function ReviewStep({
   onIssuersChange,
   userinfoEndpoint,
   onUserinfoEndpointChange,
-  isSso,
-  onIsSsoChange,
-  oidcClientId,
-  onOidcClientIdChange,
   signIn,
   onSignInChange,
   isCreating,
@@ -462,10 +433,6 @@ function ReviewStep({
   onIssuersChange: (v: string) => void;
   userinfoEndpoint: string;
   onUserinfoEndpointChange: (v: string) => void;
-  isSso: boolean;
-  onIsSsoChange: (v: boolean) => void;
-  oidcClientId: string;
-  onOidcClientIdChange: (v: string) => void;
   signIn: SignInSettings;
   onSignInChange: (v: SignInSettings) => void;
   isCreating: boolean;
@@ -478,8 +445,6 @@ function ReviewStep({
   const canSubmit =
     jwksUri.trim() !== "" &&
     issuers.trim() !== "" &&
-    (!isSso || oidcClientId.trim() !== "") &&
-    signInSettingsComplete(signIn, isSso) &&
     !isCreating;
 
   return (
@@ -529,29 +494,7 @@ function ReviewStep({
         disabled={isCreating}
       />
 
-      {/* SSO toggle */}
-      <ToggleSwitch
-        checked={isSso}
-        onChange={onIsSsoChange}
-        label="SSO provider"
-        disabled={isCreating}
-      />
-
-      {isSso && (
-        <FieldInput
-          id={`${baseId}-client-id`}
-          label="OIDC client ID"
-          value={oidcClientId}
-          onChange={onOidcClientIdChange}
-          placeholder="public-client-id"
-          hint="Client ID for the PKCE-based Authorization Code flow"
-          disabled={isCreating}
-          required
-        />
-      )}
-
       <SignInSettingsSection
-        isSso={isSso}
         value={signIn}
         onChange={onSignInChange}
         disabled={isCreating}
@@ -593,14 +536,10 @@ function ReviewStep({
 
 function SuccessStep({
   identityProvider,
-  org,
-  isSso,
   signIn,
   onDone,
 }: {
   identityProvider: IdentityProvider;
-  org: string;
-  isSso: boolean;
   signIn: SignInSettings;
   onDone: () => void;
 }) {
@@ -609,7 +548,7 @@ function SuccessStep({
     identityProvider.metadata?.name ||
     "Identity provider";
 
-  const createsAccounts = isSso || signIn.createAccounts;
+  const createsAccounts = signIn.createAccounts;
   const grantsRole = signIn.signInRole !== IamRole.iam_role_unspecified;
   const roleName = IamRole[signIn.signInRole];
   const claim = signIn.externalIdClaim.trim();
@@ -624,16 +563,6 @@ function SuccessStep({
 
       <div className="stg:space-y-2">
         <p className="stg:text-xs stg:font-medium stg:text-foreground">What happens next</p>
-
-        {isSso && (
-          <p className="stg:text-[0.65rem] stg:text-muted-foreground">
-            Users can sign in via SSO at{" "}
-            <span className="stg:font-mono stg:text-foreground">
-              /login?org={org}
-            </span>
-            .
-          </p>
-        )}
 
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">
           {createsAccounts
@@ -753,54 +682,6 @@ function FieldInput({
       )}
       {hint && (
         <p className="stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Toggle switch
-// ---------------------------------------------------------------------------
-
-function ToggleSwitch({
-  checked,
-  onChange,
-  label,
-  hint,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-  hint?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="stg:space-y-0.5">
-      <div className="stg:flex stg:items-center stg:gap-2">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={checked}
-          onClick={() => onChange(!checked)}
-          disabled={disabled}
-          className={cn(
-            "stg:relative stg:inline-flex stg:h-5 stg:w-9 stg:shrink-0 stg:cursor-pointer stg:rounded-full stg:border-2 stg:border-transparent stg:transition-colors",
-            checked ? "stg:bg-primary" : "stg:bg-muted",
-            "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-          )}
-        >
-          <span
-            className={cn(
-              "stg:pointer-events-none stg:inline-block stg:h-4 stg:w-4 stg:rounded-full stg:bg-background stg:shadow-sm stg:ring-0 stg:transition-transform",
-              checked ? "stg:translate-x-4" : "stg:translate-x-0",
-            )}
-          />
-        </button>
-        <span className="stg:text-xs stg:font-medium stg:text-foreground">{label}</span>
-      </div>
-      {hint && (
-        <p className="stg:pl-11 stg:text-[0.65rem] stg:text-muted-foreground">{hint}</p>
       )}
     </div>
   );

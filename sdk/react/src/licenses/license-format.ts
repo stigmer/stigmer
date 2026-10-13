@@ -1,5 +1,9 @@
-// Display vocabulary for the licenses surface: the term and feature labels,
-// the entitlement summary, and the one way a license date is shown.
+// Display vocabulary for the licenses surface: the term labels, the
+// entitlement summary, and the one way a license date is shown.
+//
+// A license speaks of limits only. No server reads a license's features,
+// so the console neither offers one nor shows one a license issued earlier
+// still carries.
 //
 // Every license date renders as a UTC calendar day. A license is a global
 // instrument whose customer may be anywhere, and the issue form derives the
@@ -15,85 +19,17 @@
 
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import {
-  Feature,
-  type Entitlements,
-} from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
+import type { Entitlements } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { LicenseTerm } from "@stigmer/protos/ai/stigmer/platform/v1/license_pb";
-import { FEATURE_COPY } from "../internal/features.js";
 
 /** A term an operator can issue; the unspecified zero value is not one. */
 export type IssuableTerm = LicenseTerm.trial | LicenseTerm.paid;
-
-/**
- * Features a Cloud plan sells but a license never carries: they tier the
- * Cloud's hosted runtime, and on a self-hosted deployment the edition
- * decides whether they exist, never a license, so offering one on a
- * license would sell a capability the license does not control. A license
- * issued before a value joined this list may still carry it; the console
- * shows it nowhere.
- */
-export type PlanOnlyFeature =
-  | Feature.channels
-  | Feature.sharing
-  | Feature.teams
-  | Feature.child_orgs;
-
-/**
- * Features the contract names but nothing gates: every edition serves them
- * to every tenant, so granting one on a license would sell what the
- * customer already has. A license issued before the value was ruled
- * ungated may still carry one; the console shows it nowhere.
- */
-export type UngatedFeature = Feature.platform_client | Feature.byo_provider_keys;
-
-/**
- * A feature an operator can grant on a license: every feature but the
- * unspecified zero value, the plan-only ones and the ungated ones. Derived
- * by exclusion, so a feature added to the contract lands here by default
- * and must be given a label below, or be named above, before the package
- * compiles.
- */
-export type GrantableFeature = Exclude<
-  Feature,
-  Feature.feature_unspecified | PlanOnlyFeature | UngatedFeature
->;
 
 /** Display labels for the issuable terms. */
 export const TERM_LABELS: Readonly<Record<IssuableTerm, string>> = {
   [LicenseTerm.trial]: "Trial",
   [LicenseTerm.paid]: "Paid",
 };
-
-/**
- * Label and one-line explanation per grantable feature: the shared
- * vocabulary (../internal/features.ts), narrowed to what a license may
- * carry. Keyed by every grantable `Feature` value, so a feature added to
- * the contract fails to compile here until it has words an operator can
- * read.
- */
-export const FEATURE_LABELS: Readonly<
-  Record<GrantableFeature, { readonly label: string; readonly description: string }>
-> = {
-  [Feature.sso_enforcement]: {
-    label: FEATURE_COPY[Feature.sso_enforcement].label,
-    description: FEATURE_COPY[Feature.sso_enforcement].description,
-  },
-};
-
-/** Every grantable feature, in contract order (derived from the label map). */
-export const GRANTABLE_FEATURES: readonly GrantableFeature[] = (
-  Object.keys(FEATURE_LABELS).map(Number) as GrantableFeature[]
-).sort((a, b) => a - b);
-
-/**
- * Whether a stored feature is one the console shows: the one test for
- * which of a license's features the calendar counts, the names and the
- * detail list, and a renewal carries forward.
- */
-export function isGrantableFeature(feature: number): feature is GrantableFeature {
-  return feature in FEATURE_LABELS;
-}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -149,30 +85,19 @@ export function formatDayFromToday(day: string, now: Date): string {
 
 /**
  * What a license permits, in the parts the calendar's column shows:
- * "5 users", "1 organization", "1 feature" (the form's and the detail's
- * word, so one limit has one name). An absent limit is unlimited, per the
- * contract, and the part says so rather than leaving it blank. Kept as
- * parts so the calendar can stack them one per line.
+ * "5 users", "1 organization" (the form's and the detail's word, so one
+ * limit has one name). An absent limit is unlimited, per the contract, and
+ * the part says so rather than leaving it blank. Kept as parts so the
+ * calendar can stack them one per line.
  */
 export function entitlementParts(entitlements: Entitlements | undefined): readonly string[] {
   const limits = entitlements?.limits;
-  const features = entitlements?.features.filter(isGrantableFeature).length ?? 0;
-  return [
-    limitPart(limits?.maxUsers, "user"),
-    limitPart(limits?.maxOrgs, "organization"),
-    features === 0 ? "No features" : plural(features, "feature"),
-  ];
+  return [limitPart(limits?.maxUsers, "user"), limitPart(limits?.maxOrgs, "organization")];
 }
 
 /** One limit in words: "5 users", "1 organization", "Unlimited users". */
 export function limitPart(limit: number | undefined, noun: string): string {
   return limit === undefined ? `Unlimited ${noun}s` : plural(limit, noun);
-}
-
-/** The granted features by name, in contract order: "SSO enforcement". */
-export function featureNames(features: readonly number[]): string {
-  const names = GRANTABLE_FEATURES.filter((f) => features.includes(f)).map((f) => FEATURE_LABELS[f].label);
-  return names.length === 0 ? "No features" : names.join(", ");
 }
 
 function plural(count: number, noun: string): string {

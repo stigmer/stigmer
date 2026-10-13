@@ -73,7 +73,6 @@ const PLANS: readonly Plan[] = [
     description: "Quoted for your organization.",
     features: [
       "A dedicated deployment",
-      "SSO enforcement",
       "An SLA",
       "Annual invoicing",
     ],
@@ -250,8 +249,8 @@ function PricingPage() {
                 Need custom terms?
               </h2>
               <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-                For a dedicated deployment, SSO enforcement, an SLA or annual
-                invoicing — talk to our team.
+                For a dedicated deployment, an SLA or annual invoicing — talk to
+                our team.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button asChild size="lg">

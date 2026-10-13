@@ -21,10 +21,10 @@ package ai.stigmer.iam.identityaccount.v1;
  * account is preserved for audit trail. The user can still sign in but
  * holds no role in those organizations, and an existing account is never
  * granted one at sign-in, so this is the mode that keeps a user of a
- * just-in-time or SSO provider out.
+ * just-in-time provider out.
  * - Revoke and delete (delete_account = true): revokes access AND deletes
  * the identity account. All IAM policies across all organizations are
- * cleaned up. Under a just-in-time or SSO provider, the user's next
+ * cleaned up. Under a just-in-time provider, the user's next
  * sign-in creates the account again with any role the provider grants
  * automatically; use it when the user can no longer sign in to the
  * provider.
@@ -216,8 +216,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
-   * When true: revoke access AND delete the identity account; a just-in-time or
-   * SSO provider creates a new one at the user's next sign-in.
+   * When true: revoke access AND delete the identity account; a just-in-time
+   * provider creates a new one at the user's next sign-in.
    * </pre>
    *
    * <code>bool delete_account = 4 [json_name = "deleteAccount"];</code>
@@ -438,10 +438,10 @@ private static final long serialVersionUID = 0L;
    * account is preserved for audit trail. The user can still sign in but
    * holds no role in those organizations, and an existing account is never
    * granted one at sign-in, so this is the mode that keeps a user of a
-   * just-in-time or SSO provider out.
+   * just-in-time provider out.
    * - Revoke and delete (delete_account = true): revokes access AND deletes
    * the identity account. All IAM policies across all organizations are
-   * cleaned up. Under a just-in-time or SSO provider, the user's next
+   * cleaned up. Under a just-in-time provider, the user's next
    * sign-in creates the account again with any role the provider grants
    * automatically; use it when the user can no longer sign in to the
    * provider.
@@ -994,8 +994,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
-     * When true: revoke access AND delete the identity account; a just-in-time or
-     * SSO provider creates a new one at the user's next sign-in.
+     * When true: revoke access AND delete the identity account; a just-in-time
+     * provider creates a new one at the user's next sign-in.
      * </pre>
      *
      * <code>bool delete_account = 4 [json_name = "deleteAccount"];</code>
@@ -1008,8 +1008,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
-     * When true: revoke access AND delete the identity account; a just-in-time or
-     * SSO provider creates a new one at the user's next sign-in.
+     * When true: revoke access AND delete the identity account; a just-in-time
+     * provider creates a new one at the user's next sign-in.
      * </pre>
      *
      * <code>bool delete_account = 4 [json_name = "deleteAccount"];</code>
@@ -1026,8 +1026,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * When false (default): revoke the account's access in this organization and the organizations its identity provider manages.
-     * When true: revoke access AND delete the identity account; a just-in-time or
-     * SSO provider creates a new one at the user's next sign-in.
+     * When true: revoke access AND delete the identity account; a just-in-time
+     * provider creates a new one at the user's next sign-in.
      * </pre>
      *
      * <code>bool delete_account = 4 [json_name = "deleteAccount"];</code>

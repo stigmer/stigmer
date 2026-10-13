@@ -34,10 +34,10 @@
  *     5. `member` — everyone else, in the open-source edition only.
  *   Above it (a composition whose edition serves many organizations under
  *   the built-in posture) arm 5 answers nothing: a person joins an
- *   organization by invitation, single sign-on or an administrator's
- *   grant, never by signing in, or everyone who signs in through the
- *   operator's issuer would become a member of every organization the
- *   server holds. The edition is the composition's one declaration of
+ *   organization by invitation, an identity provider's sign-in role or an
+ *   administrator's grant, never by signing in, or everyone who signs in
+ *   through the operator's issuer would become a member of every
+ *   organization the server holds. The edition is the composition's one declaration of
  *   that difference, so the rule reads it and adds no setting of its own.
  *   Arms 1 to 4 run in every edition.
  *   Arms 3 and 4 both answer `admin`; 3 is checked first because it is a

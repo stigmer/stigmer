@@ -1,8 +1,9 @@
 ---
 title: Identity federation
 description:
-  Let users access Stigmer with their existing credentials. Choose between
-  automatic JIT provisioning, explicit manual provisioning, or console SSO.
+  Let your platform's users access Stigmer with the tokens your platform already
+  issues. Choose between automatic JIT provisioning and explicit manual
+  provisioning.
 ---
 
 Identity federation lets users access Stigmer with tokens issued by an external
@@ -11,7 +12,7 @@ and Stigmer trusts its tokens. Federation is served by Stigmer Cloud and the
 Enterprise edition; the open-source self-hosted server does not serve Identity
 Providers.
 
-Federation supports three provisioning modes:
+Federation supports two provisioning modes:
 
 - **JIT provisioning** — Stigmer creates accounts and grants a sign-in role
   automatically when a user authenticates with a valid JWT. Your backend only
@@ -20,9 +21,6 @@ Federation supports three provisioning modes:
 - **Manual provisioning** — Your platform backend creates federated accounts and
   grants roles via the API before users can authenticate. Best for platforms
   that need to control exactly who gets access and when.
-- **Console SSO** — Your team members sign in to the Stigmer web console through
-  your Organization's Identity Provider. Accounts are created automatically on
-  first login.
 
 Whichever mode you choose, every token an Identity Provider vouches for is bound
 to one Organization and works there only: the Identity Provider's own
@@ -51,13 +49,12 @@ credentials needed.
 
 ## Choose your provisioning mode
 
-|                      | JIT (automatic)                               | Manual (explicit)                              | SSO                                  |
-| -------------------- | --------------------------------------------- | ---------------------------------------------- | ------------------------------------ |
-| **Who it's for**     | Platform API integrations                     | Platform API integrations                      | Your own team                        |
-| **Account creation** | Automatic on first JWT                        | Your backend calls `createFederatedAccount`    | Automatic on first web login         |
-| **Role assignment**  | Automatic (`signInRole`)                      | Your backend creates IAM Policies              | Automatic (`signInRole`)             |
-| **Setup steps**      | Register IdP with JIT enabled                 | Register IdP, provision accounts, grant access | Register IdP with SSO enabled        |
-| **Use when**         | All authenticated users should access Stigmer | You need gated, explicit access control        | Team members need web console access |
+|                      | JIT (automatic)                               | Manual (explicit)                              |
+| -------------------- | --------------------------------------------- | ---------------------------------------------- |
+| **Account creation** | Automatic on first JWT                        | Your backend calls `createFederatedAccount`    |
+| **Role assignment**  | Automatic (`signInRole`)                      | Your backend creates IAM Policies              |
+| **Setup steps**      | Register IdP with JIT enabled                 | Register IdP, provision accounts, grant access |
+| **Use when**         | All authenticated users should access Stigmer | You need gated, explicit access control        |
 
 ## Architecture
 
@@ -152,22 +149,14 @@ All integration paths start with step 1. If you enable JIT provisioning in step
   automatically. Skip steps 2 and 3 and go straight to step 4.
 </Callout>
 
-## Console SSO
+## Your own team's sign-in
 
-If you want your team members to sign in to the Stigmer web console through your
-own Identity Provider, you can enable SSO. Stigmer creates accounts
-automatically on first login and grants the sign-in role you choose, `viewer` by
-default in the console.
-
-<Cards>
-  <Card
-    href="/docs/guides/authentication/federation/sso-login"
-    title="Set up SSO"
-  >
-    Enable SSO login for your Organization so team members sign in through your
-    Identity Provider.
-  </Card>
-</Cards>
+An Identity Provider is trust in tokens your platform sends with its calls to
+Stigmer. It is not a way to sign in to the Stigmer web console. To have your
+team sign in to a self-hosted Stigmer with your company's identity provider
+(Okta, Microsoft Entra ID, Keycloak or any OIDC provider), make it the server's
+own sign-in: see
+[Enable authentication](/docs/guides/self-hosting/authentication).
 
 ## Child organizations
 
