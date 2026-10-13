@@ -19,12 +19,6 @@ message RunSpec {
     expression: "this.reconcile_file_review || size(this.message) > 0"
   };
 
-  option (buf.validate.message).cel = {
-    id: "run.session_spec_harness_state"
-    message: "session_spec.harness_state_id must be empty — harness state is created by the runner after the first run"
-    expression: "!has(this.session_spec) || this.session_spec.harness_state_id == ''"
-  };
-
   // Field 2 named an agent whose default instance a new conversation ran
   // against until the instance kind was removed; a new conversation names
   // its agent in session_spec.agent_ref.
@@ -85,9 +79,7 @@ message RunSpec {
     // the built-in assistant). Fields that must be set at session-creation
     // time and are immutable once a run has started — harness and
     // execution_target — can only reach an auto-created session through
-    // this field. session_spec.harness_state_id must be empty — it is
-    // server-owned harness continuity state, created by the runner after
-    // the first run.
+    // this field.
     //
     // @internal
     // The Session resource created from this spec is the single source of

@@ -29,3 +29,34 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request makes every update name the fields it changes: each
+  # update RPC takes Update<Kind>Input (the resource and an update_mask)
+  # instead of the bare resource, and the session's harness conversation id
+  # and its history move from spec to status, where only the runner writes
+  # them (bindHarnessState), with fields 3 and 13 of SessionSpec reserved.
+  # It is made before launch: the release notes name it under Upgrading.
+  # This block exists for that one pull request. While it stays, buf
+  # breaking does not report these rules on the listed files, so the pull
+  # request that removes it lands straight after the merge.
+  ignore_only:
+    RPC_SAME_REQUEST_TYPE:
+      - ai/stigmer/agentic/agent/v1/command.proto
+      - ai/stigmer/agentic/agentchannel/v1/command.proto
+      - ai/stigmer/agentic/agentshare/v1/command.proto
+      - ai/stigmer/agentic/channelapp/v1/command.proto
+      - ai/stigmer/agentic/evaluator/v1/command.proto
+      - ai/stigmer/agentic/memory/v1/command.proto
+      - ai/stigmer/agentic/run/v1/command.proto
+      - ai/stigmer/agentic/schedule/v1/command.proto
+      - ai/stigmer/agentic/score/v1/command.proto
+      - ai/stigmer/agentic/session/v1/command.proto
+      - ai/stigmer/agentic/vault/v1/command.proto
+      - ai/stigmer/iam/apikey/v1/command.proto
+      - ai/stigmer/iam/identityaccount/v1/command.proto
+      - ai/stigmer/iam/identityprovider/v1/command.proto
+      - ai/stigmer/iam/oauthapp/v1/command.proto
+      - ai/stigmer/iam/platformclient/v1/command.proto
+      - ai/stigmer/iam/team/v1/command.proto
+      - ai/stigmer/tenancy/organization/v1/command.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/session/v1/spec.proto

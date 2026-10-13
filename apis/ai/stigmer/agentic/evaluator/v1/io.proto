@@ -2,7 +2,9 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.evaluator.v1;
 
+import "ai/stigmer/agentic/evaluator/v1/api.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 
 // EvaluatorId wraps an evaluator identifier.
 message EvaluatorId {
@@ -20,4 +22,24 @@ message GetEvaluatorByAgentRequest {
     (buf.validate.field).string.min_len = 1,
     (buf.validate.field).string.max_len = 128
   ];
+}
+
+// The changes an update makes to an evaluator: the fields update_mask names,
+// taken from resource.
+message UpdateEvaluatorInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the evaluator by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The evaluator carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  Evaluator resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }

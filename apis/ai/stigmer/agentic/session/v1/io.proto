@@ -6,6 +6,7 @@ import "ai/stigmer/agentic/session/v1/api.proto";
 import "ai/stigmer/agentic/session/v1/event.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 
 // SessionId wraps a session identifier.
 message SessionId {
@@ -368,4 +369,44 @@ message AppendSessionEventsResponse {
   // envelope with its seq, and the event's type, id and processed_at. The
   // content is not echoed; a resent event answers its first place.
   repeated SessionEvent events = 1;
+}
+
+// The changes an update makes to a session: the fields update_mask names,
+// taken from resource.
+message UpdateSessionInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the session by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The session carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  Session resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
+}
+
+// BindHarnessStateInput names a run and the harness's conversation id its
+// session continues from.
+message BindHarnessStateInput {
+  // The run whose session the id belongs to.
+  string run_id = 1 [(buf.validate.field).required = true];
+
+  // The harness's conversation id (a LangGraph thread id, a Cursor agent id).
+  string harness_state_id = 2 [(buf.validate.field).required = true];
+}
+
+// BindHarnessStateResponse answers the session's harness state after the
+// write.
+message BindHarnessStateResponse {
+  // The id now recorded.
+  string harness_state_id = 1;
+
+  // The ids the session owned before, oldest first.
+  repeated string harness_state_id_history = 2;
 }

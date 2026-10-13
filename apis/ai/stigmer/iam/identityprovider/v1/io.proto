@@ -4,6 +4,7 @@ package ai.stigmer.iam.identityprovider.v1;
 
 import "ai/stigmer/iam/identityprovider/v1/api.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 
 // IdentityProviderId identifies an identity provider by its unique identifier.
 message IdentityProviderId {
@@ -70,4 +71,24 @@ message SsoProviderInfo {
   // audience from server-side configuration and ignore this parameter.
   // Empty means the web app should omit the audience parameter.
   string expected_audience = 4;
+}
+
+// The changes an update makes to an identity provider: the fields update_mask names,
+// taken from resource.
+message UpdateIdentityProviderInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the identity provider by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The identity provider carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  IdentityProvider resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }
