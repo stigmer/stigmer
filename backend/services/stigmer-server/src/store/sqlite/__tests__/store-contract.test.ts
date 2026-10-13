@@ -16,6 +16,7 @@ import type { StoreContractFixture } from "../../__tests__/store-contract.js";
 import {
   CONTRACT_STORE_OPTIONS,
   describeStoreContract,
+  permissionHistoryRowOf,
 } from "../../__tests__/store-contract.js";
 import { SqliteStore } from "../store.js";
 import { tempStore } from "./support.js";
@@ -44,6 +45,20 @@ describe("sqlite store contract", () => {
                 count: number;
               }
             ).count,
+        );
+      },
+      async permissionHistory() {
+        return withConnection((db) =>
+          (
+            db
+              .prepare(
+                `SELECT org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+                    principal_kind, principal_id, principal_relation, relation, resource_kind,
+                    resource_id, data
+             FROM iam_policy_history ORDER BY org, sequence`,
+              )
+              .all() as Array<Record<string, string | number | Uint8Array>>
+          ).map(permissionHistoryRowOf),
         );
       },
       async writeAsOlderBinary(kind, id, data) {

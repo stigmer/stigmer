@@ -9,7 +9,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
 import { formatUsd } from "./format.js";
-import { formatDay, formatPeriodDay } from "./plan-features.js";
+import { formatAgentHours, formatDay, formatPeriodDay } from "./plan-features.js";
 import type { PlanStanding } from "./plan-state.js";
 
 /** Props for {@link PlanCard}. */
@@ -147,8 +147,9 @@ function EstimateLines({ planName, estimate }: { planName: string; estimate: Per
         </div>
       </dl>
       <p className="stg:mt-2 stg:text-xs stg:text-muted-foreground">
-        The plan&apos;s fee for the whole period, with the child organizations counted so far. Model usage runs on
-        your organization&apos;s own provider keys and is not on the invoice.
+        The plan&apos;s fee for the whole period, with the child organizations and the agent hours past those
+        included counted so far. Model usage runs on your organization&apos;s own provider keys and is not on the
+        invoice.
       </p>
     </div>
   );
@@ -160,6 +161,8 @@ function lineLabel(line: PeriodEstimateLine, planName: string, estimate: PeriodE
       return `${planName} plan`;
     case PeriodEstimateLineKind.child_orgs:
       return `Child organizations beyond those included (${estimate.childOrgCount} this period)`;
+    case PeriodEstimateLineKind.agent_hours:
+      return `Agent hours beyond those included (${formatAgentHours(estimate.workingSeconds)} worked this period)`;
     case PeriodEstimateLineKind.period_estimate_line_kind_unspecified:
       return "Other";
     default: {

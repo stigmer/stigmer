@@ -156,7 +156,7 @@ type SessionCommandControllerClient interface {
 	//
 	// Fails with FAILED_PRECONDITION while any run in the
 	// session is still active (pending, in progress, waiting for approval,
-	// or paused); cancel it or wait for it to finish first.
+	// or paused); interrupt the session or wait for it to finish first.
 	Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 	// Append a run's events to its session's log.
 	//
@@ -415,7 +415,7 @@ type SessionCommandControllerServer interface {
 	//
 	// Fails with FAILED_PRECONDITION while any run in the
 	// session is still active (pending, in progress, waiting for approval,
-	// or paused); cancel it or wait for it to finish first.
+	// or paused); interrupt the session or wait for it to finish first.
 	Delete(context.Context, *SessionId) (*Session, error)
 	// Append a run's events to its session's log.
 	//

@@ -34,6 +34,10 @@ const (
 	// The child organizations beyond those the plan includes, at the
 	// plan's fee for each.
 	PeriodEstimateLineKind_child_orgs PeriodEstimateLineKind = 3
+	// The working agent hours beyond those the plan includes, at the plan's
+	// hourly price; the period's allowance is prorated when the period is
+	// cut short.
+	PeriodEstimateLineKind_agent_hours PeriodEstimateLineKind = 4
 )
 
 // Enum value maps for PeriodEstimateLineKind.
@@ -42,11 +46,13 @@ var (
 		0: "period_estimate_line_kind_unspecified",
 		1: "plan",
 		3: "child_orgs",
+		4: "agent_hours",
 	}
 	PeriodEstimateLineKind_value = map[string]int32{
 		"period_estimate_line_kind_unspecified": 0,
 		"plan":                                  1,
 		"child_orgs":                            3,
+		"agent_hours":                           4,
 	}
 )
 
@@ -396,9 +402,13 @@ type PeriodEstimate struct {
 	// The invoice's lines in the order they print, zero lines omitted.
 	Lines []*PeriodEstimateLine `protobuf:"bytes,7,rep,name=lines,proto3" json:"lines,omitempty"`
 	// The estimated invoice total: the sum of the lines.
-	TotalMicros   int64 `protobuf:"varint,8,opt,name=total_micros,json=totalMicros,proto3" json:"total_micros,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	TotalMicros int64 `protobuf:"varint,8,opt,name=total_micros,json=totalMicros,proto3" json:"total_micros,omitempty"`
+	// The working agent seconds counted against the plan this period so
+	// far: the organization's and its child organizations', never an
+	// automatic grade's.
+	WorkingSeconds int64 `protobuf:"varint,9,opt,name=working_seconds,json=workingSeconds,proto3" json:"working_seconds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PeriodEstimate) Reset() {
@@ -469,6 +479,13 @@ func (x *PeriodEstimate) GetLines() []*PeriodEstimateLine {
 func (x *PeriodEstimate) GetTotalMicros() int64 {
 	if x != nil {
 		return x.TotalMicros
+	}
+	return 0
+}
+
+func (x *PeriodEstimate) GetWorkingSeconds() int64 {
+	if x != nil {
+		return x.WorkingSeconds
 	}
 	return 0
 }
@@ -546,7 +563,7 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"\x17CancelSubscriptionInput\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"2\n" +
 	"\x16GetPeriodEstimateInput\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xfb\x02\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\"\xa4\x03\n" +
 	"\x0ePeriodEstimate\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12=\n" +
 	"\fperiod_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vperiodStart\x129\n" +
@@ -554,15 +571,17 @@ const file_ai_stigmer_billing_subscription_v1_io_proto_rawDesc = "" +
 	"period_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tperiodEnd\x12&\n" +
 	"\x0fchild_org_count\x18\x06 \x01(\x05R\rchildOrgCount\x12L\n" +
 	"\x05lines\x18\a \x03(\v26.ai.stigmer.billing.subscription.v1.PeriodEstimateLineR\x05lines\x12!\n" +
-	"\ftotal_micros\x18\b \x01(\x03R\vtotalMicrosJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x14provider_cost_microsR\x1bcommission_collected_micros\"\x89\x01\n" +
+	"\ftotal_micros\x18\b \x01(\x03R\vtotalMicros\x12'\n" +
+	"\x0fworking_seconds\x18\t \x01(\x03R\x0eworkingSecondsJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x14provider_cost_microsR\x1bcommission_collected_micros\"\x89\x01\n" +
 	"\x12PeriodEstimateLine\x12N\n" +
 	"\x04kind\x18\x01 \x01(\x0e2:.ai.stigmer.billing.subscription.v1.PeriodEstimateLineKindR\x04kind\x12#\n" +
-	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros*v\n" +
+	"\ramount_micros\x18\x02 \x01(\x03R\famountMicros*\x87\x01\n" +
 	"\x16PeriodEstimateLineKind\x12)\n" +
 	"%period_estimate_line_kind_unspecified\x10\x00\x12\b\n" +
 	"\x04plan\x10\x01\x12\x0e\n" +
 	"\n" +
-	"child_orgs\x10\x03\"\x04\b\x02\x10\x02*\x11commission_creditB\xbc\x02\n" +
+	"child_orgs\x10\x03\x12\x0f\n" +
+	"\vagent_hours\x10\x04\"\x04\b\x02\x10\x02*\x11commission_creditB\xbc\x02\n" +
 	"&com.ai.stigmer.billing.subscription.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/subscription/v1;subscriptionv1\xa2\x02\x04ASBS\xaa\x02\"Ai.Stigmer.Billing.Subscription.V1\xca\x02\"Ai\\Stigmer\\Billing\\Subscription\\V1\xe2\x02.Ai\\Stigmer\\Billing\\Subscription\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Billing::Subscription::V1b\x06proto3"
 
 var (

@@ -66,7 +66,13 @@
  *     library refuses one before it reads the subject;
  *   - no unit declares the require-authentication posture: the library's
  *     own refusal of an edition above open source with no sign-in names
- *     the variable an operator sets.
+ *     the variable an operator sets;
+ *   - the permission history: no unit registers `drivers.iamPolicyStore`,
+ *     so the library's own policy store serves, and the edition this host
+ *     declares opens it to record every access row change in the row's
+ *     transaction (the library's `iam_policy_history`, beside its rows).
+ *     A lapsed license keeps its edition, so it keeps recording
+ *     (editions/__tests__/enterprise-permission-history.postgres.test.ts).
  *
  * The pool closes with the process: the library has no unit stop hook, and
  * a process exit ends its connections. A test passes its own pool and owns

@@ -114,9 +114,9 @@ import {
   SCHEMA_VERSION_18,
   SCHEMA_VERSION_19,
   SCHEMA_VERSION_20,
-  SCHEMA_VERSION_26,
   SCHEMA_VERSION_27,
   SCHEMA_VERSION_28,
+  SCHEMA_VERSION_29,
   runMigrations,
 } from "../migrations.js";
 import { RETIREMENT_PAGE_SIZE } from "../../agent-instance-retired.js";
@@ -172,7 +172,7 @@ import {
 } from "./support.js";
 
 /** Builds the database a step starts from: the chain run up to `version`. */
-/** `bytes` as the head's store holds them: stamped with their etag (v28). */
+/** `bytes` as the head's store holds them: stamped with their etag (v29). */
 function stampedBytes(schema: DescMessage, bytes: Uint8Array): Uint8Array {
   const resource = fromBinary(schema, bytes);
   stampEtag(schema, resource);
@@ -370,6 +370,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "bootstrap_state",
           "connect_attempt",
           "connect_link",
+          "iam_policy_history",
+          "iam_policy_history_heads",
           "oauth_client_registration",
           "organization_deletions",
           "pending_oauth_state",
@@ -2266,7 +2268,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             const run = await store.getResource(ApiResourceKind.run, id, RunSchema);
             const atHead = fromBinary(RunSchema, bytes);
             atHead.kind = "Run";
-            // The head (v28) stamps every resource with its etag.
+            // The head (v29) stamps every resource with its etag.
             stampEtag(RunSchema, atHead);
             expect(toBinary(RunSchema, run), id).toEqual(toBinary(RunSchema, atHead));
           }
@@ -3180,7 +3182,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       });
     });
 
-    describe("v27 and v28: a session's harness state moves to its status, and every resource gains its etag", () => {
+    describe("v28 and v29: a session's harness state moves to its status, and every resource gains its etag", () => {
       const seededAt = new Date("2026-10-13T00:00:00Z");
       const ORG = "org_01jz0000000000000000000000";
 
@@ -3229,8 +3231,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
       }
 
-      it("v27 moves a Cursor session's harness id and history to its status, keeps its stamp, and leaves the rest byte for byte", async () => {
-        const client = await clientAt(SCHEMA_VERSION_26);
+      it("v28 moves a Cursor session's harness id and history to its status, keeps its stamp, and leaves the rest byte for byte", async () => {
+        const client = await clientAt(SCHEMA_VERSION_27);
         try {
           await insertRow(
             client,
@@ -3244,9 +3246,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           const untouched = currentSessionRow(conversation("ses_new"));
           await insertRow(client, "session", "ses_new", untouched);
 
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_27);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_28);
 
-          expect(await version(client)).toBe(SCHEMA_VERSION_27);
+          expect(await version(client)).toBe(SCHEMA_VERSION_28);
           const moved = await row(client, "session", "ses_cursor");
           expect(moved.data).toEqual(
             currentSessionRow({
@@ -3261,8 +3263,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
-      it("v27 reads sessions across keyset pages, and an unreadable one rolls the step back", async () => {
-        const client = await clientAt(SCHEMA_VERSION_26);
+      it("v28 reads sessions across keyset pages, and an unreadable one rolls the step back", async () => {
+        const client = await clientAt(SCHEMA_VERSION_27);
         try {
           for (let i = 0; i <= SESSION_HARNESS_PAGE_SIZE; i++) {
             const id = `ses_${String(i).padStart(4, "0")}`;
@@ -3271,12 +3273,12 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           const good = sessionRowWithValues(conversation("ses_a_good"), { harnessStateId: "thread-a" });
           await insertRow(client, "session", "ses_a_good", good);
           await insertRow(client, "session", "ses_zz_bad", new Uint8Array([0xff, 0xff, 0xff]));
-          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_27)).rejects.toThrow("session 'ses_zz_bad'");
-          expect(await version(client)).toBe(SCHEMA_VERSION_26);
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_28)).rejects.toThrow("session 'ses_zz_bad'");
+          expect(await version(client)).toBe(SCHEMA_VERSION_27);
           expect((await row(client, "session", "ses_a_good")).data).toEqual(good);
 
           await client.query(`DELETE FROM resources WHERE kind = 'session' AND id = 'ses_zz_bad'`);
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_27);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_28);
           const last = `ses_${String(SESSION_HARNESS_PAGE_SIZE).padStart(4, "0")}`;
           expect(fromBinary(SessionSchema, (await row(client, "session", last)).data).status?.harnessStateId).toBe(
             `thread-${SESSION_HARNESS_PAGE_SIZE}`,
@@ -3286,8 +3288,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
-      it("v28 stamps every resource of every kind with its etag across pages, keeps its stamp, and leaves an unknown kind's rows alone", async () => {
-        const client = await clientAt(SCHEMA_VERSION_27);
+      it("v29 stamps every resource of every kind with its etag across pages, keeps its stamp, and leaves an unknown kind's rows alone", async () => {
+        const client = await clientAt(SCHEMA_VERSION_28);
         try {
           for (let i = 0; i <= ETAG_STAMP_PAGE_SIZE; i++) {
             const id = `agt_${String(i).padStart(4, "0")}`;
@@ -3297,9 +3299,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           const foreign = new Uint8Array([0x0a, 0x01, 0x61]);
           await insertRow(client, "retired_kind", "rk_1", foreign);
 
-          await migrateTo(db.databaseUrl, SCHEMA_VERSION_28);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_29);
 
-          expect(await version(client)).toBe(SCHEMA_VERSION_28);
+          expect(await version(client)).toBe(SCHEMA_VERSION_29);
           const last = `agt_${String(ETAG_STAMP_PAGE_SIZE).padStart(4, "0")}`;
           const agent = await row(client, "agent", last);
           expect(fromBinary(AgentSchema, agent.data).metadata?.etag).toBe(etagOf(AgentSchema, reviewer(last)));
@@ -3312,8 +3314,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       });
 
-      it("v28 leaves a resource that does not decode as it is, stamps the rest, and reports it once", async () => {
-        const client = await clientAt(SCHEMA_VERSION_27);
+      it("v29 leaves a resource that does not decode as it is, stamps the rest, and reports it once", async () => {
+        const client = await clientAt(SCHEMA_VERSION_28);
         try {
           await insertRow(client, "agent", "agt_a_good", toBinary(AgentSchema, reviewer("agt_a_good")));
           const bad = new Uint8Array([0xff, 0xff, 0xff]);
@@ -3323,7 +3325,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           const pool = new pg.Pool({ connectionString: db.databaseUrl, max: 1 });
           const migrating = await pool.connect();
           try {
-            await runMigrations(migrating, SCHEMA_VERSION_28, {
+            await runMigrations(migrating, SCHEMA_VERSION_29, {
               debug() {},
               info() {},
               warn(message, fields) {
@@ -3335,7 +3337,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
             await pool.end();
           }
 
-          expect(await version(client)).toBe(SCHEMA_VERSION_28);
+          expect(await version(client)).toBe(SCHEMA_VERSION_29);
           expect((await row(client, "agent", "agt_b_bad")).data).toEqual(bad);
           for (const id of ["agt_a_good", "agt_c_good"]) {
             expect(fromBinary(AgentSchema, (await row(client, "agent", id)).data).metadata?.etag, id).toBe(

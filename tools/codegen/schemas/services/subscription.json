@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.billing.subscription.v1.GetPeriodEstimateInput",
           "outputType": "PeriodEstimate",
           "outputFullType": "ai.stigmer.billing.subscription.v1.PeriodEstimate",
-          "description": "Estimate what the organization's current period will be invoiced.\n\n The estimate is the invoice the period would close with: the plan's\n monthly fee over the whole period (not prorated to the time elapsed),\n plus the child organizations beyond those the plan includes. It is\n rated by the same rule the monthly close invoices by, so an estimate\n read at a period's end equals that period's invoice. Every other read\n derives it the same way; nothing is stored.\n\n NOT_FOUND when the organization has no live subscription: it is on\n Free, or it is a child organization on its parent's plan, and\n neither is invoiced a plan of its own."
+          "description": "Estimate what the organization's current period will be invoiced.\n\n The estimate is the invoice the period would close with: the plan's\n monthly fee over the whole period (not prorated to the time elapsed),\n plus the child organizations beyond those the plan includes, plus the\n agent hours worked so far beyond those the plan includes. It is rated\n by the same rule the monthly close invoices by, so an estimate read at\n a period's end equals that period's invoice once every turn's end is\n recorded. Every other read derives it the same way; nothing is stored.\n\n NOT_FOUND when the organization has no live subscription: it is on\n Free, or it is a child organization on its parent's plan, and\n neither is invoiced a plan of its own."
         }
       ]
     }
@@ -275,6 +275,16 @@
           },
           "description": "The estimated invoice total: the sum of the lines.",
           "required": false
+        },
+        {
+          "name": "WorkingSeconds",
+          "jsonName": "workingSeconds",
+          "protoField": "working_seconds",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "The working agent seconds counted against the plan this period so\n far: the organization's and its child organizations', never an\n automatic grade's.",
+          "required": false
         }
       ]
     }
@@ -385,6 +395,11 @@
           "name": "child_orgs",
           "number": 3,
           "description": "The child organizations beyond those the plan includes, at the\n plan's fee for each."
+        },
+        {
+          "name": "agent_hours",
+          "number": 4,
+          "description": "The working agent hours beyond those the plan includes, at the plan's\n hourly price; the period's allowance is prorated when the period is\n cut short."
         }
       ]
     }

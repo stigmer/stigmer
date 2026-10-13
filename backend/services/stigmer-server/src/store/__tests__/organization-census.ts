@@ -17,9 +17,11 @@
  *     `metadata.org`, every reference), is compared;
  *   - `none`: the table names no organization (the schema's own version);
  *   - `engine`: the search engine's own storage behind `search_index`
- *     (SQLite's FTS5 shadow tables), read through `search_index` itself.
+ *     (SQLite's FTS5 shadow tables), read through `search_index` itself;
+ *   - `kept`: the table outlives an organization's delete on purpose, its
+ *     reason beside it; its rows are not read.
  *
- * Every class but `none` and `engine` is scanned the same way: a row names
+ * Every class but `none`, `engine` and `kept` is scanned the same way: a row names
  * an id when any text column equals one, or, for `decoded`, when any
  * string inside the decoded resource does. The classes say why a table is
  * there; the scan stays blunt so no column escapes it.
@@ -43,7 +45,8 @@ export type CensusClass =
   | "id-as-value"
   | "decoded"
   | "none"
-  | "engine";
+  | "engine"
+  | "kept";
 
 /** Every table either driver creates, with how it names an organization. */
 export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
@@ -60,6 +63,10 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   connect_attempt: "org-column",
   session_events: "org-column",
   session_event_heads: "org-column",
+  // The permission history is the audit trail of who could reach what, so
+  // an organization's delete leaves it in place (store/permission-history.ts).
+  iam_policy_history: "kept",
+  iam_policy_history_heads: "kept",
   // A registered OAuth client is the login server's, shared by every
   // organization: it names none.
   oauth_client_registration: "none",
@@ -145,7 +152,7 @@ export async function organizationCensus(
   const findings: CensusFinding[] = [];
   for (const table of (await reader.tables()).sort()) {
     const tableClass = CENSUS_TABLES[table];
-    if (tableClass === "none" || tableClass === "engine") {
+    if (tableClass === "none" || tableClass === "engine" || tableClass === "kept") {
       continue;
     }
     for (const row of await reader.rows(table)) {

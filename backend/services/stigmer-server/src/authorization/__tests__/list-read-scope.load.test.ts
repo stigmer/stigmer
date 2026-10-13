@@ -457,7 +457,7 @@ describe.each(
 
     beforeEach(async () => {
       opened = await fixture.open();
-      policies = newResourceIamPolicyStore(opened.store);
+      policies = newResourceIamPolicyStore(opened.store, { keepsHistory: false });
       accounts = newResourceIdentityAccountStore(opened.store);
       for (const [id, subject] of [
         [FOUNDER, "auth0|founder"],
