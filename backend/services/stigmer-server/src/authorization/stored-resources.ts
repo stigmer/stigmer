@@ -13,12 +13,14 @@
  *     `metadata.org` still says it, the value the links were written from
  *     (pipeline/steps/authorization-facts.ts `parentLinksOf`; stigmer#1603).
  *
- * The row is read through the generic store with the schema the built-in
- * model binds to its kind, the same read the derived tuple source makes
- * for a check (derived-tuples.ts `loadRow`), and the creator is the stamp
- * that source derives an author's `owner` tuple from (`createdByOf`). A
- * kind the model binds no schema to, or a row the store does not hold (a
- * kind a composition keeps in its own table, or a row already deleted),
+ * The row is read where the built-in authorizer reads it: a unit's
+ * registered reader for a kind the unit keeps in a store of its own (a
+ * team, an identity provider, an invitation; `drivers.resourceRowReaders`),
+ * else the generic store with the schema the built-in model binds to its
+ * kind, the same read the derived tuple source makes for a check
+ * (derived-tuples.ts `loadRow`). The creator is the stamp that source
+ * derives an author's `owner` tuple from (`createdByOf`). A kind with no
+ * reader and no schema, or a row nobody holds (one already deleted),
  * answers no creator and no organization here, so no row of it is kept as
  * authorship and no record takes an organization from it. An account's
  * row answers neither: an account is no organization's resource, and its
@@ -29,6 +31,7 @@ import type { Message } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { StoredResources } from "../domain/iampolicy/grant-path.js";
+import type { ResourceRowReader } from "../extensions/resource-row-reader.js";
 import { kindByEnumName } from "../pipeline/apiresource-meta.js";
 import { createdByOf } from "../pipeline/steps/authorization-facts.js";
 import { metadataOf } from "../pipeline/steps/shapes.js";
@@ -36,20 +39,29 @@ import type { Store } from "../store/interface.js";
 import { ResourceNotFoundError } from "../store/interface.js";
 import { builtInModel } from "./model/index.js";
 
-export function newStoredResources(store: Store): StoredResources {
+export function newStoredResources(
+  store: Store,
+  rowReaders?: ReadonlyMap<ApiResourceKind, ResourceRowReader>,
+): StoredResources {
   /** The stored row of that kind and id, or undefined when this server holds none the grant path may read. */
   async function rowOf(
     kindName: string,
     id: string,
   ): Promise<Message | undefined> {
     const kind = kindByEnumName(kindName);
-    const schema = builtInModel.byKind(kind)?.schema;
     if (
       kind === ApiResourceKind.api_resource_kind_unknown ||
       kind === ApiResourceKind.identity_account ||
-      schema === undefined ||
       id === ""
     ) {
+      return undefined;
+    }
+    const reader = rowReaders?.get(kind);
+    if (reader !== undefined) {
+      return reader.findById(id);
+    }
+    const schema = builtInModel.byKind(kind)?.schema;
+    if (schema === undefined) {
       return undefined;
     }
     try {

@@ -115,6 +115,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type {
   ApiResourceRef,
@@ -148,6 +149,13 @@ import { refsOf, requireWellFormedTriple } from "./wire-refusals.js";
 
 /** The relation `cleanupResource` revokes last on the ref's own rows. */
 const OWNER_RELATION = IamRole[IamRole.owner];
+
+/** A move's refusal of an organization's owner: their own sign-in is the organization's way back in. */
+export const OWNER_ACCESS_NOT_MOVED_MESSAGE =
+  "an owner of the organization keeps their own sign-in, so their access is not moved";
+
+/** A move's refusal of a source and a target that are one account. */
+export const MOVE_TO_SELF_MESSAGE = "an account's access cannot move to itself";
 
 const ACCOUNT_KIND = kindEnumName(ApiResourceKind.identity_account);
 const ORGANIZATION_KIND = kindEnumName(ApiResourceKind.organization);
@@ -236,6 +244,24 @@ export interface IamPolicyGrantPath {
     organizationId: string,
     caller: CallerIdentity,
   ): Promise<void>;
+  /**
+   * Move every row the source account holds inside the organization (on
+   * the organization itself and on its resources, authorship included) to
+   * the target account, as `caller`, through the `access_moved` door:
+   * every grant to the target first, then every revoke from the source,
+   * then the source's departure. Refuses an owner of the organization
+   * (FAILED_PRECONDITION: an owner's access is never moved) and a move to
+   * itself (INVALID_ARGUMENT). With `previewOnly` nothing is written.
+   * Answers how many rows moved (or would). Re-runnable: a move that
+   * stopped partway completes.
+   */
+  moveOrgAccess(
+    fromAccountId: string,
+    toAccountId: string,
+    organizationId: string,
+    caller: CallerIdentity,
+    previewOnly: boolean,
+  ): Promise<number>;
 }
 
 /**
@@ -456,62 +482,169 @@ export function newIamPolicyGrantPath(
     await departures?.(accountId, organizationId, caller);
   }
 
-  return {
-    async grant(spec, caller, cause): Promise<GrantResult> {
-      requireWellFormedTriple(spec);
-      const change: Change = { actor: policyActorOf(caller), cause };
-      if (
-        spec.relation === AFFILIATED_RELATION &&
-        spec.resource?.kind === ORGANIZATION_KIND
-      ) {
-        throw new ConnectError(
-          AFFILIATION_NOT_GRANTABLE_MESSAGE,
-          Code.InvalidArgument,
+  /** The grant order for one triple through `change`'s door (the interface's `grant`). */
+  async function grantWith(
+    spec: IamPolicySpec,
+    caller: CallerIdentity,
+    change: Change,
+  ): Promise<GrantResult> {
+    requireWellFormedTriple(spec);
+    if (
+      spec.relation === AFFILIATED_RELATION &&
+      spec.resource?.kind === ORGANIZATION_KIND
+    ) {
+      throw new ConnectError(
+        AFFILIATION_NOT_GRANTABLE_MESSAGE,
+        Code.InvalidArgument,
+      );
+    }
+    let policy = await findByTriple(spec);
+    let duplicate = policy !== undefined;
+    if (policy === undefined) {
+      const fresh = buildRow(spec, caller);
+      const record = await recordFor(spec, change, organizationOfResource);
+      try {
+        await policies.save(fresh, record);
+        policy = fresh;
+        logger.info(
+          "iam policy granted",
+          fieldsOf(policyIdFor(spec), spec, change, record),
         );
-      }
-      let policy = await findByTriple(spec);
-      let duplicate = policy !== undefined;
-      if (policy === undefined) {
-        const fresh = buildRow(spec, caller);
-        const record = await recordFor(spec, change, organizationOfResource);
-        try {
-          await policies.save(fresh, record);
-          policy = fresh;
-          logger.info(
-            "iam policy granted",
-            fieldsOf(policyIdFor(spec), spec, change, record),
-          );
-        } catch (error) {
-          if (!(error instanceof DuplicatePolicyError)) {
-            throw error;
-          }
-          // Lost the race to another writer of the same triple: the
-          // winner's row is the grant, exactly as if it had been found
-          // above. A winner that cannot be read back means the refusal
-          // was not a race — propagate it.
-          const winner = await findByTriple(spec);
-          if (winner === undefined) {
-            throw error;
-          }
-          policy = winner;
-          duplicate = true;
+      } catch (error) {
+        if (!(error instanceof DuplicatePolicyError)) {
+          throw error;
         }
+        // Lost the race to another writer of the same triple: the
+        // winner's row is the grant, exactly as if it had been found
+        // above. A winner that cannot be read back means the refusal
+        // was not a race — propagate it.
+        const winner = await findByTriple(spec);
+        if (winner === undefined) {
+          throw error;
+        }
+        policy = winner;
+        duplicate = true;
       }
-      if (duplicate) {
-        logger.debug(
-          "iam policy already held",
-          fieldsOf(policy.metadata?.id ?? "", spec, change, undefined),
+    }
+    if (duplicate) {
+      logger.debug(
+        "iam policy already held",
+        fieldsOf(policy.metadata?.id ?? "", spec, change, undefined),
+      );
+    }
+    // Deliberately unconditional: a duplicate re-grant is the
+    // inline heal for a row whose tuple never landed.
+    await lifecycle?.onPolicyGranted?.({ policy, duplicate });
+    // The same unconditional heal for the affiliation the row stands for.
+    const affiliation = affiliationOf(spec);
+    if (affiliation !== undefined) {
+      await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
+    }
+    return { policy, duplicate };
+  }
+
+  /**
+   * The rows the account holds inside the organization: its rows on the
+   * organization itself, and its rows on resources the organization holds
+   * (resolved as a change record's organization is), in the order a move
+   * grants them (the organization's first, so the target is affiliated
+   * before it holds anything below).
+   */
+  async function rowsInsideOrganization(
+    accountId: string,
+    organizationId: string,
+  ): Promise<ReadonlyArray<IamPolicy>> {
+    const held = await policies.findByPrincipal(ACCOUNT_KIND, accountId);
+    const onOrganization: IamPolicy[] = [];
+    const below: IamPolicy[] = [];
+    for (const policy of held) {
+      const resource = policy.spec?.resource;
+      if (resource === undefined) {
+        continue;
+      }
+      if (resource.kind === ORGANIZATION_KIND) {
+        if (resource.id === organizationId) {
+          onOrganization.push(policy);
+        }
+        continue;
+      }
+      if ((await organizationOfResource(resource)) === organizationId) {
+        below.push(policy);
+      }
+    }
+    return [...onOrganization, ...below];
+  }
+
+  return {
+    grant(spec, caller, cause): Promise<GrantResult> {
+      return grantWith(spec, caller, { actor: policyActorOf(caller), cause });
+    },
+
+    async moveOrgAccess(
+      fromAccountId,
+      toAccountId,
+      organizationId,
+      caller,
+      previewOnly,
+    ): Promise<number> {
+      if (!previewOnly && fromAccountId === toAccountId) {
+        throw new ConnectError(MOVE_TO_SELF_MESSAGE, Code.InvalidArgument);
+      }
+      const inside = await rowsInsideOrganization(
+        fromAccountId,
+        organizationId,
+      );
+      const ownsOrganization = inside.some(
+        (policy) =>
+          policy.spec?.resource?.kind === ORGANIZATION_KIND &&
+          policy.spec.relation === OWNER_RELATION,
+      );
+      if (ownsOrganization) {
+        throw new ConnectError(
+          OWNER_ACCESS_NOT_MOVED_MESSAGE,
+          Code.FailedPrecondition,
         );
       }
-      // Deliberately unconditional: a duplicate re-grant is the
-      // inline heal for a row whose tuple never landed.
-      await lifecycle?.onPolicyGranted?.({ policy, duplicate });
-      // The same unconditional heal for the affiliation the row stands for.
-      const affiliation = affiliationOf(spec);
-      if (affiliation !== undefined) {
-        await lifecycle?.onOrganizationAffiliationChanged?.(affiliation);
+      if (previewOnly) {
+        return inside.length;
       }
-      return { policy, duplicate };
+      const change: Change = {
+        actor: policyActorOf(caller),
+        cause: "access_moved",
+      };
+      const inThisOrganization: OrganizationOf = async () => organizationId;
+      // Every grant first, so a move that stops partway leaves both
+      // accounts holding what was moved, never neither; a second run finds
+      // the target's rows held and the source's still there, and finishes.
+      for (const policy of inside) {
+        const spec = policy.spec;
+        if (spec?.principal === undefined) {
+          continue;
+        }
+        await grantWith(
+          create(IamPolicySpecSchema, {
+            ...spec,
+            principal: { ...spec.principal, id: toAccountId },
+          }),
+          caller,
+          change,
+        );
+      }
+      // Then every revoke, the organization's own rows last, so the source
+      // stays affiliated until nothing below depends on it.
+      for (const policy of [...inside].reverse()) {
+        await revokeRow(policy, change, inThisOrganization);
+      }
+      logger.info("iam policy organization access moved", {
+        fromIdentityAccountId: fromAccountId,
+        toIdentityAccountId: toAccountId,
+        organizationId,
+        moved: String(inside.length),
+      });
+      // The source now holds nothing in the organization: it departs, as
+      // a person removed from it does.
+      await departures?.(fromAccountId, organizationId, caller);
+      return inside.length;
     },
 
     async revokeBySpec(spec, caller): Promise<IamPolicy | undefined> {

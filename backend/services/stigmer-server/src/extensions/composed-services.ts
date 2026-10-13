@@ -39,6 +39,7 @@
  */
 import type { Transport } from "@connectrpc/connect";
 
+import type { AccountAutomations } from "../authorization/account-automations.js";
 import type { CreateAccount } from "../domain/identityaccount/provisioning.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
@@ -72,10 +73,15 @@ export interface ComposedIdentityAccounts {
  * relation on a kind; its grant gate finds a resource's structural link.
  * A write goes through the domain's grant path (an RPC over the in-process
  * transport), never through this store, so no second write path exists.
+ * A sign-in rule asks whether a person holds `owner` on an organization
+ * (one pair's rows), without the Authorizer the binding wraps.
  */
 export type ComposedIamPolicies = Pick<
   IamPolicyStore,
-  "findByResource" | "findScopeTuple" | "findByResourceKindAndRelation"
+  | "findByResource"
+  | "findScopeTuple"
+  | "findByResourceKindAndRelation"
+  | "findByPrincipalAndResource"
 >;
 
 export interface ComposedServices {
@@ -131,4 +137,12 @@ export interface ComposedServices {
    * rows never reach into the store's own.
    */
   readonly resourceNames: ResourceNameStore;
+  /**
+   * The automations that act as a person in an organization (schedules,
+   * evaluators, evals whose work runs as their creator,
+   * authorization/account-automations.ts): what stops when that person
+   * stops counting there. Empty in a composition whose mints act as
+   * accounts of their own.
+   */
+  readonly accountAutomations: AccountAutomations;
 }

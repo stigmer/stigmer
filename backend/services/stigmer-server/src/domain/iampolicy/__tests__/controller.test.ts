@@ -66,6 +66,7 @@ import type {
   AuthzCheck,
   AuthzDecision,
 } from "../../../extensions/authorizer.js";
+import type { ComposedCredentialBinding } from "../../../authorization/credential-binding.js";
 import type { CredentialBinding } from "../../../extensions/credential-binding.js";
 import { boundOrgOf } from "../../../extensions/identity.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -211,7 +212,8 @@ interface Harness {
 function stubCredentialBinding(
   outsideIds: ReadonlySet<string>,
   fault?: Error,
-): CredentialBinding {
+): CredentialBinding &
+  Pick<ComposedCredentialBinding, "signInRefusalOn" | "narrowSignInIds"> {
   return {
     verdict(caller, target) {
       if (fault !== undefined) {
@@ -227,6 +229,9 @@ function stubCredentialBinding(
       return bound === undefined || bound === org;
     },
     keepsEntry: () => Promise.resolve(true),
+    signInRefusal: () => Promise.resolve(undefined),
+    signInRefusalOn: () => Promise.resolve(undefined),
+    narrowSignInIds: (_caller, _kind, ids) => Promise.resolve(ids),
     narrowIds(caller, _kind, ids) {
       if (fault !== undefined) {
         return Promise.reject(fault);
@@ -306,6 +311,8 @@ async function harness(options: {
               ],
         ),
         edition: options.edition ?? ServerEdition.oss,
+        myVaultEntries: () => Promise.resolve([]),
+        automations: { actingAs: () => Promise.resolve([]) },
         logger: silent,
       });
     },

@@ -163,7 +163,13 @@ export type {
   Authorizer,
   AuthzCheck,
   AuthzDecision,
+  AuthzRefusal,
 } from "./extensions/authorizer.js";
+export type { OrganizationSignInRule } from "./extensions/organization-sign-in-rule.js";
+export type {
+  AccountAutomation,
+  AccountAutomations,
+} from "./authorization/account-automations.js";
 export type { GateSlotName } from "./extensions/gate-slots.js";
 export type {
   RunResponseDecorator,
@@ -519,6 +525,7 @@ export {
   internalError,
   invalidArgumentError,
   notFoundError,
+  permissionDeniedWithReasonError,
   rethrownStatusError,
   unauthenticatedWithReasonError,
   unavailableError,
@@ -578,7 +585,7 @@ export {
   parseBearerToken,
 } from "./pipeline/interceptors/auth.js";
 export { newPipeline } from "./pipeline/pipeline.js";
-export { newAuthorizeStep } from "./pipeline/steps/authorize.js";
+export { deniedError, newAuthorizeStep } from "./pipeline/steps/authorize.js";
 // The run gate's check set: an edition's Authorizer keys its lane
 // admission on this predicate — the runtime lanes it mints (a guest
 // share, a channel, a schedule fire) were admitted upstream by their own
