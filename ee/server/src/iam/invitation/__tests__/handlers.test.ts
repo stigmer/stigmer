@@ -106,6 +106,8 @@ import {
   type InvitationLaneDeps,
 } from "../handlers.js";
 import { InMemoryInvitationStore } from "./in-memory-invitation-store.js";
+import type { AuthzRefusal, CallerIdentity } from "@stigmer/server";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 
 const CALLER = "ida_caller";
 /** Who made a stored row, unless a case records another or none. */
@@ -180,6 +182,8 @@ function rig(
     warnings?: string[];
     /** Where the lane's errors go, when a case reads them; silent otherwise. */
     errors?: string[];
+    /** The organization's sign-in rule's refusal of a caller; none unless a case says otherwise. */
+    signInRefusal?: (caller: CallerIdentity, org: string) => AuthzRefusal | undefined;
   } = {},
 ): Rig {
   const creatorChecks: string[] = [];
@@ -221,6 +225,7 @@ function rig(
       return Promise.resolve(create(IamPolicySchema, { spec }));
     },
     cleanupResourcePolicies: unused,
+    bootstrapMoveOrgAccess: unused,
     bootstrapRevokeOrgAccess: (account, org) => {
       revokedOrgAccess.push(`${account}@${org}`);
       return Promise.resolve();
@@ -262,6 +267,7 @@ function rig(
         const bound = boundOrgOf(caller);
         return bound === undefined || bound === org;
       },
+      signInRefusal: (caller, org) => Promise.resolve(options.signInRefusal?.(caller, org)),
     },
     organizations: {
       find: options.organization ?? ((org) => Promise.resolve(org === "acme" ? acme : undefined)),
@@ -678,6 +684,26 @@ describe("redeem", () => {
     const own = rig({ decide: outsider, boundOrg: "acme" });
     await own.store.save(stored({ id: "inv_a", token: "Go" }));
     expect((await own.commands.redeem({ token: "Go" })).status?.redemptionCount).toBe(1);
+  });
+
+  it("refuses a person the organization's sign-in rule refuses, with its reason, before the membership check, granting nothing", async () => {
+    const refusal = {
+      reason: "SSO_REQUIRED",
+      message: "This organization requires you to sign in through Acme Okta.",
+      metadata: { org: "acme", provider: "acme-okta" },
+    };
+    const r = rig({
+      decide: outsider,
+      signInRefusal: (_caller, org) => (org === "acme" ? refusal : undefined),
+    });
+    await r.store.save(stored({ id: "inv_a", token: "Go" }));
+    const error = await failure(r.commands.redeem({ token: "Go" }));
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe(refusal.message);
+    expect(error.findDetails(ErrorInfoSchema)[0]?.reason).toBe("SSO_REQUIRED");
+    expect(r.checks).toHaveLength(0);
+    expect(r.granted).toHaveLength(0);
+    expect((await r.store.findById("inv_a"))?.status?.redemptionCount ?? 0).toBe(0);
   });
 
   it.each([

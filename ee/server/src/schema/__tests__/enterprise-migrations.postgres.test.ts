@@ -92,7 +92,7 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
     expect(schemasBefore).not.toContain("ee");
     expect(await schemas()).toEqual([...schemasBefore, "ee"].sort());
     expect(await ledger()).toEqual([ENTERPRISE_SCHEMA_VERSION]);
-    expect(ENTERPRISE_SCHEMA_VERSION).toBe(1);
+    expect(ENTERPRISE_SCHEMA_VERSION).toBe(2);
   });
 
   it("changes nothing when it runs again", async () => {
@@ -145,6 +145,37 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
       "iam_invitation_token",
     ]);
     expect(await indexesOf("iam_sign_in_grants")).toEqual(["iam_sign_in_grants_org", "iam_sign_in_grants_pkey"]);
+    expect(await indexesOf("iam_access_move_tickets")).toEqual([
+      "iam_access_move_tickets_expires",
+      "iam_access_move_tickets_org",
+      "iam_access_move_tickets_pkey",
+    ]);
+  });
+
+  it("brings a database at v1 to v2, adding the access move tickets and nothing else", async () => {
+    const earlier = await provisionEnterpriseDatabase({ migrate: false });
+    try {
+      const client = await earlier.pool.connect();
+      try {
+        await runEnterpriseMigrations(client, { through: 1 });
+        const tables = async () =>
+          (
+            await earlier.pool.query<{ table_name: string }>(
+              `SELECT table_name FROM information_schema.tables WHERE table_schema = 'ee' ORDER BY table_name`,
+            )
+          ).rows.map((row) => row.table_name);
+        const atV1 = await tables();
+        expect(atV1).not.toContain("iam_access_move_tickets");
+        await runEnterpriseMigrations(client);
+        expect(await tables()).toEqual([...atV1, "iam_access_move_tickets"].sort());
+        const ledger = await earlier.pool.query<{ version: number }>("SELECT version FROM ee.schema_version");
+        expect(ledger.rows).toEqual([{ version: 2 }]);
+      } finally {
+        client.release();
+      }
+    } finally {
+      await earlier.drop();
+    }
   });
 
   it("holds a team's slug per organization", async () => {
@@ -182,6 +213,12 @@ describe.skipIf(!TEST_DATABASE_URL)("the Enterprise schema chain", () => {
     const insert = `INSERT INTO ee.iam_invitation (id, data, org, token, created_at) VALUES ($1, '\\x', $2, $3, $4)`;
     await database.pool.query(insert, ["inv_a", "acme", "Token", CREATED]);
     expect(await refusedBy(insert, ["inv_b", "other", "Token", CREATED])).toBe("iam_invitation_token");
+  });
+
+  it("keeps one access move ticket per hash", async () => {
+    const insert = `INSERT INTO ee.iam_access_move_tickets (token_hash, account_id, org, expires_at) VALUES ($1, $2, $3, $4)`;
+    await database.pool.query(insert, ["hash_a", "ida_a", "acme", CREATED]);
+    expect(await refusedBy(insert, ["hash_a", "ida_b", "beta", CREATED])).toBe("iam_access_move_tickets_pkey");
   });
 
   it("keeps one sign-in grant per account and organization", async () => {

@@ -109,6 +109,7 @@ import { storedProvider } from "../../iam/provider/__tests__/in-memory-provider-
 import type { IdentityProviderStore } from "../../iam/provider/store.js";
 import { newEnterpriseIdentityExtension } from "../enterprise-identity.js";
 import type { ResourceNameStore } from "@stigmer/server";
+import type { AccountAutomations } from "@stigmer/server";
 
 const ENTERPRISE_SERVICES: ReadonlyArray<DescService> = [
   IdentityProviderCommandController,
@@ -125,6 +126,7 @@ function unit(): ServerExtension {
     teams: refusingPort("teams"),
     invitations: refusingPort("invitations"),
     signInGrants: refusingPort("signInGrants"),
+    accessMoves: refusingPort("accessMoves"),
     accounts: refusingPort("accounts"),
     schema: refusingPort("schema"),
     outboundFetch: REFUSING_FETCH,
@@ -256,6 +258,7 @@ function refusingComposition(overrides: Partial<ComposedServices> = {}): Compose
     childOrganizations: refusingPort<ChildOrganizations>("childOrganizations"),
     identityAccounts: refusingPort<ComposedIdentityAccounts>("identityAccounts"),
     iamPolicies: refusingPort<ComposedIamPolicies>("iamPolicies"),
+    accountAutomations: refusingPort<AccountAutomations>("accountAutomations"),
     inProcessTransport: createRouterTransport(() => {}),
     resourceNames: refusingPort<ResourceNameStore>("resourceNames"),
     ...overrides,
@@ -500,6 +503,7 @@ function repairRig(rows: {
           : Promise.resolve(rows.invitations),
     }),
     signInGrants: refusingPort("signInGrants"),
+    accessMoves: refusingPort("accessMoves"),
     accounts: refusingPort("accounts"),
     schema: { ensure: () => (rows.failSchema === true ? Promise.reject(new Error("schema down")) : Promise.resolve()) },
     outboundFetch: REFUSING_FETCH,
@@ -514,6 +518,7 @@ function repairRig(rows: {
   });
   const iamPolicies: ComposedIamPolicies = {
       findScopeTuple: () => Promise.resolve(undefined),
+      findByPrincipalAndResource: () => Promise.reject(new Error("no lane of this suite asks a pair")),
       findByResource: (_kind: string, id: string) => Promise.resolve(rows.policiesOn?.get(id) ?? []),
       findByResourceKindAndRelation: (kind: string, relation: string) =>
         rows.failKindReadFor?.has(kind) === true

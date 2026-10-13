@@ -3,7 +3,8 @@
  * for it move its access in one organization to the account that
  * organization's SSO provider signs the same person in as
  * (iam/access-move/handlers.ts). The host's Postgres adapter is
- * postgres-store.ts beside it.
+ * postgres-store.ts beside it; both answer the port's contract kit
+ * (store-contract.ts).
  *
  * Only a hash of the ticket is kept, as a password is: whoever reads the
  * table cannot redeem what it holds. A ticket is single-use: it is marked

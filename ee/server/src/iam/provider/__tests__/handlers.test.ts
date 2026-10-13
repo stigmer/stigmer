@@ -41,9 +41,16 @@
  *     the organization included;
  *   - listByOrg offers the organization's rows, newest first, to the list
  *     read scope and answers only what it allows;
- *   - getSsoProvider asks nobody and projects the expected audience, and a
+ *   - getSsoProvider asks nobody and projects the expected audience and
+ *     whether the organization requires sign-in through it, and a
  *     provider whose organization is gone or younger than it, or whose
  *     delete has begun, answers as no provider;
+ *   - the sign-in requirement: a create, update or delete that changes it
+ *     also asks the organization's owners (`can_assign_roles`), and one that
+ *     does not asks nothing more; turning it on asks the host's plan gate,
+ *     which never stops an organization keeping or dropping it; an update
+ *     that only turns it off passes a lapsed license's growth gate, which
+ *     refuses every other update; it is valid only on an SSO provider;
  *   - a provider whose delete did not finish refuses an update and an
  *     apply, FAILED_PRECONDITION, with copy that says to delete it again,
  *     after the caller's authorization and with nothing written; it no
@@ -78,7 +85,7 @@
  *     update that loaded the provider before a rename keeps the new slug;
  *     a provider being deleted and a service account's call are refused.
  */
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import {
   Code,
@@ -122,6 +129,10 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { InMemoryProviderStore, storedProvider } from "./in-memory-provider-store.js";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { inMemoryNames } from "../../../__test-utils__/in-memory-names.js";
+import { newInMemoryTicketStore } from "../../access-move/__tests__/in-memory-ticket-store.js";
+import type { GrowthGate } from "../../growth-gate.js";
+import { OWNERS_DECIDE_SSO_REQUIRED_MESSAGE } from "../sso-required-steps.js";
+import type { SsoPlanGate } from "../sso-required-steps.js";
 
 const ADMIN = "ida_admin";
 const JWKS = "https://idp.acme.test/.well-known/jwks.json";
@@ -248,6 +259,10 @@ function rig(
     parents?: ReadonlyMap<string, string>;
     /** Each organization's slug, by id; absent from it, an organization's slug is its id. */
     slugs?: ReadonlyMap<string, string>;
+    /** The host's growth gate; absent, every write may grow. */
+    growthGate?: GrowthGate;
+    /** The host's SSO plan gate; absent, every organization may require sign-in. */
+    ssoPlanGate?: SsoPlanGate;
   } = {},
 ): Rig {
   const store = options.store ?? new InMemoryProviderStore();
@@ -314,6 +329,23 @@ function rig(
     listReadScope,
     invalidate: () => {
       invalidated.count += 1;
+    },
+    ...(options.growthGate === undefined ? {} : { growthGate: options.growthGate }),
+    ...(options.ssoPlanGate === undefined ? {} : { ssoPlanGate: options.ssoPlanGate }),
+    // The access move and the requirement preview have suites of their own
+    // (iam/access-move/__tests__, requirement-preview.test.ts).
+    accessMove: {
+      tickets: newInMemoryTicketStore(),
+      accounts: { findById: () => Promise.reject(new Error("no move in this suite")) },
+      policies: { bootstrapMoveOrgAccess: () => Promise.reject(new Error("no move in this suite")) },
+      invitations: {
+        findIdsByOrg: () => Promise.reject(new Error("no move in this suite")),
+        findById: () => Promise.reject(new Error("no move in this suite")),
+      },
+    },
+    requirementPreview: {
+      policies: { findByResource: () => Promise.reject(new Error("no preview in this suite")) },
+      automations: { actingAs: () => Promise.reject(new Error("no preview in this suite")) },
     },
     organizations: {
       find: (org) => {
@@ -1481,5 +1513,154 @@ describe("the sign-in fields on save", () => {
     );
     expect(created.spec?.signInRole).toBe(signInRole);
     expect(r.store.size).toBe(1);
+  });
+});
+
+describe("the sign-in requirement", () => {
+  const OWNERS_ON_ACME: AuthzCheck = {
+    permission: IamPermission.can_assign_roles,
+    resourceKind: ApiResourceKind.organization,
+    resourceId: "acme",
+  };
+  /** An admin who is not an owner: everything but `can_assign_roles`. */
+  const adminOnly = (check: AuthzCheck): "allow" | "deny" =>
+    check.permission === IamPermission.can_assign_roles ? "deny" : "allow";
+
+  function requiring(required = true): IdentityProvider {
+    const sso = ssoWith({ createAccountsOnSignIn: true, signInRole: IamRole.viewer });
+    if (sso.spec !== undefined) {
+      sso.spec.ssoRequired = required;
+    }
+    return sso;
+  }
+
+  async function stored(r: Rig, required: boolean): Promise<IdentityProvider> {
+    const created = await r.commands.create(requiring(required));
+    r.checks.length = 0;
+    return created;
+  }
+
+  it("is valid only on the organization's SSO provider", async () => {
+    const r = rig();
+    const plain = provider();
+    if (plain.spec !== undefined) {
+      plain.spec.ssoRequired = true;
+    }
+    const error = await failure(r.commands.create(plain));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(r.store.size).toBe(0);
+  });
+
+  it("a create that sets it asks the organization's owners, and an admin who is not one is refused with nothing written", async () => {
+    const owner = rig();
+    const created = await owner.commands.create(requiring());
+    expect(created.spec?.ssoRequired).toBe(true);
+    expect(owner.checks).toContainEqual(OWNERS_ON_ACME);
+
+    const admin = rig({ decide: adminOnly });
+    const error = await failure(admin.commands.create(requiring()));
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
+    expect(admin.store.size).toBe(0);
+  });
+
+  it("an admin keeps editing everything else, and only a change of the requirement asks the owners", async () => {
+    const r = rig({ decide: adminOnly });
+    const created = await r.commands.create(requiring(false));
+    r.checks.length = 0;
+    const renamed = clone(IdentityProviderSchema, created);
+    if (renamed.spec !== undefined) {
+      renamed.spec.displayName = "Acme Okta";
+    }
+    expect((await r.commands.update(renamed)).spec?.displayName).toBe("Acme Okta");
+    expect(r.checks).not.toContainEqual(OWNERS_ON_ACME);
+
+    const turnedOn = clone(IdentityProviderSchema, renamed);
+    if (turnedOn.spec !== undefined) {
+      turnedOn.spec.ssoRequired = true;
+    }
+    const error = await failure(r.commands.update(turnedOn));
+    expect(error.rawMessage).toBe(OWNERS_DECIDE_SSO_REQUIRED_MESSAGE);
+    expect((await r.store.findById(created.metadata?.id ?? ""))?.spec?.ssoRequired).toBe(false);
+  });
+
+  it("deleting a provider that requires sign-in through it asks the owners; one that does not, never", async () => {
+    const owner = rig();
+    const on = await stored(owner, true);
+    await owner.commands.delete({ resourceId: on.metadata?.id ?? "" });
+    expect(owner.checks).toContainEqual(OWNERS_ON_ACME);
+
+    const admin = rig({ decide: adminOnly });
+    const kept = await admin.commands.create(requiring(false));
+    admin.checks.length = 0;
+    await admin.commands.delete({ resourceId: kept.metadata?.id ?? "" });
+    expect(admin.removed).toEqual([kept.metadata?.id]);
+    expect(admin.checks).not.toContainEqual(OWNERS_ON_ACME);
+  });
+
+  it("turning it on asks the plan, which never stops an organization keeping or dropping it", async () => {
+    const asked: string[] = [];
+    const noPlan: SsoPlanGate = {
+      allowsSsoEnforcement: (org) => {
+        asked.push(org);
+        return Promise.resolve(false);
+      },
+    };
+    const refused = await failure(rig({ ssoPlanGate: noPlan }).commands.create(requiring()));
+    expect(refused.code).toBe(Code.FailedPrecondition);
+    const [info] = refused.findDetails(ErrorInfoSchema);
+    expect(info?.reason).toBe("PLAN_UPGRADE_REQUIRED");
+    expect(info?.metadata).toEqual({ feature: "sso_enforcement", org: "acme" });
+
+    const r = rig({ ssoPlanGate: { allowsSsoEnforcement: () => Promise.resolve(true) } });
+    const on = await stored(r, true);
+    const later = rig({ ssoPlanGate: noPlan, store: r.store });
+    asked.length = 0;
+    const edited = clone(IdentityProviderSchema, on);
+    if (edited.spec !== undefined) {
+      edited.spec.displayName = "Acme Okta";
+    }
+    const kept = await later.commands.update(edited);
+    expect(kept.spec?.ssoRequired).toBe(true);
+    const off = clone(IdentityProviderSchema, kept);
+    if (off.spec !== undefined) {
+      off.spec.ssoRequired = false;
+    }
+    expect((await later.commands.update(off)).spec?.ssoRequired).toBe(false);
+    expect(asked).toEqual([]);
+  });
+
+  it("an update that only turns it off passes a lapsed license, which refuses every other update", async () => {
+    const r = rig();
+    const on = await stored(r, true);
+    const lapsed: GrowthGate = {
+      assertGrowthAllowed: () => {
+        throw new ConnectError("the license has ended", Code.FailedPrecondition);
+      },
+    };
+    const frozen = rig({ growthGate: lapsed, store: r.store });
+    const renamed = clone(IdentityProviderSchema, on);
+    if (renamed.spec !== undefined) {
+      renamed.spec.displayName = "Acme Okta";
+      renamed.spec.ssoRequired = false;
+    }
+    expect((await failure(frozen.commands.update(renamed))).rawMessage).toBe("the license has ended");
+
+    const off = clone(IdentityProviderSchema, on);
+    if (off.spec !== undefined) {
+      off.spec.ssoRequired = false;
+    }
+    expect((await frozen.commands.update(off)).spec?.ssoRequired).toBe(false);
+    const again = clone(IdentityProviderSchema, off);
+    if (again.spec !== undefined) {
+      again.spec.ssoRequired = true;
+    }
+    expect((await failure(frozen.commands.update(again))).rawMessage).toBe("the license has ended");
+  });
+
+  it("the login page reads whether the organization requires it", async () => {
+    const r = rig();
+    await stored(r, true);
+    expect((await r.queries.getSsoProvider({ org: "acme" })).ssoRequired).toBe(true);
   });
 });

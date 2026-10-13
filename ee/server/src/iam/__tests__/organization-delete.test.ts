@@ -133,11 +133,17 @@ describe("the identity purge stage", () => {
           return failing === "sign-in grants" ? Promise.reject(new Error("ledger down")) : Promise.resolve(2);
         },
       },
+      accessMoves: {
+        removeByOrgId: (org: string) => {
+          calls.push(`access moves:${org}`);
+          return Promise.resolve(0);
+        },
+      },
       logger: silent,
     };
   }
 
-  it("removes the teams, providers, the sign-in grant ledger's rows and invitations of the organization being purged, as the purge", async () => {
+  it("removes the teams, providers, the sign-in grant ledger's rows, invitations and access move tickets of the organization being purged, as the purge", async () => {
     const calls: string[] = [];
     const stage = newOrganizationIdentityPurgeStage(removals(calls));
     expect(stage.name).toBe(IDENTITY_PURGE_STAGE);
@@ -158,6 +164,7 @@ describe("the identity purge stage", () => {
       "providers:org_acme:organization-purge",
       "sign-in grants:org_acme",
       "invitations:org_acme:organization-purge",
+      "access moves:org_acme",
     ]);
   });
 
