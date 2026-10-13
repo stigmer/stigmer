@@ -161,6 +161,19 @@ describe("the ask's policy source", () => {
       expect(POLICY_SOURCE_WORDS[value.number as ApprovalPolicySource]).toBe(value.number === 0 ? "" : value.localName.toLowerCase());
     }
   });
+
+  it("carries the content digest the call was asked under, which a resumed turn reads back as the edit an approval allows", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const waiting = { name: "write", status: S.TOOL_CALL_WAITING_APPROVAL, requiresApproval: true, result: "" };
+    const st = status({
+      messages: [{ type: AI, content: "Writing.", toolCalls: [row("w", { ...waiting, approvalContentDigest: "d1" }), row("s", { ...waiting, name: "shell" })] }],
+    });
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(st, { final: true });
+    const asks = log.events.flatMap((ev) => (ev.event.case === "stigmerPermissionAsked" ? [ev.event.value] : []));
+    expect(asks.map((ask) => [ask.toolUseId.slice(RUN.length + 1), ask.contentDigest])).toEqual([["w", "d1"], ["s", ""]]);
+  });
 });
 
 describe("a harness whose boundary rewrites rows", () => {

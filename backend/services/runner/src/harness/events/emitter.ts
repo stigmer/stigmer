@@ -496,6 +496,7 @@ export class SessionEventEmitter {
           argsPreview: row.argsPreview,
           policySource: POLICY_SOURCE_WORDS[row.approvalPolicySource],
           policyHook: row.approvalPolicyHook,
+          contentDigest: row.approvalContentDigest,
         },
       });
     }
