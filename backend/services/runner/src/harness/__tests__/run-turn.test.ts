@@ -164,6 +164,31 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(systemMessages(driver.record.rowsOf(final)), "no terminal copy: the run ended normally").toEqual([]);
     });
 
+    it("a resumed invocation that writes no message still reports the run's answer: its newest answer in the log", async () => {
+      // Turn 1 answers and asks; the approved resume only runs the call and
+      // writes no message of its own. The run's answer is turn 1's, read
+      // from the session's log, and the structured output the execution
+      // asked for is extracted from it at the completion.
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-resumed-answer", {
+        structuredOutputSchema: { type: "object", properties: { answer: { type: "number" } }, required: ["answer"] },
+      });
+      const propose = scenario.propose("fake-resumed-answer-shell", { kind: "shell", resource: "make report" });
+      const first = await driver.turn([scenario.say('{"answer": 42}'), propose]);
+      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+      expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
+
+      // The read's awaited persist lands the approved call's write before the
+      // turn completes, so the completion is the turn's one write in flight.
+      const second = await driver.turn([propose, scenario.read("fake-resumed-answer-read", "notes.md")]);
+      expect(slimOf(subject, second).phase).toBe("RUN_COMPLETED");
+      expect(aiMessages(driver.record.lastFullRows!), "the resumed invocation wrote no message").toEqual([]);
+      expect(driver.record.lastFullRows?.structuredOutput, "the run's answer is reported").toEqual({ answer: 42 });
+      const outputs = driver.record.sessionEvents.flatMap((e) => (e.event.case === "stigmerAgentStructuredOutput" ? [e.event.value.output] : []));
+      expect(outputs, "and written to the log").toEqual([{ answer: 42 }]);
+      expect(driver.record.refusedAppends).toEqual([]);
+    });
+
     it("structured output on a turn with captured edits is resolved at its completion: review never holds the answer back", async () => {
       clock.reset();
       const driver = new RuntimeExecutionDriver(harness, "fake-review-structured", {
