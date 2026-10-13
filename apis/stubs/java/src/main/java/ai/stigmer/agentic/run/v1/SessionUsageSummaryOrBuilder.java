@@ -53,16 +53,6 @@ public interface SessionUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total billable cost in micro-USD for this session.
-   * </pre>
-   *
-   * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
-   */
-  long getBillableCostMicros();
-
-  /**
-   * <pre>
    * ISO 8601 timestamp of the first run in this session.
    * </pre>
    *

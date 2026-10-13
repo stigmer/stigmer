@@ -6,7 +6,6 @@ import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/usage.proto";
 import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
 import "buf/validate/validate.proto";
-import "google/protobuf/timestamp.proto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Command Inputs & Responses
@@ -216,55 +215,6 @@ message CreatePaymentMethodSetupSessionResponse {
 // GetBillingAccountInput retrieves the billing account for an organization.
 message GetBillingAccountInput {
   string org = 1 [(buf.validate.field).required = true];
-}
-
-// GetBillingUsageReportInput requests the counts of an organization's
-// metered calls and runs in a period.
-message GetBillingUsageReportInput {
-  string org = 1 [(buf.validate.field).required = true];
-
-  // Start of the reporting period.
-  google.protobuf.Timestamp start_time = 2 [(buf.validate.field).required = true];
-
-  // End of the reporting period.
-  google.protobuf.Timestamp end_time = 3 [(buf.validate.field).required = true];
-}
-
-// BillingUsageReportResponse counts the metered calls and runs in the
-// period. It carries no amount: calls are metered, never priced.
-message BillingUsageReportResponse {
-  // 1 and 2 held total_provider_cost_micros and
-  // total_billable_amount_micros, the period's priced and charged totals.
-  // Calls are metered and never priced or charged, so the numbers and the
-  // names are reserved so neither is ever reused for a different field.
-  reserved 1, 2;
-  reserved "total_provider_cost_micros", "total_billable_amount_micros";
-
-  // Number of runs in the period.
-  int32 run_count = 3;
-
-  // Number of LLM calls in the period.
-  int32 llm_call_count = 4;
-
-  // Calls in the period, by model and harness.
-  repeated ModelBillingBreakdown model_breakdown = 5;
-}
-
-// ModelBillingBreakdown counts the period's calls for one model on one
-// harness.
-message ModelBillingBreakdown {
-  string model = 1;
-  string harness = 2;
-
-  // 3, 4 and 5 held cost_tier, provider_cost_micros and
-  // billable_amount_micros: the model's pricing bracket and its priced and
-  // charged totals. Calls are metered and never priced or charged, so the
-  // numbers and the names are reserved so neither is ever reused for a
-  // different field.
-  reserved 3, 4, 5;
-  reserved "cost_tier", "provider_cost_micros", "billable_amount_micros";
-
-  int32 call_count = 6;
 }
 
 // UpsertModelPricingBaselineInput creates or revises one model registry

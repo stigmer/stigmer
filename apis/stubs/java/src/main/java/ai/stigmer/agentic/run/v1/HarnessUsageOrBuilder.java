@@ -6,8 +6,8 @@
 package ai.stigmer.agentic.run.v1;
 
 @com.google.protobuf.Generated
-public interface HarnessCostSummaryOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.run.v1.HarnessCostSummary)
+public interface HarnessUsageOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.run.v1.HarnessUsage)
     com.google.protobuf.MessageOrBuilder {
 
   /**
@@ -32,17 +32,17 @@ public interface HarnessCostSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total billable cost in micro-USD for this harness.
+   * Total tokens through this harness (cache-inclusive, as the aggregate's).
    * </pre>
    *
-   * <code>int64 billable_cost_micros = 2 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
+   * <code>int64 total_tokens = 2 [json_name = "totalTokens"];</code>
+   * @return The totalTokens.
    */
-  long getBillableCostMicros();
+  long getTotalTokens();
 
   /**
    * <pre>
-   * Number of LLM API calls through this harness.
+   * Number of metered LLM API calls through this harness.
    * </pre>
    *
    * <code>int32 call_count = 3 [json_name = "callCount"];</code>

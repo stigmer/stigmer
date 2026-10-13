@@ -873,9 +873,9 @@ func (x *LlmCallUsageRecord) GetLabels() map[string]string {
 
 // Aggregated usage across a scope (run, session, agent, or org).
 //
-// Used as the `total_usage` field in session and agent usage report responses.
-// All token fields are int64 to support large aggregates (org-wide, multi-day).
-// Cost fields are int64 micro-USD for precision.
+// Used as the aggregate of a run report and the `total_usage` of the
+// session, agent and organization reports. All token fields are int64 to
+// support large aggregates (org-wide, multi-day).
 type UsageReportAggregate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Non-cached input tokens (disjoint from the cache buckets below).
@@ -890,18 +890,19 @@ type UsageReportAggregate struct {
 	CacheCreationInputTokens int64 `protobuf:"varint,4,opt,name=cache_creation_input_tokens,json=cacheCreationInputTokens,proto3" json:"cache_creation_input_tokens,omitempty"`
 	CacheReadInputTokens     int64 `protobuf:"varint,5,opt,name=cache_read_input_tokens,json=cacheReadInputTokens,proto3" json:"cache_read_input_tokens,omitempty"`
 	ReasoningTokens          int64 `protobuf:"varint,6,opt,name=reasoning_tokens,json=reasoningTokens,proto3" json:"reasoning_tokens,omitempty"`
-	// Number of LLM API calls in this aggregate.
+	// Number of metered LLM API calls in this aggregate. A run counted from
+	// its runner's own report adds its tokens and no calls.
 	LlmCallCount int32 `protobuf:"varint,10,opt,name=llm_call_count,json=llmCallCount,proto3" json:"llm_call_count,omitempty"`
-	// Cost in micro-USD (1 USD = 1,000,000 micros).
-	// billable = what the customer pays (with markup).
-	// provider = what Stigmer pays the LLM provider (raw).
-	BillableCostMicros int64 `protobuf:"varint,20,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
-	ProviderCostMicros int64 `protobuf:"varint,21,opt,name=provider_cost_micros,json=providerCostMicros,proto3" json:"provider_cost_micros,omitempty"`
-	// Primary model and provider (most-used by call count).
+	// Primary model and provider: the model with the most tokens in this
+	// aggregate. The provider is empty when a runner-reported run's harness
+	// names none.
 	PrimaryModel    string `protobuf:"bytes,30,opt,name=primary_model,json=primaryModel,proto3" json:"primary_model,omitempty"`
 	PrimaryProvider string `protobuf:"bytes,31,opt,name=primary_provider,json=primaryProvider,proto3" json:"primary_provider,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// The aggregate's tokens and calls by whose provider credential served
+	// them. The rows always sum to total_tokens and llm_call_count.
+	ServedBy      []*ServedByUsage `protobuf:"bytes,40,rep,name=served_by,json=servedBy,proto3" json:"served_by,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UsageReportAggregate) Reset() {
@@ -983,20 +984,6 @@ func (x *UsageReportAggregate) GetLlmCallCount() int32 {
 	return 0
 }
 
-func (x *UsageReportAggregate) GetBillableCostMicros() int64 {
-	if x != nil {
-		return x.BillableCostMicros
-	}
-	return 0
-}
-
-func (x *UsageReportAggregate) GetProviderCostMicros() int64 {
-	if x != nil {
-		return x.ProviderCostMicros
-	}
-	return 0
-}
-
 func (x *UsageReportAggregate) GetPrimaryModel() string {
 	if x != nil {
 		return x.PrimaryModel
@@ -1011,10 +998,83 @@ func (x *UsageReportAggregate) GetPrimaryProvider() string {
 	return ""
 }
 
+func (x *UsageReportAggregate) GetServedBy() []*ServedByUsage {
+	if x != nil {
+		return x.ServedBy
+	}
+	return nil
+}
+
+// Usage served by one kind of provider credential within an aggregate.
+type ServedByUsage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Whose credential served the calls. UNSPECIFIED counts the tokens whose
+	// server is not known: a run counted from its runner's own report, or a
+	// metered record written before the meter recorded the credential.
+	ProviderKeySource ProviderKeySource `protobuf:"varint,1,opt,name=provider_key_source,json=providerKeySource,proto3,enum=ai.stigmer.agentic.run.v1.ProviderKeySource" json:"provider_key_source,omitempty"`
+	// Total tokens served this way (cache-inclusive, as the aggregate's).
+	TotalTokens int64 `protobuf:"varint,2,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	// Number of metered LLM API calls served this way.
+	LlmCallCount  int32 `protobuf:"varint,3,opt,name=llm_call_count,json=llmCallCount,proto3" json:"llm_call_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ServedByUsage) Reset() {
+	*x = ServedByUsage{}
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServedByUsage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServedByUsage) ProtoMessage() {}
+
+func (x *ServedByUsage) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServedByUsage.ProtoReflect.Descriptor instead.
+func (*ServedByUsage) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ServedByUsage) GetProviderKeySource() ProviderKeySource {
+	if x != nil {
+		return x.ProviderKeySource
+	}
+	return ProviderKeySource_PROVIDER_KEY_SOURCE_UNSPECIFIED
+}
+
+func (x *ServedByUsage) GetTotalTokens() int64 {
+	if x != nil {
+		return x.TotalTokens
+	}
+	return 0
+}
+
+func (x *ServedByUsage) GetLlmCallCount() int32 {
+	if x != nil {
+		return x.LlmCallCount
+	}
+	return 0
+}
+
 // Per-model usage breakdown within a report scope.
 //
-// Groups token counts and cost by (model, provider) pair. Used in
-// model_breakdown repeated fields on report responses.
+// Groups token counts by (model, provider) pair. Used in model_breakdown
+// repeated fields on report responses, ordered by total_tokens descending.
 type ModelUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Model identifier as resolved by the provider.
@@ -1026,18 +1086,17 @@ type ModelUsage struct {
 	OutputTokens             int64 `protobuf:"varint,4,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
 	CacheCreationInputTokens int64 `protobuf:"varint,5,opt,name=cache_creation_input_tokens,json=cacheCreationInputTokens,proto3" json:"cache_creation_input_tokens,omitempty"`
 	CacheReadInputTokens     int64 `protobuf:"varint,6,opt,name=cache_read_input_tokens,json=cacheReadInputTokens,proto3" json:"cache_read_input_tokens,omitempty"`
-	// Number of LLM API calls to this model.
+	// Number of metered LLM API calls to this model.
 	CallCount int32 `protobuf:"varint,7,opt,name=call_count,json=callCount,proto3" json:"call_count,omitempty"`
-	// Cost in micro-USD for this model.
-	BillableCostMicros int64 `protobuf:"varint,8,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
-	ProviderCostMicros int64 `protobuf:"varint,9,opt,name=provider_cost_micros,json=providerCostMicros,proto3" json:"provider_cost_micros,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Total tokens for this model (cache-inclusive, as the aggregate's).
+	TotalTokens   int64 `protobuf:"varint,10,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ModelUsage) Reset() {
 	*x = ModelUsage{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1049,7 +1108,7 @@ func (x *ModelUsage) String() string {
 func (*ModelUsage) ProtoMessage() {}
 
 func (x *ModelUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1062,7 +1121,7 @@ func (x *ModelUsage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelUsage.ProtoReflect.Descriptor instead.
 func (*ModelUsage) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ModelUsage) GetModel() string {
@@ -1114,16 +1173,9 @@ func (x *ModelUsage) GetCallCount() int32 {
 	return 0
 }
 
-func (x *ModelUsage) GetBillableCostMicros() int64 {
+func (x *ModelUsage) GetTotalTokens() int64 {
 	if x != nil {
-		return x.BillableCostMicros
-	}
-	return 0
-}
-
-func (x *ModelUsage) GetProviderCostMicros() int64 {
-	if x != nil {
-		return x.ProviderCostMicros
+		return x.TotalTokens
 	}
 	return 0
 }
@@ -1146,8 +1198,9 @@ type StreamingUsageSummary struct {
 	TotalTokens int64 `protobuf:"varint,5,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	// Number of completed turns observed.
 	TurnCount int32 `protobuf:"varint,6,opt,name=turn_count,json=turnCount,proto3" json:"turn_count,omitempty"`
-	// Estimated cost in USD computed from runner-side rate card.
-	// Labeled "Estimated" in the UI — not provider-verified.
+	// Estimated cost in USD computed from the runner-side rate card (the
+	// providers' list prices): the working number of the run's cost cap
+	// (RunConfig.max_cost_usd). No usage report reads it.
 	EstimatedCostUsd float64 `protobuf:"fixed64,7,opt,name=estimated_cost_usd,json=estimatedCostUsd,proto3" json:"estimated_cost_usd,omitempty"`
 	// Model identifier the runner requested for this run's turns.
 	Model string `protobuf:"bytes,8,opt,name=model,proto3" json:"model,omitempty"`
@@ -1176,7 +1229,7 @@ type StreamingUsageSummary struct {
 
 func (x *StreamingUsageSummary) Reset() {
 	*x = StreamingUsageSummary{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1188,7 +1241,7 @@ func (x *StreamingUsageSummary) String() string {
 func (*StreamingUsageSummary) ProtoMessage() {}
 
 func (x *StreamingUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1201,7 +1254,7 @@ func (x *StreamingUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamingUsageSummary.ProtoReflect.Descriptor instead.
 func (*StreamingUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *StreamingUsageSummary) GetInputTokens() int64 {
@@ -1361,7 +1414,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x06labels\x18Z \x03(\v29.ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x17\x10\x18J\x04\b&\x10'J\x04\b'\x10(J\x04\b+\x10,J\x04\b3\x104J\x04\bP\x10QR\vis_billableR\x11cursor_account_idR\rcursor_key_idR\x11cursor_key_sourceR\x04costR\abilling\"\xfc\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x17\x10\x18J\x04\b&\x10'J\x04\b'\x10(J\x04\b+\x10,J\x04\b3\x104J\x04\bP\x10QR\vis_billableR\x11cursor_account_idR\rcursor_key_idR\x11cursor_key_sourceR\x04costR\abilling\"\x97\x04\n" +
 	"\x14UsageReportAggregate\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12!\n" +
@@ -1370,11 +1423,14 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x17cache_read_input_tokens\x18\x05 \x01(\x03R\x14cacheReadInputTokens\x12)\n" +
 	"\x10reasoning_tokens\x18\x06 \x01(\x03R\x0freasoningTokens\x12$\n" +
 	"\x0ellm_call_count\x18\n" +
-	" \x01(\x05R\fllmCallCount\x120\n" +
-	"\x14billable_cost_micros\x18\x14 \x01(\x03R\x12billableCostMicros\x120\n" +
-	"\x14provider_cost_micros\x18\x15 \x01(\x03R\x12providerCostMicros\x12#\n" +
+	" \x01(\x05R\fllmCallCount\x12#\n" +
 	"\rprimary_model\x18\x1e \x01(\tR\fprimaryModel\x12)\n" +
-	"\x10primary_provider\x18\x1f \x01(\tR\x0fprimaryProvider\"\xff\x02\n" +
+	"\x10primary_provider\x18\x1f \x01(\tR\x0fprimaryProvider\x12E\n" +
+	"\tserved_by\x18( \x03(\v2(.ai.stigmer.agentic.run.v1.ServedByUsageR\bservedByJ\x04\b\x14\x10\x15J\x04\b\x15\x10\x16R\x14billable_cost_microsR\x14provider_cost_micros\"\xb6\x01\n" +
+	"\rServedByUsage\x12\\\n" +
+	"\x13provider_key_source\x18\x01 \x01(\x0e2,.ai.stigmer.agentic.run.v1.ProviderKeySourceR\x11providerKeySource\x12!\n" +
+	"\ftotal_tokens\x18\x02 \x01(\x03R\vtotalTokens\x12$\n" +
+	"\x0ellm_call_count\x18\x03 \x01(\x05R\fllmCallCount\"\xf6\x02\n" +
 	"\n" +
 	"ModelUsage\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12\x1a\n" +
@@ -1384,9 +1440,10 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x1bcache_creation_input_tokens\x18\x05 \x01(\x03R\x18cacheCreationInputTokens\x125\n" +
 	"\x17cache_read_input_tokens\x18\x06 \x01(\x03R\x14cacheReadInputTokens\x12\x1d\n" +
 	"\n" +
-	"call_count\x18\a \x01(\x05R\tcallCount\x120\n" +
-	"\x14billable_cost_micros\x18\b \x01(\x03R\x12billableCostMicros\x120\n" +
-	"\x14provider_cost_micros\x18\t \x01(\x03R\x12providerCostMicros\"\xd5\x04\n" +
+	"call_count\x18\a \x01(\x05R\tcallCount\x12!\n" +
+	"\ftotal_tokens\x18\n" +
+	" \x01(\x03R\vtotalTokensJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"R\x14billable_cost_microsR\x14provider_cost_micros\"\xd5\x04\n" +
 	"\x15StreamingUsageSummary\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12*\n" +
@@ -1444,7 +1501,7 @@ func file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_agentic_run_v1_usage_proto_goTypes = []any{
 	(UsageMeteringSource)(0),      // 0: ai.stigmer.agentic.run.v1.UsageMeteringSource
 	(UsageTrustLevel)(0),          // 1: ai.stigmer.agentic.run.v1.UsageTrustLevel
@@ -1454,37 +1511,40 @@ var file_ai_stigmer_agentic_run_v1_usage_proto_goTypes = []any{
 	(*ProxyTiming)(nil),           // 5: ai.stigmer.agentic.run.v1.ProxyTiming
 	(*LlmCallUsageRecord)(nil),    // 6: ai.stigmer.agentic.run.v1.LlmCallUsageRecord
 	(*UsageReportAggregate)(nil),  // 7: ai.stigmer.agentic.run.v1.UsageReportAggregate
-	(*ModelUsage)(nil),            // 8: ai.stigmer.agentic.run.v1.ModelUsage
-	(*StreamingUsageSummary)(nil), // 9: ai.stigmer.agentic.run.v1.StreamingUsageSummary
-	nil,                           // 10: ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntry
-	nil,                           // 11: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntry
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
-	(ServiceTier)(0),              // 13: ai.stigmer.agentic.run.v1.ServiceTier
-	(ThinkingMode)(0),             // 14: ai.stigmer.agentic.run.v1.ThinkingMode
+	(*ServedByUsage)(nil),         // 8: ai.stigmer.agentic.run.v1.ServedByUsage
+	(*ModelUsage)(nil),            // 9: ai.stigmer.agentic.run.v1.ModelUsage
+	(*StreamingUsageSummary)(nil), // 10: ai.stigmer.agentic.run.v1.StreamingUsageSummary
+	nil,                           // 11: ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntry
+	nil,                           // 12: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntry
+	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
+	(ServiceTier)(0),              // 14: ai.stigmer.agentic.run.v1.ServiceTier
+	(ThinkingMode)(0),             // 15: ai.stigmer.agentic.run.v1.ThinkingMode
 }
 var file_ai_stigmer_agentic_run_v1_usage_proto_depIdxs = []int32{
-	10, // 0: ai.stigmer.agentic.run.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntry
-	12, // 1: ai.stigmer.agentic.run.v1.ProxyTiming.proxy_received_at:type_name -> google.protobuf.Timestamp
-	12, // 2: ai.stigmer.agentic.run.v1.ProxyTiming.upstream_request_started_at:type_name -> google.protobuf.Timestamp
-	12, // 3: ai.stigmer.agentic.run.v1.ProxyTiming.first_response_byte_at:type_name -> google.protobuf.Timestamp
-	12, // 4: ai.stigmer.agentic.run.v1.ProxyTiming.last_response_byte_at:type_name -> google.protobuf.Timestamp
-	12, // 5: ai.stigmer.agentic.run.v1.ProxyTiming.proxy_completed_at:type_name -> google.protobuf.Timestamp
-	12, // 6: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.observed_at:type_name -> google.protobuf.Timestamp
-	12, // 7: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.created_at:type_name -> google.protobuf.Timestamp
+	11, // 0: ai.stigmer.agentic.run.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntry
+	13, // 1: ai.stigmer.agentic.run.v1.ProxyTiming.proxy_received_at:type_name -> google.protobuf.Timestamp
+	13, // 2: ai.stigmer.agentic.run.v1.ProxyTiming.upstream_request_started_at:type_name -> google.protobuf.Timestamp
+	13, // 3: ai.stigmer.agentic.run.v1.ProxyTiming.first_response_byte_at:type_name -> google.protobuf.Timestamp
+	13, // 4: ai.stigmer.agentic.run.v1.ProxyTiming.last_response_byte_at:type_name -> google.protobuf.Timestamp
+	13, // 5: ai.stigmer.agentic.run.v1.ProxyTiming.proxy_completed_at:type_name -> google.protobuf.Timestamp
+	13, // 6: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.observed_at:type_name -> google.protobuf.Timestamp
+	13, // 7: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 8: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.metering_source:type_name -> ai.stigmer.agentic.run.v1.UsageMeteringSource
 	1,  // 9: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.trust_level:type_name -> ai.stigmer.agentic.run.v1.UsageTrustLevel
 	2,  // 10: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.usage_status:type_name -> ai.stigmer.agentic.run.v1.UsageCompletionStatus
 	3,  // 11: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.provider_key_source:type_name -> ai.stigmer.agentic.run.v1.ProviderKeySource
 	4,  // 12: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.tokens:type_name -> ai.stigmer.agentic.run.v1.TokenUsage
 	5,  // 13: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.proxy_timing:type_name -> ai.stigmer.agentic.run.v1.ProxyTiming
-	11, // 14: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntry
-	13, // 15: ai.stigmer.agentic.run.v1.StreamingUsageSummary.requested_service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
-	14, // 16: ai.stigmer.agentic.run.v1.StreamingUsageSummary.requested_thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	12, // 14: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntry
+	8,  // 15: ai.stigmer.agentic.run.v1.UsageReportAggregate.served_by:type_name -> ai.stigmer.agentic.run.v1.ServedByUsage
+	3,  // 16: ai.stigmer.agentic.run.v1.ServedByUsage.provider_key_source:type_name -> ai.stigmer.agentic.run.v1.ProviderKeySource
+	14, // 17: ai.stigmer.agentic.run.v1.StreamingUsageSummary.requested_service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
+	15, // 18: ai.stigmer.agentic.run.v1.StreamingUsageSummary.requested_thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_usage_proto_init() }
@@ -1499,7 +1559,7 @@ func file_ai_stigmer_agentic_run_v1_usage_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc), len(file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

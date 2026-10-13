@@ -316,19 +316,21 @@ message LlmCallUsageRecord {
 // ═══════════════════════════════════════════════════════════════════════════════
 // USAGE REPORT TYPES
 //
-// Aggregate types used by usage report RPC responses. All token counts are
-// int64 and all cost amounts are int64 micro-USD (1 USD = 1,000,000 micros).
+// Aggregate types used by usage report RPC responses. Usage is counted in
+// tokens and calls, never priced: every token count is int64.
 //
-// Data is sourced from LlmCallUsageRecord in the llm_call_usage_record
-// collection. In OSS mode (no proxy), the collection is empty and reports
-// return zeroes.
+// Each run is counted from one source. When the deployment meters model
+// calls (a proxy that writes LlmCallUsageRecord), a run it metered is
+// counted from those records. Any other run is counted from its runner's
+// own report (RunStatus.streaming_usage) and marked estimated. A
+// deployment with no meter counts every run the second way.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Aggregated usage across a scope (run, session, agent, or org).
 //
-// Used as the `total_usage` field in session and agent usage report responses.
-// All token fields are int64 to support large aggregates (org-wide, multi-day).
-// Cost fields are int64 micro-USD for precision.
+// Used as the aggregate of a run report and the `total_usage` of the
+// session, agent and organization reports. All token fields are int64 to
+// support large aggregates (org-wide, multi-day).
 message UsageReportAggregate {
   // Non-cached input tokens (disjoint from the cache buckets below).
   int64 input_tokens = 1;
@@ -343,24 +345,46 @@ message UsageReportAggregate {
   int64 cache_read_input_tokens = 5;
   int64 reasoning_tokens = 6;
 
-  // Number of LLM API calls in this aggregate.
+  // Number of metered LLM API calls in this aggregate. A run counted from
+  // its runner's own report adds its tokens and no calls.
   int32 llm_call_count = 10;
 
-  // Cost in micro-USD (1 USD = 1,000,000 micros).
-  // billable = what the customer pays (with markup).
-  // provider = what Stigmer pays the LLM provider (raw).
-  int64 billable_cost_micros = 20;
-  int64 provider_cost_micros = 21;
+  // 20 and 21 held billable_cost_micros and provider_cost_micros, the
+  // aggregate's charged and priced amounts. Usage is counted in tokens and
+  // never priced, so the numbers and the names are reserved so neither is
+  // ever reused for a different field.
+  reserved 20, 21;
+  reserved "billable_cost_micros", "provider_cost_micros";
 
-  // Primary model and provider (most-used by call count).
+  // Primary model and provider: the model with the most tokens in this
+  // aggregate. The provider is empty when a runner-reported run's harness
+  // names none.
   string primary_model = 30;
   string primary_provider = 31;
+
+  // The aggregate's tokens and calls by whose provider credential served
+  // them. The rows always sum to total_tokens and llm_call_count.
+  repeated ServedByUsage served_by = 40;
+}
+
+// Usage served by one kind of provider credential within an aggregate.
+message ServedByUsage {
+  // Whose credential served the calls. UNSPECIFIED counts the tokens whose
+  // server is not known: a run counted from its runner's own report, or a
+  // metered record written before the meter recorded the credential.
+  ProviderKeySource provider_key_source = 1;
+
+  // Total tokens served this way (cache-inclusive, as the aggregate's).
+  int64 total_tokens = 2;
+
+  // Number of metered LLM API calls served this way.
+  int32 llm_call_count = 3;
 }
 
 // Per-model usage breakdown within a report scope.
 //
-// Groups token counts and cost by (model, provider) pair. Used in
-// model_breakdown repeated fields on report responses.
+// Groups token counts by (model, provider) pair. Used in model_breakdown
+// repeated fields on report responses, ordered by total_tokens descending.
 message ModelUsage {
   // Model identifier as resolved by the provider.
   string model = 1;
@@ -374,12 +398,18 @@ message ModelUsage {
   int64 cache_creation_input_tokens = 5;
   int64 cache_read_input_tokens = 6;
 
-  // Number of LLM API calls to this model.
+  // Number of metered LLM API calls to this model.
   int32 call_count = 7;
 
-  // Cost in micro-USD for this model.
-  int64 billable_cost_micros = 8;
-  int64 provider_cost_micros = 9;
+  // 8 and 9 held billable_cost_micros and provider_cost_micros, the model's
+  // charged and priced amounts. Usage is counted in tokens and never
+  // priced, so the numbers and the names are reserved so neither is ever
+  // reused for a different field.
+  reserved 8, 9;
+  reserved "billable_cost_micros", "provider_cost_micros";
+
+  // Total tokens for this model (cache-inclusive, as the aggregate's).
+  int64 total_tokens = 10;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -390,7 +420,8 @@ message ModelUsage {
 //
 // Trust level: DISPLAY_ONLY. This data is reported by the execution worker
 // (which may run on untrusted user machines) and is NOT metering-authoritative.
-// Use for real-time UX (session sidebar cost display) only.
+// The usage reports count a run from it, marked estimated, only when the
+// deployment has not metered the run.
 //
 // The metered record of each call is LlmCallUsageRecord from the proxy,
 // for both harnesses.
@@ -419,8 +450,9 @@ message StreamingUsageSummary {
   // Number of completed turns observed.
   int32 turn_count = 6;
 
-  // Estimated cost in USD computed from runner-side rate card.
-  // Labeled "Estimated" in the UI — not provider-verified.
+  // Estimated cost in USD computed from the runner-side rate card (the
+  // providers' list prices): the working number of the run's cost cap
+  // (RunConfig.max_cost_usd). No usage report reads it.
   double estimated_cost_usd = 7;
 
   // Model identifier the runner requested for this run's turns.

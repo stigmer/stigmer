@@ -73,6 +73,7 @@ import type { IdentityFederation } from "./identity-federation.js";
 import type { LicenseStatusProvider } from "./license-status.js";
 import type { OutboundEgressPolicy } from "./outbound-egress.js";
 import type { ListReadScope } from "./list-read-scope.js";
+import type { MeteredUsageProvider } from "./metered-usage.js";
 import type { OrganizationDirectory } from "./organization-directory.js";
 import type { PolicyGrantScope } from "./policy-grant-scope.js";
 import type { PrincipalDisplay } from "./principal-display.js";
@@ -99,6 +100,13 @@ export interface ExtensionDrivers {
    * fetch).
    */
   readonly runnerCredentialProvider?: RunnerCredentialProvider;
+  /**
+   * The metered-usage source (single-instance point). When composed, the
+   * usage reports count each run it answers for from its metered calls;
+   * every other run, and every run when it is absent, from the run's own
+   * runner report, marked estimated (extensions/metered-usage.ts).
+   */
+  readonly meteredUsageProvider?: MeteredUsageProvider;
   /**
    * Blob-storage backends registrable by name, selectable through
    * the ARTIFACT_STORAGE_TYPE / SKILL_ARTIFACT_STORAGE_TYPE config knobs.

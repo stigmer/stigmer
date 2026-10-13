@@ -10,8 +10,8 @@ package ai.stigmer.agentic.run.v1;
  * GetSessionUsageReportOutput returns aggregated usage for a session.
  *
  * Provides both the session-level totals and per-run breakdown,
- * enabling drill-down from "this session cost $0.90" to "run #3
- * cost $0.12 because it used claude-sonnet-4."
+ * enabling drill-down from "this session used 90k tokens" to "run #3
+ * used 12k of them on claude-sonnet-4."
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput}
@@ -382,9 +382,8 @@ private static final long serialVersionUID = 0L;
   private boolean isEstimated_ = false;
   /**
    * <pre>
-   * Whether any record in this session is still estimated (not yet proxy-metered).
-   * True when the run is in flight and only streaming usage data is available.
-   * False once proxy billing records have been written.
+   * Whether any run in this session is counted from its runner's own report
+   * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
    * </pre>
    *
    * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -651,8 +650,8 @@ private static final long serialVersionUID = 0L;
    * GetSessionUsageReportOutput returns aggregated usage for a session.
    *
    * Provides both the session-level totals and per-run breakdown,
-   * enabling drill-down from "this session cost $0.90" to "run #3
-   * cost $0.12 because it used claude-sonnet-4."
+   * enabling drill-down from "this session used 90k tokens" to "run #3
+   * used 12k of them on claude-sonnet-4."
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput}
@@ -2093,9 +2092,8 @@ private static final long serialVersionUID = 0L;
     private boolean isEstimated_ ;
     /**
      * <pre>
-     * Whether any record in this session is still estimated (not yet proxy-metered).
-     * True when the run is in flight and only streaming usage data is available.
-     * False once proxy billing records have been written.
+     * Whether any run in this session is counted from its runner's own report
+     * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -2107,9 +2105,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether any record in this session is still estimated (not yet proxy-metered).
-     * True when the run is in flight and only streaming usage data is available.
-     * False once proxy billing records have been written.
+     * Whether any run in this session is counted from its runner's own report
+     * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>
@@ -2125,9 +2122,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether any record in this session is still estimated (not yet proxy-metered).
-     * True when the run is in flight and only streaming usage data is available.
-     * False once proxy billing records have been written.
+     * Whether any run in this session is counted from its runner's own report
+     * rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
      * </pre>
      *
      * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>

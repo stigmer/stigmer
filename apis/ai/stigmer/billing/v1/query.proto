@@ -20,16 +20,6 @@ service BillingQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
   }
 
-  // Count an organization's metered LLM calls and runs in a date range,
-  // with the calls broken down by model and harness. A count, never an
-  // amount: the meter records what each call was, not what it cost.
-  rpc getBillingUsageReport(GetBillingUsageReportInput) returns (BillingUsageReportResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
-  }
-
   // Retrieve the model registry baseline catalog (ACTIVE documents, or the
   // full append-only revision history when include_history is set).
   //

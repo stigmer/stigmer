@@ -49,37 +49,6 @@ public final class BillingQueryControllerGrpc {
     return getGetBillingAccountMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetBillingUsageReportInput,
-      ai.stigmer.billing.v1.BillingUsageReportResponse> getGetBillingUsageReportMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getBillingUsageReport",
-      requestType = ai.stigmer.billing.v1.GetBillingUsageReportInput.class,
-      responseType = ai.stigmer.billing.v1.BillingUsageReportResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetBillingUsageReportInput,
-      ai.stigmer.billing.v1.BillingUsageReportResponse> getGetBillingUsageReportMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetBillingUsageReportInput, ai.stigmer.billing.v1.BillingUsageReportResponse> getGetBillingUsageReportMethod;
-    if ((getGetBillingUsageReportMethod = BillingQueryControllerGrpc.getGetBillingUsageReportMethod) == null) {
-      synchronized (BillingQueryControllerGrpc.class) {
-        if ((getGetBillingUsageReportMethod = BillingQueryControllerGrpc.getGetBillingUsageReportMethod) == null) {
-          BillingQueryControllerGrpc.getGetBillingUsageReportMethod = getGetBillingUsageReportMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GetBillingUsageReportInput, ai.stigmer.billing.v1.BillingUsageReportResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getBillingUsageReport"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GetBillingUsageReportInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.BillingUsageReportResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("getBillingUsageReport"))
-              .build();
-        }
-      }
-    }
-    return getGetBillingUsageReportMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.ListModelPricingBaselinesInput,
       ai.stigmer.billing.v1.ModelPricingBaselinesResponse> getListModelPricingBaselinesMethod;
 
@@ -192,18 +161,6 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Count an organization's metered LLM calls and runs in a date range,
-     * with the calls broken down by model and harness. A count, never an
-     * amount: the meter records what each call was, not what it cost.
-     * </pre>
-     */
-    default void getBillingUsageReport(ai.stigmer.billing.v1.GetBillingUsageReportInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingUsageReportResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetBillingUsageReportMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
      * Operator surface: exposes the providers' list prices with their
@@ -268,19 +225,6 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Count an organization's metered LLM calls and runs in a date range,
-     * with the calls broken down by model and harness. A count, never an
-     * amount: the meter records what each call was, not what it cost.
-     * </pre>
-     */
-    public void getBillingUsageReport(ai.stigmer.billing.v1.GetBillingUsageReportInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingUsageReportResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetBillingUsageReportMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
      * Operator surface: exposes the providers' list prices with their
@@ -328,18 +272,6 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Count an organization's metered LLM calls and runs in a date range,
-     * with the calls broken down by model and harness. A count, never an
-     * amount: the meter records what each call was, not what it cost.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.BillingUsageReportResponse getBillingUsageReport(ai.stigmer.billing.v1.GetBillingUsageReportInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetBillingUsageReportMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
      * Operator surface: exposes the providers' list prices with their
@@ -382,18 +314,6 @@ public final class BillingQueryControllerGrpc {
     public ai.stigmer.billing.v1.BillingAccount getBillingAccount(ai.stigmer.billing.v1.GetBillingAccountInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetBillingAccountMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Count an organization's metered LLM calls and runs in a date range,
-     * with the calls broken down by model and harness. A count, never an
-     * amount: the meter records what each call was, not what it cost.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.BillingUsageReportResponse getBillingUsageReport(ai.stigmer.billing.v1.GetBillingUsageReportInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetBillingUsageReportMethod(), getCallOptions(), request);
     }
 
     /**
@@ -445,19 +365,6 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Count an organization's metered LLM calls and runs in a date range,
-     * with the calls broken down by model and harness. A count, never an
-     * amount: the meter records what each call was, not what it cost.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.BillingUsageReportResponse> getBillingUsageReport(
-        ai.stigmer.billing.v1.GetBillingUsageReportInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetBillingUsageReportMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
      * Operator surface: exposes the providers' list prices with their
@@ -472,8 +379,7 @@ public final class BillingQueryControllerGrpc {
   }
 
   private static final int METHODID_GET_BILLING_ACCOUNT = 0;
-  private static final int METHODID_GET_BILLING_USAGE_REPORT = 1;
-  private static final int METHODID_LIST_MODEL_PRICING_BASELINES = 2;
+  private static final int METHODID_LIST_MODEL_PRICING_BASELINES = 1;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -495,10 +401,6 @@ public final class BillingQueryControllerGrpc {
         case METHODID_GET_BILLING_ACCOUNT:
           serviceImpl.getBillingAccount((ai.stigmer.billing.v1.GetBillingAccountInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount>) responseObserver);
-          break;
-        case METHODID_GET_BILLING_USAGE_REPORT:
-          serviceImpl.getBillingUsageReport((ai.stigmer.billing.v1.GetBillingUsageReportInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingUsageReportResponse>) responseObserver);
           break;
         case METHODID_LIST_MODEL_PRICING_BASELINES:
           serviceImpl.listModelPricingBaselines((ai.stigmer.billing.v1.ListModelPricingBaselinesInput) request,
@@ -529,13 +431,6 @@ public final class BillingQueryControllerGrpc {
               ai.stigmer.billing.v1.GetBillingAccountInput,
               ai.stigmer.billing.v1.BillingAccount>(
                 service, METHODID_GET_BILLING_ACCOUNT)))
-        .addMethod(
-          getGetBillingUsageReportMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.GetBillingUsageReportInput,
-              ai.stigmer.billing.v1.BillingUsageReportResponse>(
-                service, METHODID_GET_BILLING_USAGE_REPORT)))
         .addMethod(
           getListModelPricingBaselinesMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -592,7 +487,6 @@ public final class BillingQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new BillingQueryControllerFileDescriptorSupplier())
               .addMethod(getGetBillingAccountMethod())
-              .addMethod(getGetBillingUsageReportMethod())
               .addMethod(getListModelPricingBaselinesMethod())
               .build();
         }

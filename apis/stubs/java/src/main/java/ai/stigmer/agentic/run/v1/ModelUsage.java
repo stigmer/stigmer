@@ -9,8 +9,8 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * Per-model usage breakdown within a report scope.
  *
- * Groups token counts and cost by (model, provider) pair. Used in
- * model_breakdown repeated fields on report responses.
+ * Groups token counts by (model, provider) pair. Used in model_breakdown
+ * repeated fields on report responses, ordered by total_tokens descending.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.ModelUsage}
@@ -203,7 +203,7 @@ private static final long serialVersionUID = 0L;
   private int callCount_ = 0;
   /**
    * <pre>
-   * Number of LLM API calls to this model.
+   * Number of metered LLM API calls to this model.
    * </pre>
    *
    * <code>int32 call_count = 7 [json_name = "callCount"];</code>
@@ -214,30 +214,19 @@ private static final long serialVersionUID = 0L;
     return callCount_;
   }
 
-  public static final int BILLABLE_COST_MICROS_FIELD_NUMBER = 8;
-  private long billableCostMicros_ = 0L;
+  public static final int TOTAL_TOKENS_FIELD_NUMBER = 10;
+  private long totalTokens_ = 0L;
   /**
    * <pre>
-   * Cost in micro-USD for this model.
+   * Total tokens for this model (cache-inclusive, as the aggregate's).
    * </pre>
    *
-   * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
+   * <code>int64 total_tokens = 10 [json_name = "totalTokens"];</code>
+   * @return The totalTokens.
    */
   @java.lang.Override
-  public long getBillableCostMicros() {
-    return billableCostMicros_;
-  }
-
-  public static final int PROVIDER_COST_MICROS_FIELD_NUMBER = 9;
-  private long providerCostMicros_ = 0L;
-  /**
-   * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  @java.lang.Override
-  public long getProviderCostMicros() {
-    return providerCostMicros_;
+  public long getTotalTokens() {
+    return totalTokens_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -275,11 +264,8 @@ private static final long serialVersionUID = 0L;
     if (callCount_ != 0) {
       output.writeInt32(7, callCount_);
     }
-    if (billableCostMicros_ != 0L) {
-      output.writeInt64(8, billableCostMicros_);
-    }
-    if (providerCostMicros_ != 0L) {
-      output.writeInt64(9, providerCostMicros_);
+    if (totalTokens_ != 0L) {
+      output.writeInt64(10, totalTokens_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -316,13 +302,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(7, callCount_);
     }
-    if (billableCostMicros_ != 0L) {
+    if (totalTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(8, billableCostMicros_);
-    }
-    if (providerCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(9, providerCostMicros_);
+        .computeInt64Size(10, totalTokens_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -353,10 +335,8 @@ private static final long serialVersionUID = 0L;
         != other.getCacheReadInputTokens()) return false;
     if (getCallCount()
         != other.getCallCount()) return false;
-    if (getBillableCostMicros()
-        != other.getBillableCostMicros()) return false;
-    if (getProviderCostMicros()
-        != other.getProviderCostMicros()) return false;
+    if (getTotalTokens()
+        != other.getTotalTokens()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -386,12 +366,9 @@ private static final long serialVersionUID = 0L;
         getCacheReadInputTokens());
     hash = (37 * hash) + CALL_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getCallCount();
-    hash = (37 * hash) + BILLABLE_COST_MICROS_FIELD_NUMBER;
+    hash = (37 * hash) + TOTAL_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getBillableCostMicros());
-    hash = (37 * hash) + PROVIDER_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getProviderCostMicros());
+        getTotalTokens());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -493,8 +470,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Per-model usage breakdown within a report scope.
    *
-   * Groups token counts and cost by (model, provider) pair. Used in
-   * model_breakdown repeated fields on report responses.
+   * Groups token counts by (model, provider) pair. Used in model_breakdown
+   * repeated fields on report responses, ordered by total_tokens descending.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.ModelUsage}
@@ -537,8 +514,7 @@ private static final long serialVersionUID = 0L;
       cacheCreationInputTokens_ = 0L;
       cacheReadInputTokens_ = 0L;
       callCount_ = 0;
-      billableCostMicros_ = 0L;
-      providerCostMicros_ = 0L;
+      totalTokens_ = 0L;
       return this;
     }
 
@@ -594,10 +570,7 @@ private static final long serialVersionUID = 0L;
         result.callCount_ = callCount_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.billableCostMicros_ = billableCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.providerCostMicros_ = providerCostMicros_;
+        result.totalTokens_ = totalTokens_;
       }
     }
 
@@ -638,11 +611,8 @@ private static final long serialVersionUID = 0L;
       if (other.getCallCount() != 0) {
         setCallCount(other.getCallCount());
       }
-      if (other.getBillableCostMicros() != 0L) {
-        setBillableCostMicros(other.getBillableCostMicros());
-      }
-      if (other.getProviderCostMicros() != 0L) {
-        setProviderCostMicros(other.getProviderCostMicros());
+      if (other.getTotalTokens() != 0L) {
+        setTotalTokens(other.getTotalTokens());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -705,16 +675,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 56
-            case 64: {
-              billableCostMicros_ = input.readInt64();
+            case 80: {
+              totalTokens_ = input.readInt64();
               bitField0_ |= 0x00000080;
               break;
-            } // case 64
-            case 72: {
-              providerCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000100;
-              break;
-            } // case 72
+            } // case 80
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1059,7 +1024,7 @@ private static final long serialVersionUID = 0L;
     private int callCount_ ;
     /**
      * <pre>
-     * Number of LLM API calls to this model.
+     * Number of metered LLM API calls to this model.
      * </pre>
      *
      * <code>int32 call_count = 7 [json_name = "callCount"];</code>
@@ -1071,7 +1036,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of LLM API calls to this model.
+     * Number of metered LLM API calls to this model.
      * </pre>
      *
      * <code>int32 call_count = 7 [json_name = "callCount"];</code>
@@ -1087,7 +1052,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of LLM API calls to this model.
+     * Number of metered LLM API calls to this model.
      * </pre>
      *
      * <code>int32 call_count = 7 [json_name = "callCount"];</code>
@@ -1100,78 +1065,46 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long billableCostMicros_ ;
+    private long totalTokens_ ;
     /**
      * <pre>
-     * Cost in micro-USD for this model.
+     * Total tokens for this model (cache-inclusive, as the aggregate's).
      * </pre>
      *
-     * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
-     * @return The billableCostMicros.
+     * <code>int64 total_tokens = 10 [json_name = "totalTokens"];</code>
+     * @return The totalTokens.
      */
     @java.lang.Override
-    public long getBillableCostMicros() {
-      return billableCostMicros_;
+    public long getTotalTokens() {
+      return totalTokens_;
     }
     /**
      * <pre>
-     * Cost in micro-USD for this model.
+     * Total tokens for this model (cache-inclusive, as the aggregate's).
      * </pre>
      *
-     * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
-     * @param value The billableCostMicros to set.
+     * <code>int64 total_tokens = 10 [json_name = "totalTokens"];</code>
+     * @param value The totalTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setBillableCostMicros(long value) {
+    public Builder setTotalTokens(long value) {
 
-      billableCostMicros_ = value;
+      totalTokens_ = value;
       bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Cost in micro-USD for this model.
+     * Total tokens for this model (cache-inclusive, as the aggregate's).
      * </pre>
      *
-     * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
+     * <code>int64 total_tokens = 10 [json_name = "totalTokens"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearBillableCostMicros() {
+    public Builder clearTotalTokens() {
       bitField0_ = (bitField0_ & ~0x00000080);
-      billableCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private long providerCostMicros_ ;
-    /**
-     * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
-     * @return The providerCostMicros.
-     */
-    @java.lang.Override
-    public long getProviderCostMicros() {
-      return providerCostMicros_;
-    }
-    /**
-     * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
-     * @param value The providerCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setProviderCostMicros(long value) {
-
-      providerCostMicros_ = value;
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearProviderCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000100);
-      providerCostMicros_ = 0L;
+      totalTokens_ = 0L;
       onChanged();
       return this;
     }

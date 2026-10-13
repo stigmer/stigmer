@@ -243,21 +243,6 @@ private static final long serialVersionUID = 0L;
     return cacheReadInputTokens_;
   }
 
-  public static final int BILLABLE_COST_MICROS_FIELD_NUMBER = 7;
-  private long billableCostMicros_ = 0L;
-  /**
-   * <pre>
-   * Billable cost in micro-USD for this run.
-   * </pre>
-   *
-   * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
-   */
-  @java.lang.Override
-  public long getBillableCostMicros() {
-    return billableCostMicros_;
-  }
-
   public static final int PRIMARY_MODEL_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
   private volatile java.lang.Object primaryModel_ = "";
@@ -350,7 +335,8 @@ private static final long serialVersionUID = 0L;
   private boolean isEstimated_ = false;
   /**
    * <pre>
-   * Whether this run's cost is estimated (in-flight, no billing records yet).
+   * Whether this run is counted from its runner's own report rather than
+   * the deployment's meter (usage.proto, USAGE REPORT TYPES).
    * </pre>
    *
    * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -359,6 +345,21 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public boolean getIsEstimated() {
     return isEstimated_;
+  }
+
+  public static final int TOTAL_TOKENS_FIELD_NUMBER = 12;
+  private long totalTokens_ = 0L;
+  /**
+   * <pre>
+   * Total tokens for this run (cache-inclusive, as the aggregate's).
+   * </pre>
+   *
+   * <code>int64 total_tokens = 12 [json_name = "totalTokens"];</code>
+   * @return The totalTokens.
+   */
+  @java.lang.Override
+  public long getTotalTokens() {
+    return totalTokens_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -393,9 +394,6 @@ private static final long serialVersionUID = 0L;
     if (cacheReadInputTokens_ != 0L) {
       output.writeInt64(6, cacheReadInputTokens_);
     }
-    if (billableCostMicros_ != 0L) {
-      output.writeInt64(7, billableCostMicros_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(primaryModel_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, primaryModel_);
     }
@@ -407,6 +405,9 @@ private static final long serialVersionUID = 0L;
     }
     if (isEstimated_ != false) {
       output.writeBool(11, isEstimated_);
+    }
+    if (totalTokens_ != 0L) {
+      output.writeInt64(12, totalTokens_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -438,10 +439,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(6, cacheReadInputTokens_);
     }
-    if (billableCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(7, billableCostMicros_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(primaryModel_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, primaryModel_);
     }
@@ -456,6 +453,10 @@ private static final long serialVersionUID = 0L;
     if (isEstimated_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(11, isEstimated_);
+    }
+    if (totalTokens_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(12, totalTokens_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -484,8 +485,6 @@ private static final long serialVersionUID = 0L;
         != other.getOutputTokens()) return false;
     if (getCacheReadInputTokens()
         != other.getCacheReadInputTokens()) return false;
-    if (getBillableCostMicros()
-        != other.getBillableCostMicros()) return false;
     if (!getPrimaryModel()
         .equals(other.getPrimaryModel())) return false;
     if (getSubAgentCount()
@@ -493,6 +492,8 @@ private static final long serialVersionUID = 0L;
     if (phase_ != other.phase_) return false;
     if (getIsEstimated()
         != other.getIsEstimated()) return false;
+    if (getTotalTokens()
+        != other.getTotalTokens()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -519,9 +520,6 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + CACHE_READ_INPUT_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getCacheReadInputTokens());
-    hash = (37 * hash) + BILLABLE_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getBillableCostMicros());
     hash = (37 * hash) + PRIMARY_MODEL_FIELD_NUMBER;
     hash = (53 * hash) + getPrimaryModel().hashCode();
     hash = (37 * hash) + SUB_AGENT_COUNT_FIELD_NUMBER;
@@ -531,6 +529,9 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + IS_ESTIMATED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getIsEstimated());
+    hash = (37 * hash) + TOTAL_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getTotalTokens());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -672,11 +673,11 @@ private static final long serialVersionUID = 0L;
       inputTokens_ = 0L;
       outputTokens_ = 0L;
       cacheReadInputTokens_ = 0L;
-      billableCostMicros_ = 0L;
       primaryModel_ = "";
       subAgentCount_ = 0;
       phase_ = 0;
       isEstimated_ = false;
+      totalTokens_ = 0L;
       return this;
     }
 
@@ -729,19 +730,19 @@ private static final long serialVersionUID = 0L;
         result.cacheReadInputTokens_ = cacheReadInputTokens_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.billableCostMicros_ = billableCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.primaryModel_ = primaryModel_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.subAgentCount_ = subAgentCount_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.phase_ = phase_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.isEstimated_ = isEstimated_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.totalTokens_ = totalTokens_;
       }
     }
 
@@ -781,12 +782,9 @@ private static final long serialVersionUID = 0L;
       if (other.getCacheReadInputTokens() != 0L) {
         setCacheReadInputTokens(other.getCacheReadInputTokens());
       }
-      if (other.getBillableCostMicros() != 0L) {
-        setBillableCostMicros(other.getBillableCostMicros());
-      }
       if (!other.getPrimaryModel().isEmpty()) {
         primaryModel_ = other.primaryModel_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       if (other.getSubAgentCount() != 0) {
@@ -797,6 +795,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getIsEstimated() != false) {
         setIsEstimated(other.getIsEstimated());
+      }
+      if (other.getTotalTokens() != 0L) {
+        setTotalTokens(other.getTotalTokens());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -854,31 +855,31 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
-            case 56: {
-              billableCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000040;
-              break;
-            } // case 56
             case 66: {
               primaryModel_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 66
             case 72: {
               subAgentCount_ = input.readInt32();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 72
             case 80: {
               phase_ = input.readEnum();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 80
             case 88: {
               isEstimated_ = input.readBool();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 88
+            case 96: {
+              totalTokens_ = input.readInt64();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 96
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1304,50 +1305,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long billableCostMicros_ ;
-    /**
-     * <pre>
-     * Billable cost in micro-USD for this run.
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
-     * @return The billableCostMicros.
-     */
-    @java.lang.Override
-    public long getBillableCostMicros() {
-      return billableCostMicros_;
-    }
-    /**
-     * <pre>
-     * Billable cost in micro-USD for this run.
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
-     * @param value The billableCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setBillableCostMicros(long value) {
-
-      billableCostMicros_ = value;
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Billable cost in micro-USD for this run.
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearBillableCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000040);
-      billableCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object primaryModel_ = "";
     /**
      * <pre>
@@ -1403,7 +1360,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       primaryModel_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1417,7 +1374,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPrimaryModel() {
       primaryModel_ = getDefaultInstance().getPrimaryModel();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -1435,7 +1392,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       primaryModel_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -1465,7 +1422,7 @@ private static final long serialVersionUID = 0L;
     public Builder setSubAgentCount(int value) {
 
       subAgentCount_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -1478,7 +1435,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearSubAgentCount() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       subAgentCount_ = 0;
       onChanged();
       return this;
@@ -1508,7 +1465,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setPhaseValue(int value) {
       phase_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -1536,7 +1493,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setPhase(ai.stigmer.agentic.run.v1.RunPhase value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       phase_ = value.getNumber();
       onChanged();
       return this;
@@ -1550,7 +1507,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearPhase() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       phase_ = 0;
       onChanged();
       return this;
@@ -1559,7 +1516,8 @@ private static final long serialVersionUID = 0L;
     private boolean isEstimated_ ;
     /**
      * <pre>
-     * Whether this run's cost is estimated (in-flight, no billing records yet).
+     * Whether this run is counted from its runner's own report rather than
+     * the deployment's meter (usage.proto, USAGE REPORT TYPES).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1571,7 +1529,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether this run's cost is estimated (in-flight, no billing records yet).
+     * Whether this run is counted from its runner's own report rather than
+     * the deployment's meter (usage.proto, USAGE REPORT TYPES).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
@@ -1581,21 +1540,66 @@ private static final long serialVersionUID = 0L;
     public Builder setIsEstimated(boolean value) {
 
       isEstimated_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Whether this run's cost is estimated (in-flight, no billing records yet).
+     * Whether this run is counted from its runner's own report rather than
+     * the deployment's meter (usage.proto, USAGE REPORT TYPES).
      * </pre>
      *
      * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
      * @return This builder for chaining.
      */
     public Builder clearIsEstimated() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       isEstimated_ = false;
+      onChanged();
+      return this;
+    }
+
+    private long totalTokens_ ;
+    /**
+     * <pre>
+     * Total tokens for this run (cache-inclusive, as the aggregate's).
+     * </pre>
+     *
+     * <code>int64 total_tokens = 12 [json_name = "totalTokens"];</code>
+     * @return The totalTokens.
+     */
+    @java.lang.Override
+    public long getTotalTokens() {
+      return totalTokens_;
+    }
+    /**
+     * <pre>
+     * Total tokens for this run (cache-inclusive, as the aggregate's).
+     * </pre>
+     *
+     * <code>int64 total_tokens = 12 [json_name = "totalTokens"];</code>
+     * @param value The totalTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTotalTokens(long value) {
+
+      totalTokens_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Total tokens for this run (cache-inclusive, as the aggregate's).
+     * </pre>
+     *
+     * <code>int64 total_tokens = 12 [json_name = "totalTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTotalTokens() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      totalTokens_ = 0L;
       onChanged();
       return this;
     }

@@ -20,7 +20,6 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	BillingQueryController_GetBillingAccount_FullMethodName         = "/ai.stigmer.billing.v1.BillingQueryController/getBillingAccount"
-	BillingQueryController_GetBillingUsageReport_FullMethodName     = "/ai.stigmer.billing.v1.BillingQueryController/getBillingUsageReport"
 	BillingQueryController_ListModelPricingBaselines_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines"
 )
 
@@ -36,10 +35,6 @@ const (
 type BillingQueryControllerClient interface {
 	// Retrieve the billing account for an organization.
 	GetBillingAccount(ctx context.Context, in *GetBillingAccountInput, opts ...grpc.CallOption) (*BillingAccount, error)
-	// Count an organization's metered LLM calls and runs in a date range,
-	// with the calls broken down by model and harness. A count, never an
-	// amount: the meter records what each call was, not what it cost.
-	GetBillingUsageReport(ctx context.Context, in *GetBillingUsageReportInput, opts ...grpc.CallOption) (*BillingUsageReportResponse, error)
 	// Retrieve the model registry baseline catalog (ACTIVE documents, or the
 	// full append-only revision history when include_history is set).
 	//
@@ -60,16 +55,6 @@ func (c *billingQueryControllerClient) GetBillingAccount(ctx context.Context, in
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BillingAccount)
 	err := c.cc.Invoke(ctx, BillingQueryController_GetBillingAccount_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingQueryControllerClient) GetBillingUsageReport(ctx context.Context, in *GetBillingUsageReportInput, opts ...grpc.CallOption) (*BillingUsageReportResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BillingUsageReportResponse)
-	err := c.cc.Invoke(ctx, BillingQueryController_GetBillingUsageReport_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -98,10 +83,6 @@ func (c *billingQueryControllerClient) ListModelPricingBaselines(ctx context.Con
 type BillingQueryControllerServer interface {
 	// Retrieve the billing account for an organization.
 	GetBillingAccount(context.Context, *GetBillingAccountInput) (*BillingAccount, error)
-	// Count an organization's metered LLM calls and runs in a date range,
-	// with the calls broken down by model and harness. A count, never an
-	// amount: the meter records what each call was, not what it cost.
-	GetBillingUsageReport(context.Context, *GetBillingUsageReportInput) (*BillingUsageReportResponse, error)
 	// Retrieve the model registry baseline catalog (ACTIVE documents, or the
 	// full append-only revision history when include_history is set).
 	//
@@ -119,9 +100,6 @@ type UnimplementedBillingQueryControllerServer struct{}
 
 func (UnimplementedBillingQueryControllerServer) GetBillingAccount(context.Context, *GetBillingAccountInput) (*BillingAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBillingAccount not implemented")
-}
-func (UnimplementedBillingQueryControllerServer) GetBillingUsageReport(context.Context, *GetBillingUsageReportInput) (*BillingUsageReportResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetBillingUsageReport not implemented")
 }
 func (UnimplementedBillingQueryControllerServer) ListModelPricingBaselines(context.Context, *ListModelPricingBaselinesInput) (*ModelPricingBaselinesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListModelPricingBaselines not implemented")
@@ -164,24 +142,6 @@ func _BillingQueryController_GetBillingAccount_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingQueryController_GetBillingUsageReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetBillingUsageReportInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingQueryControllerServer).GetBillingUsageReport(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingQueryController_GetBillingUsageReport_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingQueryControllerServer).GetBillingUsageReport(ctx, req.(*GetBillingUsageReportInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _BillingQueryController_ListModelPricingBaselines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListModelPricingBaselinesInput)
 	if err := dec(in); err != nil {
@@ -210,10 +170,6 @@ var BillingQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getBillingAccount",
 			Handler:    _BillingQueryController_GetBillingAccount_Handler,
-		},
-		{
-			MethodName: "getBillingUsageReport",
-			Handler:    _BillingQueryController_GetBillingUsageReport_Handler,
 		},
 		{
 			MethodName: "listModelPricingBaselines",

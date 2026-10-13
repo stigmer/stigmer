@@ -74,8 +74,9 @@ public interface StreamingUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Estimated cost in USD computed from runner-side rate card.
-   * Labeled "Estimated" in the UI — not provider-verified.
+   * Estimated cost in USD computed from the runner-side rate card (the
+   * providers' list prices): the working number of the run's cost cap
+   * (RunConfig.max_cost_usd). No usage report reads it.
    * </pre>
    *
    * <code>double estimated_cost_usd = 7 [json_name = "estimatedCostUsd"];</code>

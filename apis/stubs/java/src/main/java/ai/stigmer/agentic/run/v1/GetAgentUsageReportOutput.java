@@ -345,21 +345,6 @@ private static final long serialVersionUID = 0L;
     return totalRuns_;
   }
 
-  public static final int TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER = 8;
-  private long totalBillableCostMicros_ = 0L;
-  /**
-   * <pre>
-   * Total billable cost in micro-USD within the time range.
-   * </pre>
-   *
-   * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
-   * @return The totalBillableCostMicros.
-   */
-  @java.lang.Override
-  public long getTotalBillableCostMicros() {
-    return totalBillableCostMicros_;
-  }
-
   public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 9;
   @SuppressWarnings("serial")
   private volatile java.lang.Object nextPageToken_ = "";
@@ -442,9 +427,6 @@ private static final long serialVersionUID = 0L;
     if (totalRuns_ != 0) {
       output.writeInt32(7, totalRuns_);
     }
-    if (totalBillableCostMicros_ != 0L) {
-      output.writeInt64(8, totalBillableCostMicros_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, nextPageToken_);
     }
@@ -493,10 +475,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(7, totalRuns_);
     }
-    if (totalBillableCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(8, totalBillableCostMicros_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, nextPageToken_);
     }
@@ -532,8 +510,6 @@ private static final long serialVersionUID = 0L;
         != other.getTotalSessions()) return false;
     if (getTotalRuns()
         != other.getTotalRuns()) return false;
-    if (getTotalBillableCostMicros()
-        != other.getTotalBillableCostMicros()) return false;
     if (!getNextPageToken()
         .equals(other.getNextPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -567,9 +543,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTotalSessions();
     hash = (37 * hash) + TOTAL_RUNS_FIELD_NUMBER;
     hash = (53 * hash) + getTotalRuns();
-    hash = (37 * hash) + TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getTotalBillableCostMicros());
     hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getNextPageToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -741,7 +714,6 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00000010);
       totalSessions_ = 0;
       totalRuns_ = 0;
-      totalBillableCostMicros_ = 0L;
       nextPageToken_ = "";
       return this;
     }
@@ -818,9 +790,6 @@ private static final long serialVersionUID = 0L;
         result.totalRuns_ = totalRuns_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.totalBillableCostMicros_ = totalBillableCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.nextPageToken_ = nextPageToken_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -909,12 +878,9 @@ private static final long serialVersionUID = 0L;
       if (other.getTotalRuns() != 0) {
         setTotalRuns(other.getTotalRuns());
       }
-      if (other.getTotalBillableCostMicros() != 0L) {
-        setTotalBillableCostMicros(other.getTotalBillableCostMicros());
-      }
       if (!other.getNextPageToken().isEmpty()) {
         nextPageToken_ = other.nextPageToken_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -996,14 +962,9 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 56
-            case 64: {
-              totalBillableCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 64
             case 74: {
               nextPageToken_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 74
             default: {
@@ -2076,50 +2037,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long totalBillableCostMicros_ ;
-    /**
-     * <pre>
-     * Total billable cost in micro-USD within the time range.
-     * </pre>
-     *
-     * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
-     * @return The totalBillableCostMicros.
-     */
-    @java.lang.Override
-    public long getTotalBillableCostMicros() {
-      return totalBillableCostMicros_;
-    }
-    /**
-     * <pre>
-     * Total billable cost in micro-USD within the time range.
-     * </pre>
-     *
-     * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
-     * @param value The totalBillableCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalBillableCostMicros(long value) {
-
-      totalBillableCostMicros_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Total billable cost in micro-USD within the time range.
-     * </pre>
-     *
-     * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalBillableCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      totalBillableCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object nextPageToken_ = "";
     /**
      * <pre>
@@ -2175,7 +2092,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       nextPageToken_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2189,7 +2106,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearNextPageToken() {
       nextPageToken_ = getDefaultInstance().getNextPageToken();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       onChanged();
       return this;
     }
@@ -2207,7 +2124,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       nextPageToken_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }

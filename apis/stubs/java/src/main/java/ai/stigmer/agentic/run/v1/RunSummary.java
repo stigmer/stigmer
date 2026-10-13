@@ -10,9 +10,8 @@ package ai.stigmer.agentic.run.v1;
  * RunSummary contains aggregated operational statistics for agent
  * runs. Designed for the platform dashboard's unified health view.
  *
- * Cost is intentionally omitted. The dashboard sources cost from
- * getOrgUsageReport (billing source of truth), so it shows what billing
- * recorded and cost is never counted from two sources.
+ * Tokens are intentionally omitted. The dashboard reads them from
+ * getOrgUsageReport, so usage is never counted from two places.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.RunSummary}
@@ -528,9 +527,8 @@ private static final long serialVersionUID = 0L;
    * RunSummary contains aggregated operational statistics for agent
    * runs. Designed for the platform dashboard's unified health view.
    *
-   * Cost is intentionally omitted. The dashboard sources cost from
-   * getOrgUsageReport (billing source of truth), so it shows what billing
-   * recorded and cost is never counted from two sources.
+   * Tokens are intentionally omitted. The dashboard reads them from
+   * getOrgUsageReport, so usage is never counted from two places.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.RunSummary}

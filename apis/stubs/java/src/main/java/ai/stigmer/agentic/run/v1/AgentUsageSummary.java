@@ -179,21 +179,6 @@ private static final long serialVersionUID = 0L;
     return totalTokens_;
   }
 
-  public static final int BILLABLE_COST_MICROS_FIELD_NUMBER = 5;
-  private long billableCostMicros_ = 0L;
-  /**
-   * <pre>
-   * Total billable cost in micro-USD for this agent.
-   * </pre>
-   *
-   * <code>int64 billable_cost_micros = 5 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
-   */
-  @java.lang.Override
-  public long getBillableCostMicros() {
-    return billableCostMicros_;
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -220,9 +205,6 @@ private static final long serialVersionUID = 0L;
     if (totalTokens_ != 0L) {
       output.writeInt64(4, totalTokens_);
     }
-    if (billableCostMicros_ != 0L) {
-      output.writeInt64(5, billableCostMicros_);
-    }
     getUnknownFields().writeTo(output);
   }
 
@@ -245,10 +227,6 @@ private static final long serialVersionUID = 0L;
     if (totalTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(4, totalTokens_);
-    }
-    if (billableCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(5, billableCostMicros_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -273,8 +251,6 @@ private static final long serialVersionUID = 0L;
         != other.getRunCount()) return false;
     if (getTotalTokens()
         != other.getTotalTokens()) return false;
-    if (getBillableCostMicros()
-        != other.getBillableCostMicros()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -295,9 +271,6 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + TOTAL_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getTotalTokens());
-    hash = (37 * hash) + BILLABLE_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getBillableCostMicros());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -437,7 +410,6 @@ private static final long serialVersionUID = 0L;
       agentName_ = "";
       runCount_ = 0;
       totalTokens_ = 0L;
-      billableCostMicros_ = 0L;
       return this;
     }
 
@@ -483,9 +455,6 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.totalTokens_ = totalTokens_;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.billableCostMicros_ = billableCostMicros_;
-      }
     }
 
     @java.lang.Override
@@ -515,9 +484,6 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getTotalTokens() != 0L) {
         setTotalTokens(other.getTotalTokens());
-      }
-      if (other.getBillableCostMicros() != 0L) {
-        setBillableCostMicros(other.getBillableCostMicros());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -565,11 +531,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
-            case 40: {
-              billableCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -858,50 +819,6 @@ private static final long serialVersionUID = 0L;
     public Builder clearTotalTokens() {
       bitField0_ = (bitField0_ & ~0x00000008);
       totalTokens_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private long billableCostMicros_ ;
-    /**
-     * <pre>
-     * Total billable cost in micro-USD for this agent.
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 5 [json_name = "billableCostMicros"];</code>
-     * @return The billableCostMicros.
-     */
-    @java.lang.Override
-    public long getBillableCostMicros() {
-      return billableCostMicros_;
-    }
-    /**
-     * <pre>
-     * Total billable cost in micro-USD for this agent.
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 5 [json_name = "billableCostMicros"];</code>
-     * @param value The billableCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setBillableCostMicros(long value) {
-
-      billableCostMicros_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Total billable cost in micro-USD for this agent.
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 5 [json_name = "billableCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearBillableCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      billableCostMicros_ = 0L;
       onChanged();
       return this;
     }

@@ -32,8 +32,9 @@ public interface GetAgentUsageReportInputOrBuilder extends
 
   /**
    * <pre>
-   * Start of time range filter (ISO 8601, inclusive).
-   * Example: "2026-03-01"
+   * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+   * from its first instant) or an RFC 3339 instant. A run is in the range
+   * when it was created in it.
    * </pre>
    *
    * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -42,8 +43,9 @@ public interface GetAgentUsageReportInputOrBuilder extends
   java.lang.String getFromDate();
   /**
    * <pre>
-   * Start of time range filter (ISO 8601, inclusive).
-   * Example: "2026-03-01"
+   * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+   * from its first instant) or an RFC 3339 instant. A run is in the range
+   * when it was created in it.
    * </pre>
    *
    * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -54,8 +56,8 @@ public interface GetAgentUsageReportInputOrBuilder extends
 
   /**
    * <pre>
-   * End of time range filter (ISO 8601, inclusive).
-   * Example: "2026-03-13"
+   * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+   * through its last instant) or an RFC 3339 instant.
    * </pre>
    *
    * <code>string to_date = 3 [json_name = "toDate"];</code>
@@ -64,8 +66,8 @@ public interface GetAgentUsageReportInputOrBuilder extends
   java.lang.String getToDate();
   /**
    * <pre>
-   * End of time range filter (ISO 8601, inclusive).
-   * Example: "2026-03-13"
+   * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+   * through its last instant) or an RFC 3339 instant.
    * </pre>
    *
    * <code>string to_date = 3 [json_name = "toDate"];</code>

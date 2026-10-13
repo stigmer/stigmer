@@ -187,16 +187,6 @@ public interface GetAgentUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total billable cost in micro-USD within the time range.
-   * </pre>
-   *
-   * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
-   * @return The totalBillableCostMicros.
-   */
-  long getTotalBillableCostMicros();
-
-  /**
-   * <pre>
    * Token for the next page of sessions (empty if no more pages).
    * </pre>
    *

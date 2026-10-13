@@ -29,3 +29,25 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request makes the usage reports count tokens and never money:
+  # every amount and every name that says cost leaves the run usage report
+  # messages (the aggregate, the model breakdown, the run, session, agent,
+  # day and harness summaries and the agent and organization outputs) and
+  # the context window's summarization cost, with the numbers and names
+  # reserved; DailyCostEntry and HarnessCostSummary are replaced by
+  # DailyUsage and HarnessUsage under new field numbers; and the billing
+  # usage report leaves billing/v1, because the run reports read the same
+  # meter. It is made before launch: the release notes name the change
+  # under Upgrading. This block exists for that one pull request. While it
+  # stays, buf breaking does not report these rules on the listed files, so
+  # the pull request that removes it lands straight after the merge.
+  ignore_only:
+    RPC_NO_DELETE:
+      - ai/stigmer/billing/v1/query.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/io.proto
+      - ai/stigmer/billing/v1/io.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/context.proto
+      - ai/stigmer/agentic/run/v1/io.proto
+      - ai/stigmer/agentic/run/v1/usage.proto

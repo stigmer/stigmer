@@ -80,7 +80,7 @@ public interface ModelUsageOrBuilder extends
 
   /**
    * <pre>
-   * Number of LLM API calls to this model.
+   * Number of metered LLM API calls to this model.
    * </pre>
    *
    * <code>int32 call_count = 7 [json_name = "callCount"];</code>
@@ -90,17 +90,11 @@ public interface ModelUsageOrBuilder extends
 
   /**
    * <pre>
-   * Cost in micro-USD for this model.
+   * Total tokens for this model (cache-inclusive, as the aggregate's).
    * </pre>
    *
-   * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
+   * <code>int64 total_tokens = 10 [json_name = "totalTokens"];</code>
+   * @return The totalTokens.
    */
-  long getBillableCostMicros();
-
-  /**
-   * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  long getProviderCostMicros();
+  long getTotalTokens();
 }

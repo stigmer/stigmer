@@ -1,10 +1,7 @@
-import datetime
-
 from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.run.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.billing.v1 import model_pricing_baseline_pb2 as _model_pricing_baseline_pb2
 from buf.validate import validate_pb2 as _validate_pb2
-from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -116,36 +113,6 @@ class GetBillingAccountInput(_message.Message):
     ORG_FIELD_NUMBER: _ClassVar[int]
     org: str
     def __init__(self, org: _Optional[str] = ...) -> None: ...
-
-class GetBillingUsageReportInput(_message.Message):
-    __slots__ = ("org", "start_time", "end_time")
-    ORG_FIELD_NUMBER: _ClassVar[int]
-    START_TIME_FIELD_NUMBER: _ClassVar[int]
-    END_TIME_FIELD_NUMBER: _ClassVar[int]
-    org: str
-    start_time: _timestamp_pb2.Timestamp
-    end_time: _timestamp_pb2.Timestamp
-    def __init__(self, org: _Optional[str] = ..., start_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end_time: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
-
-class BillingUsageReportResponse(_message.Message):
-    __slots__ = ("run_count", "llm_call_count", "model_breakdown")
-    RUN_COUNT_FIELD_NUMBER: _ClassVar[int]
-    LLM_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    MODEL_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
-    run_count: int
-    llm_call_count: int
-    model_breakdown: _containers.RepeatedCompositeFieldContainer[ModelBillingBreakdown]
-    def __init__(self, run_count: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[ModelBillingBreakdown, _Mapping]]] = ...) -> None: ...
-
-class ModelBillingBreakdown(_message.Message):
-    __slots__ = ("model", "harness", "call_count")
-    MODEL_FIELD_NUMBER: _ClassVar[int]
-    HARNESS_FIELD_NUMBER: _ClassVar[int]
-    CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    model: str
-    harness: str
-    call_count: int
-    def __init__(self, model: _Optional[str] = ..., harness: _Optional[str] = ..., call_count: _Optional[int] = ...) -> None: ...
 
 class UpsertModelPricingBaselineInput(_message.Message):
     __slots__ = ("baseline", "revision_note")

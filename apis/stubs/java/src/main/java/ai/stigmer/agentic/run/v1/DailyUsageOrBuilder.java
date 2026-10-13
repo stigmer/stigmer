@@ -6,13 +6,13 @@
 package ai.stigmer.agentic.run.v1;
 
 @com.google.protobuf.Generated
-public interface DailyCostEntryOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.run.v1.DailyCostEntry)
+public interface DailyUsageOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.run.v1.DailyUsage)
     com.google.protobuf.MessageOrBuilder {
 
   /**
    * <pre>
-   * Date in YYYY-MM-DD format.
+   * UTC date in YYYY-MM-DD format.
    * </pre>
    *
    * <code>string date = 1 [json_name = "date"];</code>
@@ -21,7 +21,7 @@ public interface DailyCostEntryOrBuilder extends
   java.lang.String getDate();
   /**
    * <pre>
-   * Date in YYYY-MM-DD format.
+   * UTC date in YYYY-MM-DD format.
    * </pre>
    *
    * <code>string date = 1 [json_name = "date"];</code>
@@ -32,7 +32,7 @@ public interface DailyCostEntryOrBuilder extends
 
   /**
    * <pre>
-   * Number of runs on this date.
+   * Number of runs created on this date.
    * </pre>
    *
    * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -42,7 +42,7 @@ public interface DailyCostEntryOrBuilder extends
 
   /**
    * <pre>
-   * Total tokens consumed on this date.
+   * Total tokens of those runs (cache-inclusive, as the aggregate's).
    * </pre>
    *
    * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
@@ -52,11 +52,11 @@ public interface DailyCostEntryOrBuilder extends
 
   /**
    * <pre>
-   * Total billable cost in micro-USD on this date.
+   * Number of metered LLM API calls of those runs.
    * </pre>
    *
-   * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
+   * <code>int32 llm_call_count = 4 [json_name = "llmCallCount"];</code>
+   * @return The llmCallCount.
    */
-  long getBillableCostMicros();
+  int getLlmCallCount();
 }

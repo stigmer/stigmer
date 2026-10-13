@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { BillingUsageReportResponse, GetBillingAccountInput, GetBillingUsageReportInput, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse } from "./io_pbjs";
+import { GetBillingAccountInput, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -28,19 +28,6 @@ export const BillingQueryController = {
       name: "getBillingAccount",
       I: GetBillingAccountInput,
       O: BillingAccount,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Count an organization's metered LLM calls and runs in a date range,
-     * with the calls broken down by model and harness. A count, never an
-     * amount: the meter records what each call was, not what it cost.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport
-     */
-    getBillingUsageReport: {
-      name: "getBillingUsageReport",
-      I: GetBillingUsageReportInput,
-      O: BillingUsageReportResponse,
       kind: MethodKind.Unary,
     },
     /**

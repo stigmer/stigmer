@@ -1998,7 +1998,7 @@ func (x *GetRunUsageReportInput) GetRunId() string {
 // GetRunUsageReportOutput returns aggregated usage for one run.
 type GetRunUsageReportOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Aggregated token counts and cost for this run.
+	// Aggregated token counts for this run.
 	Aggregate *UsageReportAggregate `protobuf:"bytes,1,opt,name=aggregate,proto3" json:"aggregate,omitempty"`
 	// Per-model breakdown within this run.
 	ModelBreakdown []*ModelUsage `protobuf:"bytes,2,rep,name=model_breakdown,json=modelBreakdown,proto3" json:"model_breakdown,omitempty"`
@@ -2051,7 +2051,7 @@ func (x *GetRunUsageReportOutput) GetModelBreakdown() []*ModelUsage {
 }
 
 // GetSessionUsageReportInput requests a usage report for a single session.
-// Aggregates cost and token data across all runs in the session.
+// Aggregates token data across all runs in the session.
 type GetSessionUsageReportInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session ID to get usage report for.
@@ -2100,8 +2100,8 @@ func (x *GetSessionUsageReportInput) GetSessionId() string {
 // GetSessionUsageReportOutput returns aggregated usage for a session.
 //
 // Provides both the session-level totals and per-run breakdown,
-// enabling drill-down from "this session cost $0.90" to "run #3
-// cost $0.12 because it used claude-sonnet-4."
+// enabling drill-down from "this session used 90k tokens" to "run #3
+// used 12k of them on claude-sonnet-4."
 type GetSessionUsageReportOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session identifier.
@@ -2118,9 +2118,8 @@ type GetSessionUsageReportOutput struct {
 	FirstRunAt string `protobuf:"bytes,6,opt,name=first_run_at,json=firstRunAt,proto3" json:"first_run_at,omitempty"`
 	// ISO 8601 timestamp of the most recent run in this session.
 	LastRunAt string `protobuf:"bytes,7,opt,name=last_run_at,json=lastRunAt,proto3" json:"last_run_at,omitempty"`
-	// Whether any record in this session is still estimated (not yet proxy-metered).
-	// True when the run is in flight and only streaming usage data is available.
-	// False once proxy billing records have been written.
+	// Whether any run in this session is counted from its runner's own report
+	// rather than the deployment's meter (usage.proto, USAGE REPORT TYPES).
 	IsEstimated   bool `protobuf:"varint,8,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2213,17 +2212,18 @@ func (x *GetSessionUsageReportOutput) GetIsEstimated() bool {
 }
 
 // GetAgentUsageReportInput requests a usage report for a specific agent
-// within one organization. Aggregates cost and token data across the org's
+// within one organization. Aggregates token data across the org's
 // sessions of the agent within a time range.
 type GetAgentUsageReportInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent ID to get usage report for.
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	// Start of time range filter (ISO 8601, inclusive).
-	// Example: "2026-03-01"
+	// Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+	// from its first instant) or an RFC 3339 instant. A run is in the range
+	// when it was created in it.
 	FromDate string `protobuf:"bytes,2,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
-	// End of time range filter (ISO 8601, inclusive).
-	// Example: "2026-03-13"
+	// End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+	// through its last instant) or an RFC 3339 instant.
 	ToDate string `protobuf:"bytes,3,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
 	// Maximum number of sessions to return per page.
 	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
@@ -2329,8 +2329,6 @@ type GetAgentUsageReportOutput struct {
 	TotalSessions int32 `protobuf:"varint,6,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
 	// Total number of runs within the time range.
 	TotalRuns int32 `protobuf:"varint,7,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
-	// Total billable cost in micro-USD within the time range.
-	TotalBillableCostMicros int64 `protobuf:"varint,8,opt,name=total_billable_cost_micros,json=totalBillableCostMicros,proto3" json:"total_billable_cost_micros,omitempty"`
 	// Token for the next page of sessions (empty if no more pages).
 	NextPageToken string `protobuf:"bytes,9,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2416,13 +2414,6 @@ func (x *GetAgentUsageReportOutput) GetTotalRuns() int32 {
 	return 0
 }
 
-func (x *GetAgentUsageReportOutput) GetTotalBillableCostMicros() int64 {
-	if x != nil {
-		return x.TotalBillableCostMicros
-	}
-	return 0
-}
-
 func (x *GetAgentUsageReportOutput) GetNextPageToken() string {
 	if x != nil {
 		return x.NextPageToken
@@ -2431,17 +2422,18 @@ func (x *GetAgentUsageReportOutput) GetNextPageToken() string {
 }
 
 // GetOrgUsageReportInput requests a usage report for an entire organization.
-// Aggregates cost and token data across all agents and sessions within a
-// time range.
+// Aggregates token data across all agents and sessions within a time range
+// that the caller can read.
 type GetOrgUsageReportInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization ID.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Start of time range filter (ISO 8601, inclusive, required).
-	// Example: "2026-03-01"
+	// Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+	// from its first instant) or an RFC 3339 instant. A run is in the range
+	// when it was created in it. Required.
 	FromDate string `protobuf:"bytes,2,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
-	// End of time range filter (ISO 8601, inclusive, required).
-	// Example: "2026-03-13"
+	// End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+	// through its last instant) or an RFC 3339 instant. Required.
 	ToDate        string `protobuf:"bytes,3,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2500,8 +2492,9 @@ func (x *GetOrgUsageReportInput) GetToDate() string {
 
 // GetOrgUsageReportOutput returns aggregated usage for an organization.
 //
-// Provides org-level totals, per-model breakdown, top agents by cost,
-// and a daily cost trend for capacity planning and budget monitoring.
+// Provides org-level totals, per-model breakdown, the agents with the most
+// tokens, and a daily token trend. It counts only the runs the caller can
+// read, and names only their agents.
 type GetOrgUsageReportOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization identifier.
@@ -2512,18 +2505,19 @@ type GetOrgUsageReportOutput struct {
 	TotalSessions int32 `protobuf:"varint,3,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
 	// Total runs across all agents in the time range.
 	TotalRuns int32 `protobuf:"varint,4,opt,name=total_runs,json=totalRuns,proto3" json:"total_runs,omitempty"`
-	// Total billable cost in micro-USD across the organization in the time range.
-	TotalBillableCostMicros int64 `protobuf:"varint,5,opt,name=total_billable_cost_micros,json=totalBillableCostMicros,proto3" json:"total_billable_cost_micros,omitempty"`
 	// Per-model breakdown across the organization.
 	ModelBreakdown []*ModelUsage `protobuf:"bytes,6,rep,name=model_breakdown,json=modelBreakdown,proto3" json:"model_breakdown,omitempty"`
-	// Top agents by cost (top 10), ordered by billable_cost_micros descending.
-	TopAgentsByCost []*AgentUsageSummary `protobuf:"bytes,7,rep,name=top_agents_by_cost,json=topAgentsByCost,proto3" json:"top_agents_by_cost,omitempty"`
-	// Daily cost trend within the time range, ordered chronologically.
-	DailyCosts []*DailyCostEntry `protobuf:"bytes,8,rep,name=daily_costs,json=dailyCosts,proto3" json:"daily_costs,omitempty"`
-	// Cost split by execution harness (e.g., "native" vs "cursor").
-	HarnessBreakdown []*HarnessCostSummary `protobuf:"bytes,9,rep,name=harness_breakdown,json=harnessBreakdown,proto3" json:"harness_breakdown,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The ten agents with the most tokens, ordered by total_tokens descending.
+	TopAgents []*AgentUsageSummary `protobuf:"bytes,10,rep,name=top_agents,json=topAgents,proto3" json:"top_agents,omitempty"`
+	// Daily token trend within the time range, one row per UTC day that has a
+	// run, ordered chronologically.
+	DailyUsage []*DailyUsage `protobuf:"bytes,11,rep,name=daily_usage,json=dailyUsage,proto3" json:"daily_usage,omitempty"`
+	// Usage split by execution harness (e.g., "native" vs "cursor").
+	HarnessUsage []*HarnessUsage `protobuf:"bytes,12,rep,name=harness_usage,json=harnessUsage,proto3" json:"harness_usage,omitempty"`
+	// Aggregated usage across the organization in the time range.
+	TotalUsage    *UsageReportAggregate `protobuf:"bytes,13,opt,name=total_usage,json=totalUsage,proto3" json:"total_usage,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetOrgUsageReportOutput) Reset() {
@@ -2584,13 +2578,6 @@ func (x *GetOrgUsageReportOutput) GetTotalRuns() int32 {
 	return 0
 }
 
-func (x *GetOrgUsageReportOutput) GetTotalBillableCostMicros() int64 {
-	if x != nil {
-		return x.TotalBillableCostMicros
-	}
-	return 0
-}
-
 func (x *GetOrgUsageReportOutput) GetModelBreakdown() []*ModelUsage {
 	if x != nil {
 		return x.ModelBreakdown
@@ -2598,23 +2585,30 @@ func (x *GetOrgUsageReportOutput) GetModelBreakdown() []*ModelUsage {
 	return nil
 }
 
-func (x *GetOrgUsageReportOutput) GetTopAgentsByCost() []*AgentUsageSummary {
+func (x *GetOrgUsageReportOutput) GetTopAgents() []*AgentUsageSummary {
 	if x != nil {
-		return x.TopAgentsByCost
+		return x.TopAgents
 	}
 	return nil
 }
 
-func (x *GetOrgUsageReportOutput) GetDailyCosts() []*DailyCostEntry {
+func (x *GetOrgUsageReportOutput) GetDailyUsage() []*DailyUsage {
 	if x != nil {
-		return x.DailyCosts
+		return x.DailyUsage
 	}
 	return nil
 }
 
-func (x *GetOrgUsageReportOutput) GetHarnessBreakdown() []*HarnessCostSummary {
+func (x *GetOrgUsageReportOutput) GetHarnessUsage() []*HarnessUsage {
 	if x != nil {
-		return x.HarnessBreakdown
+		return x.HarnessUsage
+	}
+	return nil
+}
+
+func (x *GetOrgUsageReportOutput) GetTotalUsage() *UsageReportAggregate {
+	if x != nil {
+		return x.TotalUsage
 	}
 	return nil
 }
@@ -2634,16 +2628,17 @@ type RunUsageSummary struct {
 	OutputTokens int64 `protobuf:"varint,5,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
 	// Cache read tokens for this run.
 	CacheReadInputTokens int64 `protobuf:"varint,6,opt,name=cache_read_input_tokens,json=cacheReadInputTokens,proto3" json:"cache_read_input_tokens,omitempty"`
-	// Billable cost in micro-USD for this run.
-	BillableCostMicros int64 `protobuf:"varint,7,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
 	// Primary model used for this run.
 	PrimaryModel string `protobuf:"bytes,8,opt,name=primary_model,json=primaryModel,proto3" json:"primary_model,omitempty"`
 	// Number of sub-agent invocations in this run.
 	SubAgentCount int32 `protobuf:"varint,9,opt,name=sub_agent_count,json=subAgentCount,proto3" json:"sub_agent_count,omitempty"`
 	// Terminal phase of this run.
 	Phase RunPhase `protobuf:"varint,10,opt,name=phase,proto3,enum=ai.stigmer.agentic.run.v1.RunPhase" json:"phase,omitempty"`
-	// Whether this run's cost is estimated (in-flight, no billing records yet).
-	IsEstimated   bool `protobuf:"varint,11,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
+	// Whether this run is counted from its runner's own report rather than
+	// the deployment's meter (usage.proto, USAGE REPORT TYPES).
+	IsEstimated bool `protobuf:"varint,11,opt,name=is_estimated,json=isEstimated,proto3" json:"is_estimated,omitempty"`
+	// Total tokens for this run (cache-inclusive, as the aggregate's).
+	TotalTokens   int64 `protobuf:"varint,12,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2720,13 +2715,6 @@ func (x *RunUsageSummary) GetCacheReadInputTokens() int64 {
 	return 0
 }
 
-func (x *RunUsageSummary) GetBillableCostMicros() int64 {
-	if x != nil {
-		return x.BillableCostMicros
-	}
-	return 0
-}
-
 func (x *RunUsageSummary) GetPrimaryModel() string {
 	if x != nil {
 		return x.PrimaryModel
@@ -2755,6 +2743,13 @@ func (x *RunUsageSummary) GetIsEstimated() bool {
 	return false
 }
 
+func (x *RunUsageSummary) GetTotalTokens() int64 {
+	if x != nil {
+		return x.TotalTokens
+	}
+	return 0
+}
+
 // Lightweight view of a session's usage within an agent report.
 type SessionUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2765,8 +2760,6 @@ type SessionUsageSummary struct {
 	// Total tokens across all runs (cache-inclusive: the sum of each
 	// call's provider-reported total, including cached input tokens).
 	TotalTokens int64 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
-	// Total billable cost in micro-USD for this session.
-	BillableCostMicros int64 `protobuf:"varint,4,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
 	// ISO 8601 timestamp of the first run in this session.
 	FirstRunAt string `protobuf:"bytes,5,opt,name=first_run_at,json=firstRunAt,proto3" json:"first_run_at,omitempty"`
 	// ISO 8601 timestamp of the most recent run in this session.
@@ -2826,13 +2819,6 @@ func (x *SessionUsageSummary) GetTotalTokens() int64 {
 	return 0
 }
 
-func (x *SessionUsageSummary) GetBillableCostMicros() int64 {
-	if x != nil {
-		return x.BillableCostMicros
-	}
-	return 0
-}
-
 func (x *SessionUsageSummary) GetFirstRunAt() string {
 	if x != nil {
 		return x.FirstRunAt
@@ -2858,11 +2844,9 @@ type AgentUsageSummary struct {
 	RunCount int32 `protobuf:"varint,3,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
 	// Total tokens across all runs (cache-inclusive: the sum of each
 	// call's provider-reported total, including cached input tokens).
-	TotalTokens int64 `protobuf:"varint,4,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
-	// Total billable cost in micro-USD for this agent.
-	BillableCostMicros int64 `protobuf:"varint,5,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	TotalTokens   int64 `protobuf:"varint,4,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentUsageSummary) Reset() {
@@ -2923,42 +2907,35 @@ func (x *AgentUsageSummary) GetTotalTokens() int64 {
 	return 0
 }
 
-func (x *AgentUsageSummary) GetBillableCostMicros() int64 {
-	if x != nil {
-		return x.BillableCostMicros
-	}
-	return 0
-}
-
-// Cost and usage for a single day within an org report.
-type DailyCostEntry struct {
+// Usage for a single UTC day within an org report.
+type DailyUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Date in YYYY-MM-DD format.
+	// UTC date in YYYY-MM-DD format.
 	Date string `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
-	// Number of runs on this date.
+	// Number of runs created on this date.
 	RunCount int32 `protobuf:"varint,2,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
-	// Total tokens consumed on this date.
+	// Total tokens of those runs (cache-inclusive, as the aggregate's).
 	TotalTokens int64 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
-	// Total billable cost in micro-USD on this date.
-	BillableCostMicros int64 `protobuf:"varint,4,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Number of metered LLM API calls of those runs.
+	LlmCallCount  int32 `protobuf:"varint,4,opt,name=llm_call_count,json=llmCallCount,proto3" json:"llm_call_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DailyCostEntry) Reset() {
-	*x = DailyCostEntry{}
+func (x *DailyUsage) Reset() {
+	*x = DailyUsage{}
 	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DailyCostEntry) String() string {
+func (x *DailyUsage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DailyCostEntry) ProtoMessage() {}
+func (*DailyUsage) ProtoMessage() {}
 
-func (x *DailyCostEntry) ProtoReflect() protoreflect.Message {
+func (x *DailyUsage) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2970,51 +2947,51 @@ func (x *DailyCostEntry) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DailyCostEntry.ProtoReflect.Descriptor instead.
-func (*DailyCostEntry) Descriptor() ([]byte, []int) {
+// Deprecated: Use DailyUsage.ProtoReflect.Descriptor instead.
+func (*DailyUsage) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{32}
 }
 
-func (x *DailyCostEntry) GetDate() string {
+func (x *DailyUsage) GetDate() string {
 	if x != nil {
 		return x.Date
 	}
 	return ""
 }
 
-func (x *DailyCostEntry) GetRunCount() int32 {
+func (x *DailyUsage) GetRunCount() int32 {
 	if x != nil {
 		return x.RunCount
 	}
 	return 0
 }
 
-func (x *DailyCostEntry) GetTotalTokens() int64 {
+func (x *DailyUsage) GetTotalTokens() int64 {
 	if x != nil {
 		return x.TotalTokens
 	}
 	return 0
 }
 
-func (x *DailyCostEntry) GetBillableCostMicros() int64 {
+func (x *DailyUsage) GetLlmCallCount() int32 {
 	if x != nil {
-		return x.BillableCostMicros
+		return x.LlmCallCount
 	}
 	return 0
 }
 
-// Cost split by execution harness within an org report.
+// Usage split by execution harness within an org report.
 //
 // Each entry represents one harness (e.g., "native" or "cursor") and
-// aggregates cost, call count, and run count for that harness
+// aggregates tokens, call count, and run count for that harness
 // within the report's time range.
-type HarnessCostSummary struct {
+type HarnessUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Harness identifier (e.g., "native", "cursor").
 	Harness string `protobuf:"bytes,1,opt,name=harness,proto3" json:"harness,omitempty"`
-	// Total billable cost in micro-USD for this harness.
-	BillableCostMicros int64 `protobuf:"varint,2,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
-	// Number of LLM API calls through this harness.
+	// Total tokens through this harness (cache-inclusive, as the aggregate's).
+	TotalTokens int64 `protobuf:"varint,2,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	// Number of metered LLM API calls through this harness.
 	CallCount int32 `protobuf:"varint,3,opt,name=call_count,json=callCount,proto3" json:"call_count,omitempty"`
 	// Number of distinct runs that used this harness.
 	RunCount      int32 `protobuf:"varint,4,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
@@ -3022,20 +2999,20 @@ type HarnessCostSummary struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *HarnessCostSummary) Reset() {
-	*x = HarnessCostSummary{}
+func (x *HarnessUsage) Reset() {
+	*x = HarnessUsage{}
 	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HarnessCostSummary) String() string {
+func (x *HarnessUsage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HarnessCostSummary) ProtoMessage() {}
+func (*HarnessUsage) ProtoMessage() {}
 
-func (x *HarnessCostSummary) ProtoReflect() protoreflect.Message {
+func (x *HarnessUsage) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -3047,33 +3024,33 @@ func (x *HarnessCostSummary) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use HarnessCostSummary.ProtoReflect.Descriptor instead.
-func (*HarnessCostSummary) Descriptor() ([]byte, []int) {
+// Deprecated: Use HarnessUsage.ProtoReflect.Descriptor instead.
+func (*HarnessUsage) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{33}
 }
 
-func (x *HarnessCostSummary) GetHarness() string {
+func (x *HarnessUsage) GetHarness() string {
 	if x != nil {
 		return x.Harness
 	}
 	return ""
 }
 
-func (x *HarnessCostSummary) GetBillableCostMicros() int64 {
+func (x *HarnessUsage) GetTotalTokens() int64 {
 	if x != nil {
-		return x.BillableCostMicros
+		return x.TotalTokens
 	}
 	return 0
 }
 
-func (x *HarnessCostSummary) GetCallCount() int32 {
+func (x *HarnessUsage) GetCallCount() int32 {
 	if x != nil {
 		return x.CallCount
 	}
 	return 0
 }
 
-func (x *HarnessCostSummary) GetRunCount() int32 {
+func (x *HarnessUsage) GetRunCount() int32 {
 	if x != nil {
 		return x.RunCount
 	}
@@ -3141,9 +3118,8 @@ func (x *GetRunSummaryRequest) GetTimeWindow() RunSummaryTimeWindow {
 // RunSummary contains aggregated operational statistics for agent
 // runs. Designed for the platform dashboard's unified health view.
 //
-// Cost is intentionally omitted. The dashboard sources cost from
-// getOrgUsageReport (billing source of truth), so it shows what billing
-// recorded and cost is never counted from two sources.
+// Tokens are intentionally omitted. The dashboard reads them from
+// getOrgUsageReport, so usage is never counted from two places.
 type RunSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Number of runs currently in a non-terminal phase
@@ -3412,7 +3388,7 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x05 \x01(\tR\tpageToken\x12\x19\n" +
-	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xee\x03\n" +
+	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\xd3\x03\n" +
 	"\x19GetAgentUsageReportOutput\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
@@ -3423,25 +3399,28 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\bsessions\x18\x05 \x03(\v2..ai.stigmer.agentic.run.v1.SessionUsageSummaryR\bsessions\x12%\n" +
 	"\x0etotal_sessions\x18\x06 \x01(\x05R\rtotalSessions\x12\x1d\n" +
 	"\n" +
-	"total_runs\x18\a \x01(\x05R\ttotalRuns\x12;\n" +
-	"\x1atotal_billable_cost_micros\x18\b \x01(\x03R\x17totalBillableCostMicros\x12&\n" +
-	"\x0fnext_page_token\x18\t \x01(\tR\rnextPageToken\"{\n" +
+	"total_runs\x18\a \x01(\x05R\ttotalRuns\x12&\n" +
+	"\x0fnext_page_token\x18\t \x01(\tR\rnextPageTokenJ\x04\b\b\x10\tR\x1atotal_billable_cost_micros\"{\n" +
 	"\x16GetOrgUsageReportInput\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12$\n" +
 	"\tfrom_date\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfromDate\x12 \n" +
-	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\xa4\x04\n" +
+	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\x81\x05\n" +
 	"\x17GetOrgUsageReportOutput\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12!\n" +
 	"\ftotal_agents\x18\x02 \x01(\x05R\vtotalAgents\x12%\n" +
 	"\x0etotal_sessions\x18\x03 \x01(\x05R\rtotalSessions\x12\x1d\n" +
 	"\n" +
-	"total_runs\x18\x04 \x01(\x05R\ttotalRuns\x12;\n" +
-	"\x1atotal_billable_cost_micros\x18\x05 \x01(\x03R\x17totalBillableCostMicros\x12N\n" +
-	"\x0fmodel_breakdown\x18\x06 \x03(\v2%.ai.stigmer.agentic.run.v1.ModelUsageR\x0emodelBreakdown\x12Y\n" +
-	"\x12top_agents_by_cost\x18\a \x03(\v2,.ai.stigmer.agentic.run.v1.AgentUsageSummaryR\x0ftopAgentsByCost\x12J\n" +
-	"\vdaily_costs\x18\b \x03(\v2).ai.stigmer.agentic.run.v1.DailyCostEntryR\n" +
-	"dailyCosts\x12Z\n" +
-	"\x11harness_breakdown\x18\t \x03(\v2-.ai.stigmer.agentic.run.v1.HarnessCostSummaryR\x10harnessBreakdown\"\xc6\x03\n" +
+	"total_runs\x18\x04 \x01(\x05R\ttotalRuns\x12N\n" +
+	"\x0fmodel_breakdown\x18\x06 \x03(\v2%.ai.stigmer.agentic.run.v1.ModelUsageR\x0emodelBreakdown\x12K\n" +
+	"\n" +
+	"top_agents\x18\n" +
+	" \x03(\v2,.ai.stigmer.agentic.run.v1.AgentUsageSummaryR\ttopAgents\x12F\n" +
+	"\vdaily_usage\x18\v \x03(\v2%.ai.stigmer.agentic.run.v1.DailyUsageR\n" +
+	"dailyUsage\x12L\n" +
+	"\rharness_usage\x18\f \x03(\v2'.ai.stigmer.agentic.run.v1.HarnessUsageR\fharnessUsage\x12P\n" +
+	"\vtotal_usage\x18\r \x01(\v2/.ai.stigmer.agentic.run.v1.UsageReportAggregateR\n" +
+	"totalUsageJ\x04\b\x05\x10\x06J\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"R\x1atotal_billable_cost_microsR\x12top_agents_by_costR\vdaily_costsR\x11harness_breakdown\"\xd3\x03\n" +
 	"\x0fRunUsageSummary\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x1d\n" +
 	"\n" +
@@ -3449,37 +3428,36 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\fcompleted_at\x18\x03 \x01(\tR\vcompletedAt\x12!\n" +
 	"\finput_tokens\x18\x04 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x05 \x01(\x03R\foutputTokens\x125\n" +
-	"\x17cache_read_input_tokens\x18\x06 \x01(\x03R\x14cacheReadInputTokens\x120\n" +
-	"\x14billable_cost_micros\x18\a \x01(\x03R\x12billableCostMicros\x12#\n" +
+	"\x17cache_read_input_tokens\x18\x06 \x01(\x03R\x14cacheReadInputTokens\x12#\n" +
 	"\rprimary_model\x18\b \x01(\tR\fprimaryModel\x12&\n" +
 	"\x0fsub_agent_count\x18\t \x01(\x05R\rsubAgentCount\x129\n" +
 	"\x05phase\x18\n" +
 	" \x01(\x0e2#.ai.stigmer.agentic.run.v1.RunPhaseR\x05phase\x12!\n" +
-	"\fis_estimated\x18\v \x01(\bR\visEstimated\"\xe8\x01\n" +
+	"\fis_estimated\x18\v \x01(\bR\visEstimated\x12!\n" +
+	"\ftotal_tokens\x18\f \x01(\x03R\vtotalTokensJ\x04\b\a\x10\bR\x14billable_cost_micros\"\xd2\x01\n" +
 	"\x13SessionUsageSummary\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1b\n" +
 	"\trun_count\x18\x02 \x01(\x05R\brunCount\x12!\n" +
-	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x120\n" +
-	"\x14billable_cost_micros\x18\x04 \x01(\x03R\x12billableCostMicros\x12 \n" +
+	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x12 \n" +
 	"\ffirst_run_at\x18\x05 \x01(\tR\n" +
 	"firstRunAt\x12\x1e\n" +
-	"\vlast_run_at\x18\x06 \x01(\tR\tlastRunAt\"\xbf\x01\n" +
+	"\vlast_run_at\x18\x06 \x01(\tR\tlastRunAtJ\x04\b\x04\x10\x05R\x14billable_cost_micros\"\xa9\x01\n" +
 	"\x11AgentUsageSummary\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\x12\x1b\n" +
 	"\trun_count\x18\x03 \x01(\x05R\brunCount\x12!\n" +
-	"\ftotal_tokens\x18\x04 \x01(\x03R\vtotalTokens\x120\n" +
-	"\x14billable_cost_micros\x18\x05 \x01(\x03R\x12billableCostMicros\"\x96\x01\n" +
-	"\x0eDailyCostEntry\x12\x12\n" +
+	"\ftotal_tokens\x18\x04 \x01(\x03R\vtotalTokensJ\x04\b\x05\x10\x06R\x14billable_cost_micros\"\x86\x01\n" +
+	"\n" +
+	"DailyUsage\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12\x1b\n" +
 	"\trun_count\x18\x02 \x01(\x05R\brunCount\x12!\n" +
-	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x120\n" +
-	"\x14billable_cost_micros\x18\x04 \x01(\x03R\x12billableCostMicros\"\x9c\x01\n" +
-	"\x12HarnessCostSummary\x12\x18\n" +
-	"\aharness\x18\x01 \x01(\tR\aharness\x120\n" +
-	"\x14billable_cost_micros\x18\x02 \x01(\x03R\x12billableCostMicros\x12\x1d\n" +
+	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x12$\n" +
+	"\x0ellm_call_count\x18\x04 \x01(\x05R\fllmCallCount\"\x87\x01\n" +
+	"\fHarnessUsage\x12\x18\n" +
+	"\aharness\x18\x01 \x01(\tR\aharness\x12!\n" +
+	"\ftotal_tokens\x18\x02 \x01(\x03R\vtotalTokens\x12\x1d\n" +
 	"\n" +
 	"call_count\x18\x03 \x01(\x05R\tcallCount\x12\x1b\n" +
 	"\trun_count\x18\x04 \x01(\x05R\brunCount\"\x83\x01\n" +
@@ -3558,8 +3536,8 @@ var file_ai_stigmer_agentic_run_v1_io_proto_goTypes = []any{
 	(*RunUsageSummary)(nil),                // 30: ai.stigmer.agentic.run.v1.RunUsageSummary
 	(*SessionUsageSummary)(nil),            // 31: ai.stigmer.agentic.run.v1.SessionUsageSummary
 	(*AgentUsageSummary)(nil),              // 32: ai.stigmer.agentic.run.v1.AgentUsageSummary
-	(*DailyCostEntry)(nil),                 // 33: ai.stigmer.agentic.run.v1.DailyCostEntry
-	(*HarnessCostSummary)(nil),             // 34: ai.stigmer.agentic.run.v1.HarnessCostSummary
+	(*DailyUsage)(nil),                     // 33: ai.stigmer.agentic.run.v1.DailyUsage
+	(*HarnessUsage)(nil),                   // 34: ai.stigmer.agentic.run.v1.HarnessUsage
 	(*GetRunSummaryRequest)(nil),           // 35: ai.stigmer.agentic.run.v1.GetRunSummaryRequest
 	(*RunSummary)(nil),                     // 36: ai.stigmer.agentic.run.v1.RunSummary
 	(*AgentFailureRank)(nil),               // 37: ai.stigmer.agentic.run.v1.AgentFailureRank
@@ -3593,19 +3571,20 @@ var file_ai_stigmer_agentic_run_v1_io_proto_depIdxs = []int32{
 	47, // 14: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
 	31, // 15: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.run.v1.SessionUsageSummary
 	47, // 16: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
-	32, // 17: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.top_agents_by_cost:type_name -> ai.stigmer.agentic.run.v1.AgentUsageSummary
-	33, // 18: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.daily_costs:type_name -> ai.stigmer.agentic.run.v1.DailyCostEntry
-	34, // 19: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.harness_breakdown:type_name -> ai.stigmer.agentic.run.v1.HarnessCostSummary
-	40, // 20: ai.stigmer.agentic.run.v1.RunUsageSummary.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
-	0,  // 21: ai.stigmer.agentic.run.v1.GetRunSummaryRequest.time_window:type_name -> ai.stigmer.agentic.run.v1.RunSummaryTimeWindow
-	38, // 22: ai.stigmer.agentic.run.v1.RunSummary.phase_counts:type_name -> ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
-	48, // 23: ai.stigmer.agentic.run.v1.RunSummary.avg_duration:type_name -> google.protobuf.Duration
-	37, // 24: ai.stigmer.agentic.run.v1.RunSummary.top_failing_agents:type_name -> ai.stigmer.agentic.run.v1.AgentFailureRank
-	25, // [25:25] is the sub-list for method output_type
-	25, // [25:25] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	32, // 17: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.top_agents:type_name -> ai.stigmer.agentic.run.v1.AgentUsageSummary
+	33, // 18: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.daily_usage:type_name -> ai.stigmer.agentic.run.v1.DailyUsage
+	34, // 19: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.harness_usage:type_name -> ai.stigmer.agentic.run.v1.HarnessUsage
+	46, // 20: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	40, // 21: ai.stigmer.agentic.run.v1.RunUsageSummary.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
+	0,  // 22: ai.stigmer.agentic.run.v1.GetRunSummaryRequest.time_window:type_name -> ai.stigmer.agentic.run.v1.RunSummaryTimeWindow
+	38, // 23: ai.stigmer.agentic.run.v1.RunSummary.phase_counts:type_name -> ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
+	48, // 24: ai.stigmer.agentic.run.v1.RunSummary.avg_duration:type_name -> google.protobuf.Duration
+	37, // 25: ai.stigmer.agentic.run.v1.RunSummary.top_failing_agents:type_name -> ai.stigmer.agentic.run.v1.AgentFailureRank
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_io_proto_init() }

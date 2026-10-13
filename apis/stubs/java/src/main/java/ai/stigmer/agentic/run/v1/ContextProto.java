@@ -47,7 +47,7 @@ public final class ContextProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n\'ai/stigmer/agentic/run/v1/context.prot" +
       "o\022\031ai.stigmer.agentic.run.v1\032$ai/stigmer" +
-      "/agentic/run/v1/enum.proto\"\305\004\n\022Summariza" +
+      "/agentic/run/v1/enum.proto\"\255\004\n\022Summariza" +
       "tionEvent\022\034\n\ttimestamp\030\001 \001(\tR\ttimestamp\022" +
       "#\n\rtokens_before\030\002 \001(\005R\014tokensBefore\022!\n\014" +
       "tokens_after\030\003 \001(\005R\013tokensAfter\022+\n\021compr" +
@@ -60,24 +60,23 @@ public final class ContextProto extends com.google.protobuf.GeneratedFile {
       "v1.SummarizationSourceR\006source\022<\n\032summar" +
       "ization_input_tokens\030\n \001(\005R\030summarizatio" +
       "nInputTokens\022>\n\033summarization_output_tok" +
-      "ens\030\013 \001(\005R\031summarizationOutputTokens\0224\n\026" +
-      "summarization_cost_usd\030\014 \001(\001R\024summarizat" +
-      "ionCostUsd\"\277\003\n\013ContextInfo\022.\n\023current_to" +
-      "ken_count\030\001 \001(\005R\021currentTokenCount\0220\n\024co" +
-      "ntext_window_limit\030\002 \001(\005R\022contextWindowL" +
-      "imit\022F\n\037summarization_trigger_threshold\030" +
-      "\003 \001(\005R\035summarizationTriggerThreshold\022>\n\033" +
-      "summarization_target_tokens\030\004 \001(\005R\031summa" +
-      "rizationTargetTokens\0223\n\025summarization_en" +
-      "abled\030\005 \001(\010R\024summarizationEnabled\022`\n\024sum" +
-      "marization_events\030\006 \003(\0132-.ai.stigmer.age" +
-      "ntic.run.v1.SummarizationEventR\023summariz" +
-      "ationEvents\022/\n\023utilization_percent\030\007 \001(\002" +
-      "R\022utilizationPercentB\227\001B\014ContextProtoP\001\242" +
-      "\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\" +
-      "Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agen" +
-      "tic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Ag" +
-      "entic::Run::V1b\006proto3"
+      "ens\030\013 \001(\005R\031summarizationOutputTokensJ\004\010\014" +
+      "\020\rR\026summarization_cost_usd\"\277\003\n\013ContextIn" +
+      "fo\022.\n\023current_token_count\030\001 \001(\005R\021current" +
+      "TokenCount\0220\n\024context_window_limit\030\002 \001(\005" +
+      "R\022contextWindowLimit\022F\n\037summarization_tr" +
+      "igger_threshold\030\003 \001(\005R\035summarizationTrig" +
+      "gerThreshold\022>\n\033summarization_target_tok" +
+      "ens\030\004 \001(\005R\031summarizationTargetTokens\0223\n\025" +
+      "summarization_enabled\030\005 \001(\010R\024summarizati" +
+      "onEnabled\022`\n\024summarization_events\030\006 \003(\0132" +
+      "-.ai.stigmer.agentic.run.v1.Summarizatio" +
+      "nEventR\023summarizationEvents\022/\n\023utilizati" +
+      "on_percent\030\007 \001(\002R\022utilizationPercentB\227\001B" +
+      "\014ContextProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agen" +
+      "tic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002" +
+      "%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\352\002" +
+      "\035Ai::Stigmer::Agentic::Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -89,7 +88,7 @@ public final class ContextProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_SummarizationEvent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_SummarizationEvent_descriptor,
-        new java.lang.String[] { "Timestamp", "TokensBefore", "TokensAfter", "CompressionRatio", "DurationMs", "SummarizationModel", "MessagesBefore", "MessagesAfter", "Source", "SummarizationInputTokens", "SummarizationOutputTokens", "SummarizationCostUsd", });
+        new java.lang.String[] { "Timestamp", "TokensBefore", "TokensAfter", "CompressionRatio", "DurationMs", "SummarizationModel", "MessagesBefore", "MessagesAfter", "Source", "SummarizationInputTokens", "SummarizationOutputTokens", });
     internal_static_ai_stigmer_agentic_run_v1_ContextInfo_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_run_v1_ContextInfo_fieldAccessorTable = new

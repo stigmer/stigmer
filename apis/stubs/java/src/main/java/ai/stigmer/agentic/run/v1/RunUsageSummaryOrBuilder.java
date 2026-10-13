@@ -102,16 +102,6 @@ public interface RunUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Billable cost in micro-USD for this run.
-   * </pre>
-   *
-   * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
-   */
-  long getBillableCostMicros();
-
-  /**
-   * <pre>
    * Primary model used for this run.
    * </pre>
    *
@@ -161,11 +151,22 @@ public interface RunUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Whether this run's cost is estimated (in-flight, no billing records yet).
+   * Whether this run is counted from its runner's own report rather than
+   * the deployment's meter (usage.proto, USAGE REPORT TYPES).
    * </pre>
    *
    * <code>bool is_estimated = 11 [json_name = "isEstimated"];</code>
    * @return The isEstimated.
    */
   boolean getIsEstimated();
+
+  /**
+   * <pre>
+   * Total tokens for this run (cache-inclusive, as the aggregate's).
+   * </pre>
+   *
+   * <code>int64 total_tokens = 12 [json_name = "totalTokens"];</code>
+   * @return The totalTokens.
+   */
+  long getTotalTokens();
 }

@@ -39,26 +39,21 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer.billing.v1\032+ai/stigmer/billing/v" +
       "1/billing_account.proto\032\036ai/stigmer/bill" +
       "ing/v1/io.proto\032+ai/stigmer/commons/rpc/" +
-      "method_options.proto2\346\004\n\026BillingQueryCon" +
+      "method_options.proto2\243\003\n\026BillingQueryCon" +
       "troller\022\254\001\n\021getBillingAccount\022-.ai.stigm" +
       "er.billing.v1.GetBillingAccountInput\032%.a" +
       "i.stigmer.billing.v1.BillingAccount\"A\302\270\030" +
       "=\010\033\020\036\"\003org*2unauthorized to view billing" +
-      " for this organization\022\300\001\n\025getBillingUsa" +
-      "geReport\0221.ai.stigmer.billing.v1.GetBill" +
-      "ingUsageReportInput\0321.ai.stigmer.billing" +
-      ".v1.BillingUsageReportResponse\"A\302\270\030=\010\033\020\036" +
-      "\"\003org*2unauthorized to view billing for " +
-      "this organization\022\331\001\n\031listModelPricingBa" +
-      "selines\0225.ai.stigmer.billing.v1.ListMode" +
-      "lPricingBaselinesInput\0324.ai.stigmer.bill" +
-      "ing.v1.ModelPricingBaselinesResponse\"O\302\270" +
-      "\030K\010 \020\037*<only platform operators can view" +
-      " the model registry baseline2\007stigmerB\203\001" +
-      "B\nQueryProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billin" +
-      "g.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigme" +
-      "r\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::" +
-      "Billing::V1b\006proto3"
+      " for this organization\022\331\001\n\031listModelPric" +
+      "ingBaselines\0225.ai.stigmer.billing.v1.Lis" +
+      "tModelPricingBaselinesInput\0324.ai.stigmer" +
+      ".billing.v1.ModelPricingBaselinesRespons" +
+      "e\"O\302\270\030K\010 \020\037*<only platform operators can" +
+      " view the model registry baseline2\007stigm" +
+      "erB\203\001B\nQueryProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.B" +
+      "illing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\S" +
+      "tigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stig" +
+      "mer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
