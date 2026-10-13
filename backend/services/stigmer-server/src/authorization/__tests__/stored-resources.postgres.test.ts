@@ -13,6 +13,9 @@
  *   - A store fault is neither: both reads raise it, so a grant or revoke
  *     that needed the row fails as the fault it is, and never records an
  *     organization it could not read.
+ *   - A kind a unit keeps in its own table is read through the unit's row
+ *     reader, never the store (a team's organization, which a move inside
+ *     the organization needs to find its memberships).
  *
  * Postgres is skipped without `TEST_DATABASE_URL` (drivers.ts); the gate
  * provides it.
@@ -24,6 +27,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 
 import type { Store } from "../../store/interface.js";
 import { newStoredResources } from "../stored-resources.js";
@@ -89,6 +93,25 @@ describe.each(
     const resources = newStoredResources(opened.store);
     expect(await resources.organizationOf("agent", AGENT)).toBe("acme");
     expect(await resources.organizationOf("session", SESSION)).toBe("globex");
+  });
+
+  it("reads a kind a unit keeps itself through the unit's reader", async () => {
+    const team = create(TeamSchema, {
+      metadata: { id: "tm_sre", org: "acme" },
+      status: { audit: { specAudit: { createdBy: { id: "ida_bob" } } } },
+    });
+    const resources = newStoredResources(
+      opened.store,
+      new Map([
+        [
+          ApiResourceKind.team,
+          { findById: (id: string) => Promise.resolve(id === "tm_sre" ? team : undefined) },
+        ],
+      ]),
+    );
+    expect(await resources.organizationOf("team", "tm_sre")).toBe("acme");
+    expect(await resources.creatorOf("team", "tm_sre")).toBe("ida_bob");
+    expect(await resources.organizationOf("team", "tm_gone")).toBe("");
   });
 
   it("organizationOf answers no organization for a row it may not or cannot read", async () => {
