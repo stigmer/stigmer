@@ -83,6 +83,7 @@ const ENTRY_POINTS: ReadonlyArray<
           logger: silentLogger,
           authorizer: newPermissiveSingleTeamAuthorizer(),
           listReadScope: undefined,
+          meteredUsageProvider: undefined,
         },
         create(RunQueryController.method.getRunUsageReport.input, {
           runId: "",

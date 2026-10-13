@@ -87,6 +87,9 @@ export class LocalTarget implements TargetProfile {
     cloudTargetRefusesLocalPrograms: false,
     // No provider keys in this edition: a Cursor run is admitted at create.
     cursorRunsAdmitted: true,
+    // No meter in this edition: every run's usage is counted from its
+    // runner's own report and marked estimated.
+    runModelCallsMetered: false,
     // Open source serves PlatformClient; the minting lane is the OIDC
     // sibling this target lends through enforcingLane(), where the key ring,
     // the platform-token verifier and the origin guard are composed.

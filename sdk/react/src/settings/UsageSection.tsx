@@ -4,7 +4,7 @@ import { useId } from "react";
 import { OrgUsagePanel } from "../usage/OrgUsagePanel.js";
 import { useOrg } from "../organization/OrgProvider.js";
 
-/** Settings section for organization usage and cost reporting. */
+/** Settings section for organization token usage reporting. */
 export function UsageSection() {
   const headingId = useId();
   const { activeOrg } = useOrg();
@@ -19,8 +19,7 @@ export function UsageSection() {
         Usage
       </h2>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Monitor token consumption, cost, and run activity across
-        your organization.
+        Token usage and run activity across your organization.
       </p>
 
       {!orgId ? (

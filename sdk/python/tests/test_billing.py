@@ -9,8 +9,6 @@ billing_test.go — the reference pattern for testing the handwritten
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 import grpc
 import pytest
 
@@ -18,10 +16,7 @@ from ai.stigmer.billing.v1 import billing_account_pb2
 from ai.stigmer.billing.v1 import io_pb2 as billing_io_pb2
 
 from stigmer import StigmerClient
-from stigmer._billing import (
-    CreatePaymentMethodSetupSessionParams,
-    GetBillingUsageReportParams,
-)
+from stigmer._billing import CreatePaymentMethodSetupSessionParams
 from stigmer._gen._errors import StigmerError
 
 
@@ -56,15 +51,6 @@ class _CapturingCommandStub:
         return billing_io_pb2.CreatePaymentMethodSetupSessionResponse()
 
 
-class _CapturingQueryStub:
-    def __init__(self) -> None:
-        self.usage_in = None
-
-    def getBillingUsageReport(self, req):  # noqa: N802 — proto RPC name
-        self.usage_in = req
-        return billing_io_pb2.BillingUsageReportResponse()
-
-
 @pytest.fixture()
 def client():
     with StigmerClient("test-key", base_url="localhost:7234", insecure=True) as c:
@@ -96,21 +82,6 @@ class TestBillingClientWiring:
 
         with pytest.raises(StigmerError):
             client.billing.get_or_create_billing_account("acme")
-
-    def test_get_billing_usage_report_maps_timestamps(self, client: StigmerClient) -> None:
-        fake = _CapturingQueryStub()
-        client.billing._query = fake
-
-        start = datetime(2026, 7, 1, tzinfo=timezone.utc)
-        end = datetime(2026, 7, 31, 23, 59, 59, tzinfo=timezone.utc)
-        client.billing.get_billing_usage_report(
-            GetBillingUsageReportParams(org="acme", start_time=start, end_time=end)
-        )
-
-        req = fake.usage_in
-        assert req.org == "acme"
-        assert req.start_time.ToDatetime(tzinfo=timezone.utc) == start
-        assert req.end_time.ToDatetime(tzinfo=timezone.utc) == end
 
     def test_create_payment_method_setup_session_maps_params(
         self, client: StigmerClient

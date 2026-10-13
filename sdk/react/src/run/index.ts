@@ -27,7 +27,7 @@ export type {
 export { useResolveRunSession } from "./useResolveRunSession.js";
 export type { UseResolveRunSessionReturn } from "./useResolveRunSession.js";
 
-export { UsageWidget, formatCost, formatTokenCount } from "./UsageWidget.js";
+export { UsageWidget, formatTokenCount } from "./UsageWidget.js";
 export type { UsageWidgetProps } from "./UsageWidget.js";
 
 export { useContextWindow } from "./useContextWindow.js";

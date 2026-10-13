@@ -21,7 +21,7 @@ Self-hosted Stigmer (open source) has no billing; see
 
 | Plan     | Monthly fee                                          | Includes                                                                     |
 | -------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Free     | $0                                                   | Channels and sharing                                                         |
+| Free     | $0                                                   | Channels, sharing and unlimited members                                      |
 | Team     | $99                                                  | Teams, channels and sharing, with email support                              |
 | Business | $499, plus $25 for each child organization past five | Everything in Team, child organizations for your customers, priority support |
 
@@ -63,6 +63,35 @@ A run whose model needs a provider your Organization has no key for is refused
 before it starts. This holds for every run, including evals, AI grading, shared
 Agents and channels, which all run on the keys of the Organization that owns the
 Agent. See [Model provider keys](/docs/guides/integrations/model-provider-keys).
+
+## See your usage
+
+Stigmer counts the tokens your Agents use, so you can see where they go, but it
+never puts a price on them: your provider bills you for them, at your provider's
+rates.
+
+Usage is counted per run, and added up per Session, per Agent and per
+Organization. Each report gives the input, output and cached tokens, the number
+of model calls, and a breakdown by model and harness. It also says who served
+the tokens; today that is always your Organization's own provider keys.
+
+Where to see it:
+
+- **Organization**: the **Usage** page in your Organization's settings shows the
+  Organization's tokens over a date range, by day, by model, by harness and for
+  the Agents that used the most.
+- **Session**: a Session's **Usage** tab shows each run's tokens and the
+  Session's total.
+- **Dashboard**: the **Tokens** card shows the Organization's recent token usage
+  at a glance.
+- **CLI**: `stigmer usage session <id>`, `stigmer usage agent <id>` and
+  `stigmer usage org` print the same reports; see
+  [`stigmer usage`](/docs/cli/commands/usage).
+
+On Stigmer Cloud, a run's tokens are counted from each model call as it is made.
+A run with no such count, such as a run on a self-hosted server, is counted from
+its runner's own report of the tokens it used, and the run is marked
+**estimated**; a Session with any such run is marked estimated too.
 
 ## The model catalog
 
@@ -160,3 +189,7 @@ repository's `ee/` directory, is public under the Stigmer Enterprise License and
 needs a license key in production. When you self-host, there is no billing — you
 pay your own LLM provider costs directly. Billing only applies when using
 Stigmer Cloud at [`app.stigmer.ai`](https://app.stigmer.ai).
+
+Usage reports work the same way on a self-hosted server, each run counted from
+its runner's own report and marked estimated (see
+[See your usage](#see-your-usage)).

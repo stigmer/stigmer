@@ -1,6 +1,8 @@
-// `stigmer usage {session,agent,org}` — token/cost/model reports at three
-// granularities. Thin handlers: validate flags, fetch the report, render. Heavy
-// modules are lazy-imported inside actions so `--help` stays fast.
+// `stigmer usage {session,agent,org}` — token and model reports at three
+// granularities. Thin handlers: validate flags, fetch the report, render. The
+// dates pass through as typed: the server reads a UTC calendar day (the whole
+// day, both bounds inclusive) or an RFC 3339 instant. Heavy modules are
+// lazy-imported inside actions so `--help` stays fast.
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
@@ -13,8 +15,11 @@ interface UsageFlags extends OutputFlags {
   to?: string;
 }
 
+const FROM_HELP = "start: a UTC day, inclusive (e.g. 2026-03-01), or an RFC 3339 instant";
+const TO_HELP = "end: a UTC day, inclusive (e.g. 2026-03-13), or an RFC 3339 instant";
+
 export function registerUsage(program: Command): void {
-  const usage = program.command("usage").description("view token usage and cost reports");
+  const usage = program.command("usage").description("view token usage reports");
 
   usage
     .command("session <session-id>")
@@ -25,16 +30,16 @@ export function registerUsage(program: Command): void {
   usage
     .command("agent <agent-id>")
     .description("view the aggregated usage report for an agent within your organization")
-    .option("--from <date>", "start date (ISO 8601, e.g. 2026-03-01)")
-    .option("--to <date>", "end date (ISO 8601, e.g. 2026-03-13)")
+    .option("--from <date>", FROM_HELP)
+    .option("--to <date>", TO_HELP)
     .option("-o, --output <format>", "output format: table, json, or yaml")
     .action((agentId: string, options: UsageFlags, command: Command) => runAgentUsage(agentId, options, command));
 
   usage
     .command("org")
     .description("view the organization-wide usage report")
-    .option("--from <date>", "start date (ISO 8601, required)")
-    .option("--to <date>", "end date (ISO 8601, required)")
+    .option("--from <date>", `${FROM_HELP}, required`)
+    .option("--to <date>", `${TO_HELP}, required`)
     .option("-o, --output <format>", "output format: table, json, or yaml")
     .action((options: UsageFlags, command: Command) => runOrgUsage(options, command));
 }

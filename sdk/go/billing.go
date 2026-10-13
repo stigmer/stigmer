@@ -2,12 +2,10 @@ package stigmer
 
 import (
 	"context"
-	"time"
 
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 	billingv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Proto payload re-exports for the billing bounded context. Response
@@ -16,8 +14,6 @@ import (
 type (
 	// BillingAccount is an organization's billing account: its Stripe customer and status.
 	BillingAccount = billingv1.BillingAccount
-	// BillingUsageReportResponse counts an organization's runs and LLM calls for a date range.
-	BillingUsageReportResponse = billingv1.BillingUsageReportResponse
 	// CreateBillingPortalSessionResponse holds the Stripe-hosted portal URL.
 	CreateBillingPortalSessionResponse = billingv1.CreateBillingPortalSessionResponse
 	// CreatePaymentMethodSetupSessionResponse holds the Stripe-hosted setup URL.
@@ -27,13 +23,6 @@ type (
 	// ModelPricingBaseline is one model registry baseline entry (catalog + list prices).
 	ModelPricingBaseline = billingv1.ModelPricingBaseline
 )
-
-// GetBillingUsageReportParams configures a usage report query.
-type GetBillingUsageReportParams struct {
-	Org       string
-	StartTime time.Time
-	EndTime   time.Time
-}
 
 // CreateBillingPortalSessionParams configures a Stripe Billing Portal session.
 type CreateBillingPortalSessionParams struct {
@@ -77,8 +66,9 @@ type RetireModelPricingBaselineParams struct {
 
 // BillingClient provides the billing bounded context: the organization's
 // billing account (its Stripe customer), the Stripe portal and card setup
-// sessions, the usage meter's call and run counts, and the operator
-// model-pricing surfaces.
+// sessions, and the operator model-pricing surfaces. Token usage is read from
+// the run client's usage reports (GetRunUsageReport, GetSessionUsageReport,
+// GetAgentUsageReport, GetOrgUsageReport), counted in tokens and never priced.
 //
 // The proxy's metering write (recordLlmCallUsage) is not exposed; only the
 // server calls it.
@@ -108,21 +98,6 @@ func (b *BillingClient) GetOrCreateBillingAccount(ctx context.Context, org strin
 // GetBillingAccount retrieves the billing account for an organization.
 func (b *BillingClient) GetBillingAccount(ctx context.Context, org string) (*BillingAccount, error) {
 	resp, err := b.query.GetBillingAccount(ctx, &billingv1.GetBillingAccountInput{Org: org})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
-// GetBillingUsageReport retrieves an aggregated usage report for a date
-// range: the run and LLM call counts, and a per-model breakdown of call
-// counts by model and harness.
-func (b *BillingClient) GetBillingUsageReport(ctx context.Context, params *GetBillingUsageReportParams) (*BillingUsageReportResponse, error) {
-	resp, err := b.query.GetBillingUsageReport(ctx, &billingv1.GetBillingUsageReportInput{
-		Org:       params.Org,
-		StartTime: timestamppb.New(params.StartTime),
-		EndTime:   timestamppb.New(params.EndTime),
-	})
 	if err != nil {
 		return nil, gen.WrapErr(err)
 	}

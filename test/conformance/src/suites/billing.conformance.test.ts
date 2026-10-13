@@ -1,4 +1,4 @@
-// Billing engine conformance — the 9 RPCs of the billing engine and the
+// Billing engine conformance — the 8 RPCs of the billing engine and the
 // Stripe webhook (Class A; no runner). The rows were first read from the
 // retired Java service's behavior, and the composition is held to them.
 // Domain: billing.
@@ -8,12 +8,13 @@
 // fails when a `conformance` row has no test here or a tag names no row.
 //
 // Where `billingEngine` is TRUE (cloud): the organization's own lanes (its
-// billing account, its card on file, its usage report) are driven as the org
-// owner (the primary user) and an outsider; the usage meter and model
-// catalog lanes as the platform operator (`provisionPrivilegedScope` — the
-// FGA model derives can_execute_billing_ops and can_manage_model_pricing
-// from platform#operator) with the ordinary caller's refusal pinned to the
-// proto's own error_msg. The card-on-file path runs against the run's fake
+// billing account, its card on file) are driven as the org owner (the
+// primary user) and an outsider; the usage meter and model catalog lanes as
+// the platform operator (`provisionPrivilegedScope` — the FGA model derives
+// can_execute_billing_ops and can_manage_model_pricing from
+// platform#operator) with the ordinary caller's refusal pinned to the
+// proto's own error_msg. The meter's records are read back through the
+// run's own usage report, the only usage read there is. The card-on-file path runs against the run's fake
 // Stripe (harness/fake-stripe.ts): the server's outbound calls land there,
 // and the suite signs the webhook events it posts back with the secret the
 // server was booted with.
@@ -28,8 +29,8 @@
 // it in its own afterEach — the blocks that never touch Stripe do not pay for
 // a reset they do not need.
 import { Code } from "@connectrpc/connect";
-import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { FixtureTracker } from "../harness/fixtures";
@@ -147,16 +148,6 @@ async function operator(): Promise<PrivilegedScope> {
   return scope;
 }
 
-// The usage report over the hour around now: every call a test records lands
-// inside it.
-async function usageReport(as: ConformanceClients, org: string) {
-  return as.billingQuery.getBillingUsageReport({
-    org,
-    startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
-    endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
-  });
-}
-
 // ---------------------------------------------------------------------------
 // The Stripe half. Outbound, the server dials the run's fake
 // (harness/fake-stripe.ts) and the suite reads what landed there; inbound,
@@ -200,7 +191,7 @@ async function seedStripeCustomer(as: ConformanceClients, org: string): Promise<
   return customerId;
 }
 
-describe.skipIf(!engineServed)("Billing engine conformance — the billing account and the usage report (billingEngine targets)", () => {
+describe.skipIf(!engineServed)("Billing engine conformance — the billing account (billingEngine targets)", () => {
   it("[billing.gate.provision-account.org-create-provisions-account] [billing.rpc.get-billing-account.owner-reads-active-account] [rpc:BillingQueryController.getBillingAccount] an organization create provisions an active account the owner can read at once", async () => {
     const { org } = await keylessOrg();
     const account = await clients.billingQuery.getBillingAccount({ org });
@@ -239,14 +230,6 @@ describe.skipIf(!engineServed)("Billing engine conformance — the billing accou
       "outsider getOrCreateBillingAccount",
     );
     expect(denied.rawMessage).toBe(COPY.manageBilling);
-  });
-
-  it("[billing.rpc.get-billing-usage-report.shape-and-empty-org] [rpc:BillingQueryController.getBillingUsageReport] an org with no usage reports zero runs, zero calls and no model", async () => {
-    const { org } = await keylessOrg();
-    const report = await usageReport(clients, org);
-    expect(report.llmCallCount).toBe(0);
-    expect(report.runCount).toBe(0);
-    expect(report.modelBreakdown).toEqual([]);
   });
 });
 
@@ -465,21 +448,46 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
     }
   });
 
-  it("[billing.rpc.record-llm-call-usage.records-calls-and-unknown-models] [rpc:BillingCommandController.recordLlmCallUsage] recorded calls land on the run's organization's usage report; a model the catalog lacks is recorded rather than refused", async () => {
+  it("[billing.rpc.record-llm-call-usage.records-calls-and-unknown-models] [billing.rpc.get-run-usage-report.reads-metered-tokens] [rpc:BillingCommandController.recordLlmCallUsage] recorded calls land on their run's usage report, metered on the organization's key; a model the catalog lacks is recorded rather than refused", async () => {
     const op = await operator();
     const { org } = await keyedOrg();
     const runId = await ownedExecution(org);
-    const first = await op.clients.billingCommand.recordLlmCallUsage({ runId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6", harness: "native" });
-    const second = await op.clients.billingCommand.recordLlmCallUsage({ runId, sequence: 2, provider: "anthropic", resolvedModel: "model-nobody-catalogued", requestedModel: "model-nobody-catalogued", harness: "native" });
+    const onOrgKey = { providerKeySource: ProviderKeySource.ORGANIZATION, harness: "native", provider: "anthropic" } as const;
+    const first = await op.clients.billingCommand.recordLlmCallUsage({
+      runId,
+      sequence: 1,
+      resolvedModel: "claude-sonnet-4-6",
+      requestedModel: "claude-sonnet-4-6",
+      tokens: { inputTokens: 100n, outputTokens: 40n, totalTokens: 140n },
+      ...onOrgKey,
+    });
+    const second = await op.clients.billingCommand.recordLlmCallUsage({
+      runId,
+      sequence: 2,
+      resolvedModel: "model-nobody-catalogued",
+      requestedModel: "model-nobody-catalogued",
+      tokens: { inputTokens: 7n, outputTokens: 3n, totalTokens: 10n },
+      ...onOrgKey,
+    });
     expect(first.usageRecordId, "the meter mints a record id").not.toBe("");
     expect(second.usageRecordId).not.toBe(first.usageRecordId);
     expect(second.isDuplicate).toBe(false);
 
-    const report = await usageReport(clients, org);
-    expect(report.llmCallCount).toBe(2);
-    expect(report.runCount).toBe(1);
-    expect(report.modelBreakdown.reduce((sum, model) => sum + model.callCount, 0), "the breakdown counts every call").toBe(2);
-    for (const model of report.modelBreakdown) expect(model.model, "every breakdown row names its model").not.toBe("");
+    // The run's own report reads the meter: two calls, their tokens, both on
+    // the organization's key, and one breakdown row per model.
+    const report = await clients.agentExecutionQuery.getRunUsageReport({ runId });
+    expect(report.aggregate?.llmCallCount).toBe(2);
+    expect(report.aggregate?.totalTokens).toBe(150n);
+    expect(report.aggregate?.inputTokens).toBe(107n);
+    expect(report.aggregate?.outputTokens).toBe(43n);
+    expect(report.aggregate?.servedBy.map((row) => [row.providerKeySource, row.totalTokens, row.llmCallCount])).toEqual([
+      [ProviderKeySource.ORGANIZATION, 150n, 2],
+    ]);
+    expect(report.aggregate?.primaryModel, "the model with the most tokens").toBe("claude-sonnet-4-6");
+    expect(report.modelBreakdown.map((model) => [model.model, model.callCount, model.totalTokens]), "ordered by tokens, every call counted").toEqual([
+      ["claude-sonnet-4-6", 1, 140n],
+      ["model-nobody-catalogued", 1, 10n],
+    ]);
   });
 
   // --- the model catalog lanes (operator tooling with a console).
@@ -583,7 +591,7 @@ describe.skipIf(!engineServed)("Billing engine conformance — the usage meter a
 });
 
 describe.skipIf(engineServed)("Billing engine conformance — the OSS boundary (no billing controllers routed)", () => {
-  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getBillingUsageReport] [rpc:BillingQueryController.listModelPricingBaselines] every billing RPC answers Unimplemented where billingEngine is false", async () => {
+  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.listModelPricingBaselines] every billing RPC answers Unimplemented where billingEngine is false", async () => {
     const org = uniqueName("org");
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
@@ -594,10 +602,9 @@ describe.skipIf(engineServed)("Billing engine conformance — the OSS boundary (
       ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({ baseline: { modelId: "m", provider: "p", harness: "native", displayName: "M", speedTier: "balanced", costTier: "standard", pricing: {} } })],
       ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "m", provider: "p", harness: "native" })],
       ["getBillingAccount", () => clients.billingQuery.getBillingAccount({ org })],
-      ["getBillingUsageReport", () => clients.billingQuery.getBillingUsageReport({ org, startTime: timestampFromDate(new Date()), endTime: timestampFromDate(new Date()) })],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({})],
     ];
-    expect(lanes, "the 9 RPCs, no more, no fewer").toHaveLength(9);
+    expect(lanes, "the 8 RPCs, no more, no fewer").toHaveLength(8);
     for (const [name, op] of lanes) {
       await expectGrpcCode(op, Code.Unimplemented, `OSS ${name}`);
     }

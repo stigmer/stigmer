@@ -57,7 +57,7 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `skill`              | Skill              |
 | `vault`              | Vault              |
 | `search`             | Cross-resource search |
-| `billing`            | Billing (account, Stripe, usage counts, model catalog) |
+| `billing`            | Billing (account, Stripe, model catalog)               |
 
 A vault's entries are written through its entry calls, not through `create`
 or `update`: `stigmer.vault.setSecrets`, `setConnection`, `removeSecrets` and
@@ -67,7 +67,9 @@ name, description and external id while keeping the entries as stored.
 ### Billing
 
 An organization's billing account (its Stripe customer), the Stripe portal
-and card setup sessions, and the usage meter's run and call counts. Queries
+and card setup sessions. Token usage is read from the run client's usage
+reports (`getRunUsageReport`, `getSessionUsageReport`, `getAgentUsageReport`,
+`getOrgUsageReport`), counted in tokens and never priced. Queries
 require `can_view_billing` on the org and the org's own billing commands
 require `can_manage_billing`. The model catalog calls
 (`listModelPricingBaselines`, `upsertModelPricingBaseline`,
@@ -82,13 +84,6 @@ const { setupUrl } = await stigmer.billing.createPaymentMethodSetupSession({
   successUrl: "https://example.com/billing?setup=success",
   cancelUrl: "https://example.com/billing",
 });
-
-const report = await stigmer.billing.getBillingUsageReport({
-  org,
-  startTime: new Date("2026-10-01T00:00:00Z"),
-  endTime: new Date("2026-11-01T00:00:00Z"),
-});
-console.log(report.runCount, report.llmCallCount);
 ```
 
 ### Common operations

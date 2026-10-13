@@ -13,6 +13,9 @@
  *     byte-for-byte (a faithful port of the Go message);
  *   - getAgentUsageReport org scoping (oss#389) incl. the no-name-oracle
  *     rule (Go get_agent_usage_report_test.go case-for-case);
+ *   - the usage reports over the wire: a run's runner report counted
+ *     (estimated, under the unknown server), the organization report's
+ *     range by creation instant and its UTC days;
  *   - list/listBySession filter semantics over seeded rows; list's cursor
  *     pages (newest created first, one organization, a token refused on
  *     another request) and listBySession returning its parent whole;
@@ -65,6 +68,10 @@ import {
   SubmitFileDecisionInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
+import {
+  ProviderKeySource,
+  type StreamingUsageSummarySchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -185,6 +192,7 @@ function seedInput(overrides?: {
   startedAt?: string;
   completedAt?: string;
   createdAtMs?: number;
+  streamingUsage?: MessageInitShape<typeof StreamingUsageSummarySchema>;
 }): MessageInitShape<typeof RunSchema> & {
   metadata: { id: string };
 } {
@@ -212,6 +220,7 @@ function seedInput(overrides?: {
       phase: overrides?.phase ?? RunPhase.RUN_COMPLETED,
       startedAt: overrides?.startedAt ?? "",
       completedAt: overrides?.completedAt ?? "",
+      streamingUsage: overrides?.streamingUsage,
       audit:
         overrides?.createdAtMs === undefined
           ? undefined
@@ -729,11 +738,33 @@ describe("usage reports over the wire", () => {
     expect(err.rawMessage).toBe("Run not found: aexec_missing");
   });
 
-  it("getRunUsageReport answers the zero aggregate for a seeded execution", async () => {
-    const id = await seed(seedInput());
-    const report = await query.getRunUsageReport({ runId: id });
-    expect(report.aggregate).toBeDefined();
-    expect(report.aggregate?.totalTokens).toBe(0n);
+  it("getRunUsageReport answers a run with no runner report as zero, and a reported run with its runner's tokens", async () => {
+    const quiet = await query.getRunUsageReport({ runId: await seed(seedInput()) });
+    expect(quiet.aggregate).toBeDefined();
+    expect(quiet.aggregate?.totalTokens).toBe(0n);
+    expect(quiet.aggregate?.servedBy).toEqual([]);
+
+    // No session row and no meter: the native rule, counted under the
+    // unknown server (input less both cache buckets).
+    const reported = await query.getRunUsageReport({
+      runId: await seed(
+        seedInput({
+          streamingUsage: {
+            inputTokens: 18_432n,
+            outputTokens: 1_210n,
+            cacheReadTokens: 15_000n,
+            cacheWriteTokens: 2_000n,
+            totalTokens: 19_642n,
+            model: "claude-sonnet-4-5",
+          },
+        }),
+      ),
+    });
+    expect(reported.aggregate?.totalTokens).toBe(19_642n);
+    expect(reported.aggregate?.inputTokens).toBe(1_432n);
+    expect(reported.aggregate?.servedBy.map((s) => [s.providerKeySource, s.totalTokens])).toEqual([
+      [ProviderKeySource.UNSPECIFIED, 19_642n],
+    ]);
   });
 
   it("getAgentUsageReport scopes to the requested org (oss#389)", async () => {
@@ -826,13 +857,14 @@ describe("usage reports over the wire", () => {
     );
   });
 
-  it("getOrgUsageReport aggregates the org's executions in range with zero costs", async () => {
+  it("getOrgUsageReport counts the org's runs created in range, by UTC day of creation", async () => {
     await seed(
       seedInput({
         agentId: "agt_org_report",
         org: idOf("org-report"),
         sessionId: "ses_r1",
         startedAt: "2026-04-10T10:00:00Z",
+        createdAtMs: Date.UTC(2026, 3, 10, 9, 59),
       }),
     );
     await seed(
@@ -841,6 +873,17 @@ describe("usage reports over the wire", () => {
         org: idOf("org-report"),
         sessionId: "ses_r2",
         startedAt: "2026-04-11T10:00:00Z",
+        createdAtMs: Date.UTC(2026, 3, 11, 9, 59),
+      }),
+    );
+    // Created the day before the range, started inside it: out.
+    await seed(
+      seedInput({
+        agentId: "agt_org_report",
+        org: idOf("org-report"),
+        sessionId: "ses_r3",
+        startedAt: "2026-04-01T00:30:00Z",
+        createdAtMs: Date.UTC(2026, 2, 31, 23, 30),
       }),
     );
 
@@ -852,10 +895,14 @@ describe("usage reports over the wire", () => {
     expect(report.totalRuns).toBe(2);
     expect(report.totalAgents).toBe(1);
     expect(report.totalSessions).toBe(2);
-    expect(report.dailyCosts).toHaveLength(2);
-    expect(report.dailyCosts[0]?.date).toBe("2026-04-10");
-    expect(report.topAgentsByCost).toHaveLength(1);
-    expect(report.topAgentsByCost[0]?.billableCostMicros).toBe(0n);
+    expect(report.dailyUsage.map((d) => [d.date, d.runCount])).toEqual([
+      ["2026-04-10", 1],
+      ["2026-04-11", 1],
+    ]);
+    expect(report.topAgents.map((a) => [a.agentId, a.runCount, a.totalTokens])).toEqual([
+      ["agt_org_report", 2, 0n],
+    ]);
+    expect(report.totalUsage?.totalTokens).toBe(0n);
   });
 
   it("getSessionUsageReport orders per-execution summaries chronologically", async () => {

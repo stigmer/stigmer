@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate_;
   /**
    * <pre>
-   * Aggregated token counts and cost for this run.
+   * Aggregated token counts for this run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -70,7 +70,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Aggregated token counts and cost for this run.
+   * Aggregated token counts for this run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -82,7 +82,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Aggregated token counts and cost for this run.
+   * Aggregated token counts for this run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -555,7 +555,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.run.v1.UsageReportAggregate, ai.stigmer.agentic.run.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.run.v1.UsageReportAggregateOrBuilder> aggregateBuilder_;
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -566,7 +566,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -581,7 +581,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -601,7 +601,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -619,7 +619,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -644,7 +644,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -661,7 +661,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -673,7 +673,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -688,7 +688,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Aggregated token counts and cost for this run.
+     * Aggregated token counts for this run.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>

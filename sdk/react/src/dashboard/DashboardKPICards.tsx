@@ -1,7 +1,15 @@
 "use client";
 
+/**
+ * KPI cards for the operational dashboard: active, completed and failed
+ * runs and the organization's tokens. Usage is tokens, never money. The
+ * suite in `__tests__/DashboardKPICards.test.tsx` pins each card, the
+ * compact token format, the loading placeholder and the empty render.
+ */
+
 import { memo } from "react";
 import { cn } from "@stigmer/theme";
+import { formatCompactCount } from "../usage/format.js";
 import type { DashboardSummary } from "./types.js";
 
 export interface DashboardKPICardsProps {
@@ -14,13 +22,6 @@ interface StatCardDef {
   readonly label: string;
   readonly valueClass: string;
   readonly getValue: (s: DashboardSummary) => string;
-}
-
-function formatCost(usd: number): string {
-  if (usd >= 1) return `$${usd.toFixed(2)}`;
-  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
-  if (usd > 0) return `<$0.01`;
-  return "$0.00";
 }
 
 const STAT_CARDS: readonly StatCardDef[] = [
@@ -40,18 +41,18 @@ const STAT_CARDS: readonly StatCardDef[] = [
     getValue: (s) => String(s.failedCount),
   },
   {
-    label: "Total Cost",
+    label: "Tokens",
     valueClass: "stg:text-foreground",
-    getValue: (s) => formatCost(s.totalCostUsd),
+    getValue: (s) => formatCompactCount(s.totalTokens),
   },
 ];
 
 /**
  * Stat cards showing an organization's run KPIs: active,
- * completed and failed runs, and total cost.
+ * completed and failed runs, and the organization's tokens.
  *
- * Cost comes from the billing source of truth (getOrgUsageReport),
- * not from summing per-run costs, so the card shows what billing recorded.
+ * Tokens come from the org usage report (getOrgUsageReport), which counts
+ * each run once, so the card matches the Usage page.
  */
 export const DashboardKPICards = memo(function DashboardKPICards({
   summary,

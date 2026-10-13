@@ -64,15 +64,16 @@ type RunQueryControllerClient interface {
 	GetArtifactContent(ctx context.Context, in *GetArtifactContentRequest, opts ...grpc.CallOption) (*GetArtifactContentResponse, error)
 	// Get a usage report for a single run.
 	//
-	// Returns aggregated tokens, cost, and per-model breakdown for one run.
+	// Returns aggregated tokens, who served them, and the per-model breakdown
+	// for one run.
 	GetRunUsageReport(ctx context.Context, in *GetRunUsageReportInput, opts ...grpc.CallOption) (*GetRunUsageReportOutput, error)
 	// Get a usage report for a session.
 	//
-	// Returns aggregated tokens, cost, and per-run breakdown.
+	// Returns aggregated tokens and the per-run breakdown.
 	GetSessionUsageReport(ctx context.Context, in *GetSessionUsageReportInput, opts ...grpc.CallOption) (*GetSessionUsageReportOutput, error)
 	// Get a usage report for an agent within an organization.
 	//
-	// Returns aggregated tokens, cost, and per-session breakdown for one
+	// Returns aggregated tokens and the per-session breakdown for one
 	// organization's runs of the agent. Requires can_view on the
 	// organization named in org; runs outside that organization are
 	// never included, so the report is the per-agent drill-down of
@@ -80,7 +81,8 @@ type RunQueryControllerClient interface {
 	GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error)
 	// Get a usage report for an organization.
 	//
-	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+	// Returns org-wide token totals, the agents with the most tokens, the
+	// model breakdown, and the daily trend, over the runs the caller can read.
 	GetOrgUsageReport(ctx context.Context, in *GetOrgUsageReportInput, opts ...grpc.CallOption) (*GetOrgUsageReportOutput, error)
 	// Get aggregated run statistics for an organization's runs.
 	//
@@ -248,15 +250,16 @@ type RunQueryControllerServer interface {
 	GetArtifactContent(context.Context, *GetArtifactContentRequest) (*GetArtifactContentResponse, error)
 	// Get a usage report for a single run.
 	//
-	// Returns aggregated tokens, cost, and per-model breakdown for one run.
+	// Returns aggregated tokens, who served them, and the per-model breakdown
+	// for one run.
 	GetRunUsageReport(context.Context, *GetRunUsageReportInput) (*GetRunUsageReportOutput, error)
 	// Get a usage report for a session.
 	//
-	// Returns aggregated tokens, cost, and per-run breakdown.
+	// Returns aggregated tokens and the per-run breakdown.
 	GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error)
 	// Get a usage report for an agent within an organization.
 	//
-	// Returns aggregated tokens, cost, and per-session breakdown for one
+	// Returns aggregated tokens and the per-session breakdown for one
 	// organization's runs of the agent. Requires can_view on the
 	// organization named in org; runs outside that organization are
 	// never included, so the report is the per-agent drill-down of
@@ -264,7 +267,8 @@ type RunQueryControllerServer interface {
 	GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error)
 	// Get a usage report for an organization.
 	//
-	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+	// Returns org-wide token totals, the agents with the most tokens, the
+	// model breakdown, and the daily trend, over the runs the caller can read.
 	GetOrgUsageReport(context.Context, *GetOrgUsageReportInput) (*GetOrgUsageReportOutput, error)
 	// Get aggregated run statistics for an organization's runs.
 	//

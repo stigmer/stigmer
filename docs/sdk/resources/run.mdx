@@ -124,7 +124,7 @@ Run run = client.runs().get(id);
 
 Get a usage report for an agent within an organization.
 
-Returns aggregated tokens, cost, and per-session breakdown for one organization's runs of the agent. Requires can_view on the organization named in org; runs outside that organization are never included, so the report is the per-agent drill-down of getOrgUsageReport.
+Returns aggregated tokens and the per-session breakdown for one organization's runs of the agent. Requires can_view on the organization named in org; runs outside that organization are never included, so the report is the per-agent drill-down of getOrgUsageReport.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -289,7 +289,7 @@ GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.runs().ge
 
 Get a usage report for an organization.
 
-Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+Returns org-wide token totals, the agents with the most tokens, the model breakdown, and the daily trend, over the runs the caller can read.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -383,7 +383,7 @@ RunSummary runSummary = client.runs().getRunSummary(GetRunSummaryRequest.builder
 
 Get a usage report for a single run.
 
-Returns aggregated tokens, cost, and per-model breakdown for one run.
+Returns aggregated tokens, who served them, and the per-model breakdown for one run.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -424,7 +424,7 @@ GetRunUsageReportOutput getRunUsageReportOutput = client.runs().getRunUsageRepor
 
 Get a usage report for a session.
 
-Returns aggregated tokens, cost, and per-run breakdown.
+Returns aggregated tokens and the per-run breakdown.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1752,7 +1752,7 @@ GetRunUsageReportOutput returns aggregated usage for one run.
 
 <TypeTable
   type={{
-    aggregate: { type: "UsageReportAggregateInput", description: "Aggregated token counts and cost for this run." },
+    aggregate: { type: "UsageReportAggregateInput", description: "Aggregated token counts for this run." },
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown within this run." },
   }}
 />
@@ -1780,7 +1780,7 @@ GetSessionUsageReportOutput returns aggregated usage for a session.
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the entire session." },
     firstRunAt: { type: "string", description: "ISO 8601 timestamp of the first run in this session." },
     lastRunAt: { type: "string", description: "ISO 8601 timestamp of the most recent run in this session." },
-    isEstimated: { type: "boolean", description: "Whether any record in this session is still estimated (not yet proxy-metered)." },
+    isEstimated: { type: "boolean", description: "Whether any run in this session is counted from its runner's own report rather than from the deployment's metered model calls." },
   }}
 />
 
@@ -1791,8 +1791,8 @@ GetAgentUsageReportInput requests a usage report for a specific agent within one
 <TypeTable
   type={{
     agentId: { type: "string", description: "Agent ID to get usage report for." },
-    fromDate: { type: "string", description: "Start of time range filter (ISO 8601, inclusive)." },
-    toDate: { type: "string", description: "End of time range filter (ISO 8601, inclusive)." },
+    fromDate: { type: "string", description: "Start of the time range, inclusive: a UTC calendar day (\"2026-03-01\", from its first instant) or an RFC 3339 instant." },
+    toDate: { type: "string", description: "End of the time range, inclusive: a UTC calendar day (\"2026-03-13\", through its last instant) or an RFC 3339 instant." },
     pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
     pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
     org: { type: "string", description: "Organization scope for the report: usage of this agent within this organization." },
@@ -1812,7 +1812,6 @@ GetAgentUsageReportOutput returns aggregated usage for an agent.
     sessions: { type: "SessionUsageSummaryInput[]", description: "Per-session breakdown within the time range." },
     totalSessions: { type: "number", description: "Total number of sessions within the time range." },
     totalRuns: { type: "number", description: "Total number of runs within the time range." },
-    totalBillableCostMicros: { type: "number", description: "Total billable cost in micro-USD within the time range." },
     nextPageToken: { type: "string", description: "Token for the next page of sessions (empty if no more pages)." },
   }}
 />
@@ -1824,8 +1823,8 @@ GetOrgUsageReportInput requests a usage report for an entire organization.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization ID." },
-    fromDate: { type: "string", description: "Start of time range filter (ISO 8601, inclusive, required)." },
-    toDate: { type: "string", description: "End of time range filter (ISO 8601, inclusive, required)." },
+    fromDate: { type: "string", description: "Start of the time range, inclusive: a UTC calendar day (\"2026-03-01\", from its first instant) or an RFC 3339 instant." },
+    toDate: { type: "string", description: "End of the time range, inclusive: a UTC calendar day (\"2026-03-13\", through its last instant) or an RFC 3339 instant." },
   }}
 />
 
@@ -1839,11 +1838,11 @@ GetOrgUsageReportOutput returns aggregated usage for an organization.
     totalAgents: { type: "number", description: "Total distinct agents with runs in the time range." },
     totalSessions: { type: "number", description: "Total sessions across all agents in the time range." },
     totalRuns: { type: "number", description: "Total runs across all agents in the time range." },
-    totalBillableCostMicros: { type: "number", description: "Total billable cost in micro-USD across the organization in the time range." },
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the organization." },
-    topAgentsByCost: { type: "AgentUsageSummaryInput[]", description: "Top agents by cost (top 10), ordered by billable_cost_micros descending." },
-    dailyCosts: { type: "DailyCostEntryInput[]", description: "Daily cost trend within the time range, ordered chronologically." },
-    harnessBreakdown: { type: "HarnessCostSummaryInput[]", description: "Cost split by execution harness (e.g., \"native\" vs \"cursor\")." },
+    topAgents: { type: "AgentUsageSummaryInput[]", description: "The ten agents with the most tokens, ordered by total_tokens descending." },
+    dailyUsage: { type: "DailyUsageInput[]", description: "Daily token trend within the time range, one row per UTC day that has a run, ordered chronologically." },
+    harnessUsage: { type: "HarnessUsageInput[]", description: "Usage split by execution harness (e.g., \"native\" vs \"cursor\")." },
+    totalUsage: { type: "UsageReportAggregateInput", description: "Aggregated usage across the organization in the time range." },
   }}
 />
 
@@ -2466,7 +2465,7 @@ Accumulated token usage from execution worker turn-ended events.
     cacheWriteTokens: { type: "number", description: "Accumulated cache-write tokens across all turns." },
     totalTokens: { type: "number", description: "Total tokens across all turns: input_tokens + output_tokens." },
     turnCount: { type: "number", description: "Number of completed turns observed." },
-    estimatedCostUsd: { type: "number", description: "Estimated cost in USD computed from runner-side rate card." },
+    estimatedCostUsd: { type: "number", description: "Estimated cost in USD computed from the runner-side rate card (the providers' list prices): the working number of the run's cost cap (RunConfig.max_cost_usd)." },
     model: { type: "string", description: "Model identifier the runner requested for this run's turns." },
     observedAt: { type: "string", description: "ISO 8601 timestamp of the last turn-ended event observed." },
     requestedServiceTier: { type: "ServiceTier", description: "Service tier the runner requested for this run's model calls.", typeDescriptionLink: "#servicetier" },
@@ -2513,7 +2512,6 @@ SummarizationEvent records a single summarization occurrence during the run.
     source: { type: "SummarizationSource", description: "What triggered this summarization event.", typeDescriptionLink: "#summarizationsource" },
     summarizationInputTokens: { type: "number", description: "Input tokens consumed by the summarization LLM call." },
     summarizationOutputTokens: { type: "number", description: "Output tokens generated by the summarization model (the summary)." },
-    summarizationCostUsd: { type: "number", description: "Cost in USD of this summarization call." },
   }}
 />
 
@@ -3017,4 +3015,13 @@ PluginEvalMockKind is how a mocked tool answers.
 |-------|-------------|
 | `plugin_eval_mock_kind_fixed` | The mock file's body, with its substitutions. |
 | `plugin_eval_mock_kind_agent` | A model acting as the server from the mock file's instructions. |
+
+### ProviderKeySource
+
+Whose provider credential served a proxied LLM call.
+
+| Value | Description |
+|-------|-------------|
+| `PROVIDER_KEY_SOURCE_PLATFORM` | A connection the platform provides served the call. |
+| `PROVIDER_KEY_SOURCE_ORGANIZATION` | The organization's own provider key served the call (bring-your-own provider keys): the provider bills the organization directly. |
 

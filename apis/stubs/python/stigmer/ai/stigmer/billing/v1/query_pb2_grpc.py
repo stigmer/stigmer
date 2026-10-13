@@ -25,11 +25,6 @@ class BillingQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingAccountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
                 _registered_method=True)
-        self.getBillingUsageReport = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingQueryController/getBillingUsageReport',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingUsageReportInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.BillingUsageReportResponse.FromString,
-                _registered_method=True)
         self.listModelPricingBaselines = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.SerializeToString,
@@ -47,15 +42,6 @@ class BillingQueryControllerServicer(object):
 
     def getBillingAccount(self, request, context):
         """Retrieve the billing account for an organization.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def getBillingUsageReport(self, request, context):
-        """Count an organization's metered LLM calls and runs in a date range,
-        with the calls broken down by model and harness. A count, never an
-        amount: the meter records what each call was, not what it cost.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -79,11 +65,6 @@ def add_BillingQueryControllerServicer_to_server(servicer, server):
                     servicer.getBillingAccount,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.SerializeToString,
-            ),
-            'getBillingUsageReport': grpc.unary_unary_rpc_method_handler(
-                    servicer.getBillingUsageReport,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingUsageReportInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.BillingUsageReportResponse.SerializeToString,
             ),
             'listModelPricingBaselines': grpc.unary_unary_rpc_method_handler(
                     servicer.listModelPricingBaselines,
@@ -123,33 +104,6 @@ class BillingQueryController(object):
             '/ai.stigmer.billing.v1.BillingQueryController/getBillingAccount',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingAccountInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def getBillingUsageReport(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingQueryController/getBillingUsageReport',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingUsageReportInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.BillingUsageReportResponse.FromString,
             options,
             channel_credentials,
             insecure,

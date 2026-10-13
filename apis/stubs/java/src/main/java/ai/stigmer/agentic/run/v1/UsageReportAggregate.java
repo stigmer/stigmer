@@ -9,9 +9,9 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * Aggregated usage across a scope (run, session, agent, or org).
  *
- * Used as the `total_usage` field in session and agent usage report responses.
- * All token fields are int64 to support large aggregates (org-wide, multi-day).
- * Cost fields are int64 micro-USD for precision.
+ * Used as the aggregate of a run report and the `total_usage` of the
+ * session, agent and organization reports. All token fields are int64 to
+ * support large aggregates (org-wide, multi-day).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.UsageReportAggregate}
@@ -38,6 +38,7 @@ private static final long serialVersionUID = 0L;
   private UsageReportAggregate() {
     primaryModel_ = "";
     primaryProvider_ = "";
+    servedBy_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -143,7 +144,8 @@ private static final long serialVersionUID = 0L;
   private int llmCallCount_ = 0;
   /**
    * <pre>
-   * Number of LLM API calls in this aggregate.
+   * Number of metered LLM API calls in this aggregate. A run counted from
+   * its runner's own report adds its tokens and no calls.
    * </pre>
    *
    * <code>int32 llm_call_count = 10 [json_name = "llmCallCount"];</code>
@@ -154,40 +156,14 @@ private static final long serialVersionUID = 0L;
     return llmCallCount_;
   }
 
-  public static final int BILLABLE_COST_MICROS_FIELD_NUMBER = 20;
-  private long billableCostMicros_ = 0L;
-  /**
-   * <pre>
-   * Cost in micro-USD (1 USD = 1,000,000 micros).
-   * billable = what the customer pays (with markup).
-   * provider = what Stigmer pays the LLM provider (raw).
-   * </pre>
-   *
-   * <code>int64 billable_cost_micros = 20 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
-   */
-  @java.lang.Override
-  public long getBillableCostMicros() {
-    return billableCostMicros_;
-  }
-
-  public static final int PROVIDER_COST_MICROS_FIELD_NUMBER = 21;
-  private long providerCostMicros_ = 0L;
-  /**
-   * <code>int64 provider_cost_micros = 21 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  @java.lang.Override
-  public long getProviderCostMicros() {
-    return providerCostMicros_;
-  }
-
   public static final int PRIMARY_MODEL_FIELD_NUMBER = 30;
   @SuppressWarnings("serial")
   private volatile java.lang.Object primaryModel_ = "";
   /**
    * <pre>
-   * Primary model and provider (most-used by call count).
+   * Primary model and provider: the model with the most tokens in this
+   * aggregate. The provider is empty when a runner-reported run's harness
+   * names none.
    * </pre>
    *
    * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -208,7 +184,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Primary model and provider (most-used by call count).
+   * Primary model and provider: the model with the most tokens in this
+   * aggregate. The provider is empty when a runner-reported run's harness
+   * names none.
    * </pre>
    *
    * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -268,6 +246,72 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int SERVED_BY_FIELD_NUMBER = 40;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.run.v1.ServedByUsage> servedBy_;
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.run.v1.ServedByUsage> getServedByList() {
+    return servedBy_;
+  }
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder> 
+      getServedByOrBuilderList() {
+    return servedBy_;
+  }
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  @java.lang.Override
+  public int getServedByCount() {
+    return servedBy_.size();
+  }
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.ServedByUsage getServedBy(int index) {
+    return servedBy_.get(index);
+  }
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder getServedByOrBuilder(
+      int index) {
+    return servedBy_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -303,17 +347,14 @@ private static final long serialVersionUID = 0L;
     if (llmCallCount_ != 0) {
       output.writeInt32(10, llmCallCount_);
     }
-    if (billableCostMicros_ != 0L) {
-      output.writeInt64(20, billableCostMicros_);
-    }
-    if (providerCostMicros_ != 0L) {
-      output.writeInt64(21, providerCostMicros_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(primaryModel_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 30, primaryModel_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(primaryProvider_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 31, primaryProvider_);
+    }
+    for (int i = 0; i < servedBy_.size(); i++) {
+      output.writeMessage(40, servedBy_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -352,20 +393,21 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(10, llmCallCount_);
     }
-    if (billableCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(20, billableCostMicros_);
-    }
-    if (providerCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(21, providerCostMicros_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(primaryModel_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(30, primaryModel_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(primaryProvider_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(31, primaryProvider_);
     }
+
+        {
+          final int count = servedBy_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(servedBy_.get(i));
+          }
+          size += 2 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -395,14 +437,12 @@ private static final long serialVersionUID = 0L;
         != other.getReasoningTokens()) return false;
     if (getLlmCallCount()
         != other.getLlmCallCount()) return false;
-    if (getBillableCostMicros()
-        != other.getBillableCostMicros()) return false;
-    if (getProviderCostMicros()
-        != other.getProviderCostMicros()) return false;
     if (!getPrimaryModel()
         .equals(other.getPrimaryModel())) return false;
     if (!getPrimaryProvider()
         .equals(other.getPrimaryProvider())) return false;
+    if (!getServedByList()
+        .equals(other.getServedByList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -434,16 +474,14 @@ private static final long serialVersionUID = 0L;
         getReasoningTokens());
     hash = (37 * hash) + LLM_CALL_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getLlmCallCount();
-    hash = (37 * hash) + BILLABLE_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getBillableCostMicros());
-    hash = (37 * hash) + PROVIDER_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getProviderCostMicros());
     hash = (37 * hash) + PRIMARY_MODEL_FIELD_NUMBER;
     hash = (53 * hash) + getPrimaryModel().hashCode();
     hash = (37 * hash) + PRIMARY_PROVIDER_FIELD_NUMBER;
     hash = (53 * hash) + getPrimaryProvider().hashCode();
+    if (getServedByCount() > 0) {
+      hash = (37 * hash) + SERVED_BY_FIELD_NUMBER;
+      hash = (53 * hash) + getServedByList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -545,9 +583,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Aggregated usage across a scope (run, session, agent, or org).
    *
-   * Used as the `total_usage` field in session and agent usage report responses.
-   * All token fields are int64 to support large aggregates (org-wide, multi-day).
-   * Cost fields are int64 micro-USD for precision.
+   * Used as the aggregate of a run report and the `total_usage` of the
+   * session, agent and organization reports. All token fields are int64 to
+   * support large aggregates (org-wide, multi-day).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.UsageReportAggregate}
@@ -590,10 +628,15 @@ private static final long serialVersionUID = 0L;
       cacheReadInputTokens_ = 0L;
       reasoningTokens_ = 0L;
       llmCallCount_ = 0;
-      billableCostMicros_ = 0L;
-      providerCostMicros_ = 0L;
       primaryModel_ = "";
       primaryProvider_ = "";
+      if (servedByBuilder_ == null) {
+        servedBy_ = java.util.Collections.emptyList();
+      } else {
+        servedBy_ = null;
+        servedByBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000200);
       return this;
     }
 
@@ -620,9 +663,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.run.v1.UsageReportAggregate buildPartial() {
       ai.stigmer.agentic.run.v1.UsageReportAggregate result = new ai.stigmer.agentic.run.v1.UsageReportAggregate(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.UsageReportAggregate result) {
+      if (servedByBuilder_ == null) {
+        if (((bitField0_ & 0x00000200) != 0)) {
+          servedBy_ = java.util.Collections.unmodifiableList(servedBy_);
+          bitField0_ = (bitField0_ & ~0x00000200);
+        }
+        result.servedBy_ = servedBy_;
+      } else {
+        result.servedBy_ = servedByBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.run.v1.UsageReportAggregate result) {
@@ -649,15 +705,9 @@ private static final long serialVersionUID = 0L;
         result.llmCallCount_ = llmCallCount_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.billableCostMicros_ = billableCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.providerCostMicros_ = providerCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.primaryModel_ = primaryModel_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.primaryProvider_ = primaryProvider_;
       }
     }
@@ -695,21 +745,41 @@ private static final long serialVersionUID = 0L;
       if (other.getLlmCallCount() != 0) {
         setLlmCallCount(other.getLlmCallCount());
       }
-      if (other.getBillableCostMicros() != 0L) {
-        setBillableCostMicros(other.getBillableCostMicros());
-      }
-      if (other.getProviderCostMicros() != 0L) {
-        setProviderCostMicros(other.getProviderCostMicros());
-      }
       if (!other.getPrimaryModel().isEmpty()) {
         primaryModel_ = other.primaryModel_;
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       if (!other.getPrimaryProvider().isEmpty()) {
         primaryProvider_ = other.primaryProvider_;
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000100;
         onChanged();
+      }
+      if (servedByBuilder_ == null) {
+        if (!other.servedBy_.isEmpty()) {
+          if (servedBy_.isEmpty()) {
+            servedBy_ = other.servedBy_;
+            bitField0_ = (bitField0_ & ~0x00000200);
+          } else {
+            ensureServedByIsMutable();
+            servedBy_.addAll(other.servedBy_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.servedBy_.isEmpty()) {
+          if (servedByBuilder_.isEmpty()) {
+            servedByBuilder_.dispose();
+            servedByBuilder_ = null;
+            servedBy_ = other.servedBy_;
+            bitField0_ = (bitField0_ & ~0x00000200);
+            servedByBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetServedByFieldBuilder() : null;
+          } else {
+            servedByBuilder_.addAllMessages(other.servedBy_);
+          }
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -772,26 +842,29 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 80
-            case 160: {
-              billableCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 160
-            case 168: {
-              providerCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000100;
-              break;
-            } // case 168
             case 242: {
               primaryModel_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000080;
               break;
             } // case 242
             case 250: {
               primaryProvider_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000100;
               break;
             } // case 250
+            case 322: {
+              ai.stigmer.agentic.run.v1.ServedByUsage m =
+                  input.readMessage(
+                      ai.stigmer.agentic.run.v1.ServedByUsage.parser(),
+                      extensionRegistry);
+              if (servedByBuilder_ == null) {
+                ensureServedByIsMutable();
+                servedBy_.add(m);
+              } else {
+                servedByBuilder_.addMessage(m);
+              }
+              break;
+            } // case 322
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1049,7 +1122,8 @@ private static final long serialVersionUID = 0L;
     private int llmCallCount_ ;
     /**
      * <pre>
-     * Number of LLM API calls in this aggregate.
+     * Number of metered LLM API calls in this aggregate. A run counted from
+     * its runner's own report adds its tokens and no calls.
      * </pre>
      *
      * <code>int32 llm_call_count = 10 [json_name = "llmCallCount"];</code>
@@ -1061,7 +1135,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of LLM API calls in this aggregate.
+     * Number of metered LLM API calls in this aggregate. A run counted from
+     * its runner's own report adds its tokens and no calls.
      * </pre>
      *
      * <code>int32 llm_call_count = 10 [json_name = "llmCallCount"];</code>
@@ -1077,7 +1152,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of LLM API calls in this aggregate.
+     * Number of metered LLM API calls in this aggregate. A run counted from
+     * its runner's own report adds its tokens and no calls.
      * </pre>
      *
      * <code>int32 llm_call_count = 10 [json_name = "llmCallCount"];</code>
@@ -1090,92 +1166,12 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long billableCostMicros_ ;
-    /**
-     * <pre>
-     * Cost in micro-USD (1 USD = 1,000,000 micros).
-     * billable = what the customer pays (with markup).
-     * provider = what Stigmer pays the LLM provider (raw).
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 20 [json_name = "billableCostMicros"];</code>
-     * @return The billableCostMicros.
-     */
-    @java.lang.Override
-    public long getBillableCostMicros() {
-      return billableCostMicros_;
-    }
-    /**
-     * <pre>
-     * Cost in micro-USD (1 USD = 1,000,000 micros).
-     * billable = what the customer pays (with markup).
-     * provider = what Stigmer pays the LLM provider (raw).
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 20 [json_name = "billableCostMicros"];</code>
-     * @param value The billableCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setBillableCostMicros(long value) {
-
-      billableCostMicros_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost in micro-USD (1 USD = 1,000,000 micros).
-     * billable = what the customer pays (with markup).
-     * provider = what Stigmer pays the LLM provider (raw).
-     * </pre>
-     *
-     * <code>int64 billable_cost_micros = 20 [json_name = "billableCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearBillableCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      billableCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private long providerCostMicros_ ;
-    /**
-     * <code>int64 provider_cost_micros = 21 [json_name = "providerCostMicros"];</code>
-     * @return The providerCostMicros.
-     */
-    @java.lang.Override
-    public long getProviderCostMicros() {
-      return providerCostMicros_;
-    }
-    /**
-     * <code>int64 provider_cost_micros = 21 [json_name = "providerCostMicros"];</code>
-     * @param value The providerCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setProviderCostMicros(long value) {
-
-      providerCostMicros_ = value;
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>int64 provider_cost_micros = 21 [json_name = "providerCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearProviderCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000100);
-      providerCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object primaryModel_ = "";
     /**
      * <pre>
-     * Primary model and provider (most-used by call count).
+     * Primary model and provider: the model with the most tokens in this
+     * aggregate. The provider is empty when a runner-reported run's harness
+     * names none.
      * </pre>
      *
      * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -1195,7 +1191,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Primary model and provider (most-used by call count).
+     * Primary model and provider: the model with the most tokens in this
+     * aggregate. The provider is empty when a runner-reported run's harness
+     * names none.
      * </pre>
      *
      * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -1216,7 +1214,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Primary model and provider (most-used by call count).
+     * Primary model and provider: the model with the most tokens in this
+     * aggregate. The provider is empty when a runner-reported run's harness
+     * names none.
      * </pre>
      *
      * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -1227,13 +1227,15 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       primaryModel_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Primary model and provider (most-used by call count).
+     * Primary model and provider: the model with the most tokens in this
+     * aggregate. The provider is empty when a runner-reported run's harness
+     * names none.
      * </pre>
      *
      * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -1241,13 +1243,15 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPrimaryModel() {
       primaryModel_ = getDefaultInstance().getPrimaryModel();
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000080);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Primary model and provider (most-used by call count).
+     * Primary model and provider: the model with the most tokens in this
+     * aggregate. The provider is empty when a runner-reported run's harness
+     * names none.
      * </pre>
      *
      * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -1259,7 +1263,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       primaryModel_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -1307,7 +1311,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       primaryProvider_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -1317,7 +1321,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPrimaryProvider() {
       primaryProvider_ = getDefaultInstance().getPrimaryProvider();
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
@@ -1331,9 +1335,339 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       primaryProvider_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.agentic.run.v1.ServedByUsage> servedBy_ =
+      java.util.Collections.emptyList();
+    private void ensureServedByIsMutable() {
+      if (!((bitField0_ & 0x00000200) != 0)) {
+        servedBy_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.ServedByUsage>(servedBy_);
+        bitField0_ |= 0x00000200;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.run.v1.ServedByUsage, ai.stigmer.agentic.run.v1.ServedByUsage.Builder, ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder> servedByBuilder_;
+
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.run.v1.ServedByUsage> getServedByList() {
+      if (servedByBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(servedBy_);
+      } else {
+        return servedByBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public int getServedByCount() {
+      if (servedByBuilder_ == null) {
+        return servedBy_.size();
+      } else {
+        return servedByBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.ServedByUsage getServedBy(int index) {
+      if (servedByBuilder_ == null) {
+        return servedBy_.get(index);
+      } else {
+        return servedByBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder setServedBy(
+        int index, ai.stigmer.agentic.run.v1.ServedByUsage value) {
+      if (servedByBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureServedByIsMutable();
+        servedBy_.set(index, value);
+        onChanged();
+      } else {
+        servedByBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder setServedBy(
+        int index, ai.stigmer.agentic.run.v1.ServedByUsage.Builder builderForValue) {
+      if (servedByBuilder_ == null) {
+        ensureServedByIsMutable();
+        servedBy_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        servedByBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder addServedBy(ai.stigmer.agentic.run.v1.ServedByUsage value) {
+      if (servedByBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureServedByIsMutable();
+        servedBy_.add(value);
+        onChanged();
+      } else {
+        servedByBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder addServedBy(
+        int index, ai.stigmer.agentic.run.v1.ServedByUsage value) {
+      if (servedByBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureServedByIsMutable();
+        servedBy_.add(index, value);
+        onChanged();
+      } else {
+        servedByBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder addServedBy(
+        ai.stigmer.agentic.run.v1.ServedByUsage.Builder builderForValue) {
+      if (servedByBuilder_ == null) {
+        ensureServedByIsMutable();
+        servedBy_.add(builderForValue.build());
+        onChanged();
+      } else {
+        servedByBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder addServedBy(
+        int index, ai.stigmer.agentic.run.v1.ServedByUsage.Builder builderForValue) {
+      if (servedByBuilder_ == null) {
+        ensureServedByIsMutable();
+        servedBy_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        servedByBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder addAllServedBy(
+        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.ServedByUsage> values) {
+      if (servedByBuilder_ == null) {
+        ensureServedByIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, servedBy_);
+        onChanged();
+      } else {
+        servedByBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder clearServedBy() {
+      if (servedByBuilder_ == null) {
+        servedBy_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000200);
+        onChanged();
+      } else {
+        servedByBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public Builder removeServedBy(int index) {
+      if (servedByBuilder_ == null) {
+        ensureServedByIsMutable();
+        servedBy_.remove(index);
+        onChanged();
+      } else {
+        servedByBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.ServedByUsage.Builder getServedByBuilder(
+        int index) {
+      return internalGetServedByFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder getServedByOrBuilder(
+        int index) {
+      if (servedByBuilder_ == null) {
+        return servedBy_.get(index);  } else {
+        return servedByBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder> 
+         getServedByOrBuilderList() {
+      if (servedByBuilder_ != null) {
+        return servedByBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(servedBy_);
+      }
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.ServedByUsage.Builder addServedByBuilder() {
+      return internalGetServedByFieldBuilder().addBuilder(
+          ai.stigmer.agentic.run.v1.ServedByUsage.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.ServedByUsage.Builder addServedByBuilder(
+        int index) {
+      return internalGetServedByFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.run.v1.ServedByUsage.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The aggregate's tokens and calls by whose provider credential served
+     * them. The rows always sum to total_tokens and llm_call_count.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.run.v1.ServedByUsage.Builder> 
+         getServedByBuilderList() {
+      return internalGetServedByFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.run.v1.ServedByUsage, ai.stigmer.agentic.run.v1.ServedByUsage.Builder, ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder> 
+        internalGetServedByFieldBuilder() {
+      if (servedByBuilder_ == null) {
+        servedByBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.run.v1.ServedByUsage, ai.stigmer.agentic.run.v1.ServedByUsage.Builder, ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder>(
+                servedBy_,
+                ((bitField0_ & 0x00000200) != 0),
+                getParentForChildren(),
+                isClean());
+        servedBy_ = null;
+      }
+      return servedByBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.UsageReportAggregate)

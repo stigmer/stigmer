@@ -169,6 +169,10 @@ export class CloudTarget implements TargetProfile {
     // A Cursor run needs the organization's own Cursor key, which only a
     // real key in CURSOR_API_KEY can provide (target.ts says why).
     cursorRunsAdmitted: this.cursorKey !== undefined,
+    // The readout's runner dials the mock LLM, not the proxy lane, so an
+    // execution arm's run is unmetered and counted from its runner's report
+    // (target.ts says why; the proxy suite proves the metered read).
+    runModelCallsMetered: false,
   };
 
   private grpcBaseUrl: string | undefined;

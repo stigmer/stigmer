@@ -859,12 +859,12 @@ message GetArtifactContentResponse {
 // ─────────────────────────────────────────────────────────────────────────────
 // Usage Report Types
 //
-// Request/response messages for usage reporting RPCs that provide cost and
-// token consumption visibility at run, session, agent, and organization
-// levels. All data is sourced from the llm_call_usage_record collection.
-//
-// Token counts are int64. Cost amounts are int64 micro-USD
-// (1 USD = 1,000,000 micros).
+// Request/response messages for usage reporting RPCs that show token
+// consumption at run, session, agent, and organization levels. Usage is
+// counted in tokens and calls, never priced; token counts are int64.
+// A run the deployment's meter recorded is counted from its
+// metered model calls; any other run from its runner's own report, marked
+// estimated.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GetRunUsageReportInput requests a usage report for a single run.
@@ -875,7 +875,7 @@ message GetRunUsageReportInput {
 
 // GetRunUsageReportOutput returns aggregated usage for one run.
 message GetRunUsageReportOutput {
-  // Aggregated token counts and cost for this run.
+  // Aggregated token counts for this run.
   UsageReportAggregate aggregate = 1;
 
   // Per-model breakdown within this run.
@@ -883,7 +883,7 @@ message GetRunUsageReportOutput {
 }
 
 // GetSessionUsageReportInput requests a usage report for a single session.
-// Aggregates cost and token data across all runs in the session.
+// Aggregates token data across all runs in the session.
 message GetSessionUsageReportInput {
   // Session ID to get usage report for.
   string session_id = 1 [(buf.validate.field).string.min_len = 1];
@@ -892,8 +892,8 @@ message GetSessionUsageReportInput {
 // GetSessionUsageReportOutput returns aggregated usage for a session.
 //
 // Provides both the session-level totals and per-run breakdown,
-// enabling drill-down from "this session cost $0.90" to "run #3
-// cost $0.12 because it used claude-sonnet-4."
+// enabling drill-down from "this session used 90k tokens" to "run #3
+// used 12k of them on claude-sonnet-4."
 message GetSessionUsageReportOutput {
   // Session identifier.
   string session_id = 1;
@@ -916,25 +916,25 @@ message GetSessionUsageReportOutput {
   // ISO 8601 timestamp of the most recent run in this session.
   string last_run_at = 7;
 
-  // Whether any record in this session is still estimated (not yet proxy-metered).
-  // True when the run is in flight and only streaming usage data is available.
-  // False once proxy billing records have been written.
+  // Whether any run in this session is counted from its runner's own report
+  // rather than from the deployment's metered model calls.
   bool is_estimated = 8;
 }
 
 // GetAgentUsageReportInput requests a usage report for a specific agent
-// within one organization. Aggregates cost and token data across the org's
+// within one organization. Aggregates token data across the org's
 // sessions of the agent within a time range.
 message GetAgentUsageReportInput {
   // Agent ID to get usage report for.
   string agent_id = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Start of time range filter (ISO 8601, inclusive).
-  // Example: "2026-03-01"
+  // Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+  // from its first instant) or an RFC 3339 instant. A run is in the range
+  // when it was created in it.
   string from_date = 2;
 
-  // End of time range filter (ISO 8601, inclusive).
-  // Example: "2026-03-13"
+  // End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+  // through its last instant) or an RFC 3339 instant.
   string to_date = 3;
 
   // Maximum number of sessions to return per page.
@@ -975,33 +975,38 @@ message GetAgentUsageReportOutput {
   // Total number of runs within the time range.
   int32 total_runs = 7;
 
-  // Total billable cost in micro-USD within the time range.
-  int64 total_billable_cost_micros = 8;
+  // 8 held total_billable_cost_micros, the agent's charged amount. Usage is
+  // counted in tokens and never priced, so the number and the name are
+  // reserved so neither is ever reused for a different field.
+  reserved 8;
+  reserved "total_billable_cost_micros";
 
   // Token for the next page of sessions (empty if no more pages).
   string next_page_token = 9;
 }
 
 // GetOrgUsageReportInput requests a usage report for an entire organization.
-// Aggregates cost and token data across all agents and sessions within a
-// time range.
+// Aggregates token data across all agents and sessions within a time range
+// that the caller can read.
 message GetOrgUsageReportInput {
   // Organization ID.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Start of time range filter (ISO 8601, inclusive, required).
-  // Example: "2026-03-01"
+  // Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+  // from its first instant) or an RFC 3339 instant. A run is in the range
+  // when it was created in it. Required.
   string from_date = 2 [(buf.validate.field).string.min_len = 1];
 
-  // End of time range filter (ISO 8601, inclusive, required).
-  // Example: "2026-03-13"
+  // End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+  // through its last instant) or an RFC 3339 instant. Required.
   string to_date = 3 [(buf.validate.field).string.min_len = 1];
 }
 
 // GetOrgUsageReportOutput returns aggregated usage for an organization.
 //
-// Provides org-level totals, per-model breakdown, top agents by cost,
-// and a daily cost trend for capacity planning and budget monitoring.
+// Provides org-level totals, per-model breakdown, the agents with the most
+// tokens, and a daily token trend. It counts only the runs the caller can
+// read, and names only their agents.
 message GetOrgUsageReportOutput {
   // Organization identifier.
   string org = 1;
@@ -1015,27 +1020,36 @@ message GetOrgUsageReportOutput {
   // Total runs across all agents in the time range.
   int32 total_runs = 4;
 
-  // Total billable cost in micro-USD across the organization in the time range.
-  int64 total_billable_cost_micros = 5;
+  // 5 held total_billable_cost_micros; 7, 8 and 9 held top_agents_by_cost,
+  // daily_costs and harness_breakdown, which ordered, dated and split the
+  // organization's charged amount. Usage is counted in tokens and never
+  // priced: fields 10 to 12 replace them, and the numbers and the names
+  // are reserved so neither is ever reused for a different field.
+  reserved 5, 7, 8, 9;
+  reserved "total_billable_cost_micros", "top_agents_by_cost", "daily_costs", "harness_breakdown";
 
   // Per-model breakdown across the organization.
   repeated ModelUsage model_breakdown = 6;
 
-  // Top agents by cost (top 10), ordered by billable_cost_micros descending.
-  repeated AgentUsageSummary top_agents_by_cost = 7;
+  // The ten agents with the most tokens, ordered by total_tokens descending.
+  repeated AgentUsageSummary top_agents = 10;
 
-  // Daily cost trend within the time range, ordered chronologically.
-  repeated DailyCostEntry daily_costs = 8;
+  // Daily token trend within the time range, one row per UTC day that has a
+  // run, ordered chronologically.
+  repeated DailyUsage daily_usage = 11;
 
-  // Cost split by execution harness (e.g., "native" vs "cursor").
-  repeated HarnessCostSummary harness_breakdown = 9;
+  // Usage split by execution harness (e.g., "native" vs "cursor").
+  repeated HarnessUsage harness_usage = 12;
+
+  // Aggregated usage across the organization in the time range.
+  UsageReportAggregate total_usage = 13;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Usage Report Supporting Types
 //
 // Lightweight summary types used within usage report responses.
-// All token counts are int64. All cost amounts are int64 micro-USD.
+// All token counts are int64.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Lightweight view of a single run's usage within a session report.
@@ -1058,8 +1072,11 @@ message RunUsageSummary {
   // Cache read tokens for this run.
   int64 cache_read_input_tokens = 6;
 
-  // Billable cost in micro-USD for this run.
-  int64 billable_cost_micros = 7;
+  // 7 held billable_cost_micros, the run's charged amount. Usage is counted
+  // in tokens and never priced, so the number and the name are reserved so
+  // neither is ever reused for a different field.
+  reserved 7;
+  reserved "billable_cost_micros";
 
   // Primary model used for this run.
   string primary_model = 8;
@@ -1070,8 +1087,12 @@ message RunUsageSummary {
   // Terminal phase of this run.
   RunPhase phase = 10;
 
-  // Whether this run's cost is estimated (in-flight, no billing records yet).
+  // Whether this run is counted from its runner's own report rather than
+  // from the deployment's metered model calls.
   bool is_estimated = 11;
+
+  // Total tokens for this run (cache-inclusive, as the aggregate's).
+  int64 total_tokens = 12;
 }
 
 // Lightweight view of a session's usage within an agent report.
@@ -1086,8 +1107,11 @@ message SessionUsageSummary {
   // call's provider-reported total, including cached input tokens).
   int64 total_tokens = 3;
 
-  // Total billable cost in micro-USD for this session.
-  int64 billable_cost_micros = 4;
+  // 4 held billable_cost_micros, the session's charged amount. Usage is
+  // counted in tokens and never priced, so the number and the name are
+  // reserved so neither is ever reused for a different field.
+  reserved 4;
+  reserved "billable_cost_micros";
 
   // ISO 8601 timestamp of the first run in this session.
   string first_run_at = 5;
@@ -1111,38 +1135,41 @@ message AgentUsageSummary {
   // call's provider-reported total, including cached input tokens).
   int64 total_tokens = 4;
 
-  // Total billable cost in micro-USD for this agent.
-  int64 billable_cost_micros = 5;
+  // 5 held billable_cost_micros, the agent's charged amount. Usage is
+  // counted in tokens and never priced, so the number and the name are
+  // reserved so neither is ever reused for a different field.
+  reserved 5;
+  reserved "billable_cost_micros";
 }
 
-// Cost and usage for a single day within an org report.
-message DailyCostEntry {
-  // Date in YYYY-MM-DD format.
+// Usage for a single UTC day within an org report.
+message DailyUsage {
+  // UTC date in YYYY-MM-DD format.
   string date = 1;
 
-  // Number of runs on this date.
+  // Number of runs created on this date.
   int32 run_count = 2;
 
-  // Total tokens consumed on this date.
+  // Total tokens of those runs (cache-inclusive, as the aggregate's).
   int64 total_tokens = 3;
 
-  // Total billable cost in micro-USD on this date.
-  int64 billable_cost_micros = 4;
+  // Number of metered LLM API calls of those runs.
+  int32 llm_call_count = 4;
 }
 
-// Cost split by execution harness within an org report.
+// Usage split by execution harness within an org report.
 //
 // Each entry represents one harness (e.g., "native" or "cursor") and
-// aggregates cost, call count, and run count for that harness
+// aggregates tokens, call count, and run count for that harness
 // within the report's time range.
-message HarnessCostSummary {
+message HarnessUsage {
   // Harness identifier (e.g., "native", "cursor").
   string harness = 1;
 
-  // Total billable cost in micro-USD for this harness.
-  int64 billable_cost_micros = 2;
+  // Total tokens through this harness (cache-inclusive, as the aggregate's).
+  int64 total_tokens = 2;
 
-  // Number of LLM API calls through this harness.
+  // Number of metered LLM API calls through this harness.
   int32 call_count = 3;
 
   // Number of distinct runs that used this harness.
@@ -1153,10 +1180,9 @@ message HarnessCostSummary {
 // RUN SUMMARY (Dashboard Aggregation)
 //
 // Operational summary of runs scoped to an organization and time
-// window. Used by the platform dashboard to show run health. Cost is
-// intentionally excluded — the dashboard sources cost from
-// getOrgUsageReport (billing source of truth), so it shows what billing
-// recorded and cost is never counted from two sources.
+// window. Used by the platform dashboard to show run health. Tokens are
+// intentionally excluded: the dashboard reads them from getOrgUsageReport,
+// so usage is never counted from two places.
 //
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1184,9 +1210,8 @@ message GetRunSummaryRequest {
 // RunSummary contains aggregated operational statistics for agent
 // runs. Designed for the platform dashboard's unified health view.
 //
-// Cost is intentionally omitted. The dashboard sources cost from
-// getOrgUsageReport (billing source of truth), so it shows what billing
-// recorded and cost is never counted from two sources.
+// Tokens are intentionally omitted. The dashboard reads them from
+// getOrgUsageReport, so usage is never counted from two places.
 message RunSummary {
   // Number of runs currently in a non-terminal phase
   // (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).

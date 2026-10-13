@@ -14,8 +14,10 @@
  * tuple-lifecycle steps against the composed lifecycle. The direct
  * handlers — subscribe and the two artifact reads — evaluate their
  * annotation through authorizeDirect; uploadAttachment is authorized at
- * the create its storage key feeds. list, listBySession and
- * getRunSummary narrow through the composed list read scope.
+ * the create its storage key feeds. list, listBySession, getRunSummary
+ * and the session, agent and organization usage reports narrow through the
+ * composed list read scope; the usage reports count metered runs through
+ * the composed meter (usage.ts).
  * Subscribe streams ride the in-memory stream broker; there is
  * no Redis. Per-RPC posture: docs/authorization-coverage.md §16.
  */
@@ -38,6 +40,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
+import type { MeteredUsageProvider } from "../../extensions/metered-usage.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
@@ -183,6 +186,12 @@ export interface AgentExecutionControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed summary read scope — undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
+  /**
+   * The composed meter (extensions/metered-usage.ts) the usage reports
+   * count metered runs from — undefined = every run is counted from its
+   * runner's own report (open source).
+   */
+  readonly meteredUsageProvider: MeteredUsageProvider | undefined;
   /**
    * The directory of the persons callers stand for (stigmer#1387) — the
    * composed identity-account port, bound under the require-authentication

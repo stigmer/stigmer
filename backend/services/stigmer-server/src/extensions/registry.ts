@@ -69,6 +69,7 @@ import {
 import type { VisitorErrorPolicy } from "../pipeline/interceptors/error-boundary.js";
 import type { PipelineStep } from "../pipeline/pipeline.js";
 import type { RunnerCredentialProvider } from "../runnerauth/runner-credential-provider.js";
+import type { MeteredUsageProvider } from "./metered-usage.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { GradingCallerMint } from "./grading-caller.js";
 import type { PluginEvalCallerMint } from "./plugin-eval-caller.js";
@@ -273,14 +274,17 @@ export interface ResolvedExtensions {
 }
 
 /**
- * The merged driver points. The two providers follow the authorizer
- * shape — undefined when no unit declares one, and the compose.ts
- * consumption site installs the OSS default (the default lives with the
+ * The merged driver points. The providers follow the authorizer shape —
+ * undefined when no unit declares one, and the consumer installs the OSS
+ * default (compose.ts for the catalog and the runner credential, the usage
+ * reports' runner-report count for the meter: the default lives with the
  * consumer that defines its semantics, not with this data holder).
  */
 export interface ResolvedExtensionDrivers {
   readonly modelCatalogProvider: ModelCatalogProvider | undefined;
   readonly runnerCredentialProvider: RunnerCredentialProvider | undefined;
+  /** The metered-usage source — undefined = every run is counted from its runner's report. */
+  readonly meteredUsageProvider: MeteredUsageProvider | undefined;
   /** The tuple-lifecycle driver — undefined = the shared steps no-op. */
   readonly resourceAuthorizationLifecycle:
     | ResourceAuthorizationLifecycle
@@ -448,6 +452,8 @@ export function resolveExtensions(
   let catalogDeclaredBy: string | undefined;
   let runnerCredentialProvider: RunnerCredentialProvider | undefined;
   let credentialDeclaredBy: string | undefined;
+  let meteredUsageProvider: MeteredUsageProvider | undefined;
+  let meteredUsageDeclaredBy: string | undefined;
   let resourceAuthorizationLifecycle:
     | ResourceAuthorizationLifecycle
     | undefined;
@@ -587,6 +593,16 @@ export function resolveExtensions(
       }
       runnerCredentialProvider = unit.drivers.runnerCredentialProvider;
       credentialDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.meteredUsageProvider !== undefined) {
+      if (meteredUsageDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a MeteredUsageProvider, but '${meteredUsageDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      meteredUsageProvider = unit.drivers.meteredUsageProvider;
+      meteredUsageDeclaredBy = unit.name;
     }
 
     if (unit.drivers?.resourceAuthorizationLifecycle !== undefined) {
@@ -984,6 +1000,7 @@ export function resolveExtensions(
     drivers: {
       modelCatalogProvider,
       runnerCredentialProvider,
+      meteredUsageProvider,
       resourceAuthorizationLifecycle,
       organizationDirectory,
       artifactStorageDrivers,

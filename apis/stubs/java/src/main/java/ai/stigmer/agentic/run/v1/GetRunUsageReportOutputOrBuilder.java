@@ -12,7 +12,7 @@ public interface GetRunUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Aggregated token counts and cost for this run.
+   * Aggregated token counts for this run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -21,7 +21,7 @@ public interface GetRunUsageReportOutputOrBuilder extends
   boolean hasAggregate();
   /**
    * <pre>
-   * Aggregated token counts and cost for this run.
+   * Aggregated token counts for this run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>
@@ -30,7 +30,7 @@ public interface GetRunUsageReportOutputOrBuilder extends
   ai.stigmer.agentic.run.v1.UsageReportAggregate getAggregate();
   /**
    * <pre>
-   * Aggregated token counts and cost for this run.
+   * Aggregated token counts for this run.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate aggregate = 1 [json_name = "aggregate"];</code>

@@ -1,16 +1,23 @@
 /**
  * useDashboardSummary reads one organization for both of its sources: the
- * run summary and the usage report the cost comes from, and it has no
- * summary to show while the run summary is still loading. The two source
- * hooks are stubbed; each records the organization it was asked for.
+ * run summary and the usage report the tokens come from (its
+ * `total_usage.total_tokens`), and it has no summary to show while the run
+ * summary is still loading. The two source hooks are stubbed; each records
+ * the organization it was asked for.
  */
 import { renderHook } from "@testing-library/react";
+import { create } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
+import {
+  GetOrgUsageReportOutputSchema,
+  type GetOrgUsageReportOutput,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 const asked = vi.hoisted(() => ({
   agent: [] as unknown[],
   usage: [] as unknown[],
   agentLoading: false,
+  report: null as GetOrgUsageReportOutput | null,
 }));
 
 vi.mock("../useRunSummary.js", async (importOriginal) => {
@@ -27,7 +34,7 @@ vi.mock("../useRunSummary.js", async (importOriginal) => {
 vi.mock("../../usage/useOrgUsageReport.js", () => ({
   useOrgUsageReport: (org: unknown) => {
     asked.usage.push(org);
-    return { report: null, isLoading: false, error: null, refetch: () => {} };
+    return { report: asked.report, isLoading: false, error: null, refetch: () => {} };
   },
 }));
 
@@ -57,7 +64,17 @@ describe("useDashboardSummary", () => {
       activeCount: 0,
       completedCount: 0,
       failedCount: 0,
-      totalCostUsd: 0,
+      totalTokens: 0,
     });
+  });
+
+  it("takes the token total from the usage report's total usage", () => {
+    asked.report = create(GetOrgUsageReportOutputSchema, {
+      org: "acme",
+      totalUsage: { totalTokens: 18_400n, llmCallCount: 3 },
+    });
+    const { result } = renderHook(() => useDashboardSummary({ org: "acme" }));
+    expect(result.current.summary?.totalTokens).toBe(18_400);
+    asked.report = null;
   });
 });

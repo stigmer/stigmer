@@ -1,9 +1,20 @@
 "use client";
 
+/**
+ * Session Usage facet: the session totals ({@link UsageWidget}) and, per
+ * run, its tokens and primary model with the tier the runner requested.
+ *
+ * Usage is tokens, never money. The suite in
+ * `session/__tests__/UsageTab.test.tsx` pins the empty state, the per-run
+ * rows (tokens, model, tier, "Estimated") and their absence before the
+ * report lists any run.
+ */
+
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { useSessionUsage, type RunUsageEntry } from "../useSessionUsage.js";
-import { UsageWidget, formatCost } from "../../run/UsageWidget.js";
+import { UsageWidget } from "../../run/UsageWidget.js";
+import { formatTokens } from "../../usage/format.js";
 import { FacetSection } from "./primitives.js";
 
 export interface UsageTabProps {
@@ -14,25 +25,25 @@ export interface UsageTabProps {
  * Usage facet for the session panel (a `useSessionRailViews` rail view).
  *
  * Renders the session totals ({@link UsageWidget}) plus the #362 model
- * provenance list: per run, the billing-RESOLVED model with its
- * cost — for a Cursor Auto run, the only honest answer to "which model
- * actually ran and what did it cost", since the requested model is empty
- * by definition there — paired with the tier the runner REQUESTED (the
- * streaming summary's audit record that the account default was never
- * left in control). Requested-vs-billed divergence is a platform alarm
- * (`stigmer.billing.service_tier.mismatch`), not a per-row UI concern.
+ * provenance list: per run, its primary model with its tokens — for a
+ * metered Cursor Auto run, the only honest answer to "which model actually
+ * ran", since the requested model is empty by definition there — paired
+ * with the tier the runner REQUESTED (the streaming summary's audit record
+ * that the account default was never left in control). Requested-vs-served
+ * divergence is a platform alarm (`stigmer.billing.service_tier.mismatch`),
+ * not a per-row UI concern.
  *
  * Rendered in the session panel's shared facet vocabulary (see
  * `./primitives.tsx`). Shows an empty state when no usage data is available.
  */
-export function UsageTab({ runs: executions }: UsageTabProps) {
-  const usage = useSessionUsage(executions);
+export function UsageTab({ runs }: UsageTabProps) {
+  const usage = useSessionUsage(runs);
 
   if (!usage.hasUsage) {
     return (
       <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
         <p className="stg:text-xs stg:text-muted-foreground">
-          No usage data yet. Cost and token stats will appear here.
+          No usage data yet. Token counts will appear here.
         </p>
       </div>
     );
@@ -40,11 +51,11 @@ export function UsageTab({ runs: executions }: UsageTabProps) {
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-5">
-      <UsageWidget runs={executions} />
+      <UsageWidget runs={runs} />
       {usage.runBreakdown.length > 0 && (
         <ExecutionModelList
           entries={usage.runBreakdown}
-          executions={executions}
+          runs={runs}
         />
       )}
     </div>
@@ -53,20 +64,20 @@ export function UsageTab({ runs: executions }: UsageTabProps) {
 
 /**
  * Per-execution model provenance rows, in the report's chronological
- * order: `#N resolved-model [tier requested] [Estimated]  $cost`.
+ * order: `#N model [tier requested] [Estimated]  18.4k tokens`.
  */
 function ExecutionModelList({
   entries,
-  executions,
+  runs,
 }: {
   readonly entries: readonly RunUsageEntry[];
-  readonly executions: readonly Run[];
+  readonly runs: readonly Run[];
 }) {
   return (
-    <FacetSection heading="Models per run">
-      <div role="list" aria-label="Per-run model and tier" className="stg:flex stg:flex-col">
+    <FacetSection heading="Tokens per run">
+      <div role="list" aria-label="Per-run tokens, model and tier" className="stg:flex stg:flex-col">
         {entries.map((entry, index) => {
-          const requestedTier = requestedTierLabel(executions, entry.runId);
+          const requestedTier = requestedTierLabel(runs, entry.runId);
           return (
             <div
               key={entry.runId}
@@ -82,7 +93,7 @@ function ExecutionModelList({
                 {entry.isEstimated && <RowBadge>Estimated</RowBadge>}
               </span>
               <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground">
-                {formatCost(entry.billableCostUsd)}
+                {formatTokens(entry.totalTokens)}
               </span>
             </div>
           );

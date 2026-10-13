@@ -1,13 +1,24 @@
 "use client";
 
+/**
+ * Harness split: the organization's tokens and calls per run harness
+ * (native, Cursor) as a segmented bar with labelled shares.
+ *
+ * Segments are sized by tokens, the one measure every run has (a run
+ * counted from its runner's own report has tokens and no metered calls).
+ * Usage is tokens, never money. The suite in
+ * `__tests__/HarnessSplitCard.test.tsx` pins the labels, shares and the
+ * empty case.
+ */
+
 import { cn } from "@stigmer/theme";
-import type { HarnessCostSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { formatCost } from "../run/UsageWidget.js";
+import type { HarnessUsage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { formatCalls, formatTokens, sharePercent } from "./format.js";
 
 /** Props for {@link HarnessSplitCard}. */
 export interface HarnessSplitCardProps {
   /** Harness breakdown entries from the org usage report. */
-  readonly breakdown: readonly HarnessCostSummary[];
+  readonly breakdown: readonly HarnessUsage[];
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -23,11 +34,10 @@ const HARNESS_COLORS: Record<string, string> = {
 };
 
 /**
- * Displays the cost split between run harnesses as a segmented bar.
+ * Displays the token split between run harnesses as a segmented bar.
  *
- * Renders a two-tone horizontal bar with labels showing cost and percentage
- * per harness. Designed for at-a-glance understanding of native vs cursor
- * cost distribution.
+ * Renders a horizontal bar with labels showing tokens, calls and share per
+ * harness, for an at-a-glance read of native vs Cursor usage.
  */
 export function HarnessSplitCard({
   breakdown,
@@ -35,12 +45,12 @@ export function HarnessSplitCard({
 }: HarnessSplitCardProps) {
   if (breakdown.length === 0) return null;
 
-  const totalCost = breakdown.reduce(
-    (sum, h) => sum + Number(h.billableCostMicros),
+  const totalTokens = breakdown.reduce(
+    (sum, h) => sum + Number(h.totalTokens),
     0,
   );
 
-  if (totalCost <= 0) return null;
+  if (totalTokens <= 0) return null;
 
   return (
     <div className={className}>
@@ -52,11 +62,10 @@ export function HarnessSplitCard({
         <div
           className="stg:flex stg:h-3 stg:w-full stg:overflow-hidden stg:rounded-full"
           role="img"
-          aria-label="Cost distribution by harness"
+          aria-label="Token distribution by harness"
         >
           {breakdown.map((entry) => {
-            const cost = Number(entry.billableCostMicros);
-            const pct = (cost / totalCost) * 100;
+            const pct = (Number(entry.totalTokens) / totalTokens) * 100;
             if (pct <= 0) return null;
             return (
               <div
@@ -74,8 +83,7 @@ export function HarnessSplitCard({
         {/* Labels */}
         <div className="stg:mt-2.5 stg:flex stg:flex-wrap stg:gap-x-5 stg:gap-y-1">
           {breakdown.map((entry) => {
-            const cost = Number(entry.billableCostMicros);
-            const pct = totalCost > 0 ? (cost / totalCost) * 100 : 0;
+            const pct = sharePercent(entry.totalTokens, totalTokens);
             return (
               <div key={entry.harness} className="stg:flex stg:items-center stg:gap-1.5">
                 <div
@@ -88,10 +96,10 @@ export function HarnessSplitCard({
                   {HARNESS_LABELS[entry.harness] ?? entry.harness}
                 </span>
                 <span className="stg:text-xs stg:tabular-nums stg:font-medium stg:text-foreground">
-                  {formatCost(cost / 1_000_000)}
+                  {formatTokens(entry.totalTokens)}
                 </span>
                 <span className="stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
-                  ({pct.toFixed(0)}%)
+                  {formatCalls(entry.callCount)} ({pct}%)
                 </span>
               </div>
             );

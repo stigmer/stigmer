@@ -1,8 +1,20 @@
+/**
+ * useSessionUsage reads the session usage report alone: it maps the report's
+ * tokens, model rows, per-run rows, served-by rows and `is_estimated`
+ * as given, shows nothing until the report has tokens (it never sums run
+ * statuses itself, so a run's streaming numbers do not leak in), polls
+ * while a run is in flight and fetches once more when the last run settles.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { GetSessionUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import {
+  GetSessionUsageReportOutputSchema,
+  type GetSessionUsageReportOutput,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { ProviderKeySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 
 vi.mock("../../hooks", () => ({
   useStigmer: vi.fn(),
@@ -15,73 +27,49 @@ import { useSessionUsage } from "../useSessionUsage";
 
 const SESSION_ID = "sess-1";
 
-function makeExecution(
-  phase: RunPhase,
-  streamingUsage?: Record<string, unknown>,
-): Run {
+function makeRun(phase: RunPhase, streamingTokens = 0n): Run {
   return {
     spec: { target: { case: "sessionId", value: SESSION_ID } },
-    status: { phase, streamingUsage },
+    status: {
+      phase,
+      streamingUsage: streamingTokens > 0n
+        ? { totalTokens: streamingTokens, inputTokens: streamingTokens, turnCount: 1, model: "claude-sonnet-4-6" }
+        : undefined,
+    },
   } as unknown as Run;
 }
 
-function streamingUsage(costUsd: number): Record<string, unknown> {
-  return {
-    inputTokens: 100n,
-    outputTokens: 20n,
-    cacheReadTokens: 0n,
-    cacheWriteTokens: 0n,
-    totalTokens: 120n,
-    turnCount: 1,
-    estimatedCostUsd: costUsd,
-    model: "claude-sonnet-4-6",
-    observedAt: "",
-  };
-}
-
-function authoritativeReport(billableMicros: bigint): GetSessionUsageReportOutput {
-  return {
+function meteredReport(): GetSessionUsageReportOutput {
+  return create(GetSessionUsageReportOutputSchema, {
+    sessionId: SESSION_ID,
     totalUsage: {
       llmCallCount: 2,
-      totalTokens: 120n,
-      billableCostMicros: billableMicros,
-      inputTokens: 60n,
-      outputTokens: 40n,
-      cacheReadInputTokens: 0n,
-      cacheCreationInputTokens: 0n,
+      totalTokens: 1_200n,
+      inputTokens: 600n,
+      outputTokens: 400n,
+      cacheReadInputTokens: 200n,
       primaryModel: "claude-sonnet-4-6",
-      primaryProvider: "cursor",
+      primaryProvider: "anthropic",
+      servedBy: [{ providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 1_200n, llmCallCount: 2 }],
     },
-    modelBreakdown: [],
-    runs: [
+    modelBreakdown: [
       {
-        runId: "exe_1",
-        primaryModel: "claude-sonnet-4-6",
-        billableCostMicros: billableMicros,
-        isEstimated: false,
+        model: "claude-sonnet-4-6",
+        provider: "anthropic",
+        inputTokens: 600n,
+        outputTokens: 400n,
+        cacheReadInputTokens: 200n,
+        callCount: 2,
+        totalTokens: 1_200n,
       },
     ],
+    runs: [{ runId: "run_1", primaryModel: "claude-sonnet-4-6", totalTokens: 1_200n, isEstimated: false }],
     isEstimated: false,
-  } as unknown as GetSessionUsageReportOutput;
+  });
 }
 
 function emptyReport(): GetSessionUsageReportOutput {
-  return {
-    totalUsage: {
-      llmCallCount: 0,
-      totalTokens: 0n,
-      billableCostMicros: 0n,
-      inputTokens: 0n,
-      outputTokens: 0n,
-      cacheReadInputTokens: 0n,
-      cacheCreationInputTokens: 0n,
-      primaryModel: "",
-      primaryProvider: "",
-    },
-    modelBreakdown: [],
-    runs: [],
-    isEstimated: true,
-  } as unknown as GetSessionUsageReportOutput;
+  return create(GetSessionUsageReportOutputSchema, { sessionId: SESSION_ID, totalUsage: {} });
 }
 
 function mockStigmer(getSessionUsageReport: ReturnType<typeof vi.fn>) {
@@ -104,59 +92,86 @@ describe("useSessionUsage", () => {
     vi.useRealTimers();
   });
 
-  it("falls back to the streaming estimate when no billing record exists yet", async () => {
-    const getReport = vi.fn(async () => emptyReport());
-    mockStigmer(getReport);
+  it("maps the report's tokens, models, runs and served-by rows", async () => {
+    mockStigmer(vi.fn(async () => meteredReport()));
 
-    const executions = [makeExecution(RunPhase.RUN_IN_PROGRESS, streamingUsage(0.05))];
-    const { result } = renderHook(() => useSessionUsage(executions));
-
+    const runs = [makeRun(RunPhase.RUN_COMPLETED)];
+    const { result } = renderHook(() => useSessionUsage(runs));
     await flush();
 
+    expect(result.current).toEqual({
+      totalTokens: 1_200,
+      inputTokens: 600,
+      outputTokens: 400,
+      cacheReadTokens: 200,
+      cacheCreationTokens: 0,
+      llmCallCount: 2,
+      modelBreakdown: [
+        {
+          model: "claude-sonnet-4-6",
+          provider: "anthropic",
+          totalTokens: 1_200,
+          inputTokens: 600,
+          outputTokens: 400,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 200,
+          callCount: 2,
+        },
+      ],
+      runBreakdown: [{ runId: "run_1", resolvedModel: "claude-sonnet-4-6", totalTokens: 1_200, isEstimated: false }],
+      servedBy: [{ providerKeySource: ProviderKeySource.ORGANIZATION, totalTokens: 1_200, llmCallCount: 2 }],
+      primaryModel: "claude-sonnet-4-6",
+      primaryProvider: "anthropic",
+      hasUsage: true,
+      isEstimated: false,
+    });
+  });
+
+  it("passes the report's estimated flag through for runner-reported runs", async () => {
+    const report = create(GetSessionUsageReportOutputSchema, {
+      sessionId: SESSION_ID,
+      totalUsage: { totalTokens: 900n, llmCallCount: 0, primaryModel: "composer-2" },
+      runs: [{ runId: "run_1", primaryModel: "composer-2", totalTokens: 900n, isEstimated: true }],
+      isEstimated: true,
+    });
+    mockStigmer(vi.fn(async () => report));
+
+    const runs = [makeRun(RunPhase.RUN_COMPLETED)];
+    const { result } = renderHook(() => useSessionUsage(runs));
+    await flush();
+
+    expect(result.current.hasUsage).toBe(true);
     expect(result.current.isEstimated).toBe(true);
-    expect(result.current.totalCostUsd).toBeCloseTo(0.05);
-    expect(result.current.primaryProvider).toBe("cursor");
+    expect(result.current.totalTokens).toBe(900);
+    expect(result.current.llmCallCount).toBe(0);
   });
 
-  it("prefers the authoritative billing report once records exist", async () => {
-    const getReport = vi.fn(async () => authoritativeReport(60_000n));
-    mockStigmer(getReport);
+  it("never sums run statuses: an empty report shows no usage despite streaming numbers", async () => {
+    mockStigmer(vi.fn(async () => emptyReport()));
 
-    const executions = [makeExecution(RunPhase.RUN_IN_PROGRESS, streamingUsage(0.05))];
-    const { result } = renderHook(() => useSessionUsage(executions));
-
+    const runs = [makeRun(RunPhase.RUN_IN_PROGRESS, 5_000n)];
+    const { result } = renderHook(() => useSessionUsage(runs));
     await flush();
 
-    expect(result.current.isEstimated).toBe(false);
-    // 60_000 micros = $0.06 billable, replacing the $0.05 estimate.
-    expect(result.current.totalCostUsd).toBeCloseTo(0.06);
-    expect(result.current.llmCallCount).toBe(2);
-    // The #362 provenance rows ride the same report: billing-RESOLVED
-    // model per run, never the runner's requested echo.
-    expect(result.current.runBreakdown).toEqual([
-      {
-        runId: "exe_1",
-        resolvedModel: "claude-sonnet-4-6",
-        billableCostUsd: 0.06,
-        isEstimated: false,
-      },
-    ]);
+    expect(result.current.hasUsage).toBe(false);
+    expect(result.current.totalTokens).toBe(0);
+    expect(result.current.primaryProvider).toBe("");
   });
 
-  it("polls the usage report while an execution is in progress", async () => {
+  it("polls the usage report while a run is in progress", async () => {
     vi.useFakeTimers();
-    const getReport = vi.fn(async () => authoritativeReport(60_000n));
+    const getReport = vi.fn(async () => meteredReport());
     mockStigmer(getReport);
 
-    const executions = [makeExecution(RunPhase.RUN_IN_PROGRESS, streamingUsage(0.05))];
-    renderHook(() => useSessionUsage(executions));
+    const runs = [makeRun(RunPhase.RUN_IN_PROGRESS)];
+    renderHook(() => useSessionUsage(runs));
 
     await act(async () => {
       await Promise.resolve();
     });
     expect(getReport).toHaveBeenCalledTimes(1);
 
-    // Each poll interval triggers a fresh fetch so the settled cost climbs live.
+    // Each poll interval triggers a fresh fetch so the tokens climb live.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2500);
     });
@@ -168,13 +183,13 @@ describe("useSessionUsage", () => {
     expect(getReport).toHaveBeenCalledTimes(3);
   });
 
-  it("stops polling once all executions are terminal, after one final refetch", async () => {
+  it("stops polling once all runs are terminal, after one final refetch", async () => {
     vi.useFakeTimers();
-    const getReport = vi.fn(async () => authoritativeReport(60_000n));
+    const getReport = vi.fn(async () => meteredReport());
     mockStigmer(getReport);
 
-    let executions = [makeExecution(RunPhase.RUN_IN_PROGRESS, streamingUsage(0.05))];
-    const { rerender } = renderHook(() => useSessionUsage(executions));
+    let runs = [makeRun(RunPhase.RUN_IN_PROGRESS)];
+    const { rerender } = renderHook(() => useSessionUsage(runs));
 
     await act(async () => {
       await Promise.resolve();
@@ -182,8 +197,8 @@ describe("useSessionUsage", () => {
     expect(getReport).toHaveBeenCalledTimes(1);
 
     // Run settles — polling stops, and a single final refetch fires to
-    // capture the last turn's authoritative record promptly.
-    executions = [makeExecution(RunPhase.RUN_COMPLETED, streamingUsage(0.05))];
+    // capture the last turn's numbers promptly.
+    runs = [makeRun(RunPhase.RUN_COMPLETED)];
     rerender();
     await act(async () => {
       await Promise.resolve();

@@ -1,14 +1,27 @@
 "use client";
 
+/**
+ * Organization Usage panel: the organization's tokens, runs and calls over
+ * a date range, a daily token chart, the harness split, the agents with the
+ * most tokens, per-model rows and who served the tokens.
+ *
+ * Everything comes from one `getOrgUsageReport` read; the panel never sums
+ * or prices anything itself, because the server already counts each run
+ * once (from the deployment's meter, or from the run's own runner report).
+ * Usage is tokens and calls, never money. The suite in
+ * `__tests__/OrgUsagePanel.test.tsx` pins the summary counts, the daily
+ * chart's token tooltip, the model rows, the served-by line, the empty
+ * state and the error.
+ */
+
 import { useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import type {
-  DailyCostEntry,
+  DailyUsage,
   GetOrgUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
-import { formatCost, formatTokenCount } from "../run/UsageWidget.js";
 import { useOrgUsageReport } from "./useOrgUsageReport.js";
 import {
   DATE_RANGE_PRESETS,
@@ -21,6 +34,8 @@ import { AgentBreakdownList } from "./AgentBreakdownList.js";
 import { HarnessSplitCard } from "./HarnessSplitCard.js";
 import { ExportButton } from "./ExportButton.js";
 import { useExportCSV } from "./useExportCSV.js";
+import { ServedByLine } from "./ServedByLine.js";
+import { formatCompactCount, formatTokens } from "./format.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 // ---------------------------------------------------------------------------
@@ -36,11 +51,13 @@ export interface OrgUsagePanelProps {
 }
 
 /**
- * Self-contained dashboard panel showing organization-wide LLM usage metrics.
+ * Self-contained dashboard panel showing organization-wide LLM usage.
  *
- * Displays summary cards (total cost, LLM calls, tokens), a daily cost
- * bar chart, and per-model breakdown with call counts and token splits.
- * Data is fetched via `getOrgUsageReport` with a configurable date range.
+ * Displays summary cards (tokens, runs, LLM calls, agents, sessions), who
+ * served the tokens, a daily token bar chart, the harness split, the
+ * agents with the most tokens, and a per-model breakdown with call counts
+ * and token splits. Data is fetched via `getOrgUsageReport` with a
+ * configurable date range; usage is shown in tokens, never as money.
  *
  * All visual properties flow through `--stgm-*` design tokens. Zero
  * Console dependencies — safe for platform builder embedding.
@@ -108,20 +125,23 @@ export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {
         />
       </div>
 
-      <SummaryCards report={report} />
+      <div className="stg:space-y-2">
+        <SummaryCards report={report} />
+        <ServedByLine rows={report.totalUsage?.servedBy ?? []} showEstimated />
+      </div>
 
-      {report.dailyCosts.length > 0 && (
-        <DailyCostChart entries={report.dailyCosts} />
+      {report.dailyUsage.length > 0 && (
+        <DailyTokenChart entries={report.dailyUsage} />
       )}
 
-      {report.harnessBreakdown.length > 0 && (
-        <HarnessSplitCard breakdown={report.harnessBreakdown} />
+      {report.harnessUsage.length > 0 && (
+        <HarnessSplitCard breakdown={report.harnessUsage} />
       )}
 
-      {report.topAgentsByCost.length > 0 && (
+      {report.topAgents.length > 0 && (
         <AgentBreakdownList
-          agents={report.topAgentsByCost}
-          totalBillableCostMicros={report.totalBillableCostMicros}
+          agents={report.topAgents}
+          totalTokens={report.totalUsage?.totalTokens ?? BigInt(0)}
         />
       )}
 
@@ -182,23 +202,9 @@ function DateRangeSelector({
 // SummaryCards (internal)
 // ---------------------------------------------------------------------------
 
-function microsToUsd(micros: bigint): number {
-  return Number(micros) / 1_000_000;
-}
-
 function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
-  const { totalLlmCalls, totalTokens } = report.modelBreakdown.reduce(
-    (acc, m) => ({
-      totalLlmCalls: acc.totalLlmCalls + m.callCount,
-      totalTokens:
-        acc.totalTokens +
-        Number(m.inputTokens) +
-        Number(m.outputTokens) +
-        Number(m.cacheCreationInputTokens) +
-        Number(m.cacheReadInputTokens),
-    }),
-    { totalLlmCalls: 0, totalTokens: 0 },
-  );
+  const totalTokens = report.totalUsage?.totalTokens ?? BigInt(0);
+  const llmCalls = report.totalUsage?.llmCallCount ?? 0;
 
   return (
     <div role="group" aria-label="Usage summary" className="stg:space-y-2">
@@ -206,41 +212,35 @@ function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
       <div className="stg:grid stg:grid-cols-3 stg:gap-3">
         <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
           <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCost(microsToUsd(report.totalBillableCostMicros))}
-          </div>
-          <div className="stg:text-xs stg:text-muted-foreground">Total Cost</div>
-        </div>
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
-          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactNumber(totalLlmCalls)}
-          </div>
-          <div className="stg:text-xs stg:text-muted-foreground">LLM Calls</div>
-        </div>
-        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
-          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactNumber(totalTokens)}
+            {formatCompactCount(totalTokens)}
           </div>
           <div className="stg:text-xs stg:text-muted-foreground">Tokens</div>
+        </div>
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
+            {formatCompactCount(report.totalRuns)}
+          </div>
+          <div className="stg:text-xs stg:text-muted-foreground">Runs</div>
+        </div>
+        <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
+          <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">
+            {formatCompactCount(llmCalls)}
+          </div>
+          <div className="stg:text-xs stg:text-muted-foreground">LLM Calls</div>
         </div>
       </div>
 
       {/* Secondary row */}
-      <div className="stg:grid stg:grid-cols-3 stg:gap-3">
+      <div className="stg:grid stg:grid-cols-2 stg:gap-3">
         <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
           <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactNumber(report.totalRuns)}
-          </div>
-          <div className="stg:text-[0.65rem] stg:text-muted-foreground">Runs</div>
-        </div>
-        <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
-          <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactNumber(report.totalAgents)}
+            {formatCompactCount(report.totalAgents)}
           </div>
           <div className="stg:text-[0.65rem] stg:text-muted-foreground">Agents</div>
         </div>
         <div className="stg:rounded-lg stg:border stg:border-border-muted stg:bg-muted-subtle stg:px-3.5 stg:py-2.5">
           <div className="stg:text-sm stg:font-semibold stg:tabular-nums stg:text-foreground">
-            {formatCompactNumber(report.totalSessions)}
+            {formatCompactCount(report.totalSessions)}
           </div>
           <div className="stg:text-[0.65rem] stg:text-muted-foreground">Sessions</div>
         </div>
@@ -250,30 +250,31 @@ function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
 }
 
 // ---------------------------------------------------------------------------
-// DailyCostChart (internal) — CSS-only bar chart
+// DailyTokenChart (internal) — CSS-only bar chart
 // ---------------------------------------------------------------------------
 
 const CHART_HEIGHT_PX = 128;
 
-function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
-  const maxCost = Math.max(...entries.map((e) => microsToUsd(e.billableCostMicros)), 0);
+function DailyTokenChart({ entries }: { entries: readonly DailyUsage[] }) {
+  const maxTokens = Math.max(...entries.map((e) => Number(e.totalTokens)), 0);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const hovered = hoveredIdx !== null ? entries[hoveredIdx] : undefined;
 
   return (
     <div>
       <h3 className="stg:mb-2 stg:text-xs stg:font-semibold stg:text-foreground">
-        Daily Cost
+        Daily Tokens
       </h3>
       <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3 stg:pb-2 stg:pt-3">
         {/* Tooltip */}
         <div className="stg:mb-1 stg:h-4">
-          {hoveredIdx !== null && entries[hoveredIdx] && (
+          {hovered && (
             <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-              {formatChartDate(entries[hoveredIdx].date)}
+              {formatChartDate(hovered.date)}
               {" \u00B7 "}
-              {formatCost(microsToUsd(entries[hoveredIdx].billableCostMicros))}
+              {formatTokens(hovered.totalTokens)}
               {" \u00B7 "}
-              {formatTokenCount(Number(entries[hoveredIdx].totalTokens))} tokens
+              {formatCompactCount(hovered.runCount)} {hovered.runCount === 1 ? "run" : "runs"}
             </span>
           )}
         </div>
@@ -283,11 +284,11 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
           className="stg:flex stg:items-end stg:gap-px"
           style={{ height: CHART_HEIGHT_PX }}
           role="img"
-          aria-label="Daily cost bar chart"
+          aria-label="Daily token bar chart"
         >
           {entries.map((entry, i) => {
             const ratio =
-              maxCost > 0 ? microsToUsd(entry.billableCostMicros) / maxCost : 0;
+              maxTokens > 0 ? Number(entry.totalTokens) / maxTokens : 0;
             const heightPx = Math.max(ratio * CHART_HEIGHT_PX, 2);
 
             return (
@@ -297,6 +298,7 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
                 style={{ height: CHART_HEIGHT_PX }}
                 onMouseEnter={() => setHoveredIdx(i)}
                 onMouseLeave={() => setHoveredIdx(null)}
+                data-testid="daily-token-bar"
               >
                 <div
                   className={cn(
@@ -371,7 +373,7 @@ function ModelBreakdownList({
             Output
           </span>
           <span role="columnheader" className="stg:text-right">
-            Cost
+            Total
           </span>
         </div>
         {models.map((m) => {
@@ -402,36 +404,36 @@ function ModelBreakdownList({
                   role="cell"
                   className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
-                  {formatCompactNumber(m.callCount)}
+                  {formatCompactCount(m.callCount)}
                 </span>
                 <span
                   role="cell"
                   className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
-                  {formatCompactNumber(totalInput)}
+                  {formatCompactCount(totalInput)}
                 </span>
                 <span
                   role="cell"
                   className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-muted-foreground"
                 >
-                  {formatCompactNumber(Number(m.outputTokens))}
+                  {formatCompactCount(Number(m.outputTokens))}
                 </span>
                 <span
                   role="cell"
                   className="stg:self-center stg:text-right stg:text-xs stg:tabular-nums stg:text-foreground"
                 >
-                  {formatCost(microsToUsd(m.billableCostMicros))}
+                  {formatCompactCount(m.totalTokens)}
                 </span>
               </div>
               {hasCache && (
                 <div className="stg:mt-0.5 stg:text-[0.6rem] stg:tabular-nums stg:text-muted-foreground">
                   cache{" "}
                   {cacheRead > 0 &&
-                    `${formatCompactNumber(cacheRead)} read`}
+                    `${formatCompactCount(cacheRead)} read`}
                   {cacheRead > 0 && cacheCreation > 0 &&
                     " · "}
                   {cacheCreation > 0 &&
-                    `${formatCompactNumber(cacheCreation)} write`}
+                    `${formatCompactCount(cacheCreation)} write`}
                 </div>
               )}
             </div>
@@ -482,26 +484,6 @@ function ChartIcon({ className }: { className?: string }) {
 // ---------------------------------------------------------------------------
 // Formatting helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Format a number with compact suffixes for dashboard cards.
- * Examples: 847 -> "847", 2_340 -> "2.3K", 1_200_000 -> "1.2M"
- */
-function formatCompactNumber(n: number): string {
-  if (n >= 1_000_000) {
-    const v = n / 1_000_000;
-    return v >= 100 ? `${Math.round(v)}M` : `${trimTrailingZero(v.toFixed(1))}M`;
-  }
-  if (n >= 1_000) {
-    const v = n / 1_000;
-    return v >= 100 ? `${Math.round(v)}K` : `${trimTrailingZero(v.toFixed(1))}K`;
-  }
-  return String(n);
-}
-
-function trimTrailingZero(s: string): string {
-  return s.endsWith(".0") ? s.slice(0, -2) : s;
-}
 
 /**
  * Format a YYYY-MM-DD date for chart axis labels (e.g. "Apr 02").

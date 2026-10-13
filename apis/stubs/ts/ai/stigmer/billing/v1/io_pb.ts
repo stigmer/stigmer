@@ -11,15 +11,13 @@ import { file_ai_stigmer_agentic_run_v1_usage } from "../../agentic/run/v1/usage
 import type { ModelPricingBaseline } from "./model_pricing_baseline_pb.js";
 import { file_ai_stigmer_billing_v1_model_pricing_baseline } from "./model_pricing_baseline_pb.js";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb.js";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/billing/v1/io.proto.
  */
 export const file_ai_stigmer_billing_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch5haS9zdGlnbWVyL2JpbGxpbmcvdjEvaW8ucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MSI1Ch5HZXRPckNyZWF0ZUJpbGxpbmdBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEi7QUKF1JlY29yZExsbUNhbGxVc2FnZUlucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBEhkKCHNlcXVlbmNlGAIgASgFQge6SAQaAiAAEhkKB2NhbGxfaWQYFCABKAlCCLpIBXIDGIABEhgKCHByb3ZpZGVyGAMgASgJQga6SAPIAQESHgoOcmVzb2x2ZWRfbW9kZWwYBCABKAlCBrpIA8gBARIXCg9yZXF1ZXN0ZWRfbW9kZWwYBSABKAkSNQoGdG9rZW5zGAYgASgLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Ub2tlblVzYWdlEkYKDHVzYWdlX3N0YXR1cxgHIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VDb21wbGV0aW9uU3RhdHVzEhsKE3Byb3ZpZGVyX3JlcXVlc3RfaWQYCCABKAkSGAoQaHR0cF9zdGF0dXNfY29kZRgJIAEoBRIRCglzdHJlYW1pbmcYCiABKAgSFQoNZmluaXNoX3JlYXNvbhgLIAEoCRI8Cgxwcm94eV90aW1pbmcYDCABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlByb3h5VGltaW5nEhsKE3Byb3ZpZGVyX3VzYWdlX2pzb24YDSABKAkSDwoHaGFybmVzcxgOIAEoCRIbChNzZXJ2ZWRfc2VydmljZV90aWVyGBIgASgJEjYKC21ldGVyZWRfcnVuGBMgASgLMiEuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1ldGVyZWRSdW4SSQoTcHJvdmlkZXJfa2V5X3NvdXJjZRgVIAEoDjIsLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUHJvdmlkZXJLZXlTb3VyY2VKBAgPEBBKBAgQEBFKBAgREBJSEWN1cnNvcl9hY2NvdW50X2lkUg1jdXJzb3Jfa2V5X2lkUhFjdXJzb3Jfa2V5X3NvdXJjZSLIAQoKTWV0ZXJlZFJ1bhISCgpzZXNzaW9uX2lkGAEgASgJEhQKDHBpbm5lZF9tb2RlbBgCIAEoCRJGChZyZXF1ZXN0ZWRfc2VydmljZV90aWVyGAMgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5TZXJ2aWNlVGllchJIChdyZXF1ZXN0ZWRfdGhpbmtpbmdfbW9kZRgEIAEoDjInLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVGhpbmtpbmdNb2RlIqEBChpSZWNvcmRMbG1DYWxsVXNhZ2VSZXNwb25zZRIXCg91c2FnZV9yZWNvcmRfaWQYASABKAkSFAoMaXNfZHVwbGljYXRlGAUgASgISgQIAhADSgQIAxAESgQIBBAFUhRwcm92aWRlcl9jb3N0X21pY3Jvc1IfY3VzdG9tZXJfYmlsbGFibGVfYW1vdW50X21pY3Jvc1ILaXNfYmlsbGFibGUiUgofQ3JlYXRlQmlsbGluZ1BvcnRhbFNlc3Npb25JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIaCgpyZXR1cm5fdXJsGAIgASgJQga6SAPIAQEiOAoiQ3JlYXRlQmlsbGluZ1BvcnRhbFNlc3Npb25SZXNwb25zZRISCgpwb3J0YWxfdXJsGAEgASgJInQKJENyZWF0ZVBheW1lbnRNZXRob2RTZXR1cFNlc3Npb25JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIbCgtzdWNjZXNzX3VybBgCIAEoCUIGukgDyAEBEhoKCmNhbmNlbF91cmwYAyABKAlCBrpIA8gBASJZCidDcmVhdGVQYXltZW50TWV0aG9kU2V0dXBTZXNzaW9uUmVzcG9uc2USEQoJc2V0dXBfdXJsGAEgASgJEhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYAiABKAkiLQoWR2V0QmlsbGluZ0FjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASKfAQoaR2V0QmlsbGluZ1VzYWdlUmVwb3J0SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESNgoKc3RhcnRfdGltZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBrpIA8gBARI0CghlbmRfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBrpIA8gBASLUAQoaQmlsbGluZ1VzYWdlUmVwb3J0UmVzcG9uc2USEQoJcnVuX2NvdW50GAMgASgFEhYKDmxsbV9jYWxsX2NvdW50GAQgASgFEkUKD21vZGVsX2JyZWFrZG93bhgFIAMoCzIsLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbEJpbGxpbmdCcmVha2Rvd25KBAgBEAJKBAgCEANSGnRvdGFsX3Byb3ZpZGVyX2Nvc3RfbWljcm9zUhx0b3RhbF9iaWxsYWJsZV9hbW91bnRfbWljcm9zIpYBChVNb2RlbEJpbGxpbmdCcmVha2Rvd24SDQoFbW9kZWwYASABKAkSDwoHaGFybmVzcxgCIAEoCRISCgpjYWxsX2NvdW50GAYgASgFSgQIAxAESgQIBBAFSgQIBRAGUgljb3N0X3RpZXJSFHByb3ZpZGVyX2Nvc3RfbWljcm9zUhZiaWxsYWJsZV9hbW91bnRfbWljcm9zIokBCh9VcHNlcnRNb2RlbFByaWNpbmdCYXNlbGluZUlucHV0EkUKCGJhc2VsaW5lGAEgASgLMisuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lQga6SAPIAQESHwoNcmV2aXNpb25fbm90ZRgCIAEoCUIIukgFcgMYgAgijwEKH1JldGlyZU1vZGVsUHJpY2luZ0Jhc2VsaW5lSW5wdXQSGAoIbW9kZWxfaWQYASABKAlCBrpIA8gBARIYCghwcm92aWRlchgCIAEoCUIGukgDyAEBEhcKB2hhcm5lc3MYAyABKAlCBrpIA8gBARIfCg1yZXZpc2lvbl9ub3RlGAQgASgJQgi6SAVyAxiACCI5Ch5MaXN0TW9kZWxQcmljaW5nQmFzZWxpbmVzSW5wdXQSFwoPaW5jbHVkZV9oaXN0b3J5GAEgASgIIl8KHU1vZGVsUHJpY2luZ0Jhc2VsaW5lc1Jlc3BvbnNlEj4KCWJhc2VsaW5lcxgBIAMoCzIrLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbFByaWNpbmdCYXNlbGluZWIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_usage, file_ai_stigmer_billing_v1_model_pricing_baseline, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("Ch5haS9zdGlnbWVyL2JpbGxpbmcvdjEvaW8ucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MSI1Ch5HZXRPckNyZWF0ZUJpbGxpbmdBY2NvdW50SW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEi7QUKF1JlY29yZExsbUNhbGxVc2FnZUlucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBEhkKCHNlcXVlbmNlGAIgASgFQge6SAQaAiAAEhkKB2NhbGxfaWQYFCABKAlCCLpIBXIDGIABEhgKCHByb3ZpZGVyGAMgASgJQga6SAPIAQESHgoOcmVzb2x2ZWRfbW9kZWwYBCABKAlCBrpIA8gBARIXCg9yZXF1ZXN0ZWRfbW9kZWwYBSABKAkSNQoGdG9rZW5zGAYgASgLMiUuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Ub2tlblVzYWdlEkYKDHVzYWdlX3N0YXR1cxgHIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VDb21wbGV0aW9uU3RhdHVzEhsKE3Byb3ZpZGVyX3JlcXVlc3RfaWQYCCABKAkSGAoQaHR0cF9zdGF0dXNfY29kZRgJIAEoBRIRCglzdHJlYW1pbmcYCiABKAgSFQoNZmluaXNoX3JlYXNvbhgLIAEoCRI8Cgxwcm94eV90aW1pbmcYDCABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlByb3h5VGltaW5nEhsKE3Byb3ZpZGVyX3VzYWdlX2pzb24YDSABKAkSDwoHaGFybmVzcxgOIAEoCRIbChNzZXJ2ZWRfc2VydmljZV90aWVyGBIgASgJEjYKC21ldGVyZWRfcnVuGBMgASgLMiEuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1ldGVyZWRSdW4SSQoTcHJvdmlkZXJfa2V5X3NvdXJjZRgVIAEoDjIsLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUHJvdmlkZXJLZXlTb3VyY2VKBAgPEBBKBAgQEBFKBAgREBJSEWN1cnNvcl9hY2NvdW50X2lkUg1jdXJzb3Jfa2V5X2lkUhFjdXJzb3Jfa2V5X3NvdXJjZSLIAQoKTWV0ZXJlZFJ1bhISCgpzZXNzaW9uX2lkGAEgASgJEhQKDHBpbm5lZF9tb2RlbBgCIAEoCRJGChZyZXF1ZXN0ZWRfc2VydmljZV90aWVyGAMgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5TZXJ2aWNlVGllchJIChdyZXF1ZXN0ZWRfdGhpbmtpbmdfbW9kZRgEIAEoDjInLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVGhpbmtpbmdNb2RlIqEBChpSZWNvcmRMbG1DYWxsVXNhZ2VSZXNwb25zZRIXCg91c2FnZV9yZWNvcmRfaWQYASABKAkSFAoMaXNfZHVwbGljYXRlGAUgASgISgQIAhADSgQIAxAESgQIBBAFUhRwcm92aWRlcl9jb3N0X21pY3Jvc1IfY3VzdG9tZXJfYmlsbGFibGVfYW1vdW50X21pY3Jvc1ILaXNfYmlsbGFibGUiUgofQ3JlYXRlQmlsbGluZ1BvcnRhbFNlc3Npb25JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIaCgpyZXR1cm5fdXJsGAIgASgJQga6SAPIAQEiOAoiQ3JlYXRlQmlsbGluZ1BvcnRhbFNlc3Npb25SZXNwb25zZRISCgpwb3J0YWxfdXJsGAEgASgJInQKJENyZWF0ZVBheW1lbnRNZXRob2RTZXR1cFNlc3Npb25JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIbCgtzdWNjZXNzX3VybBgCIAEoCUIGukgDyAEBEhoKCmNhbmNlbF91cmwYAyABKAlCBrpIA8gBASJZCidDcmVhdGVQYXltZW50TWV0aG9kU2V0dXBTZXNzaW9uUmVzcG9uc2USEQoJc2V0dXBfdXJsGAEgASgJEhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYAiABKAkiLQoWR2V0QmlsbGluZ0FjY291bnRJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASKJAQofVXBzZXJ0TW9kZWxQcmljaW5nQmFzZWxpbmVJbnB1dBJFCghiYXNlbGluZRgBIAEoCzIrLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbFByaWNpbmdCYXNlbGluZUIGukgDyAEBEh8KDXJldmlzaW9uX25vdGUYAiABKAlCCLpIBXIDGIAIIo8BCh9SZXRpcmVNb2RlbFByaWNpbmdCYXNlbGluZUlucHV0EhgKCG1vZGVsX2lkGAEgASgJQga6SAPIAQESGAoIcHJvdmlkZXIYAiABKAlCBrpIA8gBARIXCgdoYXJuZXNzGAMgASgJQga6SAPIAQESHwoNcmV2aXNpb25fbm90ZRgEIAEoCUIIukgFcgMYgAgiOQoeTGlzdE1vZGVsUHJpY2luZ0Jhc2VsaW5lc0lucHV0EhcKD2luY2x1ZGVfaGlzdG9yeRgBIAEoCCJfCh1Nb2RlbFByaWNpbmdCYXNlbGluZXNSZXNwb25zZRI+CgliYXNlbGluZXMYASADKAsyKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuTW9kZWxQcmljaW5nQmFzZWxpbmViBnByb3RvMw", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_usage, file_ai_stigmer_billing_v1_model_pricing_baseline, file_buf_validate_validate]);
 
 /**
  * GetOrCreateBillingAccountInput initiates billing for an organization.
@@ -437,106 +435,6 @@ export const GetBillingAccountInputSchema: GenMessage<GetBillingAccountInput> = 
   messageDesc(file_ai_stigmer_billing_v1_io, 8);
 
 /**
- * GetBillingUsageReportInput requests the counts of an organization's
- * metered calls and runs in a period.
- *
- * @generated from message ai.stigmer.billing.v1.GetBillingUsageReportInput
- */
-export type GetBillingUsageReportInput = Message<"ai.stigmer.billing.v1.GetBillingUsageReportInput"> & {
-  /**
-   * @generated from field: string org = 1;
-   */
-  org: string;
-
-  /**
-   * Start of the reporting period.
-   *
-   * @generated from field: google.protobuf.Timestamp start_time = 2;
-   */
-  startTime?: Timestamp;
-
-  /**
-   * End of the reporting period.
-   *
-   * @generated from field: google.protobuf.Timestamp end_time = 3;
-   */
-  endTime?: Timestamp;
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.GetBillingUsageReportInput.
- * Use `create(GetBillingUsageReportInputSchema)` to create a new message.
- */
-export const GetBillingUsageReportInputSchema: GenMessage<GetBillingUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 9);
-
-/**
- * BillingUsageReportResponse counts the metered calls and runs in the
- * period. It carries no amount: calls are metered, never priced.
- *
- * @generated from message ai.stigmer.billing.v1.BillingUsageReportResponse
- */
-export type BillingUsageReportResponse = Message<"ai.stigmer.billing.v1.BillingUsageReportResponse"> & {
-  /**
-   * Number of runs in the period.
-   *
-   * @generated from field: int32 run_count = 3;
-   */
-  runCount: number;
-
-  /**
-   * Number of LLM calls in the period.
-   *
-   * @generated from field: int32 llm_call_count = 4;
-   */
-  llmCallCount: number;
-
-  /**
-   * Calls in the period, by model and harness.
-   *
-   * @generated from field: repeated ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5;
-   */
-  modelBreakdown: ModelBillingBreakdown[];
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.BillingUsageReportResponse.
- * Use `create(BillingUsageReportResponseSchema)` to create a new message.
- */
-export const BillingUsageReportResponseSchema: GenMessage<BillingUsageReportResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 10);
-
-/**
- * ModelBillingBreakdown counts the period's calls for one model on one
- * harness.
- *
- * @generated from message ai.stigmer.billing.v1.ModelBillingBreakdown
- */
-export type ModelBillingBreakdown = Message<"ai.stigmer.billing.v1.ModelBillingBreakdown"> & {
-  /**
-   * @generated from field: string model = 1;
-   */
-  model: string;
-
-  /**
-   * @generated from field: string harness = 2;
-   */
-  harness: string;
-
-  /**
-   * @generated from field: int32 call_count = 6;
-   */
-  callCount: number;
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.ModelBillingBreakdown.
- * Use `create(ModelBillingBreakdownSchema)` to create a new message.
- */
-export const ModelBillingBreakdownSchema: GenMessage<ModelBillingBreakdown> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 11);
-
-/**
  * UpsertModelPricingBaselineInput creates or revises one model registry
  * baseline entry.
  *
@@ -570,7 +468,7 @@ export type UpsertModelPricingBaselineInput = Message<"ai.stigmer.billing.v1.Ups
  * Use `create(UpsertModelPricingBaselineInputSchema)` to create a new message.
  */
 export const UpsertModelPricingBaselineInputSchema: GenMessage<UpsertModelPricingBaselineInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 12);
+  messageDesc(file_ai_stigmer_billing_v1_io, 9);
 
 /**
  * RetireModelPricingBaselineInput removes one model from the catalog.
@@ -609,7 +507,7 @@ export type RetireModelPricingBaselineInput = Message<"ai.stigmer.billing.v1.Ret
  * Use `create(RetireModelPricingBaselineInputSchema)` to create a new message.
  */
 export const RetireModelPricingBaselineInputSchema: GenMessage<RetireModelPricingBaselineInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 13);
+  messageDesc(file_ai_stigmer_billing_v1_io, 10);
 
 /**
  * ListModelPricingBaselinesInput requests the baseline catalog.
@@ -631,7 +529,7 @@ export type ListModelPricingBaselinesInput = Message<"ai.stigmer.billing.v1.List
  * Use `create(ListModelPricingBaselinesInputSchema)` to create a new message.
  */
 export const ListModelPricingBaselinesInputSchema: GenMessage<ListModelPricingBaselinesInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 14);
+  messageDesc(file_ai_stigmer_billing_v1_io, 11);
 
 /**
  * ModelPricingBaselinesResponse is the baseline catalog, ordered by
@@ -652,5 +550,5 @@ export type ModelPricingBaselinesResponse = Message<"ai.stigmer.billing.v1.Model
  * Use `create(ModelPricingBaselinesResponseSchema)` to create a new message.
  */
 export const ModelPricingBaselinesResponseSchema: GenMessage<ModelPricingBaselinesResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 15);
+  messageDesc(file_ai_stigmer_billing_v1_io, 12);
 

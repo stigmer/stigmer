@@ -494,7 +494,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a single run.
-     * Returns aggregated tokens, cost, and per-model breakdown for one run.
+     * Returns aggregated tokens, who served them, and the per-model breakdown
+     * for one run.
      * </pre>
      */
     default void getRunUsageReport(ai.stigmer.agentic.run.v1.GetRunUsageReportInput request,
@@ -505,7 +506,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-run breakdown.
+     * Returns aggregated tokens and the per-run breakdown.
      * </pre>
      */
     default void getSessionUsageReport(ai.stigmer.agentic.run.v1.GetSessionUsageReportInput request,
@@ -516,7 +517,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an agent within an organization.
-     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * Returns aggregated tokens and the per-session breakdown for one
      * organization's runs of the agent. Requires can_view on the
      * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
@@ -531,7 +532,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an organization.
-     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Returns org-wide token totals, the agents with the most tokens, the
+     * model breakdown, and the daily trend, over the runs the caller can read.
      * </pre>
      */
     default void getOrgUsageReport(ai.stigmer.agentic.run.v1.GetOrgUsageReportInput request,
@@ -663,7 +665,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a single run.
-     * Returns aggregated tokens, cost, and per-model breakdown for one run.
+     * Returns aggregated tokens, who served them, and the per-model breakdown
+     * for one run.
      * </pre>
      */
     public void getRunUsageReport(ai.stigmer.agentic.run.v1.GetRunUsageReportInput request,
@@ -675,7 +678,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-run breakdown.
+     * Returns aggregated tokens and the per-run breakdown.
      * </pre>
      */
     public void getSessionUsageReport(ai.stigmer.agentic.run.v1.GetSessionUsageReportInput request,
@@ -687,7 +690,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an agent within an organization.
-     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * Returns aggregated tokens and the per-session breakdown for one
      * organization's runs of the agent. Requires can_view on the
      * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
@@ -703,7 +706,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an organization.
-     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Returns org-wide token totals, the agents with the most tokens, the
+     * model breakdown, and the daily trend, over the runs the caller can read.
      * </pre>
      */
     public void getOrgUsageReport(ai.stigmer.agentic.run.v1.GetOrgUsageReportInput request,
@@ -819,7 +823,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a single run.
-     * Returns aggregated tokens, cost, and per-model breakdown for one run.
+     * Returns aggregated tokens, who served them, and the per-model breakdown
+     * for one run.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.GetRunUsageReportOutput getRunUsageReport(ai.stigmer.agentic.run.v1.GetRunUsageReportInput request) throws io.grpc.StatusException {
@@ -830,7 +835,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-run breakdown.
+     * Returns aggregated tokens and the per-run breakdown.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.run.v1.GetSessionUsageReportInput request) throws io.grpc.StatusException {
@@ -841,7 +846,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an agent within an organization.
-     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * Returns aggregated tokens and the per-session breakdown for one
      * organization's runs of the agent. Requires can_view on the
      * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
@@ -856,7 +861,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an organization.
-     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Returns org-wide token totals, the agents with the most tokens, the
+     * model breakdown, and the daily trend, over the runs the caller can read.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput getOrgUsageReport(ai.stigmer.agentic.run.v1.GetOrgUsageReportInput request) throws io.grpc.StatusException {
@@ -969,7 +975,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a single run.
-     * Returns aggregated tokens, cost, and per-model breakdown for one run.
+     * Returns aggregated tokens, who served them, and the per-model breakdown
+     * for one run.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.GetRunUsageReportOutput getRunUsageReport(ai.stigmer.agentic.run.v1.GetRunUsageReportInput request) {
@@ -980,7 +987,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-run breakdown.
+     * Returns aggregated tokens and the per-run breakdown.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.run.v1.GetSessionUsageReportInput request) {
@@ -991,7 +998,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an agent within an organization.
-     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * Returns aggregated tokens and the per-session breakdown for one
      * organization's runs of the agent. Requires can_view on the
      * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
@@ -1006,7 +1013,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an organization.
-     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Returns org-wide token totals, the agents with the most tokens, the
+     * model breakdown, and the daily trend, over the runs the caller can read.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput getOrgUsageReport(ai.stigmer.agentic.run.v1.GetOrgUsageReportInput request) {
@@ -1113,7 +1121,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a single run.
-     * Returns aggregated tokens, cost, and per-model breakdown for one run.
+     * Returns aggregated tokens, who served them, and the per-model breakdown
+     * for one run.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.GetRunUsageReportOutput> getRunUsageReport(
@@ -1125,7 +1134,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, and per-run breakdown.
+     * Returns aggregated tokens and the per-run breakdown.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput> getSessionUsageReport(
@@ -1137,7 +1146,7 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an agent within an organization.
-     * Returns aggregated tokens, cost, and per-session breakdown for one
+     * Returns aggregated tokens and the per-session breakdown for one
      * organization's runs of the agent. Requires can_view on the
      * organization named in org; runs outside that organization are
      * never included, so the report is the per-agent drill-down of
@@ -1153,7 +1162,8 @@ public final class RunQueryControllerGrpc {
     /**
      * <pre>
      * Get a usage report for an organization.
-     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Returns org-wide token totals, the agents with the most tokens, the
+     * model breakdown, and the daily trend, over the runs the caller can read.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput> getOrgUsageReport(

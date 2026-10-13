@@ -188,15 +188,4 @@ public interface SummarizationEventOrBuilder extends
    * @return The summarizationOutputTokens.
    */
   int getSummarizationOutputTokens();
-
-  /**
-   * <pre>
-   * Cost in USD of this summarization call.
-   * Computed using the summarization model's pricing rates at run time.
-   * </pre>
-   *
-   * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>
-   * @return The summarizationCostUsd.
-   */
-  double getSummarizationCostUsd();
 }

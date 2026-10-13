@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { BillingAccountSchema } from "./billing_account_pb.js";
 import { file_ai_stigmer_billing_v1_billing_account } from "./billing_account_pb.js";
-import type { BillingUsageReportResponseSchema, GetBillingAccountInputSchema, GetBillingUsageReportInputSchema, ListModelPricingBaselinesInputSchema, ModelPricingBaselinesResponseSchema } from "./io_pb.js";
+import type { GetBillingAccountInputSchema, ListModelPricingBaselinesInputSchema, ModelPricingBaselinesResponseSchema } from "./io_pb.js";
 import { file_ai_stigmer_billing_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/method_options_pb.js";
 
@@ -14,7 +14,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/me
  * Describes the file ai/stigmer/billing/v1/query.proto.
  */
 export const file_ai_stigmer_billing_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiFhaS9zdGlnbWVyL2JpbGxpbmcvdjEvcXVlcnkucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MTLmBAoWQmlsbGluZ1F1ZXJ5Q29udHJvbGxlchKsAQoRZ2V0QmlsbGluZ0FjY291bnQSLS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0QmlsbGluZ0FjY291bnRJbnB1dBolLmFpLnN0aWdtZXIuYmlsbGluZy52MS5CaWxsaW5nQWNjb3VudCJBwrgYPQgbEB4iA29yZyoydW5hdXRob3JpemVkIHRvIHZpZXcgYmlsbGluZyBmb3IgdGhpcyBvcmdhbml6YXRpb24SwAEKFWdldEJpbGxpbmdVc2FnZVJlcG9ydBIxLmFpLnN0aWdtZXIuYmlsbGluZy52MS5HZXRCaWxsaW5nVXNhZ2VSZXBvcnRJbnB1dBoxLmFpLnN0aWdtZXIuYmlsbGluZy52MS5CaWxsaW5nVXNhZ2VSZXBvcnRSZXNwb25zZSJBwrgYPQgbEB4iA29yZyoydW5hdXRob3JpemVkIHRvIHZpZXcgYmlsbGluZyBmb3IgdGhpcyBvcmdhbml6YXRpb24S2QEKGWxpc3RNb2RlbFByaWNpbmdCYXNlbGluZXMSNS5haS5zdGlnbWVyLmJpbGxpbmcudjEuTGlzdE1vZGVsUHJpY2luZ0Jhc2VsaW5lc0lucHV0GjQuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lc1Jlc3BvbnNlIk/CuBhLCCAQHyo8b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIHZpZXcgdGhlIG1vZGVsIHJlZ2lzdHJ5IGJhc2VsaW5lMgdzdGlnbWVyYgZwcm90bzM", [file_ai_stigmer_billing_v1_billing_account, file_ai_stigmer_billing_v1_io, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiFhaS9zdGlnbWVyL2JpbGxpbmcvdjEvcXVlcnkucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MTKjAwoWQmlsbGluZ1F1ZXJ5Q29udHJvbGxlchKsAQoRZ2V0QmlsbGluZ0FjY291bnQSLS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0QmlsbGluZ0FjY291bnRJbnB1dBolLmFpLnN0aWdtZXIuYmlsbGluZy52MS5CaWxsaW5nQWNjb3VudCJBwrgYPQgbEB4iA29yZyoydW5hdXRob3JpemVkIHRvIHZpZXcgYmlsbGluZyBmb3IgdGhpcyBvcmdhbml6YXRpb24S2QEKGWxpc3RNb2RlbFByaWNpbmdCYXNlbGluZXMSNS5haS5zdGlnbWVyLmJpbGxpbmcudjEuTGlzdE1vZGVsUHJpY2luZ0Jhc2VsaW5lc0lucHV0GjQuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lc1Jlc3BvbnNlIk/CuBhLCCAQHyo8b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIHZpZXcgdGhlIG1vZGVsIHJlZ2lzdHJ5IGJhc2VsaW5lMgdzdGlnbWVyYgZwcm90bzM", [file_ai_stigmer_billing_v1_billing_account, file_ai_stigmer_billing_v1_io, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * BillingQueryController handles read operations for the billing bounded context.
@@ -35,18 +35,6 @@ export const BillingQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetBillingAccountInputSchema;
     output: typeof BillingAccountSchema;
-  },
-  /**
-   * Count an organization's metered LLM calls and runs in a date range,
-   * with the calls broken down by model and harness. A count, never an
-   * amount: the meter records what each call was, not what it cost.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport
-   */
-  getBillingUsageReport: {
-    methodKind: "unary";
-    input: typeof GetBillingUsageReportInputSchema;
-    output: typeof BillingUsageReportResponseSchema;
   },
   /**
    * Retrieve the model registry baseline catalog (ACTIVE documents, or the

@@ -9,8 +9,9 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * GetOrgUsageReportOutput returns aggregated usage for an organization.
  *
- * Provides org-level totals, per-model breakdown, top agents by cost,
- * and a daily cost trend for capacity planning and budget monitoring.
+ * Provides org-level totals, per-model breakdown, the agents with the most
+ * tokens, and a daily token trend. It counts only the runs the caller can
+ * read, and names only their agents.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput}
@@ -37,9 +38,9 @@ private static final long serialVersionUID = 0L;
   private GetOrgUsageReportOutput() {
     org_ = "";
     modelBreakdown_ = java.util.Collections.emptyList();
-    topAgentsByCost_ = java.util.Collections.emptyList();
-    dailyCosts_ = java.util.Collections.emptyList();
-    harnessBreakdown_ = java.util.Collections.emptyList();
+    topAgents_ = java.util.Collections.emptyList();
+    dailyUsage_ = java.util.Collections.emptyList();
+    harnessUsage_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -60,6 +61,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.class, ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.Builder.class);
   }
 
+  private int bitField0_;
   public static final int ORG_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object org_ = "";
@@ -152,21 +154,6 @@ private static final long serialVersionUID = 0L;
     return totalRuns_;
   }
 
-  public static final int TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER = 5;
-  private long totalBillableCostMicros_ = 0L;
-  /**
-   * <pre>
-   * Total billable cost in micro-USD across the organization in the time range.
-   * </pre>
-   *
-   * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
-   * @return The totalBillableCostMicros.
-   */
-  @java.lang.Override
-  public long getTotalBillableCostMicros() {
-    return totalBillableCostMicros_;
-  }
-
   public static final int MODEL_BREAKDOWN_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.agentic.run.v1.ModelUsage> modelBreakdown_;
@@ -228,187 +215,230 @@ private static final long serialVersionUID = 0L;
     return modelBreakdown_.get(index);
   }
 
-  public static final int TOP_AGENTS_BY_COST_FIELD_NUMBER = 7;
+  public static final int TOP_AGENTS_FIELD_NUMBER = 10;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> topAgentsByCost_;
+  private java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> topAgents_;
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> getTopAgentsByCostList() {
-    return topAgentsByCost_;
+  public java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> getTopAgentsList() {
+    return topAgents_;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder> 
-      getTopAgentsByCostOrBuilderList() {
-    return topAgentsByCost_;
+      getTopAgentsOrBuilderList() {
+    return topAgents_;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
   @java.lang.Override
-  public int getTopAgentsByCostCount() {
-    return topAgentsByCost_.size();
+  public int getTopAgentsCount() {
+    return topAgents_.size();
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.AgentUsageSummary getTopAgentsByCost(int index) {
-    return topAgentsByCost_.get(index);
+  public ai.stigmer.agentic.run.v1.AgentUsageSummary getTopAgents(int index) {
+    return topAgents_.get(index);
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder getTopAgentsByCostOrBuilder(
+  public ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder getTopAgentsOrBuilder(
       int index) {
-    return topAgentsByCost_.get(index);
+    return topAgents_.get(index);
   }
 
-  public static final int DAILY_COSTS_FIELD_NUMBER = 8;
+  public static final int DAILY_USAGE_FIELD_NUMBER = 11;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.DailyCostEntry> dailyCosts_;
+  private java.util.List<ai.stigmer.agentic.run.v1.DailyUsage> dailyUsage_;
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.DailyCostEntry> getDailyCostsList() {
-    return dailyCosts_;
+  public java.util.List<ai.stigmer.agentic.run.v1.DailyUsage> getDailyUsageList() {
+    return dailyUsage_;
   }
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
   @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder> 
-      getDailyCostsOrBuilderList() {
-    return dailyCosts_;
+  public java.util.List<? extends ai.stigmer.agentic.run.v1.DailyUsageOrBuilder> 
+      getDailyUsageOrBuilderList() {
+    return dailyUsage_;
   }
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
   @java.lang.Override
-  public int getDailyCostsCount() {
-    return dailyCosts_.size();
+  public int getDailyUsageCount() {
+    return dailyUsage_.size();
   }
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.DailyCostEntry getDailyCosts(int index) {
-    return dailyCosts_.get(index);
+  public ai.stigmer.agentic.run.v1.DailyUsage getDailyUsage(int index) {
+    return dailyUsage_.get(index);
   }
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder getDailyCostsOrBuilder(
+  public ai.stigmer.agentic.run.v1.DailyUsageOrBuilder getDailyUsageOrBuilder(
       int index) {
-    return dailyCosts_.get(index);
+    return dailyUsage_.get(index);
   }
 
-  public static final int HARNESS_BREAKDOWN_FIELD_NUMBER = 9;
+  public static final int HARNESS_USAGE_FIELD_NUMBER = 12;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.HarnessCostSummary> harnessBreakdown_;
+  private java.util.List<ai.stigmer.agentic.run.v1.HarnessUsage> harnessUsage_;
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.HarnessCostSummary> getHarnessBreakdownList() {
-    return harnessBreakdown_;
+  public java.util.List<ai.stigmer.agentic.run.v1.HarnessUsage> getHarnessUsageList() {
+    return harnessUsage_;
   }
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
   @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder> 
-      getHarnessBreakdownOrBuilderList() {
-    return harnessBreakdown_;
+  public java.util.List<? extends ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder> 
+      getHarnessUsageOrBuilderList() {
+    return harnessUsage_;
   }
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
   @java.lang.Override
-  public int getHarnessBreakdownCount() {
-    return harnessBreakdown_.size();
+  public int getHarnessUsageCount() {
+    return harnessUsage_.size();
   }
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.HarnessCostSummary getHarnessBreakdown(int index) {
-    return harnessBreakdown_.get(index);
+  public ai.stigmer.agentic.run.v1.HarnessUsage getHarnessUsage(int index) {
+    return harnessUsage_.get(index);
   }
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder getHarnessBreakdownOrBuilder(
+  public ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder getHarnessUsageOrBuilder(
       int index) {
-    return harnessBreakdown_.get(index);
+    return harnessUsage_.get(index);
+  }
+
+  public static final int TOTAL_USAGE_FIELD_NUMBER = 13;
+  private ai.stigmer.agentic.run.v1.UsageReportAggregate totalUsage_;
+  /**
+   * <pre>
+   * Aggregated usage across the organization in the time range.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+   * @return Whether the totalUsage field is set.
+   */
+  @java.lang.Override
+  public boolean hasTotalUsage() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Aggregated usage across the organization in the time range.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+   * @return The totalUsage.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.UsageReportAggregate getTotalUsage() {
+    return totalUsage_ == null ? ai.stigmer.agentic.run.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
+  }
+  /**
+   * <pre>
+   * Aggregated usage across the organization in the time range.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder() {
+    return totalUsage_ == null ? ai.stigmer.agentic.run.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -437,20 +467,20 @@ private static final long serialVersionUID = 0L;
     if (totalRuns_ != 0) {
       output.writeInt32(4, totalRuns_);
     }
-    if (totalBillableCostMicros_ != 0L) {
-      output.writeInt64(5, totalBillableCostMicros_);
-    }
     for (int i = 0; i < modelBreakdown_.size(); i++) {
       output.writeMessage(6, modelBreakdown_.get(i));
     }
-    for (int i = 0; i < topAgentsByCost_.size(); i++) {
-      output.writeMessage(7, topAgentsByCost_.get(i));
+    for (int i = 0; i < topAgents_.size(); i++) {
+      output.writeMessage(10, topAgents_.get(i));
     }
-    for (int i = 0; i < dailyCosts_.size(); i++) {
-      output.writeMessage(8, dailyCosts_.get(i));
+    for (int i = 0; i < dailyUsage_.size(); i++) {
+      output.writeMessage(11, dailyUsage_.get(i));
     }
-    for (int i = 0; i < harnessBreakdown_.size(); i++) {
-      output.writeMessage(9, harnessBreakdown_.get(i));
+    for (int i = 0; i < harnessUsage_.size(); i++) {
+      output.writeMessage(12, harnessUsage_.get(i));
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(13, getTotalUsage());
     }
     getUnknownFields().writeTo(output);
   }
@@ -476,10 +506,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(4, totalRuns_);
     }
-    if (totalBillableCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(5, totalBillableCostMicros_);
-    }
 
         {
           final int count = modelBreakdown_.size();
@@ -491,31 +517,35 @@ private static final long serialVersionUID = 0L;
         }
 
         {
-          final int count = topAgentsByCost_.size();
+          final int count = topAgents_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(topAgentsByCost_.get(i));
+              .computeMessageSizeNoTag(topAgents_.get(i));
           }
           size += 1 * count;
         }
 
         {
-          final int count = dailyCosts_.size();
+          final int count = dailyUsage_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(dailyCosts_.get(i));
+              .computeMessageSizeNoTag(dailyUsage_.get(i));
           }
           size += 1 * count;
         }
 
         {
-          final int count = harnessBreakdown_.size();
+          final int count = harnessUsage_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(harnessBreakdown_.get(i));
+              .computeMessageSizeNoTag(harnessUsage_.get(i));
           }
           size += 1 * count;
         }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(13, getTotalUsage());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -539,16 +569,19 @@ private static final long serialVersionUID = 0L;
         != other.getTotalSessions()) return false;
     if (getTotalRuns()
         != other.getTotalRuns()) return false;
-    if (getTotalBillableCostMicros()
-        != other.getTotalBillableCostMicros()) return false;
     if (!getModelBreakdownList()
         .equals(other.getModelBreakdownList())) return false;
-    if (!getTopAgentsByCostList()
-        .equals(other.getTopAgentsByCostList())) return false;
-    if (!getDailyCostsList()
-        .equals(other.getDailyCostsList())) return false;
-    if (!getHarnessBreakdownList()
-        .equals(other.getHarnessBreakdownList())) return false;
+    if (!getTopAgentsList()
+        .equals(other.getTopAgentsList())) return false;
+    if (!getDailyUsageList()
+        .equals(other.getDailyUsageList())) return false;
+    if (!getHarnessUsageList()
+        .equals(other.getHarnessUsageList())) return false;
+    if (hasTotalUsage() != other.hasTotalUsage()) return false;
+    if (hasTotalUsage()) {
+      if (!getTotalUsage()
+          .equals(other.getTotalUsage())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -568,24 +601,25 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTotalSessions();
     hash = (37 * hash) + TOTAL_RUNS_FIELD_NUMBER;
     hash = (53 * hash) + getTotalRuns();
-    hash = (37 * hash) + TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getTotalBillableCostMicros());
     if (getModelBreakdownCount() > 0) {
       hash = (37 * hash) + MODEL_BREAKDOWN_FIELD_NUMBER;
       hash = (53 * hash) + getModelBreakdownList().hashCode();
     }
-    if (getTopAgentsByCostCount() > 0) {
-      hash = (37 * hash) + TOP_AGENTS_BY_COST_FIELD_NUMBER;
-      hash = (53 * hash) + getTopAgentsByCostList().hashCode();
+    if (getTopAgentsCount() > 0) {
+      hash = (37 * hash) + TOP_AGENTS_FIELD_NUMBER;
+      hash = (53 * hash) + getTopAgentsList().hashCode();
     }
-    if (getDailyCostsCount() > 0) {
-      hash = (37 * hash) + DAILY_COSTS_FIELD_NUMBER;
-      hash = (53 * hash) + getDailyCostsList().hashCode();
+    if (getDailyUsageCount() > 0) {
+      hash = (37 * hash) + DAILY_USAGE_FIELD_NUMBER;
+      hash = (53 * hash) + getDailyUsageList().hashCode();
     }
-    if (getHarnessBreakdownCount() > 0) {
-      hash = (37 * hash) + HARNESS_BREAKDOWN_FIELD_NUMBER;
-      hash = (53 * hash) + getHarnessBreakdownList().hashCode();
+    if (getHarnessUsageCount() > 0) {
+      hash = (37 * hash) + HARNESS_USAGE_FIELD_NUMBER;
+      hash = (53 * hash) + getHarnessUsageList().hashCode();
+    }
+    if (hasTotalUsage()) {
+      hash = (37 * hash) + TOTAL_USAGE_FIELD_NUMBER;
+      hash = (53 * hash) + getTotalUsage().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -688,8 +722,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * GetOrgUsageReportOutput returns aggregated usage for an organization.
    *
-   * Provides org-level totals, per-model breakdown, top agents by cost,
-   * and a daily cost trend for capacity planning and budget monitoring.
+   * Provides org-level totals, per-model breakdown, the agents with the most
+   * tokens, and a daily token trend. It counts only the runs the caller can
+   * read, and names only their agents.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput}
@@ -713,13 +748,23 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetModelBreakdownFieldBuilder();
+        internalGetTopAgentsFieldBuilder();
+        internalGetDailyUsageFieldBuilder();
+        internalGetHarnessUsageFieldBuilder();
+        internalGetTotalUsageFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -729,35 +774,39 @@ private static final long serialVersionUID = 0L;
       totalAgents_ = 0;
       totalSessions_ = 0;
       totalRuns_ = 0;
-      totalBillableCostMicros_ = 0L;
       if (modelBreakdownBuilder_ == null) {
         modelBreakdown_ = java.util.Collections.emptyList();
       } else {
         modelBreakdown_ = null;
         modelBreakdownBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000020);
-      if (topAgentsByCostBuilder_ == null) {
-        topAgentsByCost_ = java.util.Collections.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      if (topAgentsBuilder_ == null) {
+        topAgents_ = java.util.Collections.emptyList();
       } else {
-        topAgentsByCost_ = null;
-        topAgentsByCostBuilder_.clear();
+        topAgents_ = null;
+        topAgentsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000020);
+      if (dailyUsageBuilder_ == null) {
+        dailyUsage_ = java.util.Collections.emptyList();
+      } else {
+        dailyUsage_ = null;
+        dailyUsageBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000040);
-      if (dailyCostsBuilder_ == null) {
-        dailyCosts_ = java.util.Collections.emptyList();
+      if (harnessUsageBuilder_ == null) {
+        harnessUsage_ = java.util.Collections.emptyList();
       } else {
-        dailyCosts_ = null;
-        dailyCostsBuilder_.clear();
+        harnessUsage_ = null;
+        harnessUsageBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000080);
-      if (harnessBreakdownBuilder_ == null) {
-        harnessBreakdown_ = java.util.Collections.emptyList();
-      } else {
-        harnessBreakdown_ = null;
-        harnessBreakdownBuilder_.clear();
+      totalUsage_ = null;
+      if (totalUsageBuilder_ != null) {
+        totalUsageBuilder_.dispose();
+        totalUsageBuilder_ = null;
       }
-      bitField0_ = (bitField0_ & ~0x00000100);
       return this;
     }
 
@@ -792,40 +841,40 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput result) {
       if (modelBreakdownBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0)) {
+        if (((bitField0_ & 0x00000010) != 0)) {
           modelBreakdown_ = java.util.Collections.unmodifiableList(modelBreakdown_);
-          bitField0_ = (bitField0_ & ~0x00000020);
+          bitField0_ = (bitField0_ & ~0x00000010);
         }
         result.modelBreakdown_ = modelBreakdown_;
       } else {
         result.modelBreakdown_ = modelBreakdownBuilder_.build();
       }
-      if (topAgentsByCostBuilder_ == null) {
+      if (topAgentsBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0)) {
+          topAgents_ = java.util.Collections.unmodifiableList(topAgents_);
+          bitField0_ = (bitField0_ & ~0x00000020);
+        }
+        result.topAgents_ = topAgents_;
+      } else {
+        result.topAgents_ = topAgentsBuilder_.build();
+      }
+      if (dailyUsageBuilder_ == null) {
         if (((bitField0_ & 0x00000040) != 0)) {
-          topAgentsByCost_ = java.util.Collections.unmodifiableList(topAgentsByCost_);
+          dailyUsage_ = java.util.Collections.unmodifiableList(dailyUsage_);
           bitField0_ = (bitField0_ & ~0x00000040);
         }
-        result.topAgentsByCost_ = topAgentsByCost_;
+        result.dailyUsage_ = dailyUsage_;
       } else {
-        result.topAgentsByCost_ = topAgentsByCostBuilder_.build();
+        result.dailyUsage_ = dailyUsageBuilder_.build();
       }
-      if (dailyCostsBuilder_ == null) {
+      if (harnessUsageBuilder_ == null) {
         if (((bitField0_ & 0x00000080) != 0)) {
-          dailyCosts_ = java.util.Collections.unmodifiableList(dailyCosts_);
+          harnessUsage_ = java.util.Collections.unmodifiableList(harnessUsage_);
           bitField0_ = (bitField0_ & ~0x00000080);
         }
-        result.dailyCosts_ = dailyCosts_;
+        result.harnessUsage_ = harnessUsage_;
       } else {
-        result.dailyCosts_ = dailyCostsBuilder_.build();
-      }
-      if (harnessBreakdownBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
-          harnessBreakdown_ = java.util.Collections.unmodifiableList(harnessBreakdown_);
-          bitField0_ = (bitField0_ & ~0x00000100);
-        }
-        result.harnessBreakdown_ = harnessBreakdown_;
-      } else {
-        result.harnessBreakdown_ = harnessBreakdownBuilder_.build();
+        result.harnessUsage_ = harnessUsageBuilder_.build();
       }
     }
 
@@ -843,9 +892,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.totalRuns_ = totalRuns_;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.totalBillableCostMicros_ = totalBillableCostMicros_;
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.totalUsage_ = totalUsageBuilder_ == null
+            ? totalUsage_
+            : totalUsageBuilder_.build();
+        to_bitField0_ |= 0x00000001;
       }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -874,14 +928,11 @@ private static final long serialVersionUID = 0L;
       if (other.getTotalRuns() != 0) {
         setTotalRuns(other.getTotalRuns());
       }
-      if (other.getTotalBillableCostMicros() != 0L) {
-        setTotalBillableCostMicros(other.getTotalBillableCostMicros());
-      }
       if (modelBreakdownBuilder_ == null) {
         if (!other.modelBreakdown_.isEmpty()) {
           if (modelBreakdown_.isEmpty()) {
             modelBreakdown_ = other.modelBreakdown_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000010);
           } else {
             ensureModelBreakdownIsMutable();
             modelBreakdown_.addAll(other.modelBreakdown_);
@@ -894,7 +945,7 @@ private static final long serialVersionUID = 0L;
             modelBreakdownBuilder_.dispose();
             modelBreakdownBuilder_ = null;
             modelBreakdown_ = other.modelBreakdown_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000010);
             modelBreakdownBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetModelBreakdownFieldBuilder() : null;
@@ -903,83 +954,86 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
-      if (topAgentsByCostBuilder_ == null) {
-        if (!other.topAgentsByCost_.isEmpty()) {
-          if (topAgentsByCost_.isEmpty()) {
-            topAgentsByCost_ = other.topAgentsByCost_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+      if (topAgentsBuilder_ == null) {
+        if (!other.topAgents_.isEmpty()) {
+          if (topAgents_.isEmpty()) {
+            topAgents_ = other.topAgents_;
+            bitField0_ = (bitField0_ & ~0x00000020);
           } else {
-            ensureTopAgentsByCostIsMutable();
-            topAgentsByCost_.addAll(other.topAgentsByCost_);
+            ensureTopAgentsIsMutable();
+            topAgents_.addAll(other.topAgents_);
           }
           onChanged();
         }
       } else {
-        if (!other.topAgentsByCost_.isEmpty()) {
-          if (topAgentsByCostBuilder_.isEmpty()) {
-            topAgentsByCostBuilder_.dispose();
-            topAgentsByCostBuilder_ = null;
-            topAgentsByCost_ = other.topAgentsByCost_;
-            bitField0_ = (bitField0_ & ~0x00000040);
-            topAgentsByCostBuilder_ = 
+        if (!other.topAgents_.isEmpty()) {
+          if (topAgentsBuilder_.isEmpty()) {
+            topAgentsBuilder_.dispose();
+            topAgentsBuilder_ = null;
+            topAgents_ = other.topAgents_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+            topAgentsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetTopAgentsByCostFieldBuilder() : null;
+                 internalGetTopAgentsFieldBuilder() : null;
           } else {
-            topAgentsByCostBuilder_.addAllMessages(other.topAgentsByCost_);
+            topAgentsBuilder_.addAllMessages(other.topAgents_);
           }
         }
       }
-      if (dailyCostsBuilder_ == null) {
-        if (!other.dailyCosts_.isEmpty()) {
-          if (dailyCosts_.isEmpty()) {
-            dailyCosts_ = other.dailyCosts_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+      if (dailyUsageBuilder_ == null) {
+        if (!other.dailyUsage_.isEmpty()) {
+          if (dailyUsage_.isEmpty()) {
+            dailyUsage_ = other.dailyUsage_;
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
-            ensureDailyCostsIsMutable();
-            dailyCosts_.addAll(other.dailyCosts_);
+            ensureDailyUsageIsMutable();
+            dailyUsage_.addAll(other.dailyUsage_);
           }
           onChanged();
         }
       } else {
-        if (!other.dailyCosts_.isEmpty()) {
-          if (dailyCostsBuilder_.isEmpty()) {
-            dailyCostsBuilder_.dispose();
-            dailyCostsBuilder_ = null;
-            dailyCosts_ = other.dailyCosts_;
-            bitField0_ = (bitField0_ & ~0x00000080);
-            dailyCostsBuilder_ = 
+        if (!other.dailyUsage_.isEmpty()) {
+          if (dailyUsageBuilder_.isEmpty()) {
+            dailyUsageBuilder_.dispose();
+            dailyUsageBuilder_ = null;
+            dailyUsage_ = other.dailyUsage_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+            dailyUsageBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetDailyCostsFieldBuilder() : null;
+                 internalGetDailyUsageFieldBuilder() : null;
           } else {
-            dailyCostsBuilder_.addAllMessages(other.dailyCosts_);
+            dailyUsageBuilder_.addAllMessages(other.dailyUsage_);
           }
         }
       }
-      if (harnessBreakdownBuilder_ == null) {
-        if (!other.harnessBreakdown_.isEmpty()) {
-          if (harnessBreakdown_.isEmpty()) {
-            harnessBreakdown_ = other.harnessBreakdown_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+      if (harnessUsageBuilder_ == null) {
+        if (!other.harnessUsage_.isEmpty()) {
+          if (harnessUsage_.isEmpty()) {
+            harnessUsage_ = other.harnessUsage_;
+            bitField0_ = (bitField0_ & ~0x00000080);
           } else {
-            ensureHarnessBreakdownIsMutable();
-            harnessBreakdown_.addAll(other.harnessBreakdown_);
+            ensureHarnessUsageIsMutable();
+            harnessUsage_.addAll(other.harnessUsage_);
           }
           onChanged();
         }
       } else {
-        if (!other.harnessBreakdown_.isEmpty()) {
-          if (harnessBreakdownBuilder_.isEmpty()) {
-            harnessBreakdownBuilder_.dispose();
-            harnessBreakdownBuilder_ = null;
-            harnessBreakdown_ = other.harnessBreakdown_;
-            bitField0_ = (bitField0_ & ~0x00000100);
-            harnessBreakdownBuilder_ = 
+        if (!other.harnessUsage_.isEmpty()) {
+          if (harnessUsageBuilder_.isEmpty()) {
+            harnessUsageBuilder_.dispose();
+            harnessUsageBuilder_ = null;
+            harnessUsage_ = other.harnessUsage_;
+            bitField0_ = (bitField0_ & ~0x00000080);
+            harnessUsageBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetHarnessBreakdownFieldBuilder() : null;
+                 internalGetHarnessUsageFieldBuilder() : null;
           } else {
-            harnessBreakdownBuilder_.addAllMessages(other.harnessBreakdown_);
+            harnessUsageBuilder_.addAllMessages(other.harnessUsage_);
           }
         }
+      }
+      if (other.hasTotalUsage()) {
+        mergeTotalUsage(other.getTotalUsage());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1027,11 +1081,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
-            case 40: {
-              totalBillableCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 40
             case 50: {
               ai.stigmer.agentic.run.v1.ModelUsage m =
                   input.readMessage(
@@ -1045,45 +1094,52 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 50
-            case 58: {
+            case 82: {
               ai.stigmer.agentic.run.v1.AgentUsageSummary m =
                   input.readMessage(
                       ai.stigmer.agentic.run.v1.AgentUsageSummary.parser(),
                       extensionRegistry);
-              if (topAgentsByCostBuilder_ == null) {
-                ensureTopAgentsByCostIsMutable();
-                topAgentsByCost_.add(m);
+              if (topAgentsBuilder_ == null) {
+                ensureTopAgentsIsMutable();
+                topAgents_.add(m);
               } else {
-                topAgentsByCostBuilder_.addMessage(m);
+                topAgentsBuilder_.addMessage(m);
               }
               break;
-            } // case 58
-            case 66: {
-              ai.stigmer.agentic.run.v1.DailyCostEntry m =
+            } // case 82
+            case 90: {
+              ai.stigmer.agentic.run.v1.DailyUsage m =
                   input.readMessage(
-                      ai.stigmer.agentic.run.v1.DailyCostEntry.parser(),
+                      ai.stigmer.agentic.run.v1.DailyUsage.parser(),
                       extensionRegistry);
-              if (dailyCostsBuilder_ == null) {
-                ensureDailyCostsIsMutable();
-                dailyCosts_.add(m);
+              if (dailyUsageBuilder_ == null) {
+                ensureDailyUsageIsMutable();
+                dailyUsage_.add(m);
               } else {
-                dailyCostsBuilder_.addMessage(m);
+                dailyUsageBuilder_.addMessage(m);
               }
               break;
-            } // case 66
-            case 74: {
-              ai.stigmer.agentic.run.v1.HarnessCostSummary m =
+            } // case 90
+            case 98: {
+              ai.stigmer.agentic.run.v1.HarnessUsage m =
                   input.readMessage(
-                      ai.stigmer.agentic.run.v1.HarnessCostSummary.parser(),
+                      ai.stigmer.agentic.run.v1.HarnessUsage.parser(),
                       extensionRegistry);
-              if (harnessBreakdownBuilder_ == null) {
-                ensureHarnessBreakdownIsMutable();
-                harnessBreakdown_.add(m);
+              if (harnessUsageBuilder_ == null) {
+                ensureHarnessUsageIsMutable();
+                harnessUsage_.add(m);
               } else {
-                harnessBreakdownBuilder_.addMessage(m);
+                harnessUsageBuilder_.addMessage(m);
               }
               break;
-            } // case 74
+            } // case 98
+            case 106: {
+              input.readMessage(
+                  internalGetTotalUsageFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1325,56 +1381,12 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long totalBillableCostMicros_ ;
-    /**
-     * <pre>
-     * Total billable cost in micro-USD across the organization in the time range.
-     * </pre>
-     *
-     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
-     * @return The totalBillableCostMicros.
-     */
-    @java.lang.Override
-    public long getTotalBillableCostMicros() {
-      return totalBillableCostMicros_;
-    }
-    /**
-     * <pre>
-     * Total billable cost in micro-USD across the organization in the time range.
-     * </pre>
-     *
-     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
-     * @param value The totalBillableCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalBillableCostMicros(long value) {
-
-      totalBillableCostMicros_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Total billable cost in micro-USD across the organization in the time range.
-     * </pre>
-     *
-     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalBillableCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      totalBillableCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
     private java.util.List<ai.stigmer.agentic.run.v1.ModelUsage> modelBreakdown_ =
       java.util.Collections.emptyList();
     private void ensureModelBreakdownIsMutable() {
-      if (!((bitField0_ & 0x00000020) != 0)) {
+      if (!((bitField0_ & 0x00000010) != 0)) {
         modelBreakdown_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.ModelUsage>(modelBreakdown_);
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
        }
     }
 
@@ -1568,7 +1580,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearModelBreakdown() {
       if (modelBreakdownBuilder_ == null) {
         modelBreakdown_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000010);
         onChanged();
       } else {
         modelBreakdownBuilder_.clear();
@@ -1673,7 +1685,7 @@ private static final long serialVersionUID = 0L;
         modelBreakdownBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.ModelUsage, ai.stigmer.agentic.run.v1.ModelUsage.Builder, ai.stigmer.agentic.run.v1.ModelUsageOrBuilder>(
                 modelBreakdown_,
-                ((bitField0_ & 0x00000020) != 0),
+                ((bitField0_ & 0x00000010) != 0),
                 getParentForChildren(),
                 isClean());
         modelBreakdown_ = null;
@@ -1681,940 +1693,1115 @@ private static final long serialVersionUID = 0L;
       return modelBreakdownBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> topAgentsByCost_ =
+    private java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> topAgents_ =
       java.util.Collections.emptyList();
-    private void ensureTopAgentsByCostIsMutable() {
+    private void ensureTopAgentsIsMutable() {
+      if (!((bitField0_ & 0x00000020) != 0)) {
+        topAgents_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.AgentUsageSummary>(topAgents_);
+        bitField0_ |= 0x00000020;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.run.v1.AgentUsageSummary, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder, ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder> topAgentsBuilder_;
+
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> getTopAgentsList() {
+      if (topAgentsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(topAgents_);
+      } else {
+        return topAgentsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public int getTopAgentsCount() {
+      if (topAgentsBuilder_ == null) {
+        return topAgents_.size();
+      } else {
+        return topAgentsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.AgentUsageSummary getTopAgents(int index) {
+      if (topAgentsBuilder_ == null) {
+        return topAgents_.get(index);
+      } else {
+        return topAgentsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder setTopAgents(
+        int index, ai.stigmer.agentic.run.v1.AgentUsageSummary value) {
+      if (topAgentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureTopAgentsIsMutable();
+        topAgents_.set(index, value);
+        onChanged();
+      } else {
+        topAgentsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder setTopAgents(
+        int index, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder builderForValue) {
+      if (topAgentsBuilder_ == null) {
+        ensureTopAgentsIsMutable();
+        topAgents_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        topAgentsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder addTopAgents(ai.stigmer.agentic.run.v1.AgentUsageSummary value) {
+      if (topAgentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureTopAgentsIsMutable();
+        topAgents_.add(value);
+        onChanged();
+      } else {
+        topAgentsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder addTopAgents(
+        int index, ai.stigmer.agentic.run.v1.AgentUsageSummary value) {
+      if (topAgentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureTopAgentsIsMutable();
+        topAgents_.add(index, value);
+        onChanged();
+      } else {
+        topAgentsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder addTopAgents(
+        ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder builderForValue) {
+      if (topAgentsBuilder_ == null) {
+        ensureTopAgentsIsMutable();
+        topAgents_.add(builderForValue.build());
+        onChanged();
+      } else {
+        topAgentsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder addTopAgents(
+        int index, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder builderForValue) {
+      if (topAgentsBuilder_ == null) {
+        ensureTopAgentsIsMutable();
+        topAgents_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        topAgentsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder addAllTopAgents(
+        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.AgentUsageSummary> values) {
+      if (topAgentsBuilder_ == null) {
+        ensureTopAgentsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, topAgents_);
+        onChanged();
+      } else {
+        topAgentsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder clearTopAgents() {
+      if (topAgentsBuilder_ == null) {
+        topAgents_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000020);
+        onChanged();
+      } else {
+        topAgentsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public Builder removeTopAgents(int index) {
+      if (topAgentsBuilder_ == null) {
+        ensureTopAgentsIsMutable();
+        topAgents_.remove(index);
+        onChanged();
+      } else {
+        topAgentsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder getTopAgentsBuilder(
+        int index) {
+      return internalGetTopAgentsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder getTopAgentsOrBuilder(
+        int index) {
+      if (topAgentsBuilder_ == null) {
+        return topAgents_.get(index);  } else {
+        return topAgentsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder> 
+         getTopAgentsOrBuilderList() {
+      if (topAgentsBuilder_ != null) {
+        return topAgentsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(topAgents_);
+      }
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder addTopAgentsBuilder() {
+      return internalGetTopAgentsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.run.v1.AgentUsageSummary.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder addTopAgentsBuilder(
+        int index) {
+      return internalGetTopAgentsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.run.v1.AgentUsageSummary.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The ten agents with the most tokens, ordered by total_tokens descending.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder> 
+         getTopAgentsBuilderList() {
+      return internalGetTopAgentsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.run.v1.AgentUsageSummary, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder, ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder> 
+        internalGetTopAgentsFieldBuilder() {
+      if (topAgentsBuilder_ == null) {
+        topAgentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.run.v1.AgentUsageSummary, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder, ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder>(
+                topAgents_,
+                ((bitField0_ & 0x00000020) != 0),
+                getParentForChildren(),
+                isClean());
+        topAgents_ = null;
+      }
+      return topAgentsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.run.v1.DailyUsage> dailyUsage_ =
+      java.util.Collections.emptyList();
+    private void ensureDailyUsageIsMutable() {
       if (!((bitField0_ & 0x00000040) != 0)) {
-        topAgentsByCost_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.AgentUsageSummary>(topAgentsByCost_);
+        dailyUsage_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.DailyUsage>(dailyUsage_);
         bitField0_ |= 0x00000040;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.AgentUsageSummary, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder, ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder> topAgentsByCostBuilder_;
+        ai.stigmer.agentic.run.v1.DailyUsage, ai.stigmer.agentic.run.v1.DailyUsage.Builder, ai.stigmer.agentic.run.v1.DailyUsageOrBuilder> dailyUsageBuilder_;
 
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> getTopAgentsByCostList() {
-      if (topAgentsByCostBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(topAgentsByCost_);
+    public java.util.List<ai.stigmer.agentic.run.v1.DailyUsage> getDailyUsageList() {
+      if (dailyUsageBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(dailyUsage_);
       } else {
-        return topAgentsByCostBuilder_.getMessageList();
+        return dailyUsageBuilder_.getMessageList();
       }
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public int getTopAgentsByCostCount() {
-      if (topAgentsByCostBuilder_ == null) {
-        return topAgentsByCost_.size();
+    public int getDailyUsageCount() {
+      if (dailyUsageBuilder_ == null) {
+        return dailyUsage_.size();
       } else {
-        return topAgentsByCostBuilder_.getCount();
+        return dailyUsageBuilder_.getCount();
       }
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.AgentUsageSummary getTopAgentsByCost(int index) {
-      if (topAgentsByCostBuilder_ == null) {
-        return topAgentsByCost_.get(index);
+    public ai.stigmer.agentic.run.v1.DailyUsage getDailyUsage(int index) {
+      if (dailyUsageBuilder_ == null) {
+        return dailyUsage_.get(index);
       } else {
-        return topAgentsByCostBuilder_.getMessage(index);
+        return dailyUsageBuilder_.getMessage(index);
       }
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder setTopAgentsByCost(
-        int index, ai.stigmer.agentic.run.v1.AgentUsageSummary value) {
-      if (topAgentsByCostBuilder_ == null) {
+    public Builder setDailyUsage(
+        int index, ai.stigmer.agentic.run.v1.DailyUsage value) {
+      if (dailyUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureTopAgentsByCostIsMutable();
-        topAgentsByCost_.set(index, value);
+        ensureDailyUsageIsMutable();
+        dailyUsage_.set(index, value);
         onChanged();
       } else {
-        topAgentsByCostBuilder_.setMessage(index, value);
+        dailyUsageBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder setTopAgentsByCost(
-        int index, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder builderForValue) {
-      if (topAgentsByCostBuilder_ == null) {
-        ensureTopAgentsByCostIsMutable();
-        topAgentsByCost_.set(index, builderForValue.build());
+    public Builder setDailyUsage(
+        int index, ai.stigmer.agentic.run.v1.DailyUsage.Builder builderForValue) {
+      if (dailyUsageBuilder_ == null) {
+        ensureDailyUsageIsMutable();
+        dailyUsage_.set(index, builderForValue.build());
         onChanged();
       } else {
-        topAgentsByCostBuilder_.setMessage(index, builderForValue.build());
+        dailyUsageBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder addTopAgentsByCost(ai.stigmer.agentic.run.v1.AgentUsageSummary value) {
-      if (topAgentsByCostBuilder_ == null) {
+    public Builder addDailyUsage(ai.stigmer.agentic.run.v1.DailyUsage value) {
+      if (dailyUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureTopAgentsByCostIsMutable();
-        topAgentsByCost_.add(value);
+        ensureDailyUsageIsMutable();
+        dailyUsage_.add(value);
         onChanged();
       } else {
-        topAgentsByCostBuilder_.addMessage(value);
+        dailyUsageBuilder_.addMessage(value);
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder addTopAgentsByCost(
-        int index, ai.stigmer.agentic.run.v1.AgentUsageSummary value) {
-      if (topAgentsByCostBuilder_ == null) {
+    public Builder addDailyUsage(
+        int index, ai.stigmer.agentic.run.v1.DailyUsage value) {
+      if (dailyUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureTopAgentsByCostIsMutable();
-        topAgentsByCost_.add(index, value);
+        ensureDailyUsageIsMutable();
+        dailyUsage_.add(index, value);
         onChanged();
       } else {
-        topAgentsByCostBuilder_.addMessage(index, value);
+        dailyUsageBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder addTopAgentsByCost(
-        ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder builderForValue) {
-      if (topAgentsByCostBuilder_ == null) {
-        ensureTopAgentsByCostIsMutable();
-        topAgentsByCost_.add(builderForValue.build());
+    public Builder addDailyUsage(
+        ai.stigmer.agentic.run.v1.DailyUsage.Builder builderForValue) {
+      if (dailyUsageBuilder_ == null) {
+        ensureDailyUsageIsMutable();
+        dailyUsage_.add(builderForValue.build());
         onChanged();
       } else {
-        topAgentsByCostBuilder_.addMessage(builderForValue.build());
+        dailyUsageBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder addTopAgentsByCost(
-        int index, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder builderForValue) {
-      if (topAgentsByCostBuilder_ == null) {
-        ensureTopAgentsByCostIsMutable();
-        topAgentsByCost_.add(index, builderForValue.build());
+    public Builder addDailyUsage(
+        int index, ai.stigmer.agentic.run.v1.DailyUsage.Builder builderForValue) {
+      if (dailyUsageBuilder_ == null) {
+        ensureDailyUsageIsMutable();
+        dailyUsage_.add(index, builderForValue.build());
         onChanged();
       } else {
-        topAgentsByCostBuilder_.addMessage(index, builderForValue.build());
+        dailyUsageBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder addAllTopAgentsByCost(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.AgentUsageSummary> values) {
-      if (topAgentsByCostBuilder_ == null) {
-        ensureTopAgentsByCostIsMutable();
+    public Builder addAllDailyUsage(
+        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.DailyUsage> values) {
+      if (dailyUsageBuilder_ == null) {
+        ensureDailyUsageIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, topAgentsByCost_);
+            values, dailyUsage_);
         onChanged();
       } else {
-        topAgentsByCostBuilder_.addAllMessages(values);
+        dailyUsageBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder clearTopAgentsByCost() {
-      if (topAgentsByCostBuilder_ == null) {
-        topAgentsByCost_ = java.util.Collections.emptyList();
+    public Builder clearDailyUsage() {
+      if (dailyUsageBuilder_ == null) {
+        dailyUsage_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
-        topAgentsByCostBuilder_.clear();
+        dailyUsageBuilder_.clear();
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public Builder removeTopAgentsByCost(int index) {
-      if (topAgentsByCostBuilder_ == null) {
-        ensureTopAgentsByCostIsMutable();
-        topAgentsByCost_.remove(index);
+    public Builder removeDailyUsage(int index) {
+      if (dailyUsageBuilder_ == null) {
+        ensureDailyUsageIsMutable();
+        dailyUsage_.remove(index);
         onChanged();
       } else {
-        topAgentsByCostBuilder_.remove(index);
+        dailyUsageBuilder_.remove(index);
       }
       return this;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder getTopAgentsByCostBuilder(
+    public ai.stigmer.agentic.run.v1.DailyUsage.Builder getDailyUsageBuilder(
         int index) {
-      return internalGetTopAgentsByCostFieldBuilder().getBuilder(index);
+      return internalGetDailyUsageFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder getTopAgentsByCostOrBuilder(
+    public ai.stigmer.agentic.run.v1.DailyUsageOrBuilder getDailyUsageOrBuilder(
         int index) {
-      if (topAgentsByCostBuilder_ == null) {
-        return topAgentsByCost_.get(index);  } else {
-        return topAgentsByCostBuilder_.getMessageOrBuilder(index);
+      if (dailyUsageBuilder_ == null) {
+        return dailyUsage_.get(index);  } else {
+        return dailyUsageBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder> 
-         getTopAgentsByCostOrBuilderList() {
-      if (topAgentsByCostBuilder_ != null) {
-        return topAgentsByCostBuilder_.getMessageOrBuilderList();
+    public java.util.List<? extends ai.stigmer.agentic.run.v1.DailyUsageOrBuilder> 
+         getDailyUsageOrBuilderList() {
+      if (dailyUsageBuilder_ != null) {
+        return dailyUsageBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(topAgentsByCost_);
+        return java.util.Collections.unmodifiableList(dailyUsage_);
       }
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder addTopAgentsByCostBuilder() {
-      return internalGetTopAgentsByCostFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.AgentUsageSummary.getDefaultInstance());
+    public ai.stigmer.agentic.run.v1.DailyUsage.Builder addDailyUsageBuilder() {
+      return internalGetDailyUsageFieldBuilder().addBuilder(
+          ai.stigmer.agentic.run.v1.DailyUsage.getDefaultInstance());
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder addTopAgentsByCostBuilder(
+    public ai.stigmer.agentic.run.v1.DailyUsage.Builder addDailyUsageBuilder(
         int index) {
-      return internalGetTopAgentsByCostFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.AgentUsageSummary.getDefaultInstance());
+      return internalGetDailyUsageFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.run.v1.DailyUsage.getDefaultInstance());
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+     * Daily token trend within the time range, one row per UTC day that has a
+     * run, ordered chronologically.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder> 
-         getTopAgentsByCostBuilderList() {
-      return internalGetTopAgentsByCostFieldBuilder().getBuilderList();
+    public java.util.List<ai.stigmer.agentic.run.v1.DailyUsage.Builder> 
+         getDailyUsageBuilderList() {
+      return internalGetDailyUsageFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.AgentUsageSummary, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder, ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder> 
-        internalGetTopAgentsByCostFieldBuilder() {
-      if (topAgentsByCostBuilder_ == null) {
-        topAgentsByCostBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.AgentUsageSummary, ai.stigmer.agentic.run.v1.AgentUsageSummary.Builder, ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder>(
-                topAgentsByCost_,
+        ai.stigmer.agentic.run.v1.DailyUsage, ai.stigmer.agentic.run.v1.DailyUsage.Builder, ai.stigmer.agentic.run.v1.DailyUsageOrBuilder> 
+        internalGetDailyUsageFieldBuilder() {
+      if (dailyUsageBuilder_ == null) {
+        dailyUsageBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.run.v1.DailyUsage, ai.stigmer.agentic.run.v1.DailyUsage.Builder, ai.stigmer.agentic.run.v1.DailyUsageOrBuilder>(
+                dailyUsage_,
                 ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
-        topAgentsByCost_ = null;
+        dailyUsage_ = null;
       }
-      return topAgentsByCostBuilder_;
+      return dailyUsageBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.run.v1.DailyCostEntry> dailyCosts_ =
+    private java.util.List<ai.stigmer.agentic.run.v1.HarnessUsage> harnessUsage_ =
       java.util.Collections.emptyList();
-    private void ensureDailyCostsIsMutable() {
+    private void ensureHarnessUsageIsMutable() {
       if (!((bitField0_ & 0x00000080) != 0)) {
-        dailyCosts_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.DailyCostEntry>(dailyCosts_);
+        harnessUsage_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.HarnessUsage>(harnessUsage_);
         bitField0_ |= 0x00000080;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.DailyCostEntry, ai.stigmer.agentic.run.v1.DailyCostEntry.Builder, ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder> dailyCostsBuilder_;
+        ai.stigmer.agentic.run.v1.HarnessUsage, ai.stigmer.agentic.run.v1.HarnessUsage.Builder, ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder> harnessUsageBuilder_;
 
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.run.v1.DailyCostEntry> getDailyCostsList() {
-      if (dailyCostsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(dailyCosts_);
+    public java.util.List<ai.stigmer.agentic.run.v1.HarnessUsage> getHarnessUsageList() {
+      if (harnessUsageBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(harnessUsage_);
       } else {
-        return dailyCostsBuilder_.getMessageList();
+        return harnessUsageBuilder_.getMessageList();
       }
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public int getDailyCostsCount() {
-      if (dailyCostsBuilder_ == null) {
-        return dailyCosts_.size();
+    public int getHarnessUsageCount() {
+      if (harnessUsageBuilder_ == null) {
+        return harnessUsage_.size();
       } else {
-        return dailyCostsBuilder_.getCount();
+        return harnessUsageBuilder_.getCount();
       }
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.DailyCostEntry getDailyCosts(int index) {
-      if (dailyCostsBuilder_ == null) {
-        return dailyCosts_.get(index);
+    public ai.stigmer.agentic.run.v1.HarnessUsage getHarnessUsage(int index) {
+      if (harnessUsageBuilder_ == null) {
+        return harnessUsage_.get(index);
       } else {
-        return dailyCostsBuilder_.getMessage(index);
+        return harnessUsageBuilder_.getMessage(index);
       }
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder setDailyCosts(
-        int index, ai.stigmer.agentic.run.v1.DailyCostEntry value) {
-      if (dailyCostsBuilder_ == null) {
+    public Builder setHarnessUsage(
+        int index, ai.stigmer.agentic.run.v1.HarnessUsage value) {
+      if (harnessUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureDailyCostsIsMutable();
-        dailyCosts_.set(index, value);
+        ensureHarnessUsageIsMutable();
+        harnessUsage_.set(index, value);
         onChanged();
       } else {
-        dailyCostsBuilder_.setMessage(index, value);
+        harnessUsageBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder setDailyCosts(
-        int index, ai.stigmer.agentic.run.v1.DailyCostEntry.Builder builderForValue) {
-      if (dailyCostsBuilder_ == null) {
-        ensureDailyCostsIsMutable();
-        dailyCosts_.set(index, builderForValue.build());
+    public Builder setHarnessUsage(
+        int index, ai.stigmer.agentic.run.v1.HarnessUsage.Builder builderForValue) {
+      if (harnessUsageBuilder_ == null) {
+        ensureHarnessUsageIsMutable();
+        harnessUsage_.set(index, builderForValue.build());
         onChanged();
       } else {
-        dailyCostsBuilder_.setMessage(index, builderForValue.build());
+        harnessUsageBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder addDailyCosts(ai.stigmer.agentic.run.v1.DailyCostEntry value) {
-      if (dailyCostsBuilder_ == null) {
+    public Builder addHarnessUsage(ai.stigmer.agentic.run.v1.HarnessUsage value) {
+      if (harnessUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureDailyCostsIsMutable();
-        dailyCosts_.add(value);
+        ensureHarnessUsageIsMutable();
+        harnessUsage_.add(value);
         onChanged();
       } else {
-        dailyCostsBuilder_.addMessage(value);
+        harnessUsageBuilder_.addMessage(value);
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder addDailyCosts(
-        int index, ai.stigmer.agentic.run.v1.DailyCostEntry value) {
-      if (dailyCostsBuilder_ == null) {
+    public Builder addHarnessUsage(
+        int index, ai.stigmer.agentic.run.v1.HarnessUsage value) {
+      if (harnessUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureDailyCostsIsMutable();
-        dailyCosts_.add(index, value);
+        ensureHarnessUsageIsMutable();
+        harnessUsage_.add(index, value);
         onChanged();
       } else {
-        dailyCostsBuilder_.addMessage(index, value);
+        harnessUsageBuilder_.addMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder addDailyCosts(
-        ai.stigmer.agentic.run.v1.DailyCostEntry.Builder builderForValue) {
-      if (dailyCostsBuilder_ == null) {
-        ensureDailyCostsIsMutable();
-        dailyCosts_.add(builderForValue.build());
+    public Builder addHarnessUsage(
+        ai.stigmer.agentic.run.v1.HarnessUsage.Builder builderForValue) {
+      if (harnessUsageBuilder_ == null) {
+        ensureHarnessUsageIsMutable();
+        harnessUsage_.add(builderForValue.build());
         onChanged();
       } else {
-        dailyCostsBuilder_.addMessage(builderForValue.build());
+        harnessUsageBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder addDailyCosts(
-        int index, ai.stigmer.agentic.run.v1.DailyCostEntry.Builder builderForValue) {
-      if (dailyCostsBuilder_ == null) {
-        ensureDailyCostsIsMutable();
-        dailyCosts_.add(index, builderForValue.build());
+    public Builder addHarnessUsage(
+        int index, ai.stigmer.agentic.run.v1.HarnessUsage.Builder builderForValue) {
+      if (harnessUsageBuilder_ == null) {
+        ensureHarnessUsageIsMutable();
+        harnessUsage_.add(index, builderForValue.build());
         onChanged();
       } else {
-        dailyCostsBuilder_.addMessage(index, builderForValue.build());
+        harnessUsageBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder addAllDailyCosts(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.DailyCostEntry> values) {
-      if (dailyCostsBuilder_ == null) {
-        ensureDailyCostsIsMutable();
+    public Builder addAllHarnessUsage(
+        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.HarnessUsage> values) {
+      if (harnessUsageBuilder_ == null) {
+        ensureHarnessUsageIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, dailyCosts_);
+            values, harnessUsage_);
         onChanged();
       } else {
-        dailyCostsBuilder_.addAllMessages(values);
+        harnessUsageBuilder_.addAllMessages(values);
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder clearDailyCosts() {
-      if (dailyCostsBuilder_ == null) {
-        dailyCosts_ = java.util.Collections.emptyList();
+    public Builder clearHarnessUsage() {
+      if (harnessUsageBuilder_ == null) {
+        harnessUsage_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000080);
         onChanged();
       } else {
-        dailyCostsBuilder_.clear();
+        harnessUsageBuilder_.clear();
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public Builder removeDailyCosts(int index) {
-      if (dailyCostsBuilder_ == null) {
-        ensureDailyCostsIsMutable();
-        dailyCosts_.remove(index);
+    public Builder removeHarnessUsage(int index) {
+      if (harnessUsageBuilder_ == null) {
+        ensureHarnessUsageIsMutable();
+        harnessUsage_.remove(index);
         onChanged();
       } else {
-        dailyCostsBuilder_.remove(index);
+        harnessUsageBuilder_.remove(index);
       }
       return this;
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.DailyCostEntry.Builder getDailyCostsBuilder(
+    public ai.stigmer.agentic.run.v1.HarnessUsage.Builder getHarnessUsageBuilder(
         int index) {
-      return internalGetDailyCostsFieldBuilder().getBuilder(index);
+      return internalGetHarnessUsageFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder getDailyCostsOrBuilder(
+    public ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder getHarnessUsageOrBuilder(
         int index) {
-      if (dailyCostsBuilder_ == null) {
-        return dailyCosts_.get(index);  } else {
-        return dailyCostsBuilder_.getMessageOrBuilder(index);
+      if (harnessUsageBuilder_ == null) {
+        return harnessUsage_.get(index);  } else {
+        return harnessUsageBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder> 
-         getDailyCostsOrBuilderList() {
-      if (dailyCostsBuilder_ != null) {
-        return dailyCostsBuilder_.getMessageOrBuilderList();
+    public java.util.List<? extends ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder> 
+         getHarnessUsageOrBuilderList() {
+      if (harnessUsageBuilder_ != null) {
+        return harnessUsageBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(dailyCosts_);
+        return java.util.Collections.unmodifiableList(harnessUsage_);
       }
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.DailyCostEntry.Builder addDailyCostsBuilder() {
-      return internalGetDailyCostsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.DailyCostEntry.getDefaultInstance());
+    public ai.stigmer.agentic.run.v1.HarnessUsage.Builder addHarnessUsageBuilder() {
+      return internalGetHarnessUsageFieldBuilder().addBuilder(
+          ai.stigmer.agentic.run.v1.HarnessUsage.getDefaultInstance());
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public ai.stigmer.agentic.run.v1.DailyCostEntry.Builder addDailyCostsBuilder(
+    public ai.stigmer.agentic.run.v1.HarnessUsage.Builder addHarnessUsageBuilder(
         int index) {
-      return internalGetDailyCostsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.DailyCostEntry.getDefaultInstance());
+      return internalGetHarnessUsageFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.run.v1.HarnessUsage.getDefaultInstance());
     }
     /**
      * <pre>
-     * Daily cost trend within the time range, ordered chronologically.
+     * Usage split by execution harness (e.g., "native" vs "cursor").
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.run.v1.DailyCostEntry.Builder> 
-         getDailyCostsBuilderList() {
-      return internalGetDailyCostsFieldBuilder().getBuilderList();
+    public java.util.List<ai.stigmer.agentic.run.v1.HarnessUsage.Builder> 
+         getHarnessUsageBuilderList() {
+      return internalGetHarnessUsageFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.DailyCostEntry, ai.stigmer.agentic.run.v1.DailyCostEntry.Builder, ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder> 
-        internalGetDailyCostsFieldBuilder() {
-      if (dailyCostsBuilder_ == null) {
-        dailyCostsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.DailyCostEntry, ai.stigmer.agentic.run.v1.DailyCostEntry.Builder, ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder>(
-                dailyCosts_,
+        ai.stigmer.agentic.run.v1.HarnessUsage, ai.stigmer.agentic.run.v1.HarnessUsage.Builder, ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder> 
+        internalGetHarnessUsageFieldBuilder() {
+      if (harnessUsageBuilder_ == null) {
+        harnessUsageBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.run.v1.HarnessUsage, ai.stigmer.agentic.run.v1.HarnessUsage.Builder, ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder>(
+                harnessUsage_,
                 ((bitField0_ & 0x00000080) != 0),
                 getParentForChildren(),
                 isClean());
-        dailyCosts_ = null;
+        harnessUsage_ = null;
       }
-      return dailyCostsBuilder_;
+      return harnessUsageBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.run.v1.HarnessCostSummary> harnessBreakdown_ =
-      java.util.Collections.emptyList();
-    private void ensureHarnessBreakdownIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
-        harnessBreakdown_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.HarnessCostSummary>(harnessBreakdown_);
+    private ai.stigmer.agentic.run.v1.UsageReportAggregate totalUsage_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.UsageReportAggregate, ai.stigmer.agentic.run.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.run.v1.UsageReportAggregateOrBuilder> totalUsageBuilder_;
+    /**
+     * <pre>
+     * Aggregated usage across the organization in the time range.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+     * @return Whether the totalUsage field is set.
+     */
+    public boolean hasTotalUsage() {
+      return ((bitField0_ & 0x00000100) != 0);
+    }
+    /**
+     * <pre>
+     * Aggregated usage across the organization in the time range.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+     * @return The totalUsage.
+     */
+    public ai.stigmer.agentic.run.v1.UsageReportAggregate getTotalUsage() {
+      if (totalUsageBuilder_ == null) {
+        return totalUsage_ == null ? ai.stigmer.agentic.run.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
+      } else {
+        return totalUsageBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Aggregated usage across the organization in the time range.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+     */
+    public Builder setTotalUsage(ai.stigmer.agentic.run.v1.UsageReportAggregate value) {
+      if (totalUsageBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        totalUsage_ = value;
+      } else {
+        totalUsageBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Aggregated usage across the organization in the time range.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+     */
+    public Builder setTotalUsage(
+        ai.stigmer.agentic.run.v1.UsageReportAggregate.Builder builderForValue) {
+      if (totalUsageBuilder_ == null) {
+        totalUsage_ = builderForValue.build();
+      } else {
+        totalUsageBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Aggregated usage across the organization in the time range.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+     */
+    public Builder mergeTotalUsage(ai.stigmer.agentic.run.v1.UsageReportAggregate value) {
+      if (totalUsageBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0) &&
+          totalUsage_ != null &&
+          totalUsage_ != ai.stigmer.agentic.run.v1.UsageReportAggregate.getDefaultInstance()) {
+          getTotalUsageBuilder().mergeFrom(value);
+        } else {
+          totalUsage_ = value;
+        }
+      } else {
+        totalUsageBuilder_.mergeFrom(value);
+      }
+      if (totalUsage_ != null) {
         bitField0_ |= 0x00000100;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.HarnessCostSummary, ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder, ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder> harnessBreakdownBuilder_;
-
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.HarnessCostSummary> getHarnessBreakdownList() {
-      if (harnessBreakdownBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(harnessBreakdown_);
-      } else {
-        return harnessBreakdownBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public int getHarnessBreakdownCount() {
-      if (harnessBreakdownBuilder_ == null) {
-        return harnessBreakdown_.size();
-      } else {
-        return harnessBreakdownBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.HarnessCostSummary getHarnessBreakdown(int index) {
-      if (harnessBreakdownBuilder_ == null) {
-        return harnessBreakdown_.get(index);
-      } else {
-        return harnessBreakdownBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public Builder setHarnessBreakdown(
-        int index, ai.stigmer.agentic.run.v1.HarnessCostSummary value) {
-      if (harnessBreakdownBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureHarnessBreakdownIsMutable();
-        harnessBreakdown_.set(index, value);
         onChanged();
-      } else {
-        harnessBreakdownBuilder_.setMessage(index, value);
       }
       return this;
     }
     /**
      * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * Aggregated usage across the organization in the time range.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
      */
-    public Builder setHarnessBreakdown(
-        int index, ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder builderForValue) {
-      if (harnessBreakdownBuilder_ == null) {
-        ensureHarnessBreakdownIsMutable();
-        harnessBreakdown_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        harnessBreakdownBuilder_.setMessage(index, builderForValue.build());
+    public Builder clearTotalUsage() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      totalUsage_ = null;
+      if (totalUsageBuilder_ != null) {
+        totalUsageBuilder_.dispose();
+        totalUsageBuilder_ = null;
       }
+      onChanged();
       return this;
     }
     /**
      * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * Aggregated usage across the organization in the time range.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
      */
-    public Builder addHarnessBreakdown(ai.stigmer.agentic.run.v1.HarnessCostSummary value) {
-      if (harnessBreakdownBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureHarnessBreakdownIsMutable();
-        harnessBreakdown_.add(value);
-        onChanged();
+    public ai.stigmer.agentic.run.v1.UsageReportAggregate.Builder getTotalUsageBuilder() {
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return internalGetTotalUsageFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Aggregated usage across the organization in the time range.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder() {
+      if (totalUsageBuilder_ != null) {
+        return totalUsageBuilder_.getMessageOrBuilder();
       } else {
-        harnessBreakdownBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public Builder addHarnessBreakdown(
-        int index, ai.stigmer.agentic.run.v1.HarnessCostSummary value) {
-      if (harnessBreakdownBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureHarnessBreakdownIsMutable();
-        harnessBreakdown_.add(index, value);
-        onChanged();
-      } else {
-        harnessBreakdownBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public Builder addHarnessBreakdown(
-        ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder builderForValue) {
-      if (harnessBreakdownBuilder_ == null) {
-        ensureHarnessBreakdownIsMutable();
-        harnessBreakdown_.add(builderForValue.build());
-        onChanged();
-      } else {
-        harnessBreakdownBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public Builder addHarnessBreakdown(
-        int index, ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder builderForValue) {
-      if (harnessBreakdownBuilder_ == null) {
-        ensureHarnessBreakdownIsMutable();
-        harnessBreakdown_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        harnessBreakdownBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public Builder addAllHarnessBreakdown(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.HarnessCostSummary> values) {
-      if (harnessBreakdownBuilder_ == null) {
-        ensureHarnessBreakdownIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, harnessBreakdown_);
-        onChanged();
-      } else {
-        harnessBreakdownBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public Builder clearHarnessBreakdown() {
-      if (harnessBreakdownBuilder_ == null) {
-        harnessBreakdown_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
-        onChanged();
-      } else {
-        harnessBreakdownBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public Builder removeHarnessBreakdown(int index) {
-      if (harnessBreakdownBuilder_ == null) {
-        ensureHarnessBreakdownIsMutable();
-        harnessBreakdown_.remove(index);
-        onChanged();
-      } else {
-        harnessBreakdownBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder getHarnessBreakdownBuilder(
-        int index) {
-      return internalGetHarnessBreakdownFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder getHarnessBreakdownOrBuilder(
-        int index) {
-      if (harnessBreakdownBuilder_ == null) {
-        return harnessBreakdown_.get(index);  } else {
-        return harnessBreakdownBuilder_.getMessageOrBuilder(index);
+        return totalUsage_ == null ?
+            ai.stigmer.agentic.run.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
       }
     }
     /**
      * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * Aggregated usage across the organization in the time range.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
      */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder> 
-         getHarnessBreakdownOrBuilderList() {
-      if (harnessBreakdownBuilder_ != null) {
-        return harnessBreakdownBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(harnessBreakdown_);
-      }
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder addHarnessBreakdownBuilder() {
-      return internalGetHarnessBreakdownFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.HarnessCostSummary.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder addHarnessBreakdownBuilder(
-        int index) {
-      return internalGetHarnessBreakdownFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.HarnessCostSummary.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Cost split by execution harness (e.g., "native" vs "cursor").
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder> 
-         getHarnessBreakdownBuilderList() {
-      return internalGetHarnessBreakdownFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.HarnessCostSummary, ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder, ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder> 
-        internalGetHarnessBreakdownFieldBuilder() {
-      if (harnessBreakdownBuilder_ == null) {
-        harnessBreakdownBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.HarnessCostSummary, ai.stigmer.agentic.run.v1.HarnessCostSummary.Builder, ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder>(
-                harnessBreakdown_,
-                ((bitField0_ & 0x00000100) != 0),
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.UsageReportAggregate, ai.stigmer.agentic.run.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.run.v1.UsageReportAggregateOrBuilder> 
+        internalGetTotalUsageFieldBuilder() {
+      if (totalUsageBuilder_ == null) {
+        totalUsageBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.UsageReportAggregate, ai.stigmer.agentic.run.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.run.v1.UsageReportAggregateOrBuilder>(
+                getTotalUsage(),
                 getParentForChildren(),
                 isClean());
-        harnessBreakdown_ = null;
+        totalUsage_ = null;
       }
-      return harnessBreakdownBuilder_;
+      return totalUsageBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput)

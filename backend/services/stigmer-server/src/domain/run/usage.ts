@@ -1,26 +1,43 @@
 /**
- * Run usage reports — ports usage_aggregation.go plus the four
- * report pipelines (get_execution_usage_report.go,
- * get_session_usage_report.go, get_agent_usage_report.go,
- * get_org_usage_report.go) and the dashboard summary
- * (get_execution_summary.go, a direct handler in Go too).
+ * Run usage reports — the four report pipelines (getRunUsageReport,
+ * getSessionUsageReport, getAgentUsageReport, getOrgUsageReport) and the
+ * dashboard summary (getRunSummary, a direct handler).
  *
- * The OSS zero-shapes contract, which the conformance suite's zero-record
- * read surfaces pin (run.conformance.test.ts): runners record
- * no per-message llm_metrics and there is no llm_call_usage_record
- * collection (a cloud billing concern), so every aggregate is
- * structurally valid and zero-valued, and the session/agent/org reports
- * never error for "nothing to aggregate". The execution-scoped report is
- * the ONE report that 404s (it verifies the execution exists).
+ * The numbers come from the composed meter (drivers.meteredUsageProvider,
+ * extensions/metered-usage.ts); for a run it has not metered, from the
+ * run's own runner report (RunStatus.streaming_usage), marked estimated.
+ * Open source composes no meter, so every run is counted the second way.
+ * Each report asks the meter once, for every run it counts; a meter that
+ * throws fails the report rather than show metered runs as estimates.
+ * A run counted from its runner's report is mapped by its harness, which
+ * is its session's (one session read per distinct session of such runs).
+ * The arithmetic is usage-fold.ts beside this file.
  *
- * Faithful-port notes:
- *   - Org matching is case-insensitive (Go strings.EqualFold); slug-shaped
- *     orgs make the exotic Unicode fold edges unreachable, so toLowerCase
- *     comparison sits inside Go's envelope.
- *   - Rank/summary tie order: Go iterates maps (nondeterministic) and
- *     sorts unstably; TS Maps iterate insertion-ordered and Array.sort is
- *     stable. Ties are not wire-assertable — the same cross-edition
- *     nuance as the agent family's lists.
+ * Every report reads only the runs it reports, through the run list index
+ * (list-index.ts beside this file), never the whole kind: the session
+ * report by the `session` key, the agent report by the organization and
+ * the `agent` key, the organization report by the organization; the two
+ * dated reports narrow the read by creation instant, and the loop here
+ * stays the authority, the store only narrowing. A run is in a dated
+ * report's range when it was CREATED in it (status.audit, the dashboard
+ * summary's rule, so both count the same runs for the same window,
+ * including runs that never started); a run with no creation stamp is
+ * kept, as the summary keeps it. A date-only bound is a UTC day (`from`
+ * from its midnight, `to` through its last instant); a full RFC 3339
+ * bound is taken as given (`parseReportBound`).
+ *
+ * Every report but the run report then narrows its runs by the composed
+ * list read scope (extensions/list-read-scope.ts), as the summary and the
+ * run lists do, so the organization report counts and names only runs and
+ * agents the caller may read; with no scope composed nothing is narrowed.
+ * The run report answers for one run its RPC check already authorized.
+ * The session, agent and organization reports never error for "nothing
+ * to count"; the run report is the ONE report that 404s.
+ *
+ * Proven by __tests__/usage-report.test.ts (the pipelines over a real
+ * store), __tests__/usage-fold.test.ts (the arithmetic),
+ * __tests__/usage.test.ts (the bounds) and __tests__/run.test.ts (over
+ * the wire).
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 import type { Duration } from "@bufbuild/protobuf/wkt";
@@ -34,38 +51,35 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type {
   RunSummary,
   AgentFailureRank,
-  AgentUsageSummary,
-  DailyCostEntry,
-  RunUsageSummary,
   GetRunSummaryRequest,
   GetAgentUsageReportOutput,
   GetRunUsageReportOutput,
   GetOrgUsageReportOutput,
   GetSessionUsageReportOutput,
-  SessionUsageSummary,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import {
   RunSummaryTimeWindow,
   RunSummarySchema,
   AgentFailureRankSchema,
-  AgentUsageSummarySchema,
-  DailyCostEntrySchema,
-  RunUsageSummarySchema,
   GetAgentUsageReportOutputSchema,
   GetRunUsageReportOutputSchema,
   GetOrgUsageReportOutputSchema,
   GetSessionUsageReportOutputSchema,
-  SessionUsageSummarySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
-import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
-import { UsageReportAggregateSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
+import type {
+  MeteredRunUsage,
+  MeteredUsageProvider,
+} from "../../extensions/metered-usage.js";
 import {
   internalError,
   invalidArgumentError,
@@ -73,25 +87,39 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
-import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { listIndexInstantOfMillis } from "../../store/list-index.js";
-import type { ListIndexRow } from "../../store/list-index.js";
+import type { ListIndexQuery, ListIndexRow } from "../../store/list-index.js";
 
 import { agentExecutionListIndex } from "./list-index.js";
-import { EXECUTION_LIST_KEY, loadAllAgentExecutions } from "./steps.js";
 import { sessionIdOf } from "./target.js";
+import type { CountedRun } from "./usage-fold.js";
+import {
+  aggregateOf,
+  auditCreatedAtMs,
+  countRun,
+  dailyUsageOf,
+  earliestStartedAt,
+  harnessUsageOf,
+  latestStartedAt,
+  modelBreakdownOf,
+  runSummaryOf,
+  sessionSummariesOf,
+  topAgentsOf,
+} from "./usage-fold.js";
 
 export interface UsageReportDeps {
   readonly store: Store;
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  /** The composed summary read scope — undefined = the OSS full scan. */
+  /** The composed list read scope — undefined = every run is readable (open source). */
   readonly listReadScope: ListReadScope | undefined;
+  /** The composed meter — undefined = every run is counted from its runner's report. */
+  readonly meteredUsageProvider: MeteredUsageProvider | undefined;
 }
 
 // Context keys for inter-step communication — Go's key strings, verbatim.
@@ -100,234 +128,227 @@ const EXECUTION_KEY = "execution";
 const SESSION_USAGE_REPORT_KEY = "session_usage_report";
 const AGENT_USAGE_REPORT_KEY = "agent_usage_report";
 const ORG_USAGE_REPORT_KEY = "org_usage_report";
+const COUNTED_RUNS_KEY = "counted_runs";
+
+/** Top-agents cap. */
+const TOP_AGENTS_LIMIT = 10;
+
+/** The name an agent row carries when its runs recorded no agent. */
+const UNKNOWN_AGENT_NAME = "(unknown agent)";
 
 // ---------------------------------------------------------------------------
-// Aggregation helpers (usage_aggregation.go) — the OSS zero-value posture.
+// Date bounds
 // ---------------------------------------------------------------------------
 
-/** Zero-valued UsageReportAggregate (Go aggregateUsageReport). */
-export function aggregateUsageReport(): ReturnType<
-  typeof create<typeof UsageReportAggregateSchema>
-> {
-  return create(UsageReportAggregateSchema);
-}
+/** A calendar date, YYYY-MM-DD. */
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-/** Empty model breakdown (Go mergeModelBreakdowns returns nil). */
-export function mergeModelBreakdowns(): ModelUsage[] {
-  return [];
-}
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Projects a full Run into the lightweight per-execution
- * summary (Go buildExecutionSummary). Token/cost fields stay zero.
+ * A report's date bound as an instant in epoch ms. A date-only bound is a
+ * UTC calendar day: `from` is its midnight, `to` its last millisecond (a
+ * creation instant is compared at millisecond precision, floored, so the
+ * whole day is inside). A full RFC 3339 timestamp is taken as given.
+ * Undefined for anything else, including an impossible date.
  */
-export function buildExecutionSummary(
-  exec: Run,
-): RunUsageSummary {
-  return create(RunUsageSummarySchema, {
-    runId: exec.metadata?.id ?? "",
-    startedAt: exec.status?.startedAt ?? "",
-    completedAt: exec.status?.completedAt ?? "",
-    subAgentCount: exec.status?.subAgentRuns.length ?? 0,
-    phase: exec.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
-  });
-}
-
-/**
- * Executions whose started_at falls within [from, to] (inclusive,
- * ISO 8601 STRING comparison — Go filterByDateRange). Empty bounds
- * disable that side; executions without started_at are excluded whenever
- * any bound is set.
- */
-export function filterByDateRange(
-  executions: Run[],
-  from: string,
-  to: string,
-): Run[] {
-  if (from === "" && to === "") {
-    return executions;
+export function parseReportBound(
+  value: string,
+  side: "from" | "to",
+): number | undefined {
+  const date = DATE_ONLY_PATTERN.exec(value);
+  if (date !== null) {
+    const year = Number(date[1]);
+    const month = Number(date[2]);
+    const day = Number(date[3]);
+    const midnight = Date.UTC(year, month - 1, day);
+    const check = new Date(midnight);
+    if (
+      check.getUTCFullYear() !== year ||
+      check.getUTCMonth() !== month - 1 ||
+      check.getUTCDate() !== day
+    ) {
+      return undefined;
+    }
+    return side === "from" ? midnight : midnight + DAY_MS - 1;
   }
-  return executions.filter((exec) => {
-    const startedAt = exec.status?.startedAt ?? "";
-    if (startedAt === "") {
-      return false;
-    }
-    if (from !== "" && startedAt < from) {
-      return false;
-    }
-    if (to !== "" && startedAt > to) {
-      return false;
-    }
-    return true;
-  });
+  return parseRfc3339Ms(value);
 }
 
-/** Case-insensitive org filter (Go filterByOrg / strings.EqualFold). */
-export function filterByOrg(
-  executions: Run[],
-  orgId: string,
-): Run[] {
-  const target = orgId.toLowerCase();
-  return executions.filter(
-    (exec) => (exec.metadata?.org ?? "").toLowerCase() === target,
+/** A report's range in epoch ms; an absent side is unbounded. */
+interface ReportWindow {
+  readonly fromMs: number | undefined;
+  readonly toMs: number | undefined;
+}
+
+/** Parses both bounds; "" is unbounded, anything unparseable is refused. */
+function resolveReportWindow(from: string, to: string): ReportWindow {
+  const fromMs = from === "" ? undefined : parseReportBound(from, "from");
+  if (from !== "" && fromMs === undefined) {
+    throw invalidArgumentError(
+      "from_date must be a UTC date (YYYY-MM-DD) or an RFC 3339 timestamp",
+    );
+  }
+  const toMs = to === "" ? undefined : parseReportBound(to, "to");
+  if (to !== "" && toMs === undefined) {
+    throw invalidArgumentError(
+      "to_date must be a UTC date (YYYY-MM-DD) or an RFC 3339 timestamp",
+    );
+  }
+  return { fromMs, toMs };
+}
+
+/** Whether the run was created in the window; a run with no stamp is kept. */
+function createdInWindow(run: Run, window: ReportWindow): boolean {
+  const createdAtMs = auditCreatedAtMs(run);
+  if (createdAtMs === undefined) {
+    return true;
+  }
+  if (window.fromMs !== undefined && createdAtMs < window.fromMs) {
+    return false;
+  }
+  if (window.toMs !== undefined && createdAtMs > window.toMs) {
+    return false;
+  }
+  return true;
+}
+
+/** The index's creation bound for a window: one millisecond wider than the loop's. */
+function createdAtOrAfterOf(
+  window: ReportWindow,
+): { createdAtOrAfter: string } | Record<string, never> {
+  return window.fromMs === undefined
+    ? {}
+    : { createdAtOrAfter: listIndexInstantOfMillis(window.fromMs - 1) };
+}
+
+// ---------------------------------------------------------------------------
+// Loading and counting runs
+// ---------------------------------------------------------------------------
+
+type RunIndexKey = keyof typeof agentExecutionListIndex.keys;
+
+/** The runs the index answers for `query`; a row that will not decode is skipped. */
+async function queryRuns(
+  deps: UsageReportDeps,
+  query: ListIndexQuery<RunIndexKey>,
+): Promise<Run[]> {
+  let rows: ListIndexRow[];
+  try {
+    rows = await deps.store.queryResources(agentExecutionListIndex, query);
+  } catch (error) {
+    throw internalError(error, "failed to list agent executions");
+  }
+  const runs: Run[] = [];
+  for (const row of rows) {
+    try {
+      runs.push(fromBinary(RunSchema, row.data));
+    } catch (error) {
+      deps.logger.warn("Failed to unmarshal execution, skipping", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return runs;
+}
+
+/** The runs the caller may read (all of them with no scope composed). */
+function scopeRuns(
+  deps: UsageReportDeps,
+  identity: CallerIdentity,
+  runs: Run[],
+): Promise<Run[]> {
+  return restrictListByReadScope(
+    deps.listReadScope,
+    identity,
+    ApiResourceKind.run,
+    runs,
+    "",
   );
 }
 
-/** The recorded agent (status.agent_id) equality filter (Go filterByAgentID). */
-export function filterByAgentId(
-  executions: Run[],
-  agentId: string,
-): Run[] {
-  return executions.filter((exec) => (exec.status?.agentId ?? "") === agentId);
-}
-
-/** Groups by the session the execution belongs to (Go groupBySessionID). */
-export function groupBySessionId(
-  executions: Run[],
-): Map<string, Run[]> {
-  const groups = new Map<string, Run[]>();
-  for (const exec of executions) {
-    const sid = sessionIdOf(exec.spec);
-    const group = groups.get(sid);
-    if (group === undefined) {
-      groups.set(sid, [exec]);
-    } else {
-      group.push(exec);
+/**
+ * The harness each of `runs`' sessions runs on, by session id: a run
+ * records none of its own, and dispatch runs it on its session's
+ * (temporal/agentexecution/dispatch.ts). One read per distinct session; a
+ * session that is gone, or a run in none, is the native harness, as
+ * dispatch defaults it. Any other store fault fails the report: a guessed
+ * harness would count a Cursor run's tokens by the wrong rule.
+ */
+async function sessionHarnesses(
+  deps: UsageReportDeps,
+  runs: readonly Run[],
+): Promise<Map<string, Harness>> {
+  const harnesses = new Map<string, Harness>();
+  for (const run of runs) {
+    const sessionId = sessionIdOf(run.spec);
+    if (sessionId === "" || harnesses.has(sessionId)) {
+      continue;
     }
+    let harness = Harness.NATIVE;
+    try {
+      const session = await deps.store.getResource(
+        ApiResourceKind.session,
+        sessionId,
+        SessionSchema,
+      );
+      harness = session.spec?.harness ?? Harness.UNSPECIFIED;
+    } catch (error) {
+      if (!(error instanceof ResourceNotFoundError)) {
+        throw internalError(error, "failed to load session");
+      }
+    }
+    harnesses.set(sessionId, harness);
   }
-  return groups;
+  return harnesses;
 }
 
 /**
- * Groups by the recorded agent (status.agent_id); executions without one
- * group under "" (Go
- * groupByAgentID).
+ * Each run with its source decided: one meter call for all of them, then
+ * the session harness of every run that needs one (a run the meter did
+ * not answer for, or a meter row that names no harness).
  */
-export function groupByAgentId(
-  executions: Run[],
-): Map<string, Run[]> {
-  const groups = new Map<string, Run[]>();
-  for (const exec of executions) {
-    const aid = exec.status?.agentId ?? "";
-    const group = groups.get(aid);
-    if (group === undefined) {
-      groups.set(aid, [exec]);
-    } else {
-      group.push(exec);
+async function countRuns(
+  deps: UsageReportDeps,
+  runs: readonly Run[],
+): Promise<CountedRun[]> {
+  let metered: ReadonlyMap<string, MeteredRunUsage> = new Map();
+  if (deps.meteredUsageProvider !== undefined && runs.length > 0) {
+    try {
+      metered = await deps.meteredUsageProvider.usageForRuns(
+        runs.map((run) => run.metadata?.id ?? ""),
+      );
+    } catch (error) {
+      deps.logger.error("The metered usage read failed", {
+        runCount: runs.length,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw internalError(error, "failed to read metered usage");
     }
   }
-  return groups;
+  const meteredOf = (run: Run): MeteredRunUsage | undefined =>
+    metered.get(run.metadata?.id ?? "");
+  const harnesses = await sessionHarnesses(
+    deps,
+    runs.filter((run) => {
+      const usage = meteredOf(run);
+      return (
+        usage === undefined ||
+        usage.rows.length === 0 ||
+        usage.rows.some((row) => row.harness === "")
+      );
+    }),
+  );
+  return runs.map((run) =>
+    countRun(
+      run,
+      meteredOf(run),
+      harnesses.get(sessionIdOf(run.spec)) ?? Harness.NATIVE,
+    ),
+  );
 }
 
-/** The YYYY-MM-DD prefix of an ISO 8601 timestamp (Go extractDate). */
-export function extractDate(ts: string): string {
-  if (ts.length < 10) {
-    return "";
-  }
-  return ts.slice(0, 10);
-}
-
-/** Earliest non-empty started_at (Go earliestStartedAt). */
-export function earliestStartedAt(executions: Run[]): string {
-  let earliest = "";
-  for (const exec of executions) {
-    const sa = exec.status?.startedAt ?? "";
-    if (sa === "") {
-      continue;
-    }
-    if (earliest === "" || sa < earliest) {
-      earliest = sa;
-    }
-  }
-  return earliest;
-}
-
-/** Latest non-empty started_at (Go latestStartedAt). */
-export function latestStartedAt(executions: Run[]): string {
-  let latest = "";
-  for (const exec of executions) {
-    const sa = exec.status?.startedAt ?? "";
-    if (sa === "") {
-      continue;
-    }
-    if (latest === "" || sa > latest) {
-      latest = sa;
-    }
-  }
-  return latest;
-}
-
-/** Per-session zero-cost summary (Go buildSessionSummary). */
-export function buildSessionSummary(
-  sessionId: string,
-  executions: Run[],
-): SessionUsageSummary {
-  return create(SessionUsageSummarySchema, {
-    sessionId,
-    runCount: executions.length,
-    firstRunAt: earliestStartedAt(executions),
-    lastRunAt: latestStartedAt(executions),
-  });
-}
-
-/** Per-agent zero-cost summary (Go buildAgentSummary). */
-export function buildAgentSummary(
-  agentId: string,
-  agentName: string,
-  executions: Run[],
-): AgentUsageSummary {
-  return create(AgentUsageSummarySchema, {
-    agentId,
-    agentName,
-    runCount: executions.length,
-  });
-}
-
-/**
- * Groups by the YYYY-MM-DD prefix of started_at; executions without one
- * are dropped (Go groupByDate).
- */
-export function groupByDate(
-  executions: Run[],
-): Map<string, Run[]> {
-  const groups = new Map<string, Run[]>();
-  for (const exec of executions) {
-    const date = extractDate(exec.status?.startedAt ?? "");
-    if (date === "") {
-      continue;
-    }
-    const group = groups.get(date);
-    if (group === undefined) {
-      groups.set(date, [exec]);
-    } else {
-      group.push(exec);
-    }
-  }
-  return groups;
-}
-
-/**
- * Chronologically sorted daily entries with zero cost (Go
- * buildDailyCostEntries).
- */
-export function buildDailyCostEntries(
-  executions: Run[],
-): DailyCostEntry[] {
-  const byDate = groupByDate(executions);
-  const entries: DailyCostEntry[] = [];
-  for (const [date, group] of byDate) {
-    entries.push(
-      create(DailyCostEntrySchema, {
-        date,
-        runCount: group.length,
-      }),
-    );
-  }
-  entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-  return entries;
-}
-
-/** In-place chronological sort by started_at (Go sortExecutionsByStartedAt). */
+/** In-place chronological sort by started_at (machine-written RFC 3339 UTC text). */
 export function sortExecutionsByStartedAt(executions: Run[]): void {
   executions.sort((a, b) => {
     const sa = a.status?.startedAt ?? "";
@@ -336,8 +357,8 @@ export function sortExecutionsByStartedAt(executions: Run[]): void {
   });
 }
 
-/** Deduplicated, sorted non-empty agent ids (Go distinctAgentIDs). */
-export function distinctAgentIds(executions: Run[]): string[] {
+/** Deduplicated, sorted non-empty agent ids. */
+export function distinctAgentIds(executions: readonly Run[]): string[] {
   const seen = new Set<string>();
   for (const exec of executions) {
     const aid = exec.status?.agentId ?? "";
@@ -348,8 +369,8 @@ export function distinctAgentIds(executions: Run[]): string[] {
   return [...seen].sort();
 }
 
-/** Deduplicated, sorted non-empty session ids (Go distinctSessionIDs). */
-export function distinctSessionIds(executions: Run[]): string[] {
+/** Deduplicated, sorted non-empty session ids. */
+export function distinctSessionIds(executions: readonly Run[]): string[] {
   const seen = new Set<string>();
   for (const exec of executions) {
     const sid = sessionIdOf(exec.spec);
@@ -360,28 +381,7 @@ export function distinctSessionIds(executions: Run[]): string[] {
   return [...seen].sort();
 }
 
-/**
- * Top N agent summaries by billable cost descending (Go topAgentsByCost).
- * All costs are zero in OSS, so this is order-preserving in practice.
- */
-export function topAgentsByCost(
-  summaries: AgentUsageSummary[],
-  n: number,
-): AgentUsageSummary[] {
-  summaries.sort((a, b) =>
-    a.billableCostMicros < b.billableCostMicros
-      ? 1
-      : a.billableCostMicros > b.billableCostMicros
-        ? -1
-        : 0,
-  );
-  if (n > 0 && summaries.length > n) {
-    return summaries.slice(0, n);
-  }
-  return summaries;
-}
-
-/** Loads an agent's display name, falling back to the id (Go resolveAgentName). */
+/** Loads an agent's display name, falling back to the id. */
 async function resolveAgentNameFromStore(
   deps: UsageReportDeps,
   agentId: string,
@@ -403,7 +403,7 @@ async function resolveAgentNameFromStore(
 
 // ---------------------------------------------------------------------------
 // getRunUsageReport — the ONE report that 404s.
-// Chain per Go: ValidateExecutionUsageReport → LoadExecution →
+// Chain: ValidateExecutionUsageReport → LoadExecution →
 // BuildExecutionUsageReport.
 // ---------------------------------------------------------------------------
 
@@ -442,11 +442,14 @@ export async function getRunUsageReport(
     .addStep(newLoadExecutionStep(deps.store))
     .addStep({
       name: "BuildExecutionUsageReport",
-      execute(ctx) {
+      async execute(ctx) {
+        const execution = ctx.get(EXECUTION_KEY) as Run;
+        const counted = await countRuns(deps, [execution]);
         ctx.set(
           EXECUTION_USAGE_REPORT_KEY,
           create(GetRunUsageReportOutputSchema, {
-            aggregate: aggregateUsageReport(),
+            aggregate: aggregateOf(counted),
+            modelBreakdown: modelBreakdownOf(counted),
           }),
         );
       },
@@ -491,8 +494,8 @@ function newLoadExecutionStep(store: Store): PipelineStep<ExecutionReportDesc> {
 }
 
 // ---------------------------------------------------------------------------
-// getSessionUsageReport — zero shapes, no existence check.
-// Chain per Go: ValidateSessionUsageReport → LoadSessionExecutions →
+// getSessionUsageReport — no existence check.
+// Chain: ValidateSessionUsageReport → LoadSessionExecutions →
 // BuildSessionUsageReport.
 // ---------------------------------------------------------------------------
 
@@ -528,32 +531,37 @@ export async function getSessionUsageReport(
     .addStep({
       name: "LoadSessionExecutions",
       async execute(ctx) {
-        const all = await loadAllAgentExecutions(deps.store, deps.logger);
-        const executions = all.filter(
-          (exec) => sessionIdOf(exec.spec) === ctx.input.sessionId,
+        const runs = await scopeRuns(
+          deps,
+          ctx.callerIdentity,
+          await queryRuns(deps, {
+            anyKey: [{ name: "session", value: ctx.input.sessionId }],
+          }),
         );
+        sortExecutionsByStartedAt(runs);
         deps.logger.debug("Loaded executions for session usage report", {
           sessionId: ctx.input.sessionId,
-          count: executions.length,
+          count: runs.length,
         });
-        ctx.set(EXECUTION_LIST_KEY, executions);
+        ctx.set(COUNTED_RUNS_KEY, await countRuns(deps, runs));
       },
     })
     .addStep({
       name: "BuildSessionUsageReport",
       execute(ctx) {
-        const executions = requireExecutionList(ctx.get(EXECUTION_LIST_KEY));
-        sortExecutionsByStartedAt(executions);
+        const counted = requireCountedRuns(ctx.get(COUNTED_RUNS_KEY));
+        const runs = counted.map((c) => c.run);
         ctx.set(
           SESSION_USAGE_REPORT_KEY,
           create(GetSessionUsageReportOutputSchema, {
             sessionId: ctx.input.sessionId,
-            runCount: executions.length,
-            totalUsage: aggregateUsageReport(),
-            runs: executions.map(buildExecutionSummary),
-            modelBreakdown: mergeModelBreakdowns(),
-            firstRunAt: earliestStartedAt(executions),
-            lastRunAt: latestStartedAt(executions),
+            runCount: counted.length,
+            totalUsage: aggregateOf(counted),
+            runs: counted.map(runSummaryOf),
+            modelBreakdown: modelBreakdownOf(counted),
+            firstRunAt: earliestStartedAt(runs),
+            lastRunAt: latestStartedAt(runs),
+            isEstimated: counted.some((c) => c.estimated),
           }),
         );
       },
@@ -568,8 +576,8 @@ export async function getSessionUsageReport(
 }
 
 // ---------------------------------------------------------------------------
-// getAgentUsageReport — org-scoped (oss#389), zero shapes.
-// Chain per Go: ValidateAgentUsageReport → LoadAgentExecutions →
+// getAgentUsageReport — org-scoped (oss#389).
+// Chain: ValidateAgentUsageReport → LoadAgentExecutions →
 // BuildAgentUsageReport.
 // ---------------------------------------------------------------------------
 
@@ -587,6 +595,7 @@ export async function getAgentUsageReport(
     identity,
     ApiResourceKind.run,
   );
+  let window: ReportWindow = { fromMs: undefined, toMs: undefined };
   await newPipeline<AgentReportDesc>("get-agent-usage-report", deps.logger)
     .addStep(
       newAuthorizeStep(
@@ -603,59 +612,60 @@ export async function getAgentUsageReport(
         if (ctx.input.org === "") {
           throw invalidArgumentError("org is required");
         }
+        window = resolveReportWindow(ctx.input.fromDate, ctx.input.toDate);
       },
     })
     .addStep({
       name: "LoadAgentExecutions",
       async execute(ctx) {
-        const all = await loadAllAgentExecutions(deps.store, deps.logger);
-        let filtered = filterByOrg(all, ctx.input.org);
-        filtered = filterByAgentId(filtered, ctx.input.agentId);
-        filtered = filterByDateRange(
-          filtered,
-          ctx.input.fromDate,
-          ctx.input.toDate,
+        const indexed = await queryRuns(deps, {
+          org: ctx.input.org,
+          anyKey: [{ name: "agent", value: ctx.input.agentId }],
+          ...createdAtOrAfterOf(window),
+        });
+        const runs = await scopeRuns(
+          deps,
+          ctx.callerIdentity,
+          indexed.filter(
+            (run) =>
+              (run.status?.agentId ?? "") === ctx.input.agentId &&
+              createdInWindow(run, window),
+          ),
         );
+        sortExecutionsByStartedAt(runs);
         deps.logger.debug("Loaded executions for agent usage report", {
           agentId: ctx.input.agentId,
           orgId: ctx.input.org,
-          count: filtered.length,
+          count: runs.length,
         });
-        ctx.set(EXECUTION_LIST_KEY, filtered);
+        ctx.set(COUNTED_RUNS_KEY, await countRuns(deps, runs));
       },
     })
     .addStep({
       name: "BuildAgentUsageReport",
       async execute(ctx) {
-        const executions = requireExecutionList(ctx.get(EXECUTION_LIST_KEY));
+        const counted = requireCountedRuns(ctx.get(COUNTED_RUNS_KEY));
         const agentId = ctx.input.agentId;
 
-        // The name resolves only when the org has executions of the agent —
-        // contract parity with cloud, where this prevents the report from
-        // acting as an id-to-name oracle for agents the org never used.
+        // The name resolves only when the org has runs of the agent the
+        // caller may read, so the report is never an id-to-name oracle for
+        // agents the org never used.
         let agentName = agentId;
-        if (executions.length > 0) {
+        if (counted.length > 0) {
           agentName = await resolveAgentNameFromStore(deps, agentId);
         }
 
-        sortExecutionsByStartedAt(executions);
-
-        const bySession = groupBySessionId(executions);
-        const sessionSummaries: SessionUsageSummary[] = [];
-        for (const [sid, group] of bySession) {
-          sessionSummaries.push(buildSessionSummary(sid, group));
-        }
-
+        const sessions = sessionSummariesOf(counted);
         ctx.set(
           AGENT_USAGE_REPORT_KEY,
           create(GetAgentUsageReportOutputSchema, {
             agentId,
             agentName,
-            totalUsage: aggregateUsageReport(),
-            modelBreakdown: mergeModelBreakdowns(),
-            sessions: sessionSummaries,
-            totalSessions: bySession.size,
-            totalRuns: executions.length,
+            totalUsage: aggregateOf(counted),
+            modelBreakdown: modelBreakdownOf(counted),
+            sessions,
+            totalSessions: sessions.length,
+            totalRuns: counted.length,
           }),
         );
       },
@@ -670,13 +680,9 @@ export async function getAgentUsageReport(
 }
 
 // ---------------------------------------------------------------------------
-// getOrgUsageReport — required date range, zero shapes.
-// Chain per Go: ValidateOrgUsageReport → LoadOrgExecutions →
-// BuildOrgUsageReport.
+// getOrgUsageReport — required date range.
+// Chain: ValidateOrgUsageReport → LoadOrgExecutions → BuildOrgUsageReport.
 // ---------------------------------------------------------------------------
-
-/** Top-agents cap (Go topAgentsLimit). */
-const TOP_AGENTS_LIMIT = 10;
 
 type OrgReportDesc =
   typeof RunQueryController.method.getOrgUsageReport.input;
@@ -692,6 +698,7 @@ export async function getOrgUsageReport(
     identity,
     ApiResourceKind.run,
   );
+  let window: ReportWindow = { fromMs: undefined, toMs: undefined };
   await newPipeline<OrgReportDesc>("get-org-usage-report", deps.logger)
     .addStep(
       newAuthorizeStep(
@@ -711,50 +718,54 @@ export async function getOrgUsageReport(
         if (ctx.input.toDate === "") {
           throw invalidArgumentError("to_date is required");
         }
+        window = resolveReportWindow(ctx.input.fromDate, ctx.input.toDate);
       },
     })
     .addStep({
       name: "LoadOrgExecutions",
       async execute(ctx) {
-        const all = await loadAllAgentExecutions(deps.store, deps.logger);
-        let filtered = filterByOrg(all, ctx.input.org);
-        filtered = filterByDateRange(
-          filtered,
-          ctx.input.fromDate,
-          ctx.input.toDate,
+        const indexed = await queryRuns(deps, {
+          org: ctx.input.org,
+          ...createdAtOrAfterOf(window),
+        });
+        const runs = await scopeRuns(
+          deps,
+          ctx.callerIdentity,
+          indexed.filter((run) => createdInWindow(run, window)),
         );
         deps.logger.debug("Loaded executions for org usage report", {
           orgId: ctx.input.org,
-          count: filtered.length,
+          count: runs.length,
         });
-        ctx.set(EXECUTION_LIST_KEY, filtered);
+        ctx.set(COUNTED_RUNS_KEY, await countRuns(deps, runs));
       },
     })
     .addStep({
       name: "BuildOrgUsageReport",
       async execute(ctx) {
-        const executions = requireExecutionList(ctx.get(EXECUTION_LIST_KEY));
+        const counted = requireCountedRuns(ctx.get(COUNTED_RUNS_KEY));
+        const runs = counted.map((c) => c.run);
 
-        const byAgent = groupByAgentId(executions);
-        const agentSummaries: AgentUsageSummary[] = [];
-        for (const [aid, group] of byAgent) {
-          const name =
-            aid === ""
-              ? "(unknown agent)"
-              : await resolveAgentNameFromStore(deps, aid);
-          agentSummaries.push(buildAgentSummary(aid, name, group));
+        const topAgents = topAgentsOf(counted, TOP_AGENTS_LIMIT);
+        for (const agent of topAgents) {
+          agent.agentName =
+            agent.agentId === ""
+              ? UNKNOWN_AGENT_NAME
+              : await resolveAgentNameFromStore(deps, agent.agentId);
         }
 
         ctx.set(
           ORG_USAGE_REPORT_KEY,
           create(GetOrgUsageReportOutputSchema, {
             org: ctx.input.org,
-            totalAgents: distinctAgentIds(executions).length,
-            totalSessions: distinctSessionIds(executions).length,
-            totalRuns: executions.length,
-            modelBreakdown: mergeModelBreakdowns(),
-            topAgentsByCost: topAgentsByCost(agentSummaries, TOP_AGENTS_LIMIT),
-            dailyCosts: buildDailyCostEntries(executions),
+            totalAgents: distinctAgentIds(runs).length,
+            totalSessions: distinctSessionIds(runs).length,
+            totalRuns: counted.length,
+            modelBreakdown: modelBreakdownOf(counted),
+            topAgents,
+            dailyUsage: dailyUsageOf(counted),
+            harnessUsage: harnessUsageOf(counted),
+            totalUsage: aggregateOf(counted),
           }),
         );
       },
@@ -768,14 +779,15 @@ export async function getOrgUsageReport(
   );
 }
 
-function requireExecutionList(value: unknown): Run[] {
+function requireCountedRuns(value: unknown): CountedRun[] {
+  /* v8 ignore next -- @preserve: each report's count step sets the list before the step that reads it; only a mis-ordered pipeline reaches this */
   if (!Array.isArray(value)) {
     throw internalError(
-      new Error("execution list not found in context"),
-      "execution list not found in context",
+      new Error("counted runs not found in context"),
+      "counted runs not found in context",
     );
   }
-  return value as Run[];
+  return value as CountedRun[];
 }
 
 function requireReport<T>(value: unknown, message: string): T {
@@ -787,9 +799,11 @@ function requireReport<T>(value: unknown, message: string): T {
 
 // ---------------------------------------------------------------------------
 // getRunSummary — the dashboard aggregate (get_execution_summary.go,
-// a direct handler in Go as well — no pipeline). Cost is deliberately
-// absent from this shape: the dashboard sources cost from
-// getOrgUsageReport, so carrying it here too would count it twice.
+// a direct handler in Go as well — no pipeline). Tokens are deliberately
+// absent from this shape: the dashboard reads them from getOrgUsageReport,
+// so carrying them here too would count them twice. A run with no
+// creation stamp (audit.spec_audit.created_at) is never skipped by the
+// cutoff, Go's zero time.
 //
 // The rows are the requested org's within the time window, read through
 // the list index, so a member of several organizations never sees every
@@ -937,19 +951,6 @@ function isAgentActivePhase(p: RunPhase): boolean {
     p === RunPhase.RUN_WAITING_FOR_APPROVAL ||
     p === RunPhase.RUN_PAUSED
   );
-}
-
-/**
- * status.audit.spec_audit.created_at in epoch ms; undefined when the
- * timestamp is absent (Go's zero time, which disables the cutoff skip for
- * that record).
- */
-function auditCreatedAtMs(exec: Run): number | undefined {
-  const ts = exec.status?.audit?.specAudit?.createdAt;
-  if (ts === undefined) {
-    return undefined;
-  }
-  return Number(ts.seconds) * 1000 + Math.floor(ts.nanos / 1_000_000);
 }
 
 /**

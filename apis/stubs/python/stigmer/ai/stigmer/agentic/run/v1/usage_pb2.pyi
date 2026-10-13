@@ -6,7 +6,7 @@ from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Mapping as _Mapping
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
@@ -196,7 +196,7 @@ class LlmCallUsageRecord(_message.Message):
     def __init__(self, usage_record_id: _Optional[str] = ..., run_id: _Optional[str] = ..., root_run_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., call_id: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., provider_key_source: _Optional[_Union[ProviderKeySource, str]] = ..., thinking: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., org: _Optional[str] = ..., session_id: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class UsageReportAggregate(_message.Message):
-    __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "llm_call_count", "billable_cost_micros", "provider_cost_micros", "primary_model", "primary_provider")
+    __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "llm_call_count", "primary_model", "primary_provider", "served_by")
     INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -204,10 +204,9 @@ class UsageReportAggregate(_message.Message):
     CACHE_READ_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     REASONING_TOKENS_FIELD_NUMBER: _ClassVar[int]
     LLM_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    BILLABLE_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
     PRIMARY_MODEL_FIELD_NUMBER: _ClassVar[int]
     PRIMARY_PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    SERVED_BY_FIELD_NUMBER: _ClassVar[int]
     input_tokens: int
     output_tokens: int
     total_tokens: int
@@ -215,14 +214,23 @@ class UsageReportAggregate(_message.Message):
     cache_read_input_tokens: int
     reasoning_tokens: int
     llm_call_count: int
-    billable_cost_micros: int
-    provider_cost_micros: int
     primary_model: str
     primary_provider: str
-    def __init__(self, input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., provider_cost_micros: _Optional[int] = ..., primary_model: _Optional[str] = ..., primary_provider: _Optional[str] = ...) -> None: ...
+    served_by: _containers.RepeatedCompositeFieldContainer[ServedByUsage]
+    def __init__(self, input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., primary_model: _Optional[str] = ..., primary_provider: _Optional[str] = ..., served_by: _Optional[_Iterable[_Union[ServedByUsage, _Mapping]]] = ...) -> None: ...
+
+class ServedByUsage(_message.Message):
+    __slots__ = ("provider_key_source", "total_tokens", "llm_call_count")
+    PROVIDER_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    LLM_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    provider_key_source: ProviderKeySource
+    total_tokens: int
+    llm_call_count: int
+    def __init__(self, provider_key_source: _Optional[_Union[ProviderKeySource, str]] = ..., total_tokens: _Optional[int] = ..., llm_call_count: _Optional[int] = ...) -> None: ...
 
 class ModelUsage(_message.Message):
-    __slots__ = ("model", "provider", "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "call_count", "billable_cost_micros", "provider_cost_micros")
+    __slots__ = ("model", "provider", "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "call_count", "total_tokens")
     MODEL_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -230,8 +238,7 @@ class ModelUsage(_message.Message):
     CACHE_CREATION_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     CACHE_READ_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    BILLABLE_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
     model: str
     provider: str
     input_tokens: int
@@ -239,9 +246,8 @@ class ModelUsage(_message.Message):
     cache_creation_input_tokens: int
     cache_read_input_tokens: int
     call_count: int
-    billable_cost_micros: int
-    provider_cost_micros: int
-    def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., provider_cost_micros: _Optional[int] = ...) -> None: ...
+    total_tokens: int
+    def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., total_tokens: _Optional[int] = ...) -> None: ...
 
 class StreamingUsageSummary(_message.Message):
     __slots__ = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "total_tokens", "turn_count", "estimated_cost_usd", "model", "observed_at", "requested_service_tier", "requested_model_params", "requested_thinking_mode")

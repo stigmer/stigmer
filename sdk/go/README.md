@@ -72,14 +72,16 @@ The client provides sub-clients for each resource type:
 | `client.Vault`          | Vault           | Get, GetByReference, GetMine, GetByExternalId, Create, Update, UpdateVisibility, Delete, List, SetSecrets, RemoveSecrets, SetConnection, RemoveConnections, StartSignIn, CompleteSignIn, CreateConnectLink, GetConnectLink, StartConnectLink, CompleteConnectLink |
 | `client.Run`            | Run             | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
 | `client.Search`         | Cross-resource  | Query |
-| `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, GetBillingUsageReport, CreateBillingPortalSession, CreatePaymentMethodSetupSession + operator pricing methods |
+| `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, CreateBillingPortalSession, CreatePaymentMethodSetupSession + operator pricing methods |
 
 ## Billing
 
 An organization's billing account (its Stripe customer), the Stripe portal
-and card setup sessions, and the usage meter's run and call counts. Queries
-require `can_view_billing` on the org and the org's own billing commands
-require `can_manage_billing`. The operator pricing methods
+and card setup sessions. Token usage is read from the run client's usage
+reports (`GetRunUsageReport`, `GetSessionUsageReport`, `GetAgentUsageReport`,
+`GetOrgUsageReport`), counted in tokens and never priced. Queries require
+`can_view_billing` on the org and the org's own billing commands require
+`can_manage_billing`. The operator pricing methods
 (`ListModelPricingBaselines`, `UpsertModelPricingBaseline`,
 `RetireModelPricingBaseline`) require `can_manage_model_pricing` on the
 platform:
@@ -92,13 +94,6 @@ setup, err := client.Billing.CreatePaymentMethodSetupSession(ctx, &stigmer.Creat
     SuccessURL: "https://example.com/billing?setup=success",
     CancelURL:  "https://example.com/billing",
 })
-
-report, err := client.Billing.GetBillingUsageReport(ctx, &stigmer.GetBillingUsageReportParams{
-    Org:       org,
-    StartTime: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
-    EndTime:   time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
-})
-fmt.Println(report.GetRunCount(), report.GetLlmCallCount())
 ```
 
 ## Configuration

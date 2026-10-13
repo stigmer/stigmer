@@ -8,7 +8,7 @@ package ai.stigmer.agentic.run.v1;
 /**
  * <pre>
  * GetAgentUsageReportInput requests a usage report for a specific agent
- * within one organization. Aggregates cost and token data across the org's
+ * within one organization. Aggregates token data across the org's
  * sessions of the agent within a time range.
  * </pre>
  *
@@ -111,8 +111,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object fromDate_ = "";
   /**
    * <pre>
-   * Start of time range filter (ISO 8601, inclusive).
-   * Example: "2026-03-01"
+   * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+   * from its first instant) or an RFC 3339 instant. A run is in the range
+   * when it was created in it.
    * </pre>
    *
    * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -133,8 +134,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Start of time range filter (ISO 8601, inclusive).
-   * Example: "2026-03-01"
+   * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+   * from its first instant) or an RFC 3339 instant. A run is in the range
+   * when it was created in it.
    * </pre>
    *
    * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -160,8 +162,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object toDate_ = "";
   /**
    * <pre>
-   * End of time range filter (ISO 8601, inclusive).
-   * Example: "2026-03-13"
+   * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+   * through its last instant) or an RFC 3339 instant.
    * </pre>
    *
    * <code>string to_date = 3 [json_name = "toDate"];</code>
@@ -182,8 +184,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * End of time range filter (ISO 8601, inclusive).
-   * Example: "2026-03-13"
+   * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+   * through its last instant) or an RFC 3339 instant.
    * </pre>
    *
    * <code>string to_date = 3 [json_name = "toDate"];</code>
@@ -527,7 +529,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetAgentUsageReportInput requests a usage report for a specific agent
-   * within one organization. Aggregates cost and token data across the org's
+   * within one organization. Aggregates token data across the org's
    * sessions of the agent within a time range.
    * </pre>
    *
@@ -831,8 +833,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object fromDate_ = "";
     /**
      * <pre>
-     * Start of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-01"
+     * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+     * from its first instant) or an RFC 3339 instant. A run is in the range
+     * when it was created in it.
      * </pre>
      *
      * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -852,8 +855,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Start of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-01"
+     * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+     * from its first instant) or an RFC 3339 instant. A run is in the range
+     * when it was created in it.
      * </pre>
      *
      * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -874,8 +878,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Start of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-01"
+     * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+     * from its first instant) or an RFC 3339 instant. A run is in the range
+     * when it was created in it.
      * </pre>
      *
      * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -892,8 +897,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Start of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-01"
+     * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+     * from its first instant) or an RFC 3339 instant. A run is in the range
+     * when it was created in it.
      * </pre>
      *
      * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -907,8 +913,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Start of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-01"
+     * Start of the time range, inclusive: a UTC calendar day ("2026-03-01",
+     * from its first instant) or an RFC 3339 instant. A run is in the range
+     * when it was created in it.
      * </pre>
      *
      * <code>string from_date = 2 [json_name = "fromDate"];</code>
@@ -928,8 +935,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object toDate_ = "";
     /**
      * <pre>
-     * End of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-13"
+     * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+     * through its last instant) or an RFC 3339 instant.
      * </pre>
      *
      * <code>string to_date = 3 [json_name = "toDate"];</code>
@@ -949,8 +956,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * End of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-13"
+     * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+     * through its last instant) or an RFC 3339 instant.
      * </pre>
      *
      * <code>string to_date = 3 [json_name = "toDate"];</code>
@@ -971,8 +978,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * End of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-13"
+     * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+     * through its last instant) or an RFC 3339 instant.
      * </pre>
      *
      * <code>string to_date = 3 [json_name = "toDate"];</code>
@@ -989,8 +996,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * End of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-13"
+     * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+     * through its last instant) or an RFC 3339 instant.
      * </pre>
      *
      * <code>string to_date = 3 [json_name = "toDate"];</code>
@@ -1004,8 +1011,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * End of time range filter (ISO 8601, inclusive).
-     * Example: "2026-03-13"
+     * End of the time range, inclusive: a UTC calendar day ("2026-03-13",
+     * through its last instant) or an RFC 3339 instant.
      * </pre>
      *
      * <code>string to_date = 3 [json_name = "toDate"];</code>

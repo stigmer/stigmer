@@ -141,14 +141,16 @@ class RunQueryControllerServicer(object):
         """─────────────────────────────────────────────────────────────────────────────
         Usage Report Operations
 
-        These RPCs provide cost and token consumption visibility at run,
-        session, agent, and organization levels. All data is sourced from the
-        llm_call_usage_record collection (billing domain).
+        These RPCs show token consumption at run, session, agent, and
+        organization levels, never a price. A run the deployment's meter
+        recorded is counted from its metered model calls; any other run from
+        its runner's own report, marked estimated.
         ─────────────────────────────────────────────────────────────────────────────
 
         Get a usage report for a single run.
 
-        Returns aggregated tokens, cost, and per-model breakdown for one run.
+        Returns aggregated tokens, who served them, and the per-model breakdown
+        for one run.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -157,7 +159,7 @@ class RunQueryControllerServicer(object):
     def getSessionUsageReport(self, request, context):
         """Get a usage report for a session.
 
-        Returns aggregated tokens, cost, and per-run breakdown.
+        Returns aggregated tokens and the per-run breakdown.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -166,7 +168,7 @@ class RunQueryControllerServicer(object):
     def getAgentUsageReport(self, request, context):
         """Get a usage report for an agent within an organization.
 
-        Returns aggregated tokens, cost, and per-session breakdown for one
+        Returns aggregated tokens and the per-session breakdown for one
         organization's runs of the agent. Requires can_view on the
         organization named in org; runs outside that organization are
         never included, so the report is the per-agent drill-down of
@@ -179,7 +181,8 @@ class RunQueryControllerServicer(object):
     def getOrgUsageReport(self, request, context):
         """Get a usage report for an organization.
 
-        Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+        Returns org-wide token totals, the agents with the most tokens, the
+        model breakdown, and the daily trend, over the runs the caller can read.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -190,9 +193,8 @@ class RunQueryControllerServicer(object):
         Run Summary (Dashboard Aggregation)
 
         Operational summary for the platform dashboard. Returns phase counts
-        and active run count — cost is sourced separately from
-        getOrgUsageReport, the billing source of truth, so it is never counted
-        from two sources.
+        and active run count. Tokens come from getOrgUsageReport, so usage is
+        never counted from two places.
         ─────────────────────────────────────────────────────────────────────────────
 
         Get aggregated run statistics for an organization's runs.

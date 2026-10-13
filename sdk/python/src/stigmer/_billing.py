@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 
 import grpc
 
@@ -14,15 +13,6 @@ from ai.stigmer.billing.v1 import model_pricing_baseline_pb2
 from ai.stigmer.billing.v1 import query_pb2_grpc
 
 from ._gen._errors import wrap_error
-
-
-@dataclass
-class GetBillingUsageReportParams:
-    """Parameters for querying the usage report."""
-
-    org: str
-    start_time: datetime
-    end_time: datetime
 
 
 @dataclass
@@ -69,10 +59,12 @@ class BillingClient:
     """Billing bounded-context client.
 
     Wraps the user-facing billing RPCs: the organization's billing account
-    (its Stripe customer), the Stripe portal and card setup sessions, the
-    usage meter's call and run counts, and the operator model-pricing
-    surfaces.  Responses are returned as proto messages — the proto types
-    are the contract.
+    (its Stripe customer), the Stripe portal and card setup sessions, and
+    the operator model-pricing surfaces.  Responses are returned as proto
+    messages — the proto types are the contract.  Token usage is read from
+    the run client's usage reports (``get_run_usage_report``,
+    ``get_session_usage_report``, ``get_agent_usage_report``,
+    ``get_org_usage_report``), counted in tokens and never priced.
 
     The proxy's metering write (``recordLlmCallUsage``) is not exposed;
     only the server calls it.
@@ -82,7 +74,7 @@ class BillingClient:
         self._command = command_pb2_grpc.BillingCommandControllerStub(channel)
         self._query = query_pb2_grpc.BillingQueryControllerStub(channel)
 
-    # ── Account & usage ──────────────────────────────────────────────────
+    # ── Account ──────────────────────────────────────────────────────────
 
     def get_or_create_billing_account(
         self, org: str
@@ -103,22 +95,6 @@ class BillingClient:
         req = billing_io_pb2.GetBillingAccountInput(org=org)
         try:
             return self._query.getBillingAccount(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def get_billing_usage_report(
-        self, params: GetBillingUsageReportParams
-    ) -> billing_io_pb2.BillingUsageReportResponse:
-        """Retrieve an aggregated usage report for a date range.
-
-        Returns the run and LLM call counts, and a per-model breakdown of
-        call counts by model and harness.
-        """
-        req = billing_io_pb2.GetBillingUsageReportInput(org=params.org)
-        req.start_time.FromDatetime(params.start_time)
-        req.end_time.FromDatetime(params.end_time)
-        try:
-            return self._query.getBillingUsageReport(req)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

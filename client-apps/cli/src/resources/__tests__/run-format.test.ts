@@ -1,8 +1,9 @@
 // Unit tests for the run output formatters: duration math between two
-// timestamps and ellipsis truncation.
+// timestamps, ellipsis truncation, and the compact token count the usage
+// reports and the run epilogue print.
 
 import { describe, expect, it } from "vitest";
-import { calculateDuration, truncateWithEllipsis } from "../run-format.js";
+import { calculateDuration, formatTokenCount, truncateWithEllipsis } from "../run-format.js";
 
 describe("calculateDuration", () => {
   it("returns '-' when a bound is missing or unparseable", () => {
@@ -31,5 +32,23 @@ describe("truncateWithEllipsis", () => {
 
   it("truncates and appends an ellipsis", () => {
     expect(truncateWithEllipsis("abcdefghij", 8)).toBe("abcde...");
+  });
+});
+
+describe("formatTokenCount", () => {
+  it("prints counts under a thousand whole", () => {
+    expect(formatTokenCount(0n)).toBe("0");
+    expect(formatTokenCount(999n)).toBe("999");
+  });
+
+  it("prints thousands with one decimal and a k", () => {
+    expect(formatTokenCount(1000n)).toBe("1.0k");
+    expect(formatTokenCount(18_400n)).toBe("18.4k");
+    expect(formatTokenCount(999_949n)).toBe("999.9k");
+  });
+
+  it("moves to M where k would round up to a thousand", () => {
+    expect(formatTokenCount(999_950n)).toBe("1.0M");
+    expect(formatTokenCount(1_234_567n)).toBe("1.2M");
   });
 });

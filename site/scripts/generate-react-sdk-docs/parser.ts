@@ -206,7 +206,7 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   usage: {
     title: "Usage",
     description:
-      "Hooks and components for organization-level usage reporting and cost breakdown.",
+      "Hooks and components for organization-level token usage reporting.",
   },
   error: {
     title: "Error",

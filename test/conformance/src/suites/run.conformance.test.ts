@@ -400,17 +400,18 @@ describe("Run conformance — zero-record read surfaces", () => {
     expect(err.rawMessage).toBe("Run not found: aexec_01conformancemissing");
   });
 
-  it("[rpc:RunQueryController.getSessionUsageReport] [rpc:RunQueryController.getAgentUsageReport] [rpc:RunQueryController.getOrgUsageReport] the session/agent/org usage reports answer zero-valued SHAPES for nothing to aggregate", async (ctx) => {
+  it("[rpc:RunQueryController.getSessionUsageReport] [rpc:RunQueryController.getAgentUsageReport] [rpc:RunQueryController.getOrgUsageReport] the session/agent/org usage reports answer zero-valued token SHAPES for nothing to aggregate", async (ctx) => {
     // Single-user posture only: where orgs are real, an unauthorized scope
     // answers PermissionDenied instead of a zero report — the aggregation
     // reads are authorization-gated per scope on the multi-tenant edition.
     if (target.capabilities.enforcingAuthorizer) return ctx.skip();
-    // The zero-shapes contract: these aggregation reads never error for
-    // "nothing to aggregate" — they answer structurally complete,
-    // zero-valued reports (OSS deliberately records no usage data at all,
-    // so on this edition even populated executions aggregate to zero).
-    // The session report names no Organization and checks no existence;
-    // the agent and org reports name one, which must exist (below).
+    // These aggregation reads never error for "nothing to aggregate": they
+    // answer structurally complete reports whose token counts are zero, with
+    // no run to estimate and no server to name (a populated run's tokens are
+    // the execution suite's). The reports count tokens and carry no money
+    // field at all. The session report names no Organization and checks no
+    // existence; the agent and org reports name one, which must exist
+    // (below).
     const { org } = await target.provisionTenancy();
     const session = await clients.agentExecutionQuery.getSessionUsageReport({
       sessionId: "ses_01conformancemissing",
@@ -418,6 +419,10 @@ describe("Run conformance — zero-record read surfaces", () => {
     expect(session.sessionId).toBe("ses_01conformancemissing");
     expect(session.runCount).toBe(0);
     expect(session.totalUsage, "the aggregate is always present, zero-valued").toBeDefined();
+    expect(session.totalUsage?.totalTokens).toBe(0n);
+    expect(session.totalUsage?.llmCallCount).toBe(0);
+    expect(session.totalUsage?.servedBy, "no tokens, so no server to name").toHaveLength(0);
+    expect(session.isEstimated, "no run was counted from its runner's report").toBe(false);
     expect(session.runs).toHaveLength(0);
     expect(session.modelBreakdown).toHaveLength(0);
     expect(session.firstRunAt).toBe("");
@@ -431,6 +436,8 @@ describe("Run conformance — zero-record read surfaces", () => {
     // id is echoed — pinned so clients know not to treat it as a name.
     expect(agent.agentName).toBe("agt_01conformancemissing");
     expect(agent.totalUsage).toBeDefined();
+    expect(agent.totalUsage?.totalTokens).toBe(0n);
+    expect(agent.modelBreakdown).toHaveLength(0);
     expect(agent.sessions).toHaveLength(0);
     expect(agent.totalSessions).toBe(0);
     expect(agent.totalRuns).toBe(0);
@@ -444,9 +451,14 @@ describe("Run conformance — zero-record read surfaces", () => {
     expect(orgReport.totalAgents).toBe(0);
     expect(orgReport.totalSessions).toBe(0);
     expect(orgReport.totalRuns).toBe(0);
+    expect(orgReport.totalUsage, "the organization's token total is always present").toBeDefined();
+    expect(orgReport.totalUsage?.totalTokens).toBe(0n);
+    expect(orgReport.totalUsage?.llmCallCount).toBe(0);
+    expect(orgReport.totalUsage?.servedBy).toHaveLength(0);
     expect(orgReport.modelBreakdown).toHaveLength(0);
-    expect(orgReport.topAgentsByCost).toHaveLength(0);
-    expect(orgReport.dailyCosts).toHaveLength(0);
+    expect(orgReport.topAgents).toHaveLength(0);
+    expect(orgReport.dailyUsage).toHaveLength(0);
+    expect(orgReport.harnessUsage).toHaveLength(0);
   });
 
   it("[rpc:RunQueryController.getAgentUsageReport] [rpc:RunQueryController.getOrgUsageReport] the agent/org usage reports of an Organization that does not exist are NotFound with the load-first copy", async () => {

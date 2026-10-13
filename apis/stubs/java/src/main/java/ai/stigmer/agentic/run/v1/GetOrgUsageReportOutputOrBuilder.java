@@ -62,16 +62,6 @@ public interface GetOrgUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total billable cost in micro-USD across the organization in the time range.
-   * </pre>
-   *
-   * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
-   * @return The totalBillableCostMicros.
-   */
-  long getTotalBillableCostMicros();
-
-  /**
-   * <pre>
    * Per-model breakdown across the organization.
    * </pre>
    *
@@ -116,133 +106,165 @@ public interface GetOrgUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
   java.util.List<ai.stigmer.agentic.run.v1.AgentUsageSummary> 
-      getTopAgentsByCostList();
+      getTopAgentsList();
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
-  ai.stigmer.agentic.run.v1.AgentUsageSummary getTopAgentsByCost(int index);
+  ai.stigmer.agentic.run.v1.AgentUsageSummary getTopAgents(int index);
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
-  int getTopAgentsByCostCount();
+  int getTopAgentsCount();
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder> 
-      getTopAgentsByCostOrBuilderList();
+      getTopAgentsOrBuilderList();
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
+   * The ten agents with the most tokens, ordered by total_tokens descending.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.AgentUsageSummary top_agents = 10 [json_name = "topAgents"];</code>
    */
-  ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder getTopAgentsByCostOrBuilder(
+  ai.stigmer.agentic.run.v1.AgentUsageSummaryOrBuilder getTopAgentsOrBuilder(
       int index);
 
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
-  java.util.List<ai.stigmer.agentic.run.v1.DailyCostEntry> 
-      getDailyCostsList();
+  java.util.List<ai.stigmer.agentic.run.v1.DailyUsage> 
+      getDailyUsageList();
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
-  ai.stigmer.agentic.run.v1.DailyCostEntry getDailyCosts(int index);
+  ai.stigmer.agentic.run.v1.DailyUsage getDailyUsage(int index);
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
-  int getDailyCostsCount();
+  int getDailyUsageCount();
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
-  java.util.List<? extends ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder> 
-      getDailyCostsOrBuilderList();
+  java.util.List<? extends ai.stigmer.agentic.run.v1.DailyUsageOrBuilder> 
+      getDailyUsageOrBuilderList();
   /**
    * <pre>
-   * Daily cost trend within the time range, ordered chronologically.
+   * Daily token trend within the time range, one row per UTC day that has a
+   * run, ordered chronologically.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.DailyCostEntry daily_costs = 8 [json_name = "dailyCosts"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.DailyUsage daily_usage = 11 [json_name = "dailyUsage"];</code>
    */
-  ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder getDailyCostsOrBuilder(
+  ai.stigmer.agentic.run.v1.DailyUsageOrBuilder getDailyUsageOrBuilder(
       int index);
 
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
-  java.util.List<ai.stigmer.agentic.run.v1.HarnessCostSummary> 
-      getHarnessBreakdownList();
+  java.util.List<ai.stigmer.agentic.run.v1.HarnessUsage> 
+      getHarnessUsageList();
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
-  ai.stigmer.agentic.run.v1.HarnessCostSummary getHarnessBreakdown(int index);
+  ai.stigmer.agentic.run.v1.HarnessUsage getHarnessUsage(int index);
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
-  int getHarnessBreakdownCount();
+  int getHarnessUsageCount();
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
-  java.util.List<? extends ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder> 
-      getHarnessBreakdownOrBuilderList();
+  java.util.List<? extends ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder> 
+      getHarnessUsageOrBuilderList();
   /**
    * <pre>
-   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * Usage split by execution harness (e.g., "native" vs "cursor").
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   * <code>repeated .ai.stigmer.agentic.run.v1.HarnessUsage harness_usage = 12 [json_name = "harnessUsage"];</code>
    */
-  ai.stigmer.agentic.run.v1.HarnessCostSummaryOrBuilder getHarnessBreakdownOrBuilder(
+  ai.stigmer.agentic.run.v1.HarnessUsageOrBuilder getHarnessUsageOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Aggregated usage across the organization in the time range.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+   * @return Whether the totalUsage field is set.
+   */
+  boolean hasTotalUsage();
+  /**
+   * <pre>
+   * Aggregated usage across the organization in the time range.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+   * @return The totalUsage.
+   */
+  ai.stigmer.agentic.run.v1.UsageReportAggregate getTotalUsage();
+  /**
+   * <pre>
+   * Aggregated usage across the organization in the time range.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.UsageReportAggregate total_usage = 13 [json_name = "totalUsage"];</code>
+   */
+  ai.stigmer.agentic.run.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder();
 }

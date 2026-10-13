@@ -7,16 +7,16 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * Cost and usage for a single day within an org report.
+ * Usage for a single UTC day within an org report.
  * </pre>
  *
- * Protobuf type {@code ai.stigmer.agentic.run.v1.DailyCostEntry}
+ * Protobuf type {@code ai.stigmer.agentic.run.v1.DailyUsage}
  */
 @com.google.protobuf.Generated
-public final class DailyCostEntry extends
+public final class DailyUsage extends
     com.google.protobuf.GeneratedMessage implements
-    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.run.v1.DailyCostEntry)
-    DailyCostEntryOrBuilder {
+    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.run.v1.DailyUsage)
+    DailyUsageOrBuilder {
 private static final long serialVersionUID = 0L;
   static {
     com.google.protobuf.RuntimeVersion.validateProtobufGencodeVersion(
@@ -25,32 +25,32 @@ private static final long serialVersionUID = 0L;
       /* minor= */ 34,
       /* patch= */ 0,
       /* suffix= */ "",
-      "DailyCostEntry");
+      "DailyUsage");
   }
-  // Use DailyCostEntry.newBuilder() to construct.
-  private DailyCostEntry(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+  // Use DailyUsage.newBuilder() to construct.
+  private DailyUsage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
     super(builder);
   }
-  private DailyCostEntry() {
+  private DailyUsage() {
     date_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyCostEntry_descriptor;
+    return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyUsage_descriptor;
   }
 
   @java.lang.Override
   public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-    return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyCostEntry_descriptor;
+    return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyUsage_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyCostEntry_fieldAccessorTable
+    return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyUsage_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            ai.stigmer.agentic.run.v1.DailyCostEntry.class, ai.stigmer.agentic.run.v1.DailyCostEntry.Builder.class);
+            ai.stigmer.agentic.run.v1.DailyUsage.class, ai.stigmer.agentic.run.v1.DailyUsage.Builder.class);
   }
 
   public static final int DATE_FIELD_NUMBER = 1;
@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object date_ = "";
   /**
    * <pre>
-   * Date in YYYY-MM-DD format.
+   * UTC date in YYYY-MM-DD format.
    * </pre>
    *
    * <code>string date = 1 [json_name = "date"];</code>
@@ -79,7 +79,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Date in YYYY-MM-DD format.
+   * UTC date in YYYY-MM-DD format.
    * </pre>
    *
    * <code>string date = 1 [json_name = "date"];</code>
@@ -104,7 +104,7 @@ private static final long serialVersionUID = 0L;
   private int runCount_ = 0;
   /**
    * <pre>
-   * Number of runs on this date.
+   * Number of runs created on this date.
    * </pre>
    *
    * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -119,7 +119,7 @@ private static final long serialVersionUID = 0L;
   private long totalTokens_ = 0L;
   /**
    * <pre>
-   * Total tokens consumed on this date.
+   * Total tokens of those runs (cache-inclusive, as the aggregate's).
    * </pre>
    *
    * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
@@ -130,19 +130,19 @@ private static final long serialVersionUID = 0L;
     return totalTokens_;
   }
 
-  public static final int BILLABLE_COST_MICROS_FIELD_NUMBER = 4;
-  private long billableCostMicros_ = 0L;
+  public static final int LLM_CALL_COUNT_FIELD_NUMBER = 4;
+  private int llmCallCount_ = 0;
   /**
    * <pre>
-   * Total billable cost in micro-USD on this date.
+   * Number of metered LLM API calls of those runs.
    * </pre>
    *
-   * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
+   * <code>int32 llm_call_count = 4 [json_name = "llmCallCount"];</code>
+   * @return The llmCallCount.
    */
   @java.lang.Override
-  public long getBillableCostMicros() {
-    return billableCostMicros_;
+  public int getLlmCallCount() {
+    return llmCallCount_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -168,8 +168,8 @@ private static final long serialVersionUID = 0L;
     if (totalTokens_ != 0L) {
       output.writeInt64(3, totalTokens_);
     }
-    if (billableCostMicros_ != 0L) {
-      output.writeInt64(4, billableCostMicros_);
+    if (llmCallCount_ != 0) {
+      output.writeInt32(4, llmCallCount_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -191,9 +191,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(3, totalTokens_);
     }
-    if (billableCostMicros_ != 0L) {
+    if (llmCallCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(4, billableCostMicros_);
+        .computeInt32Size(4, llmCallCount_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -205,10 +205,10 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof ai.stigmer.agentic.run.v1.DailyCostEntry)) {
+    if (!(obj instanceof ai.stigmer.agentic.run.v1.DailyUsage)) {
       return super.equals(obj);
     }
-    ai.stigmer.agentic.run.v1.DailyCostEntry other = (ai.stigmer.agentic.run.v1.DailyCostEntry) obj;
+    ai.stigmer.agentic.run.v1.DailyUsage other = (ai.stigmer.agentic.run.v1.DailyUsage) obj;
 
     if (!getDate()
         .equals(other.getDate())) return false;
@@ -216,8 +216,8 @@ private static final long serialVersionUID = 0L;
         != other.getRunCount()) return false;
     if (getTotalTokens()
         != other.getTotalTokens()) return false;
-    if (getBillableCostMicros()
-        != other.getBillableCostMicros()) return false;
+    if (getLlmCallCount()
+        != other.getLlmCallCount()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -236,52 +236,51 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + TOTAL_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getTotalTokens());
-    hash = (37 * hash) + BILLABLE_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getBillableCostMicros());
+    hash = (37 * hash) + LLM_CALL_COUNT_FIELD_NUMBER;
+    hash = (53 * hash) + getLlmCallCount();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
   }
 
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(byte[] data)
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -289,26 +288,26 @@ private static final long serialVersionUID = 0L;
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
 
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseDelimitedFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input);
   }
 
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseDelimitedFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry parseFrom(
+  public static ai.stigmer.agentic.run.v1.DailyUsage parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -321,7 +320,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(ai.stigmer.agentic.run.v1.DailyCostEntry prototype) {
+  public static Builder newBuilder(ai.stigmer.agentic.run.v1.DailyUsage prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -338,29 +337,29 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Cost and usage for a single day within an org report.
+   * Usage for a single UTC day within an org report.
    * </pre>
    *
-   * Protobuf type {@code ai.stigmer.agentic.run.v1.DailyCostEntry}
+   * Protobuf type {@code ai.stigmer.agentic.run.v1.DailyUsage}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.run.v1.DailyCostEntry)
-      ai.stigmer.agentic.run.v1.DailyCostEntryOrBuilder {
+      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.run.v1.DailyUsage)
+      ai.stigmer.agentic.run.v1.DailyUsageOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyCostEntry_descriptor;
+      return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyUsage_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyCostEntry_fieldAccessorTable
+      return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyUsage_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              ai.stigmer.agentic.run.v1.DailyCostEntry.class, ai.stigmer.agentic.run.v1.DailyCostEntry.Builder.class);
+              ai.stigmer.agentic.run.v1.DailyUsage.class, ai.stigmer.agentic.run.v1.DailyUsage.Builder.class);
     }
 
-    // Construct using ai.stigmer.agentic.run.v1.DailyCostEntry.newBuilder()
+    // Construct using ai.stigmer.agentic.run.v1.DailyUsage.newBuilder()
     private Builder() {
 
     }
@@ -377,24 +376,24 @@ private static final long serialVersionUID = 0L;
       date_ = "";
       runCount_ = 0;
       totalTokens_ = 0L;
-      billableCostMicros_ = 0L;
+      llmCallCount_ = 0;
       return this;
     }
 
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyCostEntry_descriptor;
+      return ai.stigmer.agentic.run.v1.IoProto.internal_static_ai_stigmer_agentic_run_v1_DailyUsage_descriptor;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.run.v1.DailyCostEntry getDefaultInstanceForType() {
-      return ai.stigmer.agentic.run.v1.DailyCostEntry.getDefaultInstance();
+    public ai.stigmer.agentic.run.v1.DailyUsage getDefaultInstanceForType() {
+      return ai.stigmer.agentic.run.v1.DailyUsage.getDefaultInstance();
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.run.v1.DailyCostEntry build() {
-      ai.stigmer.agentic.run.v1.DailyCostEntry result = buildPartial();
+    public ai.stigmer.agentic.run.v1.DailyUsage build() {
+      ai.stigmer.agentic.run.v1.DailyUsage result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -402,14 +401,14 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.run.v1.DailyCostEntry buildPartial() {
-      ai.stigmer.agentic.run.v1.DailyCostEntry result = new ai.stigmer.agentic.run.v1.DailyCostEntry(this);
+    public ai.stigmer.agentic.run.v1.DailyUsage buildPartial() {
+      ai.stigmer.agentic.run.v1.DailyUsage result = new ai.stigmer.agentic.run.v1.DailyUsage(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(ai.stigmer.agentic.run.v1.DailyCostEntry result) {
+    private void buildPartial0(ai.stigmer.agentic.run.v1.DailyUsage result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.date_ = date_;
@@ -421,22 +420,22 @@ private static final long serialVersionUID = 0L;
         result.totalTokens_ = totalTokens_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.billableCostMicros_ = billableCostMicros_;
+        result.llmCallCount_ = llmCallCount_;
       }
     }
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof ai.stigmer.agentic.run.v1.DailyCostEntry) {
-        return mergeFrom((ai.stigmer.agentic.run.v1.DailyCostEntry)other);
+      if (other instanceof ai.stigmer.agentic.run.v1.DailyUsage) {
+        return mergeFrom((ai.stigmer.agentic.run.v1.DailyUsage)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(ai.stigmer.agentic.run.v1.DailyCostEntry other) {
-      if (other == ai.stigmer.agentic.run.v1.DailyCostEntry.getDefaultInstance()) return this;
+    public Builder mergeFrom(ai.stigmer.agentic.run.v1.DailyUsage other) {
+      if (other == ai.stigmer.agentic.run.v1.DailyUsage.getDefaultInstance()) return this;
       if (!other.getDate().isEmpty()) {
         date_ = other.date_;
         bitField0_ |= 0x00000001;
@@ -448,8 +447,8 @@ private static final long serialVersionUID = 0L;
       if (other.getTotalTokens() != 0L) {
         setTotalTokens(other.getTotalTokens());
       }
-      if (other.getBillableCostMicros() != 0L) {
-        setBillableCostMicros(other.getBillableCostMicros());
+      if (other.getLlmCallCount() != 0) {
+        setLlmCallCount(other.getLlmCallCount());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -493,7 +492,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 24
             case 32: {
-              billableCostMicros_ = input.readInt64();
+              llmCallCount_ = input.readInt32();
               bitField0_ |= 0x00000008;
               break;
             } // case 32
@@ -517,7 +516,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object date_ = "";
     /**
      * <pre>
-     * Date in YYYY-MM-DD format.
+     * UTC date in YYYY-MM-DD format.
      * </pre>
      *
      * <code>string date = 1 [json_name = "date"];</code>
@@ -537,7 +536,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Date in YYYY-MM-DD format.
+     * UTC date in YYYY-MM-DD format.
      * </pre>
      *
      * <code>string date = 1 [json_name = "date"];</code>
@@ -558,7 +557,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Date in YYYY-MM-DD format.
+     * UTC date in YYYY-MM-DD format.
      * </pre>
      *
      * <code>string date = 1 [json_name = "date"];</code>
@@ -575,7 +574,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Date in YYYY-MM-DD format.
+     * UTC date in YYYY-MM-DD format.
      * </pre>
      *
      * <code>string date = 1 [json_name = "date"];</code>
@@ -589,7 +588,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Date in YYYY-MM-DD format.
+     * UTC date in YYYY-MM-DD format.
      * </pre>
      *
      * <code>string date = 1 [json_name = "date"];</code>
@@ -609,7 +608,7 @@ private static final long serialVersionUID = 0L;
     private int runCount_ ;
     /**
      * <pre>
-     * Number of runs on this date.
+     * Number of runs created on this date.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -621,7 +620,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of runs on this date.
+     * Number of runs created on this date.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -637,7 +636,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Number of runs on this date.
+     * Number of runs created on this date.
      * </pre>
      *
      * <code>int32 run_count = 2 [json_name = "runCount"];</code>
@@ -653,7 +652,7 @@ private static final long serialVersionUID = 0L;
     private long totalTokens_ ;
     /**
      * <pre>
-     * Total tokens consumed on this date.
+     * Total tokens of those runs (cache-inclusive, as the aggregate's).
      * </pre>
      *
      * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
@@ -665,7 +664,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total tokens consumed on this date.
+     * Total tokens of those runs (cache-inclusive, as the aggregate's).
      * </pre>
      *
      * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
@@ -681,7 +680,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total tokens consumed on this date.
+     * Total tokens of those runs (cache-inclusive, as the aggregate's).
      * </pre>
      *
      * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
@@ -694,67 +693,67 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long billableCostMicros_ ;
+    private int llmCallCount_ ;
     /**
      * <pre>
-     * Total billable cost in micro-USD on this date.
+     * Number of metered LLM API calls of those runs.
      * </pre>
      *
-     * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
-     * @return The billableCostMicros.
+     * <code>int32 llm_call_count = 4 [json_name = "llmCallCount"];</code>
+     * @return The llmCallCount.
      */
     @java.lang.Override
-    public long getBillableCostMicros() {
-      return billableCostMicros_;
+    public int getLlmCallCount() {
+      return llmCallCount_;
     }
     /**
      * <pre>
-     * Total billable cost in micro-USD on this date.
+     * Number of metered LLM API calls of those runs.
      * </pre>
      *
-     * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
-     * @param value The billableCostMicros to set.
+     * <code>int32 llm_call_count = 4 [json_name = "llmCallCount"];</code>
+     * @param value The llmCallCount to set.
      * @return This builder for chaining.
      */
-    public Builder setBillableCostMicros(long value) {
+    public Builder setLlmCallCount(int value) {
 
-      billableCostMicros_ = value;
+      llmCallCount_ = value;
       bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total billable cost in micro-USD on this date.
+     * Number of metered LLM API calls of those runs.
      * </pre>
      *
-     * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
+     * <code>int32 llm_call_count = 4 [json_name = "llmCallCount"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearBillableCostMicros() {
+    public Builder clearLlmCallCount() {
       bitField0_ = (bitField0_ & ~0x00000008);
-      billableCostMicros_ = 0L;
+      llmCallCount_ = 0;
       onChanged();
       return this;
     }
 
-    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.DailyCostEntry)
+    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.DailyUsage)
   }
 
-  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.run.v1.DailyCostEntry)
-  private static final ai.stigmer.agentic.run.v1.DailyCostEntry DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.run.v1.DailyUsage)
+  private static final ai.stigmer.agentic.run.v1.DailyUsage DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new ai.stigmer.agentic.run.v1.DailyCostEntry();
+    DEFAULT_INSTANCE = new ai.stigmer.agentic.run.v1.DailyUsage();
   }
 
-  public static ai.stigmer.agentic.run.v1.DailyCostEntry getDefaultInstance() {
+  public static ai.stigmer.agentic.run.v1.DailyUsage getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<DailyCostEntry>
-      PARSER = new com.google.protobuf.AbstractParser<DailyCostEntry>() {
+  private static final com.google.protobuf.Parser<DailyUsage>
+      PARSER = new com.google.protobuf.AbstractParser<DailyUsage>() {
     @java.lang.Override
-    public DailyCostEntry parsePartialFrom(
+    public DailyUsage parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -773,17 +772,17 @@ private static final long serialVersionUID = 0L;
     }
   };
 
-  public static com.google.protobuf.Parser<DailyCostEntry> parser() {
+  public static com.google.protobuf.Parser<DailyUsage> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<DailyCostEntry> getParserForType() {
+  public com.google.protobuf.Parser<DailyUsage> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public ai.stigmer.agentic.run.v1.DailyCostEntry getDefaultInstanceForType() {
+  public ai.stigmer.agentic.run.v1.DailyUsage getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

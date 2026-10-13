@@ -46,7 +46,7 @@
       "slug": "billing",
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
-      "hooks": 12,
+      "hooks": 11,
       "components": 9
     },
     {
@@ -332,7 +332,7 @@
     {
       "slug": "usage",
       "title": "Usage",
-      "description": "Hooks and components for organization-level usage reporting and cost breakdown.",
+      "description": "Hooks and components for organization-level token usage reporting.",
       "hooks": 2,
       "components": 4
     },

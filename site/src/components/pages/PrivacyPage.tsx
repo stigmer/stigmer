@@ -65,7 +65,8 @@ function PrivacyPage() {
                   <li>
                     <strong className="text-foreground">Billing information.</strong>{" "}
                     Payments are processed by Stripe; we do not store your card
-                    details. We keep records of credit balances and usage.
+                    details. We keep your plan, invoices and usage records (token
+                    counts per model call).
                   </li>
                   <li>
                     <strong className="text-foreground">Usage data.</strong>{" "}

@@ -1242,7 +1242,7 @@ verdict, or a plugin eval's checks on one try.
   `criteria` (one per check or rubric, each with its reason), `comment` (a
   person's feedback only), `judge_model` (a judge's only), and `status.state`
   (`graded`, `not_graded` with a reason, or `pending` while a judge grades).
-- **Boundaries**: a Score is not a usage report (cost and tokens), and a
+- **Boundaries**: a Score is not a usage report (tokens per run), and a
   not-graded score is never a failing one: it means the run could not be graded.
 - **Note**: a score's visibility is its run's. Whoever can see the run sees its
   scores; nothing is shared on a score by itself.

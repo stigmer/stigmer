@@ -8,7 +8,7 @@ package ai.stigmer.agentic.run.v1;
 /**
  * <pre>
  * GetSessionUsageReportInput requests a usage report for a single session.
- * Aggregates cost and token data across all runs in the session.
+ * Aggregates token data across all runs in the session.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.GetSessionUsageReportInput}
@@ -260,7 +260,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GetSessionUsageReportInput requests a usage report for a single session.
-   * Aggregates cost and token data across all runs in the session.
+   * Aggregates token data across all runs in the session.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.GetSessionUsageReportInput}

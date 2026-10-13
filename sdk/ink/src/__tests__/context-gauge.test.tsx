@@ -1,3 +1,8 @@
+// Pins the terminal context gauge: nothing without context info, the bar's
+// percentage, token counts and health label at each health level, compact
+// token formatting, and the latest compaction's detail (tokens before and
+// after, reduction, model, duration, never a price) with its count.
+
 import React from "react";
 import { describe, it, expect } from "vitest";
 import { render } from "ink-testing-library";
@@ -42,7 +47,6 @@ function addSummarizationEvent(
     compressionRatio?: number;
     durationMs?: number;
     model?: string;
-    costUsd?: number;
   },
 ): void {
   const event = create(SummarizationEventSchema);
@@ -54,7 +58,6 @@ function addSummarizationEvent(
   event.summarizationModel = overrides?.model ?? "claude-haiku-4";
   event.messagesBefore = 30;
   event.messagesAfter = 10;
-  event.summarizationCostUsd = overrides?.costUsd ?? 0.02;
 
   exec.status!.contextInfo!.summarizationEvents.push(event);
 }
@@ -145,7 +148,6 @@ describe("ContextGauge", () => {
       compressionRatio: 0.32,
       durationMs: 2100,
       model: "claude-haiku-4",
-      costUsd: 0.02,
     });
 
     const { lastFrame } = render(<ContextGauge run={exec} />);
@@ -155,7 +157,7 @@ describe("ContextGauge", () => {
     expect(output).toContain("120K → 82K tokens (32% reduction)");
     expect(output).toContain("claude-haiku-4");
     expect(output).toContain("2.1s");
-    expect(output).toContain("$0.02");
+    expect(output).not.toContain("$");
   });
 
   it("shows plural compaction count for multiple events", () => {

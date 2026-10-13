@@ -95,8 +95,10 @@ export type EntitlementLimits = Message<"ai.stigmer.platform.v1.EntitlementLimit
    * The most session sandboxes an organization may hold provisioning or
    * running at once. A session launch that would need a new sandbox past it
    * is refused; a follow-up turn on a sandbox already running is not
-   * counted. Read by a subscription. A license ignores it until a
-   * self-hosted capacity gate reads it.
+   * counted. Absent is the platform's guardrail, the one limit an operator
+   * sets for every organization; a value raises it, never lowers it. Read
+   * by a subscription. A license ignores it until a self-hosted capacity
+   * gate reads it.
    *
    * @generated from field: optional int32 max_active_session_sandboxes = 4;
    */

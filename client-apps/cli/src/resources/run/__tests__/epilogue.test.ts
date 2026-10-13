@@ -2,11 +2,13 @@
 // stream that failed before reaching a phase is re-raised as a CLI error;
 // otherwise the final run and its usage report are read (the run by the id
 // the stream followed) and a compact summary goes to stderr. In a session the
-// summary names the outcome (completed with duration and cost, failed with
-// the best error the run holds, cancelled, stopped, or exited mid-phase) and
-// the matching copy-paste `stigmer resume` line; without one it is a single
-// completion line. A usage report the server will not give drops the cost
-// and fails nothing. The client is a double recording what it was asked.
+// summary names the outcome (completed with duration and tokens, never a
+// price; failed with the best error the run holds, cancelled, stopped, or
+// exited mid-phase) and the matching copy-paste `stigmer resume` line;
+// without one it is a single completion line. Tokens with no metered calls
+// were counted from the runner's own report and carry a "~". A usage report
+// the server will not give, or one that counted no tokens, drops the token
+// part and fails nothing. The client is a double recording what it was asked.
 
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -29,8 +31,15 @@ interface Double {
   readonly usageRequests: GetRunUsageReportInput[];
 }
 
-/** A client whose final Get answers `run` and whose usage report costs `micros` (or fails). */
-function double(run: Run, micros: bigint | "fails" = 0n): Double {
+interface Usage {
+  readonly totalTokens: bigint;
+  readonly llmCallCount: number;
+}
+
+const NO_USAGE: Usage = { totalTokens: 0n, llmCallCount: 0 };
+
+/** A client whose final Get answers `run` and whose usage report holds `usage` (or fails). */
+function double(run: Run, usage: Usage | "fails" = NO_USAGE): Double {
   const gets: string[] = [];
   const usageRequests: GetRunUsageReportInput[] = [];
   const client = {
@@ -41,8 +50,8 @@ function double(run: Run, micros: bigint | "fails" = 0n): Double {
       },
       getRunUsageReport: async (req: GetRunUsageReportInput) => {
         usageRequests.push(req);
-        if (micros === "fails") throw new Error("usage service down");
-        return { aggregate: { billableCostMicros: micros } };
+        if (usage === "fails") throw new Error("usage service down");
+        return { aggregate: usage };
       },
     },
   } as unknown as Stigmer;
@@ -76,18 +85,39 @@ describe("runEpilogue", () => {
     expect(d.gets).toEqual([]);
   });
 
-  it("summarises a completed session turn with duration and cost, and returns the final run", async () => {
+  it("summarises a completed session turn with duration and metered tokens, and returns the final run", async () => {
     const run = finalRun({ phase: RunPhase.RUN_COMPLETED, startedAt: STARTED, completedAt: "2026-06-12T10:01:30Z" });
-    const d = double(run, 123_456n);
+    const d = double(run, { totalTokens: 18_400n, llmCallCount: 3 });
     const result = await runEpilogue(d.client, "ses_1", "aex_1", ok);
 
     expect(result).toBe(run);
     expect(d.gets).toEqual(["aex_1"]);
     expect(d.usageRequests.map((r) => r.runId)).toEqual(["aex_1"]);
-    expect(stderr).toEqual(["\n", "✓ Completed (1m30s · $0.123)\n", "\n", "  To continue:  stigmer resume ses_1\n"]);
+    expect(stderr).toEqual(["\n", "✓ Completed (1m30s · 18.4k tokens)\n", "\n", "  To continue:  stigmer resume ses_1\n"]);
   });
 
-  it("drops the cost when the usage report fails, without failing the run", async () => {
+  it("marks tokens counted from the runner's own report, with no metered calls, as estimated", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED, startedAt: STARTED, completedAt: "2026-06-12T10:00:42Z" }), {
+      totalTokens: 1_234_567n,
+      llmCallCount: 0,
+    });
+    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    expect(stderr).toContain("✓ Completed (42s · ~1.2M tokens)\n");
+  });
+
+  it("drops the token part when the report counted none", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED, startedAt: STARTED, completedAt: "2026-06-12T10:00:45Z" }));
+    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    expect(stderr).toContain("✓ Completed (45s)\n");
+  });
+
+  it("names only the tokens when the run has no duration", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED }), { totalTokens: 900n, llmCallCount: 1 });
+    await runEpilogue(d.client, "ses_1", "aex_1", ok);
+    expect(stderr).toContain("✓ Completed (900 tokens)\n");
+  });
+
+  it("drops the tokens when the usage report fails, without failing the run", async () => {
     const d = double(finalRun({ phase: RunPhase.RUN_COMPLETED, startedAt: STARTED, completedAt: "2026-06-12T10:00:45Z" }), "fails");
     await runEpilogue(d.client, "ses_1", "aex_1", ok);
     expect(stderr).toContain("✓ Completed (45s)\n");

@@ -13,7 +13,6 @@ from ._billing import (
     BillingClient,
     CreateBillingPortalSessionParams,
     CreatePaymentMethodSetupSessionParams,
-    GetBillingUsageReportParams,
     RetireModelPricingBaselineParams,
     UpsertModelPricingBaselineParams,
 )
@@ -98,7 +97,6 @@ __all__ = [
     "BillingClient",
     "CreateBillingPortalSessionParams",
     "CreatePaymentMethodSetupSessionParams",
-    "GetBillingUsageReportParams",
     "RetireModelPricingBaselineParams",
     "UpsertModelPricingBaselineParams",
     # GitHub

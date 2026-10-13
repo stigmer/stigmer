@@ -299,6 +299,7 @@ describe("getRunUsageReport — LoadExecution", () => {
           logger: silentLogger,
           authorizer: newPermissiveSingleTeamAuthorizer(),
           listReadScope: undefined,
+          meteredUsageProvider: undefined,
         },
         create(
           RunQueryController.method.getRunUsageReport.input,

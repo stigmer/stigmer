@@ -1,12 +1,18 @@
+/**
+ * Shapes the operational dashboard renders: the organization's run counts
+ * and token total, and its recent failed runs. Usage is tokens, never
+ * money; the KPI and summary suites pin how these fields are filled and
+ * shown.
+ */
+
 import type { GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 /**
  * Dashboard summary of an organization's runs.
  *
  * Run counts (active, completed, failed) come from the run summary.
- * Cost comes from {@link GetOrgUsageReportOutput} (billing source of truth),
- * not from summing per-run costs, so the dashboard shows what billing
- * recorded.
+ * Tokens come from the org usage report ({@link GetOrgUsageReportOutput}),
+ * which counts each run once, so the dashboard and the Usage page agree.
  */
 export interface DashboardSummary {
   /** Active run count. */
@@ -16,11 +22,11 @@ export interface DashboardSummary {
   /** Failed run count. */
   readonly failedCount: number;
   /**
-   * Total platform cost in USD from the billing source of truth.
-   * Sourced from `getOrgUsageReport.total_billable_cost_micros`.
+   * The organization's total tokens over the dashboard's window, from
+   * `getOrgUsageReport.total_usage.total_tokens`.
    */
-  readonly totalCostUsd: number;
-  /** Org-level usage report for cost details. */
+  readonly totalTokens: number;
+  /** Org-level usage report for token details. */
   readonly orgUsage: GetOrgUsageReportOutput | null;
 }
 

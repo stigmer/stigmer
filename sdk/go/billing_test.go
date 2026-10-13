@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	billingv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1"
 	"google.golang.org/grpc"
@@ -53,13 +52,7 @@ func (f *fakeBillingCommand) RetireModelPricingBaseline(_ context.Context, in *b
 type fakeBillingQuery struct {
 	billingv1.BillingQueryControllerClient
 
-	usageIn *billingv1.GetBillingUsageReportInput
-	listIn  *billingv1.ListModelPricingBaselinesInput
-}
-
-func (f *fakeBillingQuery) GetBillingUsageReport(_ context.Context, in *billingv1.GetBillingUsageReportInput, _ ...grpc.CallOption) (*billingv1.BillingUsageReportResponse, error) {
-	f.usageIn = in
-	return &billingv1.BillingUsageReportResponse{}, nil
+	listIn *billingv1.ListModelPricingBaselinesInput
 }
 
 func (f *fakeBillingQuery) ListModelPricingBaselines(_ context.Context, in *billingv1.ListModelPricingBaselinesInput, _ ...grpc.CallOption) (*billingv1.ModelPricingBaselinesResponse, error) {
@@ -92,32 +85,6 @@ func TestBillingGetOrCreateBillingAccount_WrapsGRPCError(t *testing.T) {
 	}
 	if sdkErr.GRPCCode != codes.PermissionDenied {
 		t.Errorf("GRPCCode = %v, want PermissionDenied", sdkErr.GRPCCode)
-	}
-}
-
-func TestBillingGetBillingUsageReport_MapsTimestamps(t *testing.T) {
-	fake := &fakeBillingQuery{}
-	client := &BillingClient{query: fake}
-
-	start := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
-	end := time.Date(2026, 7, 31, 23, 59, 59, 0, time.UTC)
-	if _, err := client.GetBillingUsageReport(context.Background(), &GetBillingUsageReportParams{
-		Org:       "acme",
-		StartTime: start,
-		EndTime:   end,
-	}); err != nil {
-		t.Fatalf("GetBillingUsageReport: %v", err)
-	}
-
-	in := fake.usageIn
-	if in.GetOrg() != "acme" {
-		t.Errorf("Org = %q, want acme", in.GetOrg())
-	}
-	if got := in.GetStartTime().AsTime(); !got.Equal(start) {
-		t.Errorf("StartTime = %v, want %v", got, start)
-	}
-	if got := in.GetEndTime().AsTime(); !got.Equal(end) {
-		t.Errorf("EndTime = %v, want %v", got, end)
 	}
 }
 

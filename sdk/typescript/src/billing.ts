@@ -7,18 +7,15 @@ import {
   GetBillingAccountInputSchema,
   CreateBillingPortalSessionInputSchema,
   CreatePaymentMethodSetupSessionInputSchema,
-  GetBillingUsageReportInputSchema,
   UpsertModelPricingBaselineInputSchema,
   RetireModelPricingBaselineInputSchema,
   ListModelPricingBaselinesInputSchema,
   type CreateBillingPortalSessionResponse,
   type CreatePaymentMethodSetupSessionResponse,
-  type BillingUsageReportResponse,
   type ModelPricingBaselinesResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
-import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { wrapError } from "./gen/errors.js";
 
 /** Parameters for creating a Stripe Billing Portal session. */
@@ -32,13 +29,6 @@ export interface CreatePaymentMethodSetupSessionParams {
   readonly org: string;
   readonly successUrl: string;
   readonly cancelUrl: string;
-}
-
-/** Parameters for querying the billing usage report. */
-export interface GetBillingUsageReportParams {
-  readonly org: string;
-  readonly startTime: Date;
-  readonly endTime: Date;
 }
 
 /** Parameters for creating or revising a model registry baseline entry. */
@@ -76,9 +66,10 @@ export interface ListModelPricingBaselinesParams {
  *
  * Wraps the user-facing billing RPCs: the organization's billing
  * account (its Stripe customer), the Stripe portal and card setup
- * sessions, the usage meter's call and run counts, and the
- * platform operator's model catalog. The proxy's metering write
- * (`recordLlmCallUsage`) is not exposed; only the server calls it.
+ * sessions, and the platform operator's model catalog. Token usage is
+ * read from the run client's usage reports, counted in tokens and never
+ * priced. The proxy's metering write (`recordLlmCallUsage`) is not
+ * exposed; only the server calls it.
  */
 export class BillingClient {
   private readonly command: Client<typeof BillingCommandController>;
@@ -156,29 +147,6 @@ export class BillingClient {
           org: params.org,
           successUrl: params.successUrl,
           cancelUrl: params.cancelUrl,
-        }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /**
-   * Retrieve an aggregated usage report for a date range.
-   *
-   * Returns the run and LLM call counts, and a per-model breakdown
-   * of call counts by model and harness. Data is sourced from the
-   * `llm_call_usage_record` collection (proxy-observed, tamper-proof).
-   */
-  async getBillingUsageReport(
-    params: GetBillingUsageReportParams,
-  ): Promise<BillingUsageReportResponse> {
-    try {
-      return await this.query.getBillingUsageReport(
-        create(GetBillingUsageReportInputSchema, {
-          org: params.org,
-          startTime: timestampFromDate(params.startTime),
-          endTime: timestampFromDate(params.endTime),
         }),
       );
     } catch (e) {

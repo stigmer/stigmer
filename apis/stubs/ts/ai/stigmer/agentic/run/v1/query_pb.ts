@@ -98,7 +98,8 @@ export const RunQueryController: GenService<{
   /**
    * Get a usage report for a single run.
    *
-   * Returns aggregated tokens, cost, and per-model breakdown for one run.
+   * Returns aggregated tokens, who served them, and the per-model breakdown
+   * for one run.
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunQueryController.getRunUsageReport
    */
@@ -110,7 +111,7 @@ export const RunQueryController: GenService<{
   /**
    * Get a usage report for a session.
    *
-   * Returns aggregated tokens, cost, and per-run breakdown.
+   * Returns aggregated tokens and the per-run breakdown.
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunQueryController.getSessionUsageReport
    */
@@ -122,7 +123,7 @@ export const RunQueryController: GenService<{
   /**
    * Get a usage report for an agent within an organization.
    *
-   * Returns aggregated tokens, cost, and per-session breakdown for one
+   * Returns aggregated tokens and the per-session breakdown for one
    * organization's runs of the agent. Requires can_view on the
    * organization named in org; runs outside that organization are
    * never included, so the report is the per-agent drill-down of
@@ -138,7 +139,8 @@ export const RunQueryController: GenService<{
   /**
    * Get a usage report for an organization.
    *
-   * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+   * Returns org-wide token totals, the agents with the most tokens, the
+   * model breakdown, and the daily trend, over the runs the caller can read.
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunQueryController.getOrgUsageReport
    */

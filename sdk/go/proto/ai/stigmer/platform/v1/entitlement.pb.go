@@ -219,8 +219,10 @@ type EntitlementLimits struct {
 	// The most session sandboxes an organization may hold provisioning or
 	// running at once. A session launch that would need a new sandbox past it
 	// is refused; a follow-up turn on a sandbox already running is not
-	// counted. Read by a subscription. A license ignores it until a
-	// self-hosted capacity gate reads it.
+	// counted. Absent is the platform's guardrail, the one limit an operator
+	// sets for every organization; a value raises it, never lowers it. Read
+	// by a subscription. A license ignores it until a self-hosted capacity
+	// gate reads it.
 	MaxActiveSessionSandboxes *int32 `protobuf:"varint,4,opt,name=max_active_session_sandboxes,json=maxActiveSessionSandboxes,proto3,oneof" json:"max_active_session_sandboxes,omitempty"`
 	// How many days an archived session workspace is kept before it is
 	// deleted, its files and snapshot included. Absent keeps it for as long

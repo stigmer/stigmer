@@ -35,9 +35,9 @@ export interface UseRunSummaryReturn {
  * organization. Returns phase counts, active count, average duration,
  * and top failing agents.
  *
- * Cost is intentionally excluded from this response — the dashboard
- * sources cost from `useOrgUsageReport` (billing source of truth), so
- * cost is never counted from two sources.
+ * Usage is intentionally excluded from this response — the dashboard
+ * reads tokens from `useOrgUsageReport`, so usage is never counted from
+ * two sources.
  */
 export function useRunSummary(
   options: UseRunSummaryOptions,

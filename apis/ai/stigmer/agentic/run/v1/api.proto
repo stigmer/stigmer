@@ -215,13 +215,14 @@ message RunStatus {
   // ─────────────────────────────────────────────────────────────────────────────
   // Run Usage (DISPLAY_ONLY Trust Level)
   //
-  // Provisional usage captured from the execution worker's onDelta callbacks.
-  // For Cursor harness: accumulated from SDK turn-ended events.
-  // For native harness: not populated (authoritative usage comes from proxy).
+  // Provisional usage the runner accumulates from each turn's usage, on both
+  // harnesses (the Cursor SDK's turn-ended events, LangChain's usage
+  // metadata on native turns).
   //
-  // Trust: DISPLAY_ONLY. Not billing-authoritative. Use for real-time UX only.
-  // Billing settlement comes from LlmCallUsageRecord (proxy-reported) or
-  // future Cursor Admin API reconciliation.
+  // Trust: DISPLAY_ONLY. Not metering-authoritative: the metered record of
+  // each call is LlmCallUsageRecord (proxy-reported). The usage reports
+  // count a run from this field, marked estimated, only when the deployment
+  // has not metered it.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Streaming usage summary, updated progressively during the run.

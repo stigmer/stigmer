@@ -166,7 +166,7 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.GetRunUsageReportInput",
           "outputType": "GetRunUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.run.v1.GetRunUsageReportOutput",
-          "description": "Get a usage report for a single run.\n\n Returns aggregated tokens, cost, and per-model breakdown for one run."
+          "description": "Get a usage report for a single run.\n\n Returns aggregated tokens, who served them, and the per-model breakdown\n for one run."
         },
         {
           "name": "GetSessionUsageReport",
@@ -174,7 +174,7 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.GetSessionUsageReportInput",
           "outputType": "GetSessionUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput",
-          "description": "Get a usage report for a session.\n\n Returns aggregated tokens, cost, and per-run breakdown."
+          "description": "Get a usage report for a session.\n\n Returns aggregated tokens and the per-run breakdown."
         },
         {
           "name": "GetAgentUsageReport",
@@ -182,7 +182,7 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.GetAgentUsageReportInput",
           "outputType": "GetAgentUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput",
-          "description": "Get a usage report for an agent within an organization.\n\n Returns aggregated tokens, cost, and per-session breakdown for one\n organization's runs of the agent. Requires can_view on the\n organization named in org; runs outside that organization are\n never included, so the report is the per-agent drill-down of\n getOrgUsageReport."
+          "description": "Get a usage report for an agent within an organization.\n\n Returns aggregated tokens and the per-session breakdown for one\n organization's runs of the agent. Requires can_view on the\n organization named in org; runs outside that organization are\n never included, so the report is the per-agent drill-down of\n getOrgUsageReport."
         },
         {
           "name": "GetOrgUsageReport",
@@ -190,7 +190,7 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.GetOrgUsageReportInput",
           "outputType": "GetOrgUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput",
-          "description": "Get a usage report for an organization.\n\n Returns org-wide totals, top agents by cost, model breakdown, and daily trend."
+          "description": "Get a usage report for an organization.\n\n Returns org-wide token totals, the agents with the most tokens, the\n model breakdown, and the daily trend, over the runs the caller can read."
         },
         {
           "name": "GetRunSummary",
@@ -1001,7 +1001,7 @@
             "kind": "message",
             "messageType": "UsageReportAggregate"
           },
-          "description": "Aggregated token counts and cost for this run.",
+          "description": "Aggregated token counts for this run.",
           "required": false
         },
         {
@@ -1022,7 +1022,7 @@
     },
     {
       "name": "GetSessionUsageReportInput",
-      "description": "GetSessionUsageReportInput requests a usage report for a single session.\n Aggregates cost and token data across all runs in the session.",
+      "description": "GetSessionUsageReportInput requests a usage report for a single session.\n Aggregates token data across all runs in the session.",
       "protoType": "ai.stigmer.agentic.run.v1.GetSessionUsageReportInput",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -1043,7 +1043,7 @@
     },
     {
       "name": "GetSessionUsageReportOutput",
-      "description": "GetSessionUsageReportOutput returns aggregated usage for a session.\n\n Provides both the session-level totals and per-run breakdown,\n enabling drill-down from \"this session cost $0.90\" to \"run #3\n cost $0.12 because it used claude-sonnet-4.\"",
+      "description": "GetSessionUsageReportOutput returns aggregated usage for a session.\n\n Provides both the session-level totals and per-run breakdown,\n enabling drill-down from \"this session used 90k tokens\" to \"run #3\n used 12k of them on claude-sonnet-4.\"",
       "protoType": "ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -1133,14 +1133,14 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether any record in this session is still estimated (not yet proxy-metered).\n True when the run is in flight and only streaming usage data is available.\n False once proxy billing records have been written.",
+          "description": "Whether any run in this session is counted from its runner's own report\n rather than from the deployment's metered model calls.",
           "required": false
         }
       ]
     },
     {
       "name": "GetAgentUsageReportInput",
-      "description": "GetAgentUsageReportInput requests a usage report for a specific agent\n within one organization. Aggregates cost and token data across the org's\n sessions of the agent within a time range.",
+      "description": "GetAgentUsageReportInput requests a usage report for a specific agent\n within one organization. Aggregates token data across the org's\n sessions of the agent within a time range.",
       "protoType": "ai.stigmer.agentic.run.v1.GetAgentUsageReportInput",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -1164,7 +1164,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Start of time range filter (ISO 8601, inclusive).\n Example: \"2026-03-01\"",
+          "description": "Start of the time range, inclusive: a UTC calendar day (\"2026-03-01\",\n from its first instant) or an RFC 3339 instant. A run is in the range\n when it was created in it.",
           "required": false
         },
         {
@@ -1174,7 +1174,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "End of time range filter (ISO 8601, inclusive).\n Example: \"2026-03-13\"",
+          "description": "End of the time range, inclusive: a UTC calendar day (\"2026-03-13\",\n through its last instant) or an RFC 3339 instant.",
           "required": false
         },
         {
@@ -1298,16 +1298,6 @@
           "required": false
         },
         {
-          "name": "TotalBillableCostMicros",
-          "jsonName": "totalBillableCostMicros",
-          "protoField": "total_billable_cost_micros",
-          "type": {
-            "kind": "int64"
-          },
-          "description": "Total billable cost in micro-USD within the time range.",
-          "required": false
-        },
-        {
           "name": "NextPageToken",
           "jsonName": "nextPageToken",
           "protoField": "next_page_token",
@@ -1321,7 +1311,7 @@
     },
     {
       "name": "GetOrgUsageReportInput",
-      "description": "GetOrgUsageReportInput requests a usage report for an entire organization.\n Aggregates cost and token data across all agents and sessions within a\n time range.",
+      "description": "GetOrgUsageReportInput requests a usage report for an entire organization.\n Aggregates token data across all agents and sessions within a time range\n that the caller can read.",
       "protoType": "ai.stigmer.agentic.run.v1.GetOrgUsageReportInput",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -1345,7 +1335,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Start of time range filter (ISO 8601, inclusive, required).\n Example: \"2026-03-01\"",
+          "description": "Start of the time range, inclusive: a UTC calendar day (\"2026-03-01\",\n from its first instant) or an RFC 3339 instant. A run is in the range\n when it was created in it. Required.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -1358,7 +1348,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "End of time range filter (ISO 8601, inclusive, required).\n Example: \"2026-03-13\"",
+          "description": "End of the time range, inclusive: a UTC calendar day (\"2026-03-13\",\n through its last instant) or an RFC 3339 instant. Required.",
           "required": false,
           "validation": {
             "minLength": 1
@@ -1368,7 +1358,7 @@
     },
     {
       "name": "GetOrgUsageReportOutput",
-      "description": "GetOrgUsageReportOutput returns aggregated usage for an organization.\n\n Provides org-level totals, per-model breakdown, top agents by cost,\n and a daily cost trend for capacity planning and budget monitoring.",
+      "description": "GetOrgUsageReportOutput returns aggregated usage for an organization.\n\n Provides org-level totals, per-model breakdown, the agents with the most\n tokens, and a daily token trend. It counts only the runs the caller can\n read, and names only their agents.",
       "protoType": "ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -1413,16 +1403,6 @@
           "required": false
         },
         {
-          "name": "TotalBillableCostMicros",
-          "jsonName": "totalBillableCostMicros",
-          "protoField": "total_billable_cost_micros",
-          "type": {
-            "kind": "int64"
-          },
-          "description": "Total billable cost in micro-USD across the organization in the time range.",
-          "required": false
-        },
-        {
           "name": "ModelBreakdown",
           "jsonName": "modelBreakdown",
           "protoField": "model_breakdown",
@@ -1437,9 +1417,9 @@
           "required": false
         },
         {
-          "name": "TopAgentsByCost",
-          "jsonName": "topAgentsByCost",
-          "protoField": "top_agents_by_cost",
+          "name": "TopAgents",
+          "jsonName": "topAgents",
+          "protoField": "top_agents",
           "type": {
             "kind": "array",
             "elementType": {
@@ -1447,35 +1427,46 @@
               "messageType": "AgentUsageSummary"
             }
           },
-          "description": "Top agents by cost (top 10), ordered by billable_cost_micros descending.",
+          "description": "The ten agents with the most tokens, ordered by total_tokens descending.",
           "required": false
         },
         {
-          "name": "DailyCosts",
-          "jsonName": "dailyCosts",
-          "protoField": "daily_costs",
+          "name": "DailyUsage",
+          "jsonName": "dailyUsage",
+          "protoField": "daily_usage",
           "type": {
             "kind": "array",
             "elementType": {
               "kind": "message",
-              "messageType": "DailyCostEntry"
+              "messageType": "DailyUsage"
             }
           },
-          "description": "Daily cost trend within the time range, ordered chronologically.",
+          "description": "Daily token trend within the time range, one row per UTC day that has a\n run, ordered chronologically.",
           "required": false
         },
         {
-          "name": "HarnessBreakdown",
-          "jsonName": "harnessBreakdown",
-          "protoField": "harness_breakdown",
+          "name": "HarnessUsage",
+          "jsonName": "harnessUsage",
+          "protoField": "harness_usage",
           "type": {
             "kind": "array",
             "elementType": {
               "kind": "message",
-              "messageType": "HarnessCostSummary"
+              "messageType": "HarnessUsage"
             }
           },
-          "description": "Cost split by execution harness (e.g., \"native\" vs \"cursor\").",
+          "description": "Usage split by execution harness (e.g., \"native\" vs \"cursor\").",
+          "required": false
+        },
+        {
+          "name": "TotalUsage",
+          "jsonName": "totalUsage",
+          "protoField": "total_usage",
+          "type": {
+            "kind": "message",
+            "messageType": "UsageReportAggregate"
+          },
+          "description": "Aggregated usage across the organization in the time range.",
           "required": false
         }
       ]
@@ -1520,7 +1511,7 @@
     },
     {
       "name": "RunSummary",
-      "description": "RunSummary contains aggregated operational statistics for agent\n runs. Designed for the platform dashboard's unified health view.\n\n Cost is intentionally omitted. The dashboard sources cost from\n getOrgUsageReport (billing source of truth), so it shows what billing\n recorded and cost is never counted from two sources.",
+      "description": "RunSummary contains aggregated operational statistics for agent\n runs. Designed for the platform dashboard's unified health view.\n\n Tokens are intentionally omitted. The dashboard reads them from\n getOrgUsageReport, so usage is never counted from two places.",
       "protoType": "ai.stigmer.agentic.run.v1.RunSummary",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -2736,6 +2727,23 @@
           "name": "plugin_eval_mock_kind_agent",
           "number": 2,
           "description": "A model acting as the server from the mock file's instructions."
+        }
+      ]
+    },
+    {
+      "name": "ProviderKeySource",
+      "description": "Whose provider credential served a proxied LLM call.\n\n The proxy picks the key, injects it upstream, and reports the same source\n with the usage payload, so the record never disagrees with what was sent\n on the wire.",
+      "protoType": "ai.stigmer.agentic.run.v1.ProviderKeySource",
+      "values": [
+        {
+          "name": "PROVIDER_KEY_SOURCE_PLATFORM",
+          "number": 1,
+          "description": "A connection the platform provides served the call."
+        },
+        {
+          "name": "PROVIDER_KEY_SOURCE_ORGANIZATION",
+          "number": 2,
+          "description": "The organization's own provider key served the call (bring-your-own\n provider keys): the provider bills the organization directly."
         }
       ]
     }
@@ -5959,7 +5967,7 @@
           "type": {
             "kind": "double"
           },
-          "description": "Estimated cost in USD computed from runner-side rate card.\n Labeled \"Estimated\" in the UI — not provider-verified.",
+          "description": "Estimated cost in USD computed from the runner-side rate card (the\n providers' list prices): the working number of the run's cost cap\n (RunConfig.max_cost_usd). No usage report reads it.",
           "required": false
         },
         {
@@ -6290,16 +6298,6 @@
             "kind": "int32"
           },
           "description": "Output tokens generated by the summarization model (the summary).",
-          "required": false
-        },
-        {
-          "name": "SummarizationCostUsd",
-          "jsonName": "summarizationCostUsd",
-          "protoField": "summarization_cost_usd",
-          "type": {
-            "kind": "double"
-          },
-          "description": "Cost in USD of this summarization call.\n Computed using the summarization model's pricing rates at run time.",
           "required": false
         }
       ]

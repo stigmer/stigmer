@@ -353,22 +353,6 @@ private static final long serialVersionUID = 0L;
     return summarizationOutputTokens_;
   }
 
-  public static final int SUMMARIZATION_COST_USD_FIELD_NUMBER = 12;
-  private double summarizationCostUsd_ = 0D;
-  /**
-   * <pre>
-   * Cost in USD of this summarization call.
-   * Computed using the summarization model's pricing rates at run time.
-   * </pre>
-   *
-   * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>
-   * @return The summarizationCostUsd.
-   */
-  @java.lang.Override
-  public double getSummarizationCostUsd() {
-    return summarizationCostUsd_;
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -415,9 +399,6 @@ private static final long serialVersionUID = 0L;
     }
     if (summarizationOutputTokens_ != 0) {
       output.writeInt32(11, summarizationOutputTokens_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(summarizationCostUsd_) != 0) {
-      output.writeDouble(12, summarizationCostUsd_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -470,10 +451,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(11, summarizationOutputTokens_);
     }
-    if (java.lang.Double.doubleToRawLongBits(summarizationCostUsd_) != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(12, summarizationCostUsd_);
-    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -511,9 +488,6 @@ private static final long serialVersionUID = 0L;
         != other.getSummarizationInputTokens()) return false;
     if (getSummarizationOutputTokens()
         != other.getSummarizationOutputTokens()) return false;
-    if (java.lang.Double.doubleToLongBits(getSummarizationCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getSummarizationCostUsd())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -548,9 +522,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getSummarizationInputTokens();
     hash = (37 * hash) + SUMMARIZATION_OUTPUT_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + getSummarizationOutputTokens();
-    hash = (37 * hash) + SUMMARIZATION_COST_USD_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getSummarizationCostUsd()));
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -715,7 +686,6 @@ private static final long serialVersionUID = 0L;
       source_ = 0;
       summarizationInputTokens_ = 0;
       summarizationOutputTokens_ = 0;
-      summarizationCostUsd_ = 0D;
       return this;
     }
 
@@ -782,9 +752,6 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.summarizationOutputTokens_ = summarizationOutputTokens_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
-        result.summarizationCostUsd_ = summarizationCostUsd_;
-      }
     }
 
     @java.lang.Override
@@ -835,9 +802,6 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getSummarizationOutputTokens() != 0) {
         setSummarizationOutputTokens(other.getSummarizationOutputTokens());
-      }
-      if (java.lang.Double.doubleToRawLongBits(other.getSummarizationCostUsd()) != 0) {
-        setSummarizationCostUsd(other.getSummarizationCostUsd());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -920,11 +884,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000400;
               break;
             } // case 88
-            case 97: {
-              summarizationCostUsd_ = input.readDouble();
-              bitField0_ |= 0x00000800;
-              break;
-            } // case 97
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1654,53 +1613,6 @@ private static final long serialVersionUID = 0L;
     public Builder clearSummarizationOutputTokens() {
       bitField0_ = (bitField0_ & ~0x00000400);
       summarizationOutputTokens_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private double summarizationCostUsd_ ;
-    /**
-     * <pre>
-     * Cost in USD of this summarization call.
-     * Computed using the summarization model's pricing rates at run time.
-     * </pre>
-     *
-     * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>
-     * @return The summarizationCostUsd.
-     */
-    @java.lang.Override
-    public double getSummarizationCostUsd() {
-      return summarizationCostUsd_;
-    }
-    /**
-     * <pre>
-     * Cost in USD of this summarization call.
-     * Computed using the summarization model's pricing rates at run time.
-     * </pre>
-     *
-     * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>
-     * @param value The summarizationCostUsd to set.
-     * @return This builder for chaining.
-     */
-    public Builder setSummarizationCostUsd(double value) {
-
-      summarizationCostUsd_ = value;
-      bitField0_ |= 0x00000800;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Cost in USD of this summarization call.
-     * Computed using the summarization model's pricing rates at run time.
-     * </pre>
-     *
-     * <code>double summarization_cost_usd = 12 [json_name = "summarizationCostUsd"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearSummarizationCostUsd() {
-      bitField0_ = (bitField0_ & ~0x00000800);
-      summarizationCostUsd_ = 0D;
       onChanged();
       return this;
     }

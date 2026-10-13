@@ -37,8 +37,9 @@
 # `debris` row records a behavior deliberately not carried forward, so the
 # cut stays visible, and a `debris-candidate` row awaits that decision.
 #
-# The counts the rows were reconciled against: 9 billing RPCs (6 command
-# + 3 query), 2 gate steps (account provisioning at organization create and
+# The counts the rows were reconciled against: 8 billing RPCs (6 command
+# + 2 query; the billing usage report left when the run's own usage reports
+# began reading the meter), 2 gate steps (account provisioning at organization create and
 # provider-key admission at run create) and no status hook, 2 Stripe handlers
 # over 2 event strings (customer.updated, payment_method.attached; the
 # subscription engine's invoice handlers carry no rows here), 1 billing
@@ -52,7 +53,7 @@ rows:
   # BILLING — the RPC surface (BillingCommandController, BillingQueryController)
   # ===========================================================================
 
-  # --- account reads and the usage report (org lanes, can_view_billing) ------
+  # --- account reads (org lanes, can_view_billing) ---------------------------
   - id: billing.rpc.get-billing-account.owner-reads-active-account
     surface: billing
     lane: >-
@@ -87,17 +88,6 @@ rows:
     disposition: conformance
     observability: launcher
     caller: outsider
-    needs: [keyless-org]
-  - id: billing.rpc.get-billing-usage-report.shape-and-empty-org
-    surface: billing
-    lane: >-
-      rpc.getBillingUsageReport
-    behavior: >-
-      getBillingUsageReport for an org with no usage answers run_count and llm_call_count 0 and an empty model breakdown; once calls are recorded against the org's runs the counts move and the breakdown counts each model's calls (billing.rpc.record-llm-call-usage.records-calls-and-unknown-models, proxy.llm.usage.*). A count, never an amount.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: primary
     needs: [keyless-org]
 
   # --- the account (org lane, can_manage_billing) ----------------------------
@@ -266,7 +256,7 @@ rows:
     lane: >-
       rpc.recordLlmCallUsage
     behavior: >-
-      recordLlmCallUsage by the platform operator for two calls on one existing run answers a fresh usage_record_id for each, and the run's organization's getBillingUsageReport counts them (llm_call_count 2, run_count 1, the model breakdown's call counts summing to 2); a model the catalog has no entry for is recorded the same way instead of failing. The record says what the call was, never a price.
+      recordLlmCallUsage by the platform operator for two calls on one existing run, each with its tokens and the organization's key as its source, answers a fresh usage_record_id for each, and the run's getRunUsageReport counts them (llm_call_count 2, the tokens summed, one served_by row for the organization's key, one model breakdown row per model ordered by tokens); a model the catalog has no entry for is recorded the same way instead of failing. The record says what the call was, never a price.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -274,6 +264,45 @@ rows:
     needs: [keyed-org, agent-execution]
     note: >-
       The composition deduplicates a report on RecordLlmCallUsageInput.call_id when the caller sends one, falling back to sequence when it does not, so a restarted proxy's legitimate calls are never dropped as duplicates. This row's arm sends no call_id; the call_id path is pinned by the hosted edition's own suites.
+
+  # --- the metered usage source (the run usage reports read the meter) -------
+  - id: billing.rpc.get-run-usage-report.reads-metered-tokens
+    surface: billing
+    lane: >-
+      rpc.getRunUsageReport
+    behavior: >-
+      Once the meter holds calls for a run, the run's getRunUsageReport counts them from the meter: llm_call_count the calls, the token buckets summed (input excluding the cache buckets), served_by naming whose key served them (the organization's own key here) and summing to the totals, the model breakdown ordered by tokens; the run's row in its conversation's getSessionUsageReport reads is_estimated false, as does the session report.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
+    note: >-
+      The meter's rows reach the open-source reports through their single metered-usage driver point, so the fold, the fallback and the windows are the library's; the arms here read what the hosted edition's meter recorded.
+  - id: billing.rpc.get-org-usage-report.metered-totals-and-top-agents
+    surface: billing
+    lane: >-
+      rpc.getOrgUsageReport
+    behavior: >-
+      An organization's getOrgUsageReport over the UTC day its run was created (from_date = to_date = that day) counts the run's metered calls: total_usage carries the tokens, llm_call_count and served_by of every run in the window, top_agents names the run's agent with its tokens, and daily_usage holds one row for the day with the run, its tokens and its calls.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
+  - id: billing.rpc.get-run-usage-report.unmetered-run-counts-runner-report
+    surface: billing
+    lane: >-
+      rpc.getRunUsageReport
+    behavior: >-
+      A completed run the meter holds no call for (its runner reached its model without the proxy, or the report of its calls was lost) is counted from its own runner report: the runner's tokens with input less the cache buckets, the runner's total, llm_call_count 0, one served_by row whose source is unspecified, and is_estimated true on its conversation's report and its row there.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [agent-execution]
+    note: >-
+      Proven by the execution suite on the cloud execution target, whose runner dials the suite's mock model directly so none of its calls is metered (CapabilityFlags.runModelCallsMetered); the same arm holds the open-source targets, which compose no meter, to the same rule.
 
   # --- model catalog (platform can_manage_model_pricing) ---------------------
   - id: billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied
@@ -318,7 +347,7 @@ rows:
     lane: >-
       rpc.getBillingAccount
     behavior: >-
-      On a target where billingEngine is false (the local OSS server), every one of the 9 billing RPCs answers Unimplemented — the edition boundary (billing is Cloud only) as an observable contract.
+      On a target where billingEngine is false (the local OSS server), every one of the 8 billing RPCs answers Unimplemented — the edition boundary (billing is Cloud only) as an observable contract.
     class: carve-out
     disposition: conformance
     observability: none
@@ -938,7 +967,7 @@ rows:
     lane: >-
       llm
     behavior: >-
-      After an Anthropic stream whose message_start/message_delta carry input and output tokens, the execution's org's getBillingUsageReport counts the call (llm_call_count and run_count move; metered because the scope named an execution).
+      After an Anthropic stream whose message_start/message_delta carry input and output tokens, the named run's getRunUsageReport counts the call and its tokens (llm_call_count and total_tokens move, served by the organization's key; metered because the scope named an execution). The wire carries no total, so the total is its input and output tokens.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -949,7 +978,7 @@ rows:
     lane: >-
       llm
     behavior: >-
-      After an OpenAI stream whose final chunk carries usage, the call is counted on the org's usage report; a plain-JSON (non-stream) completion's call is counted too.
+      After an OpenAI stream whose final chunk carries usage, the call and its tokens are counted on the named run's getRunUsageReport; a plain-JSON (non-stream) completion's call is counted too.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1128,7 +1157,7 @@ rows:
     lane: >-
       llm
     behavior: >-
-      When the upstream cuts an SSE stream after a few events, the caller's stream ends early (a 200 already sent) and Java records the partial call with the usage seen so far — the input tokens from message_start — rather than dropping it (read on the first hermetic run, 2026-09-06).
+      When the upstream cuts an SSE stream after a few events, the caller's stream ends early (a 200 already sent) and the meter records the partial call with the usage seen so far — the input tokens from message_start, no output tokens — rather than dropping it; the named run's getRunUsageReport counts it (read on the first hermetic run, 2026-09-06).
     class: adversarial
     disposition: conformance
     observability: launcher

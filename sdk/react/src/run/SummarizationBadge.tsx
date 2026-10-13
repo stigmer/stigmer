@@ -18,7 +18,7 @@ export interface SummarizationBadgeProps {
  *
  * Collapsed state shows a count badge ("2 summarizations").
  * Expanded state lists each event with before/after token counts,
- * compression ratio, duration, and cost.
+ * compression ratio, duration, and model.
  *
  * Returns `null` when there are no events.
  *
@@ -117,11 +117,6 @@ const EventRow = memo(function EventRow({
           <>
             {event.durationMs > 0 && " · "}
             {event.model}
-          </>
-        )}
-        {event.costUsd > 0 && (
-          <>
-            {" · "}${event.costUsd < 0.01 ? event.costUsd.toFixed(4) : event.costUsd.toFixed(2)}
           </>
         )}
       </div>

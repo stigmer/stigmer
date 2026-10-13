@@ -63,7 +63,8 @@ public interface UsageReportAggregateOrBuilder extends
 
   /**
    * <pre>
-   * Number of LLM API calls in this aggregate.
+   * Number of metered LLM API calls in this aggregate. A run counted from
+   * its runner's own report adds its tokens and no calls.
    * </pre>
    *
    * <code>int32 llm_call_count = 10 [json_name = "llmCallCount"];</code>
@@ -73,25 +74,9 @@ public interface UsageReportAggregateOrBuilder extends
 
   /**
    * <pre>
-   * Cost in micro-USD (1 USD = 1,000,000 micros).
-   * billable = what the customer pays (with markup).
-   * provider = what Stigmer pays the LLM provider (raw).
-   * </pre>
-   *
-   * <code>int64 billable_cost_micros = 20 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
-   */
-  long getBillableCostMicros();
-
-  /**
-   * <code>int64 provider_cost_micros = 21 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  long getProviderCostMicros();
-
-  /**
-   * <pre>
-   * Primary model and provider (most-used by call count).
+   * Primary model and provider: the model with the most tokens in this
+   * aggregate. The provider is empty when a runner-reported run's harness
+   * names none.
    * </pre>
    *
    * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -100,7 +85,9 @@ public interface UsageReportAggregateOrBuilder extends
   java.lang.String getPrimaryModel();
   /**
    * <pre>
-   * Primary model and provider (most-used by call count).
+   * Primary model and provider: the model with the most tokens in this
+   * aggregate. The provider is empty when a runner-reported run's harness
+   * names none.
    * </pre>
    *
    * <code>string primary_model = 30 [json_name = "primaryModel"];</code>
@@ -120,4 +107,53 @@ public interface UsageReportAggregateOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPrimaryProviderBytes();
+
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.run.v1.ServedByUsage> 
+      getServedByList();
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  ai.stigmer.agentic.run.v1.ServedByUsage getServedBy(int index);
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  int getServedByCount();
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder> 
+      getServedByOrBuilderList();
+  /**
+   * <pre>
+   * The aggregate's tokens and calls by whose provider credential served
+   * them. The rows always sum to total_tokens and llm_call_count.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.run.v1.ServedByUsage served_by = 40 [json_name = "servedBy"];</code>
+   */
+  ai.stigmer.agentic.run.v1.ServedByUsageOrBuilder getServedByOrBuilder(
+      int index);
 }

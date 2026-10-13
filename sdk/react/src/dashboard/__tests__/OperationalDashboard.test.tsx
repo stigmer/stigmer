@@ -14,7 +14,7 @@ vi.mock("../useDashboardSummary.js", () => ({
   useDashboardSummary: (options: { org: unknown }) => {
     asked.summary.push(options.org);
     return {
-      summary: { activeCount: 1, completedCount: 3, failedCount: 1, totalCostUsd: 0, orgUsage: null },
+      summary: { activeCount: 1, completedCount: 3, failedCount: 1, totalTokens: 0, orgUsage: null },
       isLoading: false,
       error: null,
       refetch: () => {},

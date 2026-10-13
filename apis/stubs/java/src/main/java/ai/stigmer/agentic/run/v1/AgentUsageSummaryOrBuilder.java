@@ -70,14 +70,4 @@ public interface AgentUsageSummaryOrBuilder extends
    * @return The totalTokens.
    */
   long getTotalTokens();
-
-  /**
-   * <pre>
-   * Total billable cost in micro-USD for this agent.
-   * </pre>
-   *
-   * <code>int64 billable_cost_micros = 5 [json_name = "billableCostMicros"];</code>
-   * @return The billableCostMicros.
-   */
-  long getBillableCostMicros();
 }

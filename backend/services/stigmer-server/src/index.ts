@@ -472,6 +472,14 @@ export { createErrorBoundaryInterceptor } from "./pipeline/interceptors/error-bo
 // organization's agents without belonging to it, so their runs never carry
 // the organization's standing context (stigmer/stigmer#1401).
 export type { VisitorClassifier } from "./extensions/visitor-classifier.js";
+// The meter's token counts per run (drivers.meteredUsageProvider): the usage
+// reports count a run it answers for from them, any other run from its
+// runner's own report, marked estimated.
+export type {
+  MeteredRunUsage,
+  MeteredUsageProvider,
+  MeteredUsageRow,
+} from "./extensions/metered-usage.js";
 // The lanes an edition's visitors' turns come through (drivers.runLanes):
 // their saved settings, operator profile and approval mode, read by the
 // server's one settings resolution; and that resolution's rule, for an

@@ -197,9 +197,8 @@ public interface GetSessionUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Whether any record in this session is still estimated (not yet proxy-metered).
-   * True when the run is in flight and only streaming usage data is available.
-   * False once proxy billing records have been written.
+   * Whether any run in this session is counted from its runner's own report
+   * rather than from the deployment's metered model calls.
    * </pre>
    *
    * <code>bool is_estimated = 8 [json_name = "isEstimated"];</code>

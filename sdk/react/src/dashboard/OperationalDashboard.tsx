@@ -20,12 +20,11 @@ export interface OperationalDashboardProps {
  * operational metrics.
  *
  * Layout:
- * - Row 1: KPI stat cards (Active | Completed | Failed | Total Cost)
+ * - Row 1: KPI stat cards (Active | Completed | Failed | Tokens)
  * - Row 2: Recent Failures
  *
- * Cost comes from the billing source of truth (`getOrgUsageReport`),
- * not from summing per-run costs, so the dashboard shows what billing
- * recorded.
+ * Tokens come from the org usage report (`getOrgUsageReport`), which
+ * counts each run once, so the dashboard matches the Usage page.
  *
  * @example
  * ```tsx
