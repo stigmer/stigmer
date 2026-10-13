@@ -1,8 +1,8 @@
 /**
  * Pins the composition of the reconcile turn an undo on an ended turn
- * starts: on a real composed server over SQLite, both decision methods (the
- * session's reviewFileChanges and the run's submitFileDecision) are served,
- * record the undo on the change set's run, and hand the reconcile turn to
+ * starts: on a real composed server over SQLite, the session's
+ * reviewFileChanges is served, records the undo in the session's log on
+ * the change set's run, and hands the reconcile turn to
  * the in-process run create chain the composition root wires
  * (`reconcileTurns`, boot/inprocess.ts `reconcileTurnCreator`). No engine
  * is behind the server (TEMPORAL_HOST_PORT is a closed port), so the chain
@@ -13,7 +13,8 @@
  * and is then failed by its workflow without running again hands its
  * reconcile turn to the same chain, through the stopped-turn observer the
  * composition root composes beside the grading observer
- * (domain/session/filereview/stopped-turn.ts).
+ * (domain/session/filereview/stopped-turn.ts), acting as the undo's
+ * decider the log names.
  *
  * The calls ride the in-process transport, as the server acting as itself,
  * so no sign-in is needed.
@@ -27,16 +28,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
-import {
-  FileDecisionAction,
-  FileDecisionScope,
-  RunPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { fileReviewSeed } from "../../domain/run/__tests__/file-review-seed.js";
 import { SessionEventBroker } from "../../domain/session/events/broker.js";
+import { eventOf } from "../../domain/session/events/codec.js";
 import { createRunAppendingEvents } from "../../domain/session/events/run-writes.js";
 import { loadConfig } from "../config.js";
 import { composeServer } from "../compose.js";
@@ -99,14 +96,16 @@ describe("the composed reconcile turn", () => {
     return seed;
   }
 
-  async function decisionsOf(id: string) {
-    const run = await server.store.getResource(
-      ApiResourceKind.run,
-      id,
-      RunSchema,
-    );
-    return (run.status?.fileChangeSets[0]?.decisions ?? []).map(
-      (d) => d.action,
+  /** The actions of the run's decided events in its session's log. */
+  async function decisionsOf(id: string, sessionId: string) {
+    const records = await server.store.sessionEvents.list(sessionId, {
+      order: "asc",
+      runId: id,
+      types: ["stigmer.file_review.decided"],
+      limit: 10,
+    });
+    return records.map(eventOf).flatMap((event) =>
+      event.event.case === "stigmerFileReviewDecided" ? [event.event.value.action] : [],
     );
   }
 
@@ -133,28 +132,7 @@ describe("the composed reconcile turn", () => {
     });
 
     expect(response.reconcileRunId).toBe("");
-    expect(await decisionsOf("run_session_undo")).toEqual([
-      FileDecisionAction.REJECT,
-    ]);
-    expect(refusalsLogged() - before).toBe(1);
-  });
-
-  it("the run's undo records the decision and hands the turn to the same chain", async () => {
-    const seed = await seedEndedTurn("run_run_undo", "ses_run_undo");
-    const before = refusalsLogged();
-    const run = createClient(RunCommandController, server.inProcessTransport);
-
-    await run.submitFileDecision({
-      runId: "run_run_undo",
-      changeSetId: "run_run_undo:1",
-      scope: FileDecisionScope.CHANGE_SET,
-      action: FileDecisionAction.REJECT,
-      expectedDigest: seed.aggregate,
-    });
-
-    expect(await decisionsOf("run_run_undo")).toEqual([
-      FileDecisionAction.REJECT,
-    ]);
+    expect(await decisionsOf("run_session_undo", "ses_session_undo")).toEqual(["undo"]);
     expect(refusalsLogged() - before).toBe(1);
   });
 

@@ -1,8 +1,7 @@
 /**
  * The one core every answer to a waiting tool use goes through:
- * SessionCommandController.confirmToolUse and grantPermission, and the
- * RunCommandController.submitApproval adapter. Each method authorizes its
- * own way, then appends these steps to its chain:
+ * SessionCommandController.confirmToolUse and grantPermission. Each method
+ * authorizes its own way, then appends these steps to its chain:
  *
  *   LoadAskedRun ... the run is the text before the first `.` of the tool
  *                    use id (run ids hold none), and must be one of the
@@ -28,11 +27,8 @@
  *   RecordAnswer ... one run write (updateRunAppendingEvents): the
  *                    user.tool_confirmation (and, for a grant, the
  *                    stigmer.permission.grant and a confirmation for every
- *                    other open ask of the run in the class), whatever the
- *                    session's status becomes, and, for old readers, the
- *                    recomputed pending approvals and the decision stamps
- *                    on the call rows that exist (APPROVE, REJECT for a
- *                    deny, APPROVE_ALL for a grant). Under the session's
+ *                    other open ask of the run in the class), and whatever
+ *                    the session's status becomes. Under the session's
  *                    lock it checks again what ValidateAnswer checked (the
  *                    ask's gate is open, the run waits or works), so an
  *                    answer racing a stop is refused; a concurrent
@@ -43,12 +39,10 @@
  *                    is told to resume. A workflow that no longer runs
  *                    fails the run (reconcileStaleExecution).
  *
- * The log is the one source of every decision here. A stamp on a call row
- * is written, never read: the rows go on describing a decision only for
- * the readers that still read them. What an ask is comes from events that
- * never change once written (the tool use and its stigmer.permission.asked
- * event), so they are read before the lock; whether it is still open is
- * read under it.
+ * The log is the one source of every decision here. What an ask is comes
+ * from events that never change once written (the tool use and its
+ * stigmer.permission.asked event), so they are read before the lock;
+ * whether it is still open is read under it.
  *
  * A deny's message is recorded on the confirmation, which the runner reads
  * at the turn's resume and hands the agent. A grant's class is the ask's
@@ -76,13 +70,9 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
-  ApprovalAction,
-  MessageType,
   RunPhase,
   RunPhaseSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import {
   SessionEventSchema,
   type SessionEvent,
@@ -107,19 +97,16 @@ import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import { deriveLeaseScope, sameLeaseScope } from "../../run/approval/lease-scope.js";
 import type { LeaseScope } from "../../run/approval/lease-scope.js";
-import { pendingApprovalsOf } from "../../run/approval/pending.js";
 import type { ExecutionEngineStateProvider } from "../../run/engine.js";
 import { EngineWorkflowNotFoundError } from "../../run/engine.js";
 import { gateResolved } from "../../run/filereview/gate.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
 import { notifyStatusObservers } from "../../run/status-observers.js";
-import type { StreamBroker } from "../../run/stream-broker.js";
-import { settleInterruptedToolCalls } from "../../run/tool-call-settle.js";
 import type { SessionEventBroker } from "../events/broker.js";
 import { SESSION_EVENT_ID_PREFIX } from "../events/catalog.js";
 import { eventOf } from "../events/codec.js";
 import { ASK_PERMISSION } from "../events/gates.js";
-import { runIdOfToolUse, toolUseEventId } from "../events/ids.js";
+import { runIdOfToolUse } from "../events/ids.js";
 import {
   openAsksOf,
   overwriteRunAppendingEvents,
@@ -130,8 +117,6 @@ import { sessionIdOfRun } from "../events/transitions.js";
 export interface AnswerDeps {
   readonly store: Store;
   readonly logger: Logger;
-  /** The runs' live subscribers see the answer's stamps. */
-  readonly broker: StreamBroker;
   /** The answer's events reach the session's live streams. */
   readonly sessionEventBroker: SessionEventBroker;
   readonly engineState: ExecutionEngineStateProvider;
@@ -160,7 +145,11 @@ export interface ApprovalAnswer {
   /** The run as loaded, before the answer is recorded. */
   readonly run: Run;
   readonly toolUseId: string;
-  /** The call row the tool use was written from; "" when the run holds no row for it. */
+  /**
+   * The provider's call id the tool use was named by: the tool use id
+   * after its run's (session/events/ids.ts); "" for a call id the runner
+   * wrote hashed, which the tool use id does not carry.
+   */
   readonly toolCallId: string;
   readonly result: AnswerResult;
   readonly grant: boolean;
@@ -347,27 +336,18 @@ export function waitingInClass(
   });
 }
 
-/** The call rows of a run that asked, by the tool use id each wrote: a stamp's targets. */
-function askedRowsOf(run: Run): Map<string, ToolCall> {
-  const runId = run.metadata?.id ?? "";
-  const rows = new Map<string, ToolCall>();
-  const add = (calls: ReadonlyArray<ToolCall>): void => {
-    for (const call of calls) {
-      if (call.requiresApproval) {
-        rows.set(toolUseEventId(runId, call.id), call);
-      }
-    }
-  };
-  for (const message of run.status?.messages ?? []) {
-    add(message.toolCalls);
+/** The call id a tool use id carries (AnswerRequest.toolCallId); "" for a hashed one. */
+export function callIdOfToolUse(runId: string, toolUseId: string): string {
+  const prefix = `${runId}.`;
+  if (!toolUseId.startsWith(prefix)) {
+    return "";
   }
-  for (const subAgent of run.status?.subAgentRuns ?? []) {
-    for (const message of subAgent.messages) {
-      add(message.toolCalls);
-    }
-  }
-  return rows;
+  const callId = toolUseId.slice(prefix.length);
+  return HASHED_CALL_ID.test(callId) ? "" : callId;
 }
+
+/** A call id the runner wrote hashed: `h` and 32 hex digits (session/events/ids.ts). */
+const HASHED_CALL_ID = /^h[0-9a-f]{32}$/;
 
 function confirmationEvent(
   runId: string,
@@ -585,7 +565,7 @@ export function answerSteps<Desc extends DescMessage>(
         const answer: ApprovalAnswer = {
           run,
           toolUseId: request.toolUseId,
-          toolCallId: askedRowsOf(run).get(request.toolUseId)?.id ?? "",
+          toolCallId: callIdOfToolUse(runId, request.toolUseId),
           result: request.result,
           grant: request.grant,
         };
@@ -705,7 +685,6 @@ async function writeAnswer(
   decidedBy: string,
   final: boolean,
 ): Promise<RecordedAnswer> {
-  const decidedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
   let confirmations: SessionEvent[] = [];
   let grant: SessionEvent | undefined;
   let openAsks = 0;
@@ -722,40 +701,20 @@ async function writeAnswer(
     }
     confirmations = [confirmationEvent(runId, ask, request.result, request.denyMessage)];
     grant = undefined;
-    const decided: Array<[string, ApprovalAction]> = [];
     const lease = request.grant ? ask.lease : undefined;
-    if (lease === undefined) {
-      decided.push([request.toolUseId, request.result === "allow" ? ApprovalAction.APPROVE : ApprovalAction.REJECT]);
-    } else {
+    if (lease !== undefined) {
       if (!final && [...open].some((id) => id !== request.toolUseId && !others.has(id))) {
         throw new AsksMovedError();
       }
-      decided.push([request.toolUseId, ApprovalAction.APPROVE_ALL]);
       grant = grantEvent(runId, ask, lease);
-      // Every other open ask of the class is allowed with it, with a plain
-      // APPROVE: one call carries the grant, the person's escalation point.
+      // Every other open ask of the class is allowed with it: one call
+      // carries the grant, the person's escalation point.
       for (const other of waitingInClass(others, request.toolUseId, lease, open)) {
-        decided.push([other.toolUseId, ApprovalAction.APPROVE]);
         confirmations.push(confirmationEvent(runId, other, "allow", ""));
       }
     }
-    // The rows' stamps, for the readers that still read them: a row the
-    // run does not hold is not stamped.
-    const rows = askedRowsOf(current);
-    for (const [toolUseId, action] of decided) {
-      const row = rows.get(toolUseId);
-      if (row !== undefined) {
-        row.approvalAction = action;
-        row.approvalDecidedAt = decidedAt;
-        row.approvedBy = decidedBy;
-      }
-    }
     const own = grant === undefined ? confirmations : [confirmations[0]!, grant, ...confirmations.slice(1)];
-    const openAfter = openAsksOf(session, runId, own);
-    openAsks = openAfter.size;
-    if (current.status !== undefined) {
-      current.status.pendingApprovals = pendingApprovalsOf(runId, current.status, openAfter, deps.logger);
-    }
+    openAsks = openAsksOf(session, runId, own).size;
     return own;
   });
   deps.logger.info("AUDIT: tool use answered", {
@@ -768,7 +727,6 @@ async function writeAnswer(
     decidedBy,
     openAsksRemaining: openAsks,
   });
-  deps.broker.broadcast(run);
   // The events as stored: numbered and stamped.
   const storedById = new Map(events.map((event) => [event.event.value?.id ?? "", event]));
   const asStored = (event: SessionEvent): SessionEvent => storedById.get(event.event.value?.id ?? "") ?? event;
@@ -826,8 +784,10 @@ async function signalWhenResolved(deps: AnswerDeps, run: Run, openAsks: number):
 /**
  * Terminalizes an execution stuck in WAITING_FOR_APPROVAL because the
  * backing workflow no longer runs. Best-effort: a failed persist is
- * logged and the caller still surfaces the refusal. pending_approvals is
- * left empty (a FAILED execution has no actionable approvals).
+ * logged and the caller still surfaces the refusal. The FAILED phase and
+ * its error are the explanation: a tool call the turn never finished is
+ * read as stopped from the turn's end in the session's log. The run's
+ * file record is kept, so an undo of its files can still be put back.
  * Whole-resource save is intentional: this writes a terminal state with no
  * live appender racing the stream.
  */
@@ -843,25 +803,10 @@ export async function reconcileStaleExecution(deps: AnswerDeps, execution: Run):
       phase: RunPhase.RUN_FAILED,
       error:
         "Workflow backing this execution is no longer running. Execution has been marked as failed.",
-      messages: execution.status?.messages ?? [],
       audit: execution.status?.audit,
-      approvalEventStream: execution.status?.approvalEventStream,
+      fileChanges: execution.status?.fileChanges ?? [],
     },
   });
-
-  // A system message explaining what happened.
-  reconciled.status?.messages.push(
-    create(AgentMessageSchema, {
-      type: MessageType.MESSAGE_SYSTEM,
-      content:
-        "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
-    }),
-  );
-
-  // The gated call that brought the user here, and any other in-flight
-  // call, is still non-terminal; this write terminalizes the execution, so
-  // settle them (issue #207).
-  settleInterruptedToolCalls(reconciled.status, new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
 
   try {
     // The whole-resource save stays; the session's events come from the

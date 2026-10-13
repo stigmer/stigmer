@@ -168,7 +168,6 @@ import { grantPermission } from "./hitl/grant-permission.js";
 import { interrupt } from "./hitl/interrupt.js";
 import type { ExecutionEngineStateProvider } from "../run/engine.js";
 import type { RunStatusObserver } from "../../extensions/status-hooks.js";
-import type { StreamBroker } from "../run/stream-broker.js";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import type { UpdateSessionInput } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { UpdateSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -208,8 +207,6 @@ export interface SessionControllerDeps {
   readonly sessionEventBroker: SessionEventBroker;
   /** Decides whose runner credential may append a run's events (appendEvents). */
   readonly runnerAuth: RunnerCredentialProvider;
-  /** The runs' live subscribers see a file decision (reviewFileChanges). */
-  readonly broker: StreamBroker;
   /** Creates the reconcile turn an undo on an ended turn starts (reviewFileChanges). */
   readonly reconcileTurns: ReconcileTurnCreatorProvider;
   /** Signals a turn its answers are in, and cancels a stopped turn's workflow (hitl/). */

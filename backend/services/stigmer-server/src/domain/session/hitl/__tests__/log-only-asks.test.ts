@@ -1,8 +1,7 @@
 /**
  * Pins that a turn's asks are read from its session's log alone: a run
- * whose transcript rows are empty (no messages, no sub-agent runs, no
- * pending approvals) and whose asks, answers and grants are only in the
- * log still has its open gates counted by the workflow's activity
+ * whose asks, answers and grants are only in the log has its open gates
+ * counted by the workflow's activity
  * (CountOpenGates), is answered by confirmToolUse (in the sub-agent's
  * thread the tool use names), and a grantPermission allows every waiting
  * call of its class from the tool uses and asked events in the log, and
@@ -34,7 +33,6 @@ import { createAgentExecutionActivities } from "../../../../temporal/agentexecut
 import { COUNT_OPEN_GATES_ACTIVITY_NAME } from "../../../../temporal/agentexecution/names.js";
 import { stubConnectedEngine } from "../../../run/__tests__/engine-stub.js";
 import type { ExecutionEngineState } from "../../../run/engine.js";
-import { StreamBroker } from "../../../run/stream-broker.js";
 import { SessionEventBroker } from "../../events/broker.js";
 import { draftOf, eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../events/run-writes.js";
@@ -64,7 +62,6 @@ function deps(): SessionAnswerDeps {
     store: temp.store,
     logger: silentLogger,
     authorizer: newPermissiveSingleTeamAuthorizer(),
-    broker: new StreamBroker(silentLogger),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: () =>
       ({
@@ -162,10 +159,6 @@ describe("a turn whose asks are only in its session's log", () => {
       { callId: "tc-shell-1", name: "shell" },
       { callId: "tc-shell-2", name: "bash" },
     ]);
-    const stored = await temp.store.getResource(ApiResourceKind.run, RUN, RunSchema);
-    expect(stored.status?.messages).toEqual([]);
-    expect(stored.status?.subAgentRuns).toEqual([]);
-    expect(stored.status?.pendingApprovals).toEqual([]);
     expect(await openGateCount()).toBe(3);
 
     const answer = await confirmToolUse(

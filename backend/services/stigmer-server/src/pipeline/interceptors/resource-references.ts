@@ -15,8 +15,8 @@
  * target from a live one.
  *
  * One batched read of the name table per response
- * (ResourceNameStore.currentMany), and for a stream one per frame
- * (run.subscribe), wrapped as the error boundary wraps a stream's frames.
+ * (ResourceNameStore.currentMany), and for a stream one per frame,
+ * wrapped as the error boundary wraps a stream's frames.
  * Which fields of a message type can reach a reference is planned once per
  * type and memoised, as the organization-name resolver plans its fields,
  * so a response that can reach no reference passes untouched. A response

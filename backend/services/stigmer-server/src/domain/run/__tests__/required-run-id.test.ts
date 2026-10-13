@@ -1,12 +1,10 @@
 /**
  * Pins the empty-run-id refusal every run entry point that names a run
- * by id shares: the call answers InvalidArgument whose copy names the wire
- * field (`run_id`, or `run_id` on the two decision verbs), and it stops
- * before any store read, broker or engine is touched. The copy is wire
- * contract: the run rename moved it from `execution_id`, and a client
- * that matches on it reads the new field name. The two decision verbs refuse
- * at ValidateProto (the field's min_len rule), so their copy is the
- * validator's; the others refuse in their own hand-written step.
+ * by id in `run_id` shares: the call answers InvalidArgument whose copy
+ * names the wire field, and it stops before any store read or engine is
+ * touched. The copy is wire contract: the run rename moved it from
+ * `execution_id`, and a client that matches on it reads the new field
+ * name. Each refuses in its own hand-written step.
  *
  * Every dependency but the authorizer is untouchable, so a refusal that
  * leaked past validation fails the test loudly instead of passing on an
@@ -17,16 +15,7 @@ import { Code } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  ApprovalAction,
-  FileDecisionAction,
-  FileDecisionScope,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  RunUpdateStatusInputSchema,
-  SubmitApprovalInputSchema,
-  SubmitFileDecisionInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -37,8 +26,6 @@ import {
 } from "../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 
-import { submitApproval } from "../submit-approval.js";
-import { submitFileDecision } from "../submit-file-decision.js";
 import { updateStatus } from "../update-status.js";
 import { getRunUsageReport } from "../usage.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
@@ -61,7 +48,6 @@ const ENTRY_POINTS: ReadonlyArray<
           store: untouchable("store"),
           logger: silentLogger,
           authorizer: newPermissiveSingleTeamAuthorizer(),
-          broker: untouchable("broker"),
           sessionEventBroker: new SessionEventBroker(silentLogger),
           statusObservers: [],
           responseDecorators: [],
@@ -87,52 +73,6 @@ const ENTRY_POINTS: ReadonlyArray<
         },
         create(RunQueryController.method.getRunUsageReport.input, {
           runId: "",
-        }),
-        testCallerIdentity(),
-      ),
-  ],
-  [
-    "submitApproval — ValidateProto",
-    "run_id: must be at least 1 characters [string.min_len]",
-    () =>
-      submitApproval(
-        {
-          store: untouchable("store"),
-          logger: silentLogger,
-          authorizer: newPermissiveSingleTeamAuthorizer(),
-          broker: untouchable("broker"),
-          sessionEventBroker: new SessionEventBroker(silentLogger),
-          engineState: untouchable("engineState"),
-          gateSteps: new Map(),
-          statusObservers: [],
-        },
-        create(SubmitApprovalInputSchema, {
-          runId: "",
-          toolCallId: "call_1",
-          action: ApprovalAction.APPROVE,
-        }),
-        testCallerIdentity(),
-      ),
-  ],
-  [
-    "submitFileDecision — ValidateProto",
-    "run_id: must be at least 1 characters [string.min_len]",
-    () =>
-      submitFileDecision(
-        {
-          store: untouchable("store"),
-          logger: silentLogger,
-          authorizer: newPermissiveSingleTeamAuthorizer(),
-          broker: untouchable("broker"),
-          sessionEventBroker: new SessionEventBroker(silentLogger),
-          reconcileTurns: untouchable("reconcileTurns"),
-        },
-        create(SubmitFileDecisionInputSchema, {
-          runId: "",
-          changeSetId: "chs_1",
-          scope: FileDecisionScope.CHANGE_SET,
-          action: FileDecisionAction.APPROVE,
-          expectedDigest: "sha256:abc",
         }),
         testCallerIdentity(),
       ),

@@ -1,26 +1,25 @@
 /**
- * Pins the updateStatus merge engine against Go's
- * update_status_guard_test.go and
- * update_status_recalled_memories_report_test.go case-for-case: the
- * transcript regression guard (shrink + front-truncation-with-append +
- * the terminal exemption), the equal-length approval finalize, and the
- * presence-guarded runner-owned field pattern (recalled_memories_report).
- * Also pins the platform-row rules (platform-rows.ts, stigmer#980): a
- * platform marker write is appended to the transcript and never replaces
- * it, idempotently, and a PAUSED or CANCELLED execution's stop row stays
- * last across the runner's late writes, whatever order they land in; and a
- * paused execution's phase moves only on the platform's own write
- * (stigmer#1370), so the runner's straggler streaming cannot un-pause it.
- * And the agent a turn ran (status.agent_id, agent_version_hash) is the
- * create pipeline's stamp alone: no status write, the runner's or the
- * platform's, changes it. And the files a plugin-eval try's graders read
- * (plugin_eval_files) are kept on a try's run only. And what a run loaded
- * (loaded_versions) is merged by union over (id, version), never replaced,
- * and an entry with no id is refused by the shared validator the transport's
- * protovalidate interceptor runs, before any merge.
- * These exercise applyUpdateStatusMerge directly on a clone — mirroring
- * the freshly-loaded resource the merge mutates in place inside the
- * updateResource write lock.
+ * Pins the updateStatus merge (../update-status.ts) directly on a clone,
+ * mirroring the freshly-loaded run the merge mutates in place inside the
+ * write lock:
+ *
+ *   - the phase latch: a terminal phase is final against a straggler, and
+ *     a PAUSED run moves only on the platform's own write (stigmer#1370);
+ *     completed_at and the stop cause clear once the turn works again;
+ *   - the run's file record (file_changes) is merged by change set id: a
+ *     set the write carries replaces the one with its id where it stands,
+ *     a new one is added after the others, and no stored set is removed,
+ *     so a write that carries only a new set keeps the first;
+ *   - the policy keeps run only in a write handed the run's review log (a
+ *     write that carries a captured set), return their decided events, and
+ *     never decide one target twice in one write; the live progress clears
+ *     once its set is captured;
+ *   - the agent a turn ran (status.agent_id, agent_version_hash) is the
+ *     create pipeline's stamp alone; the files a plugin-eval try's graders
+ *     read (plugin_eval_files) are kept on a try's run only; and what a run
+ *     loaded (loaded_versions) is merged by union over (id, version), never
+ *     replaced, an entry with no id refused by the shared validator before
+ *     any merge.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -31,24 +30,20 @@ import {
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  ApprovalAction,
-  RunPhase,
-  MessageType,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { TurnCommandProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import { findToolCallInExecution } from "../submit-approval.js";
-import { CANCEL_STOP_ROW, PAUSE_STOP_ROW } from "../platform-rows.js";
+import { toolUseEventId } from "../../session/events/ids.js";
+import { EMPTY_RUN_REVIEW_LOG } from "../filereview/logged.js";
+import type { RunReviewLog } from "../filereview/logged.js";
 import { applyUpdateStatusMerge } from "../update-status.js";
 import { validator } from "../../../pipeline/steps/validation.js";
 import type { StatusWriter } from "../update-status.js";
+import { capturedSet } from "./file-review-seed.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -57,268 +52,70 @@ const silentLogger = createLogger({
 });
 
 /**
- * Applies the merge to a clone of the existing execution and returns the
- * merged result (Go runBuildStep).
+ * Applies the merge to a clone of the existing run and returns the merged
+ * result; `reviewLog` stands for a write that carries a captured set.
  */
 function runBuildStep(
   existing: Run,
   incoming: MessageInitShape<typeof RunStatusSchema>,
   writer: StatusWriter = "wire",
-  openAsks: ReadonlySet<string> = new Set(),
+  options: { readonly outdatedTurn?: boolean; readonly reviewLog?: RunReviewLog } = {},
 ): Run {
+  return merge(existing, incoming, writer, options).run;
+}
+
+function merge(
+  existing: Run,
+  incoming: MessageInitShape<typeof RunStatusSchema>,
+  writer: StatusWriter = "wire",
+  options: { readonly outdatedTurn?: boolean; readonly reviewLog?: RunReviewLog } = {},
+): { run: Run; decided: SessionEvent[] } {
   const input = create(RunUpdateStatusInputSchema, {
     runId: existing.metadata?.id ?? "",
     status: incoming,
   });
   const merged = clone(RunSchema, existing);
-  applyUpdateStatusMerge(merged, input, silentLogger, writer, false, openAsks);
-  return merged;
+  const decided = applyUpdateStatusMerge(
+    merged,
+    input,
+    silentLogger,
+    writer,
+    options.outdatedTurn ?? false,
+    options.reviewLog,
+  );
+  return { run: merged, decided };
 }
 
-function messages(...contents: string[]): AgentMessage[] {
-  return contents.map((c) => create(AgentMessageSchema, { content: c }));
-}
-
-function existingWith(
-  phase: RunPhase,
-  ...msgs: string[]
-): Run {
+function existingWith(phase: RunPhase): Run {
   return create(RunSchema, {
     metadata: { id: "exec-guard", name: "exec-guard" },
     spec: {},
-    status: { phase, messages: msgs.map((c) => ({ content: c })) },
+    status: { phase },
   });
 }
 
-describe("the transcript regression guard (update_status_guard_test.go)", () => {
-  it("rejects a shrinking transcript for a non-terminal execution", () => {
-    const merged = runBuildStep(
-      existingWith(RunPhase.RUN_WAITING_FOR_APPROVAL, "m1", "m2", "m3"),
-      {
-        phase: RunPhase.RUN_IN_PROGRESS,
-        messages: [{ content: "only-one" }],
-      },
-    );
-    expect(merged.status?.messages).toHaveLength(3);
-    expect(merged.status?.messages[0]?.content).toBe("m1");
-  });
-
-  it("accepts the equal-length approval finalize (narration blanked in place) and projects the gate", () => {
-    const existing = create(RunSchema, {
-      metadata: { id: "exec-guard", name: "exec-guard" },
-      spec: {},
-      status: {
-        phase: RunPhase.RUN_IN_PROGRESS,
-        messages: [
-          { content: "let me create the file" },
-          {
-            toolCalls: [
-              {
-                id: "tc-write",
-                name: "Write",
-                status: ToolCallStatus.TOOL_CALL_FAILED,
-                requiresApproval: true,
-              },
-            ],
-          },
-          { content: "I could not write the file; approve it when prompted" },
-        ],
-      },
-    });
-    const merged = runBuildStep(existing, {
-      phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-      messages: [
-        { content: "let me create the file" },
-        {
-          toolCalls: [
-            {
-              id: "tc-write",
-              name: "Write",
-              status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-              requiresApproval: true,
-            },
-          ],
-        },
-        { content: "" },
-      ],
-    }, "wire", new Set(["exec-guard.tc-write"]));
-
-    expect(
-      merged.status?.messages,
-      "append-only finalize keeps all 3 messages (narration blanked, not removed)",
-    ).toHaveLength(3);
-    expect(merged.status?.messages[2]?.content).toBe("");
-    expect(
-      merged.status?.pendingApprovals,
-      "the gated WAITING_APPROVAL call projects exactly one pending approval",
-    ).toHaveLength(1);
-    expect(merged.status?.pendingApprovals[0]?.toolCallId).toBe("tc-write");
-    expect(
-      runBuildStep(existing, { phase: RunPhase.RUN_WAITING_FOR_APPROVAL, messages: merged.status!.messages }).status
-        ?.pendingApprovals,
-      "a waiting row whose ask is not open in the session's log is not pending",
-    ).toHaveLength(0);
-  });
-
-  it("rejects a shrinking WAITING_FOR_APPROVAL finalize (no phase carve-out)", () => {
-    const merged = runBuildStep(
-      existingWith(RunPhase.RUN_IN_PROGRESS, "m1", "m2", "m3"),
-      {
-        phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-        messages: [{ content: "m1" }, { content: "m2" }],
-      },
-    );
-    expect(merged.status?.messages).toHaveLength(3);
-  });
-
-  it("accepts a growing transcript (the normal streaming case)", () => {
-    const merged = runBuildStep(
-      existingWith(RunPhase.RUN_IN_PROGRESS, "m1", "m2"),
-      {
-        phase: RunPhase.RUN_IN_PROGRESS,
-        messages: [{ content: "m1" }, { content: "m2" }, { content: "m3" }],
-      },
-    );
-    expect(merged.status?.messages).toHaveLength(3);
-  });
-
-  it("accepts an equal-length replacement (in-place mutation of the same turns)", () => {
-    const merged = runBuildStep(
-      existingWith(RunPhase.RUN_IN_PROGRESS, "m1", "m2"),
-      {
-        phase: RunPhase.RUN_IN_PROGRESS,
-        messages: [{ content: "m1-updated" }, { content: "m2-updated" }],
-      },
-    );
-    expect(merged.status?.messages).toHaveLength(2);
-    expect(merged.status?.messages[0]?.content).toBe("m1-updated");
-  });
-
-  it("rejects front-truncation-with-append (the gap a count-only guard cannot see)", () => {
-    const existing = create(RunSchema, {
-      metadata: { id: "exec-guard", name: "exec-guard" },
-      spec: {},
-      status: {
-        phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-        messages: [
-          {
-            type: MessageType.MESSAGE_THINKING,
-            content: "planning the self-DM",
-          },
-          {
-            type: MessageType.MESSAGE_AI,
-            toolCalls: [
-              {
-                id: "tc-getappstate",
-                name: "getAppState",
-                status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-                requiresApproval: true,
-                approvalAction: ApprovalAction.APPROVE_ALL,
-                mcpServerSlug: "open-computer-use",
-              },
-            ],
-          },
-        ],
-      },
-    });
-    // Regressed resume transcript: leading thinking + getAppState gone,
-    // later leased tools appended. len(incoming)=3 >= existing=2, so a
-    // count-only guard would not fire.
-    const merged = runBuildStep(existing, {
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        {
-          type: MessageType.MESSAGE_AI,
-          toolCalls: [
-            { id: "tc-click", name: "click", status: ToolCallStatus.TOOL_CALL_COMPLETED },
-          ],
-        },
-        {
-          type: MessageType.MESSAGE_AI,
-          toolCalls: [
-            { id: "tc-scroll", name: "scroll", status: ToolCallStatus.TOOL_CALL_COMPLETED },
-          ],
-        },
-        { type: MessageType.MESSAGE_AI, content: "done" },
-      ],
-    });
-
-    const hasThinking = merged.status?.messages.some(
-      (m) =>
-        m.type === MessageType.MESSAGE_THINKING &&
-        m.content === "planning the self-DM",
-    );
-    expect(
-      hasThinking,
-      "the leading thinking block must survive a front-truncated-but-appended update",
-    ).toBe(true);
-    expect(
-      findToolCallInExecution(merged, "tc-getappstate"),
-      "the first tool call must survive a front-truncated-but-appended update",
-    ).toBeDefined();
-  });
-
-  it("allows a shrink for a terminal execution (administrative correction)", () => {
-    const merged = runBuildStep(
-      existingWith(RunPhase.RUN_COMPLETED, "m1", "m2", "m3"),
-      {
-        phase: RunPhase.RUN_COMPLETED,
-        messages: [{ content: "single" }],
-      },
-    );
-    expect(merged.status?.messages).toHaveLength(1);
-  });
-
-  it("keeps the TERMINATED transcript guarded (the narrow transcript-terminal set)", () => {
-    // TERMINATED is deliberately absent from the transcript guard's
-    // terminal set (phases.ts) — a terminated execution's committed
-    // transcript stays protected from free rewrites.
-    const merged = runBuildStep(
-      existingWith(RunPhase.RUN_TERMINATED, "m1", "m2", "m3"),
-      {
-        phase: RunPhase.RUN_TERMINATED,
-        messages: [{ content: "single" }],
-      },
-    );
-    expect(merged.status?.messages).toHaveLength(3);
-  });
-});
-
-describe("the phase latch and terminal settle", () => {
-  it("latches a terminal phase against a straggler IN_PROGRESS persist and re-settles its rows", () => {
+describe("the phase latch", () => {
+  it("latches a terminal phase against a straggler IN_PROGRESS persist", () => {
     const existing = create(RunSchema, {
       metadata: { id: "exec-latch", name: "exec-latch" },
       spec: {},
       status: {
         phase: RunPhase.RUN_TERMINATED,
         completedAt: "2026-08-24T10:00:00Z",
-        messages: [{ content: "m1" }],
       },
     });
-    // The straggler carries a live phase and a RUNNING tool call appended
-    // to an equal-or-longer transcript.
-    const merged = runBuildStep(existing, {
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [
-        { content: "m1" },
-        {
-          toolCalls: [
-            { id: "tc-live", name: "shell", status: ToolCallStatus.TOOL_CALL_RUNNING },
-          ],
-        },
-      ],
-    });
+    const merged = runBuildStep(existing, { phase: RunPhase.RUN_IN_PROGRESS });
 
     expect(
       merged.status?.phase,
       "the terminal phase is final (Recover is the sanctioned un-terminalizer)",
     ).toBe(RunPhase.RUN_TERMINATED);
-    const straggler = findToolCallInExecution(merged, "tc-live");
-    expect(
-      straggler?.status,
-      "the straggler's RUNNING row re-settles in the same merge (#207)",
-    ).toBe(ToolCallStatus.TOOL_CALL_INTERRUPTED);
-    expect(straggler?.completedAt).toBe("2026-08-24T10:00:00Z");
+    expect(merged.status?.completedAt).toBe("2026-08-24T10:00:00Z");
+  });
+
+  it("builds a status for a run that has none from the runner's first write", () => {
+    const merged = runBuildStep(create(RunSchema, { metadata: { id: "exec-new" } }), { phase: RunPhase.RUN_IN_PROGRESS });
+    expect(merged.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
   });
 
   it("clears completed_at when the merged phase is non-terminal (resume defense-in-depth)", () => {
@@ -327,13 +124,11 @@ describe("the phase latch and terminal settle", () => {
       spec: {},
       status: {
         phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-        completedAt: "2026-08-24T10:00:00Z",
-        messages: [{ content: "m1" }],
+        completedAt: "2026-08-24T10:00:00Z"
       },
     });
     const merged = runBuildStep(existing, {
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [{ content: "m1" }],
+      phase: RunPhase.RUN_IN_PROGRESS
     });
     expect(merged.status?.completedAt).toBe("");
   });
@@ -342,110 +137,106 @@ describe("the phase latch and terminal settle", () => {
     const existing = create(RunSchema, {
       metadata: { id: "exec-stop", name: "exec-stop" },
       spec: {},
-      status: { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ content: "m1" }] },
+      status: { phase: RunPhase.RUN_IN_PROGRESS },
     });
     const stopped = runBuildStep(existing, {
       phase: RunPhase.RUN_PAUSED,
-      stopCause: "user",
-      messages: [{ content: "m1" }],
+      stopCause: "user"
     });
     expect(stopped.status?.stopCause).toBe("user");
-    const unchanged = runBuildStep(stopped, { phase: RunPhase.RUN_PAUSED, messages: [{ content: "m1" }] });
+    const unchanged = runBuildStep(stopped, { phase: RunPhase.RUN_PAUSED });
     expect(unchanged.status?.stopCause, "an empty cause never clears a stated one").toBe("user");
-    const resumed = runBuildStep(stopped, { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ content: "m1" }] }, "platform");
+    const resumed = runBuildStep(stopped, { phase: RunPhase.RUN_IN_PROGRESS }, "platform");
     expect(resumed.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
     expect(resumed.status?.stopCause, "the resumed turn has not stopped").toBe("");
   });
 });
 
-describe("a first write and the sub-agent runs", () => {
-  it("builds a status for a run that has none from the runner's first write", () => {
-    const merged = runBuildStep(
-      create(RunSchema, { metadata: { id: "exec-first", name: "exec-first" } }),
-      { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ content: "m1" }] },
-    );
+describe("the run's file record (file_changes)", () => {
+  const ids = (run: Run) => run.status?.fileChanges.map((cs) => cs.id);
 
-    expect(merged.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
-    expect(merged.status?.messages.map((m) => m.content)).toEqual(["m1"]);
+  it("keeps the first set when a second write carries only a new one", () => {
+    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), { fileChanges: [capturedSet("exec-guard:0")] });
+    const second = runBuildStep(first, { fileChanges: [capturedSet("exec-guard:1")] });
+    expect(ids(second)).toEqual(["exec-guard:0", "exec-guard:1"]);
   });
 
-  it("replaces the sub-agent runs wholesale when a write carries them and keeps them when it does not", () => {
-    const existing = existingWith(RunPhase.RUN_IN_PROGRESS, "m1");
-    (existing.status as RunStatus).subAgentRuns = create(RunStatusSchema, {
-      subAgentRuns: [{ id: "sub-old", name: "researcher" }],
-    }).subAgentRuns;
-
-    const replaced = runBuildStep(existing, {
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [{ content: "m1" }],
-      subAgentRuns: [
-        { id: "sub-a", name: "researcher" },
-        { id: "sub-b", name: "writer" },
-      ],
+  it("replaces a set the write carries again by its id, where it stands", () => {
+    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), {
+      fileChanges: [capturedSet("exec-guard:0", [], false), capturedSet("exec-guard:1")],
     });
-    expect(replaced.status?.subAgentRuns.map((sa) => sa.id)).toEqual([
-      "sub-a",
-      "sub-b",
-    ]);
+    const recaptured = runBuildStep(first, { fileChanges: [capturedSet("exec-guard:0")] });
+    expect(ids(recaptured)).toEqual(["exec-guard:0", "exec-guard:1"]);
+    expect(recaptured.status?.fileChanges[0]?.candidateSnapshot).toBeDefined();
+  });
 
-    const kept = runBuildStep(existing, {
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [{ content: "m1" }],
-    });
-    expect(kept.status?.subAgentRuns.map((sa) => sa.id)).toEqual(["sub-old"]);
+  it("keeps the record across a write that carries none, a terminal one included", () => {
+    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), { fileChanges: [capturedSet("exec-guard:0")] });
+    const done = runBuildStep(first, { phase: RunPhase.RUN_COMPLETED });
+    expect(ids(done)).toEqual(["exec-guard:0"]);
+  });
+
+  it("keeps the live progress until its set is captured, and clears it once the run finishes", () => {
+    const progress = { changeSetId: "exec-guard:0", filesChanged: 1 };
+    const live = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), { fileChangeProgress: progress });
+    expect(live.status?.fileChangeProgress?.filesChanged).toBe(1);
+    const captured = runBuildStep(live, { fileChanges: [capturedSet("exec-guard:0")] });
+    expect(captured.status?.fileChangeProgress).toBeUndefined();
+    const finished = runBuildStep(live, { phase: RunPhase.RUN_COMPLETED });
+    expect(finished.status?.fileChangeProgress).toBeUndefined();
   });
 });
 
-describe("the presence-guarded runner-owned field pattern (recalled_memories_report)", () => {
-  function selectionReport(...ids: string[]) {
-    return {
-      selectionActive: true,
-      injectedMemoryIds: ids,
-      embeddingModel: "text-embedding-3-small",
-    };
-  }
+describe("the policy keeps in the write that captures", () => {
+  const consented = (): RunReviewLog => ({
+    decisions: [],
+    allowed: new Set([toolUseEventId("exec-guard", "tc-shell")]),
+  });
+  const withProvenance = () => {
+    const set = capturedSet("exec-guard:0");
+    set.commandProvenance = create(TurnCommandProvenanceSchema, { consentToolCallIds: ["tc-shell"] });
+    return set;
+  };
+  const origins = (decided: ReadonlyArray<SessionEvent>) =>
+    decided.map((event) => (event.event.case === "stigmerFileReviewDecided" ? event.event.value.origin : event.event.case));
 
-  it("stores a runner-sent report", () => {
-    const merged = runBuildStep(
-      existingWith(RunPhase.RUN_IN_PROGRESS, "m1"),
-      {
-        phase: RunPhase.RUN_IN_PROGRESS,
-        messages: [{ content: "m1" }],
-        recalledMemoriesReport: selectionReport("mem_a", "mem_b"),
-      },
-    );
-    const report = merged.status?.recalledMemoriesReport;
-    expect(report).toBeDefined();
-    expect(report?.selectionActive).toBe(true);
-    expect(report?.injectedMemoryIds).toEqual(["mem_a", "mem_b"]);
-    expect(report?.embeddingModel).toBe("text-embedding-3-small");
+  it("decides nothing in a write handed no review log", () => {
+    expect(merge(existingWith(RunPhase.RUN_IN_PROGRESS), { fileChanges: [withProvenance()] }).decided).toEqual([]);
   });
 
-  it("preserves the stored report across report-less writes (incl. the terminal persist)", () => {
-    const existing = existingWith(RunPhase.RUN_IN_PROGRESS, "m1");
-    (existing.status as RunStatus).recalledMemoriesReport = create(
-      RunStatusSchema,
-      { recalledMemoriesReport: selectionReport("mem_a") },
-    ).recalledMemoriesReport;
-
-    const merged = runBuildStep(existing, {
-      phase: RunPhase.RUN_COMPLETED,
-      messages: [{ content: "m1" }, { content: "m2" }],
+  it("returns the approved-command keep of a captured set whose consent the log shows", () => {
+    const { decided } = merge(existingWith(RunPhase.RUN_IN_PROGRESS), { fileChanges: [withProvenance()] }, "wire", {
+      reviewLog: consented(),
     });
-    expect(merged.status?.recalledMemoriesReport?.injectedMemoryIds).toEqual([
-      "mem_a",
-    ]);
+    expect(origins(decided)).toEqual(["approved_command"]);
+    expect(decided[0]?.runId).toBe("exec-guard");
   });
 
-  it("never invents a report (runner-owned, single writer)", () => {
-    const merged = runBuildStep(
-      existingWith(RunPhase.RUN_IN_PROGRESS, "m1"),
-      {
-        phase: RunPhase.RUN_COMPLETED,
-        messages: [{ content: "m1" }, { content: "m2" }],
-      },
-    );
-    expect(merged.status?.recalledMemoriesReport).toBeUndefined();
+  it("closes an outdated turn's undecided set, and never decides a set twice in one write", () => {
+    const outdated = merge(existingWith(RunPhase.RUN_COMPLETED), { fileChanges: [capturedSet("exec-guard:0")] }, "wire", {
+      outdatedTurn: true,
+      reviewLog: EMPTY_RUN_REVIEW_LOG,
+    });
+    expect(origins(outdated.decided)).toEqual(["next_turn"]);
+
+    const both = merge(existingWith(RunPhase.RUN_COMPLETED), { fileChanges: [withProvenance()] }, "wire", {
+      outdatedTurn: true,
+      reviewLog: consented(),
+    });
+    expect(origins(both.decided)).toEqual(["approved_command"]);
+  });
+
+  it("keeps a plugin eval's try's set by the try's rule, and only once with the outdated close", () => {
+    const tryRun = create(RunSchema, {
+      metadata: { id: "exec-guard", labels: { "stigmer.ai/plugin-eval": "true" } },
+      spec: {},
+      status: { phase: RunPhase.RUN_IN_PROGRESS },
+    });
+    const { decided } = merge(tryRun, { fileChanges: [capturedSet("exec-guard:0")] }, "wire", {
+      outdatedTurn: true,
+      reviewLog: EMPTY_RUN_REVIEW_LOG,
+    });
+    expect(origins(decided)).toEqual(["eval_try"]);
   });
 });
 
@@ -455,20 +246,19 @@ describe("the files a plugin-eval try's graders read (plugin_eval_files)", () =>
   };
 
   it("keeps the runner's files on a try's run, and across a write without them", () => {
-    const existing = existingWith(RunPhase.RUN_IN_PROGRESS, "m1");
+    const existing = existingWith(RunPhase.RUN_IN_PROGRESS);
     existing.spec = create(RunSchema, {
       spec: { pluginEvalCase: { pluginId: "plg_1", pluginDigest: "a".repeat(64), suiteDir: "evals", caseDir: "evals/fix" } },
     }).spec;
-    const merged = runBuildStep(existing, { phase: RunPhase.RUN_COMPLETED, messages: [{ content: "m1" }], pluginEvalFiles: files });
+    const merged = runBuildStep(existing, { phase: RunPhase.RUN_COMPLETED, pluginEvalFiles: files });
     expect(merged.status?.pluginEvalFiles?.files.map((f) => [f.path, f.content.value])).toEqual([["app.txt", "version = 1\n"]]);
-    const again = runBuildStep(merged, { phase: RunPhase.RUN_COMPLETED, messages: [{ content: "m1" }] });
+    const again = runBuildStep(merged, { phase: RunPhase.RUN_COMPLETED });
     expect(again.status?.pluginEvalFiles?.files).toHaveLength(1);
   });
 
   it("drops them on any other run", () => {
-    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), {
+    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), {
       phase: RunPhase.RUN_COMPLETED,
-      messages: [{ content: "m1" }],
       pluginEvalFiles: files,
     });
     expect(merged.status?.pluginEvalFiles).toBeUndefined();
@@ -483,7 +273,6 @@ describe("what a run loaded (loaded_versions)", () => {
   const plugin = { org: "org_a", kind: ApiResourceKind.plugin, id: "plg_1", version: digest };
   const write = (loaded?: MessageInitShape<typeof RunStatusSchema>["loadedVersions"]) => ({
     phase: RunPhase.RUN_IN_PROGRESS,
-    messages: [{ content: "m1" }],
     loadedVersions: loaded,
   });
   const pairs = (run: Run) => ({
@@ -492,7 +281,7 @@ describe("what a run loaded (loaded_versions)", () => {
   });
 
   it("stores the first write in its stored form: the list's kind, no slug", () => {
-    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), write({
+    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), write({
       skills: [{ ...skillAt(v1, "refunds"), kind: ApiResourceKind.agent }],
       plugins: [plugin],
     }));
@@ -502,7 +291,7 @@ describe("what a run loaded (loaded_versions)", () => {
   });
 
   it("adds nothing on a resend, and keeps the list across a write without it", () => {
-    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), write({ skills: [skillAt(v1)], plugins: [plugin] }));
+    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), write({ skills: [skillAt(v1)], plugins: [plugin] }));
     const resent = runBuildStep(first, write({ skills: [skillAt(v1)], plugins: [plugin] }));
     expect(pairs(resent)).toEqual({ skills: [["skl_1", v1]], plugins: [["plg_1", digest]] });
     const without = runBuildStep(resent, write());
@@ -510,7 +299,7 @@ describe("what a run loaded (loaded_versions)", () => {
   });
 
   it("appends a moved version after the one before, in the order sent, and never removes one", () => {
-    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), write({ skills: [skillAt(v1)], plugins: [plugin] }));
+    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), write({ skills: [skillAt(v1)], plugins: [plugin] }));
     const resumed = runBuildStep(first, write({
       skills: [skillAt(v2), { org: "org_a", kind: ApiResourceKind.skill, id: "skl_2", version: v1 }],
       plugins: [],
@@ -538,270 +327,27 @@ describe("what a run loaded (loaded_versions)", () => {
   });
 
   it("leaves a run with no list untouched by a write without one, the platform's included", () => {
-    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), write(), "platform");
+    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), write(), "platform");
     expect(merged.status?.loadedVersions).toBeUndefined();
   });
 });
 
-describe("platform rows (stigmer#980)", () => {
-  // The runner's transcript: AI and tool turns, then (for a failure it
-  // reports itself) its own system rows.
-  function runnerTranscript(...contents: string[]) {
-    return contents.map((content) => ({ type: MessageType.MESSAGE_AI, content }));
-  }
-  function system(...contents: string[]) {
-    return contents.map((content) => ({ type: MessageType.MESSAGE_SYSTEM, content }));
-  }
-  function executionAt(
-    phase: RunPhase,
-    msgs: MessageInitShape<typeof AgentMessageSchema>[],
-  ): Run {
-    return create(RunSchema, {
-      metadata: { id: "exec-rows", name: "exec-rows" },
-      spec: {},
-      status: { phase, messages: msgs },
-    });
-  }
-  function contents(execution: Run): string[] {
-    return (execution.status?.messages ?? []).map((m) => m.content);
-  }
-
-  describe("a platform marker write is appended, never substituted", () => {
-    it("appends the cancel row to a transcript already persisted CANCELLED", () => {
-      // The Cancel RPC persisted CANCELLED first, then the workflow's
-      // cancellation cleanup lands its row: today it replaced the whole
-      // transcript with that one line.
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_CANCELLED, runnerTranscript("a1", "a2")),
-        { phase: RunPhase.RUN_CANCELLED, messages: system(CANCEL_STOP_ROW) },
-      );
-      expect(contents(merged)).toEqual(["a1", "a2", CANCEL_STOP_ROW]);
-    });
-
-    it("appends the broken-flow failure lines to a FAILED transcript", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_FAILED, runnerTranscript("a1", "a2", "a3")),
-        {
-          phase: RunPhase.RUN_FAILED,
-          error: "boom",
-          messages: system("Internal failure.", "Error details: boom"),
-        },
-      );
-      expect(contents(merged)).toEqual([
-        "a1",
-        "a2",
-        "a3",
-        "Internal failure.",
-        "Error details: boom",
-      ]);
-    });
-
-    it("appends a marker landing before the phase is terminal instead of dropping it to the shrink guard", () => {
-      // The runner died without persisting a terminal: the stored phase is
-      // still IN_PROGRESS, and the failure lines are shorter than the
-      // transcript. Today the shrink guard dropped them.
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_IN_PROGRESS, runnerTranscript("a1", "a2", "a3")),
-        {
-          phase: RunPhase.RUN_FAILED,
-          messages: system("Internal failure.", "Error details: boom"),
-        },
-      );
-      expect(contents(merged)).toEqual([
-        "a1",
-        "a2",
-        "a3",
-        "Internal failure.",
-        "Error details: boom",
-      ]);
-      expect(merged.status?.phase).toBe(RunPhase.RUN_FAILED);
-    });
-
-    it("is idempotent: an activity retry of the same marker appends nothing", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_FAILED, [
-          ...runnerTranscript("a1"),
-          ...system("Internal failure.", "Error details: boom"),
-        ]),
-        {
-          phase: RunPhase.RUN_FAILED,
-          messages: system("Internal failure.", "Error details: boom"),
-        },
-      );
-      expect(contents(merged)).toEqual(["a1", "Internal failure.", "Error details: boom"]);
-    });
-
-    it("keeps an all-system write that extends the stored transcript a replacement (the runner's own growth)", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_IN_PROGRESS, system("s1")),
-        { phase: RunPhase.RUN_IN_PROGRESS, messages: system("s1", "s2") },
-      );
-      expect(contents(merged)).toEqual(["s1", "s2"]);
-    });
-
-    it("keeps a system write onto an empty transcript a replacement", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_IN_PROGRESS, []),
-        { phase: RunPhase.RUN_FAILED, messages: system("Internal failure.") },
-      );
-      expect(contents(merged)).toEqual(["Internal failure."]);
-    });
-
-    it("keeps the runner's full terminal write a replacement (the terminal exemption is untouched)", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_FAILED, runnerTranscript("a1", "a2")),
-        {
-          phase: RunPhase.RUN_FAILED,
-          messages: [...runnerTranscript("a1-final"), ...system("Execution failed: x")],
-        },
-      );
-      expect(contents(merged)).toEqual(["a1-final", "Execution failed: x"]);
-    });
-  });
-
-  describe("a stop row stays last across the runner's late writes", () => {
-    it("re-appends the cancel row after a late runner write that extends the transcript", () => {
-      // Cancel's three writers race: the RPC's CANCELLED persist and the
-      // workflow's row landed; the runner's settle write (it learns of the
-      // cancel on its next heartbeat) lands last, carrying no row.
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_CANCELLED, [
-          ...runnerTranscript("a1"),
-          ...system(CANCEL_STOP_ROW),
-        ]),
-        { messages: runnerTranscript("a1", "a2") },
-      );
-      expect(contents(merged)).toEqual(["a1", "a2", CANCEL_STOP_ROW]);
-      expect(merged.status?.phase).toBe(RunPhase.RUN_CANCELLED);
-    });
-
-    it("keeps the pause row last when the runner's settle write lands after it", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_PAUSED, [
-          ...runnerTranscript("a1"),
-          ...system(PAUSE_STOP_ROW),
-        ]),
-        { messages: runnerTranscript("a1") },
-      );
-      expect(
-        contents(merged),
-        "the settle write does not trip the shrink guard on the row, and does not drop it",
-      ).toEqual(["a1", PAUSE_STOP_ROW]);
-    });
-
-    it("merges a longer settle write under the pause row", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_PAUSED, [
-          ...runnerTranscript("a1"),
-          ...system(PAUSE_STOP_ROW),
-        ]),
-        { messages: runnerTranscript("a1", "a2", "a3") },
-      );
-      expect(contents(merged)).toEqual(["a1", "a2", "a3", PAUSE_STOP_ROW]);
-    });
-
-    it("still guards a paused transcript against a real shrink", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_PAUSED, [
-          ...runnerTranscript("a1", "a2"),
-          ...system(PAUSE_STOP_ROW),
-        ]),
-        { messages: runnerTranscript("a1") },
-      );
-      expect(contents(merged)).toEqual(["a1", "a2", PAUSE_STOP_ROW]);
-    });
-
-    it("does not duplicate the row when a retry of the stop marker lands on it", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_CANCELLED, [
-          ...runnerTranscript("a1"),
-          ...system(CANCEL_STOP_ROW),
-        ]),
-        { phase: RunPhase.RUN_CANCELLED, messages: system(CANCEL_STOP_ROW) },
-      );
-      expect(contents(merged)).toEqual(["a1", CANCEL_STOP_ROW]);
-    });
-
-    it("treats the pause row as ordinary history once a resume moved the phase on", () => {
-      // The resumed runner seeds the persisted transcript, row included,
-      // and grows it; nothing is held back or re-appended.
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_IN_PROGRESS, [
-          ...runnerTranscript("a1"),
-          ...system(PAUSE_STOP_ROW),
-        ]),
-        {
-          phase: RunPhase.RUN_IN_PROGRESS,
-          messages: [
-            ...runnerTranscript("a1"),
-            ...system(PAUSE_STOP_ROW),
-            ...runnerTranscript("a2"),
-          ],
-        },
-      );
-      expect(contents(merged)).toEqual(["a1", PAUSE_STOP_ROW, "a2"]);
-    });
-
-    it("never holds a row the phase does not own (a pause row on a CANCELLED execution is history)", () => {
-      const merged = runBuildStep(
-        executionAt(RunPhase.RUN_CANCELLED, [
-          ...runnerTranscript("a1"),
-          ...system(PAUSE_STOP_ROW),
-        ]),
-        { messages: [...runnerTranscript("a1"), ...system(PAUSE_STOP_ROW), ...runnerTranscript("a2")] },
-      );
-      expect(contents(merged)).toEqual(["a1", PAUSE_STOP_ROW, "a2"]);
-    });
-  });
-});
-
 describe("a paused execution stays paused until Resume (stigmer#1370)", () => {
-  function pausedWith(...contents: string[]): Run {
-    return create(RunSchema, {
-      metadata: { id: "exec-paused", name: "exec-paused" },
-      spec: {},
-      status: {
-        phase: RunPhase.RUN_PAUSED,
-        messages: [
-          ...contents.map((content) => ({ type: MessageType.MESSAGE_AI, content })),
-          { type: MessageType.MESSAGE_SYSTEM, content: PAUSE_STOP_ROW },
-        ],
-      },
-    });
-  }
-  const contentsOf = (e: Run) => (e.status?.messages ?? []).map((m) => m.content);
-
-  it("keeps PAUSED across the runner's straggler streaming write, and merges its text beneath the pause row", () => {
-    // The Pause RPC and the workflow's row landed; the runner learns of the
-    // pause on a later heartbeat and keeps streaming IN_PROGRESS writes that
-    // carry its growing transcript without the row.
-    const merged = runBuildStep(pausedWith("The press, part"), {
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [{ type: MessageType.MESSAGE_AI, content: "The press, part one and two" }],
-    });
-    expect(merged.status?.phase, "a wire write cannot un-pause").toBe(RunPhase.RUN_PAUSED);
-    expect(contentsOf(merged)).toEqual(["The press, part one and two", PAUSE_STOP_ROW]);
-  });
+  const paused = (): Run => existingWith(RunPhase.RUN_PAUSED);
 
   it("keeps PAUSED against a wire phase-only IN_PROGRESS write", () => {
-    const merged = runBuildStep(pausedWith("a1"), { phase: RunPhase.RUN_IN_PROGRESS });
+    const merged = runBuildStep(paused(), { phase: RunPhase.RUN_IN_PROGRESS });
     expect(merged.status?.phase).toBe(RunPhase.RUN_PAUSED);
   });
 
   it("lets the platform's own write move a paused execution (the workflow's resume heal)", () => {
-    const merged = runBuildStep(
-      pausedWith("a1"),
-      { phase: RunPhase.RUN_IN_PROGRESS },
-      "platform",
-    );
+    const merged = runBuildStep(paused(), { phase: RunPhase.RUN_IN_PROGRESS }, "platform");
     expect(merged.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
-    expect(contentsOf(merged)).toEqual(["a1", PAUSE_STOP_ROW]);
   });
 
   it("leaves a wire write on a running execution as it was (the latch is PAUSED's alone)", () => {
-    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), {
+    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS), {
       phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-      messages: [{ content: "m1" }],
     });
     expect(merged.status?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
   });

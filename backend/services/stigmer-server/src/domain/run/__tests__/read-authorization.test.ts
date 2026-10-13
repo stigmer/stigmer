@@ -1,20 +1,17 @@
 /**
- * Pins the annotation enforcement on this domain's three config-annotated
- * direct read surfaces (subscribe, getArtifactDownloadUrl,
- * getArtifactContent): each evaluates its OWN annotation through
- * authorizeDirect, and a denying authorizer answers PERMISSION_DENIED
- * with the method's byte-pinned error_msg — before any store, broker, or
- * blob-storage touch. The exact copy doubles as the descriptor-mismatch
+ * Pins the annotation enforcement on this domain's two config-annotated
+ * direct read surfaces (getArtifactDownloadUrl, getArtifactContent): each
+ * evaluates its OWN annotation through authorizeDirect, and a denying
+ * authorizer answers PERMISSION_DENIED with the method's byte-pinned
+ * error_msg — before any store or blob-storage touch. The exact copy doubles as the descriptor-mismatch
  * guard. The decision mapping itself is pinned in
  * pipeline/steps/__tests__/authorize.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
-import type { HandlerContext } from "@connectrpc/connect";
-import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
 import {
-  RunIdSchema,
   GetArtifactContentRequestSchema,
   GetArtifactDownloadUrlRequestSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
@@ -22,13 +19,10 @@ import {
 import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { createLogger } from "../../../boot/logger.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";
-import { callerIdentityKey } from "../../../pipeline/interceptors/auth.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import type { Store } from "../../../store/interface.js";
 
 import { getArtifactContent, getArtifactDownloadUrl } from "../artifacts.js";
-import type { StreamBroker } from "../stream-broker.js";
-import { subscribeExecution } from "../subscribe.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -46,23 +40,11 @@ const untouchableStore = new Proxy({} as Store, {
   },
 });
 
-const untouchableBroker = new Proxy({} as StreamBroker, {
-  get(_target, prop) {
-    throw new Error(`broker.${String(prop)} reached despite the denial`);
-  },
-});
-
 const untouchableStorage = new Proxy({} as ArtifactStorage, {
   get(_target, prop) {
     throw new Error(`storage.${String(prop)} reached despite the denial`);
   },
 });
-
-function handlerContext(): HandlerContext {
-  const values = createContextValues();
-  values.set(callerIdentityKey, testCallerIdentity());
-  return { signal: new AbortController().signal, values } as HandlerContext;
-}
 
 async function expectDenied(run: () => Promise<unknown>, copy: string) {
   const error = await run().catch((e: unknown) => e);
@@ -79,23 +61,6 @@ const artifactDeps = {
 };
 
 describe("read-surface authorization", () => {
-  it("subscribe denies with its annotation copy before touching store or broker", async () => {
-    await expectDenied(
-      () =>
-        subscribeExecution(
-          {
-            store: untouchableStore,
-            logger: silentLogger,
-            broker: untouchableBroker,
-            authorizer: denyingAuthorizer,
-          },
-          create(RunIdSchema, { value: "aexec_01denied" }),
-          handlerContext(),
-        ).next(),
-      "unauthorized to subscribe to run",
-    );
-  });
-
   it("getArtifactDownloadUrl denies with its annotation copy before the load", async () => {
     await expectDenied(
       () =>

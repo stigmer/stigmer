@@ -3,19 +3,20 @@
  * ../grant-permission.ts, through the core ../answer.ts) on a real store:
  * served on the session's command service under can_edit on the session;
  * an allow or a deny (with its message) recorded as one
- * user.tool_confirmation in the tool use's thread, the row stamped, the
- * pending approvals and the session's status recomputed (requires_action
- * with the remainder, running once nothing is left), and the turn
- * signalled only then; a replay answered from the log without reaching the
+ * user.tool_confirmation in the tool use's thread, the open asks and the
+ * session's status recomputed (requires_action with the remainder,
+ * running once nothing is left), and the turn signalled only then; a replay answered from the log without reaching the
  * gate slot, a contrary answer refused; a tool use that is not one of the
- * session's asks not found; a grant answering every waiting call of its
+ * session's asks not found, a purged organization's included; a grant
+ * answering every waiting call of its
  * class with one grant event, and a call with no class (or whose asked
  * event the log does not hold) allowed alone; a grant an ask overtakes
- * reading the run's asks again, a bounded number of times; a row's stamp
- * or status deciding nothing, the log's open ask answered; the gate slot
- * reading the answer whichever method carried it. A store fault
- * is an Internal that names no detail; a workflow that cannot be signalled
- * is Unavailable, and one that no longer runs fails the run.
+ * reading the run's asks again, a bounded number of times; the gate slot
+ * reading the answer whichever method carried it, with the call id the
+ * tool use names. A store fault is an Internal that names no detail; a
+ * workflow that cannot be signalled is Unavailable, and one that no longer
+ * runs fails the run with the pinned copy, its file record kept and the
+ * composed observers told.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -24,13 +25,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  ApprovalAction,
-  ApprovalPolicySource,
-  RunPhase,
-  SubAgentStatus,
-  ToolCallStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import {
@@ -38,7 +33,6 @@ import {
   GrantPermissionInputSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import { eventTypeOf } from "@stigmer/session-log";
@@ -57,13 +51,15 @@ import { stubConnectedEngine } from "../../../run/__tests__/engine-stub.js";
 import { EngineWorkflowNotFoundError } from "../../../run/engine.js";
 import type { Store } from "../../../../store/interface.js";
 import type { ExecutionEngineState } from "../../../run/engine.js";
-import { StreamBroker } from "../../../run/stream-broker.js";
+import { capturedSet } from "../../../run/__tests__/file-review-seed.js";
+import type { RunStatusTransition } from "../../../../extensions/status-hooks.js";
 import { registerSessionServices } from "../../controller.js";
 import type { SessionControllerDeps } from "../../controller.js";
 import { SessionEventBroker } from "../../events/broker.js";
 import { draftOf, eventOf } from "../../events/codec.js";
+import { toolUseEventId } from "../../events/ids.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../events/run-writes.js";
-import { approvalAnswerOf, toolConfirmationEventId } from "../answer.js";
+import { approvalAnswerOf, callIdOfToolUse, toolConfirmationEventId } from "../answer.js";
 import type { ApprovalAnswer } from "../answer.js";
 import { confirmToolUse } from "../confirm-tool-use.js";
 import type { SessionAnswerDeps } from "../confirm-tool-use.js";
@@ -108,7 +104,6 @@ function deps(authorizer: Authorizer = newPermissiveSingleTeamAuthorizer()): Ses
     store: temp.store,
     logger: silentLogger,
     authorizer,
-    broker: new StreamBroker(silentLogger),
     sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: () =>
       ({
@@ -132,35 +127,28 @@ interface Call {
   readonly asks?: boolean;
 }
 
-/** A turn of the session waiting on `calls`, its asks in the log as the runner writes them. */
+/**
+ * A turn of the session waiting on `calls` (a call with `asks: false` ran
+ * without asking, so the log holds no ask of it), its asks in the log as
+ * the runner writes them; a sub-agent's in the thread of its task.
+ */
 async function seedWaiting(
   calls: ReadonlyArray<Call>,
   options: { runId?: string; sessionId?: string; subAgent?: ReadonlyArray<Call> } = {},
 ): Promise<Run> {
   const runId = options.runId ?? RUN;
-  const row = (call: Call) => ({
-    id: call.id,
-    name: call.name,
-    mcpServerSlug: call.server ?? "",
-    status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    requiresApproval: call.asks ?? true,
-    ...(call.hook === undefined ? {} : { approvalPolicySource: ApprovalPolicySource.HOOK, approvalPolicyHook: call.hook }),
-  });
   const run = create(RunSchema, {
     metadata: { id: runId, org: "acme" },
     spec: { target: { case: "sessionId", value: options.sessionId ?? SESSION }, message: "tidy up" },
-    status: {
-      phase: RunPhase.RUN_IN_PROGRESS,
-      messages: [{ toolCalls: calls.map(row) }],
-      subAgentRuns:
-        options.subAgent === undefined
-          ? []
-          : [{ id: "task-1", name: "explorer", status: SubAgentStatus.SUB_AGENT_IN_PROGRESS, messages: [{ toolCalls: options.subAgent.map(row) }] }],
-    },
+    status: { phase: RunPhase.RUN_IN_PROGRESS, fileChanges: [capturedSet(`${runId}:0`)] },
   });
   const writeDeps = { store: temp.store, sessionEventBroker: new SessionEventBroker(silentLogger) };
   await createRunAppendingEvents(writeDeps, run);
-  await appendAsks(temp.store, runId);
+  const thread = toolUseEventId(runId, "task-1");
+  await appendAsks(temp.store, runId, [
+    ...calls.filter((call) => call.asks !== false),
+    ...(options.subAgent ?? []).map((call) => ({ ...call, threadId: thread })),
+  ]);
   const { run: waiting } = await updateRunAppendingEvents(writeDeps, runId, (r) => {
     r.status!.phase = RunPhase.RUN_WAITING_FOR_APPROVAL;
   });
@@ -217,10 +205,9 @@ async function stored(runId = RUN): Promise<Run> {
   return temp.store.getResource(ApiResourceKind.run, runId, RunSchema);
 }
 
-function callOf(run: Run, callId: string) {
-  return [...(run.status?.messages ?? []), ...(run.status?.subAgentRuns.flatMap((s) => s.messages) ?? [])]
-    .flatMap((m) => m.toolCalls)
-    .find((tc) => tc.id === callId);
+/** The call ids of the run's asks still open in the session's log. */
+async function openCalls(runId = RUN): Promise<string[]> {
+  return (await temp.store.sessionEvents.openGates(SESSION, runId)).map((gate) => callIdOfToolUse(runId, gate.toolUseId));
 }
 
 describe("the session's answer methods", () => {
@@ -253,15 +240,12 @@ describe("the session's answer methods", () => {
 });
 
 describe("confirmToolUse", () => {
-  it("records an allow, stamps the row, clears the gate, goes running and signals the turn once", async () => {
+  it("records an allow, clears the gate, goes running and signals the turn once", async () => {
     await seedWaiting([{ id: "tc-1", name: "write" }]);
     const answer = await confirm(use("tc-1"), "allow");
     expect(answer.event.case).toBe("userToolConfirmation");
     expect(answer.event.value?.id).toBe(toolConfirmationEventId(use("tc-1")));
-    const run = await stored();
-    expect(callOf(run, "tc-1")?.approvalAction).toBe(ApprovalAction.APPROVE);
-    expect(callOf(run, "tc-1")?.approvedBy).toBe(testCallerIdentity().identityId);
-    expect(run.status?.pendingApprovals).toEqual([]);
+    expect(await openCalls()).toEqual([]);
     expect(await logAfterAsks()).toEqual([
       "session.status_running",
       `session.status_idle requires_action [${use("tc-1")}]`,
@@ -274,12 +258,12 @@ describe("confirmToolUse", () => {
     ]);
   });
 
-  it("records a deny with its message for the agent, stamped REJECT; a message on an allow is refused", async () => {
+  it("records a deny with its message for the agent; a message on an allow is refused", async () => {
     await seedWaiting([{ id: "tc-1", name: "shell" }]);
     expect((await refusal(confirm(use("tc-1"), "allow", "why"))).code).toBe(Code.InvalidArgument);
     const answer = await confirm(use("tc-1"), "deny", "use make clean instead");
     expect(answer.event.case === "userToolConfirmation" && answer.event.value.denyMessage).toBe("use make clean instead");
-    expect(callOf(await stored(), "tc-1")?.approvalAction).toBe(ApprovalAction.REJECT);
+    expect(await openCalls()).toEqual([]);
   });
 
   it("answering one of two re-states requires_action with the remainder and signals nothing until the last", async () => {
@@ -288,7 +272,7 @@ describe("confirmToolUse", () => {
       { id: "tc-2", name: "shell" },
     ]);
     await confirm(use("tc-1"), "allow");
-    expect((await stored()).status?.pendingApprovals.map((p) => p.toolCallId)).toEqual(["tc-2"]);
+    expect(await openCalls()).toEqual(["tc-2"]);
     expect(signalled).toEqual([]);
     await confirm(use("tc-2"), "deny");
     expect(await logAfterAsks()).toEqual([
@@ -321,6 +305,23 @@ describe("confirmToolUse", () => {
     const [a, b] = await Promise.all([confirm(use("tc-1"), "allow"), confirm(use("tc-1"), "allow")]);
     expect(a.event.value?.id).toBe(b.event.value?.id);
     expect((await logAfterAsks()).filter((line) => line.startsWith("user.tool_confirmation"))).toHaveLength(1);
+  });
+
+  it("on a purged organization's session is not found, whichever of its rows the purge has removed so far", async () => {
+    await seedWaiting([
+      { id: "tc-1", name: "write" },
+      { id: "tc-2", name: "write" },
+    ]);
+    // The final stage sweeps the organization's event log; its runs may
+    // still be stored until their kind's purge reaches them.
+    await temp.store.sessionEvents.deleteByOrg("acme");
+    expect((await refusal(confirm(use("tc-1"), "allow"))).code).toBe(Code.NotFound);
+    // Every row gone.
+    await temp.store.deleteResource(ApiResourceKind.run, RUN);
+    expect((await refusal(confirm(use("tc-2"), "allow"))).code).toBe(Code.NotFound);
+    expect((await refusal(grant(use("tc-2")))).code).toBe(Code.NotFound);
+    expect(signalled).toEqual([]);
+    expect(slotAnswers).toEqual([]);
   });
 
   it("a tool use that is not one of the session's asks is not found", async () => {
@@ -363,7 +364,7 @@ describe("confirmToolUse", () => {
     const answer = await confirm(use("tc-s"), "allow");
     expect(answer.threadId).toBe(use("task-1"));
     expect(answer.event.case === "userToolConfirmation" && answer.event.value.sessionThreadId).toBe(use("task-1"));
-    expect(callOf(await stored(), "tc-s")?.approvalAction).toBe(ApprovalAction.APPROVE);
+    expect(await openCalls()).toEqual([]);
   });
 });
 
@@ -384,10 +385,7 @@ describe("grantPermission", () => {
       use("tc-shell-1"),
       use("tc-shell-2"),
     ]);
-    const run = await stored();
-    expect(callOf(run, "tc-shell-1")?.approvalAction).toBe(ApprovalAction.APPROVE_ALL);
-    expect(callOf(run, "tc-shell-2")?.approvalAction).toBe(ApprovalAction.APPROVE);
-    expect(callOf(run, "tc-write")?.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
+    expect(await openCalls()).toEqual(["tc-write"]);
     expect((await logAfterAsks()).slice(2)).toEqual([
       `user.tool_confirmation ${use("tc-shell-1")} allow`,
       `stigmer.permission.grant ${use("tc-shell-1")}`,
@@ -415,7 +413,7 @@ describe("grantPermission", () => {
       tool: "execute",
     });
     expect(response.confirmations).toHaveLength(2);
-    expect(callOf(await stored(), "tc-c")?.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
+    expect(await openCalls()).toEqual(["tc-c"]);
   });
 
   it("a call with no class is allowed alone, with no grant", async () => {
@@ -426,7 +424,7 @@ describe("grantPermission", () => {
     const response = await grant(use("tc-read"));
     expect(response.grant).toBeUndefined();
     expect(response.confirmations).toHaveLength(1);
-    expect(callOf(await stored(), "tc-read")?.approvalAction).toBe(ApprovalAction.APPROVE);
+    expect(await openCalls()).toEqual(["tc-read-2"]);
     expect((await grant(use("tc-read"))).confirmations).toHaveLength(1);
     expect((await refusal(confirm(use("tc-read"), "deny"))).code).toBe(Code.FailedPrecondition);
     expect((await confirm(use("tc-read"), "allow")).event.case).toBe("userToolConfirmation");
@@ -472,19 +470,10 @@ describe("the answer core's edges", () => {
     expect((await refusal(confirm(use("tc-1"), "allow", "", writeFault))).code).toBe(Code.Internal);
   });
 
-  it("a row's stamp or status decides nothing: an ask the log holds open is answered, and the row stamped", async () => {
-    await seedWaiting([
-      { id: "tc-1", name: "write" },
-      { id: "tc-2", name: "write" },
-    ]);
-    await temp.store.updateResource(ApiResourceKind.run, RUN, RunSchema, (r) => {
-      r.status!.messages[0]!.toolCalls[0]!.approvalAction = ApprovalAction.APPROVE;
-      r.status!.messages[0]!.toolCalls[1]!.status = ToolCallStatus.TOOL_CALL_COMPLETED;
-    });
-    expect((await confirm(use("tc-1"), "deny", "no")).event.case).toBe("userToolConfirmation");
-    expect((await confirm(use("tc-2"), "allow")).event.case).toBe("userToolConfirmation");
-    expect(callOf(await stored(), "tc-1")?.approvalAction).toBe(ApprovalAction.REJECT);
-    expect(signalled).toEqual([RUN]);
+  it("names the gate slot the call id a tool use carries, and none for a hashed one", () => {
+    expect(callIdOfToolUse(RUN, use("tc-1"))).toBe("tc-1");
+    expect(callIdOfToolUse(RUN, toolUseEventId(RUN, "call with spaces"))).toBe("");
+    expect(callIdOfToolUse(RUN, use("tc-1", "run_other"))).toBe("");
   });
 
   it("a grant whose read of the run's asks an ask overtakes reads them again, and allows that ask too", async () => {
@@ -499,17 +488,7 @@ describe("the answer core's edges", () => {
         writeResourceAppendingEvents: (async (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
           if (++writes === 1) {
             // The runner's next ask lands between the grant's read and its write.
-            await temp.store.updateResource(ApiResourceKind.run, RUN, RunSchema, (r) => {
-              r.status!.messages[0]!.toolCalls.push(
-                create(ToolCallSchema, {
-                  id: "tc-shell-3",
-                  name: "shell",
-                  status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-                  requiresApproval: true,
-                }),
-              );
-            });
-            await appendAsks(temp.store, RUN, ["tc-shell-3"]);
+            await appendAsks(temp.store, RUN, [{ id: "tc-shell-3", name: "shell" }]);
           }
           return temp.store.writeResourceAppendingEvents(...args);
         }) as Store["writeResourceAppendingEvents"],
@@ -532,17 +511,7 @@ describe("the answer core's edges", () => {
       store: faulty({
         writeResourceAppendingEvents: (async (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
           const callId = `tc-late-${++writes}`;
-          await temp.store.updateResource(ApiResourceKind.run, RUN, RunSchema, (r) => {
-            r.status!.messages[0]!.toolCalls.push(
-              create(ToolCallSchema, {
-                id: callId,
-                name: "shell",
-                status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-                requiresApproval: true,
-              }),
-            );
-          });
-          await appendAsks(temp.store, RUN, [callId]);
+          await appendAsks(temp.store, RUN, [{ id: callId, name: "shell" }]);
           return temp.store.writeResourceAppendingEvents(...args);
         }) as Store["writeResourceAppendingEvents"],
       }),
@@ -554,7 +523,7 @@ describe("the answer core's edges", () => {
       use("tc-late-1"),
       use("tc-late-2"),
     ]);
-    expect((await stored()).status?.pendingApprovals.map((p) => p.toolCallId)).toEqual(["tc-late-3"]);
+    expect(await openCalls()).toEqual(["tc-late-3"]);
     expect(signalled).toEqual([]);
   });
 
@@ -598,7 +567,37 @@ describe("the answer core's edges", () => {
         }) as ExecutionEngineState,
     };
     expect((await refusal(confirm(use("tc-1"), "allow", "", d))).code).toBe(Code.Unavailable);
-    expect(callOf(await stored(), "tc-1")?.approvalAction).toBe(ApprovalAction.APPROVE);
+    expect(await openCalls()).toEqual([]);
+  });
+
+  it("a workflow that no longer runs fails the run with the pinned copy, keeps its file record and tells the observers", async () => {
+    await seedWaiting([{ id: "tc-1", name: "write" }]);
+    const observed: RunStatusTransition[] = [];
+    const d: SessionAnswerDeps = {
+      ...deps(),
+      engineState: () =>
+        ({
+          connected: true,
+          engine: stubConnectedEngine({
+            signalApprovalGateResolved: (runId) => Promise.reject(new EngineWorkflowNotFoundError(runId)),
+          }),
+        }) as ExecutionEngineState,
+      statusObservers: [(t) => void observed.push(t)],
+    };
+    const error = await refusal(confirm(use("tc-1"), "allow", "", d));
+    expect([error.code, error.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      `workflow not running for execution ${RUN} - the backing workflow has terminated unexpectedly and the execution has been marked as failed`,
+    ]);
+    const run = await stored();
+    expect(run.status?.phase).toBe(RunPhase.RUN_FAILED);
+    expect(run.status?.error).toBe(
+      "Workflow backing this execution is no longer running. Execution has been marked as failed.",
+    );
+    expect(run.status?.fileChanges.map((cs) => cs.id)).toEqual([`${RUN}:0`]);
+    expect(observed.map((t) => [t.oldPhase, t.newPhase, t.run.metadata?.id])).toEqual([
+      [RunPhase.RUN_WAITING_FOR_APPROVAL, RunPhase.RUN_FAILED, RUN],
+    ]);
   });
 
   it("a workflow that no longer runs fails the run; a fault saving that is logged and the refusal stands", async () => {
@@ -650,7 +649,7 @@ describe("the answer core's edges", () => {
       Code.FailedPrecondition,
     );
     expect((await logAfterAsks()).filter((line) => line.startsWith("user.tool_confirmation"))).toEqual([]);
-    expect(callOf(await stored(), "tc-1")?.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
+    expect(await openCalls()).toEqual(["tc-1"]);
     expect(signalled).toEqual([]);
   });
 });
