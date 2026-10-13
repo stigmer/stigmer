@@ -529,24 +529,29 @@ describe("organization names (composed server, trusted-local posture)", () => {
     expect(same.metadata?.slug).toBe("initech");
   });
 
-  it("apply and update by a renamed organization's old slug are refused with SLUG_RENAMED; an apply carrying the id keeps the slug", async () => {
+  it("an apply by a renamed organization's old slug is refused with SLUG_RENAMED, an update without the id is refused; an apply carrying the id keeps the slug", async () => {
     const made = await organizations.create(organizationInput("hooli"));
     const id = made.metadata?.id ?? "";
     await organizations.rename(
       create(RenameInputSchema, { resourceId: id, slug: "hooli-xyz" }),
     );
 
-    for (const write of [
-      () => organizations.apply({ ...organizationInput("hooli"), spec: { description: "applied by the old slug" } }),
-      () => organizations.update({ resource: { ...organizationInput("hooli"), spec: { description: "updated by the old slug" } }, updateMask: { paths: ["*"] } }),
-    ]) {
-      const refusal = await grpcError(write);
-      expect(refusal.code).toBe(Code.FailedPrecondition);
-      expect(refusal.rawMessage).toBe(
-        "Organization 'hooli' was renamed; it still leads to the same organization for reading. Write to it by its current slug or its id",
-      );
-      expect(reasonOf(refusal)).toBe("SLUG_RENAMED");
-    }
+    const refusal = await grpcError(() =>
+      organizations.apply({ ...organizationInput("hooli"), spec: { description: "applied by the old slug" } }),
+    );
+    expect(refusal.code).toBe(Code.FailedPrecondition);
+    expect(refusal.rawMessage).toBe(
+      "Organization 'hooli' was renamed; it still leads to the same organization for reading. Write to it by its current slug or its id",
+    );
+    expect(reasonOf(refusal)).toBe("SLUG_RENAMED");
+    const noId = await grpcError(() =>
+      organizations.update({
+        resource: { ...organizationInput("hooli"), spec: { description: "updated by the old slug" } },
+        updateMask: { paths: ["*"] },
+      }),
+    );
+    expect(noId.code).toBe(Code.InvalidArgument);
+    expect(noId.rawMessage).toContain("resource.metadata.id is required");
     expect(
       (await organizationQuery.get({ value: "hooli" })).metadata?.slug,
       "a read by the old slug still leads to it",
@@ -562,10 +567,12 @@ describe("organization names (composed server, trusted-local posture)", () => {
 
     const updated = await organizations.update({ resource: {
       ...organizationInput("hooli-xyz"),
-      spec: { description: "updated by the current slug" },
+      metadata: { ...organizationInput("hooli-xyz").metadata, id },
+      spec: { description: "updated by id" },
     }, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.id).toBe(id);
-    expect(updated.spec?.description).toBe("updated by the current slug");
+    expect(updated.metadata?.slug).toBe("hooli-xyz");
+    expect(updated.spec?.description).toBe("updated by id");
   });
 });
 

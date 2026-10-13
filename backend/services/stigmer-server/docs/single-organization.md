@@ -32,7 +32,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | AgentCommandController.apply | metadata.org |
 | AgentCommandController.create | metadata.org |
-| AgentCommandController.update | metadata.org |
 | AgentQueryController.getByReference | org |
 | AgentQueryController.listVersions | org |
 
@@ -42,7 +41,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | AgentChannelCommandController.apply | metadata.org |
 | AgentChannelCommandController.create | metadata.org |
-| AgentChannelCommandController.update | metadata.org |
 | AgentChannelQueryController.getByAgent | org |
 | AgentChannelQueryController.getByReference | org |
 | AgentChannelQueryController.list | org |
@@ -61,7 +59,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | Method | Fills |
 |---|---|
 | RunCommandController.create | metadata.org |
-| RunCommandController.update | metadata.org |
 | RunQueryController.getAgentUsageReport | org |
 | RunQueryController.getRunSummary | org |
 | RunQueryController.getOrgUsageReport | org |
@@ -73,7 +70,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | AgentShareCommandController.apply | metadata.org |
 | AgentShareCommandController.create | metadata.org |
-| AgentShareCommandController.update | metadata.org |
 | AgentShareQueryController.getByAgent | org |
 | AgentShareQueryController.getByReference | org |
 | AgentShareQueryController.list | org |
@@ -84,7 +80,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | ChannelAppCommandController.apply | metadata.org |
 | ChannelAppCommandController.create | metadata.org |
-| ChannelAppCommandController.update | metadata.org |
 | ChannelAppQueryController.getByReference | org |
 | ChannelAppQueryController.listByOrg | org |
 
@@ -93,14 +88,12 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | Method | Fills |
 |---|---|
 | EvaluatorCommandController.create | metadata.org |
-| EvaluatorCommandController.update | metadata.org |
 
 ## `ai.stigmer.agentic.memory.v1`
 
 | Method | Fills |
 |---|---|
 | MemoryCommandController.create | metadata.org |
-| MemoryCommandController.update | metadata.org |
 | MemoryQueryController.list | org |
 
 ## `ai.stigmer.agentic.plugin.v1`
@@ -125,7 +118,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | ScheduleCommandController.apply | metadata.org |
 | ScheduleCommandController.create | metadata.org |
-| ScheduleCommandController.update | metadata.org |
 | ScheduleQueryController.getByAgent | org |
 | ScheduleQueryController.getByReference | org |
 | ScheduleQueryController.list | org |
@@ -135,7 +127,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | Method | Fills |
 |---|---|
 | ScoreCommandController.create | metadata.org |
-| ScoreCommandController.update | metadata.org |
 | ScoreQueryController.getAgentQualityReport | org |
 | ScoreQueryController.listFlaggedByAgent | org |
 
@@ -145,7 +136,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | SessionCommandController.apply | metadata.org |
 | SessionCommandController.create | metadata.org |
-| SessionCommandController.update | metadata.org |
 | SessionQueryController.list | org |
 
 ## `ai.stigmer.agentic.skill.v1`
@@ -169,7 +159,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | VaultCommandController.setConnection | vault.org |
 | VaultCommandController.setSecrets | vault.org |
 | VaultCommandController.startSignIn | vault.org |
-| VaultCommandController.update | metadata.org |
 | VaultQueryController.getByExternalId | org |
 | VaultQueryController.getByReference | org |
 | VaultQueryController.getMine | org |
@@ -189,7 +178,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | OAuthAppCommandController.apply | metadata.org |
 | OAuthAppCommandController.create | metadata.org |
-| OAuthAppCommandController.update | metadata.org |
 | OAuthAppQueryController.getByReference | org |
 | OAuthAppQueryController.listByOrg | org |
 
@@ -198,7 +186,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | Method | Fills |
 |---|---|
 | PlatformClientCommandController.create | metadata.org |
-| PlatformClientCommandController.update | metadata.org |
 | PlatformClientQueryController.getByReference | org |
 | PlatformClientQueryController.listByOrg | org |
 | PlatformClientTokenController.mintUserToken | org |
@@ -237,11 +224,8 @@ These kinds are owned by a person, not an organization, yet these methods take a
 | Method | Fills |
 |---|---|
 | ApiKeyCommandController.create | not filled: kind belongs to no organization |
-| ApiKeyCommandController.update | not filled: kind belongs to no organization |
 | IdentityAccountCommandController.create | not filled: kind belongs to no organization |
-| IdentityAccountCommandController.update | not filled: kind belongs to no organization |
 | OrganizationCommandController.apply | not filled: organization service |
 | OrganizationCommandController.create | not filled: organization service |
-| OrganizationCommandController.update | not filled: organization service |
 | OrganizationQueryController.find | not filled: organization service |
 | OrganizationQueryController.listChildOrgs | not filled: organization service |

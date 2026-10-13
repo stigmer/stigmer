@@ -308,7 +308,7 @@ describe("update", () => {
     });
     const updated = await commands(ADMIN).update({ resource: {
       ...created,
-      metadata: { ...created.metadata!, name: "Renamed" },
+      metadata: { ...created.metadata!, etag: "", name: "Renamed" },
       spec: { ...created.spec!, description: "new words", secrets: {} },
     }, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.name).toBe("Renamed");
@@ -319,6 +319,7 @@ describe("update", () => {
     const moved = await failureOf(
       commands(ADMIN).update({ resource: {
         ...created,
+        metadata: { ...created.metadata!, etag: "" },
         spec: { ...created.spec!, owner: { case: "person", value: ADMIN } },
       }, updateMask: { paths: ["*"] } }),
     );
@@ -345,6 +346,7 @@ describe("update", () => {
       () =>
         commands(ADMIN).update({ resource: {
           ...created,
+          metadata: { ...created.metadata!, etag: "" },
           spec: { ...created.spec!, description: "new words" },
         }, updateMask: { paths: ["*"] } }),
     );
@@ -373,6 +375,7 @@ describe("update", () => {
       () =>
         commands(ADMIN).update({ resource: {
           ...created,
+          metadata: { ...created.metadata!, etag: "" },
           spec: { ...created.spec!, description: "new words" },
         }, updateMask: { paths: ["*"] } }),
     );
@@ -405,6 +408,7 @@ describe("external ids", () => {
     // Moved: the new id finds it and the old one is free again.
     await commands(ADMIN).update({ resource: {
       ...first,
+      metadata: { ...first.metadata!, etag: "" },
       spec: { ...first.spec!, externalId: "customer-2" },
     }, updateMask: { paths: ["*"] } });
     expect(
@@ -414,7 +418,7 @@ describe("external ids", () => {
     const reuse = await commands(ADMIN).create(sharedInput({ externalId: "customer-1" }));
 
     // Cleared, then deleted: both ids are free.
-    await commands(ADMIN).update({ resource: { ...first, spec: { ...first.spec!, externalId: "" } }, updateMask: { paths: ["*"] } });
+    await commands(ADMIN).update({ resource: { ...first, metadata: { ...first.metadata!, etag: "" }, spec: { ...first.spec!, externalId: "" } }, updateMask: { paths: ["*"] } });
     await commands(ADMIN).create(sharedInput({ externalId: "customer-2" }));
     await commands(ADMIN).delete({ resourceId: reuse.metadata!.id });
     await commands(ADMIN).create(sharedInput({ externalId: "customer-1" }));
@@ -567,7 +571,7 @@ describe("entries, My vault and visibility", () => {
   it("My vault takes no external id", async () => {
     const mine = await queries(ANA).getMine({ org: ORG });
     const refused = await failureOf(
-      commands(ANA).update({ resource: { ...mine, spec: { ...mine.spec!, externalId: "x" } }, updateMask: { paths: ["*"] } }),
+      commands(ANA).update({ resource: { ...mine, metadata: { ...mine.metadata!, etag: "" }, spec: { ...mine.spec!, externalId: "x" } }, updateMask: { paths: ["*"] } }),
     );
     expect(refused.code).toBe(Code.InvalidArgument);
   });
@@ -688,6 +692,7 @@ describe("reads and refusals at the edges", () => {
     const moved = await failureOf(
       commands(ADMIN).update({ resource: {
         ...second,
+        metadata: { ...second.metadata!, etag: "" },
         spec: { ...second.spec!, externalId: "taken-by-first" },
       }, updateMask: { paths: ["*"] } }),
     );
@@ -761,7 +766,7 @@ describe("values from a request, and values in a response", () => {
 
     const updated = await commands(ADMIN).update({ resource: {
       ...created,
-      metadata: { ...created.metadata!, name: "Renamed with values" },
+      metadata: { ...created.metadata!, etag: "", name: "Renamed with values" },
       spec: {
         ...created.spec!,
         // A message spread keeps its type, so the entries are messages too.

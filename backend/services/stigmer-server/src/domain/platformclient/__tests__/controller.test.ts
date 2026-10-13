@@ -192,7 +192,7 @@ describe("PlatformClient chains", () => {
     );
   });
 
-  it("update keeps the credentials, addressed by id or by slug", async () => {
+  it("update keeps the credentials, and needs the id", async () => {
     const created = await command.create(input("Dashboard"));
     const stored = created.platformClient;
     const clientId = stored?.spec?.clientId ?? "";
@@ -213,9 +213,9 @@ describe("PlatformClient chains", () => {
       metadata: { name: "Dashboard", org: "acme", slug: "dashboard" },
       spec: { createAccountsOnSignIn: false },
     });
-    const viaSlug = await command.update({ resource: bySlug, updateMask: { paths: ["*"] } });
-    expect(viaSlug.metadata?.id).toBe(stored?.metadata?.id);
-    expect(viaSlug.spec?.clientId).toBe(clientId);
+    const viaSlug = await refusal(command.update({ resource: bySlug, updateMask: { paths: ["*"] } }));
+    expect(viaSlug.code).toBe(Code.InvalidArgument);
+    expect(viaSlug.rawMessage).toContain("resource.metadata.id is required");
     expect(
       (await clients.findById(stored?.metadata?.id ?? ""))?.spec
         ?.clientSecretHash,
@@ -248,6 +248,9 @@ describe("PlatformClient chains", () => {
     const edit = clone(PlatformClientSchema, stored);
     edit.spec = clone(PlatformClientSpecSchema, stored.spec);
     edit.spec.allowedOrigins = ["https://a.example"];
+    // An update that sends no etag: the rotation landing mid-update changes
+    // the spec, which a sent etag would refuse.
+    edit.metadata!.etag = "";
 
     let rotatedSecret = "";
     const { result, writes } = await writeLandsMidUpdate(
@@ -257,7 +260,7 @@ describe("PlatformClient chains", () => {
       async () => {
         rotatedSecret = (await command.rotateSecret({ value: id })).clientSecret;
       },
-      () => command.update({ resource: edit, updateMask: { paths: ["*"] } }),
+      () => command.update({ resource: edit, updateMask: { paths: ["spec.allowed_origins"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);

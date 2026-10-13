@@ -366,12 +366,14 @@ describe("identityaccount domain (composed server, trusted-local posture)", () =
           read.row.spec.email = "asserted@example.com";
           expect(await accounts.swap(id, read.bytes, read.row)).toBe(true);
         },
-        () =>
-          command.update(
-            { resource: withSpec(created, (spec) => {
-              spec.firstName = "Edited";
-            }), updateMask: { paths: ["*"] } },
-          ),
+        () => {
+          // An update that sends no etag, naming the one field it edits.
+          const edit = withSpec(created, (spec) => {
+            spec.firstName = "Edited";
+          });
+          edit.metadata!.etag = "";
+          return command.update({ resource: edit, updateMask: { paths: ["spec.first_name"] } });
+        },
       );
 
       expect(writes).toBeGreaterThanOrEqual(2);

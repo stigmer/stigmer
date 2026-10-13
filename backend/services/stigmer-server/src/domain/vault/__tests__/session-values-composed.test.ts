@@ -129,19 +129,25 @@ async function row(id: string): Promise<Session> {
   return server.store.getResource(ApiResourceKind.session, id, SessionSchema);
 }
 
-/** An update built on `readEarlier` that names only the subject, as a rename of the conversation does. */
+/**
+ * An update built on `readEarlier` that names only the subject, as a
+ * rename of the conversation does. It sends no etag: a sent one would be
+ * refused once anything moved since the read, which is the etag's own arm.
+ */
 function subjectWrite(readEarlier: Session, subject: string): { resource: Session; updateMask: { paths: string[] } } {
   const write = clone(SessionSchema, readEarlier);
+  write.metadata!.etag = "";
   write.spec!.subject = subject;
   return { resource: write, updateMask: { paths: ["spec.subject"] } };
 }
 
-/** An update that names the workspace entries. */
+/** An update that names the workspace entries, sending no etag. */
 function entriesWrite(
   read: Session,
   entries: ReturnType<typeof repository>[],
 ): { resource: Session; updateMask: { paths: string[] } } {
   const write = clone(SessionSchema, read);
+  write.metadata!.etag = "";
   write.spec!.workspaceEntries = entries;
   return { resource: write, updateMask: { paths: ["spec.workspace_entries"] } };
 }

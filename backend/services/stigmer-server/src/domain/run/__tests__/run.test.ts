@@ -1100,9 +1100,10 @@ describe("subscribe — the first domain stream through the real transport", () 
     const stream = openStream(id);
     await stream.untilFrames(1); // the snapshot
 
-    // The overlap frame: byte-equal to the snapshot — must be suppressed.
+    // The overlap frame: byte-equal to the snapshot (the stored row, its
+    // etag included) — must be suppressed.
     server.agentExecutionStreamBroker.broadcast(
-      create(RunSchema, init),
+      await server.store.getResource(ApiResourceKind.run, id, RunSchema),
     );
     // A genuinely new frame follows; its arrival proves the equal frame
     // was dropped (ordered queue — had it been delivered, it would appear

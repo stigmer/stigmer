@@ -243,36 +243,32 @@ describe("renames, through a composed server", () => {
     expect(elsewhere.metadata?.slug).toBe("reserved-new");
   });
 
-  it("a write naming a renamed-away slug without the id is refused with SLUG_RENAMED, whose words never name the new slug", async () => {
+  it("an apply naming a renamed-away slug without the id is refused with SLUG_RENAMED, whose words never name the new slug; an update needs the id", async () => {
     const created = await agents().create(agentInput(ORG, "stale-file"));
     const id = created.metadata!.id;
     await agents().rename({ resourceId: id, slug: "fresh-name" });
 
-    for (const [verb, write] of [
-      [
-        "apply",
-        () =>
-          agents().apply(
-            agentInput(ORG, "stale-file", "changed by a stale file"),
-          ),
-      ],
-      [
-        "update",
-        () =>
-          agents().update(
-            { resource: agentInput(ORG, "stale-file", "changed by a stale file"), updateMask: { paths: ["*"] } },
-          ),
-      ],
-    ] as const) {
-      const refused = await grpcError(write);
-      expect(refused.code, verb).toBe(Code.FailedPrecondition);
-      expect(refused.rawMessage, verb).toBe(
-        "Agent 'stale-file' was renamed; it still leads to the same agent for reading. Write to it by its current slug or its id",
-      );
-      expect(refused.rawMessage, verb).not.toContain("fresh-name");
-      expect(reasonOf(refused)?.reason, verb).toBe(SLUG_RENAMED);
-      expect(reasonOf(refused)?.metadata, verb).toEqual({ slug: "stale-file" });
-    }
+    const refused = await grpcError(() =>
+      agents().apply(agentInput(ORG, "stale-file", "changed by a stale file")),
+    );
+    expect(refused.code).toBe(Code.FailedPrecondition);
+    expect(refused.rawMessage).toBe(
+      "Agent 'stale-file' was renamed; it still leads to the same agent for reading. Write to it by its current slug or its id",
+    );
+    expect(refused.rawMessage).not.toContain("fresh-name");
+    expect(reasonOf(refused)?.reason).toBe(SLUG_RENAMED);
+    expect(reasonOf(refused)?.metadata).toEqual({ slug: "stale-file" });
+
+    // An update names its target by id; by slug alone it is refused before
+    // the slug is read.
+    const noId = await grpcError(() =>
+      agents().update({
+        resource: agentInput(ORG, "stale-file", "changed by a stale file"),
+        updateMask: { paths: ["*"] },
+      }),
+    );
+    expect(noId.code).toBe(Code.InvalidArgument);
+    expect(noId.rawMessage).toContain("resource.metadata.id is required");
     const stored = await server.store.getResource(
       ApiResourceKind.agent,
       id,
