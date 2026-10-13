@@ -24,7 +24,7 @@ class IdentityAccountCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.UpdateIdentityAccountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -71,7 +71,22 @@ class IdentityAccountCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing identity account.
+        """Update an identity account: the fields update_mask names change, every other
+        field keeps its stored value.
+
+        resource.metadata.id names the identity account; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the identity account does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the identity account changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the identity account kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -192,7 +207,7 @@ def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.UpdateIdentityAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -279,7 +294,7 @@ class IdentityAccountCommandController(object):
             request,
             target,
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/update',
-            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.UpdateIdentityAccountInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
             options,
             channel_credentials,

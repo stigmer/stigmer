@@ -47,27 +47,27 @@ public final class RunCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.Run,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.UpdateRunInput,
       ai.stigmer.agentic.run.v1.Run> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.run.v1.Run.class,
+      requestType = ai.stigmer.agentic.run.v1.UpdateRunInput.class,
       responseType = ai.stigmer.agentic.run.v1.Run.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.Run,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.UpdateRunInput,
       ai.stigmer.agentic.run.v1.Run> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.Run, ai.stigmer.agentic.run.v1.Run> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.UpdateRunInput, ai.stigmer.agentic.run.v1.Run> getUpdateMethod;
     if ((getUpdateMethod = RunCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (RunCommandControllerGrpc.class) {
         if ((getUpdateMethod = RunCommandControllerGrpc.getUpdateMethod) == null) {
           RunCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.run.v1.Run, ai.stigmer.agentic.run.v1.Run>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.run.v1.UpdateRunInput, ai.stigmer.agentic.run.v1.Run>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.Run.getDefaultInstance()))
+                  ai.stigmer.agentic.run.v1.UpdateRunInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.run.v1.Run.getDefaultInstance()))
               .setSchemaDescriptor(new RunCommandControllerMethodDescriptorSupplier("update"))
@@ -468,10 +468,22 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a run.
+     * Update a run: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the run; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the run does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the run changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the run kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.run.v1.Run request,
+    default void update(ai.stigmer.agentic.run.v1.UpdateRunInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -662,10 +674,22 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a run.
+     * Update a run: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the run; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the run does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the run changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the run kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.run.v1.Run request,
+    public void update(ai.stigmer.agentic.run.v1.UpdateRunInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -851,10 +875,22 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a run.
+     * Update a run: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the run; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the run does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the run changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the run kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.run.v1.Run update(ai.stigmer.agentic.run.v1.Run request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.run.v1.Run update(ai.stigmer.agentic.run.v1.UpdateRunInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -1029,10 +1065,22 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a run.
+     * Update a run: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the run; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the run does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the run changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the run kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.run.v1.Run update(ai.stigmer.agentic.run.v1.Run request) {
+    public ai.stigmer.agentic.run.v1.Run update(ai.stigmer.agentic.run.v1.UpdateRunInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -1208,11 +1256,23 @@ public final class RunCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update a run.
+     * Update a run: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the run; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the run does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the run changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the run kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.Run> update(
-        ai.stigmer.agentic.run.v1.Run request) {
+        ai.stigmer.agentic.run.v1.UpdateRunInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -1399,7 +1459,7 @@ public final class RunCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.run.v1.Run) request,
+          serviceImpl.update((ai.stigmer.agentic.run.v1.UpdateRunInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
           break;
         case METHODID_UPDATE_STATUS:
@@ -1471,7 +1531,7 @@ public final class RunCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.run.v1.Run,
+              ai.stigmer.agentic.run.v1.UpdateRunInput,
               ai.stigmer.agentic.run.v1.Run>(
                 service, METHODID_UPDATE)))
         .addMethod(

@@ -58,7 +58,7 @@ IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r
 | [`getByIdpId`](#getbyidpid) | Get an identity account by identity provider ID (Auth0 subject). |
 | [`listServiceAccounts`](#listserviceaccounts) | List an organization's service accounts, newest first. |
 | [`create`](#create) | Create a new identity account. |
-| [`update`](#update) | Update an existing identity account. |
+| [`update`](#update) | Update an identity account: the fields update_mask names change, every other field keeps its stored value. |
 | [`updateFederatedAccount`](#updatefederatedaccount) | Update profile fields on a federated identity account. |
 | [`delete`](#delete) | Delete an identity account. |
 | [`createFederatedAccount`](#createfederatedaccount) | Create a federated identity account for an external platform user. |
@@ -404,88 +404,52 @@ IdentityAccount identityAccount = client.identityAccounts().create(IdentityAccou
 
 ### update
 
-Update an existing identity account.
+Update an identity account: the fields update_mask names change, every other field keeps its stored value.
+
+resource.metadata.id names the identity account; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the identity account does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the identity account changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the identity account kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const identityAccount = await stigmer.identityAccount.update({
-  name: "my-identity-account",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  idpId: "...",
-  email: "...",
-  firstName: "...",
-  lastName: "...",
-  pictureUrl: "...",
-  isMachineAccount: false,
-  provisioningMode: "...",
-  identityProviderRef: {},
-  preferences: {},
-});
+const identityAccount = await stigmer.identityAccount.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
+identityAccount.metadata!.name = "New name";
+const updated = await stigmer.identityAccount.update(identityAccount, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-identityAccount, err := client.IdentityAccount.Update(ctx, &stigmer.IdentityAccountInput{
-  Name:                "my-identity-account",
-  Org:                 "acme",
-  Slug:                "...",
-  Labels:              map[string]string{},
-  IdpId:               "...",
-  Email:               "...",
-  FirstName:           "...",
-  LastName:            "...",
-  PictureUrl:          "...",
-  IsMachineAccount:    false,
-  ProvisioningMode:    "...",
-  IdentityProviderRef: &stigmer.ResourceRef{},
-  Preferences:         &stigmer.IdentityAccountPreferencesInput{},
-})
+identityAccount, err := client.IdentityAccount.Get(ctx, "ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
+identityAccount.Metadata.Name = "New name"
+updated, err := client.IdentityAccount.Update(ctx, identityAccount, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identity_account = client.identity_accounts.update(IdentityAccountInput(
-    name="my-identity-account",
-    org="acme",
-    slug="...",
-    labels={},
-    idp_id="...",
-    email="...",
-    first_name="...",
-    last_name="...",
-    picture_url="...",
-    is_machine_account=False,
-    provisioning_mode="...",
-    identity_provider_ref=None,
-    preferences=None,
-))
+identity_account = client.identity_accounts.get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3")
+identity_account.metadata.name = "New name"
+updated = client.identity_accounts.update(identity_account, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityAccount identityAccount = client.identityAccounts().update(IdentityAccountInput.builder()
-    .name("my-identity-account")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .idpId("...")
-    .email("...")
-    .firstName("...")
-    .lastName("...")
-    .pictureUrl("...")
-    .isMachineAccount(false)
-    .provisioningMode("...")
-    .identityProviderRef(null)
-    .preferences(null)
-    .build());
+IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r2s4tnz2hfp0q0c3");
+IdentityAccount updated = client.identityAccounts().update(
+    identityAccount.toBuilder().setMetadata(identityAccount.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`IdentityAccountInput`](#identityaccountinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`IdentityAccount`](#identityaccount) | The identity account, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`IdentityAccount`](#identityaccount)
 
@@ -890,6 +854,17 @@ IdentityAccountPreferences holds user-declared defaults that apply to the user's
     defaultCursorModel: { type: "string", description: "Default model (registry model ID) for cursor-harness sessions." },
     memoryEnabled: { type: "boolean", description: "Whether the platform may remember confirmed facts about this account." },
     defaultAutoApprove: { type: "boolean", description: "Whether new interactive sessions start with \"auto-approve tool calls\" armed." },
+  }}
+/>
+
+### UpdateIdentityAccountInput
+
+The changes an update makes to an identity account: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "IdentityAccountInput", description: "The identity account carrying the new values, named by metadata.id.", typeDescriptionLink: "#identityaccountinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

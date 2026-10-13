@@ -176,7 +176,7 @@ describe("scores where callers are persons (built-in posture, composed server)",
     const rated = await command.create(feedback(runId, true));
     const edited = create(ScoreSchema, rated);
     edited.spec!.value = { case: "passed", value: false };
-    const changed = await command.update(edited);
+    const changed = await command.update({ resource: edited, updateMask: { paths: ["*"] } });
     expect(changed.spec?.value).toEqual({ case: "passed", value: false });
   });
 
@@ -192,7 +192,7 @@ describe("scores where callers are persons (built-in posture, composed server)",
     const changed = await createClient(
       ScoreCommandController,
       asCarol(),
-    ).update(edited);
+    ).update({ resource: edited, updateMask: { paths: ["*"] } });
     expect(changed.spec?.comment).toBe("changed from the console");
   });
 
@@ -216,7 +216,7 @@ describe("scores where callers are persons (built-in posture, composed server)",
     expect(
       (await failureOf(daveQuery.get({ value: rated.metadata!.id }))).code,
     ).toBe(Code.PermissionDenied);
-    expect((await failureOf(daveCommand.update(rated))).code).toBe(
+    expect((await failureOf(daveCommand.update({ resource: rated, updateMask: { paths: ["*"] } }))).code).toBe(
       Code.PermissionDenied,
     );
     expect(

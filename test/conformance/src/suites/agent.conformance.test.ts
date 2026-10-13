@@ -145,13 +145,13 @@ describe("Agent conformance — CRUD & identity", () => {
     const { id, slug } = created.metadata!;
 
     const renamed = uniqueName("renamed");
-    const updated = await clients.agentCommand.update({
+    const updated = await clients.agentCommand.update({ resource: {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       // Attempts to mutate slug/org must be ignored; only name and spec change.
       metadata: { id, name: renamed, slug: "attempted-different-slug", org: "attempted-different-org" },
       spec: makeAgentSpec({ description: "after" }),
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.id).toBe(id);
     expect(updated.metadata?.slug).toBe(slug);
@@ -169,12 +169,12 @@ describe("Agent conformance — CRUD & identity", () => {
     // Starts with a digit and is past 63 once slugified: as a create's
     // name with no slug, both would be refused.
     const renamed = `2024 ${uniqueName("Roadmap")} ${"x".repeat(70)}`;
-    const updated = await clients.agentCommand.update({
+    const updated = await clients.agentCommand.update({ resource: {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       metadata: { id, name: renamed, org },
       spec: makeAgentSpec({ description: "renamed" }),
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.metadata?.slug).toBe(slug);
     expect(updated.metadata?.name).toBe(renamed);
@@ -501,7 +501,7 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
     const created = await createAgent(org, uniqueName("agent"));
     expect(created.metadata?.visibility, "precondition: blueprint default").toBe(ApiResourceVisibility.visibility_org);
 
-    const updated = await clients.agentCommand.update({
+    const updated = await clients.agentCommand.update({ resource: {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       metadata: {
@@ -513,7 +513,7 @@ describe("Agent conformance — plain-update visibility door (stigmer#573)", () 
         visibility: ApiResourceVisibility.visibility_child_orgs,
       },
       spec: makeAgentSpec({ description: "updated alongside a carried level" }),
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.spec?.description, "the spec update itself lands").toBe("updated alongside a carried level");
     expect(updated.metadata?.visibility, "the carried level is ignored").toBe(ApiResourceVisibility.visibility_org);
@@ -722,12 +722,12 @@ describe("Agent conformance — subagents, judged at save", () => {
   /** Saves `agent` again with `spec`, keeping its identity. */
   function saveAgain(agent: Agent, spec: AgentSpecOptions) {
     const { id, name, slug, org } = agent.metadata!;
-    return clients.agentCommand.update({
+    return clients.agentCommand.update({ resource: {
       apiVersion: AGENT_API_VERSION,
       kind: AGENT_KIND,
       metadata: { id, name, slug, org },
       spec: makeAgentSpec(spec),
-    });
+    }, updateMask: { paths: ["*"] } });
   }
 
   it("[rpc:AgentCommandController.create] the save pins each subagent: a reference without a version takes its current version, and one carrying a version keeps it", async () => {

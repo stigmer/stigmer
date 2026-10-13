@@ -6,6 +6,8 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ChannelAppSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_channelapp_v1_api } from "./api_pb.js";
+import type { UpdateChannelAppInputSchema } from "./io_pb.js";
+import { file_ai_stigmer_agentic_channelapp_v1_io } from "./io_pb.js";
 import type { ApiResourceDeleteInputSchema, RenameInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
@@ -15,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/channelapp/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_channelapp_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MTKvBgobQ2hhbm5lbEFwcENvbW1hbmRDb250cm9sbGVyEmMKBWFwcGx5EiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcBosLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAStQEKBmNyZWF0ZRIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAaLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwIk/CuBhLCB8QHiIMbWV0YWRhdGEub3JnKjd1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGNoYW5uZWwgYXBwIGluIHRoaXMgb3JnYW5pemF0aW9uEp8BCgZ1cGRhdGUSLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwGiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcCI5wrgYNQgCEDAiC21ldGFkYXRhLmlkKiJ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGNoYW5uZWwgYXBwEp4BCgZyZW5hbWUSKy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuUmVuYW1lSW5wdXQaLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwIjnCuBg1CAMQMCILcmVzb3VyY2VfaWQqInVuYXV0aG9yaXplZCB0byByZW5hbWUgY2hhbm5lbCBhcHASqQEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcCI5wrgYNQgDEDAiC3Jlc291cmNlX2lkKiJ1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGNoYW5uZWwgYXBwGgSg/yswYgZwcm90bzM", [file_ai_stigmer_agentic_channelapp_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9jb21tYW5kLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MTLDBgobQ2hhbm5lbEFwcENvbW1hbmRDb250cm9sbGVyEmMKBWFwcGx5EiwuYWkuc3RpZ21lci5hZ2VudGljLmNoYW5uZWxhcHAudjEuQ2hhbm5lbEFwcBosLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAStQEKBmNyZWF0ZRIsLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAaLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwIk/CuBhLCB8QHiIMbWV0YWRhdGEub3JnKjd1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGNoYW5uZWwgYXBwIGluIHRoaXMgb3JnYW5pemF0aW9uErMBCgZ1cGRhdGUSNy5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5VcGRhdGVDaGFubmVsQXBwSW5wdXQaLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwIkLCuBg+CAIQMCIUcmVzb3VyY2UubWV0YWRhdGEuaWQqInVuYXV0aG9yaXplZCB0byB1cGRhdGUgY2hhbm5lbCBhcHASngEKBnJlbmFtZRIrLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5SZW5hbWVJbnB1dBosLmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLkNoYW5uZWxBcHAiOcK4GDUIAxAwIgtyZXNvdXJjZV9pZCoidW5hdXRob3JpemVkIHRvIHJlbmFtZSBjaGFubmVsIGFwcBKpAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaLC5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5DaGFubmVsQXBwIjnCuBg1CAMQMCILcmVzb3VyY2VfaWQqInVuYXV0aG9yaXplZCB0byBkZWxldGUgY2hhbm5lbCBhcHAaBKD/KzBiBnByb3RvMw", [file_ai_stigmer_agentic_channelapp_v1_api, file_ai_stigmer_agentic_channelapp_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ChannelAppCommandController handles write operations for channel apps.
@@ -70,21 +72,31 @@ export const ChannelAppCommandController: GenService<{
     output: typeof ChannelAppSchema;
   },
   /**
-   * Update an existing channel app.
+   * Update a channel app: the fields update_mask names change, every other
+   * field keeps its stored value.
    *
-   * Sending the redaction marker for a secret field preserves the
-   * stored value; the provider arm is immutable.
+   * Sending the redaction marker for a secret field preserves the stored
+   * value; the provider arm is immutable.
    *
-   * The slug changes only through rename. An update authorizes the id it names,
-   * so wherever the server authorizes requests, an update without an id is
-   * refused before its slug is read; where it reads one, a slug the channel app
-   * was renamed away from is refused with SLUG_RENAMED (see apply).
+   * resource.metadata.id names the channel app; apply finds one by slug. The slug
+   * changes only through rename, and a mask naming a field another door
+   * owns, or a path the channel app does not have, is refused with
+   * INVALID_ARGUMENT naming the path.
+   *
+   * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"):
+   *
+   *   - ETAG_MISMATCH — resource.metadata.etag is set and the channel app changed
+   *     since that etag was read: read it again and make the change again.
+   *     No metadata.
+   *   - WRITE_CONFLICT — the channel app kept changing while the update was
+   *     being saved: try again. No metadata.
    *
    * @generated from rpc ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController.update
    */
   update: {
     methodKind: "unary";
-    input: typeof ChannelAppSchema;
+    input: typeof UpdateChannelAppInputSchema;
     output: typeof ChannelAppSchema;
   },
   /**

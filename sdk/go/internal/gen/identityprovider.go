@@ -10,6 +10,7 @@ import (
 	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1"
 	iamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // IdentityProviderClient provides operations on identityprovider resources.
@@ -43,12 +44,11 @@ func (i *IdentityProviderClient) Create(ctx context.Context, input *IdentityProv
 	return resp, wrapErr(err)
 }
 
-func (i *IdentityProviderClient) Update(ctx context.Context, input *IdentityProviderInput) (*identityproviderv1.IdentityProvider, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := i.command.Update(ctx, req)
+func (i *IdentityProviderClient) Update(ctx context.Context, resource *identityproviderv1.IdentityProvider, paths []string) (*identityproviderv1.IdentityProvider, error) {
+	resp, err := i.command.Update(ctx, &identityproviderv1.UpdateIdentityProviderInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -82,12 +82,12 @@ func (i *IdentityProviderClient) ListByOrg(ctx context.Context, input *identityp
 	return resp, wrapErr(err)
 }
 
-// IdentityProviderInput holds the fields for creating/updating a IdentityProvider.
+// IdentityProviderInput holds the fields for creating or applying a IdentityProvider.
 type IdentityProviderInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id                     string
 	Name                   string
 	Slug                   string

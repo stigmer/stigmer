@@ -23,7 +23,7 @@ class MemoryCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.memory.v1.MemoryCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_api__pb2.Memory.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_io__pb2.UpdateMemoryInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_api__pb2.Memory.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -61,12 +61,26 @@ class MemoryCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update a memory's fact text.
+        """Update a memory: the fields update_mask names change, every other
+        field keeps its stored value.
 
-        Replaces the spec wholesale, but only the content may actually
-        change: the subject and provenance are immutable, and the consent
-        lifecycle in status is never touched by updates — use confirm or
-        reject to decide on a proposal.
+        Only the content may change: the subject and provenance are immutable,
+        and the consent lifecycle in status is never touched by updates; use
+        confirm or reject to decide on a proposal.
+
+        resource.metadata.id names the memory; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the memory does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the memory kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -120,7 +134,7 @@ def add_MemoryCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_api__pb2.Memory.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_io__pb2.UpdateMemoryInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_api__pb2.Memory.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -192,7 +206,7 @@ class MemoryCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.memory.v1.MemoryCommandController/update',
-            ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_api__pb2.Memory.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_io__pb2.UpdateMemoryInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_memory_dot_v1_dot_api__pb2.Memory.FromString,
             options,
             channel_credentials,

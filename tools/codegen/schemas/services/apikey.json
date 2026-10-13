@@ -26,11 +26,11 @@
         },
         {
           "name": "Update",
-          "inputType": "ApiKey",
-          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "inputType": "UpdateApiKeyInput",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.UpdateApiKeyInput",
           "outputType": "ApiKey",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
-          "description": "Update an existing API key."
+          "description": "Update an API key: the fields update_mask names change, every other\n field keeps its stored value.\n\n resource.metadata.id names the API key; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the API key does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the API key kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "Delete",
@@ -135,6 +135,39 @@
           },
           "description": "When true, the key never expires regardless of expires_at.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateApiKeyInput",
+      "description": "The changes an update makes to an API key: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.iam.apikey.v1.UpdateApiKeyInput",
+      "protoFile": "apis/ai/stigmer/iam/apikey/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiKey"
+          },
+          "description": "The API key carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
         }
       ]
     },

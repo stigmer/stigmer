@@ -198,7 +198,7 @@ describe("apikey domain (composed server)", () => {
     const storedHash = hashApiKey(plaintext);
     const expiry = new Date("2030-01-01T00:00:00Z");
 
-    const updated = await command.update({
+    const updated = await command.update({ resource: {
       apiVersion: "iam.stigmer.ai/v1",
       kind: "ApiKey",
       metadata: {
@@ -214,7 +214,7 @@ describe("apikey domain (composed server)", () => {
         expiresAt: timestampFromDate(expiry),
         neverExpires: true,
       },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(updated.spec?.keyHash).toBe(storedHash);
     expect(updated.spec?.fingerprint).toBe(fingerprintOf(plaintext));
@@ -252,7 +252,7 @@ describe("apikey domain (composed server)", () => {
         ApiResourceVisibility.visibility_org,
       ),
       () =>
-        command.update({
+        command.update({ resource: {
           apiVersion: "iam.stigmer.ai/v1",
           kind: "ApiKey",
           metadata: {
@@ -261,7 +261,7 @@ describe("apikey domain (composed server)", () => {
             org: created.metadata?.org ?? "",
           },
           spec: { neverExpires: true },
-        }),
+        }, updateMask: { paths: ["*"] } }),
     );
 
     const stored = await server.store.getResource(

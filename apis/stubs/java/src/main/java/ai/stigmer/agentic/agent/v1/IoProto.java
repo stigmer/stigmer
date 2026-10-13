@@ -31,6 +31,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_AgentId_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -41,18 +46,31 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n$ai/stigmer/agentic/agent/v1/io.proto\022\033" +
-      "ai.stigmer.agentic.agent.v1\032\033buf/validat" +
-      "e/validate.proto\"\'\n\007AgentId\022\034\n\005value\030\001 \001" +
-      "(\tB\006\272H\003\310\001\001R\005valueB\232\001B\007IoProtoP\001\242\002\004ASAA\252\002" +
-      "\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigme" +
-      "r\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\" +
-      "Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agen" +
-      "tic::Agent::V1b\006proto3"
+      "ai.stigmer.agentic.agent.v1\032%ai/stigmer/" +
+      "agentic/agent/v1/api.proto\032\033buf/validate" +
+      "/validate.proto\032 google/protobuf/field_m" +
+      "ask.proto\"\'\n\007AgentId\022\034\n\005value\030\001 \001(\tB\006\272H\003" +
+      "\310\001\001R\005value\"\337\002\n\020UpdateAgentInput\022F\n\010resou" +
+      "rce\030\001 \001(\0132\".ai.stigmer.agentic.agent.v1." +
+      "AgentB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002" +
+      " \001(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310\001\001" +
+      "R\nupdateMask:\275\001\272H\271\001\032\266\001\n\027update_names_its" +
+      "_target\022Eresource.metadata.id is require" +
+      "d: an update names the agent by its id\032T" +
+      "has(this.resource) && has(this.resource." +
+      "metadata) && this.resource.metadata.id !" +
+      "= \'\'B\232\001B\007IoProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.A" +
+      "gentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Age" +
+      "nt\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBM" +
+      "etadata\352\002\037Ai::Stigmer::Agentic::Agent::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.agent.v1.ApiProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_agent_v1_AgentId_descriptor =
       getDescriptor().getMessageType(0);
@@ -60,11 +78,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentId_descriptor,
         new java.lang.String[] { "Value", });
+    internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentInput_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.agent.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

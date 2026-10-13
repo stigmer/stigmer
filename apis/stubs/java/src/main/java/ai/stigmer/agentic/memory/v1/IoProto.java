@@ -41,6 +41,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_memory_v1_MemoryList_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_memory_v1_UpdateMemoryInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_memory_v1_UpdateMemoryInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -54,18 +59,28 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\034ai.stigmer.agentic.memory.v1\032&ai/stigme" +
       "r/agentic/memory/v1/api.proto\032\'ai/stigme" +
       "r/commons/rpc/pagination.proto\032\033buf/vali" +
-      "date/validate.proto\"(\n\010MemoryId\022\034\n\005value" +
-      "\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"o\n\023ListMemoriesReq" +
-      "uest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022=\n\tpage_" +
-      "info\030\002 \001(\0132 .ai.stigmer.commons.rpc.Page" +
-      "InfoR\010pageInfo\"i\n\nMemoryList\022\037\n\013total_co" +
-      "unt\030\001 \001(\005R\ntotalCount\022:\n\005items\030\002 \003(\0132$.a" +
-      "i.stigmer.agentic.memory.v1.MemoryR\005item" +
-      "sB\236\001B\007IoProtoP\001\242\002\004ASAM\252\002\034Ai.Stigmer.Agen" +
-      "tic.Memory.V1\312\002\034Ai\\Stigmer\\Agentic\\Memor" +
-      "y\\V1\342\002(Ai\\Stigmer\\Agentic\\Memory\\V1\\GPBM" +
-      "etadata\352\002 Ai::Stigmer::Agentic::Memory::" +
-      "V1b\006proto3"
+      "date/validate.proto\032 google/protobuf/fie" +
+      "ld_mask.proto\"(\n\010MemoryId\022\034\n\005value\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\005value\"o\n\023ListMemoriesRequest\022\031" +
+      "\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022=\n\tpage_info\030\002" +
+      " \001(\0132 .ai.stigmer.commons.rpc.PageInfoR\010" +
+      "pageInfo\"i\n\nMemoryList\022\037\n\013total_count\030\001 " +
+      "\001(\005R\ntotalCount\022:\n\005items\030\002 \003(\0132$.ai.stig" +
+      "mer.agentic.memory.v1.MemoryR\005items\"\343\002\n\021" +
+      "UpdateMemoryInput\022H\n\010resource\030\001 \001(\0132$.ai" +
+      ".stigmer.agentic.memory.v1.MemoryB\006\272H\003\330\001" +
+      "\003R\010resource\022C\n\013update_mask\030\002 \001(\0132\032.googl" +
+      "e.protobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask" +
+      ":\276\001\272H\272\001\032\267\001\n\027update_names_its_target\022Fres" +
+      "ource.metadata.id is required: an update" +
+      " names the memory by its id\032Thas(this.re" +
+      "source) && has(this.resource.metadata) &" +
+      "& this.resource.metadata.id != \'\'B\236\001B\007Io" +
+      "ProtoP\001\242\002\004ASAM\252\002\034Ai.Stigmer.Agentic.Memo" +
+      "ry.V1\312\002\034Ai\\Stigmer\\Agentic\\Memory\\V1\342\002(A" +
+      "i\\Stigmer\\Agentic\\Memory\\V1\\GPBMetadata\352" +
+      "\002 Ai::Stigmer::Agentic::Memory::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -73,6 +88,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.memory.v1.ApiProto.getDescriptor(),
           ai.stigmer.commons.rpc.PaginationProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_memory_v1_MemoryId_descriptor =
       getDescriptor().getMessageType(0);
@@ -92,13 +108,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_memory_v1_MemoryList_descriptor,
         new java.lang.String[] { "TotalCount", "Items", });
+    internal_static_ai_stigmer_agentic_memory_v1_UpdateMemoryInput_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_memory_v1_UpdateMemoryInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_memory_v1_UpdateMemoryInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.memory.v1.ApiProto.getDescriptor();
     ai.stigmer.commons.rpc.PaginationProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

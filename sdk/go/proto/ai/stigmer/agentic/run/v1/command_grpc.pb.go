@@ -44,8 +44,23 @@ type RunCommandControllerClient interface {
 	// Create and trigger a new run: a turn in an existing session,
 	// or the first turn of a new one created from session_spec.
 	Create(ctx context.Context, in *Run, opts ...grpc.CallOption) (*Run, error)
-	// Update a run.
-	Update(ctx context.Context, in *Run, opts ...grpc.CallOption) (*Run, error)
+	// Update a run: the fields update_mask names change, every other
+	// field keeps its stored value.
+	//
+	// resource.metadata.id names the run; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the run does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the run changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the run kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateRunInput, opts ...grpc.CallOption) (*Run, error)
 	// Update a run's status.
 	UpdateStatus(ctx context.Context, in *RunUpdateStatusInput, opts ...grpc.CallOption) (*UpdateStatusResponse, error)
 	// Delete a run by ID.
@@ -135,7 +150,7 @@ func (c *runCommandControllerClient) Create(ctx context.Context, in *Run, opts .
 	return out, nil
 }
 
-func (c *runCommandControllerClient) Update(ctx context.Context, in *Run, opts ...grpc.CallOption) (*Run, error) {
+func (c *runCommandControllerClient) Update(ctx context.Context, in *UpdateRunInput, opts ...grpc.CallOption) (*Run, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Run)
 	err := c.cc.Invoke(ctx, RunCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -255,8 +270,23 @@ type RunCommandControllerServer interface {
 	// Create and trigger a new run: a turn in an existing session,
 	// or the first turn of a new one created from session_spec.
 	Create(context.Context, *Run) (*Run, error)
-	// Update a run.
-	Update(context.Context, *Run) (*Run, error)
+	// Update a run: the fields update_mask names change, every other
+	// field keeps its stored value.
+	//
+	// resource.metadata.id names the run; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the run does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the run changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the run kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateRunInput) (*Run, error)
 	// Update a run's status.
 	UpdateStatus(context.Context, *RunUpdateStatusInput) (*UpdateStatusResponse, error)
 	// Delete a run by ID.
@@ -338,7 +368,7 @@ type UnimplementedRunCommandControllerServer struct{}
 func (UnimplementedRunCommandControllerServer) Create(context.Context, *Run) (*Run, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedRunCommandControllerServer) Update(context.Context, *Run) (*Run, error) {
+func (UnimplementedRunCommandControllerServer) Update(context.Context, *UpdateRunInput) (*Run, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedRunCommandControllerServer) UpdateStatus(context.Context, *RunUpdateStatusInput) (*UpdateStatusResponse, error) {
@@ -410,7 +440,7 @@ func _RunCommandController_Create_Handler(srv interface{}, ctx context.Context, 
 }
 
 func _RunCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Run)
+	in := new(UpdateRunInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -422,7 +452,7 @@ func _RunCommandController_Update_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: RunCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunCommandControllerServer).Update(ctx, req.(*Run))
+		return srv.(RunCommandControllerServer).Update(ctx, req.(*UpdateRunInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

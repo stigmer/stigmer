@@ -8,6 +8,7 @@ import (
 	scorev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // ScoreClient provides operations on score resources.
@@ -32,12 +33,11 @@ func (s *ScoreClient) Create(ctx context.Context, input *ScoreInput) (*scorev1.S
 	return resp, wrapErr(err)
 }
 
-func (s *ScoreClient) Update(ctx context.Context, input *ScoreInput) (*scorev1.Score, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := s.command.Update(ctx, req)
+func (s *ScoreClient) Update(ctx context.Context, resource *scorev1.Score, paths []string) (*scorev1.Score, error) {
+	resp, err := s.command.Update(ctx, &scorev1.UpdateScoreInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -71,12 +71,12 @@ func (s *ScoreClient) ListFlaggedByAgent(ctx context.Context, input *scorev1.Lis
 	return resp, wrapErr(err)
 }
 
-// ScoreInput holds the fields for creating/updating a Score.
+// ScoreInput holds the fields for creating or applying a Score.
 type ScoreInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id               string
 	Name             string
 	Slug             string

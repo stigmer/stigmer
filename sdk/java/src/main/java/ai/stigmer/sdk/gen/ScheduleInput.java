@@ -18,7 +18,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
-/** Input for creating/updating a Schedule. */
+/** Input for creating or applying a Schedule. */
 public final class ScheduleInput {
     private final String id;
     private final String name;
@@ -98,9 +98,9 @@ public final class ScheduleInput {
         private Builder() {}
 
         /**
-         * The resource's metadata.id, for exact update addressing when set
-         * from a loaded resource. Required for updates to platform-scoped
-         * (org-less) kinds, where the org+slug fallback cannot match.
+         * The resource's metadata.id: an apply that carries it changes that
+         * resource, whatever its slug. An update takes the resource itself
+         * and the paths it changes.
          */
         public Builder id(String id) { this.id = id; return this; }
         public Builder name(String name) { this.name = name; return this; }

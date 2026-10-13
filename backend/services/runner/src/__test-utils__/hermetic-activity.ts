@@ -104,6 +104,7 @@ import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import {
   AppendSessionEventsResponseSchema,
+  BindHarnessStateResponseSchema,
   SessionEventPreviewSchema,
   type SessionEventPreview,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -227,12 +228,8 @@ export class ExecutionRecord {
   private readonly persistListeners = new Set<() => void>();
   /** Setup-progress labels reported before the stream started, in order. */
   readonly setupProgress: string[] = [];
-  /**
-   * Every `updateSession` payload, in order (the `harness_state_id` write-back),
-   * snapshotted at write time: the activity re-binds the SAME session object on
-   * a fresh-agent recovery, so a live reference would show the second id twice.
-   */
-  readonly sessionUpdates: Session[] = [];
+  /** Every `bindHarnessState` call, in order (the `harness_state_id` write-back). */
+  readonly harnessBinds: { readonly runId: string; readonly harnessStateId: string }[] = [];
   /** The session's event log as the runner appended it, in order (one entry per distinct id). */
   readonly sessionEvents: SessionEvent[] = [];
   /** Every preview the runner sent, in order. */
@@ -653,9 +650,9 @@ export class ExecutionRecord {
         const signal = this.runNamed(id) === this.execution ? this.applyStatusUpdate(status) : this.applyReconcileStatus(status);
         return create(UpdateStatusResponseSchema, { signal });
       }),
-      updateSession: vi.fn(async (session: Session) => {
-        this.sessionUpdates.push(clone(SessionSchema, session));
-        return session;
+      bindHarnessState: vi.fn(async (runId: string, harnessStateId: string) => {
+        this.harnessBinds.push({ runId, harnessStateId });
+        return create(BindHarnessStateResponseSchema, { harnessStateId });
       }),
       appendSessionEvents: vi.fn(async (runId: string, events: readonly SessionEvent[], previews: readonly SessionEventPreview[]) => {
         this.appendSessionEvents(runId, events, previews);

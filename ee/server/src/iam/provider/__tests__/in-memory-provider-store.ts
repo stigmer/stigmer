@@ -13,6 +13,7 @@
  * suites.
  */
 import { clone, create, toBinary } from "@bufbuild/protobuf";
+import { stampEtag } from "@stigmer/server";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -79,6 +80,8 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     if (taken !== undefined) {
       return Promise.resolve({ kind: "route-taken", route: taken });
     }
+    // Every write stamps the etag, as the drivers do.
+    stampEtag(IdentityProviderSchema, provider);
     this.rows.set(id, clone(IdentityProviderSchema, provider));
     this.order.push(id);
     return Promise.resolve({ kind: "inserted" });
@@ -109,6 +112,8 @@ export class InMemoryProviderStore implements IdentityProviderStore {
     if (taken !== undefined) {
       return Promise.resolve({ kind: "route-taken", route: taken });
     }
+    // Every write stamps the etag, as the drivers do.
+    stampEtag(IdentityProviderSchema, provider);
     this.rows.set(id, clone(IdentityProviderSchema, provider));
     return Promise.resolve({ kind: "replaced" });
   }
@@ -132,6 +137,8 @@ export class InMemoryProviderStore implements IdentityProviderStore {
         ),
       );
     }
+    // Every write stamps the etag, as the drivers do.
+    stampEtag(IdentityProviderSchema, provider);
     this.rows.set(id, clone(IdentityProviderSchema, provider));
     return Promise.resolve(provider);
   }

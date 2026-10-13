@@ -1,7 +1,8 @@
 /**
  * The schedule detail view: read state, the banners and their remedies,
- * the run history, and the inline editors' saves. A save re-applies the
- * full schedule and changes only what its editor owns: the budget editor
+ * the run history, and the inline editors' saves. A save is an update
+ * naming the spec fields its editor changed, on the schedule's id, and it
+ * changes only what its editor owns: the budget editor
  * the cost cap, the engine editor the engine, model, tier and thinking,
  * and a stored tier or thinking (an explicit standard or disabled among
  * them) survives any save that leaves it alone. The vaults editor offers
@@ -9,6 +10,7 @@
  * accepts it from.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { act, render, screen, waitFor, fireEvent, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { clone, create } from "@bufbuild/protobuf";
@@ -118,8 +120,8 @@ interface MockClient {
     listFires: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
     rename: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
-  manifest: { apply: ReturnType<typeof vi.fn> };
   // The slug field asks can_delete (whoever may delete may rename);
   // denied unless a test grants it.
   iamPolicy: { checkMyPermission: ReturnType<typeof vi.fn> };
@@ -155,20 +157,21 @@ function makeClient(schedule: Schedule): MockClient {
         renamed.metadata!.slug = slug;
         return renamed;
       }),
+      // The update answers the stored schedule with the sent spec fields
+      // on it: a whole spec (an inline edit) or the one flag (the toggle).
+      update: vi.fn(async (resource: Schedule) => {
+        const stored = clone(ScheduleSchema, schedule);
+        const sent = resource.spec;
+        if (sent !== undefined && "$typeName" in sent) {
+          stored.spec = sent;
+        } else if (sent !== undefined) {
+          Object.assign(stored.spec!, sent);
+        }
+        return stored;
+      }),
     },
     iamPolicy: {
       checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: false }),
-    },
-    manifest: {
-      apply: vi.fn(async (doc: { message: unknown }) => ({
-        yamlKind: "Schedule",
-        displayName: "Schedule",
-        name: "daily-fee-reminders",
-        slug: "daily-fee-reminders",
-        org: "isc",
-        id: "sch_01example",
-        message: doc.message,
-      })),
     },
     vault: {
       list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
@@ -234,8 +237,8 @@ describe("ScheduleDetailView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Enable schedule" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     expect(doc.message.spec?.enabled).toBe(true);
   });
 
@@ -303,9 +306,9 @@ describe("ScheduleDetailView", () => {
     await screen.findByText("Enable and run this schedule now?");
     fireEvent.click(screen.getByText("Enable & run"));
 
-    // Enable (a full-proto re-apply) THEN fire.
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    // Enable (an update naming spec.enabled) THEN fire.
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     expect(doc.message.spec?.enabled).toBe(true);
     await waitFor(() =>
       expect(client.schedule.trigger).toHaveBeenCalledWith("sch_01example"),
@@ -481,7 +484,7 @@ describe("ScheduleDetailView", () => {
 
     await screen.findByText("Schedule is disabled");
     fireEvent.click(screen.getByRole("button", { name: "Enable schedule" }));
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
 
     expect(schedule.spec?.enabled).toBe(original.spec?.enabled);
   });
@@ -629,8 +632,8 @@ describe("ScheduleDetailView", () => {
   });
 
   // -------------------------------------------------------------------------
-  // Inline editing — every save re-applies the FULL proto (never a
-  // down-converted input, which would silently wipe fields)
+  // Inline editing — every save names the spec fields it changed, sending
+  // the edited spec as loaded otherwise
   // -------------------------------------------------------------------------
 
   it("does not offer inline editing without the editable prop", async () => {
@@ -680,7 +683,7 @@ describe("ScheduleDetailView", () => {
     ).toBeNull();
   });
 
-  it("saves an edited message by re-applying the full proto", async () => {
+  it("saves an edited message by naming the target it changed, on the schedule's id", async () => {
     const client = makeClient(makeSchedule());
     renderView(client, { editable: true });
 
@@ -692,14 +695,16 @@ describe("ScheduleDetailView", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     const target =
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
         : undefined;
     expect(target?.message).toBe("Send this week's fee reminders.");
-    // Full-proto write: everything the editor did not touch survives.
+    // The one changed field by its path, on the schedule's id; the rest of
+    // the edited spec is sent as loaded.
+    expect(sentUpdate<Schedule>(client.schedule.update).paths).toEqual(["spec.agent"]);
     expect(doc.message.metadata?.id).toBe("sch_01example");
     expect(doc.message.spec?.cron).toBe("0 9 * * *");
     expect(doc.message.spec?.enabled).toBe(true);
@@ -720,8 +725,8 @@ describe("ScheduleDetailView", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     expect(doc.message.spec?.cron).toBe("0 9 * * 1-5");
     // The time zone rides along with the cadence editor, unchanged here.
     expect(doc.message.spec?.timeZone).toBe("Asia/Kolkata");
@@ -743,8 +748,8 @@ describe("ScheduleDetailView", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     const target =
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
@@ -778,8 +783,8 @@ describe("ScheduleDetailView", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     const target =
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
@@ -789,7 +794,7 @@ describe("ScheduleDetailView", () => {
     expect(target?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
 
-  it("an engine save that leaves the model alone keeps the stored tier and thinking", async () => {
+  it("an engine save that changes nothing writes nothing, so the stored tier and thinking stay", async () => {
     const client = makeClient(
       makeSchedule({
         harness: Harness.CURSOR,
@@ -808,16 +813,10 @@ describe("ScheduleDetailView", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
-    const target =
-      doc.message.spec?.target?.case === "agent"
-        ? doc.message.spec.target.value
-        : undefined;
-    expect(target?.harness).toBe(Harness.CURSOR);
-    expect(target?.runConfig?.modelName).toBe("composer-2");
-    expect(target?.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
-    expect(target?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
+    // The save names no changed field, so no update is sent: the stored
+    // tier and thinking cannot be touched.
+    await act(async () => {});
+    expect(client.schedule.update).not.toHaveBeenCalled();
   });
 
   it("resetting engine & model drops the stored tier and thinking with the model", async () => {
@@ -843,8 +842,8 @@ describe("ScheduleDetailView", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     const target =
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
@@ -875,8 +874,8 @@ describe("ScheduleDetailView", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     const target =
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
@@ -890,19 +889,23 @@ describe("ScheduleDetailView", () => {
   });
 
   it("round-trips vault references with the vault kind stamped", async () => {
-    const client = makeClient(
-      makeSchedule({
-        vaults: [{ org: "isc", slug: "isc-mcp-credentials" }],
-      }),
-    );
+    const schedule = makeSchedule({
+      vaults: [{ org: "isc", slug: "isc-mcp-credentials" }],
+    });
+    // A reference stored before kinds were stamped: the editor's save
+    // stamps it, so the save changes the vaults.
+    if (schedule.spec?.target.case === "agent") {
+      schedule.spec.target.value.vaults[0]!.kind = ApiResourceKind.api_resource_kind_unknown;
+    }
+    const client = makeClient(schedule);
     renderView(client, { editable: true });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("button", { name: "Edit vaults" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
-    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    await waitFor(() => expect(client.schedule.update).toHaveBeenCalledOnce());
+    const doc = { message: sentUpdate<Schedule>(client.schedule.update).resource };
     const target =
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
@@ -951,13 +954,17 @@ describe("ScheduleDetailView", () => {
 
   it("keeps the editor open with the server's message on a failed save", async () => {
     const client = makeClient(makeSchedule());
-    client.manifest.apply.mockRejectedValueOnce(
+    client.schedule.update.mockRejectedValueOnce(
       new Error("spec.cron must have exactly 5 fields"),
     );
     renderView(client, { editable: true });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
     fireEvent.click(screen.getByRole("button", { name: "Edit cadence" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Custom cron" }));
+    fireEvent.change(screen.getByLabelText("Cron expression"), {
+      target: { value: "0 9 * *" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     // The server's message lands next to the field; the editor stays

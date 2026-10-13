@@ -3,6 +3,7 @@
 import grpc
 
 from ai.stigmer.agentic.channelapp.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.channelapp.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -28,7 +29,7 @@ class ChannelAppCommandControllerStub(object):
                 _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/update',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.SerializeToString,
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.UpdateChannelAppInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
                 _registered_method=True)
         self.rename = channel.unary_unary(
@@ -88,15 +89,25 @@ class ChannelAppCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing channel app.
+        """Update a channel app: the fields update_mask names change, every other
+        field keeps its stored value.
 
-        Sending the redaction marker for a secret field preserves the
-        stored value; the provider arm is immutable.
+        Sending the redaction marker for a secret field preserves the stored
+        value; the provider arm is immutable.
 
-        The slug changes only through rename. An update authorizes the id it names,
-        so wherever the server authorizes requests, an update without an id is
-        refused before its slug is read; where it reads one, a slug the channel app
-        was renamed away from is refused with SLUG_RENAMED (see apply).
+        resource.metadata.id names the channel app; apply finds one by slug. The slug
+        changes only through rename, and a mask naming a field another door
+        owns, or a path the channel app does not have, is refused with
+        INVALID_ARGUMENT naming the path.
+
+        An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+        (domain "stigmer.ai"):
+
+        - ETAG_MISMATCH — resource.metadata.etag is set and the channel app changed
+        since that etag was read: read it again and make the change again.
+        No metadata.
+        - WRITE_CONFLICT — the channel app kept changing while the update was
+        being saved: try again. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -146,7 +157,7 @@ def add_ChannelAppCommandControllerServicer_to_server(servicer, server):
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.UpdateChannelAppInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.SerializeToString,
             ),
             'rename': grpc.unary_unary_rpc_method_handler(
@@ -240,7 +251,7 @@ class ChannelAppCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/update',
-            ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_io__pb2.UpdateChannelAppInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_channelapp_dot_v1_dot_api__pb2.ChannelApp.FromString,
             options,
             channel_credentials,

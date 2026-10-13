@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { AgentShareInput } from "@stigmer/sdk";
+import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -40,6 +42,7 @@ afterEach(cleanup);
 interface MockOverrides {
   getByAgent?: (input: unknown) => Promise<unknown>;
   apply?: (input: AgentShareInput) => Promise<unknown>;
+  update?: (resource: AgentShare, paths: string[]) => Promise<unknown>;
   deleteShare?: (id: string) => Promise<unknown>;
   rotateShareLink?: (input: unknown) => Promise<unknown>;
   isAuthorized?: boolean;
@@ -57,6 +60,7 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         overrides.getByAgent ??
         vi.fn().mockResolvedValue({ totalCount: 0, items: [] }),
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
+      update: overrides.update ?? vi.fn().mockResolvedValue({}),
       delete: overrides.deleteShare ?? vi.fn().mockResolvedValue({}),
       rotateShareLink:
         overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
@@ -337,10 +341,10 @@ describe("AgentShareList", () => {
   });
 
   describe("pause / resume", () => {
-    it("pauses by applying the FULL spec with only enabled flipped", async () => {
-      const apply = vi.fn().mockResolvedValue({});
+    it("pauses by naming spec.enabled alone, on the share's id", async () => {
+      const update = vi.fn().mockResolvedValue({});
       const client = createMockStigmer({
-        apply,
+        update,
         getByAgent: withShares(
           makeShare({ allowedOrigins: ["https://example.com"] }),
         ),
@@ -350,21 +354,20 @@ describe("AgentShareList", () => {
       await openRowMenu();
       fireEvent.click(screen.getByRole("menuitem", { name: "Pause" }));
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
-      expect(input.enabled).toBe(false);
-      // Apply replaces the spec wholesale — the toggle must carry the
-      // existing config or it would silently erase it.
-      expect(input.allowedOrigins).toEqual(["https://example.com"]);
-      // Keyed on the row's own identity — never a new row.
-      expect(input.org).toBe("acme");
-      expect(input.slug).toBe("support-agent");
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const sent = sentUpdate<AgentShare>(update);
+      expect(sent.resource.spec?.enabled).toBe(false);
+      // The flag alone: the origins and every other field keep their
+      // stored values without being sent back.
+      expect(sent.paths).toEqual(["spec.enabled"]);
+      // Addressed by the row's own id — never a new row.
+      expect(sent.id).toBe("ash_1");
     });
 
     it("resumes a paused share", async () => {
-      const apply = vi.fn().mockResolvedValue({});
+      const update = vi.fn().mockResolvedValue({});
       const client = createMockStigmer({
-        apply,
+        update,
         getByAgent: withShares(makeShare({ enabled: false })),
       });
       await renderList(client);
@@ -372,8 +375,8 @@ describe("AgentShareList", () => {
       await openRowMenu();
       fireEvent.click(screen.getByRole("menuitem", { name: "Resume" }));
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      expect((apply.mock.calls[0][0] as AgentShareInput).enabled).toBe(true);
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      expect(sentUpdate<AgentShare>(update).resource.spec?.enabled).toBe(true);
     });
   });
 

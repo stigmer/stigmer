@@ -40,12 +40,27 @@ type AgentShareCommandControllerClient interface {
 	// link call models on the sharing organization's own provider keys, and
 	// the providers bill the organization for them.
 	Create(ctx context.Context, in *AgentShare, opts ...grpc.CallOption) (*AgentShare, error)
-	// Update an existing agent share.
+	// Update an agent share: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Replaces the spec wholesale: a manifest that omits audience makes the
-	// share organization-only, and one that omits vaults detaches them (both
-	// fail closed). The slug and referenced agent are immutable.
-	Update(ctx context.Context, in *AgentShare, opts ...grpc.CallOption) (*AgentShare, error)
+	// The referenced agent is immutable. A mask naming the audience or the
+	// vaults replaces them whole: an empty audience makes the share
+	// organization-only, and empty vaults detach them (both fail closed).
+	//
+	// resource.metadata.id names the agent share; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the agent share does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the agent share kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateAgentShareInput, opts ...grpc.CallOption) (*AgentShare, error)
 	// Rotate the share's link token.
 	//
 	// Generates a fresh server-side token for the share's hosted chat link.
@@ -96,7 +111,7 @@ func (c *agentShareCommandControllerClient) Create(ctx context.Context, in *Agen
 	return out, nil
 }
 
-func (c *agentShareCommandControllerClient) Update(ctx context.Context, in *AgentShare, opts ...grpc.CallOption) (*AgentShare, error) {
+func (c *agentShareCommandControllerClient) Update(ctx context.Context, in *UpdateAgentShareInput, opts ...grpc.CallOption) (*AgentShare, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentShare)
 	err := c.cc.Invoke(ctx, AgentShareCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -140,12 +155,27 @@ type AgentShareCommandControllerServer interface {
 	// link call models on the sharing organization's own provider keys, and
 	// the providers bill the organization for them.
 	Create(context.Context, *AgentShare) (*AgentShare, error)
-	// Update an existing agent share.
+	// Update an agent share: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Replaces the spec wholesale: a manifest that omits audience makes the
-	// share organization-only, and one that omits vaults detaches them (both
-	// fail closed). The slug and referenced agent are immutable.
-	Update(context.Context, *AgentShare) (*AgentShare, error)
+	// The referenced agent is immutable. A mask naming the audience or the
+	// vaults replaces them whole: an empty audience makes the share
+	// organization-only, and empty vaults detach them (both fail closed).
+	//
+	// resource.metadata.id names the agent share; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the agent share does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the agent share kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateAgentShareInput) (*AgentShare, error)
 	// Rotate the share's link token.
 	//
 	// Generates a fresh server-side token for the share's hosted chat link.
@@ -181,7 +211,7 @@ func (UnimplementedAgentShareCommandControllerServer) Apply(context.Context, *Ag
 func (UnimplementedAgentShareCommandControllerServer) Create(context.Context, *AgentShare) (*AgentShare, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedAgentShareCommandControllerServer) Update(context.Context, *AgentShare) (*AgentShare, error) {
+func (UnimplementedAgentShareCommandControllerServer) Update(context.Context, *UpdateAgentShareInput) (*AgentShare, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedAgentShareCommandControllerServer) RotateShareLink(context.Context, *RotateShareLinkInput) (*AgentShare, error) {
@@ -247,7 +277,7 @@ func _AgentShareCommandController_Create_Handler(srv interface{}, ctx context.Co
 }
 
 func _AgentShareCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AgentShare)
+	in := new(UpdateAgentShareInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -259,7 +289,7 @@ func _AgentShareCommandController_Update_Handler(srv interface{}, ctx context.Co
 		FullMethod: AgentShareCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentShareCommandControllerServer).Update(ctx, req.(*AgentShare))
+		return srv.(AgentShareCommandControllerServer).Update(ctx, req.(*UpdateAgentShareInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

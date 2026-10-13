@@ -11,6 +11,8 @@ import ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviders;
 import ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput;
+import ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -36,9 +38,12 @@ public final class IdentityProviderClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public IdentityProvider update(IdentityProviderInput input) {
+    public IdentityProvider update(IdentityProvider resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateIdentityProviderInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

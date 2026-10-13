@@ -3,13 +3,13 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
-import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type InterruptSessionInput, type InterruptSessionResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, BindHarnessStateInputSchema, BindHarnessStateResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type InterruptSessionInput, type InterruptSessionResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type BindHarnessStateInput, type BindHarnessStateResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -39,9 +39,9 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: SessionInput): Promise<Session> {
+  async update(resource: Session | MessageInitShape<typeof SessionSchema>, paths: string[]): Promise<Session> {
     try {
-      return await this.command.update(buildSessionProto(input));
+      return await this.command.update(create(UpdateSessionInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -87,6 +87,12 @@ export class SessionClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async bindHarnessState(input: BindHarnessStateInput): Promise<BindHarnessStateResponse> {
+    try {
+      return await this.command.bindHarnessState(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<Session> {
     try {
       return await this.query.get(create(SessionIdSchema, { value: id }));
@@ -126,13 +132,13 @@ export class SessionClient {
   }
 }
 
-/** Input for creating/updating a Session. */
+/** Input for creating or applying a Session. */
 export interface SessionInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -142,8 +148,6 @@ export interface SessionInput {
   visibility?: ApiResourceVisibility;
   agentRef?: ResourceRef;
   subject?: string;
-  harnessStateId?: string;
-  harnessStateIdHistory?: string[];
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
   skillRefs?: ResourceRef[];
@@ -237,8 +241,6 @@ export function buildSessionProto(input: SessionInput): Session {
     spec: Object.assign(create(SessionSpecSchema), stripUndefined({
       agentRef,
       subject: input.subject,
-      harnessStateId: input.harnessStateId,
-      harnessStateIdHistory: input.harnessStateIdHistory,
       metadata: input.metadata,
       workspaceEntries,
       skillRefs,
@@ -285,24 +287,22 @@ function toWorkspaceEntryInput(msg: WorkspaceEntry): WorkspaceEntryInput {
 }
 
 /**
- * Maps a fetched {@link Session} to a complete {@link SessionInput} for `update()`.
+ * Maps a fetched {@link Session} to the complete {@link SessionInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toSessionInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toSessionUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toSessionUpdateInput(resource: Session): SessionInput {
+export function toSessionInput(resource: Session): SessionInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(SessionSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,
@@ -311,8 +311,6 @@ export function toSessionUpdateInput(resource: Session): SessionInput {
     visibility: meta?.visibility || undefined,
     agentRef: toResourceRefInput(spec.agentRef),
     subject: spec.subject || undefined,
-    harnessStateId: spec.harnessStateId || undefined,
-    harnessStateIdHistory: spec.harnessStateIdHistory?.length ? [...spec.harnessStateIdHistory] : undefined,
     metadata: Object.keys(spec.metadata ?? {}).length > 0 ? { ...spec.metadata } : undefined,
     workspaceEntries: spec.workspaceEntries?.length ? spec.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
     skillRefs: toResourceRefInputs(spec.skillRefs),

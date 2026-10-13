@@ -12,6 +12,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -37,12 +38,11 @@ func (r *RunClient) Create(ctx context.Context, input *RunInput) (*runv1.Run, er
 	return resp, wrapErr(err)
 }
 
-func (r *RunClient) Update(ctx context.Context, input *RunInput) (*runv1.Run, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := r.command.Update(ctx, req)
+func (r *RunClient) Update(ctx context.Context, resource *runv1.Run, paths []string) (*runv1.Run, error) {
+	resp, err := r.command.Update(ctx, &runv1.UpdateRunInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -170,12 +170,12 @@ func (r *RunClient) GetRunSummary(ctx context.Context, input *runv1.GetRunSummar
 	return resp, wrapErr(err)
 }
 
-// RunInput holds the fields for creating/updating a Run.
+// RunInput holds the fields for creating or applying a Run.
 type RunInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id                     string
 	Name                   string
 	Slug                   string
@@ -203,20 +203,18 @@ type RunInput struct {
 
 // SessionSpecInput is the SDK input type for SessionSpec.
 type SessionSpecInput struct {
-	AgentRef              ResourceRef
-	Subject               string
-	HarnessStateId        string
-	HarnessStateIdHistory []string
-	Metadata              map[string]string
-	WorkspaceEntries      []*WorkspaceEntryInput
-	SkillRefs             []ResourceRef
-	Harness               sessionv1.Harness
-	CursorMode            sessionv1.CursorMode
-	ExecutionTarget       sessionv1.ExecutionTarget
-	Vaults                []ResourceRef
-	IncludeMyVault        bool
-	Plugins               []ResourceRef
-	FileReview            bool
+	AgentRef         ResourceRef
+	Subject          string
+	Metadata         map[string]string
+	WorkspaceEntries []*WorkspaceEntryInput
+	SkillRefs        []ResourceRef
+	Harness          sessionv1.Harness
+	CursorMode       sessionv1.CursorMode
+	ExecutionTarget  sessionv1.ExecutionTarget
+	Vaults           []ResourceRef
+	IncludeMyVault   bool
+	Plugins          []ResourceRef
+	FileReview       bool
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -322,8 +320,6 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			m.AgentRef = ref
 		}
 		m.Subject = i.SessionSpec.Subject
-		m.HarnessStateId = i.SessionSpec.HarnessStateId
-		m.HarnessStateIdHistory = i.SessionSpec.HarnessStateIdHistory
 		m.Metadata = i.SessionSpec.Metadata
 		for idx, item := range i.SessionSpec.WorkspaceEntries {
 			v, err := item.toProto()
@@ -564,8 +560,6 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	input := &SessionSpecInput{}
 	input.AgentRef = resourceRefFromProto(p.GetAgentRef())
 	input.Subject = p.GetSubject()
-	input.HarnessStateId = p.GetHarnessStateId()
-	input.HarnessStateIdHistory = p.GetHarnessStateIdHistory()
 	input.Metadata = p.GetMetadata()
 	for _, item := range p.GetWorkspaceEntries() {
 		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))

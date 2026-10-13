@@ -59,7 +59,7 @@ IdentityProvider identityProvider = client.identityProviders().get("idp_01j5q3k7
 | [`listByOrg`](#listbyorg) | List the identity providers of an organization that the caller may view. |
 | [`apply`](#apply) | Create or update an identity provider. |
 | [`create`](#create) | Create an identity provider. |
-| [`update`](#update) | Update an existing identity provider. |
+| [`update`](#update) | Update an identity provider: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete an identity provider. |
 | [`rename`](#rename) | Rename an identity provider: change its slug, the name people type. |
 
@@ -382,90 +382,56 @@ IdentityProvider identityProvider = client.identityProviders().create(IdentityPr
 
 ### update
 
-Update an existing identity provider.
+Update an identity provider: the fields update_mask names change, every other field keeps its stored value.
 
 On Stigmer Enterprise, changing how people sign in is growth the server's license pays for. Once the license and its grace period have ended, an update is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
 
 - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the identity provider keeps signing people in as it is, and can still be deleted. No metadata.
 
-An update names the identity provider by its id, and the slug changes only through rename.
+resource.metadata.id names the identity provider; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the identity provider does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the identity provider kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const identityProvider = await stigmer.identityProvider.update({
-  name: "my-identity-provider",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  displayName: "...",
-  jwksUri: "...",
-  allowedIssuers: [],
-  expectedAudience: "...",
-  userinfoEndpoint: "...",
-  externalIdClaim: "...",
-  createAccountsOnSignIn: false,
-  signInRole: "...",
-});
+const identityProvider = await stigmer.identityProvider.get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+identityProvider.metadata!.name = "New name";
+const updated = await stigmer.identityProvider.update(identityProvider, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityProviderInput{
-  Name:                   "my-identity-provider",
-  Org:                    "acme",
-  Slug:                   "...",
-  Labels:                 map[string]string{},
-  DisplayName:            "...",
-  JwksUri:                "...",
-  AllowedIssuers:         []string{},
-  ExpectedAudience:       "...",
-  UserinfoEndpoint:       "...",
-  ExternalIdClaim:        "...",
-  CreateAccountsOnSignIn: false,
-  SignInRole:             "...",
-})
+identityProvider, err := client.IdentityProvider.Get(ctx, "idp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+identityProvider.Metadata.Name = "New name"
+updated, err := client.IdentityProvider.Update(ctx, identityProvider, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identity_provider = client.identity_providers.update(IdentityProviderInput(
-    name="my-identity-provider",
-    org="acme",
-    slug="...",
-    labels={},
-    display_name="...",
-    jwks_uri="...",
-    allowed_issuers=[],
-    expected_audience="...",
-    userinfo_endpoint="...",
-    external_id_claim="...",
-    create_accounts_on_sign_in=False,
-    sign_in_role="...",
-))
+identity_provider = client.identity_providers.get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+identity_provider.metadata.name = "New name"
+updated = client.identity_providers.update(identity_provider, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProviders().update(IdentityProviderInput.builder()
-    .name("my-identity-provider")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .displayName("...")
-    .jwksUri("...")
-    .allowedIssuers(List.of())
-    .expectedAudience("...")
-    .userinfoEndpoint("...")
-    .externalIdClaim("...")
-    .createAccountsOnSignIn(false)
-    .signInRole("...")
-    .build());
+IdentityProvider identityProvider = client.identityProviders().get("idp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+IdentityProvider updated = client.identityProviders().update(
+    identityProvider.toBuilder().setMetadata(identityProvider.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`IdentityProviderInput`](#identityproviderinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`IdentityProvider`](#identityprovider) | The identity provider, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`IdentityProvider`](#identityprovider)
 
@@ -579,6 +545,17 @@ Input for creating or updating an Identity Provider.
     externalIdClaim: { type: "string", description: "Name of the JWT claim that names the child organization a token works in, by the identifier the provider's organization keeps for it." },
     createAccountsOnSignIn: { type: "boolean", description: "Whether Stigmer creates a federated identity account the first time a valid token arrives for a sub claim it has no account for." },
     signInRole: { type: "IamRole", description: "The role an account receives the first time it signs in to an organization through this provider: the organization its token is bound to (external_id_claim's, or the provider's own).", typeDescriptionLink: "#iamrole" },
+  }}
+/>
+
+### UpdateIdentityProviderInput
+
+The changes an update makes to an identity provider: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "IdentityProviderInput", description: "The identity provider carrying the new values, named by metadata.id.", typeDescriptionLink: "#identityproviderinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

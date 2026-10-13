@@ -73,6 +73,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import type { UpdateIdentityAccountInput } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -160,6 +161,7 @@ import {
 } from "./steps.js";
 import type { IdentityAccountStore } from "./store.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { updateContext } from "../../pipeline/steps/update-input.js";
 
 /** What the create path needs — the subset every caller of it composes. */
 export interface CreateAccountPathDeps {
@@ -224,7 +226,7 @@ export function registerIdentityAccountServices(
 ): void {
   router.service(IdentityAccountCommandController, {
     create: (account, ctx) => createRpc(deps, account, ctx),
-    update: (account, ctx) => update(deps, account, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     delete: (id, ctx) => deleteAccount(deps, id, ctx),
     createFederatedAccount: (input, ctx) =>
       federated(
@@ -439,13 +441,13 @@ function guardInternalRpc(caller: CallerIdentity): void {
  */
 async function update(
   deps: IdentityAccountControllerDeps,
-  account: IdentityAccount,
+  input: UpdateIdentityAccountInput,
   ctx: HandlerContext,
 ): Promise<IdentityAccount> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       IdentityAccountSchema,
-      account,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -457,13 +459,14 @@ async function update(
         newAuthorizeStep(
           IdentityAccountCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
       .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT, deps.accounts))
-      .addStep(newValidateProtoStep())
       .addStep(newLoadExistingAccountStep(deps.accounts))
-      .addStep(newGuardImmutableSubjectStep())
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
+      .addStep(newGuardImmutableSubjectStep())
       .addStep(newPreserveBackendFieldsStep())
       .addStep(newRenameServiceAccountStep(deps.store, deps.accounts))
       .addStep(newPersistUpdatedAccountStep(deps.accounts))

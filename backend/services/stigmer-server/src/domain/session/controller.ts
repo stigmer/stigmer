@@ -116,6 +116,7 @@ import {
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { everyPathUpdate, updateContext } from "../../pipeline/steps/update-input.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
@@ -137,7 +138,6 @@ import {
   newFilterByAgentStep,
   newFilterByChannelStep,
   newListAllSessionsStep,
-  newRecordHarnessStateHistoryStep,
   newRejectDeleteWithActiveExecutionsStep,
   newValidateExecutionTargetImmutabilityStep,
   newValidateHarnessImmutabilityStep,
@@ -145,7 +145,6 @@ import {
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import {
   newDestroyDroppedSessionValuesStep,
-  newKeepStoredVaultChoiceOnStaleWriteStep,
   newPreserveSessionValuesStep,
   newSealSessionValuesStep,
   redactSessionValues,
@@ -156,6 +155,7 @@ import type { SecretService } from "../../encryption/encryption.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { appendSessionEvents } from "./events/append.js";
+import { bindHarnessState } from "./bind-harness.js";
 import type { SessionEventBroker } from "./events/broker.js";
 import { newDeleteSessionEventsStep } from "./events/delete-step.js";
 import { listSessionEvents } from "./events/list.js";
@@ -170,6 +170,8 @@ import type { ExecutionEngineStateProvider } from "../run/engine.js";
 import type { RunStatusObserver } from "../../extensions/status-hooks.js";
 import type { StreamBroker } from "../run/stream-broker.js";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
+import type { UpdateSessionInput } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { UpdateSessionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
 export interface SessionControllerDeps {
   readonly store: Store;
@@ -239,11 +241,12 @@ export function registerSessionServices(
   router.service(SessionCommandController, {
     apply: (session, ctx) => apply(deps, session, ctx),
     create: (session, ctx) => createSession(deps, session, ctx),
-    update: (session, ctx) => update(deps, session, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     updateSubject: (req, ctx) =>
       updateSubject(deps, req, callerIdentityOf(ctx)),
     delete: (id, ctx) => deleteSession(deps, id, ctx),
     appendEvents: (input, ctx) => appendSessionEvents(deps, input, ctx),
+    bindHarnessState: (input, ctx) => bindHarnessState(deps, input, ctx),
     reviewFileChanges: (input, ctx) =>
       reviewFileChanges(deps, input, callerIdentityOf(ctx)),
     confirmToolUse: (input, ctx) => confirmToolUse(deps, input, callerIdentityOf(ctx)),
@@ -364,28 +367,29 @@ async function createSession(
  */
 async function update(
   deps: SessionControllerDeps,
-  session: Session,
+  input: UpdateSessionInput,
   ctx: HandlerContext,
 ): Promise<Session> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       SessionSchema,
-      session,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
     await newPipeline<typeof SessionSchema>("session-update", deps.logger)
       .addStep(
-        newAuthorizeStep(SessionCommandController.method.update, deps.authorizer),
+        newAuthorizeStep(SessionCommandController.method.update, deps.authorizer,
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
+      .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newValidateHarnessImmutabilityStep())
       .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
-      .addStep(newBuildUpdateStateStep())
       .addStep(newNormalizeReferencesStep(deps.store))
-      .addStep(newKeepStoredVaultChoiceOnStaleWriteStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(
         newValidateReferencesStep(deps.store, deps.authorizer, {
@@ -398,7 +402,6 @@ async function update(
         newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
       )
       .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
-      .addStep(newRecordHarnessStateHistoryStep())
       .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
       .addStep(newPersistStep(deps.store))
       .addStep(
@@ -449,7 +452,14 @@ async function apply(
   }
   return shouldCreate
     ? createSession(deps, session, ctx)
-    : update(deps, withResolvedApplyId(SessionSchema, session, reqCtx), ctx);
+    : update(
+        deps,
+        everyPathUpdate(
+          UpdateSessionInputSchema,
+          withResolvedApplyId(SessionSchema, session, reqCtx),
+        ),
+        ctx,
+      );
 }
 
 /**

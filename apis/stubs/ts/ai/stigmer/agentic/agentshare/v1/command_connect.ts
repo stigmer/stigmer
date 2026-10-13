@@ -5,7 +5,7 @@
 
 import { AgentShare } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AgentShareId, RotateShareLinkInput } from "./io_pbjs";
+import { AgentShareId, RotateShareLinkInput, UpdateAgentShareInput } from "./io_pbjs";
 
 /**
  * AgentShareCommandController handles write operations for agent shares.
@@ -42,17 +42,32 @@ export const AgentShareCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing agent share.
+     * Update an agent share: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * Replaces the spec wholesale: a manifest that omits audience makes the
-     * share organization-only, and one that omits vaults detaches them (both
-     * fail closed). The slug and referenced agent are immutable.
+     * The referenced agent is immutable. A mask naming the audience or the
+     * vaults replaces them whole: an empty audience makes the share
+     * organization-only, and empty vaults detach them (both fail closed).
+     *
+     * resource.metadata.id names the agent share; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the agent share does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the agent share kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.update
      */
     update: {
       name: "update",
-      I: AgentShare,
+      I: UpdateAgentShareInput,
       O: AgentShare,
       kind: MethodKind.Unary,
     },

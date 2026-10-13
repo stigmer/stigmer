@@ -5,7 +5,7 @@
 
 import { IdentityAccount } from "./api_pbjs";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { CreateFederatedAccountInput, CreateServiceAccountInput, DeprovisionFederatedAccountInput, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pbjs";
+import { CreateFederatedAccountInput, CreateServiceAccountInput, DeprovisionFederatedAccountInput, IdentityAccountId, UpdateFederatedAccountInput, UpdateIdentityAccountInput } from "./io_pbjs";
 
 /**
  * IdentityAccountCommandController handles write operations for identity accounts.
@@ -27,13 +27,28 @@ export const IdentityAccountCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing identity account.
+     * Update an identity account: the fields update_mask names change, every other
+     * field keeps its stored value.
+     *
+     * resource.metadata.id names the identity account; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the identity account does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the identity account changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the identity account kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update
      */
     update: {
       name: "update",
-      I: IdentityAccount,
+      I: UpdateIdentityAccountInput,
       O: IdentityAccount,
       kind: MethodKind.Unary,
     },

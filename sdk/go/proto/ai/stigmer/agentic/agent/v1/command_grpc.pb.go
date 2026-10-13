@@ -58,13 +58,23 @@ type AgentCommandControllerClient interface {
 	//   - SLUG_RESERVED — another agent held the slug until a recent rename, and
 	//     it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
-	// Update an existing agent.
+	// Update an agent: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The slug changes only through rename. An update authorizes the id it names,
-	// so wherever the server authorizes requests, an update without an id is
-	// refused before its slug is read; where it reads one, a slug the agent was
-	// renamed away from is refused with SLUG_RENAMED (see apply).
-	Update(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
+	// resource.metadata.id names the agent; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the agent does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the agent kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateAgentInput, opts ...grpc.CallOption) (*Agent, error)
 	// Update the visibility of an existing agent.
 	//
 	// This is a targeted metadata update — it only modifies metadata.visibility,
@@ -135,7 +145,7 @@ func (c *agentCommandControllerClient) Create(ctx context.Context, in *Agent, op
 	return out, nil
 }
 
-func (c *agentCommandControllerClient) Update(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error) {
+func (c *agentCommandControllerClient) Update(ctx context.Context, in *UpdateAgentInput, opts ...grpc.CallOption) (*Agent, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Agent)
 	err := c.cc.Invoke(ctx, AgentCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -214,13 +224,23 @@ type AgentCommandControllerServer interface {
 	//   - SLUG_RESERVED — another agent held the slug until a recent rename, and
 	//     it still leads there. Metadata: slug.
 	Create(context.Context, *Agent) (*Agent, error)
-	// Update an existing agent.
+	// Update an agent: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The slug changes only through rename. An update authorizes the id it names,
-	// so wherever the server authorizes requests, an update without an id is
-	// refused before its slug is read; where it reads one, a slug the agent was
-	// renamed away from is refused with SLUG_RENAMED (see apply).
-	Update(context.Context, *Agent) (*Agent, error)
+	// resource.metadata.id names the agent; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the agent does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the agent kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateAgentInput) (*Agent, error)
 	// Update the visibility of an existing agent.
 	//
 	// This is a targeted metadata update — it only modifies metadata.visibility,
@@ -276,7 +296,7 @@ func (UnimplementedAgentCommandControllerServer) Apply(context.Context, *Agent) 
 func (UnimplementedAgentCommandControllerServer) Create(context.Context, *Agent) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedAgentCommandControllerServer) Update(context.Context, *Agent) (*Agent, error) {
+func (UnimplementedAgentCommandControllerServer) Update(context.Context, *UpdateAgentInput) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedAgentCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error) {
@@ -348,7 +368,7 @@ func _AgentCommandController_Create_Handler(srv interface{}, ctx context.Context
 }
 
 func _AgentCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Agent)
+	in := new(UpdateAgentInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -360,7 +380,7 @@ func _AgentCommandController_Update_Handler(srv interface{}, ctx context.Context
 		FullMethod: AgentCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentCommandControllerServer).Update(ctx, req.(*Agent))
+		return srv.(AgentCommandControllerServer).Update(ctx, req.(*UpdateAgentInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

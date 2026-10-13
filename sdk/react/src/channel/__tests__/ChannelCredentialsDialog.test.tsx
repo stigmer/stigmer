@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
+import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
@@ -53,11 +55,11 @@ function makeChannel(vaults: { org: string; slug: string }[] = []) {
 }
 
 function createMockStigmer(overrides: {
-  apply?: (input: AgentChannelInput) => Promise<unknown>;
+  update?: (resource: AgentChannel, paths: string[]) => Promise<unknown>;
 } = {}) {
   return {
     agentChannel: {
-      apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
+      update: overrides.update ?? vi.fn().mockResolvedValue({}),
     },
     vault: {
       list: vi.fn().mockResolvedValue({
@@ -123,12 +125,12 @@ describe("ChannelCredentialsDialog", () => {
     expect(screen.queryByRole("option", { name: "My vault" })).toBeNull();
   });
 
-  it("saves the full input with the updated bindings — nothing else is dropped", async () => {
-    const apply = vi.fn().mockResolvedValue({});
+  it("saves the bindings alone — nothing else is named", async () => {
+    const update = vi.fn().mockResolvedValue({});
     const onSaved = vi.fn();
 
     render(
-      <Providers client={createMockStigmer({ apply })}>
+      <Providers client={createMockStigmer({ update })}>
         <ChannelCredentialsDialog
           open
           onOpenChange={() => {}}
@@ -145,29 +147,20 @@ describe("ChannelCredentialsDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    // The save is a full-input apply: the agent reference and provider
-    // marker survive alongside the new binding (apply semantics would
-    // silently unbind whatever a partial input omitted).
-    await waitFor(() =>
-      expect(apply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "Support Slack",
-          org: "acme",
-          agentRef: { org: "acme", slug: "support-agent" },
-          enabled: true,
-          slack: {},
-          vaults: [{ org: "acme", slug: "github-credentials" }],
-        }),
-      ),
-    );
+    // The update names the bindings alone: the agent reference and the
+    // provider marker keep their stored values without being sent back.
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    const sent = sentUpdate<AgentChannel>(update);
+    expect(sent.paths).toEqual(["spec.vaults"]);
+    expect(sentRefs(sent.resource.spec?.vaults)).toEqual([{ org: "acme", slug: "github-credentials" }]);
     expect(onSaved).toHaveBeenCalled();
   });
 
   it("saves an emptied list as an explicit unbind", async () => {
-    const apply = vi.fn().mockResolvedValue({});
+    const update = vi.fn().mockResolvedValue({});
 
     render(
-      <Providers client={createMockStigmer({ apply })}>
+      <Providers client={createMockStigmer({ update })}>
         <ChannelCredentialsDialog
           open
           onOpenChange={() => {}}
@@ -182,11 +175,10 @@ describe("ChannelCredentialsDialog", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() =>
-      expect(apply).toHaveBeenCalledWith(
-        expect.objectContaining({ vaults: [] }),
-      ),
-    );
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    const sent = sentUpdate<AgentChannel>(update);
+    expect(sent.paths).toEqual(["spec.vaults"]);
+    expect(sent.resource.spec?.vaults).toEqual([]);
   });
 
   it("shows the needs-credentials hint for a tool-using agent with no bindings", async () => {

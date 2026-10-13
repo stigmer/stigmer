@@ -78,7 +78,7 @@ ChannelApp channelApp = client.channelapps().get("chapp_01j5q3k7m8r2s4tnz2hfp0q0
 | [`listByOrg`](#listbyorg) | List all channel apps belonging to an organization. |
 | [`apply`](#apply) | Create or update a channel app. |
 | [`create`](#create) | Create a channel app. |
-| [`update`](#update) | Update an existing channel app. |
+| [`update`](#update) | Update a channel app: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete a channel app. |
 | [`rename`](#rename) | Rename a channel app: change its slug, the name people type. |
 
@@ -349,64 +349,54 @@ ChannelApp channelApp = client.channelapps().create(ChannelAppInput.builder()
 
 ### update
 
-Update an existing channel app.
+Update a channel app: the fields update_mask names change, every other field keeps its stored value.
 
 Sending the redaction marker for a secret field preserves the stored value; the provider arm is immutable.
 
-The slug changes only through rename. An update authorizes the id it names, so wherever the server authorizes requests, an update without an id is refused before its slug is read; where it reads one, a slug the channel app was renamed away from is refused with SLUG_RENAMED (see apply).
+resource.metadata.id names the channel app; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the channel app does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the channel app changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the channel app kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const channelApp = await stigmer.channelapp.update({
-  name: "my-channel-app",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  slack: {},
-  whatsapp: {},
-});
+const channelApp = await stigmer.channelapp.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+channelApp.metadata!.name = "New name";
+const updated = await stigmer.channelapp.update(channelApp, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-channelApp, err := client.ChannelApp.Update(ctx, &stigmer.ChannelAppInput{
-  Name:     "my-channel-app",
-  Org:      "acme",
-  Slug:     "...",
-  Labels:   map[string]string{},
-  Slack:    &stigmer.SlackChannelAppConfigInput{},
-  Whatsapp: &stigmer.WhatsAppChannelAppConfigInput{},
-})
+channelApp, err := client.ChannelApp.Get(ctx, "chapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+channelApp.Metadata.Name = "New name"
+updated, err := client.ChannelApp.Update(ctx, channelApp, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-channel_app = client.channelapps.update(ChannelAppInput(
-    name="my-channel-app",
-    org="acme",
-    slug="...",
-    labels={},
-    slack=None,
-    whatsapp=None,
-))
+channel_app = client.channelapps.get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3")
+channel_app.metadata.name = "New name"
+updated = client.channelapps.update(channel_app, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ChannelApp channelApp = client.channelapps().update(ChannelAppInput.builder()
-    .name("my-channel-app")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .slack(null)
-    .whatsapp(null)
-    .build());
+ChannelApp channelApp = client.channelapps().get("chapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ChannelApp updated = client.channelapps().update(
+    channelApp.toBuilder().setMetadata(channelApp.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ChannelAppInput`](#channelappinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`ChannelApp`](#channelapp) | The channel app, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`ChannelApp`](#channelapp)
 
@@ -539,6 +529,17 @@ WhatsAppChannelAppConfig holds the credentials of a customer-created Meta app wi
     appSecret: { type: "string", description: "Meta app secret used to verify webhook signatures from this app." },
     accessToken: { type: "string", description: "Long-lived Cloud API access token (system-user token) used to send messages on behalf of the WhatsApp Business account." },
     verifyToken: { type: "string", description: "Verify token echoed during Meta's webhook verification handshake." },
+  }}
+/>
+
+### UpdateChannelAppInput
+
+The changes an update makes to a channel app: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "ChannelAppInput", description: "The channel app carrying the new values, named by metadata.id.", typeDescriptionLink: "#channelappinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

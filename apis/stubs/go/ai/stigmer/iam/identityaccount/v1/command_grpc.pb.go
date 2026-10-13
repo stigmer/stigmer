@@ -38,8 +38,23 @@ const (
 type IdentityAccountCommandControllerClient interface {
 	// Create a new identity account.
 	Create(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// Update an existing identity account.
-	Update(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
+	// Update an identity account: the fields update_mask names change, every other
+	// field keeps its stored value.
+	//
+	// resource.metadata.id names the identity account; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the identity account does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the identity account changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the identity account kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateIdentityAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Delete an identity account.
 	Delete(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Create a federated identity account for an external platform user.
@@ -135,7 +150,7 @@ func (c *identityAccountCommandControllerClient) Create(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *identityAccountCommandControllerClient) Update(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error) {
+func (c *identityAccountCommandControllerClient) Update(ctx context.Context, in *UpdateIdentityAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdentityAccount)
 	err := c.cc.Invoke(ctx, IdentityAccountCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -213,8 +228,23 @@ func (c *identityAccountCommandControllerClient) ProvisionMyAccount(ctx context.
 type IdentityAccountCommandControllerServer interface {
 	// Create a new identity account.
 	Create(context.Context, *IdentityAccount) (*IdentityAccount, error)
-	// Update an existing identity account.
-	Update(context.Context, *IdentityAccount) (*IdentityAccount, error)
+	// Update an identity account: the fields update_mask names change, every other
+	// field keeps its stored value.
+	//
+	// resource.metadata.id names the identity account; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the identity account does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the identity account changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the identity account kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateIdentityAccountInput) (*IdentityAccount, error)
 	// Delete an identity account.
 	Delete(context.Context, *IdentityAccountId) (*IdentityAccount, error)
 	// Create a federated identity account for an external platform user.
@@ -302,7 +332,7 @@ type UnimplementedIdentityAccountCommandControllerServer struct{}
 func (UnimplementedIdentityAccountCommandControllerServer) Create(context.Context, *IdentityAccount) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedIdentityAccountCommandControllerServer) Update(context.Context, *IdentityAccount) (*IdentityAccount, error) {
+func (UnimplementedIdentityAccountCommandControllerServer) Update(context.Context, *UpdateIdentityAccountInput) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedIdentityAccountCommandControllerServer) Delete(context.Context, *IdentityAccountId) (*IdentityAccount, error) {
@@ -362,7 +392,7 @@ func _IdentityAccountCommandController_Create_Handler(srv interface{}, ctx conte
 }
 
 func _IdentityAccountCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IdentityAccount)
+	in := new(UpdateIdentityAccountInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -374,7 +404,7 @@ func _IdentityAccountCommandController_Update_Handler(srv interface{}, ctx conte
 		FullMethod: IdentityAccountCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityAccountCommandControllerServer).Update(ctx, req.(*IdentityAccount))
+		return srv.(IdentityAccountCommandControllerServer).Update(ctx, req.(*UpdateIdentityAccountInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

@@ -13,7 +13,7 @@ import ai.stigmer.platform.v1.LicenseCustomer;
 import ai.stigmer.platform.v1.LicenseTerm;
 import com.google.protobuf.Timestamp;
 
-/** Input for creating/updating a License. */
+/** Input for creating or applying a License. */
 public final class LicenseInput {
     private final String id;
     private final String name;
@@ -121,9 +121,9 @@ public final class LicenseInput {
         private Builder() {}
 
         /**
-         * The resource's metadata.id, for exact update addressing when set
-         * from a loaded resource. Required for updates to platform-scoped
-         * (org-less) kinds, where the org+slug fallback cannot match.
+         * The resource's metadata.id: an apply that carries it changes that
+         * resource, whatever its slug. An update takes the resource itself
+         * and the paths it changes.
          */
         public Builder id(String id) { this.id = id; return this; }
         public Builder name(String name) { this.name = name; return this; }

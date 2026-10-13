@@ -8,6 +8,7 @@ import (
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // MemoryClient provides operations on memory resources.
@@ -32,12 +33,11 @@ func (m *MemoryClient) Create(ctx context.Context, input *MemoryInput) (*memoryv
 	return resp, wrapErr(err)
 }
 
-func (m *MemoryClient) Update(ctx context.Context, input *MemoryInput) (*memoryv1.Memory, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := m.command.Update(ctx, req)
+func (m *MemoryClient) Update(ctx context.Context, resource *memoryv1.Memory, paths []string) (*memoryv1.Memory, error) {
+	resp, err := m.command.Update(ctx, &memoryv1.UpdateMemoryInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -66,12 +66,12 @@ func (m *MemoryClient) List(ctx context.Context, input *memoryv1.ListMemoriesReq
 	return resp, wrapErr(err)
 }
 
-// MemoryInput holds the fields for creating/updating a Memory.
+// MemoryInput holds the fields for creating or applying a Memory.
 type MemoryInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id                       string
 	Name                     string
 	Slug                     string

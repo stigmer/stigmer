@@ -364,7 +364,7 @@ describe("ciphertext-shaped secrets are refused (oss#395)", () => {
     update.spec.providerConfig.value.signingSecret =
       "enc:v1:Zm9yZ2VkLWNpcGhlcnRleHQ=";
 
-    const err = await grpcError(() => command.update(update));
+    const err = await grpcError(() => command.update({ resource: update, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(plaintextRequiredMessage("signing_secret"));
   });
@@ -384,7 +384,7 @@ describe("update marker preserves per field", () => {
     (update.metadata as Record<string, string>).slug = created.metadata!.slug;
     update.spec.providerConfig.value.clientSecret = REDACTED_MARKER;
     update.spec.providerConfig.value.signingSecret = "rotated-signing-secret";
-    await command.update(update);
+    await command.update({ resource: update, updateMask: { paths: ["*"] } });
 
     const stored = await readStored(created.metadata!.id);
     const slack =
@@ -411,7 +411,7 @@ describe("update marker preserves per field", () => {
     update.spec.providerConfig.value.appSecret = REDACTED_MARKER;
     update.spec.providerConfig.value.accessToken = "rotated-access-token";
     update.spec.providerConfig.value.verifyToken = REDACTED_MARKER;
-    await command.update(update);
+    await command.update({ resource: update, updateMask: { paths: ["*"] } });
 
     const stored = await readStored(created.metadata!.id);
     const wa =
@@ -464,7 +464,7 @@ describe("update marker preserves per field", () => {
     update.spec.providerConfig.value.clientSecret = REDACTED_MARKER;
     update.spec.providerConfig.value.signingSecret = REDACTED_MARKER;
 
-    const err = await grpcError(() => command.update(update));
+    const err = await grpcError(() => command.update({ resource: update, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(noExistingSecretMessage("signing_secret"));
   });
@@ -591,7 +591,7 @@ describe("provider arm is immutable on update", () => {
     (flip.metadata as Record<string, string>).id = created.metadata!.id;
     (flip.metadata as Record<string, string>).slug = created.metadata!.slug;
 
-    const err = await grpcError(() => command.update(flip));
+    const err = await grpcError(() => command.update({ resource: flip, updateMask: { paths: ["*"] } }));
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toBe(PROVIDER_IMMUTABLE_MESSAGE);
   });
@@ -603,7 +603,7 @@ describe("provider arm is immutable on update", () => {
     const update = newSlackApp(name);
     (update.metadata as Record<string, string>).id = created.metadata!.id;
     (update.metadata as Record<string, string>).slug = created.metadata!.slug;
-    const updated = await command.update(update);
+    const updated = await command.update({ resource: update, updateMask: { paths: ["*"] } });
     expect(updated.metadata?.id).toBe(created.metadata!.id);
   });
 });
@@ -639,7 +639,7 @@ describe("update races a write to the same app", () => {
         id,
         ApiResourceVisibility.visibility_org,
       ),
-      () => command.update(update),
+      () => command.update({ resource: update, updateMask: { paths: ["*"] } }),
     );
     expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
 

@@ -58,10 +58,10 @@ All types in this package are defined in `ai/stigmer/agentic/session/v1/`:
 
 | File | Contents |
 |---|---|
-| `api.proto` | `Session` resource with metadata and `SessionStatus` (`agent_id`, `agent_version_hash`) |
-| `spec.proto` | `SessionSpec` — `agent_ref`, `subject`, `harness_state_id`, `metadata`, `workspace_entries`, `plugins`, `skill_refs`, `harness`, `execution_target` |
+| `api.proto` | `Session` resource with metadata and `SessionStatus` (`agent_id`, `agent_version_hash`, and the runner-owned `harness_state_id` and `harness_state_id_history`) |
+| `spec.proto` | `SessionSpec` — `agent_ref`, `subject`, `metadata`, `workspace_entries`, `plugins`, `skill_refs`, `harness`, `execution_target` |
 | `workspace.proto` | `WorkspaceSource`, `GitRepoSource`, `LocalPathSource` |
-| `command.proto` | `SessionCommandController` — apply, create, update, updateSubject, reviewFileChanges, confirmToolUse, grantPermission, interrupt, delete, appendEvents |
+| `command.proto` | `SessionCommandController` — apply, create, update, updateSubject, reviewFileChanges, confirmToolUse, grantPermission, interrupt, delete, appendEvents, bindHarnessState |
 | `query.proto` | `SessionQueryController` — get, list, listByAgent, listByChannel, listEvents, streamEvents |
 | `event.proto` | `SessionEvent` (the log's envelope: `seq`, `session_id`, `run_id`, `thread_id`) and one message per Managed Agents event it carries, each named by its oneof member's `event_type` option, then Stigmer's own `stigmer.*` events; the `EventStart`, `EventDelta` and `ToolOutputDelta` previews |
 | `event_content.proto` | The shapes events share: content blocks and their sources, stop reasons and details, errors and retry status, tool evaluations |

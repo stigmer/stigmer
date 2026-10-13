@@ -65,32 +65,31 @@ import {
   GitWriteBackMode,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import { buildAgentProto, toAgentUpdateInput } from "../gen/agent";
-import { buildAgentChannelProto, toAgentChannelUpdateInput } from "../gen/agentchannel";
-import { buildRunProto, toRunUpdateInput } from "../gen/run";
-import { buildAgentShareProto, toAgentShareUpdateInput } from "../gen/agentshare";
-import { buildApiKeyProto, toApiKeyUpdateInput } from "../gen/apikey";
-import { buildChannelAppProto, toChannelAppUpdateInput } from "../gen/channelapp";
-import { buildIdentityAccountProto, toIdentityAccountUpdateInput } from "../gen/identityaccount";
-import { buildIdentityProviderProto, toIdentityProviderUpdateInput } from "../gen/identityprovider";
-import { buildOAuthAppProto, toOAuthAppUpdateInput } from "../gen/oauthapp";
-import { buildOrganizationProto, toOrganizationUpdateInput } from "../gen/organization";
-import { buildPlatformClientProto, toPlatformClientUpdateInput } from "../gen/platformclient";
-import { buildScheduleProto, toScheduleUpdateInput } from "../gen/schedule";
-import { buildSessionProto, toSessionUpdateInput } from "../gen/session";
-import { buildVaultProto, toVaultUpdateInput } from "../gen/vault";
+import { buildAgentProto, toAgentInput } from "../gen/agent";
+import { buildAgentChannelProto, toAgentChannelInput } from "../gen/agentchannel";
+import { buildRunProto, toRunInput } from "../gen/run";
+import { buildAgentShareProto, toAgentShareInput } from "../gen/agentshare";
+import { buildApiKeyProto, toApiKeyInput } from "../gen/apikey";
+import { buildChannelAppProto, toChannelAppInput } from "../gen/channelapp";
+import { buildIdentityAccountProto, toIdentityAccountInput } from "../gen/identityaccount";
+import { buildIdentityProviderProto, toIdentityProviderInput } from "../gen/identityprovider";
+import { buildOAuthAppProto, toOAuthAppInput } from "../gen/oauthapp";
+import { buildOrganizationProto, toOrganizationInput } from "../gen/organization";
+import { buildPlatformClientProto, toPlatformClientInput } from "../gen/platformclient";
+import { buildScheduleProto, toScheduleInput } from "../gen/schedule";
+import { buildSessionProto, toSessionInput } from "../gen/session";
+import { buildVaultProto, toVaultInput } from "../gen/vault";
 
 /**
- * Systematic wipe-bug guard for every generated toXxxUpdateInput mapper
- * (update RPCs are full-spec replacements — see gen/proto-utils.ts and the
- * mapper JSDoc). Three layers per resource, generalizing the pattern that
- * caught oss#319:
+ * Systematic loss guard for every generated toXxxInput mapper, which
+ * restates a loaded resource for a copy (see the mapper JSDoc). Three
+ * layers per resource, generalizing the pattern that caught oss#319:
  *
  * 1. SCHEMA TRIPWIRE — proto reflection asserts the fixture populates
  *    EVERY top-level spec field (one arm per oneof). When a proto gains a
  *    field, this fails first, forcing the fixture forward; the round-trip
  *    then proves the regenerated mapper carries it.
- * 2. ROUND-TRIP — build(toUpdateInput(fixture)) must reproduce the spec
+ * 2. ROUND-TRIP — build(toXxxInput(fixture)) must reproduce the spec
  *    exactly (compared as JSON, defaults omitted). Nested sub-fields are
  *    covered by population: every nested value in a fixture is
  *    non-default, so a dropped nested field breaks equality.
@@ -200,7 +199,7 @@ const RUN_CONFIG = {
 // Per-resource fixtures + suites
 // ---------------------------------------------------------------------------
 
-describe("toAgentUpdateInput", () => {
+describe("toAgentInput", () => {
   const fixture = () =>
     create(AgentSchema, {
       metadata: META,
@@ -254,12 +253,12 @@ describe("toAgentUpdateInput", () => {
     assertSpecRoundTrip(
       AgentSpecSchema,
       original,
-      buildAgentProto(toAgentUpdateInput(original)),
+      buildAgentProto(toAgentInput(original)),
     );
   });
 });
 
-describe("toAgentChannelUpdateInput", () => {
+describe("toAgentChannelInput", () => {
   const fixture = () =>
     create(AgentChannelSchema, {
       metadata: META,
@@ -285,12 +284,12 @@ describe("toAgentChannelUpdateInput", () => {
     assertSpecRoundTrip(
       AgentChannelSpecSchema,
       original,
-      buildAgentChannelProto(toAgentChannelUpdateInput(original)),
+      buildAgentChannelProto(toAgentChannelInput(original)),
     );
   });
 });
 
-describe("toAgentExecutionUpdateInput", () => {
+describe("toAgentExecutionInput", () => {
   const fixture = () =>
     create(RunSchema, {
       metadata: META,
@@ -300,8 +299,6 @@ describe("toAgentExecutionUpdateInput", () => {
           value: {
             agentRef: { org: "acme", slug: "fixer", kind: ApiResourceKind.agent },
             subject: "Fix the flaky test",
-            harnessStateId: "hs-1",
-            harnessStateIdHistory: ["hs-0"],
             metadata: { "stigmer.ai/context": "embedded" },
             workspaceEntries: WORKSPACE_ENTRIES,
             plugins: PLUGIN_REFS,
@@ -380,7 +377,7 @@ describe("toAgentExecutionUpdateInput", () => {
     assertSpecRoundTrip(
       RunSpecSchema,
       original,
-      buildRunProto(toRunUpdateInput(original)),
+      buildRunProto(toRunInput(original)),
     );
   });
 
@@ -392,12 +389,12 @@ describe("toAgentExecutionUpdateInput", () => {
     assertSpecRoundTrip(
       RunSpecSchema,
       original,
-      buildRunProto(toRunUpdateInput(original)),
+      buildRunProto(toRunInput(original)),
     );
   });
 });
 
-describe("toAgentShareUpdateInput", () => {
+describe("toAgentShareInput", () => {
   const fixture = () =>
     create(AgentShareSchema, {
       metadata: META,
@@ -427,12 +424,12 @@ describe("toAgentShareUpdateInput", () => {
     assertSpecRoundTrip(
       AgentShareSpecSchema,
       original,
-      buildAgentShareProto(toAgentShareUpdateInput(original)),
+      buildAgentShareProto(toAgentShareInput(original)),
     );
   });
 });
 
-describe("toApiKeyUpdateInput", () => {
+describe("toApiKeyInput", () => {
   const fixture = () =>
     create(ApiKeySchema, {
       metadata: META,
@@ -454,12 +451,12 @@ describe("toApiKeyUpdateInput", () => {
     assertSpecRoundTrip(
       ApiKeySpecSchema,
       original,
-      buildApiKeyProto(toApiKeyUpdateInput(original)),
+      buildApiKeyProto(toApiKeyInput(original)),
     );
   });
 });
 
-describe("toChannelAppUpdateInput", () => {
+describe("toChannelAppInput", () => {
   const slackFixture = () =>
     create(ChannelAppSchema, {
       metadata: META,
@@ -491,7 +488,7 @@ describe("toChannelAppUpdateInput", () => {
     assertSpecRoundTrip(
       ChannelAppSpecSchema,
       original,
-      buildChannelAppProto(toChannelAppUpdateInput(original)),
+      buildChannelAppProto(toChannelAppInput(original)),
     );
   });
 
@@ -500,12 +497,12 @@ describe("toChannelAppUpdateInput", () => {
     assertSpecRoundTrip(
       ChannelAppSpecSchema,
       original,
-      buildChannelAppProto(toChannelAppUpdateInput(original)),
+      buildChannelAppProto(toChannelAppInput(original)),
     );
   });
 });
 
-describe("toVaultUpdateInput", () => {
+describe("toVaultInput", () => {
   const fixture = () =>
     create(VaultSchema, {
       metadata: META,
@@ -550,12 +547,12 @@ describe("toVaultUpdateInput", () => {
     assertSpecRoundTrip(
       VaultSpecSchema,
       original,
-      buildVaultProto(toVaultUpdateInput(original)),
+      buildVaultProto(toVaultInput(original)),
     );
   });
 });
 
-describe("toIdentityAccountUpdateInput (tripwire)", () => {
+describe("toIdentityAccountInput (tripwire)", () => {
   const fixture = () =>
     create(IdentityAccountSchema, {
       metadata: META,
@@ -590,12 +587,12 @@ describe("toIdentityAccountUpdateInput (tripwire)", () => {
     assertSpecRoundTrip(
       IdentityAccountSpecSchema,
       original,
-      buildIdentityAccountProto(toIdentityAccountUpdateInput(original)),
+      buildIdentityAccountProto(toIdentityAccountInput(original)),
     );
   });
 });
 
-describe("toIdentityProviderUpdateInput", () => {
+describe("toIdentityProviderInput", () => {
   const fixture = () =>
     create(IdentityProviderSchema, {
       metadata: META,
@@ -620,12 +617,12 @@ describe("toIdentityProviderUpdateInput", () => {
     assertSpecRoundTrip(
       IdentityProviderSpecSchema,
       original,
-      buildIdentityProviderProto(toIdentityProviderUpdateInput(original)),
+      buildIdentityProviderProto(toIdentityProviderInput(original)),
     );
   });
 });
 
-describe("toOAuthAppUpdateInput", () => {
+describe("toOAuthAppInput", () => {
   const fixture = () =>
     create(OAuthAppSchema, {
       metadata: META,
@@ -656,12 +653,12 @@ describe("toOAuthAppUpdateInput", () => {
     assertSpecRoundTrip(
       OAuthAppSpecSchema,
       original,
-      buildOAuthAppProto(toOAuthAppUpdateInput(original)),
+      buildOAuthAppProto(toOAuthAppInput(original)),
     );
   });
 });
 
-describe("toOrganizationUpdateInput (tripwire)", () => {
+describe("toOrganizationInput (tripwire)", () => {
   // An organization belongs to no organization: its own metadata.org is empty.
   const fixture = () =>
     create(OrganizationSchema, {
@@ -685,12 +682,12 @@ describe("toOrganizationUpdateInput (tripwire)", () => {
     assertSpecRoundTrip(
       OrganizationSpecSchema,
       original,
-      buildOrganizationProto(toOrganizationUpdateInput(original)),
+      buildOrganizationProto(toOrganizationInput(original)),
     );
   });
 });
 
-describe("toPlatformClientUpdateInput", () => {
+describe("toPlatformClientInput", () => {
   const fixture = () =>
     create(PlatformClientSchema, {
       metadata: META,
@@ -718,14 +715,14 @@ describe("toPlatformClientUpdateInput", () => {
     assertSpecRoundTrip(
       PlatformClientSpecSchema,
       original,
-      buildPlatformClientProto(toPlatformClientUpdateInput(original)),
+      buildPlatformClientProto(toPlatformClientInput(original)),
     );
   });
 
   it("preserves vaults when only origins change (live wipe bug)", () => {
     const original = fixture();
     const rebuilt = buildPlatformClientProto({
-      ...toPlatformClientUpdateInput(original),
+      ...toPlatformClientInput(original),
       allowedOrigins: ["https://other.acme.example"],
     });
     expect(rebuilt.spec?.vaults.map((r) => r.slug)).toEqual(["prod"]);
@@ -733,7 +730,7 @@ describe("toPlatformClientUpdateInput", () => {
   });
 });
 
-describe("toScheduleUpdateInput", () => {
+describe("toScheduleInput", () => {
   const fixture = () =>
     create(ScheduleSchema, {
       metadata: META,
@@ -766,20 +763,18 @@ describe("toScheduleUpdateInput", () => {
     assertSpecRoundTrip(
       ScheduleSpecSchema,
       original,
-      buildScheduleProto(toScheduleUpdateInput(original)),
+      buildScheduleProto(toScheduleInput(original)),
     );
   });
 });
 
-describe("toSessionUpdateInput", () => {
+describe("toSessionInput", () => {
   const fixture = () =>
     create(SessionSchema, {
       metadata: META,
       spec: {
         agentRef: { org: "acme", slug: "fixer", kind: ApiResourceKind.agent },
         subject: "Fix the flaky test",
-        harnessStateId: "hs-1",
-        harnessStateIdHistory: ["hs-0"],
         metadata: { "stigmer.ai/context": "embedded" },
         workspaceEntries: WORKSPACE_ENTRIES,
         plugins: PLUGIN_REFS,
@@ -804,7 +799,7 @@ describe("toSessionUpdateInput", () => {
     assertSpecRoundTrip(
       SessionSpecSchema,
       original,
-      buildSessionProto(toSessionUpdateInput(original)),
+      buildSessionProto(toSessionInput(original)),
     );
   });
 
@@ -818,18 +813,18 @@ describe("toSessionUpdateInput", () => {
     original.spec!.skillRefs = [
       create(ApiResourceReferenceSchema, { org: "acme", kind: ApiResourceKind.skill, id: "skl_gone" }),
     ];
-    const rebuilt = buildSessionProto(toSessionUpdateInput(original));
+    const rebuilt = buildSessionProto(toSessionInput(original));
     expect([rebuilt.spec?.agentRef?.id, rebuilt.spec?.agentRef?.slug]).toEqual(["agt_gone", ""]);
     expect(rebuilt.spec?.skillRefs.map((r) => [r.org, r.id, r.slug])).toEqual([["acme", "skl_gone", ""]]);
   });
 
-  it("preserves harness state history when only the subject changes (hand-written mapper gap)", () => {
+  it("keeps every other field when only the subject changes", () => {
     const original = fixture();
     const rebuilt = buildSessionProto({
-      ...toSessionUpdateInput(original),
+      ...toSessionInput(original),
       subject: "New subject",
     });
-    expect(rebuilt.spec?.harnessStateIdHistory).toEqual(["hs-0"]);
+    expect(rebuilt.spec?.workspaceEntries).toEqual(original.spec?.workspaceEntries);
     expect(rebuilt.spec?.subject).toBe("New subject");
   });
 });

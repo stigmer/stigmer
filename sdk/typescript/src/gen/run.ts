@@ -3,14 +3,14 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toTimestamp, toResourceRefInput, toResourceRefInputs } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import { create, type MessageInitShape, type JsonObject } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { RunIdSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelRunInputSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelRunInput, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { RunIdSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelRunInputSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelRunInput, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { PluginEvalMockKind, PluginEvalMockToolSchema, PluginEvalMockServerSchema, PluginEvalCaseContextSchema, type PluginEvalMockTool, type PluginEvalMockServer, type PluginEvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { RunSpecSchema, AttachmentSchema, ConversationCatchupSchema, type Attachment, type ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
@@ -37,9 +37,9 @@ export class RunClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: RunInput): Promise<Run> {
+  async update(resource: Run | MessageInitShape<typeof RunSchema>, paths: string[]): Promise<Run> {
     try {
-      return await this.command.update(buildRunProto(input));
+      return await this.command.update(create(UpdateRunInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -172,13 +172,13 @@ export class RunClient {
   }
 }
 
-/** Input for creating/updating a Run. */
+/** Input for creating or applying a Run. */
 export interface RunInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -209,8 +209,6 @@ export interface RunInput {
 export interface SessionSpecInput {
   agentRef?: ResourceRef;
   subject?: string;
-  harnessStateId?: string;
-  harnessStateIdHistory?: string[];
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
   skillRefs?: ResourceRef[];
@@ -349,8 +347,6 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   const msg = create(SessionSpecSchema);
   if (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
   if (input.subject !== undefined) msg.subject = input.subject;
-  if (input.harnessStateId !== undefined) msg.harnessStateId = input.harnessStateId;
-  if (input.harnessStateIdHistory) msg.harnessStateIdHistory = input.harnessStateIdHistory;
   if (input.metadata) Object.assign(msg.metadata, input.metadata);
   if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
   if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
@@ -508,8 +504,6 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
   return {
     agentRef: toResourceRefInput(msg.agentRef),
     subject: msg.subject || undefined,
-    harnessStateId: msg.harnessStateId || undefined,
-    harnessStateIdHistory: msg.harnessStateIdHistory?.length ? [...msg.harnessStateIdHistory] : undefined,
     metadata: Object.keys(msg.metadata ?? {}).length > 0 ? { ...msg.metadata } : undefined,
     workspaceEntries: msg.workspaceEntries?.length ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
     skillRefs: toResourceRefInputs(msg.skillRefs),
@@ -591,24 +585,22 @@ function toPluginEvalCaseContextInput(msg: PluginEvalCaseContext): PluginEvalCas
 }
 
 /**
- * Maps a fetched {@link Run} to a complete {@link RunInput} for `update()`.
+ * Maps a fetched {@link Run} to the complete {@link RunInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toRunInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toRunUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toRunUpdateInput(resource: Run): RunInput {
+export function toRunInput(resource: Run): RunInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(RunSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

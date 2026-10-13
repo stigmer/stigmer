@@ -63,16 +63,26 @@ type ChannelAppCommandControllerClient interface {
 	//   - SLUG_RESERVED — another channel app held the slug until a recent
 	//     rename, and it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
-	// Update an existing channel app.
+	// Update a channel app: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Sending the redaction marker for a secret field preserves the
-	// stored value; the provider arm is immutable.
+	// Sending the redaction marker for a secret field preserves the stored
+	// value; the provider arm is immutable.
 	//
-	// The slug changes only through rename. An update authorizes the id it names,
-	// so wherever the server authorizes requests, an update without an id is
-	// refused before its slug is read; where it reads one, a slug the channel app
-	// was renamed away from is refused with SLUG_RENAMED (see apply).
-	Update(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
+	// resource.metadata.id names the channel app; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the channel app does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the channel app changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the channel app kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateChannelAppInput, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Rename a channel app: change its slug, the name people type.
 	//
 	// The channel app keeps its id, so everything that names it keeps working,
@@ -122,7 +132,7 @@ func (c *channelAppCommandControllerClient) Create(ctx context.Context, in *Chan
 	return out, nil
 }
 
-func (c *channelAppCommandControllerClient) Update(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error) {
+func (c *channelAppCommandControllerClient) Update(ctx context.Context, in *UpdateChannelAppInput, opts ...grpc.CallOption) (*ChannelApp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChannelApp)
 	err := c.cc.Invoke(ctx, ChannelAppCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -188,16 +198,26 @@ type ChannelAppCommandControllerServer interface {
 	//   - SLUG_RESERVED — another channel app held the slug until a recent
 	//     rename, and it still leads there. Metadata: slug.
 	Create(context.Context, *ChannelApp) (*ChannelApp, error)
-	// Update an existing channel app.
+	// Update a channel app: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// Sending the redaction marker for a secret field preserves the
-	// stored value; the provider arm is immutable.
+	// Sending the redaction marker for a secret field preserves the stored
+	// value; the provider arm is immutable.
 	//
-	// The slug changes only through rename. An update authorizes the id it names,
-	// so wherever the server authorizes requests, an update without an id is
-	// refused before its slug is read; where it reads one, a slug the channel app
-	// was renamed away from is refused with SLUG_RENAMED (see apply).
-	Update(context.Context, *ChannelApp) (*ChannelApp, error)
+	// resource.metadata.id names the channel app; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the channel app does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the channel app changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the channel app kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateChannelAppInput) (*ChannelApp, error)
 	// Rename a channel app: change its slug, the name people type.
 	//
 	// The channel app keeps its id, so everything that names it keeps working,
@@ -232,7 +252,7 @@ func (UnimplementedChannelAppCommandControllerServer) Apply(context.Context, *Ch
 func (UnimplementedChannelAppCommandControllerServer) Create(context.Context, *ChannelApp) (*ChannelApp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedChannelAppCommandControllerServer) Update(context.Context, *ChannelApp) (*ChannelApp, error) {
+func (UnimplementedChannelAppCommandControllerServer) Update(context.Context, *UpdateChannelAppInput) (*ChannelApp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedChannelAppCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*ChannelApp, error) {
@@ -298,7 +318,7 @@ func _ChannelAppCommandController_Create_Handler(srv interface{}, ctx context.Co
 }
 
 func _ChannelAppCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChannelApp)
+	in := new(UpdateChannelAppInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -310,7 +330,7 @@ func _ChannelAppCommandController_Update_Handler(srv interface{}, ctx context.Co
 		FullMethod: ChannelAppCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChannelAppCommandControllerServer).Update(ctx, req.(*ChannelApp))
+		return srv.(ChannelAppCommandControllerServer).Update(ctx, req.(*UpdateChannelAppInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

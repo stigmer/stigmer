@@ -102,7 +102,7 @@ AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hf
 | [`listTemplates`](#listtemplates) | List the message templates available on an agent channel. |
 | [`apply`](#apply) | Create or update an agent channel. |
 | [`create`](#create) | Create an agent channel. |
-| [`update`](#update) | Update an existing agent channel. |
+| [`update`](#update) | Update an agent channel: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete an agent channel. |
 | [`clearAttention`](#clearattention) | Clear a conversation's needs-attention flag without taking it over. |
 | [`completeInstall`](#completeinstall) | Complete the provider install flow for an agent channel. |
@@ -751,86 +751,54 @@ AgentChannel agentChannel = client.agentChannels().create(AgentChannelInput.buil
 
 ### update
 
-Update an existing agent channel.
+Update an agent channel: the fields update_mask names change, every other field keeps its stored value.
 
-Replaces the spec wholesale. The slug, referenced agent, and provider arm are immutable; status (install facts, credential reference) is never touched by updates.
+The referenced agent and the provider arm are immutable; status (install facts, credential reference) is never touched by updates.
+
+resource.metadata.id names the agent channel; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the agent channel does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the agent channel changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the agent channel kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentChannel.update({
-  name: "my-agent-channel",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  agentRef: {},
-  enabled: false,
-  slack: {},
-  whatsapp: {},
-  vaults: [],
-  appRef: {},
-  proactiveMessagingEnabled: false,
-  runConfig: {},
-});
+const agentChannel = await stigmer.agentChannel.get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3");
+agentChannel.metadata!.name = "New name";
+const updated = await stigmer.agentChannel.update(agentChannel, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-agentChannel, err := client.AgentChannel.Update(ctx, &stigmer.AgentChannelInput{
-  Name:                      "my-agent-channel",
-  Org:                       "acme",
-  Slug:                      "...",
-  Labels:                    map[string]string{},
-  AgentRef:                  &stigmer.ResourceRef{},
-  Enabled:                   false,
-  Slack:                     &stigmer.SlackChannelConfigInput{},
-  Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
-  Vaults:                    []stigmer.ResourceRef{},
-  AppRef:                    &stigmer.ResourceRef{},
-  ProactiveMessagingEnabled: false,
-  RunConfig:                 &stigmer.RunConfigInput{},
-})
+agentChannel, err := client.AgentChannel.Get(ctx, "ach_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agentChannel.Metadata.Name = "New name"
+updated, err := client.AgentChannel.Update(ctx, agentChannel, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agent_channels.update(AgentChannelInput(
-    name="my-agent-channel",
-    org="acme",
-    slug="...",
-    labels={},
-    agent_ref=None,
-    enabled=False,
-    slack=None,
-    whatsapp=None,
-    vaults=[],
-    app_ref=None,
-    proactive_messaging_enabled=False,
-    run_config=None,
-))
+agent_channel = client.agent_channels.get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent_channel.metadata.name = "New name"
+updated = client.agent_channels.update(agent_channel, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.builder()
-    .name("my-agent-channel")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .agentRef(null)
-    .enabled(false)
-    .slack(null)
-    .whatsapp(null)
-    .vaults(List.of())
-    .appRef(null)
-    .proactiveMessagingEnabled(false)
-    .runConfig(null)
-    .build());
+AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3");
+AgentChannel updated = client.agentChannels().update(
+    agentChannel.toBuilder().setMetadata(agentChannel.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`AgentChannelInput`](#agentchannelinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`AgentChannel`](#agentchannel) | The agent channel, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`AgentChannel`](#agentchannel)
 
@@ -1312,6 +1280,17 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
+### UpdateAgentChannelInput
+
+The changes an update makes to an agent channel: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "AgentChannelInput", description: "The agent channel carrying the new values, named by metadata.id.", typeDescriptionLink: "#agentchannelinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

@@ -18,11 +18,11 @@
         },
         {
           "name": "Update",
-          "inputType": "Evaluator",
-          "inputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
+          "inputType": "UpdateEvaluatorInput",
+          "inputFullType": "ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput",
           "outputType": "Evaluator",
           "outputFullType": "ai.stigmer.agentic.evaluator.v1.Evaluator",
-          "description": "Update an evaluator's settings: whether it is enabled, its sample rate,\n its monthly limit and its model.\n\n The agent it grades stays as created, and this month's spend and\n counts are kept."
+          "description": "Update an evaluator: the fields update_mask names change, every other\n field keeps its stored value.\n\n Its settings are whether it is enabled, its sample rate, its monthly\n limit and its model. The agent it grades stays as created, and this\n month's spend and counts are kept.\n\n resource.metadata.id names the evaluator; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the evaluator does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the evaluator changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the evaluator kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "Delete",
@@ -59,6 +59,39 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateEvaluatorInput",
+      "description": "The changes an update makes to an evaluator: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.agentic.evaluator.v1.UpdateEvaluatorInput",
+      "protoFile": "apis/ai/stigmer/agentic/evaluator/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "Evaluator"
+          },
+          "description": "The evaluator carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "GetEvaluatorByAgentRequest",
       "description": "GetEvaluatorByAgentRequest names the agent whose evaluator to get.",

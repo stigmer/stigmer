@@ -10,7 +10,9 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import type { AgentChannelInput } from "@stigmer/sdk";
+import type { RunConfigInput } from "@stigmer/sdk";
+import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ModelInfo } from "../../models/registry";
@@ -99,9 +101,31 @@ function makeChannel(runConfig?: {
 }
 
 function createMockStigmer() {
-  const apply = vi.fn().mockResolvedValue({});
-  const client = { agentChannel: { apply } } as never;
-  return { client, apply };
+  const update = vi.fn().mockResolvedValue({});
+  const client = { agentChannel: { update } } as never;
+  return { client, update };
+}
+
+/**
+ * The run override the dialog's update sent, read back in the SDK input's
+ * terms (an unset field is `undefined`), with the one path it names.
+ */
+function sentInput(update: { mock: { calls: unknown[][] } }): { runConfig?: Partial<RunConfigInput>; paths: string[] } {
+  const sent = sentUpdate<AgentChannel>(update);
+  const stored = sent.resource.spec?.runConfig;
+  return {
+    paths: sent.paths,
+    runConfig: stored
+      ? {
+          modelName: stored.modelName || undefined,
+          maxCostUsd: stored.maxCostUsd || undefined,
+          maxToolRounds: stored.maxToolRounds || undefined,
+          serviceTier: stored.serviceTier || undefined,
+          thinkingMode: stored.thinkingMode || undefined,
+          maxToolResultChars: stored.maxToolResultChars || undefined,
+        }
+      : undefined,
+  };
 }
 
 function Providers({
@@ -123,7 +147,7 @@ function Providers({
 }
 
 function renderDialog(channel: unknown) {
-  const { client, apply } = createMockStigmer();
+  const { client, update } = createMockStigmer();
   const onSaved = vi.fn();
   render(
     <Providers client={client}>
@@ -135,7 +159,7 @@ function renderDialog(channel: unknown) {
       />
     </Providers>,
   );
-  return { apply, onSaved };
+  return { update, onSaved };
 }
 
 async function save() {
@@ -144,35 +168,35 @@ async function save() {
 
 describe("ChannelRunConfigDialog", () => {
   it("preserves max_tool_rounds verbatim even though it never renders", async () => {
-    const { apply } = renderDialog(
+    const { update } = renderDialog(
       makeChannel({ modelName: "claude-haiku-4-5", maxToolRounds: 25 }),
     );
 
     expect(screen.queryByText(/tool round/i)).toBeNull();
     await save();
 
-    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
-    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    const input = sentInput(update);
     expect(input.runConfig?.maxToolRounds).toBe(25);
     expect(input.runConfig?.modelName).toBe("claude-haiku-4-5");
   });
 
   it("preserves max_tool_result_chars verbatim even though it never renders", async () => {
-    const { apply } = renderDialog(
+    const { update } = renderDialog(
       makeChannel({ modelName: "claude-haiku-4-5", maxToolResultChars: 16000 }),
     );
 
     expect(screen.queryByText(/tool result/i)).toBeNull();
     await save();
 
-    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
-    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    const input = sentInput(update);
     expect(input.runConfig?.maxToolResultChars).toBe(16000);
     expect(input.runConfig?.maxToolRounds).toBeUndefined();
   });
 
   it("clears run_config entirely when the draft is emptied (empty = inherit)", async () => {
-    const { apply } = renderDialog(
+    const { update } = renderDialog(
       makeChannel({ modelName: "claude-haiku-4-5", maxCostUsd: 2 }),
     );
 
@@ -184,21 +208,21 @@ describe("ChannelRunConfigDialog", () => {
     });
     await save();
 
-    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
-    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    const input = sentInput(update);
     expect(input.runConfig).toBeUndefined();
   });
 
   it("carries an actively enabled thinking mode, and only then", async () => {
-    const { apply } = renderDialog(makeChannel({ modelName: "claude-haiku-4-5" }));
+    const { update } = renderDialog(makeChannel({ modelName: "claude-haiku-4-5" }));
 
     fireEvent.click(screen.getByRole("button", { name: /Haiku 4\.5/ }));
     fireEvent.click(await screen.findByRole("switch", { name: "Thinking" }));
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     await save();
 
-    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
-    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    const input = sentInput(update);
     expect(input.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
     // The untouched tier stays absent — never stamped as an explicit
     // STANDARD by a save (#357 usage-record distinction).
@@ -219,7 +243,7 @@ describe("ChannelRunConfigDialog", () => {
   });
 
   it("a budget-only edit keeps a stored explicit standard tier and disabled thinking", async () => {
-    const { apply } = renderDialog(
+    const { update } = renderDialog(
       makeChannel({
         modelName: "claude-haiku-4-5",
         serviceTier: ServiceTier.STANDARD,
@@ -232,15 +256,15 @@ describe("ChannelRunConfigDialog", () => {
     });
     await save();
 
-    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
-    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    const input = sentInput(update);
     expect(input.runConfig?.maxCostUsd).toBe(3);
     expect(input.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
     expect(input.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
 
   it("a stored explicit tier and thinking without a model survive a budget edit", async () => {
-    const { apply } = renderDialog(
+    const { update } = renderDialog(
       makeChannel({
         serviceTier: ServiceTier.STANDARD,
         thinkingMode: ThinkingMode.DISABLED,
@@ -252,15 +276,15 @@ describe("ChannelRunConfigDialog", () => {
     });
     await save();
 
-    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
-    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    const input = sentInput(update);
     expect(input.runConfig?.modelName).toBeUndefined();
     expect(input.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
     expect(input.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
   });
 
   it("resetting to the platform default drops the stored tier and thinking with the model", async () => {
-    const { apply } = renderDialog(
+    const { update } = renderDialog(
       makeChannel({
         modelName: "claude-haiku-4-5",
         maxCostUsd: 2,
@@ -271,23 +295,23 @@ describe("ChannelRunConfigDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reset to platform default" }));
     await save();
 
-    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
-    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    const input = sentInput(update);
     expect(input.runConfig?.maxCostUsd).toBe(2);
     expect(input.runConfig?.modelName).toBeUndefined();
     expect(input.runConfig?.thinkingMode).toBeUndefined();
   });
 
   it("collects a budget without requiring a model pin", async () => {
-    const { apply } = renderDialog(makeChannel());
+    const { update } = renderDialog(makeChannel());
 
     fireEvent.change(screen.getByLabelText(/Budget per run/), {
       target: { value: "1.5" },
     });
     await save();
 
-    await waitFor(() => expect(apply).toHaveBeenCalledOnce());
-    const input = apply.mock.calls[0][0] as AgentChannelInput;
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    const input = sentInput(update);
     expect(input.runConfig?.maxCostUsd).toBe(1.5);
     expect(input.runConfig?.modelName).toBeUndefined();
   });

@@ -10,6 +10,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // SessionClient provides operations on session resources.
@@ -43,12 +44,11 @@ func (s *SessionClient) Create(ctx context.Context, input *SessionInput) (*sessi
 	return resp, wrapErr(err)
 }
 
-func (s *SessionClient) Update(ctx context.Context, input *SessionInput) (*sessionv1.Session, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := s.command.Update(ctx, req)
+func (s *SessionClient) Update(ctx context.Context, resource *sessionv1.Session, paths []string) (*sessionv1.Session, error) {
+	resp, err := s.command.Update(ctx, &sessionv1.UpdateSessionInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -84,6 +84,11 @@ func (s *SessionClient) Delete(ctx context.Context, id string) (*sessionv1.Sessi
 
 func (s *SessionClient) AppendEvents(ctx context.Context, input *sessionv1.AppendSessionEventsInput) (*sessionv1.AppendSessionEventsResponse, error) {
 	resp, err := s.command.AppendEvents(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (s *SessionClient) BindHarnessState(ctx context.Context, input *sessionv1.BindHarnessStateInput) (*sessionv1.BindHarnessStateResponse, error) {
+	resp, err := s.command.BindHarnessState(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -136,32 +141,30 @@ func (s *SessionClient) StreamEvents(ctx context.Context, input *sessionv1.Strea
 	return &SessionStreamEventsStream{stream: stream}, nil
 }
 
-// SessionInput holds the fields for creating/updating a Session.
+// SessionInput holds the fields for creating or applying a Session.
 type SessionInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
-	Id                    string
-	Name                  string
-	Slug                  string
-	Org                   string
-	Labels                map[string]string
-	Visibility            apiresource.ApiResourceVisibility
-	AgentRef              ResourceRef
-	Subject               string
-	HarnessStateId        string
-	HarnessStateIdHistory []string
-	Metadata              map[string]string
-	WorkspaceEntries      []*WorkspaceEntryInput
-	SkillRefs             []ResourceRef
-	Harness               sessionv1.Harness
-	CursorMode            sessionv1.CursorMode
-	ExecutionTarget       sessionv1.ExecutionTarget
-	Vaults                []ResourceRef
-	IncludeMyVault        bool
-	Plugins               []ResourceRef
-	FileReview            bool
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
+	Id               string
+	Name             string
+	Slug             string
+	Org              string
+	Labels           map[string]string
+	Visibility       apiresource.ApiResourceVisibility
+	AgentRef         ResourceRef
+	Subject          string
+	Metadata         map[string]string
+	WorkspaceEntries []*WorkspaceEntryInput
+	SkillRefs        []ResourceRef
+	Harness          sessionv1.Harness
+	CursorMode       sessionv1.CursorMode
+	ExecutionTarget  sessionv1.ExecutionTarget
+	Vaults           []ResourceRef
+	IncludeMyVault   bool
+	Plugins          []ResourceRef
+	FileReview       bool
 }
 
 func (i *SessionInput) toProto() (*sessionv1.Session, error) {
@@ -184,8 +187,6 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		resource.Spec.AgentRef = ref
 	}
 	resource.Spec.Subject = i.Subject
-	resource.Spec.HarnessStateId = i.HarnessStateId
-	resource.Spec.HarnessStateIdHistory = i.HarnessStateIdHistory
 	resource.Spec.Metadata = i.Metadata
 	for idx, item := range i.WorkspaceEntries {
 		v, err := item.toProto()
@@ -234,8 +235,6 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 	if s := p.GetSpec(); s != nil {
 		input.AgentRef = resourceRefFromProto(s.GetAgentRef())
 		input.Subject = s.GetSubject()
-		input.HarnessStateId = s.GetHarnessStateId()
-		input.HarnessStateIdHistory = s.GetHarnessStateIdHistory()
 		input.Metadata = s.GetMetadata()
 		for _, item := range s.GetWorkspaceEntries() {
 			input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))

@@ -31,10 +31,12 @@ import ai.stigmer.agentic.run.v1.RunUpdateStatusInput;
 import ai.stigmer.agentic.run.v1.SubmitApprovalInput;
 import ai.stigmer.agentic.run.v1.SubmitFileDecisionInput;
 import ai.stigmer.agentic.run.v1.TerminateRunInput;
+import ai.stigmer.agentic.run.v1.UpdateRunInput;
 import ai.stigmer.agentic.run.v1.UpdateStatusResponse;
 import ai.stigmer.agentic.run.v1.UploadAttachmentRequest;
 import ai.stigmer.agentic.run.v1.UploadAttachmentResponse;
 import ai.stigmer.commons.apiresource.ApiResourceId;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -54,9 +56,12 @@ public final class RunClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Run update(RunInput input) {
+    public Run update(Run resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateRunInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

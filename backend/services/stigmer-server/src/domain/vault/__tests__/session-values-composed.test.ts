@@ -1,21 +1,18 @@
 /**
- * Pins the stale-write rule for a conversation's repository tokens and its
- * vault choice through the real session update chain: a composed server in
- * the trusted-local posture (no authentication, so the runner's writes
- * carry no caller class of their own), its write codec ("v9", an extension
- * codec) recording every destroy:
+ * Pins what an update built on an earlier read does to a conversation's
+ * repository tokens and its vault choice, through the real session update
+ * chain: a composed server in the trusted-local posture, its write codec
+ * ("v9", an extension codec) recording every destroy:
  *
- *   - a write that sends back an older read than the stored row (the
- *     runner's harness-state write after a turn) keeps a repository token
- *     added since and destroys nothing;
- *   - a write built on the current read that omits a token drops it and
- *     destroys its backing state;
- *   - a stale write echoing the marker for a token removed since succeeds
- *     and leaves it removed, while a current write echoing it, or one that
- *     echoes no audit stamp at all, is refused;
- *   - a stale write neither detaches a vault attached since, nor
- *     re-attaches one removed since, nor switches back include_my_vault
- *     turned on since.
+ *   - an update that names another path (spec.subject) keeps a repository
+ *     token added since its read and destroys nothing; one that names the
+ *     workspace entries without the token drops it and destroys its
+ *     backing state;
+ *   - an update that names the workspace entries echoing the marker for a
+ *     token removed since is refused; one that names another path lands;
+ *   - an update that names another path neither detaches a vault attached
+ *     since, nor re-attaches one removed since, nor switches back
+ *     include_my_vault turned on since.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -132,16 +129,27 @@ async function row(id: string): Promise<Session> {
   return server.store.getResource(ApiResourceKind.session, id, SessionSchema);
 }
 
-/** Lets the clock pass the stored stamp's millisecond, so the next write's stamp is newer. */
-async function tick(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 5));
+/**
+ * An update built on `readEarlier` that names only the subject, as a
+ * rename of the conversation does. It sends no etag: a sent one would be
+ * refused once anything moved since the read, which is the etag's own arm.
+ */
+function subjectWrite(readEarlier: Session, subject: string): { resource: Session; updateMask: { paths: string[] } } {
+  const write = clone(SessionSchema, readEarlier);
+  write.metadata!.etag = "";
+  write.spec!.subject = subject;
+  return { resource: write, updateMask: { paths: ["spec.subject"] } };
 }
 
-/** The runner's write: the session it read, with a new harness state. */
-function harnessWrite(readEarlier: Session, harnessStateId: string): Session {
-  const write = clone(SessionSchema, readEarlier);
-  write.spec!.harnessStateId = harnessStateId;
-  return write;
+/** An update that names the workspace entries, sending no etag. */
+function entriesWrite(
+  read: Session,
+  entries: ReturnType<typeof repository>[],
+): { resource: Session; updateMask: { paths: string[] } } {
+  const write = clone(SessionSchema, read);
+  write.metadata!.etag = "";
+  write.spec!.workspaceEntries = entries;
+  return { resource: write, updateMask: { paths: ["spec.workspace_entries"] } };
 }
 
 async function failureOf(promise: Promise<unknown>): Promise<ConnectError> {
@@ -156,66 +164,50 @@ async function failureOf(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected a refusal");
 }
 
-describe("a stale write of a conversation's repository tokens", () => {
-  it("keeps a token added since its read and destroys nothing; a current write that omits it drops and destroys it", async () => {
+describe("an update built on an earlier read: a conversation's repository tokens", () => {
+  it("keeps a token added since its read and destroys nothing; one that names the entries without it drops and destroys it", async () => {
     const id = await createSession({ workspaceEntries: [repository("")] });
-    const readAtTurnStart = await read(id);
+    const readEarlier = await read(id);
 
-    await tick();
-    const adding = clone(SessionSchema, readAtTurnStart);
-    adding.spec!.workspaceEntries = [repository("repo-token")];
-    await command.update(adding);
+    await command.update(entriesWrite(readEarlier, [repository("repo-token")]));
     const added = await row(id);
     expect(repositoryToken(added)).toMatch(/^enc:v9:/);
 
-    await tick();
     const destroyedBefore = codec.deleted.length;
-    await command.update(harnessWrite(readAtTurnStart, "harness-1"));
-    const afterStale = await row(id);
-    expect(afterStale.spec!.harnessStateId).toBe("harness-1");
-    expect(repositoryToken(afterStale)).toBe(repositoryToken(added));
+    await command.update(subjectWrite(readEarlier, "Renamed"));
+    const afterRename = await row(id);
+    expect(afterRename.spec!.subject).toBe("Renamed");
+    expect(repositoryToken(afterRename)).toBe(repositoryToken(added));
     expect(codec.deleted.slice(destroyedBefore)).toEqual([]);
 
-    const current = clone(SessionSchema, await read(id));
-    current.spec!.workspaceEntries = [repository("")];
-    await command.update(current);
-    const afterCurrent = await row(id);
-    expect(repositoryToken(afterCurrent)).toBe("");
+    await command.update(entriesWrite(await read(id), [repository("")]));
+    const afterDrop = await row(id);
+    expect(repositoryToken(afterDrop)).toBe("");
     expect(codec.deleted.slice(destroyedBefore)).toEqual([repositoryToken(added)]);
   });
 
-  it("drops a marker whose token was removed since its read; a current write, or one with no stamp, echoing it is refused", async () => {
+  it("refuses an update naming the entries that echoes the marker of a token removed since; one naming another path lands", async () => {
     const id = await createSession({ workspaceEntries: [repository("repo-token")] });
-    const readAtTurnStart = await read(id);
-    expect(repositoryToken(readAtTurnStart)).toBe(REDACTED_MARKER);
+    const readEarlier = await read(id);
+    expect(repositoryToken(readEarlier)).toBe(REDACTED_MARKER);
 
-    await tick();
-    const removing = clone(SessionSchema, readAtTurnStart);
-    removing.spec!.workspaceEntries = [repository("")];
-    await command.update(removing);
+    await command.update(entriesWrite(readEarlier, [repository("")]));
 
-    await tick();
-    await command.update(harnessWrite(readAtTurnStart, "harness-1"));
+    await command.update(subjectWrite(readEarlier, "Renamed"));
     const stored = await row(id);
-    expect(stored.spec!.harnessStateId).toBe("harness-1");
+    expect(stored.spec!.subject).toBe("Renamed");
     expect(repositoryToken(stored)).toBe("");
 
-    const current = clone(SessionSchema, await read(id));
-    current.spec!.workspaceEntries = [repository(REDACTED_MARKER)];
-    const refused = await failureOf(command.update(current));
+    const refused = await failureOf(command.update(entriesWrite(readEarlier, [repository(REDACTED_MARKER)])));
     expect(refused.code).toBe(Code.InvalidArgument);
-    const unstamped = clone(SessionSchema, readAtTurnStart);
-    unstamped.status = undefined;
-    const refusedUnstamped = await failureOf(command.update(unstamped));
-    expect(refusedUnstamped.code).toBe(Code.InvalidArgument);
   });
 });
 
-describe("a stale write of a conversation's vault choice", () => {
+describe("an update built on an earlier read: a conversation's vault choice", () => {
   it("neither detaches a vault attached since its read, nor re-attaches one removed since, nor switches My vault back", async () => {
     const slugs: string[] = [];
     const ids: string[] = [];
-    for (const name of ["Stale first", "Stale second"]) {
+    for (const name of ["Earlier first", "Earlier second"]) {
       const vault = await vaultCommand.create({
         apiVersion: API_VERSION,
         kind: "Vault",
@@ -232,22 +224,20 @@ describe("a stale write of a conversation's vault choice", () => {
       slug,
     });
     const id = await createSession({ vaults: [ref(first)], includeMyVault: false });
-    const readAtTurnStart = await read(id);
+    const readEarlier = await read(id);
 
-    await tick();
-    const switching = clone(SessionSchema, readAtTurnStart);
+    const switching = clone(SessionSchema, readEarlier);
     switching.spec!.vaults = [create(ApiResourceReferenceSchema, ref(second))];
     switching.spec!.includeMyVault = true;
-    await command.update(switching);
+    await command.update({ resource: switching, updateMask: { paths: ["spec.vaults", "spec.include_my_vault"] } });
     const switched = await row(id);
     // The stored row holds the vault by id.
     expect(switched.spec!.vaults.map((vault) => vault.id)).toEqual([secondId]);
     expect(switched.spec!.includeMyVault).toBe(true);
 
-    await tick();
-    await command.update(harnessWrite(readAtTurnStart, "harness-1"));
+    await command.update(subjectWrite(readEarlier, "Renamed"));
     const stored = await row(id);
-    expect(stored.spec!.harnessStateId).toBe("harness-1");
+    expect(stored.spec!.subject).toBe("Renamed");
     expect(stored.spec!.vaults.map((vault) => vault.id)).toEqual([secondId]);
     expect(stored.spec!.includeMyVault).toBe(true);
     expect(stored.status!.vaultAttachers).toEqual(

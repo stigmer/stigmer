@@ -77,27 +77,27 @@ public final class ApiKeyCommandControllerGrpc {
     return getCreateForServiceAccountMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.ApiKey,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.UpdateApiKeyInput,
       ai.stigmer.iam.apikey.v1.ApiKey> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.iam.apikey.v1.ApiKey.class,
+      requestType = ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.class,
       responseType = ai.stigmer.iam.apikey.v1.ApiKey.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.ApiKey,
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.UpdateApiKeyInput,
       ai.stigmer.iam.apikey.v1.ApiKey> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.ApiKey, ai.stigmer.iam.apikey.v1.ApiKey> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.UpdateApiKeyInput, ai.stigmer.iam.apikey.v1.ApiKey> getUpdateMethod;
     if ((getUpdateMethod = ApiKeyCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (ApiKeyCommandControllerGrpc.class) {
         if ((getUpdateMethod = ApiKeyCommandControllerGrpc.getUpdateMethod) == null) {
           ApiKeyCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.apikey.v1.ApiKey, ai.stigmer.iam.apikey.v1.ApiKey>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.apikey.v1.UpdateApiKeyInput, ai.stigmer.iam.apikey.v1.ApiKey>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.apikey.v1.ApiKey.getDefaultInstance()))
+                  ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.apikey.v1.ApiKey.getDefaultInstance()))
               .setSchemaDescriptor(new ApiKeyCommandControllerMethodDescriptorSupplier("update"))
@@ -236,10 +236,22 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing API key.
+     * Update an API key: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the API key; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the API key does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the API key kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.iam.apikey.v1.ApiKey request,
+    default void update(ai.stigmer.iam.apikey.v1.UpdateApiKeyInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKey> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -321,10 +333,22 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing API key.
+     * Update an API key: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the API key; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the API key does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the API key kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.iam.apikey.v1.ApiKey request,
+    public void update(ai.stigmer.iam.apikey.v1.UpdateApiKeyInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKey> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -392,10 +416,22 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing API key.
+     * Update an API key: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the API key; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the API key does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the API key kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.iam.apikey.v1.ApiKey update(ai.stigmer.iam.apikey.v1.ApiKey request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.apikey.v1.ApiKey update(ai.stigmer.iam.apikey.v1.UpdateApiKeyInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -461,10 +497,22 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing API key.
+     * Update an API key: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the API key; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the API key does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the API key kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.iam.apikey.v1.ApiKey update(ai.stigmer.iam.apikey.v1.ApiKey request) {
+    public ai.stigmer.iam.apikey.v1.ApiKey update(ai.stigmer.iam.apikey.v1.UpdateApiKeyInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -532,11 +580,23 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing API key.
+     * Update an API key: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the API key; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the API key does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the API key kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> update(
-        ai.stigmer.iam.apikey.v1.ApiKey request) {
+        ai.stigmer.iam.apikey.v1.UpdateApiKeyInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -584,7 +644,7 @@ public final class ApiKeyCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKey>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.iam.apikey.v1.ApiKey) request,
+          serviceImpl.update((ai.stigmer.iam.apikey.v1.UpdateApiKeyInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKey>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -627,7 +687,7 @@ public final class ApiKeyCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.apikey.v1.ApiKey,
+              ai.stigmer.iam.apikey.v1.UpdateApiKeyInput,
               ai.stigmer.iam.apikey.v1.ApiKey>(
                 service, METHODID_UPDATE)))
         .addMethod(

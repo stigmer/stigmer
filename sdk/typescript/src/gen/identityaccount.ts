@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toResourceRefInput } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -13,7 +13,7 @@ import { type ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/a
 import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
-import { IdentityAccountIdSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, CreateServiceAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, ListWithIdentityOrgSchema, IdentityAccountsListSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type CreateServiceAccountInput, type IdentityAccountEmail, type ExternalSubLookup, type ListWithIdentityOrg, type IdentityAccountsList } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
+import { IdentityAccountIdSchema, UpdateIdentityAccountInputSchema, CreateFederatedAccountInputSchema, UpdateFederatedAccountInputSchema, DeprovisionFederatedAccountInputSchema, CreateServiceAccountInputSchema, IdentityAccountEmailSchema, IdpIdSchema, ExternalSubLookupSchema, ListWithIdentityOrgSchema, IdentityAccountsListSchema, type CreateFederatedAccountInput, type UpdateFederatedAccountInput, type DeprovisionFederatedAccountInput, type CreateServiceAccountInput, type IdentityAccountEmail, type ExternalSubLookup, type ListWithIdentityOrg, type IdentityAccountsList } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
 import { IdentityAccountSpecSchema, IdentityAccountPreferencesSchema, type IdentityAccountPreferences } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 
@@ -33,9 +33,9 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: IdentityAccountInput): Promise<IdentityAccount> {
+  async update(resource: IdentityAccount | MessageInitShape<typeof IdentityAccountSchema>, paths: string[]): Promise<IdentityAccount> {
     try {
-      return await this.command.update(buildIdentityAccountProto(input));
+      return await this.command.update(create(UpdateIdentityAccountInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -118,13 +118,13 @@ export class IdentityAccountClient {
   }
 }
 
-/** Input for creating/updating an IdentityAccount. */
+/** Input for creating or applying an IdentityAccount. */
 export interface IdentityAccountInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -204,24 +204,22 @@ function toIdentityAccountPreferencesInput(msg: IdentityAccountPreferences): Ide
 }
 
 /**
- * Maps a fetched {@link IdentityAccount} to a complete {@link IdentityAccountInput} for `update()`.
+ * Maps a fetched {@link IdentityAccount} to the complete {@link IdentityAccountInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toIdentityAccountInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toIdentityAccountUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toIdentityAccountUpdateInput(resource: IdentityAccount): IdentityAccountInput {
+export function toIdentityAccountInput(resource: IdentityAccount): IdentityAccountInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(IdentityAccountSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

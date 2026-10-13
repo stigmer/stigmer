@@ -18,6 +18,7 @@ import {
   isEmptyType,
   isIDType,
   isSpecialType,
+  isUpdateInputType,
   pascalToSnake,
   searchListSupersedesMethod,
   tsClientFieldName,
@@ -456,6 +457,7 @@ function docWriteMethodWithCommons(
   const emptyOutput = isEmptyType(m.outputFullType);
   const idInput = isIDType(m.inputType);
   const resourceInput = m.inputType === cfg.protoResType;
+  const updateInput = isUpdateInputType(m.inputType, cfg.protoResType);
   const deleteInput = m.inputType === "ApiResourceDeleteInput";
 
   buf.push(`### ${tsName}\n\n`);
@@ -473,11 +475,21 @@ function docWriteMethodWithCommons(
   }
 
   buf.push("<SDKTabs>\n");
-  docWriteMethodSigs(buf, m, cfg, names, tsName, pyName, resultVar, inputTypeName, emptyInput, emptyOutput, idInput, resourceInput, deleteInput, hasInputType, specSchema, methodTypeMap);
+  if (updateInput) {
+    docWriteUpdateSigs(buf, cfg, names, tsName, pyName);
+  } else {
+    docWriteMethodSigs(buf, m, cfg, names, tsName, pyName, resultVar, inputTypeName, emptyInput, emptyOutput, idInput, resourceInput, deleteInput, hasInputType, specSchema, methodTypeMap);
+  }
   buf.push("</SDKTabs>\n\n");
 
   if (emptyInput) {
     // no parameters section
+  } else if (updateInput) {
+    buf.push("**Parameters**\n\n");
+    buf.push("| Parameter | Type | Description |\n");
+    buf.push("|-----------|------|-------------|\n");
+    buf.push(`| \`resource\` | ${docTypeRefWithCommons(cfg.protoResType, documentedTypes, commonsTypes)} | The ${docDisplayName(cfg.protoResType).toLowerCase()}, named by \`metadata.id\`, with the new values at the paths it changes. Carry the \`metadata.etag\` it was read at to be refused if it changed since. |\n`);
+    buf.push("| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |\n\n");
   } else if (idInput) {
     buf.push("**Parameters**\n\n");
     buf.push("| Parameter | Type | Description |\n");
@@ -503,6 +515,47 @@ function docWriteMethodWithCommons(
   } else {
     buf.push(`**Returns**: ${docTypeRefWithCommons(m.outputType, documentedTypes, commonsTypes)}\n\n`);
   }
+}
+
+/**
+ * An update's examples: read the resource, change a field, and update it
+ * naming that field. The read's etag rides along, so the update is refused
+ * if the resource changed since.
+ */
+function docWriteUpdateSigs(
+  buf: string[],
+  cfg: SdkResourceConfig,
+  names: DocLangNames,
+  tsName: string,
+  pyName: string,
+): void {
+  const varName = docVarName(cfg.protoResType);
+  const pyVarName = docPyVarName(cfg.protoResType);
+  const exampleID = docExampleID(cfg.idPrefix);
+  docWriteTab(
+    buf,
+    "TypeScript",
+    "typescript",
+    `const ${varName} = await stigmer.${names.ts}.get("${exampleID}");\n${varName}.metadata!.name = "New name";\nconst updated = await stigmer.${names.ts}.${tsName}(${varName}, ["metadata.name"]);`,
+  );
+  docWriteTab(
+    buf,
+    "Go",
+    "go",
+    `${varName}, err := client.${names.go}.Get(ctx, "${exampleID}")\n${varName}.Metadata.Name = "New name"\nupdated, err := client.${names.go}.Update(ctx, ${varName}, []string{"metadata.name"})`,
+  );
+  docWriteTab(
+    buf,
+    "Python",
+    "python",
+    `${pyVarName} = client.${names.py}.get("${exampleID}")\n${pyVarName}.metadata.name = "New name"\nupdated = client.${names.py}.${pyName}(${pyVarName}, ["metadata.name"])`,
+  );
+  docWriteTab(
+    buf,
+    "Java",
+    "java",
+    `${cfg.protoResType} ${varName} = client.${names.java}().get("${exampleID}");\n${cfg.protoResType} updated = client.${names.java}().${tsName}(\n    ${varName}.toBuilder().setMetadata(${varName}.getMetadata().toBuilder().setName("New name")).build(),\n    java.util.List.of("metadata.name"));`,
+  );
 }
 
 function docWriteMethodSigs(

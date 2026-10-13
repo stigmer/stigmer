@@ -188,6 +188,13 @@ function newEncryptChannelAppSecretsStep(
       return preserveExistingSecret(ctx, fieldName, readExisting);
     }
 
+    // An update that does not name the field merges onto the stored row,
+    // so the value is the stored ciphertext itself: kept as it is.
+    const existing = ctx.get(EXISTING_RESOURCE_KEY) as ChannelApp | undefined;
+    if (!isCreate && existing !== undefined && requestValue === readExisting(existing)) {
+      return requestValue;
+    }
+
     // Unconditional (not gated on isEnabled): the enc:v<N>: prefix is
     // server-reserved regardless of key state.
     if (isCiphertextShaped(requestValue)) {
@@ -328,8 +335,10 @@ export function newValidateProviderImmutableStep(): PipelineStep<ChannelAppDesc>
         );
       }
 
+      // The merged state: an update that does not name the provider
+      // config keeps the stored one.
       const existingCase = existing.spec?.providerConfig.case;
-      const inputCase = ctx.input.spec?.providerConfig.case;
+      const inputCase = ctx.newState.spec?.providerConfig.case;
       if (existingCase !== inputCase) {
         throw invalidArgumentError(PROVIDER_IMMUTABLE_MESSAGE);
       }

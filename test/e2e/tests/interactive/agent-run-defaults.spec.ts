@@ -1,6 +1,5 @@
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
-import { toAgentUpdateInput } from "@stigmer/sdk";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ListRunsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
@@ -80,11 +79,13 @@ test.describe("An agent's run defaults in the console", () => {
   }) => {
     // The author gives the agent its run defaults.
     const agent = await stigmerClient.agent.get(testAgent.id);
-    await stigmerClient.agent.update({
-      ...toAgentUpdateInput(agent),
-      harness: Harness.NATIVE,
-      runConfig: { modelName: AGENT_MODEL, thinkingMode: ThinkingMode.ENABLED },
-    });
+    await stigmerClient.agent.update(
+      {
+        metadata: { id: agent.metadata!.id, etag: agent.metadata!.etag },
+        spec: { harness: Harness.NATIVE, runConfig: { modelName: AGENT_MODEL, thinkingMode: ThinkingMode.ENABLED } },
+      },
+      ["spec.harness", "spec.run_config"],
+    );
 
     await enqueueCannedTextTurns([
       "Defaults in use.",

@@ -7,7 +7,7 @@ import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.iam.team.v1.Team;
 import ai.stigmer.iam.team.v1.TeamSpec;
 
-/** Input for creating/updating a Team. */
+/** Input for creating or applying a Team. */
 public final class TeamInput {
     private final String id;
     private final String name;
@@ -71,9 +71,9 @@ public final class TeamInput {
         private Builder() {}
 
         /**
-         * The resource's metadata.id, for exact update addressing when set
-         * from a loaded resource. Required for updates to platform-scoped
-         * (org-less) kinds, where the org+slug fallback cannot match.
+         * The resource's metadata.id: an apply that carries it changes that
+         * resource, whatever its slug. An update takes the resource itself
+         * and the paths it changes.
          */
         public Builder id(String id) { this.id = id; return this; }
         public Builder name(String name) { this.name = name; return this; }

@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { sentRefs, sentUpdate } from "../../internal/__tests__/sent-update";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Code } from "@connectrpc/connect";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
+import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { StigmerError, type AgentShareInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -29,6 +31,7 @@ afterEach(cleanup);
 
 interface MockOverrides {
   apply?: (input: AgentShareInput) => Promise<unknown>;
+  update?: (resource: AgentShare, paths: string[]) => Promise<unknown>;
   rotateShareLink?: (input: unknown) => Promise<unknown>;
   getOrCreateBillingAccount?: (orgId: string) => Promise<unknown>;
   vaults?: unknown[];
@@ -37,11 +40,27 @@ interface MockOverrides {
 
 const CLOUD_API_BASE_URL = "https://api.stigmer.ai";
 
+/** The share an edit's update sent: the id it named, its paths, and the dialog's fields. */
+function sentShare(update: { mock: { calls: unknown[][] } }) {
+  const sent = sentUpdate<AgentShare>(update);
+  const spec = sent.resource.spec;
+  return {
+    id: sent.id,
+    paths: sent.paths,
+    enabled: spec?.enabled,
+    audience: spec?.audience,
+    allowedOrigins: spec?.allowedOrigins,
+    messages: spec?.messages,
+    vaults: sentRefs(spec?.vaults),
+  };
+}
+
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
     baseUrl: overrides.baseUrl ?? CLOUD_API_BASE_URL,
     agentShare: {
       apply: overrides.apply ?? vi.fn().mockResolvedValue({}),
+      update: overrides.update ?? vi.fn().mockResolvedValue({}),
       rotateShareLink:
         overrides.rotateShareLink ?? vi.fn().mockResolvedValue({}),
     },
@@ -467,9 +486,9 @@ describe("ShareAgentDialog", () => {
       expect(screen.getByText("Member chat link")).toBeTruthy();
     });
 
-    it("switching to Organization members applies the full spec", async () => {
-      const apply = vi.fn().mockResolvedValue({});
-      renderOpenDialog(createMockStigmer({ apply }), {
+    it("switching to Organization members saves the dialog's fields on the share's id", async () => {
+      const update = vi.fn().mockResolvedValue({});
+      renderOpenDialog(createMockStigmer({ update }), {
         share: makeShare({
           enabled: true,
           allowedOrigins: ["https://example.com"],
@@ -487,23 +506,22 @@ describe("ShareAgentDialog", () => {
         screen.getByRole("radio", { name: "Organization members", hidden: true }),
       );
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const input = sentShare(update);
       expect(input.audience).toBe(AgentShareAudience.org);
-      // Whole-spec replace: the audience switch must not clobber the rest.
+      // The dialog's fields travel with the switch, from the edit state.
       expect(input.enabled).toBe(true);
       expect(input.allowedOrigins).toEqual(["https://example.com"]);
       expect(input.messages?.rateLimited).toBe("Easy there.");
-      // Edit keys on the existing share's identity — never a new row.
-      expect(input.org).toBe("acme");
-      expect(input.slug).toBe("support-agent");
+      // The edit addresses the existing share by its id — never a new row.
+      expect(input.id).toBe("ash_1");
     });
 
     it("switching to Organization members drops the share's vaults (public-audience only)", async () => {
-      const apply = vi.fn().mockResolvedValue({});
+      const update = vi.fn().mockResolvedValue({});
       renderOpenDialog(
         createMockStigmer({
-          apply,
+          update,
           vaults: [sharedVault("github-creds")],
         }),
         {
@@ -520,8 +538,8 @@ describe("ShareAgentDialog", () => {
 
       // The proto CEL rule rejects vaults on org-audience
       // shares — carrying them would fail the whole apply.
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const input = sentShare(update);
       expect(input.audience).toBe(AgentShareAudience.org);
       expect(input.vaults).toEqual([]);
     });
@@ -591,10 +609,10 @@ describe("ShareAgentDialog", () => {
     });
   });
 
-  it("enabling applies the complete spec and notifies the host", async () => {
-    const apply = vi.fn().mockResolvedValue({});
+  it("enabling saves the dialog's fields and notifies the host", async () => {
+    const update = vi.fn().mockResolvedValue({});
     const onSharingChanged = vi.fn();
-    renderOpenDialog(createMockStigmer({ apply }), {
+    renderOpenDialog(createMockStigmer({ update }), {
       onSharingChanged,
       share: makeShare({
         enabled: false,
@@ -605,11 +623,10 @@ describe("ShareAgentDialog", () => {
 
     fireEvent.click(screen.getByRole("switch", { hidden: true }));
 
-    await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-    const input = apply.mock.calls[0][0] as AgentShareInput;
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    const input = sentShare(update);
     expect(input.enabled).toBe(true);
-    // Apply replaces the spec wholesale — the toggle must carry the
-    // existing origins and messages or it would silently erase them.
+    // The dialog's fields travel with the toggle, from the edit state.
     expect(input.allowedOrigins).toEqual(["https://example.com"]);
     expect(input.messages?.rateLimited).toBe("Easy there.");
     await waitFor(() => expect(onSharingChanged).toHaveBeenCalled());
@@ -617,13 +634,13 @@ describe("ShareAgentDialog", () => {
 
   it("adopts the server's returned share state after a commit", async () => {
     // Server echoes the apply but with a normalized origin list.
-    const apply = vi.fn().mockResolvedValue(
+    const update = vi.fn().mockResolvedValue(
       makeShare({
         enabled: true,
         allowedOrigins: ["https://normalized.example.com"],
       }),
     );
-    renderOpenDialog(createMockStigmer({ apply }), {
+    renderOpenDialog(createMockStigmer({ update }), {
       share: makeShare({ enabled: false }),
     });
 
@@ -665,11 +682,11 @@ describe("ShareAgentDialog", () => {
       ).toBeTruthy();
     });
 
-    it("names a shared vault by applying the appended refs", async () => {
-      const apply = vi.fn().mockResolvedValue({});
+    it("names a shared vault by saving the appended refs", async () => {
+      const update = vi.fn().mockResolvedValue({});
       renderOpenDialog(
         createMockStigmer({
-          apply,
+          update,
           vaults: [sharedVault("github-creds", "GitHub Creds")],
         }),
         {
@@ -685,12 +702,12 @@ describe("ShareAgentDialog", () => {
       });
       fireEvent.change(picker, { target: { value: "github-creds" } });
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const input = sentShare(update);
       expect(input.vaults).toEqual([
         { org: "acme", slug: "github-creds" },
       ]);
-      // The binding rides the full spec — nothing else changes.
+      // The rest of the dialog's fields travel unchanged.
       expect(input.enabled).toBe(true);
     });
 
@@ -770,8 +787,8 @@ describe("ShareAgentDialog", () => {
     });
 
     it("rejects an invalid origin without calling the RPC", async () => {
-      const apply = vi.fn();
-      renderOpenDialog(createMockStigmer({ apply }), {
+      const update = vi.fn();
+      renderOpenDialog(createMockStigmer({ update }), {
         share: makeShare({ enabled: true }),
       });
 
@@ -783,12 +800,12 @@ describe("ShareAgentDialog", () => {
       fireEvent.click(screen.getByText("Add"));
 
       expect(await screen.findByRole("alert", { hidden: true })).toBeTruthy();
-      expect(apply).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
     });
 
-    it("adds a valid origin by applying the appended list", async () => {
-      const apply = vi.fn().mockResolvedValue({});
-      renderOpenDialog(createMockStigmer({ apply }), {
+    it("adds a valid origin by saving the appended list", async () => {
+      const update = vi.fn().mockResolvedValue({});
+      renderOpenDialog(createMockStigmer({ update }), {
         share: makeShare({
           enabled: true,
           allowedOrigins: ["https://existing.example.com"],
@@ -801,8 +818,8 @@ describe("ShareAgentDialog", () => {
       });
       fireEvent.click(screen.getByText("Add"));
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const input = sentShare(update);
       expect(input.allowedOrigins).toEqual([
         "https://existing.example.com",
         "https://new.example.com",
@@ -812,8 +829,8 @@ describe("ShareAgentDialog", () => {
     });
 
     it("rejects a duplicate origin", async () => {
-      const apply = vi.fn();
-      renderOpenDialog(createMockStigmer({ apply }), {
+      const update = vi.fn();
+      renderOpenDialog(createMockStigmer({ update }), {
         share: makeShare({
           enabled: true,
           allowedOrigins: ["https://example.com"],
@@ -827,12 +844,12 @@ describe("ShareAgentDialog", () => {
       fireEvent.click(screen.getByText("Add"));
 
       expect(await screen.findByRole("alert", { hidden: true })).toBeTruthy();
-      expect(apply).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
     });
 
-    it("removes an origin by applying the filtered list", async () => {
-      const apply = vi.fn().mockResolvedValue({});
-      renderOpenDialog(createMockStigmer({ apply }), {
+    it("removes an origin by saving the filtered list", async () => {
+      const update = vi.fn().mockResolvedValue({});
+      renderOpenDialog(createMockStigmer({ update }), {
         share: makeShare({
           enabled: true,
           allowedOrigins: ["https://a.example.com", "https://b.example.com"],
@@ -842,16 +859,16 @@ describe("ShareAgentDialog", () => {
       fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
       fireEvent.click(screen.getByLabelText("Remove https://a.example.com"));
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const input = sentShare(update);
       expect(input.allowedOrigins).toEqual(["https://b.example.com"]);
     });
   });
 
   describe("visitor messages", () => {
-    it("saves edited messages as part of the complete spec", async () => {
-      const apply = vi.fn().mockResolvedValue({});
-      renderOpenDialog(createMockStigmer({ apply }), {
+    it("saves edited messages with the dialog's other fields", async () => {
+      const update = vi.fn().mockResolvedValue({});
+      renderOpenDialog(createMockStigmer({ update }), {
         share: makeShare({
           enabled: true,
           allowedOrigins: ["https://example.com"],
@@ -864,8 +881,8 @@ describe("ShareAgentDialog", () => {
       });
       fireEvent.click(screen.getByText("Save messages"));
 
-      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
-      const input = apply.mock.calls[0][0] as AgentShareInput;
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const input = sentShare(update);
       expect(input.messages?.rateLimited).toBe("Please slow down.");
       expect(input.enabled).toBe(true);
       expect(input.allowedOrigins).toEqual(["https://example.com"]);

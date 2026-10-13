@@ -2,6 +2,7 @@ from ai.stigmer.agentic.session.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.session.v1 import event_pb2 as _event_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import field_mask_pb2 as _field_mask_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -221,3 +222,27 @@ class AppendSessionEventsResponse(_message.Message):
     EVENTS_FIELD_NUMBER: _ClassVar[int]
     events: _containers.RepeatedCompositeFieldContainer[_event_pb2.SessionEvent]
     def __init__(self, events: _Optional[_Iterable[_Union[_event_pb2.SessionEvent, _Mapping]]] = ...) -> None: ...
+
+class UpdateSessionInput(_message.Message):
+    __slots__ = ("resource", "update_mask")
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MASK_FIELD_NUMBER: _ClassVar[int]
+    resource: _api_pb2.Session
+    update_mask: _field_mask_pb2.FieldMask
+    def __init__(self, resource: _Optional[_Union[_api_pb2.Session, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...
+
+class BindHarnessStateInput(_message.Message):
+    __slots__ = ("run_id", "harness_state_id")
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    HARNESS_STATE_ID_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    harness_state_id: str
+    def __init__(self, run_id: _Optional[str] = ..., harness_state_id: _Optional[str] = ...) -> None: ...
+
+class BindHarnessStateResponse(_message.Message):
+    __slots__ = ("harness_state_id", "harness_state_id_history")
+    HARNESS_STATE_ID_FIELD_NUMBER: _ClassVar[int]
+    HARNESS_STATE_ID_HISTORY_FIELD_NUMBER: _ClassVar[int]
+    harness_state_id: str
+    harness_state_id_history: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ...) -> None: ...

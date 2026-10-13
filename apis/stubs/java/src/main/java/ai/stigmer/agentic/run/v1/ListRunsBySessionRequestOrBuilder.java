@@ -37,7 +37,7 @@ public interface ListRunsBySessionRequestOrBuilder extends
    *
    * <code>int32 page_size = 2 [json_name = "pageSize", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_size is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=74
+   *     See ai/stigmer/agentic/run/v1/io.proto;l=75
    * @return The pageSize.
    */
   @java.lang.Deprecated int getPageSize();
@@ -49,7 +49,7 @@ public interface ListRunsBySessionRequestOrBuilder extends
    *
    * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=77
+   *     See ai/stigmer/agentic/run/v1/io.proto;l=78
    * @return The pageToken.
    */
   @java.lang.Deprecated java.lang.String getPageToken();
@@ -60,7 +60,7 @@ public interface ListRunsBySessionRequestOrBuilder extends
    *
    * <code>string page_token = 3 [json_name = "pageToken", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.page_token is deprecated.
-   *     See ai/stigmer/agentic/run/v1/io.proto;l=77
+   *     See ai/stigmer/agentic/run/v1/io.proto;l=78
    * @return The bytes for pageToken.
    */
   @java.lang.Deprecated com.google.protobuf.ByteString

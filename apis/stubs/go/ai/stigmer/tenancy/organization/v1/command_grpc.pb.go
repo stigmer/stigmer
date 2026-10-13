@@ -113,14 +113,23 @@ type OrganizationCommandControllerClient interface {
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
 	//     organization that exists keeps working. No metadata.
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
-	// Update an existing organization.
+	// Update an organization: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The slug is not changed by an update; rename changes it. An update
-	// authorizes the id it names, so wherever the server authorizes
-	// requests, an update without an id is refused before its slug is read;
-	// where it reads one, a slug the organization was renamed away from is
-	// refused with SLUG_RENAMED (see apply).
-	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
+	// resource.metadata.id names the organization; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the organization does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the organization changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the organization kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(ctx context.Context, in *UpdateOrganizationInput, opts ...grpc.CallOption) (*Organization, error)
 	// Change what the organization lets its members do (OrganizationPolicies),
 	// the one way to change a policy: update and apply keep the stored
 	// policies. Replaces every policy with the input's.
@@ -199,7 +208,7 @@ func (c *organizationCommandControllerClient) Create(ctx context.Context, in *Or
 	return out, nil
 }
 
-func (c *organizationCommandControllerClient) Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error) {
+func (c *organizationCommandControllerClient) Update(ctx context.Context, in *UpdateOrganizationInput, opts ...grpc.CallOption) (*Organization, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Organization)
 	err := c.cc.Invoke(ctx, OrganizationCommandController_Update_FullMethodName, in, out, cOpts...)
@@ -324,14 +333,23 @@ type OrganizationCommandControllerServer interface {
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
 	//     organization that exists keeps working. No metadata.
 	Create(context.Context, *Organization) (*Organization, error)
-	// Update an existing organization.
+	// Update an organization: the fields update_mask names change, every other
+	// field keeps its stored value.
 	//
-	// The slug is not changed by an update; rename changes it. An update
-	// authorizes the id it names, so wherever the server authorizes
-	// requests, an update without an id is refused before its slug is read;
-	// where it reads one, a slug the organization was renamed away from is
-	// refused with SLUG_RENAMED (see apply).
-	Update(context.Context, *Organization) (*Organization, error)
+	// resource.metadata.id names the organization; apply finds one by slug. The slug
+	// changes only through rename, and a mask naming a field another door
+	// owns, or a path the organization does not have, is refused with
+	// INVALID_ARGUMENT naming the path.
+	//
+	// An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"):
+	//
+	//   - ETAG_MISMATCH — resource.metadata.etag is set and the organization changed
+	//     since that etag was read: read it again and make the change again.
+	//     No metadata.
+	//   - WRITE_CONFLICT — the organization kept changing while the update was
+	//     being saved: try again. No metadata.
+	Update(context.Context, *UpdateOrganizationInput) (*Organization, error)
 	// Change what the organization lets its members do (OrganizationPolicies),
 	// the one way to change a policy: update and apply keep the stored
 	// policies. Replaces every policy with the input's.
@@ -395,7 +413,7 @@ func (UnimplementedOrganizationCommandControllerServer) Apply(context.Context, *
 func (UnimplementedOrganizationCommandControllerServer) Create(context.Context, *Organization) (*Organization, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedOrganizationCommandControllerServer) Update(context.Context, *Organization) (*Organization, error) {
+func (UnimplementedOrganizationCommandControllerServer) Update(context.Context, *UpdateOrganizationInput) (*Organization, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedOrganizationCommandControllerServer) UpdatePolicies(context.Context, *UpdateOrganizationPoliciesInput) (*Organization, error) {
@@ -464,7 +482,7 @@ func _OrganizationCommandController_Create_Handler(srv interface{}, ctx context.
 }
 
 func _OrganizationCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Organization)
+	in := new(UpdateOrganizationInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -476,7 +494,7 @@ func _OrganizationCommandController_Update_Handler(srv interface{}, ctx context.
 		FullMethod: OrganizationCommandController_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrganizationCommandControllerServer).Update(ctx, req.(*Organization))
+		return srv.(OrganizationCommandControllerServer).Update(ctx, req.(*UpdateOrganizationInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }

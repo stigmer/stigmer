@@ -211,7 +211,7 @@ describe("a person's rating", () => {
     const edited = create(ScoreSchema, rated);
     edited.spec!.value = { case: "passed", value: false };
     edited.spec!.comment = "wrong label";
-    const changed = await wire.update(edited);
+    const changed = await wire.update({ resource: edited, updateMask: { paths: ["*"] } });
     expect(changed.spec?.value).toEqual({ case: "passed", value: false });
     expect(changed.spec?.comment).toBe("wrong label");
     expect(changed.status?.state).toBe(ScoreState.graded);
@@ -238,7 +238,7 @@ describe("a person's rating", () => {
         id,
         ApiResourceVisibility.visibility_org,
       ),
-      () => wire.update(edited),
+      () => wire.update({ resource: edited, updateMask: { paths: ["*"] } }),
     );
 
     expect(writes).toBeGreaterThanOrEqual(2);
@@ -287,7 +287,7 @@ describe("a check's verdict", () => {
     const recorded = await inProcess.create(check(runId));
     const edited = create(ScoreSchema, recorded);
     edited.spec!.value = { case: "passed", value: false };
-    const refused = await failureOf(wire.update(edited));
+    const refused = await failureOf(wire.update({ resource: edited, updateMask: { paths: ["*"] } }));
     expect(refused.code).toBe(Code.FailedPrecondition);
     expect(refused.rawMessage).toBe(SCORE_UPDATE_HUMAN_ONLY_MESSAGE);
   });

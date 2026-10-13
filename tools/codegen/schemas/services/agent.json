@@ -26,11 +26,11 @@
         },
         {
           "name": "Update",
-          "inputType": "Agent",
-          "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "inputType": "UpdateAgentInput",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.UpdateAgentInput",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Update an existing agent.\n\n The slug changes only through rename. An update authorizes the id it names,\n so wherever the server authorizes requests, an update without an id is\n refused before its slug is read; where it reads one, a slug the agent was\n renamed away from is refused with SLUG_RENAMED (see apply)."
+          "description": "Update an agent: the fields update_mask names change, every other\n field keeps its stored value.\n\n resource.metadata.id names the agent; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the agent does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the agent changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the agent kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "UpdateVisibility",
@@ -108,6 +108,39 @@
   ],
   "listVia": "SearchService",
   "methodTypes": [
+    {
+      "name": "UpdateAgentInput",
+      "description": "The changes an update makes to an agent: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.agentic.agent.v1.UpdateAgentInput",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "Agent"
+          },
+          "description": "The agent carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "UpdateVisibilityInput",
       "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",

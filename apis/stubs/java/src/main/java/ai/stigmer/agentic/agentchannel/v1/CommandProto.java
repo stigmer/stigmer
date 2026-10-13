@@ -42,37 +42,37 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "annel/v1/io.proto\0328ai/stigmer/commons/ap" +
       "iresource/rpc_service_options.proto\032+ai/" +
       "stigmer/commons/rpc/method_options.proto" +
-      "2\364\007\n\035AgentChannelCommandController\022k\n\005ap" +
+      "2\210\010\n\035AgentChannelCommandController\022k\n\005ap" +
       "ply\0220.ai.stigmer.agentic.agentchannel.v1" +
       ".AgentChannel\0320.ai.stigmer.agentic.agent" +
       "channel.v1.AgentChannel\022r\n\006create\0220.ai.s" +
       "tigmer.agentic.agentchannel.v1.AgentChan" +
       "nel\0320.ai.stigmer.agentic.agentchannel.v1" +
-      ".AgentChannel\"\004\320\270\030\001\022\251\001\n\006update\0220.ai.stig" +
-      "mer.agentic.agentchannel.v1.AgentChannel" +
-      "\0320.ai.stigmer.agentic.agentchannel.v1.Ag" +
-      "entChannel\";\302\270\0307\010\002\020/\"\013metadata.id*$unaut" +
-      "horized to update agent channel\022\322\001\n\017init" +
-      "iateInstall\022?.ai.stigmer.agentic.agentch" +
-      "annel.v1.InitiateChannelInstallInput\032@.a" +
-      "i.stigmer.agentic.agentchannel.v1.Initia" +
-      "teChannelInstallOutput\"<\302\270\0308\010\002\020/\"\013resour" +
-      "ce_id*%unauthorized to install agent cha" +
-      "nnel\022\302\001\n\017completeInstall\022?.ai.stigmer.ag" +
-      "entic.agentchannel.v1.CompleteChannelIns" +
-      "tallInput\0320.ai.stigmer.agentic.agentchan" +
-      "nel.v1.AgentChannel\"<\302\270\0308\010\002\020/\"\013resource_" +
-      "id*%unauthorized to install agent channe" +
-      "l\022\245\001\n\006delete\0222.ai.stigmer.agentic.agentc" +
-      "hannel.v1.AgentChannelId\0320.ai.stigmer.ag" +
-      "entic.agentchannel.v1.AgentChannel\"5\302\270\0301" +
-      "\010\003\020/\"\005value*$unauthorized to delete agen" +
-      "t channel\032\004\240\377+/B\273\001B\014CommandProtoP\001\242\002\004ASA" +
-      "A\252\002\"Ai.Stigmer.Agentic.Agentchannel.V1\312\002" +
-      "\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\342\002.Ai" +
-      "\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMeta" +
-      "data\352\002&Ai::Stigmer::Agentic::Agentchanne" +
-      "l::V1b\006proto3"
+      ".AgentChannel\"\004\320\270\030\001\022\275\001\n\006update\022;.ai.stig" +
+      "mer.agentic.agentchannel.v1.UpdateAgentC" +
+      "hannelInput\0320.ai.stigmer.agentic.agentch" +
+      "annel.v1.AgentChannel\"D\302\270\030@\010\002\020/\"\024resourc" +
+      "e.metadata.id*$unauthorized to update ag" +
+      "ent channel\022\322\001\n\017initiateInstall\022?.ai.sti" +
+      "gmer.agentic.agentchannel.v1.InitiateCha" +
+      "nnelInstallInput\032@.ai.stigmer.agentic.ag" +
+      "entchannel.v1.InitiateChannelInstallOutp" +
+      "ut\"<\302\270\0308\010\002\020/\"\013resource_id*%unauthorized " +
+      "to install agent channel\022\302\001\n\017completeIns" +
+      "tall\022?.ai.stigmer.agentic.agentchannel.v" +
+      "1.CompleteChannelInstallInput\0320.ai.stigm" +
+      "er.agentic.agentchannel.v1.AgentChannel\"" +
+      "<\302\270\0308\010\002\020/\"\013resource_id*%unauthorized to " +
+      "install agent channel\022\245\001\n\006delete\0222.ai.st" +
+      "igmer.agentic.agentchannel.v1.AgentChann" +
+      "elId\0320.ai.stigmer.agentic.agentchannel.v" +
+      "1.AgentChannel\"5\302\270\0301\010\003\020/\"\005value*$unautho" +
+      "rized to delete agent channel\032\004\240\377+/B\273\001B\014" +
+      "CommandProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agent" +
+      "ic.Agentchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\" +
+      "Agentchannel\\V1\342\002.Ai\\Stigmer\\Agentic\\Age" +
+      "ntchannel\\V1\\GPBMetadata\352\002&Ai::Stigmer::" +
+      "Agentic::Agentchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

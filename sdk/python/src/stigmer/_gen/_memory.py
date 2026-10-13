@@ -12,6 +12,7 @@ from ai.stigmer.agentic.memory.v1 import query_pb2_grpc
 from ai.stigmer.agentic.memory.v1 import io_pb2
 from ai.stigmer.agentic.memory.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
+from google.protobuf import field_mask_pb2
 
 from ._errors import wrap_error
 
@@ -29,9 +30,11 @@ class MemoryClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update(self, input: MemoryInput) -> api_pb2.Memory:
+    def update(self, resource: api_pb2.Memory, paths: list[str]) -> api_pb2.Memory:
         try:
-            return self._command.update(input._to_proto())
+            return self._command.update(
+                io_pb2.UpdateMemoryInput(resource=resource, update_mask=field_mask_pb2.FieldMask(paths=paths))
+            )
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

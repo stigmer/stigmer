@@ -34,16 +34,25 @@
  *     the kind's rows in that organization (iam/reference-miss.ts).
  * The shape is unchanged for every other lane: Authorize → ValidateProto
  * → [shaping] → domain, and an RPC that shapes nothing passes nothing.
+ *
+ * An update (`runUpdateChain`) takes an Update<Kind>Input, the resource
+ * named by its id and an update_mask: its chain runs on the resource with
+ * the mask (the OSS `updateContext`), Authorize reads the wire request
+ * (`resource.metadata.id`), and ValidateProto validates the merged
+ * resource BuildUpdateState builds, the one that will be stored, after the
+ * shaping: Authorize → [shaping] → ValidateProto → domain.
  */
 import type { DescMessage, DescMethod, MessageShape } from "@bufbuild/protobuf";
 import type { HandlerContext } from "@connectrpc/connect";
 import type { Authorizer, Logger, PipelineStep } from "@stigmer/server";
+import type { UpdateRequestShape } from "@stigmer/server";
 import {
   callerIdentityOf,
   newAuthorizeStep,
   newPipeline,
   newValidateProtoStep,
   RequestContext,
+  updateContext,
 } from "@stigmer/server";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -110,5 +119,48 @@ export async function runUnaryChain<Desc extends DescMessage, Out>(
   if (!produced) {
     throw new Error(`chain ${names.chain} completed without a response`);
   }
+  return out as Out;
+}
+
+/**
+ * Runs one update RPC through the chain on the resource its
+ * Update<Kind>Input carries (the module header), and answers the domain
+ * step's result. `shaping` loads the stored row and runs BuildUpdateState
+ * with the kind's refused paths.
+ */
+export async function runUpdateChain<
+  InputDesc extends DescMessage,
+  Desc extends DescMessage,
+  Out,
+>(
+  names: UnaryChainNames,
+  method: DescMethod & { readonly input: InputDesc },
+  schema: Desc,
+  input: MessageShape<InputDesc> & UpdateRequestShape<Desc>,
+  ctx: HandlerContext,
+  deps: UnaryChainDeps,
+  domain: (reqCtx: RequestContext<Desc>) => Promise<Out>,
+  shaping: UnaryChainShaping<Desc>,
+): Promise<Out> {
+  const reqCtx = updateContext(schema, input, callerIdentityOf(ctx), shaping.kind);
+  let out: Out | undefined;
+  const domainStep: PipelineStep<Desc> = {
+    name: names.step,
+    execute: async (stepCtx: RequestContext<Desc>): Promise<void> => {
+      out = await domain(stepCtx);
+    },
+  };
+  const builder = newPipeline<Desc>(names.chain, deps.logger).addStep(
+    newAuthorizeStep(method, deps.authorizer, input),
+  );
+  for (const step of shaping.steps) {
+    builder.addStep(step);
+  }
+  await builder
+    .addStep(newValidateProtoStep({ of: "state" }))
+    .addStep(domainStep)
+    .build()
+    .execute(reqCtx);
+  // The domain step is the chain's last, so a chain that completed ran it.
   return out as Out;
 }

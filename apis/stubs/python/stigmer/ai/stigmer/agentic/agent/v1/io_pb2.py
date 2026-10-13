@@ -22,10 +22,12 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.agent.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import field_mask_pb2 as google_dot_protobuf_dot_field__mask__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/agent/v1/io.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a\x1b\x62uf/validate/validate.proto\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/agent/v1/io.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\x1a google/protobuf/field_mask.proto\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xdf\x02\n\x10UpdateAgentInput\x12\x46\n\x08resource\x18\x01 \x01(\x0b\x32\".ai.stigmer.agentic.agent.v1.AgentB\x06\xbaH\x03\xd8\x01\x03R\x08resource\x12\x43\n\x0bupdate_mask\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\nupdateMask:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n\x17update_names_its_target\x12\x45resource.metadata.id is required: an update names the agent by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\'B\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +37,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\037com.ai.stigmer.agentic.agent.v1B\007IoProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Agent::V1'
   _globals['_AGENTID'].fields_by_name['value']._loaded_options = None
   _globals['_AGENTID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_AGENTID']._serialized_start=98
-  _globals['_AGENTID']._serialized_end=137
+  _globals['_UPDATEAGENTINPUT'].fields_by_name['resource']._loaded_options = None
+  _globals['_UPDATEAGENTINPUT'].fields_by_name['resource']._serialized_options = b'\272H\003\330\001\003'
+  _globals['_UPDATEAGENTINPUT'].fields_by_name['update_mask']._loaded_options = None
+  _globals['_UPDATEAGENTINPUT'].fields_by_name['update_mask']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_UPDATEAGENTINPUT']._loaded_options = None
+  _globals['_UPDATEAGENTINPUT']._serialized_options = b'\272H\271\001\032\266\001\n\027update_names_its_target\022Eresource.metadata.id is required: an update names the agent by its id\032Thas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != \'\''
+  _globals['_AGENTID']._serialized_start=171
+  _globals['_AGENTID']._serialized_end=210
+  _globals['_UPDATEAGENTINPUT']._serialized_start=213
+  _globals['_UPDATEAGENTINPUT']._serialized_end=564
 # @@protoc_insertion_point(module_scope)

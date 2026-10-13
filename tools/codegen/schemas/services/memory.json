@@ -18,11 +18,11 @@
         },
         {
           "name": "Update",
-          "inputType": "Memory",
-          "inputFullType": "ai.stigmer.agentic.memory.v1.Memory",
+          "inputType": "UpdateMemoryInput",
+          "inputFullType": "ai.stigmer.agentic.memory.v1.UpdateMemoryInput",
           "outputType": "Memory",
           "outputFullType": "ai.stigmer.agentic.memory.v1.Memory",
-          "description": "Update a memory's fact text.\n\n Replaces the spec wholesale, but only the content may actually\n change: the subject and provenance are immutable, and the consent\n lifecycle in status is never touched by updates — use confirm or\n reject to decide on a proposal."
+          "description": "Update a memory: the fields update_mask names change, every other\n field keeps its stored value.\n\n Only the content may change: the subject and provenance are immutable,\n and the consent lifecycle in status is never touched by updates; use\n confirm or reject to decide on a proposal.\n\n resource.metadata.id names the memory; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the memory does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the memory changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the memory kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "Delete",
@@ -75,6 +75,39 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateMemoryInput",
+      "description": "The changes an update makes to a memory: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.agentic.memory.v1.UpdateMemoryInput",
+      "protoFile": "apis/ai/stigmer/agentic/memory/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "Memory"
+          },
+          "description": "The memory carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "ListMemoriesRequest",
       "description": "Input for listing memories within an organization.",

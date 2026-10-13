@@ -22,7 +22,7 @@ import { CheckIcon, CloseIcon, Spinner } from "./connect/icons.js";
 import { useCreateAgentChannel } from "./useCreateAgentChannel.js";
 import { useInstallChannel } from "./useInstallChannel.js";
 import { useOrgAgentChannelList } from "./useOrgAgentChannelList.js";
-import { agentChannelToInput, useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { useSaveAgentChannel } from "./useSaveAgentChannel.js";
 import { WhatsAppMarkIcon } from "./WhatsAppMarkIcon.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 
@@ -165,7 +165,7 @@ function ConnectWhatsAppDialogBody({
   const org = agent.metadata?.org ?? "";
 
   const { createChannel, isPending: isCreating } = useCreateAgentChannel();
-  const { save, isPending: isSaving } = useSaveAgentChannel();
+  const { update, isPending: isSaving } = useSaveAgentChannel();
   const installer = useInstallChannel();
 
   const [name, setName] = useState(() =>
@@ -273,8 +273,7 @@ function ConnectWhatsAppDialogBody({
           existingNumber !== trimmedNumber ||
           existingAppSlug !== (effectiveAppRef?.slug ?? "")
         ) {
-          target = await save({
-            ...agentChannelToInput(target),
+          target = await update(target, {
             whatsapp: { phoneNumberId: trimmedNumber },
             ...(effectiveAppRef ? { appRef: effectiveAppRef } : {}),
           });
@@ -293,7 +292,7 @@ function ConnectWhatsAppDialogBody({
         installer.error ?? (err instanceof Error ? err : new Error(String(err))),
       );
     }
-  }, [agent, agentName, channel, createChannel, effectiveAppRef, vaults, installer, name, org, onChannelsChanged, save, stigmer, trimmedNumber]);
+  }, [agent, agentName, channel, createChannel, effectiveAppRef, vaults, installer, name, org, onChannelsChanged, update, stigmer, trimmedNumber]);
 
   const busy = isCreating || isSaving || installer.isInProgress;
   const canConnect = trimmedNumber !== "" && effectiveAppRef !== null && !busy;

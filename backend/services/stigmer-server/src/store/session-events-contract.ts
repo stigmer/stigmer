@@ -36,6 +36,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { LIST_INDEXES } from "../boot/list-indexes.js";
 import { ResourceNotFoundError } from "./interface.js";
 import type { Store, StoreOpenOptions } from "./interface.js";
+import { etagOf } from "./etag.js";
 import { portContractCases } from "./port-contract.js";
 import type {
   PortContractCase,
@@ -160,6 +161,18 @@ async function seqs(store: Store, sessionId: string): Promise<number[]> {
 }
 
 const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
+  [
+    "the row a write appending events puts is stored with the etag its content gives",
+    async ({ store }) => {
+      const r = `run_${unique()}`;
+      const row = run(r, `ses_${unique()}`, RunPhase.RUN_IN_PROGRESS);
+      row.metadata!.etag = "sent-by-a-client";
+      await put(store, row);
+      const stored = await store.getResource(ApiResourceKind.run, r, RunSchema);
+      assert.notEqual(stored.metadata?.etag, "sent-by-a-client");
+      assert.equal(stored.metadata?.etag, etagOf(RunSchema, stored));
+    },
+  ],
   [
     "append numbers a session's events from 1 in order and stamps each append with one fixed-width accepted time",
     async ({ store }) => {

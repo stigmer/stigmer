@@ -42,53 +42,54 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "r/commons/apiresource/io.proto\0328ai/stigm" +
       "er/commons/apiresource/rpc_service_optio" +
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
-      "options.proto2\236\r\n\026VaultCommandController" +
+      "options.proto2\262\r\n\026VaultCommandController" +
       "\022\244\001\n\006create\022\".ai.stigmer.agentic.vault.v" +
       "1.Vault\032\".ai.stigmer.agentic.vault.v1.Va" +
       "ult\"R\302\270\030N\0104\020\036\"\014metadata.org*:unauthorize" +
       "d to create a shared vault in this organ" +
-      "ization\022\205\001\n\006update\022\".ai.stigmer.agentic." +
-      "vault.v1.Vault\032\".ai.stigmer.agentic.vaul" +
-      "t.v1.Vault\"3\302\270\030/\010\002\020;\"\013metadata.id*\034unaut" +
-      "horized to update vault\022\255\001\n\020updateVisibi" +
-      "lity\0225.ai.stigmer.commons.apiresource.Up" +
-      "dateVisibilityInput\032\".ai.stigmer.agentic" +
-      ".vault.v1.Vault\">\302\270\030:\0100\020;\"\013resource_id*\'" +
-      "unauthorized to update vault visibility\022" +
-      "\216\001\n\006rename\022+.ai.stigmer.commons.apiresou" +
-      "rce.RenameInput\032\".ai.stigmer.agentic.vau" +
-      "lt.v1.Vault\"3\302\270\030/\010\003\020;\"\013resource_id*\034unau" +
-      "thorized to rename vault\022\231\001\n\006delete\0226.ai" +
-      ".stigmer.commons.apiresource.ApiResource" +
-      "DeleteInput\032\".ai.stigmer.agentic.vault.v" +
-      "1.Vault\"3\302\270\030/\010\003\020;\"\013resource_id*\034unauthor" +
-      "ized to delete vault\022i\n\nsetSecrets\0221.ai." +
-      "stigmer.agentic.vault.v1.SetVaultSecrets" +
-      "Input\032\".ai.stigmer.agentic.vault.v1.Vaul" +
-      "t\"\004\320\270\030\001\022o\n\rremoveSecrets\0224.ai.stigmer.ag" +
-      "entic.vault.v1.RemoveVaultSecretsInput\032\"" +
-      ".ai.stigmer.agentic.vault.v1.Vault\"\004\320\270\030\001" +
-      "\022o\n\rsetConnection\0224.ai.stigmer.agentic.v" +
-      "ault.v1.SetVaultConnectionInput\032\".ai.sti" +
-      "gmer.agentic.vault.v1.Vault\"\004\320\270\030\001\022w\n\021rem" +
-      "oveConnections\0228.ai.stigmer.agentic.vaul" +
-      "t.v1.RemoveVaultConnectionsInput\032\".ai.st" +
-      "igmer.agentic.vault.v1.Vault\"\004\320\270\030\001\022r\n\013st" +
-      "artSignIn\022-.ai.stigmer.agentic.vault.v1." +
-      "StartSignInInput\032..ai.stigmer.agentic.va" +
-      "ult.v1.StartSignInOutput\"\004\320\270\030\001\022{\n\016comple" +
-      "teSignIn\0220.ai.stigmer.agentic.vault.v1.C" +
-      "ompleteSignInInput\0321.ai.stigmer.agentic." +
-      "vault.v1.CompleteSignInOutput\"\004\320\270\030\001\022\272\001\n\021" +
-      "createConnectLink\0223.ai.stigmer.agentic.v" +
-      "ault.v1.CreateConnectLinkInput\032(.ai.stig" +
-      "mer.agentic.vault.v1.ConnectLink\"F\302\270\030B\010\002" +
-      "\020;\"\010vault_id*2unauthorized to make a Con" +
-      "nect link for this vault\032\004\240\377+;B\237\001B\014Comma" +
-      "ndProtoP\001\242\002\004ASAV\252\002\033Ai.Stigmer.Agentic.Va" +
-      "ult.V1\312\002\033Ai\\Stigmer\\Agentic\\Vault\\V1\342\002\'A" +
-      "i\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\352\002" +
-      "\037Ai::Stigmer::Agentic::Vault::V1b\006proto3"
+      "ization\022\231\001\n\006update\022-.ai.stigmer.agentic." +
+      "vault.v1.UpdateVaultInput\032\".ai.stigmer.a" +
+      "gentic.vault.v1.Vault\"<\302\270\0308\010\002\020;\"\024resourc" +
+      "e.metadata.id*\034unauthorized to update va" +
+      "ult\022\255\001\n\020updateVisibility\0225.ai.stigmer.co" +
+      "mmons.apiresource.UpdateVisibilityInput\032" +
+      "\".ai.stigmer.agentic.vault.v1.Vault\">\302\270\030" +
+      ":\0100\020;\"\013resource_id*\'unauthorized to upda" +
+      "te vault visibility\022\216\001\n\006rename\022+.ai.stig" +
+      "mer.commons.apiresource.RenameInput\032\".ai" +
+      ".stigmer.agentic.vault.v1.Vault\"3\302\270\030/\010\003\020" +
+      ";\"\013resource_id*\034unauthorized to rename v" +
+      "ault\022\231\001\n\006delete\0226.ai.stigmer.commons.api" +
+      "resource.ApiResourceDeleteInput\032\".ai.sti" +
+      "gmer.agentic.vault.v1.Vault\"3\302\270\030/\010\003\020;\"\013r" +
+      "esource_id*\034unauthorized to delete vault" +
+      "\022i\n\nsetSecrets\0221.ai.stigmer.agentic.vaul" +
+      "t.v1.SetVaultSecretsInput\032\".ai.stigmer.a" +
+      "gentic.vault.v1.Vault\"\004\320\270\030\001\022o\n\rremoveSec" +
+      "rets\0224.ai.stigmer.agentic.vault.v1.Remov" +
+      "eVaultSecretsInput\032\".ai.stigmer.agentic." +
+      "vault.v1.Vault\"\004\320\270\030\001\022o\n\rsetConnection\0224." +
+      "ai.stigmer.agentic.vault.v1.SetVaultConn" +
+      "ectionInput\032\".ai.stigmer.agentic.vault.v" +
+      "1.Vault\"\004\320\270\030\001\022w\n\021removeConnections\0228.ai." +
+      "stigmer.agentic.vault.v1.RemoveVaultConn" +
+      "ectionsInput\032\".ai.stigmer.agentic.vault." +
+      "v1.Vault\"\004\320\270\030\001\022r\n\013startSignIn\022-.ai.stigm" +
+      "er.agentic.vault.v1.StartSignInInput\032..a" +
+      "i.stigmer.agentic.vault.v1.StartSignInOu" +
+      "tput\"\004\320\270\030\001\022{\n\016completeSignIn\0220.ai.stigme" +
+      "r.agentic.vault.v1.CompleteSignInInput\0321" +
+      ".ai.stigmer.agentic.vault.v1.CompleteSig" +
+      "nInOutput\"\004\320\270\030\001\022\272\001\n\021createConnectLink\0223." +
+      "ai.stigmer.agentic.vault.v1.CreateConnec" +
+      "tLinkInput\032(.ai.stigmer.agentic.vault.v1" +
+      ".ConnectLink\"F\302\270\030B\010\002\020;\"\010vault_id*2unauth" +
+      "orized to make a Connect link for this v" +
+      "ault\032\004\240\377+;B\237\001B\014CommandProtoP\001\242\002\004ASAV\252\002\033A" +
+      "i.Stigmer.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\" +
+      "Agentic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Va" +
+      "ult\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agenti" +
+      "c::Vault::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

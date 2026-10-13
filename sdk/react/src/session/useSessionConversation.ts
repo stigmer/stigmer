@@ -11,13 +11,14 @@ import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer
 import {
   displayFileChangeSets,
   supersededRunIds,
-  toSessionUpdateInput,
+  buildSessionProto,
   type AttachmentInput,
   type FileReviewSet,
   type ResourceRef,
   type ToolUse,
   type Turn,
   type TurnPhase,
+  type SessionInput,
   type WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import type { ServiceTierOption } from "../models/service-tier.js";
@@ -40,6 +41,7 @@ import { useSession } from "./useSession.js";
 import { useSessionEvents } from "./useSessionEvents.js";
 import { useSessionRuns } from "./useSessionRuns.js";
 import { useUpdateSession } from "./useUpdateSession.js";
+import { maskedEdit } from "../internal/maskedEdit.js";
 import { useLocalSessionWorker } from "./useLocalSessionWorker.js";
 
 /**
@@ -66,8 +68,8 @@ const EMPTY_SETS: readonly FileReviewSet[] = [];
  *
  * Session-level fields (`workspaceEntries`, `plugins`,
  * `skillRefs`, `vaults`, `includeMyVault`) trigger a `session.update()`
- * before the run is created. Only provided fields are overwritten; omitted
- * fields preserve the session's existing values.
+ * before the run is created. The update names only the provided fields;
+ * omitted fields keep the session's stored values.
  */
 export interface SendFollowUpOptions {
   /**
@@ -738,20 +740,20 @@ export function useSessionConversation(
           options?.includeMyVault !== undefined;
 
         if (needsSessionUpdate) {
-          // Fetch the latest session to avoid overwriting fields that were
-          // modified server-side (e.g., LLM-generated subject)
-          // since the React state was last loaded.
+          // The update names only the fields this send provides, so a
+          // field written since (the generated subject) keeps its value.
+          // The session is read fresh for the repository tokens the
+          // workspace echoes back (buildSessionEdit).
           const freshSession = await stigmer.session.get(sessionId);
-          await updateSession(
-            buildUpdateInput(freshSession, {
-              agentRef: options?.agentRef,
-              workspaceEntries: options?.workspaceEntries,
-              plugins: options?.plugins,
-              skillRefs: options?.skillRefs,
-              vaults: options?.vaults,
-              includeMyVault: options?.includeMyVault,
-            }),
-          );
+          const { resource, paths } = buildSessionEdit(freshSession, {
+            agentRef: options?.agentRef,
+            workspaceEntries: options?.workspaceEntries,
+            plugins: options?.plugins,
+            skillRefs: options?.skillRefs,
+            vaults: options?.vaults,
+            includeMyVault: options?.includeMyVault,
+          });
+          await updateSession(resource, paths);
           refetchSession();
         }
 
@@ -792,20 +794,15 @@ export function useSessionConversation(
 
   const moveToCurrentAgentVersion = useCallback(async (): Promise<void> => {
     if (!sessionId) return;
-    // The stored spec, read fresh so the full-replace update keeps every
-    // field another writer changed since this view loaded.
+    // The agent reference as stored, re-pinned to `latest`; the update
+    // names the reference alone.
     const freshSession = await stigmer.session.get(sessionId);
     const held = freshSession.spec?.agentRef;
     if (held === undefined || held.slug === "") return;
-    await updateSession({
-      ...toSessionUpdateInput(freshSession),
-      agentRef: {
-        org: held.org,
-        slug: held.slug,
-        kind: held.kind,
-        version: LATEST_AGENT_VERSION,
-      },
+    const { resource, paths } = buildSessionEdit(freshSession, {
+      agentRef: { org: held.org, slug: held.slug, kind: held.kind, version: LATEST_AGENT_VERSION },
     });
+    await updateSession(resource, paths);
     refetchSession();
   }, [sessionId, stigmer, updateSession, refetchSession]);
 
@@ -969,25 +966,16 @@ function isConversationTurn(turn: Turn, run: Run | undefined): boolean {
 const LATEST_AGENT_VERSION = "latest";
 
 /**
- * Builds the SessionInput for the update RPC (which uses replace
- * semantics — the full spec is sent) by spreading the SDK's complete
- * generated mapper and overriding only the session-level fields the
- * caller provided. An override replaces the existing value; an omitted
- * field keeps the fetched session's value (an empty-array override
- * clears the collection — normalized to absent, the mappers' canonical
- * shape).
- *
- * The agent reference is the one field an echo could move: a write that
- * names `latest` re-pins the session to the agent's newest version. The
- * server never stores `latest` (it applies the instruction and drops
- * it), and an unchanged agent is echoed exactly as stored — no version,
- * a tag or a hash — so the server keeps the pin; a reference in hand
- * that carries `latest` is echoed without it for the same reason. So
- * editing the workspace or the tools never changes the agent version a
- * conversation runs. An override of `null` clears the agent (the
- * built-in assistant).
+ * The update a follow-up's session-level fields make: the session, named
+ * by its id, with only the fields the caller provided, each named by its
+ * path. An omitted field is not named, so it keeps its stored value (the
+ * agent's pinned version among them: editing the workspace or the tools
+ * never moves the agent version a conversation runs). An empty-array
+ * override clears the collection; an agent override of `null` clears the
+ * agent (the built-in assistant). The update carries no etag: it is a
+ * send, not an editor, and a subject written since must not refuse it.
  */
-function buildUpdateInput(
+function buildSessionEdit(
   session: Session,
   overrides: {
     agentRef?: ResourceRef | null;
@@ -998,27 +986,21 @@ function buildUpdateInput(
     includeMyVault?: boolean;
   },
 ) {
-  const mapped = toSessionUpdateInput(session);
-  const vaults = overrides.vaults ?? mapped.vaults;
-  const includeMyVault = overrides.includeMyVault ?? mapped.includeMyVault;
-  const workspaceEntries = overrides.workspaceEntries
-    ? keepStoredRepositoryTokens(overrides.workspaceEntries, mapped.workspaceEntries)
-    : mapped.workspaceEntries;
-  const plugins = overrides.plugins ?? mapped.plugins;
-  const skillRefs = overrides.skillRefs ?? mapped.skillRefs;
-
-  return {
-    ...mapped,
-    agentRef:
-      overrides.agentRef === null
-        ? undefined
-        : (overrides.agentRef ?? echoedAgentRef(mapped.agentRef)),
-    workspaceEntries: workspaceEntries?.length ? workspaceEntries : undefined,
-    plugins: plugins?.length ? plugins : undefined,
-    skillRefs: skillRefs?.length ? skillRefs : undefined,
-    vaults: vaults?.length ? vaults : undefined,
-    includeMyVault: includeMyVault || undefined,
+  const patch: Partial<SessionInput> = {
+    ...(overrides.agentRef !== undefined && { agentRef: overrides.agentRef ?? undefined }),
+    ...(overrides.workspaceEntries !== undefined && {
+      workspaceEntries: keepStoredRepositoryTokens(overrides.workspaceEntries, session),
+    }),
+    ...(overrides.plugins !== undefined && { plugins: overrides.plugins }),
+    ...(overrides.skillRefs !== undefined && { skillRefs: overrides.skillRefs }),
+    ...(overrides.vaults !== undefined && { vaults: overrides.vaults }),
+    ...(overrides.includeMyVault !== undefined && { includeMyVault: overrides.includeMyVault }),
   };
+  const edit = maskedEdit(session, buildSessionProto, patch);
+  if (edit.resource.metadata !== undefined) {
+    edit.resource.metadata.etag = "";
+  }
+  return edit;
 }
 
 /**
@@ -1031,12 +1013,14 @@ function buildUpdateInput(
  */
 function keepStoredRepositoryTokens(
   entries: WorkspaceEntryInput[],
-  stored: WorkspaceEntryInput[] | undefined,
+  session: Session,
 ): WorkspaceEntryInput[] {
   const storedTokens = new Map<string, string>();
-  for (const entry of stored ?? []) {
-    const repo = entry.source.gitRepo;
-    if (repo?.token) storedTokens.set(repositorySlot(entry.name, repo.url), repo.token);
+  for (const entry of session.spec?.workspaceEntries ?? []) {
+    const source = entry.source?.source;
+    if (source?.case === "gitRepo" && source.value.token) {
+      storedTokens.set(repositorySlot(entry.name, source.value.url), source.value.token);
+    }
   }
   return entries.map((entry) => {
     const repo = entry.source.gitRepo;
@@ -1049,10 +1033,4 @@ function keepStoredRepositoryTokens(
 /** A repository's token slot: its entry name and URL, as the server keys it. */
 function repositorySlot(name: string | undefined, url: string): string {
   return `${name ?? ""}\u0000${url}`;
-}
-
-/** The stored agent reference as an echo that keeps the session's pin. */
-function echoedAgentRef(ref: ResourceRef | undefined): ResourceRef | undefined {
-  if (ref === undefined || ref.version !== LATEST_AGENT_VERSION) return ref;
-  return { org: ref.org, slug: ref.slug, kind: ref.kind };
 }

@@ -597,13 +597,10 @@ export interface TurnSink {
   /**
    * The engine-minted state id, the moment it exists and BEFORE the turn
    * proceeds, so a crash mid-turn still resumes on the next invocation. The
-   * runtime writes it to the session record the adapter was handed
-   * (`input.session`, with `harness_state_id` set and the metadata slug
-   * cleared, the agnostic quirk of `BuildUpdateStateStep`); the adapter may
-   * set its own harness-specific `SessionSpec` fields on that record before
-   * binding, one writer per field (`harnessStateId` the runtime's,
-   * `cursorMode` the adapter's). Called only by adapters whose
-   * `capabilities.stateIdSource` is `"engine-minted"`, and before their first
+   * runtime records it in the session's status through the session's
+   * `bindHarnessState` door, the one writer of that field. Called only by
+   * adapters whose `capabilities.stateIdSource` is `"engine-minted"`, and
+   * before their first
    * `requestPersist`; a `deterministic` harness never calls it. Rejects when
    * the session write fails; the adapter then ends the turn `failed` with
    * that error and executes nothing further.

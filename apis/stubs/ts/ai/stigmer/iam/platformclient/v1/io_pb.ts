@@ -7,13 +7,15 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { PlatformClient } from "./api_pb.js";
 import { file_ai_stigmer_iam_platformclient_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/iam/platformclient/v1/io.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiLAoQUGxhdGZvcm1DbGllbnRJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIlQKD1BsYXRmb3JtQ2xpZW50cxJBCgdlbnRyaWVzGAEgAygLMjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQiNQodTGlzdFBsYXRmb3JtQ2xpZW50c0J5T3JnSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABIoABChxQbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlEkkKD3BsYXRmb3JtX2NsaWVudBgBIAEoCzIwLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAliBnByb3RvMw", [file_ai_stigmer_iam_platformclient_v1_api, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS9pby5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiLAoQUGxhdGZvcm1DbGllbnRJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIlQKD1BsYXRmb3JtQ2xpZW50cxJBCgdlbnRyaWVzGAEgAygLMjAuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuUGxhdGZvcm1DbGllbnQiNQodTGlzdFBsYXRmb3JtQ2xpZW50c0J5T3JnSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABIoABChxQbGF0Zm9ybUNsaWVudENyZWF0ZVJlc3BvbnNlEkkKD3BsYXRmb3JtX2NsaWVudBgBIAEoCzIwLmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLlBsYXRmb3JtQ2xpZW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAki6gIKGVVwZGF0ZVBsYXRmb3JtQ2xpZW50SW5wdXQSSgoIcmVzb3VyY2UYASABKAsyMC5haS5zdGlnbWVyLmlhbS5wbGF0Zm9ybWNsaWVudC52MS5QbGF0Zm9ybUNsaWVudEIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOscBukjDARrAAQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQST3Jlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHBsYXRmb3JtIGNsaWVudCBieSBpdHMgaWQaVGhhcyh0aGlzLnJlc291cmNlKSAmJiBoYXModGhpcy5yZXNvdXJjZS5tZXRhZGF0YSkgJiYgdGhpcy5yZXNvdXJjZS5tZXRhZGF0YS5pZCAhPSAnJ2IGcHJvdG8z", [file_ai_stigmer_iam_platformclient_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * PlatformClientId identifies a platform client by its unique identifier.
@@ -115,4 +117,37 @@ export type PlatformClientCreateResponse = Message<"ai.stigmer.iam.platformclien
  */
 export const PlatformClientCreateResponseSchema: GenMessage<PlatformClientCreateResponse> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_platformclient_v1_io, 3);
+
+/**
+ * The changes an update makes to a platform client: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput
+ */
+export type UpdatePlatformClientInput = Message<"ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput"> & {
+  /**
+   * The platform client carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.iam.platformclient.v1.PlatformClient resource = 1;
+   */
+  resource?: PlatformClient;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput.
+ * Use `create(UpdatePlatformClientInputSchema)` to create a new message.
+ */
+export const UpdatePlatformClientInputSchema: GenMessage<UpdatePlatformClientInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_platformclient_v1_io, 4);
 

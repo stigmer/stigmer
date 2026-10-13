@@ -27,10 +27,10 @@ var File_ai_stigmer_iam_identityaccount_v1_command_proto protoreflect.FileDescri
 
 const file_ai_stigmer_iam_identityaccount_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/iam/identityaccount/v1/command.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xe3\v\n" +
+	"/ai/stigmer/iam/identityaccount/v1/command.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xf7\v\n" +
 	" IdentityAccountCommandController\x12v\n" +
-	"\x06create\x122.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"\x04и\x18\x01\x12\xb0\x01\n" +
-	"\x06update\x122.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\">¸\x18:\b\x02\x10\v\"\vmetadata.id*'unauthorized to update identity account\x12\xac\x01\n" +
+	"\x06create\x122.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"\x04и\x18\x01\x12\xc4\x01\n" +
+	"\x06update\x12=.ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"G¸\x18C\b\x02\x10\v\"\x14resource.metadata.id*'unauthorized to update identity account\x12\xac\x01\n" +
 	"\x06delete\x124.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"8¸\x184\b\x03\x10\v\"\x05value*'unauthorized to delete identity account\x12\xda\x01\n" +
 	"\x16createFederatedAccount\x12>.ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"L¸\x18H\b\x15\x10\x1e\"\x03org*=unauthorized to create identity accounts in this organization\x12\xda\x01\n" +
 	"\x16updateFederatedAccount\x12>.ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"L¸\x18H\b\x15\x10\x1e\"\x03org*=unauthorized to manage identity accounts in this organization\x12\xe4\x01\n" +
@@ -41,22 +41,23 @@ const file_ai_stigmer_iam_identityaccount_v1_command_proto_rawDesc = "" +
 
 var file_ai_stigmer_iam_identityaccount_v1_command_proto_goTypes = []any{
 	(*IdentityAccount)(nil),                  // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	(*IdentityAccountId)(nil),                // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountId
-	(*CreateFederatedAccountInput)(nil),      // 2: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
-	(*UpdateFederatedAccountInput)(nil),      // 3: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
-	(*DeprovisionFederatedAccountInput)(nil), // 4: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
-	(*CreateServiceAccountInput)(nil),        // 5: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput
-	(*emptypb.Empty)(nil),                    // 6: google.protobuf.Empty
+	(*UpdateIdentityAccountInput)(nil),       // 1: ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput
+	(*IdentityAccountId)(nil),                // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountId
+	(*CreateFederatedAccountInput)(nil),      // 3: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
+	(*UpdateFederatedAccountInput)(nil),      // 4: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
+	(*DeprovisionFederatedAccountInput)(nil), // 5: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
+	(*CreateServiceAccountInput)(nil),        // 6: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput
+	(*emptypb.Empty)(nil),                    // 7: google.protobuf.Empty
 }
 var file_ai_stigmer_iam_identityaccount_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.create:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	0, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	1, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountId
-	2, // 3: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.createFederatedAccount:input_type -> ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
-	3, // 4: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.updateFederatedAccount:input_type -> ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
-	4, // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.deprovisionFederatedAccount:input_type -> ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
-	5, // 6: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.createServiceAccount:input_type -> ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput
-	6, // 7: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.provisionMyAccount:input_type -> google.protobuf.Empty
+	1, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update:input_type -> ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput
+	2, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountId
+	3, // 3: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.createFederatedAccount:input_type -> ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
+	4, // 4: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.updateFederatedAccount:input_type -> ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
+	5, // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.deprovisionFederatedAccount:input_type -> ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
+	6, // 6: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.createServiceAccount:input_type -> ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput
+	7, // 7: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.provisionMyAccount:input_type -> google.protobuf.Empty
 	0, // 8: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.create:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
 	0, // 9: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
 	0, // 10: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount

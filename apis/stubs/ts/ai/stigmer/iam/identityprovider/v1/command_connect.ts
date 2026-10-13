@@ -5,6 +5,7 @@
 
 import { IdentityProvider } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { UpdateIdentityProviderInput } from "./io_pbjs";
 import { ApiResourceDeleteInput, RenameInput } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -75,7 +76,8 @@ export const IdentityProviderCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing identity provider.
+     * Update an identity provider: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
      * On Stigmer Enterprise, changing how people sign in is growth the
      * server's license pays for. Once the license and its grace period have
@@ -87,14 +89,25 @@ export const IdentityProviderCommandController = {
      *     identity provider keeps signing people in as it is, and can still
      *     be deleted. No metadata.
      *
-     * An update names the identity provider by its id, and the slug changes
-     * only through rename.
+     * resource.metadata.id names the identity provider; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the identity provider does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the identity provider changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the identity provider kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.update
      */
     update: {
       name: "update",
-      I: IdentityProvider,
+      I: UpdateIdentityProviderInput,
       O: IdentityProvider,
       kind: MethodKind.Unary,
     },

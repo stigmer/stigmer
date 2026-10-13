@@ -13,6 +13,7 @@ from ai.stigmer.iam.identityaccount.v1 import io_pb2
 from ai.stigmer.iam.identityaccount.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import empty_pb2
+from google.protobuf import field_mask_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -31,9 +32,11 @@ class IdentityAccountClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update(self, input: IdentityAccountInput) -> api_pb2.IdentityAccount:
+    def update(self, resource: api_pb2.IdentityAccount, paths: list[str]) -> api_pb2.IdentityAccount:
         try:
-            return self._command.update(input._to_proto())
+            return self._command.update(
+                io_pb2.UpdateIdentityAccountInput(resource=resource, update_mask=field_mask_pb2.FieldMask(paths=paths))
+            )
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

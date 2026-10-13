@@ -1,44 +1,55 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { OAuthAppInput } from "@stigmer/sdk";
-import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { OAuthApp, OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
 /** Return value of {@link useUpdateOAuthApp}. */
 export interface UseUpdateOAuthAppReturn {
-  /** Submit an {@link OAuthAppInput} to update an existing OAuth app. Resolves with the updated resource. */
-  readonly update: (input: OAuthAppInput) => Promise<OAuthApp>;
-  /** `true` while the update request is in flight. */
+  /**
+   * Update an OAuth app: the fields `paths` names take their values from
+   * `resource`, and every other field keeps its stored value. Resolves
+   * with the updated resource.
+   */
+  readonly update: (
+    resource: OAuthApp | MessageInitShape<typeof OAuthAppSchema>,
+    paths: string[],
+  ) => Promise<OAuthApp>;
+  /** `true` while the update RPC is in flight. */
   readonly isUpdating: boolean;
   /** Error from the last failed update, or `null` when healthy. */
   readonly error: Error | null;
-  /** Reset `error` to `null`. */
+  /** Reset the error state to `null`. */
   readonly clearError: () => void;
 }
 
 /**
- * Mutation hook that wraps `oauthapp.update()` with loading and error
- * state.
+ * Mutation hook that wraps `oauthapp.update(resource, paths)` with
+ * loading and error state.
  *
- * Updates an existing OAuth app. The input must include the `name` and
- * `org` fields to identify the target resource, along with the updated
- * spec fields. Omit `clientSecret` to leave the existing secret
- * unchanged.
+ * `resource` names the OAuth app by `metadata.id`, and `paths` names the
+ * fields the update changes (proto field paths such as
+ * `spec.scopes`). Every field it does not name keeps its stored value, so
+ * a teammate's change to another field survives the save. A OAuth app read
+ * carries `metadata.etag`: sent back, the update is refused (ABORTED,
+ * reason `ETAG_MISMATCH`) if the OAuth app changed since it was read.
+ *
+ * A secret the update does not name keeps its stored value: name
+ * `spec.client_secret` only to replace it.
  *
  * @example
  * ```tsx
  * const { update, isUpdating, error } = useUpdateOAuthApp();
  *
- * await update({
- *   name: "My Slack App",
- *   org: "acme",
- *   provider: "Slack",
- *   clientId: "123456.789012",
- *   authorizationUrl: "https://slack.com/oauth/v2/authorize",
- *   tokenUrl: "https://slack.com/api/oauth.v2.access",
- * });
+ * await update(
+ *   {
+ *     metadata: { id: app.metadata!.id, etag: app.metadata!.etag },
+ *     spec: { scopes: ["chat:write", "users:read"] },
+ *   },
+ *   ["spec.scopes"],
+ * );
  * ```
  */
 export function useUpdateOAuthApp(): UseUpdateOAuthAppReturn {
@@ -49,12 +60,15 @@ export function useUpdateOAuthApp(): UseUpdateOAuthAppReturn {
   const clearError = useCallback(() => setError(null), []);
 
   const update = useCallback(
-    async (input: OAuthAppInput): Promise<OAuthApp> => {
+    async (
+      resource: OAuthApp | MessageInitShape<typeof OAuthAppSchema>,
+      paths: string[],
+    ): Promise<OAuthApp> => {
       setIsUpdating(true);
       setError(null);
 
       try {
-        return await stigmer.oauthapp.update(input);
+        return await stigmer.oauthapp.update(resource, paths);
       } catch (err) {
         setError(toError(err));
         throw err;

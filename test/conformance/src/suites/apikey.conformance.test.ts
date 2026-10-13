@@ -139,7 +139,7 @@ describe("ApiKey conformance", () => {
     const created = await createKey(org);
     const expiry = new Date("2030-06-01T00:00:00Z");
 
-    const updated = await clients.apiKeyCommand.update({
+    const updated = await clients.apiKeyCommand.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: {
@@ -148,19 +148,16 @@ describe("ApiKey conformance", () => {
         org: created.metadata?.org ?? "",
       },
       spec: {
-        // The stored hash echoed back unchanged — full-spec-replacement
-        // update semantics without touching key material (see header).
-        keyHash: storageHash(created.spec?.keyHash ?? ""),
-        fingerprint: created.spec?.fingerprint ?? "",
         expiresAt: timestampFromDate(expiry),
         neverExpires: true,
       },
-    });
+    }, updateMask: { paths: ["spec.expires_at", "spec.never_expires"] } });
 
     expect(updated.spec?.expiresAt?.seconds).toBe(
       BigInt(Math.floor(expiry.getTime() / 1000)),
     );
     expect(updated.spec?.neverExpires).toBe(true);
+    expect(updated.spec?.keyHash, "the key material it does not name stays").toBe(storageHash(created.spec?.keyHash ?? ""));
     expect(updated.status?.audit?.specAudit?.event).toBe("updated");
   });
 
@@ -170,7 +167,7 @@ describe("ApiKey conformance", () => {
     const plaintext = created.spec?.keyHash ?? "";
     const storedHash = storageHash(plaintext);
 
-    const updated = await clients.apiKeyCommand.update({
+    const updated = await clients.apiKeyCommand.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: {
@@ -186,7 +183,7 @@ describe("ApiKey conformance", () => {
         fingerprint: "forged",
         neverExpires: true,
       },
-    });
+    }, updateMask: { paths: ["*"] } });
 
     expect(
       updated.spec?.keyHash,

@@ -1,13 +1,15 @@
 /**
  * The one place a person's rating becomes a score write: the SDK input
- * for a new rating and the one that changes an existing rating. Both
+ * for a new rating and the update that changes an existing rating (its
+ * thumbs and comment alone, on the score as read, with its etag). Both
  * hooks build their requests here, so the shape of a rating (its metric,
  * its source, the thumbs as the spec's `passed` value, an empty metadata
  * name the server fills with the score's id) is stated once.
  */
-import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
+import type { MessageInitShape } from "@bufbuild/protobuf";
+import type { Score, ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-import { toScoreUpdateInput, type ScoreInput } from "@stigmer/sdk";
+import type { ScoreInput } from "@stigmer/sdk";
 import { FEEDBACK_METRIC } from "./score-view.js";
 
 /** A person's rating of one run. */
@@ -40,14 +42,19 @@ export function ratingCreateInput(rating: RunRating): ScoreInput {
   };
 }
 
-/** The input that changes an existing rating's thumbs and comment. */
-export function ratingUpdateInput(
+/** The fields a change of a rating names. */
+export const RATING_UPDATE_PATHS: ReadonlyArray<string> = ["spec.passed", "spec.comment"];
+
+/** The update that changes an existing rating's thumbs and comment, and nothing else. */
+export function ratingUpdate(
   existing: Score,
   change: { readonly passed: boolean; readonly comment?: string },
-): ScoreInput {
+): { resource: MessageInitShape<typeof ScoreSchema>; paths: string[] } {
   return {
-    ...toScoreUpdateInput(existing),
-    passed: change.passed,
-    comment: change.comment ?? "",
+    resource: {
+      metadata: { id: existing.metadata?.id ?? "", etag: existing.metadata?.etag ?? "" },
+      spec: { value: { case: "passed", value: change.passed }, comment: change.comment ?? "" },
+    },
+    paths: [...RATING_UPDATE_PATHS],
   };
 }

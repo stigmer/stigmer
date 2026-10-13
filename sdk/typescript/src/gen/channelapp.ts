@@ -3,11 +3,11 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ChannelAppSchema, type ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
-import { ListChannelAppsByOrgInputSchema, ChannelAppsSchema, type ListChannelAppsByOrgInput, type ChannelApps } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { UpdateChannelAppInputSchema, ListChannelAppsByOrgInputSchema, ChannelAppsSchema, type ListChannelAppsByOrgInput, type ChannelApps } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { ChannelAppSpecSchema, SlackChannelAppConfigSchema, WhatsAppChannelAppConfigSchema, type SlackChannelAppConfig, type WhatsAppChannelAppConfig } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -37,9 +37,9 @@ export class ChannelAppClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: ChannelAppInput): Promise<ChannelApp> {
+  async update(resource: ChannelApp | MessageInitShape<typeof ChannelAppSchema>, paths: string[]): Promise<ChannelApp> {
     try {
-      return await this.command.update(buildChannelAppProto(input));
+      return await this.command.update(create(UpdateChannelAppInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -78,13 +78,13 @@ export class ChannelAppClient {
   }
 }
 
-/** Input for creating/updating a ChannelApp. */
+/** Input for creating or applying a ChannelApp. */
 export interface ChannelAppInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -169,24 +169,22 @@ function toWhatsAppChannelAppConfigInput(msg: WhatsAppChannelAppConfig): WhatsAp
 }
 
 /**
- * Maps a fetched {@link ChannelApp} to a complete {@link ChannelAppInput} for `update()`.
+ * Maps a fetched {@link ChannelApp} to the complete {@link ChannelAppInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toChannelAppInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toChannelAppUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toChannelAppUpdateInput(resource: ChannelApp): ChannelAppInput {
+export function toChannelAppInput(resource: ChannelApp): ChannelAppInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(ChannelAppSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

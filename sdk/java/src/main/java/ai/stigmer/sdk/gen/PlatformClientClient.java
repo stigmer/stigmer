@@ -18,6 +18,8 @@ import ai.stigmer.iam.platformclient.v1.PlatformClientId;
 import ai.stigmer.iam.platformclient.v1.PlatformClientQueryControllerGrpc;
 import ai.stigmer.iam.platformclient.v1.PlatformClientTokenControllerGrpc;
 import ai.stigmer.iam.platformclient.v1.PlatformClients;
+import ai.stigmer.iam.platformclient.v1.UpdatePlatformClientInput;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -39,9 +41,12 @@ public final class PlatformClientClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public PlatformClient update(PlatformClientInput input) {
+    public PlatformClient update(PlatformClient resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdatePlatformClientInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

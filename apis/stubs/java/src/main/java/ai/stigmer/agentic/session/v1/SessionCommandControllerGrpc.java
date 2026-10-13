@@ -77,27 +77,27 @@ public final class SessionCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.Session,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionInput,
       ai.stigmer.agentic.session.v1.Session> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.agentic.session.v1.Session.class,
+      requestType = ai.stigmer.agentic.session.v1.UpdateSessionInput.class,
       responseType = ai.stigmer.agentic.session.v1.Session.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.Session,
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionInput,
       ai.stigmer.agentic.session.v1.Session> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.Session, ai.stigmer.agentic.session.v1.Session> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionInput, ai.stigmer.agentic.session.v1.Session> getUpdateMethod;
     if ((getUpdateMethod = SessionCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (SessionCommandControllerGrpc.class) {
         if ((getUpdateMethod = SessionCommandControllerGrpc.getUpdateMethod) == null) {
           SessionCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.Session, ai.stigmer.agentic.session.v1.Session>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.UpdateSessionInput, ai.stigmer.agentic.session.v1.Session>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.session.v1.Session.getDefaultInstance()))
+                  ai.stigmer.agentic.session.v1.UpdateSessionInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.session.v1.Session.getDefaultInstance()))
               .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("update"))
@@ -325,6 +325,37 @@ public final class SessionCommandControllerGrpc {
     return getAppendEventsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.BindHarnessStateInput,
+      ai.stigmer.agentic.session.v1.BindHarnessStateResponse> getBindHarnessStateMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "bindHarnessState",
+      requestType = ai.stigmer.agentic.session.v1.BindHarnessStateInput.class,
+      responseType = ai.stigmer.agentic.session.v1.BindHarnessStateResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.BindHarnessStateInput,
+      ai.stigmer.agentic.session.v1.BindHarnessStateResponse> getBindHarnessStateMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.BindHarnessStateInput, ai.stigmer.agentic.session.v1.BindHarnessStateResponse> getBindHarnessStateMethod;
+    if ((getBindHarnessStateMethod = SessionCommandControllerGrpc.getBindHarnessStateMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getBindHarnessStateMethod = SessionCommandControllerGrpc.getBindHarnessStateMethod) == null) {
+          SessionCommandControllerGrpc.getBindHarnessStateMethod = getBindHarnessStateMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.BindHarnessStateInput, ai.stigmer.agentic.session.v1.BindHarnessStateResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "bindHarnessState"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.BindHarnessStateInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.BindHarnessStateResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("bindHarnessState"))
+              .build();
+        }
+      }
+    }
+    return getBindHarnessStateMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -413,10 +444,22 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing session (e.g., subject, thread_id).
+     * Update a session: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the session; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the session does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the session kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.agentic.session.v1.Session request,
+    default void update(ai.stigmer.agentic.session.v1.UpdateSessionInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -558,6 +601,19 @@ public final class SessionCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAppendEventsMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Record the harness's conversation id for a run's session.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. The id replaced, if any, joins the session's
+     * harness_state_id_history.
+     * </pre>
+     */
+    default void bindHarnessState(ai.stigmer.agentic.session.v1.BindHarnessStateInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.BindHarnessStateResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getBindHarnessStateMethod(), responseObserver);
+    }
   }
 
   /**
@@ -617,10 +673,22 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing session (e.g., subject, thread_id).
+     * Update a session: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the session; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the session does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the session kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.agentic.session.v1.Session request,
+    public void update(ai.stigmer.agentic.session.v1.UpdateSessionInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -770,6 +838,20 @@ public final class SessionCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getAppendEventsMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Record the harness's conversation id for a run's session.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. The id replaced, if any, joins the session's
+     * harness_state_id_history.
+     * </pre>
+     */
+    public void bindHarnessState(ai.stigmer.agentic.session.v1.BindHarnessStateInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.BindHarnessStateResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getBindHarnessStateMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -813,10 +895,22 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing session (e.g., subject, thread_id).
+     * Update a session: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the session; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the session does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the session kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.session.v1.Session update(ai.stigmer.agentic.session.v1.Session request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.session.v1.Session update(ai.stigmer.agentic.session.v1.UpdateSessionInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -958,6 +1052,19 @@ public final class SessionCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getAppendEventsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Record the harness's conversation id for a run's session.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. The id replaced, if any, joins the session's
+     * harness_state_id_history.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.BindHarnessStateResponse bindHarnessState(ai.stigmer.agentic.session.v1.BindHarnessStateInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getBindHarnessStateMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -1001,10 +1108,22 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing session (e.g., subject, thread_id).
+     * Update a session: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the session; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the session does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the session kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.agentic.session.v1.Session update(ai.stigmer.agentic.session.v1.Session request) {
+    public ai.stigmer.agentic.session.v1.Session update(ai.stigmer.agentic.session.v1.UpdateSessionInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -1146,6 +1265,19 @@ public final class SessionCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getAppendEventsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Record the harness's conversation id for a run's session.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. The id replaced, if any, joins the session's
+     * harness_state_id_history.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.BindHarnessStateResponse bindHarnessState(ai.stigmer.agentic.session.v1.BindHarnessStateInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getBindHarnessStateMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -1191,11 +1323,23 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing session (e.g., subject, thread_id).
+     * Update a session: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the session; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the session does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the session kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> update(
-        ai.stigmer.agentic.session.v1.Session request) {
+        ai.stigmer.agentic.session.v1.UpdateSessionInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -1344,6 +1488,20 @@ public final class SessionCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getAppendEventsMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Record the harness's conversation id for a run's session.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. The id replaced, if any, joins the session's
+     * harness_state_id_history.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.BindHarnessStateResponse> bindHarnessState(
+        ai.stigmer.agentic.session.v1.BindHarnessStateInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getBindHarnessStateMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -1356,6 +1514,7 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_INTERRUPT = 7;
   private static final int METHODID_DELETE = 8;
   private static final int METHODID_APPEND_EVENTS = 9;
+  private static final int METHODID_BIND_HARNESS_STATE = 10;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1383,7 +1542,7 @@ public final class SessionCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.agentic.session.v1.Session) request,
+          serviceImpl.update((ai.stigmer.agentic.session.v1.UpdateSessionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
           break;
         case METHODID_UPDATE_SUBJECT:
@@ -1413,6 +1572,10 @@ public final class SessionCommandControllerGrpc {
         case METHODID_APPEND_EVENTS:
           serviceImpl.appendEvents((ai.stigmer.agentic.session.v1.AppendSessionEventsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse>) responseObserver);
+          break;
+        case METHODID_BIND_HARNESS_STATE:
+          serviceImpl.bindHarnessState((ai.stigmer.agentic.session.v1.BindHarnessStateInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.BindHarnessStateResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1450,7 +1613,7 @@ public final class SessionCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.session.v1.Session,
+              ai.stigmer.agentic.session.v1.UpdateSessionInput,
               ai.stigmer.agentic.session.v1.Session>(
                 service, METHODID_UPDATE)))
         .addMethod(
@@ -1502,6 +1665,13 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.AppendSessionEventsInput,
               ai.stigmer.agentic.session.v1.AppendSessionEventsResponse>(
                 service, METHODID_APPEND_EVENTS)))
+        .addMethod(
+          getBindHarnessStateMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.BindHarnessStateInput,
+              ai.stigmer.agentic.session.v1.BindHarnessStateResponse>(
+                service, METHODID_BIND_HARNESS_STATE)))
         .build();
   }
 
@@ -1560,6 +1730,7 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getInterruptMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getAppendEventsMethod())
+              .addMethod(getBindHarnessStateMethod())
               .build();
         }
       }

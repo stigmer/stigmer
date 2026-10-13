@@ -41,6 +41,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsByOrgInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_oauthapp_v1_UpdateOAuthAppInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_oauthapp_v1_UpdateOAuthAppInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -53,21 +58,32 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n#ai/stigmer/iam/oauthapp/v1/io.proto\022\032a" +
       "i.stigmer.iam.oauthapp.v1\032$ai/stigmer/ia" +
       "m/oauthapp/v1/api.proto\032\033buf/validate/va" +
-      "lidate.proto\"-\n\nOAuthAppId\022\037\n\005value\030\001 \001(" +
-      "\tB\t\272H\006r\004\020\001\030@R\005value\"K\n\tOAuthApps\022>\n\007entr" +
-      "ies\030\001 \003(\0132$.ai.stigmer.iam.oauthapp.v1.O" +
-      "AuthAppR\007entries\"4\n\027ListOAuthAppsByOrgIn" +
-      "put\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003orgB\226\001B\007IoPro" +
-      "toP\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam.Oauthapp.V1" +
-      "\312\002\032Ai\\Stigmer\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigm" +
-      "er\\Iam\\Oauthapp\\V1\\GPBMetadata\352\002\036Ai::Sti" +
-      "gmer::Iam::Oauthapp::V1b\006proto3"
+      "lidate.proto\032 google/protobuf/field_mask" +
+      ".proto\"-\n\nOAuthAppId\022\037\n\005value\030\001 \001(\tB\t\272H\006" +
+      "r\004\020\001\030@R\005value\"K\n\tOAuthApps\022>\n\007entries\030\001 " +
+      "\003(\0132$.ai.stigmer.iam.oauthapp.v1.OAuthAp" +
+      "pR\007entries\"4\n\027ListOAuthAppsByOrgInput\022\031\n" +
+      "\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"\350\002\n\023UpdateOAuth" +
+      "AppInput\022H\n\010resource\030\001 \001(\0132$.ai.stigmer." +
+      "iam.oauthapp.v1.OAuthAppB\006\272H\003\330\001\003R\010resour" +
+      "ce\022C\n\013update_mask\030\002 \001(\0132\032.google.protobu" +
+      "f.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\301\001\272H\275\001\032\272" +
+      "\001\n\027update_names_its_target\022Iresource.met" +
+      "adata.id is required: an update names th" +
+      "e OAuth app by its id\032Thas(this.resource" +
+      ") && has(this.resource.metadata) && this" +
+      ".resource.metadata.id != \'\'B\226\001B\007IoProtoP" +
+      "\001\242\002\004ASIO\252\002\032Ai.Stigmer.Iam.Oauthapp.V1\312\002\032" +
+      "Ai\\Stigmer\\Iam\\Oauthapp\\V1\342\002&Ai\\Stigmer\\" +
+      "Iam\\Oauthapp\\V1\\GPBMetadata\352\002\036Ai::Stigme" +
+      "r::Iam::Oauthapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.iam.oauthapp.v1.ApiProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.FieldMaskProto.getDescriptor(),
         });
     internal_static_ai_stigmer_iam_oauthapp_v1_OAuthAppId_descriptor =
       getDescriptor().getMessageType(0);
@@ -87,12 +103,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_oauthapp_v1_ListOAuthAppsByOrgInput_descriptor,
         new java.lang.String[] { "Org", });
+    internal_static_ai_stigmer_iam_oauthapp_v1_UpdateOAuthAppInput_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_iam_oauthapp_v1_UpdateOAuthAppInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_oauthapp_v1_UpdateOAuthAppInput_descriptor,
+        new java.lang.String[] { "Resource", "UpdateMask", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.iam.oauthapp.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.FieldMaskProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

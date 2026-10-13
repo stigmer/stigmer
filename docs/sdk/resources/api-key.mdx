@@ -52,7 +52,7 @@ ApiKey apiKey = client.apiKeys().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`findAll`](#findall) | List all API keys belonging to the authenticated user. |
 | [`findByAccount`](#findbyaccount) | List the API keys that speak for an identity account. |
 | [`create`](#create) | Create an API key for the authenticated user. |
-| [`update`](#update) | Update an existing API key. |
+| [`update`](#update) | Update an API key: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete an API key. |
 | [`createForServiceAccount`](#createforserviceaccount) | Create an API key for a service account. |
 
@@ -275,72 +275,52 @@ ApiKey apiKey = client.apiKeys().create(ApiKeyInput.builder()
 
 ### update
 
-Update an existing API key.
+Update an API key: the fields update_mask names change, every other field keeps its stored value.
+
+resource.metadata.id names the API key; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the API key does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the API key changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the API key kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const apiKey = await stigmer.apiKey.update({
-  name: "my-api-key",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  keyHash: "...",
-  fingerprint: "...",
-  expiresAt: "...",
-  neverExpires: false,
-  boundOrg: "...",
-});
+const apiKey = await stigmer.apiKey.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
+apiKey.metadata!.name = "New name";
+const updated = await stigmer.apiKey.update(apiKey, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-apiKey, err := client.ApiKey.Update(ctx, &stigmer.ApiKeyInput{
-  Name:         "my-api-key",
-  Org:          "acme",
-  Slug:         "...",
-  Labels:       map[string]string{},
-  KeyHash:      "...",
-  Fingerprint:  "...",
-  ExpiresAt:    "...",
-  NeverExpires: false,
-  BoundOrg:     "...",
-})
+apiKey, err := client.ApiKey.Get(ctx, "key_01j5q3k7m8r2s4tnz2hfp0q0c3")
+apiKey.Metadata.Name = "New name"
+updated, err := client.ApiKey.Update(ctx, apiKey, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-api_key = client.api_keys.update(ApiKeyInput(
-    name="my-api-key",
-    org="acme",
-    slug="...",
-    labels={},
-    key_hash="...",
-    fingerprint="...",
-    expires_at="...",
-    never_expires=False,
-    bound_org="...",
-))
+api_key = client.api_keys.get("key_01j5q3k7m8r2s4tnz2hfp0q0c3")
+api_key.metadata.name = "New name"
+updated = client.api_keys.update(api_key, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKeys().update(ApiKeyInput.builder()
-    .name("my-api-key")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .keyHash("...")
-    .fingerprint("...")
-    .expiresAt("...")
-    .neverExpires(false)
-    .boundOrg("...")
-    .build());
+ApiKey apiKey = client.apiKeys().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
+ApiKey updated = client.apiKeys().update(
+    apiKey.toBuilder().setMetadata(apiKey.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ApiKeyInput`](#apikeyinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`ApiKey`](#apikey) | The api key, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`ApiKey`](#apikey)
 
@@ -464,6 +444,17 @@ CreateServiceAccountKeyInput is the command for creating an API key that speaks 
     name: { type: "string", description: "The key's name, shown beside its fingerprint (e.g., \"github-actions\").", required: true },
     expiresAt: { type: "string", description: "Expiration time for the key." },
     neverExpires: { type: "boolean", description: "When true, the key never expires regardless of expires_at." },
+  }}
+/>
+
+### UpdateApiKeyInput
+
+The changes an update makes to an API key: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "ApiKeyInput", description: "The API key carrying the new values, named by metadata.id.", typeDescriptionLink: "#apikeyinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

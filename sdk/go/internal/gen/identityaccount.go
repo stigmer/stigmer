@@ -10,6 +10,7 @@ import (
 	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 // IdentityAccountClient provides operations on identityaccount resources.
@@ -34,12 +35,11 @@ func (i *IdentityAccountClient) Create(ctx context.Context, input *IdentityAccou
 	return resp, wrapErr(err)
 }
 
-func (i *IdentityAccountClient) Update(ctx context.Context, input *IdentityAccountInput) (*identityaccountv1.IdentityAccount, error) {
-	req, err := input.toProto()
-	if err != nil {
-		return nil, invalidInputErr(err)
-	}
-	resp, err := i.command.Update(ctx, req)
+func (i *IdentityAccountClient) Update(ctx context.Context, resource *identityaccountv1.IdentityAccount, paths []string) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.command.Update(ctx, &identityaccountv1.UpdateIdentityAccountInput{
+		Resource:   resource,
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: paths},
+	})
 	return resp, wrapErr(err)
 }
 
@@ -108,12 +108,12 @@ func (i *IdentityAccountClient) GetActorInfo(ctx context.Context, id string) (*a
 	return resp, wrapErr(err)
 }
 
-// IdentityAccountInput holds the fields for creating/updating a IdentityAccount.
+// IdentityAccountInput holds the fields for creating or applying a IdentityAccount.
 type IdentityAccountInput struct {
-	// Id is the resource's metadata.id, for exact update addressing when
-	// set from a loaded resource. Required for updates to platform-scoped
-	// (org-less) kinds, where the org+slug fallback cannot match. Ignored
-	// on create: the server assigns every new resource's id.
+	// Id is the resource's metadata.id: an apply that carries it changes
+	// that resource, whatever its slug. Ignored on create: the server
+	// assigns every new resource's id. An update takes the resource
+	// itself and the paths it changes.
 	Id                  string
 	Name                string
 	Slug                string

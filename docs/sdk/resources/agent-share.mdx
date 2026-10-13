@@ -74,7 +74,7 @@ AgentShare agentShare = client.agentShares().get("ash_01j5q3k7m8r2s4tnz2hfp0q0c3
 | [`list`](#list) | List agent shares with optional label filtering. |
 | [`apply`](#apply) | Create or update an agent share. |
 | [`create`](#create) | Create an agent share. |
-| [`update`](#update) | Update an existing agent share. |
+| [`update`](#update) | Update an agent share: the fields update_mask names change, every other field keeps its stored value. |
 | [`delete`](#delete) | Delete an agent share. |
 | [`rotateShareLink`](#rotatesharelink) | Rotate the share's link token. |
 
@@ -512,82 +512,54 @@ AgentShare agentShare = client.agentShares().create(AgentShareInput.builder()
 
 ### update
 
-Update an existing agent share.
+Update an agent share: the fields update_mask names change, every other field keeps its stored value.
 
-Replaces the spec wholesale: a manifest that omits audience makes the share organization-only, and one that omits vaults detaches them (both fail closed). The slug and referenced agent are immutable.
+The referenced agent is immutable. A mask naming the audience or the vaults replaces them whole: an empty audience makes the share organization-only, and empty vaults detach them (both fail closed).
+
+resource.metadata.id names the agent share; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the agent share does not have, is refused with INVALID_ARGUMENT naming the path.
+
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the agent share changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the agent share kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentShare = await stigmer.agentShare.update({
-  name: "my-agent-share",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  agentRef: {},
-  enabled: false,
-  audience: "...",
-  allowedOrigins: [],
-  messages: {},
-  vaults: [],
-  runConfig: {},
-});
+const agentShare = await stigmer.agentShare.get("ash_01j5q3k7m8r2s4tnz2hfp0q0c3");
+agentShare.metadata!.name = "New name";
+const updated = await stigmer.agentShare.update(agentShare, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-agentShare, err := client.AgentShare.Update(ctx, &stigmer.AgentShareInput{
-  Name:           "my-agent-share",
-  Org:            "acme",
-  Slug:           "...",
-  Labels:         map[string]string{},
-  AgentRef:       &stigmer.ResourceRef{},
-  Enabled:        false,
-  Audience:       "...",
-  AllowedOrigins: []string{},
-  Messages:       &stigmer.AgentShareMessagesInput{},
-  Vaults:         []stigmer.ResourceRef{},
-  RunConfig:      &stigmer.RunConfigInput{},
-})
+agentShare, err := client.AgentShare.Get(ctx, "ash_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agentShare.Metadata.Name = "New name"
+updated, err := client.AgentShare.Update(ctx, agentShare, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-agent_share = client.agent_shares.update(AgentShareInput(
-    name="my-agent-share",
-    org="acme",
-    slug="...",
-    labels={},
-    agent_ref=None,
-    enabled=False,
-    audience="...",
-    allowed_origins=[],
-    messages=None,
-    vaults=[],
-    run_config=None,
-))
+agent_share = client.agent_shares.get("ash_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent_share.metadata.name = "New name"
+updated = client.agent_shares.update(agent_share, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentShare agentShare = client.agentShares().update(AgentShareInput.builder()
-    .name("my-agent-share")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .agentRef(null)
-    .enabled(false)
-    .audience("...")
-    .allowedOrigins(List.of())
-    .messages(null)
-    .vaults(List.of())
-    .runConfig(null)
-    .build());
+AgentShare agentShare = client.agentShares().get("ash_01j5q3k7m8r2s4tnz2hfp0q0c3");
+AgentShare updated = client.agentShares().update(
+    agentShare.toBuilder().setMetadata(agentShare.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`AgentShareInput`](#agentshareinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`AgentShare`](#agentshare) | The agent share, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`AgentShare`](#agentshare)
 
@@ -731,6 +703,17 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
+### UpdateAgentShareInput
+
+The changes an update makes to an agent share: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "AgentShareInput", description: "The agent share carrying the new values, named by metadata.id.", typeDescriptionLink: "#agentshareinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

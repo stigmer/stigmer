@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AppendSessionEventsInput, AppendSessionEventsResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { AppendSessionEventsInput, AppendSessionEventsResponse, BindHarnessStateInput, BindHarnessStateResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
 import { SessionEvent } from "./event_pbjs";
 
 /**
@@ -39,13 +39,28 @@ export const SessionCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing session (e.g., subject, thread_id).
+     * Update a session: the fields update_mask names change, every other
+     * field keeps its stored value.
+     *
+     * resource.metadata.id names the session; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the session does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the session changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the session kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.update
      */
     update: {
       name: "update",
-      I: Session,
+      I: UpdateSessionInput,
       O: Session,
       kind: MethodKind.Unary,
     },
@@ -216,6 +231,21 @@ export const SessionCommandController = {
       name: "appendEvents",
       I: AppendSessionEventsInput,
       O: AppendSessionEventsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Record the harness's conversation id for a run's session.
+     *
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. The id replaced, if any, joins the session's
+     * harness_state_id_history.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.bindHarnessState
+     */
+    bindHarnessState: {
+      name: "bindHarnessState",
+      I: BindHarnessStateInput,
+      O: BindHarnessStateResponse,
       kind: MethodKind.Unary,
     },
   }

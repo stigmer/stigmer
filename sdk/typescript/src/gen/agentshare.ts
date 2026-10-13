@@ -3,11 +3,11 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined, toResourceRefInput, toResourceRefInputs } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentShareSchema, type AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
-import { AgentShareIdSchema, RotateShareLinkInputSchema, GetAgentSharesByAgentRequestSchema, AgentShareListSchema, ListAgentSharesRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema, type RotateShareLinkInput, type GetAgentSharesByAgentRequest, type AgentShareList, type ListAgentSharesRequest, type GetSharedProfileRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { AgentShareIdSchema, UpdateAgentShareInputSchema, RotateShareLinkInputSchema, GetAgentSharesByAgentRequestSchema, AgentShareListSchema, ListAgentSharesRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema, type RotateShareLinkInput, type GetAgentSharesByAgentRequest, type AgentShareList, type ListAgentSharesRequest, type GetSharedProfileRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { AgentShareSpecSchema, AgentShareAudience, AgentShareMessagesSchema, type AgentShareMessages } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -39,9 +39,9 @@ export class AgentShareClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: AgentShareInput): Promise<AgentShare> {
+  async update(resource: AgentShare | MessageInitShape<typeof AgentShareSchema>, paths: string[]): Promise<AgentShare> {
     try {
-      return await this.command.update(buildAgentShareProto(input));
+      return await this.command.update(create(UpdateAgentShareInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -94,13 +94,13 @@ export class AgentShareClient {
   }
 }
 
-/** Input for creating/updating an AgentShare. */
+/** Input for creating or applying an AgentShare. */
 export interface AgentShareInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -201,24 +201,22 @@ function toRunConfigInput(msg: RunConfig): RunConfigInput {
 }
 
 /**
- * Maps a fetched {@link AgentShare} to a complete {@link AgentShareInput} for `update()`.
+ * Maps a fetched {@link AgentShare} to the complete {@link AgentShareInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toAgentShareInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toAgentShareUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toAgentShareUpdateInput(resource: AgentShare): AgentShareInput {
+export function toAgentShareInput(resource: AgentShare): AgentShareInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(AgentShareSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

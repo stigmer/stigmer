@@ -7,13 +7,15 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { IdentityProvider } from "./api_pb.js";
 import { file_ai_stigmer_iam_identityprovider_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/iam/identityprovider/v1/io.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQAWIGcHJvdG8z", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxIi4KEklkZW50aXR5UHJvdmlkZXJJZBIYCgV2YWx1ZRgBIAEoCUIJukgGcgQQARhAIloKEUlkZW50aXR5UHJvdmlkZXJzEkUKB2VudHJpZXMYASADKAsyNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIicgoUSWRlbnRpdHlQcm92aWRlckxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSRQoHZW50cmllcxgCIAMoCzI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlciI3Ch9MaXN0SWRlbnRpdHlQcm92aWRlcnNCeU9yZ0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASLyAgobVXBkYXRlSWRlbnRpdHlQcm92aWRlcklucHV0Ek4KCHJlc291cmNlGAEgASgLMjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyQga6SAPYAQMSNwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrQga6SAPIAQE6yQG6SMUBGsIBChd1cGRhdGVfbmFtZXNfaXRzX3RhcmdldBJRcmVzb3VyY2UubWV0YWRhdGEuaWQgaXMgcmVxdWlyZWQ6IGFuIHVwZGF0ZSBuYW1lcyB0aGUgaWRlbnRpdHkgcHJvdmlkZXIgYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_identityprovider_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * IdentityProviderId identifies an identity provider by its unique identifier.
@@ -106,4 +108,37 @@ export type ListIdentityProvidersByOrgInput = Message<"ai.stigmer.iam.identitypr
  */
 export const ListIdentityProvidersByOrgInputSchema: GenMessage<ListIdentityProvidersByOrgInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 3);
+
+/**
+ * The changes an update makes to an identity provider: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput
+ */
+export type UpdateIdentityProviderInput = Message<"ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput"> & {
+  /**
+   * The identity provider carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.iam.identityprovider.v1.IdentityProvider resource = 1;
+   */
+  resource?: IdentityProvider;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.identityprovider.v1.UpdateIdentityProviderInput.
+ * Use `create(UpdateIdentityProviderInputSchema)` to create a new message.
+ */
+export const UpdateIdentityProviderInputSchema: GenMessage<UpdateIdentityProviderInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_identityprovider_v1_io, 4);
 

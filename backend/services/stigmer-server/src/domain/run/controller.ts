@@ -36,6 +36,7 @@ import type {
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import type { ApiResourceId } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { UpdateRunInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -90,6 +91,7 @@ import {
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
+import { updateContext } from "../../pipeline/steps/update-input.js";
 import { newRefuseBoundElsewhereStep } from "../../pipeline/steps/refuse-bound-elsewhere.js";
 import { newRunTargetReachableStep } from "../../pipeline/steps/run-target-reachable.js";
 import type { CredentialBinding } from "../../extensions/credential-binding.js";
@@ -317,7 +319,7 @@ export function registerAgentExecutionServices(
   };
   router.service(RunCommandController, {
     create: (execution, ctx) => createExecution(deps, execution, ctx),
-    update: (execution, ctx) => update(deps, execution, ctx),
+    update: (input, ctx) => update(deps, input, ctx),
     updateStatus: (input, ctx) =>
       updateStatus(deps, input, callerIdentityOf(ctx)),
     submitApproval: (input, ctx) =>
@@ -542,13 +544,13 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  */
 async function update(
   deps: AgentExecutionControllerDeps,
-  execution: Run,
+  input: UpdateRunInput,
   ctx: HandlerContext,
 ): Promise<Run> {
   return runGuardedWrite(async () => {
-    const reqCtx = new RequestContext(
+    const reqCtx = updateContext(
       RunSchema,
-      execution,
+      input,
       callerIdentityOf(ctx),
       kindOf(ctx),
     );
@@ -560,12 +562,13 @@ async function update(
         newAuthorizeStep(
           RunCommandController.method.update,
           deps.authorizer,
-        ),
+        input,
+      ),
       )
-      .addStep(newValidateProtoStep())
       .addStep(newResolveSlugStep({ update: true }))
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
+      .addStep(newValidateProtoStep({ of: "state" }))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newKeepPluginEvalCaseStep())
       .addStep(newKeepReconcileFileReviewStep())

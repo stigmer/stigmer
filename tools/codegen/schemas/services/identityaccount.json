@@ -18,11 +18,11 @@
         },
         {
           "name": "Update",
-          "inputType": "IdentityAccount",
-          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "inputType": "UpdateIdentityAccountInput",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput",
           "outputType": "IdentityAccount",
           "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
-          "description": "Update an existing identity account."
+          "description": "Update an identity account: the fields update_mask names change, every other\n field keeps its stored value.\n\n resource.metadata.id names the identity account; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the identity account does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the identity account changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the identity account kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "Delete",
@@ -139,6 +139,39 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateIdentityAccountInput",
+      "description": "The changes an update makes to an identity account: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.iam.identityaccount.v1.UpdateIdentityAccountInput",
+      "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "IdentityAccount"
+          },
+          "description": "The identity account carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "CreateFederatedAccountInput",
       "description": "CreateFederatedAccountInput is the command for creating a federated identity account\n linked to an external platform's identity provider.\n\n Called by platform backends (via API key) when a new user signs up on their platform.\n The platform provides the user's OIDC subject identifier and profile data.\n Under a provider in manual mode the account must exist before the user can\n authenticate; a just-in-time provider creates it on first sign-in.",

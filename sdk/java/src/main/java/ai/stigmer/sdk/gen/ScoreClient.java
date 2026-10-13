@@ -12,6 +12,8 @@ import ai.stigmer.agentic.score.v1.ScoreCommandControllerGrpc;
 import ai.stigmer.agentic.score.v1.ScoreId;
 import ai.stigmer.agentic.score.v1.ScoreList;
 import ai.stigmer.agentic.score.v1.ScoreQueryControllerGrpc;
+import ai.stigmer.agentic.score.v1.UpdateScoreInput;
+import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -31,9 +33,12 @@ public final class ScoreClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Score update(ScoreInput input) {
+    public Score update(Score resource, java.util.List<String> paths) {
         try {
-            return command.update(input.toProto());
+            return command.update(UpdateScoreInput.newBuilder()
+                .setResource(resource)
+                .setUpdateMask(FieldMask.newBuilder().addAllPaths(paths).build())
+                .build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

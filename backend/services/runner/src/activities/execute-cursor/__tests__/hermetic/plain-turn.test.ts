@@ -159,8 +159,8 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     expect(agent.sends[0].hasOnDelta).toBe(true);
 
     // ── Assert: the harness_state_id write-back ─────────────────────────────
-    expect(record.sessionUpdates).toHaveLength(1);
-    expect(record.sessionUpdates[0].spec?.harnessStateId).toBe(AGENT_ID);
+    expect(record.harnessBinds).toHaveLength(1);
+    expect(record.harnessBinds[0].harnessStateId).toBe(AGENT_ID);
 
     // ── Assert: hermeticity ──────────────────────────────────────────────────
     expect(invocation.heartbeats.length, "the whole-activity heartbeat ran").toBeGreaterThan(0);

@@ -5,7 +5,7 @@ import {
   OrganizationSchema,
   type Organization,
 } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import type { OrganizationInput } from "@stigmer/sdk";
+import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import type { UseServerInfoReturn } from "../../server-info";
@@ -99,8 +99,8 @@ describe("OrgPreferencesPanel", () => {
     await findSyncedField("We deploy to us-east-1.");
   });
 
-  it("saves the full mapped input — unedited profile fields survive (wipe-bug guard)", async () => {
-    const update = vi.fn(async (_input: OrganizationInput) => ORG);
+  it("names the standing context alone, on the organization's id — profile fields are not named", async () => {
+    const update = vi.fn(async (_resource: Organization, _paths: string[]) => ORG);
     renderPanel(createMockStigmer({ update }));
 
     const field = await findSyncedField("We deploy to us-east-1.");
@@ -108,21 +108,17 @@ describe("OrgPreferencesPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
+    const sent = sentUpdate<Organization>(update);
 
-    expect(input.preferences).toEqual({
-      standingContext: "Prefer terse answers.",
-    });
-    // Fields this form never renders must round-trip untouched.
-    expect(input.name).toBe("Acme Corp");
-    expect(input.description).toBe("We make everything.");
-    expect(input.logoUrl).toBe("https://acme.example/logo.png");
-    expect(input.id).toBe(ACME_ID);
-    expect(input.slug).toBe("acme");
+    expect(sent.resource.spec?.preferences?.standingContext).toBe("Prefer terse answers.");
+    // The one path: fields this form never renders keep their stored
+    // values without being sent back.
+    expect(sent.paths).toEqual(["spec.preferences.standing_context"]);
+    expect(sent.id).toBe(ACME_ID);
   });
 
   it("clears the standing context when the text is emptied", async () => {
-    const update = vi.fn(async (_input: OrganizationInput) => ORG);
+    const update = vi.fn(async (_resource: Organization, _paths: string[]) => ORG);
     renderPanel(createMockStigmer({ update }));
 
     const field = await findSyncedField("We deploy to us-east-1.");
@@ -130,9 +126,9 @@ describe("OrgPreferencesPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0]![0].preferences).toEqual({
-      standingContext: undefined,
-    });
+    const sent = sentUpdate<Organization>(update);
+    expect(sent.paths).toEqual(["spec.preferences.standing_context"]);
+    expect(sent.resource.spec?.preferences?.standingContext).toBe("");
   });
 
   it("discard resets the field to the server value", async () => {
@@ -158,8 +154,8 @@ describe("OrgPreferencesPanel", () => {
     expect(screen.queryByRole("button", { name: "Save changes" })).toBeNull();
   });
 
-  it("memory toggle applies instantly with the full mapped input (wipe-safe)", async () => {
-    const update = vi.fn(async (_input: OrganizationInput) => ORG);
+  it("memory toggle applies instantly, naming the flag alone", async () => {
+    const update = vi.fn(async (_resource: Organization, _paths: string[]) => ORG);
     renderPanel(createMockStigmer({ update }));
     await findSyncedField("We deploy to us-east-1.");
 
@@ -169,16 +165,14 @@ describe("OrgPreferencesPanel", () => {
     fireEvent.click(screen.getByRole("switch", { name: "Memory" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0]![0];
-    expect(input.preferences?.memoryEnabled).toBe(true);
-    // The double spread: the flip must not wipe the sibling preference…
-    expect(input.preferences?.standingContext).toBe("We deploy to us-east-1.");
-    // …nor any profile field this row never renders.
-    expect(input.name).toBe("Acme Corp");
-    expect(input.description).toBe("We make everything.");
+    const sent = sentUpdate<Organization>(update);
+    expect(sent.resource.spec?.preferences?.memoryEnabled).toBe(true);
+    // The flag alone: the sibling preference and every profile field keep
+    // their stored values without being sent back.
+    expect(sent.paths).toEqual(["spec.preferences.memory_enabled"]);
   });
 
-  it("saving standing context preserves memory_enabled (the wipe-hazard regression)", async () => {
+  it("saving standing context does not name memory_enabled, so it stays (the wipe-hazard regression)", async () => {
     const orgWithMemoryOn = create(OrganizationSchema, {
       metadata: { id: ACME_ID, name: "Acme Corp", slug: "acme" },
       spec: {
@@ -190,7 +184,7 @@ describe("OrgPreferencesPanel", () => {
         },
       },
     });
-    const update = vi.fn(async (_input: OrganizationInput) => orgWithMemoryOn);
+    const update = vi.fn(async (_resource: Organization, _paths: string[]) => orgWithMemoryOn);
     const client = {
       organization: {
         get: vi.fn(async () => orgWithMemoryOn),
@@ -207,9 +201,9 @@ describe("OrgPreferencesPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    // Update is a full-spec replace: without the nested preferences
-    // spread, this save would silently switch the org's memory OFF.
-    expect(update.mock.calls[0]![0].preferences?.memoryEnabled).toBe(true);
+    // The form names its one preference: the memory switch is not among
+    // the paths, so the save can never turn the org's memory off.
+    expect(sentUpdate<Organization>(update).paths).toEqual(["spec.preferences.standing_context"]);
   });
 
   it("memory toggle is read-only without can_edit", async () => {

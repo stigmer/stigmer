@@ -419,11 +419,11 @@ describe("memory update", () => {
     // generated update mappers send it): the decision must survive by
     // mechanism, in the response AND the stored row.
     const updated = await command.update(
-      updateInput(memory, {
+      { resource: updateInput(memory, {
         content: "Deploys to eu-west-1.",
         subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,
         provenance: memory.spec!.provenance,
-      }),
+      }), updateMask: { paths: ["*"] } },
     );
     expect(updated.spec?.content).toBe("Deploys to eu-west-1.");
     expect(updated.status?.lifecycleState).toBe(
@@ -443,10 +443,10 @@ describe("memory update", () => {
 
     const error = await grpcError(() =>
       command.update(
-        updateInput(memory, {
+        { resource: updateInput(memory, {
           content: "x",
           subjectIdentityAccountId: "ida_someone_else",
-        }),
+        }), updateMask: { paths: ["*"] } },
       ),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
@@ -459,11 +459,11 @@ describe("memory update", () => {
 
     const error = await grpcError(() =>
       command.update(
-        updateInput(memory, {
+        { resource: updateInput(memory, {
           content: "x",
           subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,
           provenance: { agentId: "agt_invented" },
-        }),
+        }), updateMask: { paths: ["*"] } },
       ),
     );
     expect(error.code).toBe(Code.FailedPrecondition);
@@ -476,7 +476,7 @@ describe("memory update", () => {
     const id = memory.metadata!.id;
     await command.confirm({ value: id });
 
-    const updated = await command.update({
+    const updated = await command.update({ resource: {
       apiVersion: memory.apiVersion,
       kind: memory.kind,
       metadata: memory.metadata,
@@ -487,7 +487,7 @@ describe("memory update", () => {
       status: {
         lifecycleState: MemoryLifecycleState.lifecycle_state_rejected,
       },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(updated.status?.lifecycleState).toBe(
       MemoryLifecycleState.lifecycle_state_confirmed,
     );
@@ -519,11 +519,11 @@ describe("memory update", () => {
       ),
       () =>
         command.update(
-          updateInput(memory, {
+          { resource: updateInput(memory, {
             content: "Deploys to ap-south-1.",
             subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,
             provenance: memory.spec!.provenance,
-          }),
+          }), updateMask: { paths: ["*"] } },
         ),
     );
     expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);
@@ -559,11 +559,11 @@ describe("memory update", () => {
         () => decide({ value: id }),
         () =>
           command.update(
-            updateInput(memory, {
+            { resource: updateInput(memory, {
               content: "Edited while the subject decided.",
               subjectIdentityAccountId: memory.spec!.subjectIdentityAccountId,
               provenance: memory.spec!.provenance,
-            }),
+            }), updateMask: { paths: ["*"] } },
           ),
       );
       expect(writes, "the lost swap is retried").toBeGreaterThanOrEqual(2);

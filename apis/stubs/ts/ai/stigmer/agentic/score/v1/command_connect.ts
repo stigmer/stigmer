@@ -5,7 +5,7 @@
 
 import { Score } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ScoreId } from "./io_pbjs";
+import { ScoreId, UpdateScoreInput } from "./io_pbjs";
 
 /**
  * ScoreCommandController handles write operations for scores.
@@ -32,17 +32,31 @@ export const ScoreCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update a person's rating: its value and comment.
+     * Update a score: the fields update_mask names change, every other
+     * field keeps its stored value.
      *
-     * Only feedback is editable, and only by the person who gave it, and only
-     * its value and comment: every other field, the score's name and labels
-     * included, stays as created. A check's verdict never changes.
+     * Only feedback is editable, only by the person who gave it, and only its
+     * value and comment; a check's verdict never changes.
+     *
+     * resource.metadata.id names the score; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the score does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the score changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the score kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.agentic.score.v1.ScoreCommandController.update
      */
     update: {
       name: "update",
-      I: Score,
+      I: UpdateScoreInput,
       O: Score,
       kind: MethodKind.Unary,
     },

@@ -42,36 +42,37 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "service_options.proto\032+ai/stigmer/common" +
       "s/rpc/method_options.proto\032*ai/stigmer/i" +
       "am/platformclient/v1/api.proto\032)ai/stigm" +
-      "er/iam/platformclient/v1/io.proto2\311\007\n\037Pl" +
+      "er/iam/platformclient/v1/io.proto2\335\007\n\037Pl" +
       "atformClientCommandController\022\317\001\n\006create" +
       "\0220.ai.stigmer.iam.platformclient.v1.Plat" +
       "formClient\032>.ai.stigmer.iam.platformclie" +
       "nt.v1.PlatformClientCreateResponse\"S\302\270\030O" +
       "\010\030\020\036\"\014metadata.org*;unauthorized to crea" +
       "te platform client in this organization\022" +
-      "\253\001\n\006update\0220.ai.stigmer.iam.platformclie" +
-      "nt.v1.PlatformClient\0320.ai.stigmer.iam.pl" +
-      "atformclient.v1.PlatformClient\"=\302\270\0309\010\002\020\027" +
-      "\"\013metadata.id*&unauthorized to update pl" +
-      "atform client\022\246\001\n\006rename\022+.ai.stigmer.co" +
-      "mmons.apiresource.RenameInput\0320.ai.stigm" +
+      "\277\001\n\006update\022;.ai.stigmer.iam.platformclie" +
+      "nt.v1.UpdatePlatformClientInput\0320.ai.sti" +
+      "gmer.iam.platformclient.v1.PlatformClien" +
+      "t\"F\302\270\030B\010\002\020\027\"\024resource.metadata.id*&unaut" +
+      "horized to update platform client\022\246\001\n\006re" +
+      "name\022+.ai.stigmer.commons.apiresource.Re" +
+      "nameInput\0320.ai.stigmer.iam.platformclien" +
+      "t.v1.PlatformClient\"=\302\270\0309\010\003\020\027\"\013resource_" +
+      "id*&unauthorized to rename platform clie" +
+      "nt\022\261\001\n\006delete\0226.ai.stigmer.commons.apire" +
+      "source.ApiResourceDeleteInput\0320.ai.stigm" +
       "er.iam.platformclient.v1.PlatformClient\"" +
       "=\302\270\0309\010\003\020\027\"\013resource_id*&unauthorized to " +
-      "rename platform client\022\261\001\n\006delete\0226.ai.s" +
-      "tigmer.commons.apiresource.ApiResourceDe" +
-      "leteInput\0320.ai.stigmer.iam.platformclien" +
-      "t.v1.PlatformClient\"=\302\270\0309\010\003\020\027\"\013resource_" +
-      "id*&unauthorized to delete platform clie" +
-      "nt\022\302\001\n\014rotateSecret\0222.ai.stigmer.iam.pla" +
-      "tformclient.v1.PlatformClientId\032>.ai.sti" +
-      "gmer.iam.platformclient.v1.PlatformClien" +
-      "tCreateResponse\">\302\270\030:\010\002\020\027\"\005value*-unauth" +
-      "orized to rotate platform client secret\032" +
-      "\004\240\377+\027B\263\001B\014CommandProtoP\001\242\002\004ASIP\252\002 Ai.Sti" +
-      "gmer.Iam.Platformclient.V1\312\002 Ai\\Stigmer\\" +
-      "Iam\\Platformclient\\V1\342\002,Ai\\Stigmer\\Iam\\P" +
-      "latformclient\\V1\\GPBMetadata\352\002$Ai::Stigm" +
-      "er::Iam::Platformclient::V1b\006proto3"
+      "delete platform client\022\302\001\n\014rotateSecret\022" +
+      "2.ai.stigmer.iam.platformclient.v1.Platf" +
+      "ormClientId\032>.ai.stigmer.iam.platformcli" +
+      "ent.v1.PlatformClientCreateResponse\">\302\270\030" +
+      ":\010\002\020\027\"\005value*-unauthorized to rotate pla" +
+      "tform client secret\032\004\240\377+\027B\263\001B\014CommandPro" +
+      "toP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platformcli" +
+      "ent.V1\312\002 Ai\\Stigmer\\Iam\\Platformclient\\V" +
+      "1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPB" +
+      "Metadata\352\002$Ai::Stigmer::Iam::Platformcli" +
+      "ent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

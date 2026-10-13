@@ -5,7 +5,7 @@
 
 import { ApiKey } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ApiKeyId, CreateServiceAccountKeyInput } from "./io_pbjs";
+import { ApiKeyId, CreateServiceAccountKeyInput, UpdateApiKeyInput } from "./io_pbjs";
 
 /**
  * ApiKeyCommandController handles write operations for API keys.
@@ -50,13 +50,28 @@ export const ApiKeyCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing API key.
+     * Update an API key: the fields update_mask names change, every other
+     * field keeps its stored value.
+     *
+     * resource.metadata.id names the API key; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the API key does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     *
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the API key changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the API key kept changing while the update was
+     *     being saved: try again. No metadata.
      *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update
      */
     update: {
       name: "update",
-      I: ApiKey,
+      I: UpdateApiKeyInput,
       O: ApiKey,
       kind: MethodKind.Unary,
     },

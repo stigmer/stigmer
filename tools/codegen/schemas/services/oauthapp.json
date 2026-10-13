@@ -26,11 +26,11 @@
         },
         {
           "name": "Update",
-          "inputType": "OAuthApp",
-          "inputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
+          "inputType": "UpdateOAuthAppInput",
+          "inputFullType": "ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput",
           "outputType": "OAuthApp",
           "outputFullType": "ai.stigmer.iam.oauthapp.v1.OAuthApp",
-          "description": "Update an existing OAuth app.\n\n The slug changes only through rename. An update authorizes the id it names,\n so wherever the server authorizes requests, an update without an id is\n refused before its slug is read; where it reads one, a slug the OAuth app\n was renamed away from is refused with SLUG_RENAMED (see apply)."
+          "description": "Update an OAuth app: the fields update_mask names change, every other\n field keeps its stored value.\n\n resource.metadata.id names the OAuth app; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the OAuth app does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the OAuth app kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "Rename",
@@ -83,6 +83,39 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateOAuthAppInput",
+      "description": "The changes an update makes to an OAuth app: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput",
+      "protoFile": "apis/ai/stigmer/iam/oauthapp/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "OAuthApp"
+          },
+          "description": "The OAuth app carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "RenameInput",
       "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",

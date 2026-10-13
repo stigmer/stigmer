@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -281,11 +282,71 @@ func (x *CreateServiceAccountKeyInput) GetNeverExpires() bool {
 	return false
 }
 
+// The changes an update makes to an API key: the fields update_mask names,
+// taken from resource.
+type UpdateApiKeyInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The API key carrying the new values, named by metadata.id. Only the fields
+	// update_mask names are read, so the others may be left empty; the result
+	// is validated as a whole.
+	Resource *ApiKey `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	// The paths the update changes, as proto field names (spec.instructions,
+	// metadata.labels). A list or map at a named path is replaced whole; "*"
+	// names every path an update may change.
+	UpdateMask    *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateApiKeyInput) Reset() {
+	*x = UpdateApiKeyInput{}
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateApiKeyInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateApiKeyInput) ProtoMessage() {}
+
+func (x *UpdateApiKeyInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateApiKeyInput.ProtoReflect.Descriptor instead.
+func (*UpdateApiKeyInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateApiKeyInput) GetResource() *ApiKey {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *UpdateApiKeyInput) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.UpdateMask
+	}
+	return nil
+}
+
 var File_ai_stigmer_iam_apikey_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"!ai/stigmer/iam/apikey/v1/io.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"E\n" +
+	"!ai/stigmer/iam/apikey/v1/io.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a\x1bbuf/validate/validate.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"E\n" +
 	"\aApiKeys\x12:\n" +
 	"\aentries\x18\x01 \x03(\v2 .ai.stigmer.iam.apikey.v1.ApiKeyR\aentries\"(\n" +
 	"\bApiKeyId\x12\x1c\n" +
@@ -300,7 +361,12 @@ const file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x04name\x129\n" +
 	"\n" +
 	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n" +
-	"\rnever_expires\x18\x04 \x01(\bR\fneverExpiresB\xfa\x01\n" +
+	"\rnever_expires\x18\x04 \x01(\bR\fneverExpires\"\xe0\x02\n" +
+	"\x11UpdateApiKeyInput\x12D\n" +
+	"\bresource\x18\x01 \x01(\v2 .ai.stigmer.iam.apikey.v1.ApiKeyB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
+	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"updateMask:\xbf\x01\xbaH\xbb\x01\x1a\xb8\x01\n" +
+	"\x17update_names_its_target\x12Gresource.metadata.id is required: an update names the API key by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''B\xfa\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var (
@@ -315,24 +381,28 @@ func file_ai_stigmer_iam_apikey_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_apikey_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_iam_apikey_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_iam_apikey_v1_io_proto_goTypes = []any{
 	(*ApiKeys)(nil),                      // 0: ai.stigmer.iam.apikey.v1.ApiKeys
 	(*ApiKeyId)(nil),                     // 1: ai.stigmer.iam.apikey.v1.ApiKeyId
 	(*ApiKeyHash)(nil),                   // 2: ai.stigmer.iam.apikey.v1.ApiKeyHash
 	(*ApiKeyAccountId)(nil),              // 3: ai.stigmer.iam.apikey.v1.ApiKeyAccountId
 	(*CreateServiceAccountKeyInput)(nil), // 4: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput
-	(*ApiKey)(nil),                       // 5: ai.stigmer.iam.apikey.v1.ApiKey
-	(*timestamppb.Timestamp)(nil),        // 6: google.protobuf.Timestamp
+	(*UpdateApiKeyInput)(nil),            // 5: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput
+	(*ApiKey)(nil),                       // 6: ai.stigmer.iam.apikey.v1.ApiKey
+	(*timestamppb.Timestamp)(nil),        // 7: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),        // 8: google.protobuf.FieldMask
 }
 var file_ai_stigmer_iam_apikey_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.iam.apikey.v1.ApiKeys.entries:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
-	6, // 1: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.expires_at:type_name -> google.protobuf.Timestamp
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	6, // 0: ai.stigmer.iam.apikey.v1.ApiKeys.entries:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
+	7, // 1: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.expires_at:type_name -> google.protobuf.Timestamp
+	6, // 2: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.resource:type_name -> ai.stigmer.iam.apikey.v1.ApiKey
+	8, // 3: ai.stigmer.iam.apikey.v1.UpdateApiKeyInput.update_mask:type_name -> google.protobuf.FieldMask
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_apikey_v1_io_proto_init() }
@@ -347,7 +417,7 @@ func file_ai_stigmer_iam_apikey_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

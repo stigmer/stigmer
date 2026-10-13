@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
-import { create } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -11,7 +11,7 @@ import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInput
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IdentityProviderSchema, type IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderCommandController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/command_pb";
-import { ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
+import { UpdateIdentityProviderInputSchema, ListIdentityProvidersByOrgInputSchema, IdentityProvidersSchema, type ListIdentityProvidersByOrgInput, type IdentityProviders } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { IdentityProviderQueryController } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/query_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -38,9 +38,9 @@ export class IdentityProviderClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async update(input: IdentityProviderInput): Promise<IdentityProvider> {
+  async update(resource: IdentityProvider | MessageInitShape<typeof IdentityProviderSchema>, paths: string[]): Promise<IdentityProvider> {
     try {
-      return await this.command.update(buildIdentityProviderProto(input));
+      return await this.command.update(create(UpdateIdentityProviderInputSchema, { resource, updateMask: { paths } }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -79,13 +79,13 @@ export class IdentityProviderClient {
   }
 }
 
-/** Input for creating/updating an IdentityProvider. */
+/** Input for creating or applying an IdentityProvider. */
 export interface IdentityProviderInput {
   /**
-   * The resource's `metadata.id`, for exact update addressing when set
-   * from a loaded resource. Required for updates to platform-scoped
-   * (org-less) kinds, where the org+slug fallback cannot match. Ignored
-   * on create: the server assigns every new resource's id.
+   * The resource's `metadata.id`: an apply that carries it changes that
+   * resource, whatever its slug. Ignored on create: the server assigns
+   * every new resource's id. An update takes the resource itself and
+   * the paths it changes.
    */
   id?: string;
   name: string;
@@ -129,24 +129,22 @@ export function buildIdentityProviderProto(input: IdentityProviderInput): Identi
 }
 
 /**
- * Maps a fetched {@link IdentityProvider} to a complete {@link IdentityProviderInput} for `update()`.
+ * Maps a fetched {@link IdentityProvider} to the complete {@link IdentityProviderInput} that
+ * restates it, for copying it into a new resource:
  *
- * The update RPC replaces the ENTIRE spec — spread this mapper's output
- * and override only the fields you edit (spread nested objects the same
- * way):
+ *   await client.create({ ...toIdentityProviderInput(res), id: undefined, slug: next });
  *
- *   await client.update({ ...toIdentityProviderUpdateInput(res), description: next });
+ * An update never needs it: it takes the resource and the paths it changes.
  *
  * Proto3 defaults normalize to `undefined`; resource references keep
  * `version` (pinned refs) and `kind`.
  */
-export function toIdentityProviderUpdateInput(resource: IdentityProvider): IdentityProviderInput {
+export function toIdentityProviderInput(resource: IdentityProvider): IdentityProviderInput {
   const meta = resource.metadata;
   const spec = resource.spec ?? create(IdentityProviderSpecSchema);
   return {
-    // Exact update addressing (id-first in the update pipeline) — for
-    // platform-scoped (org-less) kinds the org+slug fallback cannot
-    // match, so the id is the ONLY working address.
+    // The resource's id: an apply that carries it changes this resource;
+    // a copy clears it.
     id: meta?.id || undefined,
     name: meta?.name ?? "",
     slug: meta?.slug || undefined,

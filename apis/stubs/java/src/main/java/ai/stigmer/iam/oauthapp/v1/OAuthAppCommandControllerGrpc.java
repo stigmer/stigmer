@@ -77,27 +77,27 @@ public final class OAuthAppCommandControllerGrpc {
     return getCreateMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.OAuthApp,
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput,
       ai.stigmer.iam.oauthapp.v1.OAuthApp> getUpdateMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "update",
-      requestType = ai.stigmer.iam.oauthapp.v1.OAuthApp.class,
+      requestType = ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput.class,
       responseType = ai.stigmer.iam.oauthapp.v1.OAuthApp.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.OAuthApp,
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput,
       ai.stigmer.iam.oauthapp.v1.OAuthApp> getUpdateMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.OAuthApp, ai.stigmer.iam.oauthapp.v1.OAuthApp> getUpdateMethod;
+    io.grpc.MethodDescriptor<ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput, ai.stigmer.iam.oauthapp.v1.OAuthApp> getUpdateMethod;
     if ((getUpdateMethod = OAuthAppCommandControllerGrpc.getUpdateMethod) == null) {
       synchronized (OAuthAppCommandControllerGrpc.class) {
         if ((getUpdateMethod = OAuthAppCommandControllerGrpc.getUpdateMethod) == null) {
           OAuthAppCommandControllerGrpc.getUpdateMethod = getUpdateMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.oauthapp.v1.OAuthApp, ai.stigmer.iam.oauthapp.v1.OAuthApp>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput, ai.stigmer.iam.oauthapp.v1.OAuthApp>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "update"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.oauthapp.v1.OAuthApp.getDefaultInstance()))
+                  ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.iam.oauthapp.v1.OAuthApp.getDefaultInstance()))
               .setSchemaDescriptor(new OAuthAppCommandControllerMethodDescriptorSupplier("update"))
@@ -277,14 +277,22 @@ public final class OAuthAppCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing OAuth app.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the OAuth app
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an OAuth app: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the OAuth app does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the OAuth app kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    default void update(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
+    default void update(ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
     }
@@ -399,14 +407,22 @@ public final class OAuthAppCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing OAuth app.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the OAuth app
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an OAuth app: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the OAuth app does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the OAuth app kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public void update(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
+    public void update(ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
@@ -508,14 +524,22 @@ public final class OAuthAppCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing OAuth app.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the OAuth app
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an OAuth app: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the OAuth app does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the OAuth app kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.iam.oauthapp.v1.OAuthApp update(ai.stigmer.iam.oauthapp.v1.OAuthApp request) throws io.grpc.StatusException {
+    public ai.stigmer.iam.oauthapp.v1.OAuthApp update(ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -614,14 +638,22 @@ public final class OAuthAppCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing OAuth app.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the OAuth app
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an OAuth app: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the OAuth app does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the OAuth app kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
-    public ai.stigmer.iam.oauthapp.v1.OAuthApp update(ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
+    public ai.stigmer.iam.oauthapp.v1.OAuthApp update(ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
     }
@@ -722,15 +754,23 @@ public final class OAuthAppCommandControllerGrpc {
 
     /**
      * <pre>
-     * Update an existing OAuth app.
-     * The slug changes only through rename. An update authorizes the id it names,
-     * so wherever the server authorizes requests, an update without an id is
-     * refused before its slug is read; where it reads one, a slug the OAuth app
-     * was renamed away from is refused with SLUG_RENAMED (see apply).
+     * Update an OAuth app: the fields update_mask names change, every other
+     * field keeps its stored value.
+     * resource.metadata.id names the OAuth app; apply finds one by slug. The slug
+     * changes only through rename, and a mask naming a field another door
+     * owns, or a path the OAuth app does not have, is refused with
+     * INVALID_ARGUMENT naming the path.
+     * An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"):
+     *   - ETAG_MISMATCH — resource.metadata.etag is set and the OAuth app changed
+     *     since that etag was read: read it again and make the change again.
+     *     No metadata.
+     *   - WRITE_CONFLICT — the OAuth app kept changing while the update was
+     *     being saved: try again. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> update(
-        ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
+        ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
     }
@@ -803,7 +843,7 @@ public final class OAuthAppCommandControllerGrpc {
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp>) responseObserver);
           break;
         case METHODID_UPDATE:
-          serviceImpl.update((ai.stigmer.iam.oauthapp.v1.OAuthApp) request,
+          serviceImpl.update((ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp>) responseObserver);
           break;
         case METHODID_RENAME:
@@ -850,7 +890,7 @@ public final class OAuthAppCommandControllerGrpc {
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.iam.oauthapp.v1.OAuthApp,
+              ai.stigmer.iam.oauthapp.v1.UpdateOAuthAppInput,
               ai.stigmer.iam.oauthapp.v1.OAuthApp>(
                 service, METHODID_UPDATE)))
         .addMethod(

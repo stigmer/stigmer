@@ -26,11 +26,11 @@
         },
         {
           "name": "Update",
-          "inputType": "Schedule",
-          "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "inputType": "UpdateScheduleInput",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.UpdateScheduleInput",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Update an existing schedule.\n\n Replaces the spec wholesale. The referenced agent and the target arm\n are immutable; cron, time zone, enablement, and the message may all\n change. Status (firing observations, the platform\n pause) is never touched by updates — use resume to clear a platform\n pause.\n\n The slug changes only through rename. An update authorizes the id it names,\n so wherever the server authorizes requests, an update without an id is\n refused before its slug is read; where it reads one, a slug the schedule\n was renamed away from is refused with SLUG_RENAMED (see apply)."
+          "description": "Update a schedule: the fields update_mask names change, every other\n field keeps its stored value.\n\n The referenced agent and the target arm are immutable; cron, time zone,\n enablement and the message may change. Status (firing observations,\n the platform pause) is never touched by updates: use resume to clear a\n platform pause.\n\n resource.metadata.id names the schedule; apply finds one by slug. The slug\n changes only through rename, and a mask naming a field another door\n owns, or a path the schedule does not have, is refused with\n INVALID_ARGUMENT naming the path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the schedule changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the schedule kept changing while the update was\n     being saved: try again. No metadata."
         },
         {
           "name": "Rename",
@@ -115,6 +115,39 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateScheduleInput",
+      "description": "The changes an update makes to a schedule: the fields update_mask names,\n taken from resource.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.UpdateScheduleInput",
+      "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "Schedule"
+          },
+          "description": "The schedule carrying the new values, named by metadata.id. Only the fields\n update_mask names are read, so the others may be left empty; the result\n is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.instructions,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "RenameInput",
       "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",

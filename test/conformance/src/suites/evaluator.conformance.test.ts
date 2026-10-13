@@ -90,10 +90,10 @@ describe("Evaluator conformance", () => {
     const byAgent = await clients.evaluatorQuery.getByAgent({ agentId });
     expect(byAgent.metadata?.id).toBe(created.metadata!.id);
 
-    const changed = await clients.evaluatorCommand.update({
+    const changed = await clients.evaluatorCommand.update({ resource: {
       ...byAgent,
       spec: { ...byAgent.spec!, enabled: false, sampleRate: 0.5, modelName: "claude-haiku-4-5" },
-    });
+    }, updateMask: { paths: ["*"] } });
     expect(changed.spec?.enabled).toBe(false);
     expect(changed.spec?.sampleRate).toBe(0.5);
     expect(changed.spec?.modelName).toBe("claude-haiku-4-5");
@@ -158,10 +158,10 @@ describe("Evaluator conformance", () => {
     const another = await createAgentIn(org);
     const moved = await expectGrpcCode(
       () =>
-        clients.evaluatorCommand.update({
+        clients.evaluatorCommand.update({ resource: {
           ...evaluator,
           spec: { ...evaluator.spec!, agentId: another.metadata!.id },
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.FailedPrecondition,
       "moving an evaluator to another agent",
     );
@@ -209,10 +209,10 @@ describe("Evaluator conformance", () => {
     expect(seen.metadata?.id).toBe(evaluator.metadata!.id);
     await expectGrpcCode(
       () =>
-        member.evaluatorCommand.update({
+        member.evaluatorCommand.update({ resource: {
           ...seen,
           spec: { ...seen.spec!, monthlyLimitUsd: 1000 },
-        }),
+        }, updateMask: { paths: ["*"] } }),
       Code.PermissionDenied,
       "a member who cannot edit the agent raising its limit",
     );

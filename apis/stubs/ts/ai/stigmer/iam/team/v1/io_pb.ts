@@ -7,13 +7,15 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Team } from "./api_pb.js";
 import { file_ai_stigmer_iam_team_v1_api } from "./api_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { FieldMask } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/iam/team/v1/io.proto.
  */
 export const file_ai_stigmer_iam_team_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch9haS9zdGlnbWVyL2lhbS90ZWFtL3YxL2lvLnByb3RvEhZhaS5zdGlnbWVyLmlhbS50ZWFtLnYxIjYKBVRlYW1zEi0KB2VudHJpZXMYASADKAsyHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iKwoTTGlzdFRlYW1zQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_iam_team_v1_api, file_buf_validate_validate]);
+  fileDesc("Ch9haS9zdGlnbWVyL2lhbS90ZWFtL3YxL2lvLnByb3RvEhZhaS5zdGlnbWVyLmlhbS50ZWFtLnYxIjYKBVRlYW1zEi0KB2VudHJpZXMYASADKAsyHC5haS5zdGlnbWVyLmlhbS50ZWFtLnYxLlRlYW0iKwoTTGlzdFRlYW1zQnlPcmdJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAEiwQIKD1VwZGF0ZVRlYW1JbnB1dBI2CghyZXNvdXJjZRgBIAEoCzIcLmFpLnN0aWdtZXIuaWFtLnRlYW0udjEuVGVhbUIGukgD2AEDEjcKC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFza0IGukgDyAEBOrwBuki4ARq1AQoXdXBkYXRlX25hbWVzX2l0c190YXJnZXQSRHJlc291cmNlLm1ldGFkYXRhLmlkIGlzIHJlcXVpcmVkOiBhbiB1cGRhdGUgbmFtZXMgdGhlIHRlYW0gYnkgaXRzIGlkGlRoYXModGhpcy5yZXNvdXJjZSkgJiYgaGFzKHRoaXMucmVzb3VyY2UubWV0YWRhdGEpICYmIHRoaXMucmVzb3VyY2UubWV0YWRhdGEuaWQgIT0gJydiBnByb3RvMw", [file_ai_stigmer_iam_team_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask]);
 
 /**
  * Teams contains a list of team resources.
@@ -56,4 +58,37 @@ export type ListTeamsByOrgInput = Message<"ai.stigmer.iam.team.v1.ListTeamsByOrg
  */
 export const ListTeamsByOrgInputSchema: GenMessage<ListTeamsByOrgInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_team_v1_io, 1);
+
+/**
+ * The changes an update makes to a team: the fields update_mask names,
+ * taken from resource.
+ *
+ * @generated from message ai.stigmer.iam.team.v1.UpdateTeamInput
+ */
+export type UpdateTeamInput = Message<"ai.stigmer.iam.team.v1.UpdateTeamInput"> & {
+  /**
+   * The team carrying the new values, named by metadata.id. Only the fields
+   * update_mask names are read, so the others may be left empty; the result
+   * is validated as a whole.
+   *
+   * @generated from field: ai.stigmer.iam.team.v1.Team resource = 1;
+   */
+  resource?: Team;
+
+  /**
+   * The paths the update changes, as proto field names (spec.instructions,
+   * metadata.labels). A list or map at a named path is replaced whole; "*"
+   * names every path an update may change.
+   *
+   * @generated from field: google.protobuf.FieldMask update_mask = 2;
+   */
+  updateMask?: FieldMask;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.team.v1.UpdateTeamInput.
+ * Use `create(UpdateTeamInputSchema)` to create a new message.
+ */
+export const UpdateTeamInputSchema: GenMessage<UpdateTeamInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_team_v1_io, 2);
 

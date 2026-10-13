@@ -4,6 +4,7 @@ package ai.stigmer.agentic.score.v1;
 
 import "ai/stigmer/agentic/score/v1/api.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
 
 // ScoreId wraps a score identifier.
 message ScoreId {
@@ -245,4 +246,24 @@ message ListFlaggedScoresByAgentRequest {
   // The previous response's next_page_token, to continue that list; every
   // other field must equal that request's, or the call is refused.
   string page_token = 5;
+}
+
+// The changes an update makes to a score: the fields update_mask names,
+// taken from resource.
+message UpdateScoreInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the score by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The score carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read, so the others may be left empty; the result
+  // is validated as a whole.
+  Score resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.instructions,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
 }

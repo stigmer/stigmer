@@ -18,6 +18,7 @@ class ErrorCode(enum.Enum):
     ALREADY_EXISTS = "already-exists"
     RESOURCE_EXHAUSTED = "resource-exhausted"
     FAILED_PRECONDITION = "failed-precondition"
+    ABORTED = "aborted"
     INTERNAL = "internal"
     UNAVAILABLE = "unavailable"
     CANCELLED = "cancelled"
@@ -31,6 +32,7 @@ _GRPC_CODE_MAP: dict[grpc.StatusCode, ErrorCode] = {
     grpc.StatusCode.ALREADY_EXISTS: ErrorCode.ALREADY_EXISTS,
     grpc.StatusCode.RESOURCE_EXHAUSTED: ErrorCode.RESOURCE_EXHAUSTED,
     grpc.StatusCode.FAILED_PRECONDITION: ErrorCode.FAILED_PRECONDITION,
+    grpc.StatusCode.ABORTED: ErrorCode.ABORTED,
     grpc.StatusCode.INTERNAL: ErrorCode.INTERNAL,
     grpc.StatusCode.UNAVAILABLE: ErrorCode.UNAVAILABLE,
     grpc.StatusCode.CANCELLED: ErrorCode.CANCELLED,

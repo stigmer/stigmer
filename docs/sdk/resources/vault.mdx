@@ -59,7 +59,7 @@ Vault vault = client.vaults().get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getMine`](#getmine) | Get the caller's own My vault in an organization. |
 | [`list`](#list) | List the vaults the caller can see in an organization: their own My vault and the shared vaults they may view. |
 | [`create`](#create) | Create a shared vault in an organization. |
-| [`update`](#update) | Update a vault's name, description and external id. |
+| [`update`](#update) | Update a vault: the fields update_mask names change, every other field keeps its stored value. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of a shared vault. |
 | [`delete`](#delete) | Delete a vault and every value it holds. |
 | [`completeConnectLink`](#completeconnectlink) | Finish a Connect link's sign-in and spend the link. |
@@ -409,78 +409,54 @@ Vault vault = client.vaults().create(VaultInput.builder()
 
 ### update
 
-Update a vault's name, description and external id.
+Update a vault: the fields update_mask names change, every other field keeps its stored value.
 
-Entries are kept as stored: change them with setSecrets, removeSecrets, setConnection and removeConnections.
+Its name, description and external id may change. Entries are kept as stored: change them with setSecrets, removeSecrets, setConnection and removeConnections.
 
-The slug changes only through rename. An update authorizes the id it names, so wherever the server authorizes requests, an update without an id is refused before its slug is read. Where it reads one (a server that admits every caller), a slug the vault was renamed away from, named without the vault's id, is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a write by a name that stops resolving after 30 days would later make a second vault:
+resource.metadata.id names the vault; apply finds one by slug. The slug changes only through rename, and a mask naming a field another door owns, or a path the vault does not have, is refused with INVALID_ARGUMENT naming the path.
 
-- SLUG_RENAMED — the slug was renamed: it still leads to the same vault for reading, but a write names its current slug. Metadata: slug (the one the request named).
+An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- ETAG_MISMATCH — resource.metadata.etag is set and the vault changed since that etag was read: read it again and make the change again. No metadata. - WRITE_CONFLICT — the vault kept changing while the update was being saved: try again. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const vault = await stigmer.vault.update({
-  name: "my-vault",
-  org: "acme",
-  slug: "...",
-  labels: {},
-  person: "...",
-  description: "...",
-  externalId: "...",
-  secrets: {},
-  connections: {},
-});
+const vault = await stigmer.vault.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+vault.metadata!.name = "New name";
+const updated = await stigmer.vault.update(vault, ["metadata.name"]);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-vault, err := client.Vault.Update(ctx, &stigmer.VaultInput{
-  Name:        "my-vault",
-  Org:         "acme",
-  Slug:        "...",
-  Labels:      map[string]string{},
-  Person:      "...",
-  Description: "...",
-  ExternalId:  "...",
-  Secrets:     map[string]string{},
-  Connections: map[string]string{},
-})
+vault, err := client.Vault.Get(ctx, "vlt_01j5q3k7m8r2s4tnz2hfp0q0c3")
+vault.Metadata.Name = "New name"
+updated, err := client.Vault.Update(ctx, vault, []string{"metadata.name"})
 ```
 </Tab>
 <Tab value="Python">
 ```python
-vault = client.vaults.update(VaultInput(
-    name="my-vault",
-    org="acme",
-    slug="...",
-    labels={},
-    person="...",
-    description="...",
-    external_id="...",
-    secrets={},
-    connections={},
-))
+vault = client.vaults.get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3")
+vault.metadata.name = "New name"
+updated = client.vaults.update(vault, ["metadata.name"])
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Vault vault = client.vaults().update(VaultInput.builder()
-    .name("my-vault")
-    .org("acme")
-    .slug("...")
-    .labels(Map.of())
-    .person("...")
-    .description("...")
-    .externalId("...")
-    .secrets(Map.of())
-    .connections(Map.of())
-    .build());
+Vault vault = client.vaults().get("vlt_01j5q3k7m8r2s4tnz2hfp0q0c3");
+Vault updated = client.vaults().update(
+    vault.toBuilder().setMetadata(vault.getMetadata().toBuilder().setName("New name")).build(),
+    java.util.List.of("metadata.name"));
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`VaultInput`](#vaultinput)
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resource` | [`Vault`](#vault) | The vault, named by `metadata.id`, with the new values at the paths it changes. Carry the `metadata.etag` it was read at to be refused if it changed since. |
+| `paths` | `string[]` | The fields the update changes, as proto field paths (`spec.description`, `metadata.name`), or `*` for every one. |
 
 **Returns**: [`Vault`](#vault)
 
@@ -1151,6 +1127,17 @@ VaultConnectionSignIn records the sign-in behind a connection, so the platform c
     tokenEndpoint: { type: "string", description: "The token endpoint renewals are sent to." },
     refreshToken: { type: "string", description: "The refresh token." },
     loginApp: { type: "string", description: "The login app the sign-in used, so a renewal presents the same client: \"org:<OAuthApp id>\" for an organization's app, \"stigmer:<key>\" for one of Stigmer's built-in login apps, and empty for a client registered with the address's own login server, which has no secret." },
+  }}
+/>
+
+### UpdateVaultInput
+
+The changes an update makes to a vault: the fields update_mask names, taken from resource.
+
+<TypeTable
+  type={{
+    resource: { type: "VaultInput", description: "The vault carrying the new values, named by metadata.id.", typeDescriptionLink: "#vaultinput" },
+    updateMask: { type: "FieldMaskInput", description: "The paths the update changes, as proto field names (spec.instructions, metadata.labels).", required: true },
   }}
 />
 

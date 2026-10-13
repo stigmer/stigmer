@@ -26,9 +26,10 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_rpc__service__options__pb2
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 from ai.stigmer.iam.team.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_api__pb2
+from ai.stigmer.iam.team.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_team_dot_v1_dot_io__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/iam/team/v1/command.proto\x12\x16\x61i.stigmer.iam.team.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a ai/stigmer/iam/team/v1/api.proto2\xc7\x04\n\x15TeamCommandController\x12\x8e\x01\n\x06\x63reate\x12\x1c.ai.stigmer.iam.team.v1.Team\x1a\x1c.ai.stigmer.iam.team.v1.Team\"H\xc2\xb8\x18\x44\x08-\x10\x1e\"\x0cmetadata.org*0unauthorized to create team in this organization\x12x\n\x06update\x12\x1c.ai.stigmer.iam.team.v1.Team\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2\xc2\xb8\x18.\x08\x02\x10\x18\"\x0bmetadata.id*\x1bunauthorized to update team\x12\x87\x01\n\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2\xc2\xb8\x18.\x08\x03\x10\x18\"\x0bresource_id*\x1bunauthorized to rename team\x12\x92\x01\n\x06\x64\x65lete\x12\x36.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2\xc2\xb8\x18.\x08\x03\x10\x18\"\x0bresource_id*\x1bunauthorized to delete team\x1a\x04\xa0\xff+\x18\x42\xa7\x01\n\x1a\x63om.ai.stigmer.iam.team.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SIT\xaa\x02\x16\x41i.Stigmer.Iam.Team.V1\xca\x02\x16\x41i\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1a\x41i::Stigmer::Iam::Team::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/iam/team/v1/command.proto\x12\x16\x61i.stigmer.iam.team.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a ai/stigmer/iam/team/v1/api.proto\x1a\x1f\x61i/stigmer/iam/team/v1/io.proto2\xdc\x04\n\x15TeamCommandController\x12\x8e\x01\n\x06\x63reate\x12\x1c.ai.stigmer.iam.team.v1.Team\x1a\x1c.ai.stigmer.iam.team.v1.Team\"H\xc2\xb8\x18\x44\x08-\x10\x1e\"\x0cmetadata.org*0unauthorized to create team in this organization\x12\x8c\x01\n\x06update\x12\'.ai.stigmer.iam.team.v1.UpdateTeamInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\";\xc2\xb8\x18\x37\x08\x02\x10\x18\"\x14resource.metadata.id*\x1bunauthorized to update team\x12\x87\x01\n\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2\xc2\xb8\x18.\x08\x03\x10\x18\"\x0bresource_id*\x1bunauthorized to rename team\x12\x92\x01\n\x06\x64\x65lete\x12\x36.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a\x1c.ai.stigmer.iam.team.v1.Team\"2\xc2\xb8\x18.\x08\x03\x10\x18\"\x0bresource_id*\x1bunauthorized to delete team\x1a\x04\xa0\xff+\x18\x42\xa7\x01\n\x1a\x63om.ai.stigmer.iam.team.v1B\x0c\x43ommandProtoP\x01\xa2\x02\x04\x41SIT\xaa\x02\x16\x41i.Stigmer.Iam.Team.V1\xca\x02\x16\x41i\\Stigmer\\Iam\\Team\\V1\xe2\x02\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadata\xea\x02\x1a\x41i::Stigmer::Iam::Team::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,11 +42,11 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['create']._loaded_options = None
   _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['create']._serialized_options = b'\302\270\030D\010-\020\036\"\014metadata.org*0unauthorized to create team in this organization'
   _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['update']._loaded_options = None
-  _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['update']._serialized_options = b'\302\270\030.\010\002\020\030\"\013metadata.id*\033unauthorized to update team'
+  _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['update']._serialized_options = b'\302\270\0307\010\002\020\030\"\024resource.metadata.id*\033unauthorized to update team'
   _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['rename']._loaded_options = None
   _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['rename']._serialized_options = b'\302\270\030.\010\003\020\030\"\013resource_id*\033unauthorized to rename team'
   _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['delete']._loaded_options = None
   _globals['_TEAMCOMMANDCONTROLLER'].methods_by_name['delete']._serialized_options = b'\302\270\030.\010\003\020\030\"\013resource_id*\033unauthorized to delete team'
-  _globals['_TEAMCOMMANDCONTROLLER']._serialized_start=243
-  _globals['_TEAMCOMMANDCONTROLLER']._serialized_end=826
+  _globals['_TEAMCOMMANDCONTROLLER']._serialized_start=276
+  _globals['_TEAMCOMMANDCONTROLLER']._serialized_end=880
 # @@protoc_insertion_point(module_scope)
