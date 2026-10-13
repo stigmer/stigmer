@@ -207,6 +207,12 @@ function parseArgs() {
       `Unsupported platform "${platform}". Supported: ${Object.keys(CORE_BRIDGE_TRIPLES).join(", ")}`,
     );
   }
+  if (entryPackageDir !== undefined && out === undefined) {
+    fail(
+      "--entry-package needs --out: without it the tree would replace the server's own dist-slim/, " +
+        "and every reader of that tree would run the entry package as the open-source server",
+    );
+  }
   if (entryPackageDir !== undefined && emitPackages) {
     fail(
       "--emit-packages is refused with --entry-package: the npm packages are the server's own, " +
@@ -642,27 +648,6 @@ function buildPlatformPackage(platform, destDir) {
  * Dependency versions come from the installed tree (the lockfile's truth),
  * so the published artifact runs exactly what was tested here.
  */
-/**
- * The self-contained tree's package.json: the server's meta manifest, or
- * with --entry-package the same shape under the entry package's name,
- * version, description, license and repository, private because that tree
- * is never published.
- */
-function treePackageJson() {
-  const meta = metaPackageJson();
-  if (entryPackage === undefined) return meta;
-  const { name, description, license, repository } = entryPackage.pkg;
-  return {
-    ...meta,
-    name,
-    version: entryPackage.version,
-    description,
-    license,
-    repository,
-    private: true,
-  };
-}
-
 function metaPackageJson() {
   const installedVersion = (name) =>
     readPackageJson(join(nodeModulesDir, name)).version;
@@ -685,6 +670,27 @@ function metaPackageJson() {
     },
     optionalDependencies,
     repository: serverPkg.repository,
+  };
+}
+
+/**
+ * The self-contained tree's package.json: the server's meta manifest, or
+ * with --entry-package the same shape under the entry package's name,
+ * version, description, license and repository, private because that tree
+ * is never published.
+ */
+function treePackageJson() {
+  const meta = metaPackageJson();
+  if (entryPackage === undefined) return meta;
+  const { name, description, license, repository } = entryPackage.pkg;
+  return {
+    ...meta,
+    name,
+    version: entryPackage.version,
+    description,
+    license,
+    repository,
+    private: true,
   };
 }
 
