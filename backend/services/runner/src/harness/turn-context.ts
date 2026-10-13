@@ -69,6 +69,7 @@ import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb"
 import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -397,6 +398,18 @@ export async function runWroteEngineEvents(
   runId: string,
 ): Promise<boolean> {
   return client.hasRunSessionEvent(sessionId, runId, ENGINE_EVENT_TYPES);
+}
+
+/**
+ * The run's events, read from the session's log each time it is called
+ * (`TurnInput.readRunEvents`): what an adapter tells the turn's story from.
+ */
+export function runEventsReader(
+  client: Pick<StigmerClient, "listRunSessionEvents">,
+  sessionId: string,
+  runId: string,
+): () => Promise<readonly SessionEvent[]> {
+  return () => client.listRunSessionEvents(sessionId, runId);
 }
 
 /**
@@ -1863,7 +1876,7 @@ export async function resolveTurnContext(
       appendSystemPrompt: spec.appendSystemPrompt,
       standing: resolveStandingContext(deps, { execution, spec, blueprint }),
       artifactStorage: deps.artifactStorage,
-      readRunEvents: () => deps.client.listRunSessionEvents(sessionId, deps.input.executionId),
+      readRunEvents: runEventsReader(deps.client, sessionId, deps.input.executionId),
       ...(prepared?.case.history !== undefined && { resumedHistory: prepared.case.history }),
     },
   };

@@ -34,6 +34,7 @@ import {
   isReinvocation,
   reconcileTurnSettlement,
   regeneratesApprovedWrites,
+  runEventsReader,
   runWroteEngineEvents,
 } from "../turn-context.js";
 
@@ -75,6 +76,17 @@ describe("runWroteEngineEvents", () => {
     expect(ENGINE_EVENT_TYPES).not.toContain("user.message");
     expect(ENGINE_EVENT_TYPES).not.toContain("stigmer.memory.recalled");
     expect(ENGINE_EVENT_TYPES).not.toContain("stigmer.file_review.reconciled");
+  });
+});
+
+describe("runEventsReader", () => {
+  it("reads the run's events afresh on each call, and not before", async () => {
+    const client = { listRunSessionEvents: vi.fn(async () => []) };
+    const read = runEventsReader(client, "ses_1", "run_1");
+    expect(client.listRunSessionEvents).not.toHaveBeenCalled();
+    await read();
+    await read();
+    expect(client.listRunSessionEvents.mock.calls).toEqual([["ses_1", "run_1"], ["ses_1", "run_1"]]);
   });
 });
 
