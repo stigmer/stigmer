@@ -96,7 +96,7 @@ async function seedSentinel(org: string, sessionId: string): Promise<void> {
   await awaitPhase(clients, runId, RunPhase.RUN_IN_PROGRESS);
   const minted = await clients.platformQuery.getRunnerScopedToken({ scope: { case: "runId", value: runId } });
   const runner = target.clientsPresenting(minted.runnerScopedToken);
-  await runner.sessionCommand.bindHarnessState({ runId });
+  await runner.sessionCommand.bindHarnessState({ runId, harnessStateId: SEED_STATE });
   await clients.agentExecutionCommand.cancel({ id: runId });
   await awaitTerminal(clients, runId);
   mock.releaseHolds();
