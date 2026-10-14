@@ -110,7 +110,10 @@ await client.beta.sessions.events.send(sessionId, {
 
 The answer holds the events as Stigmer recorded them. Stigmer checks every event
 in a request before it applies any: one it does not accept refuses the whole
-request, and nothing is sent.
+request, and nothing is sent. The events then apply in order. If one is refused
+as it applies, for example a confirmation for a call that no longer waits, the
+events before it stay applied and the answer is that refusal; list the Session's
+newest events to see which landed.
 
 When Stigmer refuses a send, it tells the SDK not to retry it. After a
 connection failure or a timeout, the SDK retries on its own, and if the first
