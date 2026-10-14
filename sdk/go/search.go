@@ -2,12 +2,13 @@ package stigmer
 
 import (
 	"context"
+	"iter"
 
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // ResourceKind re-exports the proto-defined API resource kind enum.
@@ -26,7 +27,12 @@ type SearchParams struct {
 	Kinds []ResourceKind
 	Query string
 	Org   string
-	Page  *Page
+	// PageSize is the most results to return: 0 asks for the default page
+	// of 50, and above 100 reads 100.
+	PageSize int32
+	// PageToken is the previous response's NextPageToken, to continue the
+	// same query.
+	PageToken string
 }
 
 // SearchResult wraps one search hit returned by the platform.
@@ -34,9 +40,13 @@ type SearchResult = searchv1.SearchResult
 
 // SearchResponse holds a page of search results.
 type SearchResponse struct {
-	Entries    []*SearchResult
-	TotalCount int32
-	TotalPages int32
+	Entries []*SearchResult
+	// CountsByKind counts the matches per resource kind across every page,
+	// keyed by kind name.
+	CountsByKind map[string]int32
+	// NextPageToken is set when more results may follow: pass it as
+	// PageToken to continue.
+	NextPageToken string
 }
 
 // SearchClient provides cross-resource search against the Stigmer platform.
@@ -50,21 +60,49 @@ func newSearchClient(conn grpc.ClientConnInterface) *SearchClient {
 
 // Query performs a cross-resource search.
 func (s *SearchClient) Query(ctx context.Context, params *SearchParams) (*SearchResponse, error) {
-	req := &searchv1.SearchRequest{
-		Kinds: params.Kinds,
-		Query: params.Query,
-		Org:   params.Org,
-	}
-	if params.Page != nil {
-		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
-	}
-	resp, err := s.search.Search(ctx, req)
+	resp, err := s.search.Search(ctx, searchRequest(params))
 	if err != nil {
 		return nil, gen.WrapErr(err)
 	}
 	return &SearchResponse{
-		Entries:    resp.GetEntries(),
-		TotalCount: resp.GetTotalCount(),
-		TotalPages: resp.GetTotalPages(),
+		Entries:       resp.GetEntries(),
+		CountsByKind:  resp.GetCountsByKind(),
+		NextPageToken: resp.GetNextPageToken(),
 	}, nil
+}
+
+// QueryAll returns every result of a search, page after page: it follows
+// NextPageToken from the token params names until the results end. The
+// sequence yields the first error and stops; breaking out of the loop
+// stops the reads.
+func (s *SearchClient) QueryAll(ctx context.Context, params *SearchParams) iter.Seq2[*SearchResult, error] {
+	return func(yield func(*SearchResult, error) bool) {
+		req := proto.Clone(searchRequest(params)).(*searchv1.SearchRequest)
+		for {
+			resp, err := s.search.Search(ctx, req)
+			if err != nil {
+				yield(nil, gen.WrapErr(err))
+				return
+			}
+			for _, entry := range resp.GetEntries() {
+				if !yield(entry, nil) {
+					return
+				}
+			}
+			if resp.GetNextPageToken() == "" {
+				return
+			}
+			req.PageToken = resp.GetNextPageToken()
+		}
+	}
+}
+
+func searchRequest(params *SearchParams) *searchv1.SearchRequest {
+	return &searchv1.SearchRequest{
+		Kinds:     params.Kinds,
+		Query:     params.Query,
+		Org:       params.Org,
+		PageSize:  params.PageSize,
+		PageToken: params.PageToken,
+	}
 }
