@@ -96,6 +96,7 @@ describe("newSiblingEnforcingLane", () => {
     } as unknown as ConformanceClients;
     const sibling: SiblingServer = {
       clientsPresenting: () => clients,
+      managedAgentsBaseUrl: () => "http://127.0.0.1:0",
       teardown: async () => {},
     };
 

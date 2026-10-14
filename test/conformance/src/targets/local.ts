@@ -182,7 +182,7 @@ export class LocalTarget implements TargetProfile {
       await teardown();
       throw error;
     }
-    return { clientsPresenting, teardown };
+    return { clientsPresenting, managedAgentsBaseUrl: () => server.baseUrl, teardown };
   }
 
   // Open source enforces the model in the OIDC posture, so this target's
@@ -216,6 +216,11 @@ export class LocalTarget implements TargetProfile {
 
   clientsPresenting(bearerToken: string, options: PresentingOptions = {}): ConformanceClients {
     return makeClients(createTransport(this.httpBaseUrl(), { ...options, bearerToken }));
+  }
+
+  // The Managed Agents lane is on the same unified port (target.ts).
+  managedAgentsBaseUrl(): string {
+    return this.httpBaseUrl();
   }
 
   // The spawned server's unified port also serves the plain-HTTP lanes (the

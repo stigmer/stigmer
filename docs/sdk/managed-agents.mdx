@@ -1,0 +1,160 @@
+---
+title: Use Anthropic's SDK
+description: Read and answer a Session's events with Anthropic's own SDK, pointed at Stigmer.
+---
+
+A Session's events are Claude Managed Agents session events, and Stigmer serves
+them on Managed Agents' own HTTP paths. If your code already uses Anthropic's
+SDK with Claude's hosted agents, point that SDK at Stigmer with a Stigmer API
+key and the same calls read and answer a Stigmer Session. You do not need
+Stigmer's client for these calls.
+
+The session events API is compatible with Claude Managed Agents
+`managed-agents-2026-04-01`, as typed by `@anthropic-ai/sdk` 0.131.0:
+`events.list`, `events.stream` and `events.send`. A test in the Stigmer
+repository drives a running server with that exact SDK release on every change.
+
+## Connect
+
+Install the SDK version the claim names, then give it Stigmer's address and a
+Stigmer API key:
+
+```bash
+npm install @anthropic-ai/sdk@0.131.0
+```
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({
+  baseURL: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY,
+});
+```
+
+Create the key in the Console under Settings > API Keys; the
+[Authentication guide](/docs/guides/authentication/overview) explains what a key
+can reach. The SDK's `authToken` option works too: it sends the same key as a
+bearer token.
+
+For a server on your own machine, use `http://localhost:7234`. A local server
+that has no sign-in treats every caller as you, so any key value works there;
+the SDK only needs one to send.
+
+The calls take a Session's ID. Create the Session with Stigmer's API or the
+Console, as the [SDK Overview](/docs/sdk/overview) shows, then use its ID here.
+
+## Read a Session's events
+
+`list` pages through the Session's events, oldest first. The SDK fetches the
+next page as you iterate:
+
+```typescript
+for await (const event of client.beta.sessions.events.list(sessionId)) {
+  if (event.type === "agent.message") {
+    console.log(event.content.map((block) => block.text).join(""));
+  }
+}
+```
+
+The filters are Managed Agents' own: `order: "desc"` for newest first, `types`
+to keep some event types, and `created_at[gt]`, `created_at[gte]`,
+`created_at[lt]` and `created_at[lte]` for a time range. `limit` sets the page
+size, from 1 to 1000.
+
+## Follow events as they arrive
+
+`stream` sends each event as it's added to the Session, from the moment the
+stream opens. Ask for `agent.message` previews to show the Agent's words as it
+writes them:
+
+```typescript
+const stream = await client.beta.sessions.events.stream(sessionId, {
+  event_deltas: ["agent.message"],
+});
+
+for await (const event of stream) {
+  if (event.type === "event_delta") {
+    process.stdout.write(event.delta.content.text);
+  } else if (event.type === "session.status_idle") {
+    break;
+  }
+}
+```
+
+Open the stream before you send a message, and the stream receives every event
+the message causes. If the stream drops, list the events after the last one you
+received, then stream again. A reader that falls far behind gets an
+`overloaded_error` and the stream ends; reconnect the same way.
+
+## Send events
+
+`send` takes the events a person sends to a Session. Stigmer accepts three:
+
+- `user.message` starts a turn. Its content is text blocks.
+- `user.tool_confirmation` answers a tool call that waits for a person:
+  `result: "allow"` runs it, `result: "deny"` refuses it, with an optional
+  `deny_message` the Agent reads. The calls that wait are the `event_ids` of the
+  newest `session.status_idle` event whose stop reason is `requires_action`.
+- `user.interrupt` stops the Session's unfinished work.
+
+```typescript
+await client.beta.sessions.events.send(sessionId, {
+  events: [{ type: "user.message", content: [{ type: "text", text: "Summarize the README." }] }],
+});
+
+await client.beta.sessions.events.send(sessionId, {
+  events: [{ type: "user.tool_confirmation", tool_use_id: toolUseId, result: "allow" }],
+});
+```
+
+The answer holds the events as Stigmer recorded them. Stigmer checks every event
+in a request before it applies any: one it does not accept refuses the whole
+request, and nothing is sent.
+
+When Stigmer refuses a send, it tells the SDK not to retry it. After a
+connection failure or a timeout, the SDK retries on its own, and if the first
+attempt had landed, a message would start a second turn. Where that matters,
+turn the retry off for sends and list the Session's newest events to learn
+whether a send landed:
+
+```typescript
+await client.beta.sessions.events.send(sessionId, { events }, { maxRetries: 0 });
+```
+
+## Call it without the SDK
+
+The same paths answer plain HTTP. The Anthropic headers are optional:
+
+```bash
+curl "https://api.stigmer.ai/v1/sessions/$SESSION_ID/events?limit=20" \
+  -H "x-api-key: $STIGMER_API_KEY"
+
+curl -N "https://api.stigmer.ai/v1/sessions/$SESSION_ID/events/stream" \
+  -H "x-api-key: $STIGMER_API_KEY"
+```
+
+A request that names a different `managed-agents-*` version in its
+`anthropic-beta` header is refused, so a client written for a later version
+learns at once that this server does not serve it.
+
+## What Stigmer does not serve here
+
+- **Creating, reading, listing or deleting Sessions.** Use Stigmer's own API
+  for the Session, then these calls for its events.
+- **`user.tool_result`, `user.custom_tool_result`, `user.define_outcome` and
+  `system.message`.** Sending one is refused with `invalid_request_error`.
+- **Image and document blocks.** Give a run its files through Stigmer's own API.
+- **Stigmer's own events**, such as file review and permission grants. They are
+  in the same log, but only
+  [Stigmer's API returns them](/docs/sdk/streaming). These calls never show
+  them, and nothing here waits on them.
+- **Several text blocks in one message.** Stigmer stores them as one text block,
+  the blocks joined by a blank line.
+
+Anthropic's SDKs in other languages speak the same wire, but only the TypeScript
+SDK is tested against Stigmer.
+
+Who may answer follows the Session's access: a person the Session is shared with
+may send a message and read the events, and only its owner approves a tool call
+or stops the Session.

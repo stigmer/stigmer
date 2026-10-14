@@ -876,6 +876,15 @@ pages:
       cancellation.
     medium: none
 
+  sdk/managed-agents:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Point Anthropic's SDK at Stigmer to list, stream and answer a Session's
+      events — the claim's version, the credential, the three events Stigmer
+      accepts, and what it does not serve.
+    medium: none
+
   sdk/typescript:
     fate: keep
     diataxis: how-to
