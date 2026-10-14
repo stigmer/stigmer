@@ -30,6 +30,8 @@
  *     revoking it and removing an owner, after position 1 and before any
  *     write; an owner is allowed each; the last owner is kept; the
  *     bootstrap twins run neither owner step.
+ *   - a stored row with no spec is corrupt storage: `get` answers INTERNAL
+ *     with the static load copy and asks the Authorizer nothing.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
@@ -1286,5 +1288,16 @@ describe("listAccessHistory on the controller", () => {
     expect(h.authorizer.checks.map((check) => IamPermission[check.permission])).toEqual([
       "can_view_access_history",
     ]);
+  });
+});
+
+describe("a corrupt row", () => {
+  it("get of a stored row with no spec is INTERNAL with the load copy, and the Authorizer is never asked", async () => {
+    const h = await harness({ caller: alice });
+    h.grants.rows.set("grt_corrupt", create(GrantSchema, { metadata: { id: "grt_corrupt" } }));
+    const error = await refusal(() => h.query.get({ value: "grt_corrupt" }));
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to load grant");
+    expect(h.authorizer.checks).toEqual([]);
   });
 });

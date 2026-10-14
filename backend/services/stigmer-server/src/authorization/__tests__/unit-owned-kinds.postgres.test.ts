@@ -16,7 +16,8 @@
  *     three structural questions: whether a resource is an
  *     organization's, whether a person views an organization, and
  *     whether an account id could still grant access on it; contextual
- *     grantStore and userset principals are refused.
+ *     grants, a grant missing either end and userset principals are
+ *     refused.
  *   - `kindsWithoutRows` names each served kind the built-in posture could
  *     not read, which is what refuses such a boot (compose.ts).
  */
@@ -27,6 +28,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { GrantSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/api_pb";
+import { GrantSpecSchema } from "@stigmer/protos/ai/stigmer/iam/grant/v1/spec_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -357,11 +359,14 @@ describe.each(driverFixtures(SEEDED_KINDS))(
           expect(await queries().check(grants(DAVE), [])).toBe(false);
         });
 
-        it("refuses contextual grants and a userset principal as programming errors", async () => {
+        it("refuses contextual grants, a grant missing either end and a userset principal as programming errors", async () => {
           const held = orgRole(DAVE, "viewer", "acme");
           await expect(queries().check(held, [held])).rejects.toThrowError(
             /contextual grants are not supported/,
           );
+          await expect(
+            queries().check(create(GrantSpecSchema, { principal: held.principal, relation: "viewer" }), []),
+          ).rejects.toThrowError("the built-in grant check needs a principal and a resource");
           await expect(
             queries().check(
               triple(

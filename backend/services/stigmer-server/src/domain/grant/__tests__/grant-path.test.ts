@@ -1208,3 +1208,17 @@ describe("who and why: every access row reaches the store with its change record
     ]);
   });
 });
+
+describe("a corrupt row", () => {
+  it("a revoke that meets a stored row with no spec fails naming it, and removes nothing", async () => {
+    const recorded: RecordedEvent[] = [];
+    const { grants, path } = pathOver(recorded, recordingLifecycle(recorded));
+    const corrupt = create(GrantSchema, { metadata: { id: "grt_corrupt" } });
+    grants.findByPrincipalAndResource = () => Promise.resolve([corrupt]);
+
+    await expect(path.revokeOrgAccess(ALICE, "acme", alice)).rejects.toThrow(
+      "grant grt_corrupt has no spec — corrupt row",
+    );
+    expect(recorded).toEqual([]);
+  });
+});

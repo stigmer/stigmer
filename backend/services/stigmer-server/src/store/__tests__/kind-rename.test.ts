@@ -226,4 +226,16 @@ describe("v34: the IAM policy is a grant", () => {
     expect(() => movedGrant("iamp_x", empty)).toThrow("it holds no triple");
     expect(() => movedGrant("iamp_x", new Uint8Array([0xff, 0xff, 0xff]))).toThrow();
   });
+
+  it("refuses a row whose triple no grant could hold, naming the field", () => {
+    const row = toBinary(
+      GrantSchema,
+      create(GrantSchema, {
+        kind: "IamPolicy",
+        metadata: { id: "iamp_x" },
+        spec: { principal: { kind: "identity_account", id: "ida:1" }, resource: { kind: "agent", id: "agt_1" }, relation: "viewer" },
+      }),
+    );
+    expect(() => movedGrant("iamp_x", row)).toThrow("grant principal.id must not contain ':', '#' or '@'");
+  });
 });

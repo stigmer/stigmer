@@ -508,6 +508,7 @@ function grantResultOf<Desc extends DescMessage>(
   method: DescMethod,
 ): Grant {
   const result = reqCtx.get(GRANT_RESULT_KEY);
+  /* v8 ignore next -- @preserve: every grant chain ends in the step that sets the result; reached only by a chain built wrong */
   if (result === undefined) {
     throw internalError(
       new Error(`${method.localName} pipeline completed without a grant`),
@@ -915,6 +916,7 @@ function requireRef(ref: ApiResourceRef | undefined): ApiResourceRef {
 
 /** Boundary-validated required grant input — absence here is a contract bug. */
 function requireInputGrant(grant: GrantSpec | undefined): GrantSpec {
+  /* v8 ignore next -- @preserve: the boundary's required-field validation refuses a check input without its grant first */
   if (grant === undefined) {
     throw internalError(
       new Error("required grant missing after boundary validation"),

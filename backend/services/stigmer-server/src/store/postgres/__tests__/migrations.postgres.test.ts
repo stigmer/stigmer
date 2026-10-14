@@ -4005,6 +4005,60 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         }
       }, 60_000);
 
+      it("moves every grant across the keyset pages of the grant rows", async () => {
+        const client = await seededAtV33();
+        try {
+          const paged = Array.from({ length: KIND_RENAME_PAGE_SIZE + 1 }, (_, i) =>
+            grantBeforeV34({
+              principal: `identity_account:ida_page_${String(i).padStart(4, "0")}`,
+              relation: "viewer",
+              resource: `organization:${ORG}`,
+            }),
+          );
+          for (const grant of paged) {
+            await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('iam_policy', $1, $2, $3)`, [
+              grant.id,
+              Buffer.from(grantRow(grant)),
+              seededAt,
+            ]);
+          }
+
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_34);
+
+          const left = await client.query(`SELECT 1 FROM resources WHERE kind = 'grant' AND id LIKE 'iamp\_%'`);
+          expect(left.rowCount).toBe(0);
+          const count = await client.query<{ n: string }>(`SELECT COUNT(*) AS n FROM resources WHERE kind = 'grant'`);
+          expect(Number(count.rows[0]!.n)).toBe(paged.length + held.length);
+          const last = paged[paged.length - 1]!;
+          expect((await client.query(`SELECT 1 FROM resources WHERE kind = 'grant' AND id = $1`, [grantIdAfterV34(last)])).rowCount).toBe(1);
+        } finally {
+          await client.end();
+        }
+      }, 60_000);
+
+      it("fails on a history entry it cannot decode, naming it, and leaves the database at v33", async () => {
+        const client = await seededAtV33();
+        try {
+          await client.query(
+            `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+               principal_kind, principal_id, relation, resource_kind, resource_id, data)
+             VALUES ($1, 9, '2026-10-15T00:00:00.000Z', 'granted', 'grant', 'ida_root', 'user', 'iamp_broken',
+               'identity_account', 'ida_alice', 'viewer', 'organization', $1, $2)`,
+            [ORG, Buffer.from([0xff, 0xff, 0xff])],
+          );
+
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_34)).rejects.toThrow(
+            `the grant_history row ${ORG}/9 cannot be read for the rename of the IAM policy to a grant`,
+          );
+          const version = Number(
+            (await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`)).rows[0].version,
+          );
+          expect(version).toBe(SCHEMA_VERSION_33);
+        } finally {
+          await client.end();
+        }
+      });
+
       it("fails on a grant whose id is not the one its triple derives, naming it, and leaves the database at v33", async () => {
         const client = await seededAtV33();
         try {

@@ -3701,6 +3701,40 @@ describe("v38: the IAM policy is a grant", () => {
     ).toEqual({ grant_id: grantIdAfterV34(orgRole) });
   });
 
+  it("moves every grant across the keyset pages of the grant rows", () => {
+    const { db } = seededAtV37();
+    const paged = Array.from({ length: KIND_RENAME_PAGE_SIZE + 1 }, (_, i) =>
+      grantBeforeV34({
+        principal: `identity_account:ida_page_${String(i).padStart(4, "0")}`,
+        relation: "viewer",
+        resource: `organization:${ORG}`,
+      }),
+    );
+    for (const grant of paged) {
+      insertGrant(db, grant);
+    }
+    runMigrations(db, SCHEMA_VERSION_38);
+    expect(db.prepare(`SELECT COUNT(*) AS n FROM resources WHERE kind = 'grant' AND substr(id, 1, 5) = 'iamp_'`).get()).toEqual({ n: 0 });
+    expect(db.prepare(`SELECT COUNT(*) AS n FROM resources WHERE kind = 'grant'`).get()).toEqual({ n: paged.length + held.length });
+    expect(
+      db.prepare(`SELECT COUNT(*) AS n FROM resources WHERE kind = 'grant' AND id = ?`).get(grantIdAfterV34(paged[paged.length - 1]!)),
+    ).toEqual({ n: 1 });
+  });
+
+  it("fails on a history entry it cannot decode, naming it, and leaves the database at v37", () => {
+    const { db } = seededAtV37();
+    db.prepare(
+      `INSERT INTO iam_policy_history (org, sequence, occurred_at, change, cause, actor_id, actor_class, policy_id,
+         principal_kind, principal_id, relation, resource_kind, resource_id, data)
+       VALUES (?, 9, '2026-10-15T00:00:00.000Z', 'granted', 'grant', 'ida_root', 'user', 'iamp_broken',
+         'identity_account', 'ida_alice', 'viewer', 'organization', ?, ?)`,
+    ).run(ORG, ORG, new Uint8Array([0xff, 0xff, 0xff]));
+    expect(() => runMigrations(db, SCHEMA_VERSION_38)).toThrow(
+      `the grant_history row ${ORG}/9 cannot be read for the rename of the IAM policy to a grant`,
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_37);
+  });
+
   it("fails on a grant whose id is not the one its triple derives, naming it, and leaves the database at v37", () => {
     const { db } = seededAtV37();
     const stray = { id: "iamp_01hzzzzzzzzzzzzzzzzzzzzzzz", principal: "identity_account:ida_carol", relation: "viewer", resource: `organization:${ORG}` };
