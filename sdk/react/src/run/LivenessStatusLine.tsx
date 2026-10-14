@@ -26,7 +26,7 @@ export interface LivenessStatusLineProps {
  * as a running tool row's title and the thinking indicator, so "alive" reads
  * identically everywhere. {@link MessageThread} emits it only while the
  * active run is `IN_PROGRESS` with no running tool call, no live
- * sub-agent, and no pending approval — when a gate is waiting on the *user*,
+ * subagent, and no pending approval — when a gate is waiting on the *user*,
  * shimmering "Working…" would be a lie, and when a tool is running, its own
  * row carries the sweep. It disappears the moment the run settles
  * (phase-driven — never inferred from the stream going quiet).

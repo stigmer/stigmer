@@ -1,6 +1,6 @@
 /**
  * buildThreadItems and the tool uses that wait for a person: a waiting call
- * that renders as a row (in the turn, or nested in a sub-agent, or a `task`
+ * that renders as a row (in the turn, or nested in a subagent, or a `task`
  * call whose thread has not opened yet) shows its decision inline and gets
  * no bottom card; a waiting call with no row of its own (an internal to-do
  * call) gets the bottom backstop card; with approvals off none is emitted.
@@ -15,7 +15,7 @@ import {
   result,
   said,
   status,
-  subAgent,
+  subagent,
   thought,
   toolId,
   turnsOf,
@@ -60,37 +60,37 @@ describe("buildThreadItems — inline vs. bottom approval partition", () => {
     const items = buildThreadItems(turns, [], { includeApprovals: true });
 
     expect(hasToolInGroup(items, toolId(R, "task1"))).toBe(true);
-    expect(items.some((i) => i.kind === "sub-agent")).toBe(false);
+    expect(items.some((i) => i.kind === "subagent")).toBe(false);
     expect(approvalItems(items)).toHaveLength(0);
   });
 
-  it("does NOT emit a bottom card for a waiting call nested in a sub-agent", () => {
+  it("does NOT emit a bottom card for a waiting call nested in a subagent", () => {
     const threadId = toolId(R, "task1");
     const turns = turnsOf(
       user(R, "go"),
       status(R, "running"),
       use(R, "task1", "task", { description: "dig" }),
-      subAgent(R, "task1", { items: [use(R, "nested", "fetch", {}, { ask: true, threadId }), asked(R, "nested", { threadId })] }),
+      subagent(R, "task1", { items: [use(R, "nested", "fetch", {}, { ask: true, threadId }), asked(R, "nested", { threadId })] }),
     );
 
     const items = buildThreadItems(turns, [], { includeApprovals: true });
 
-    expect(items.some((i) => i.kind === "sub-agent")).toBe(true);
+    expect(items.some((i) => i.kind === "subagent")).toBe(true);
     expect(turns[0]!.asks.map((a) => a.id)).toEqual([toolId(R, "nested")]);
     expect(approvalItems(items)).toHaveLength(0);
   });
 
-  it("does NOT emit a bottom card for a waiting call nested in a sub-agent's own sub-agent", () => {
+  it("does NOT emit a bottom card for a waiting call nested in a subagent's own subagent", () => {
     const outer = toolId(R, "task1");
     const inner = toolId(R, "task2");
     const turns = turnsOf(
       user(R, "go"),
       status(R, "running"),
       use(R, "task1", "task", { description: "dig" }),
-      subAgent(R, "task1", {
+      subagent(R, "task1", {
         items: [
           use(R, "task2", "task", { description: "dig deeper" }, { threadId: outer }),
-          ...subAgent(R, "task2", {
+          ...subagent(R, "task2", {
             items: [use(R, "deep", "fetch", {}, { ask: true, threadId: inner }), asked(R, "deep", { threadId: inner })],
           }),
         ],

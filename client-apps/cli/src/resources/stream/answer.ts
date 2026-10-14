@@ -7,11 +7,12 @@
 //   grant ... grantPermission: this call and every waiting call of its class
 //             run for the rest of the turn
 //
-// `--approve-default` picks one answer per run: approve allows, reject
-// denies, approve-all grants, and skip (also what an unset flag means)
-// denies with a neutral reason so the agent carries on without the call. The
-// session has no answer called skip, and a headless run cannot leave the call
-// unanswered: its turn would wait forever.
+// `--approve-default` picks one answer per run, in the session's own words:
+// allow, deny (with a neutral reason, so the agent carries on without the
+// call) or allow-all (a grant). An unset flag denies the same way: a headless
+// run cannot leave the call unanswered, or its turn would wait forever. The
+// retired words approve, skip, reject and approve-all are refused with the
+// word that replaced them.
 
 import { create } from "@bufbuild/protobuf";
 import {
@@ -23,7 +24,7 @@ import {
 import { UsageError } from "../../errors/index.js";
 
 /** The `--approve-default` choice; "" when the flag is unset. */
-export type ApproveDefault = "" | "approve" | "skip" | "reject" | "approve-all";
+export type ApproveDefault = "" | "allow" | "deny" | "allow-all";
 
 /** One answer to a waiting tool use. */
 export type AskAnswer =
@@ -31,8 +32,18 @@ export type AskAnswer =
   | { readonly kind: "deny"; readonly reason: string }
   | { readonly kind: "grant" };
 
-/** The reason a skipped call is denied with: the agent reads it and goes on. */
-export const SKIP_REASON = "Skipped by the user: carry on without this call.";
+/** The reason `--approve-default` denies a call with: the agent reads it and goes on. */
+export const DENY_REASON = "Denied by --approve-default: carry on without this call.";
+
+/** The answers the flag no longer takes, each with the word that replaced it. */
+const RETIRED: Readonly<Record<string, string>> = {
+  approve: '"approve" is now "allow"',
+  skip: '"skip" and "reject" are now "deny"',
+  reject: '"skip" and "reject" are now "deny"',
+  "approve-all": '"approve-all" is now "allow-all"',
+  approve_all: '"approve-all" is now "allow-all"',
+  approveall: '"approve-all" is now "allow-all"',
+};
 
 /** The slice of the session client an answer goes through. */
 export interface AnswerClient {
@@ -43,52 +54,50 @@ export interface AnswerClient {
 }
 
 /**
- * Parse `--approve-default`. Case-insensitive, with the approve-all
- * spellings the flag has always taken; empty means unset.
+ * Parse `--approve-default`. Case-insensitive, with `allow_all` and
+ * `allowall` read as allow-all; empty means unset. A retired word is refused
+ * with the word that replaced it.
  */
 export function parseApproveDefault(value: string): ApproveDefault {
-  switch (value.trim().toLowerCase()) {
+  const word = value.trim().toLowerCase();
+  switch (word) {
     case "":
       return "";
-    case "approve":
-      return "approve";
-    case "skip":
-      return "skip";
-    case "reject":
-      return "reject";
-    case "approve-all":
-    case "approve_all":
-    case "approveall":
-      return "approve-all";
-    default:
-      throw new UsageError(
-        `invalid --approve-default value "${value}": must be one of: approve, skip, reject, approve-all`,
-      );
+    case "allow":
+      return "allow";
+    case "deny":
+      return "deny";
+    case "allow-all":
+    case "allow_all":
+    case "allowall":
+      return "allow-all";
   }
+  const replaced = RETIRED[word];
+  throw new UsageError(
+    `invalid --approve-default value "${value}": ${replaced === undefined ? "" : `${replaced}; `}must be one of: allow, deny, allow-all`,
+  );
 }
 
 /** The answer a run's `--approve-default` gives every ask. */
 export function answerFor(choice: ApproveDefault): AskAnswer {
   switch (choice) {
-    case "approve":
+    case "allow":
       return { kind: "allow" };
-    case "reject":
-      return { kind: "deny", reason: "" };
-    case "approve-all":
+    case "allow-all":
       return { kind: "grant" };
-    case "skip":
+    case "deny":
     case "":
-      return { kind: "deny", reason: SKIP_REASON };
+      return { kind: "deny", reason: DENY_REASON };
   }
 }
 
-/** The answer's word, for a status line: allowed, denied, skipped, allowed for the turn. */
+/** The answer's word, for a status line: allowed, denied, allowed for the turn. */
 export function answerWord(answer: AskAnswer): string {
   switch (answer.kind) {
     case "allow":
       return "allowed";
     case "deny":
-      return answer.reason === SKIP_REASON ? "skipped" : "denied";
+      return "denied";
     case "grant":
       return "allowed for the rest of the turn";
   }

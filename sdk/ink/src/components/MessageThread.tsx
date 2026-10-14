@@ -1,5 +1,5 @@
 // The terminal conversation: a session's folded turns as a scrolling log —
-// each turn's message, the agent's messages, tool groups and sub-agents in
+// each turn's message, the agent's messages, tool groups and subagents in
 // the order it produced them, its settled file reviews, how the last turn
 // ended, its waiting tool uses as approval prompts, and the optimistic
 // message just sent. Ended turns are written once through Ink's <Static>;
@@ -21,14 +21,14 @@ import {
 import {
   FileReviewContext,
   runPhaseOf,
-  subAgentSubjectOf,
+  subagentSubjectOf,
   type FileReviewContextValue,
   type ThreadMessage,
   type ToolUseAnswer,
 } from "@stigmer/react";
 import { MessageEntry } from "./MessageEntry.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
-import { SubAgentBlock } from "./SubAgentBlock.js";
+import { SubagentBlock } from "./SubagentBlock.js";
 import { RunProgress } from "./RunProgress.js";
 import { ApprovalPrompt } from "./ApprovalPrompt.js";
 import { FileReviewRecord } from "./FileReviewRecord.js";
@@ -68,7 +68,7 @@ export interface MessageThreadProps {
 type ThreadItem =
   | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string }
   | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
-  | { readonly kind: "sub-agent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
+  | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
   | { readonly kind: "file-review-record"; readonly set: FileReviewSet; readonly key: string }
@@ -93,7 +93,7 @@ function isConversationTurn(turn: Turn, run: Run | undefined): boolean {
  * Builds one turn's items: the person's message (the run's rule skips a
  * placeholder or a build turn's label), each agent message and note, each
  * run of consecutive tool uses as a group (to-do calls left out), each
- * sub-agent as a block — plus (when `includeFileReviewRecords`) a read-only
+ * subagent as a block — plus (when `includeFileReviewRecords`) a read-only
  * record at the turn's tail for each settled file review.
  */
 function buildTurnSegment(
@@ -127,7 +127,7 @@ function buildTurnSegment(
         continue;
       }
       flush();
-      seg.push({ kind: "sub-agent", toolUse: item, thread: item.thread, key: `sa-${item.id}` });
+      seg.push({ kind: "subagent", toolUse: item, thread: item.thread, key: `sa-${item.id}` });
       continue;
     }
     flush();
@@ -227,7 +227,7 @@ function fileReviewContextOf(turns: readonly Turn[], runs: readonly Run[]): File
  * Renders a continuous conversation thread from a session's folded turns in
  * the terminal.
  *
- * Composes {@link MessageEntry}, {@link ToolCallGroup}, {@link SubAgentBlock},
+ * Composes {@link MessageEntry}, {@link ToolCallGroup}, {@link SubagentBlock},
  * {@link RunProgress}, {@link ApprovalPrompt}, and (for settled file reviews)
  * {@link FileReviewRecord} into a scrolling terminal log.
  *
@@ -310,11 +310,11 @@ function renderItem(
       return <MessageEntry message={item.message} />;
     case "tool-group":
       return <ToolCallGroup toolUses={item.toolUses} defaultExpanded={expandToolCalls} />;
-    case "sub-agent":
+    case "subagent":
       return (
-        <SubAgentBlock
+        <SubagentBlock
           thread={item.thread}
-          subject={subAgentSubjectOf(item.toolUse)}
+          subject={subagentSubjectOf(item.toolUse)}
           startedAt={item.toolUse.processedAt}
           completedAt={item.toolUse.result?.processedAt ?? ""}
           defaultExpanded={expandToolCalls}

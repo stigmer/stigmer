@@ -155,7 +155,7 @@ describe("useSessionFileChanges", () => {
     expect(r.fileChanges[0].after?.body.case === "inline" && r.fileChanges[0].after.body.value).toBe("b");
   });
 
-  it("groups changes across change sets by path (a run's record covers sub-agents)", () => {
+  it("groups changes across change sets by path (a run's record covers subagents)", () => {
     const exec = execWith("e1");
     exec.status!.fileChanges = [
       create(FileChangeSetSchema, {

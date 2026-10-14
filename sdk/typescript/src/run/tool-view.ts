@@ -277,7 +277,7 @@ export const SHELL_INTENT_ARG_FIELD = "description";
 /**
  * Args-level intent extraction: SHELL-kind-scoped on purpose, because
  * `description` means other things on other tools (a task tool's description
- * is the sub-agent subject, never a row title). Blank and non-string values
+ * is the subagent subject, never a row title). Blank and non-string values
  * degrade to null — callers fall back to their category label.
  *
  * The seam for surfaces that hold a pre-resolved kind and raw args instead of
@@ -526,7 +526,7 @@ function normalizeShell(result: string, args: Args): ToolResultView {
   // Cursor args, so no fallback fields are needed.
   const command = firstString(args, ["command"]);
 
-  // Two shapes carry structured shell output: native sub-agent steps emit the
+  // Two shapes carry structured shell output: native subagent steps emit the
   // {stdout,stderr,exitCode} record directly; the Cursor SDK nests it under a
   // {status, value} envelope (the same envelope the edit tool uses). Read
   // whichever is present so the real output surfaces instead of the raw JSON

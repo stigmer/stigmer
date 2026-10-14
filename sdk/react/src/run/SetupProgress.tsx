@@ -24,7 +24,7 @@ export interface SetupProgressProps {
   readonly serverPhase?: string;
   /**
    * When `true`, the run has moved past `PENDING` into
-   * `IN_PROGRESS` but the agent has not yet produced any AI messages.
+   * `IN_PROGRESS` but the agent has not yet produced any agent messages.
    * Renders a static "Thinking\u2026" label instead of the setup
    * phase sequence or server-reported phase.
    */
@@ -73,7 +73,7 @@ function buildSteps(
 
 /**
  * Animated inline indicator shown in the message thread while an
- * run has not yet produced AI messages.
+ * run has not yet produced agent messages.
  *
  * Operates in three modes (highest-priority first):
  *
